@@ -502,7 +502,7 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 #ifdef HAVE_MMX
     x264_mc_init_mmx( cpu, pf );
 #endif
-#ifdef ARCH_PPC
+#ifdef HAVE_ALTIVEC
     if( cpu&X264_CPU_ALTIVEC )
         x264_mc_altivec_init( pf );
 #endif

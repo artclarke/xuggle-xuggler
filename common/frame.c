@@ -913,13 +913,13 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
     }
 #endif
 
-#ifdef ARCH_PPC
+#ifdef HAVE_ALTIVEC
     if( cpu&X264_CPU_ALTIVEC )
     {
         pf->deblock_v_luma = x264_deblock_v_luma_altivec;
         pf->deblock_h_luma = x264_deblock_h_luma_altivec;
    }
-#endif // ARCH_PPC
+#endif // HAVE_ALTIVEC
 
 #ifdef HAVE_ARMV6
    if( cpu&X264_CPU_NEON )

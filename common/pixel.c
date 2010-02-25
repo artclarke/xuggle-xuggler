@@ -862,7 +862,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         }
     }
 #endif
-#ifdef ARCH_PPC
+#ifdef HAVE_ALTIVEC
     if( cpu&X264_CPU_ALTIVEC )
     {
         x264_pixel_altivec_init( pixf );

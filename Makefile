@@ -75,9 +75,11 @@ endif
 
 # AltiVec optims
 ifeq ($(ARCH),PPC)
+ifneq ($(AS),)
 SRCS += common/ppc/mc.c common/ppc/pixel.c common/ppc/dct.c \
         common/ppc/quant.c common/ppc/deblock.c \
         common/ppc/predict.c
+endif
 endif
 
 # NEON optims

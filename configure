@@ -12,7 +12,7 @@ echo "  --disable-lavf-input     disables libavformat input"
 echo "  --disable-ffms-input     disables ffmpegsource input"
 echo "  --disable-mp4-output     disables mp4 output (using gpac)"
 echo "  --disable-pthread        disables multithreaded encoding"
-echo "  --disable-asm            disables assembly optimizations on x86 and arm"
+echo "  --disable-asm            disables platform-specific assembly optimizations"
 echo "  --enable-debug           adds -g, doesn't strip"
 echo "  --enable-gprof           adds -pg, doesn't strip"
 echo "  --enable-visualize       enables visualization (X11 only)"
@@ -348,20 +348,23 @@ case $host_cpu in
     ;;
   powerpc|powerpc64)
     ARCH="PPC"
-    if [ $SYS = MACOSX ]
-    then
-      CFLAGS="$CFLAGS -faltivec -fastf -mcpu=G4"
-    else
-      CFLAGS="$CFLAGS -maltivec -mabi=altivec"
-      define HAVE_ALTIVEC_H
+    if [ $asm = yes ] ; then
+      define HAVE_ALTIVEC
+      AS="${AS-${cross_prefix}gcc}"
+      if [ $SYS = MACOSX ] ; then
+        CFLAGS="$CFLAGS -faltivec -fastf -mcpu=G4"
+      else
+        CFLAGS="$CFLAGS -maltivec -mabi=altivec"
+        define HAVE_ALTIVEC_H
+      fi
     fi
     ;;
   sparc)
-    if test "$(uname -m)" = "sun4u"; then
+    if [ $asm = yes ] && test "$(uname -m)" = "sun4u"; then
       ARCH="UltraSparc"
       CFLAGS="$CFLAGS -mcpu=ultrasparc"
       LDFLAGS="$LDFLAGS -mcpu=ultrasparc"
-      AS="${cross_prefix}as"
+      AS="${AS-${cross_prefix}as}"
       ASFLAGS="$ASFLAGS -xarch=v8plusa"
     else
       ARCH="Sparc"
