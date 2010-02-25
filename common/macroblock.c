@@ -286,9 +286,6 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
         return 1;
     }
 
-    if( !M64( mv ) || IS_INTRA( type_col ) || (ref[0]&&ref[1]) )
-        return 1;
-
     if( h->param.i_threads > 1
         && ( mv[0][1] > h->mb.mv_max_spel[1]
           || mv[1][1] > h->mb.mv_max_spel[1] ) )
@@ -300,6 +297,9 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
 #endif
         return 0;
     }
+
+    if( !M64( mv ) || IS_INTRA( type_col ) || (ref[0]&&ref[1]) )
+        return 1;
 
     /* Don't do any checks other than the ones we have to, based
      * on the size of the colocated partitions.
