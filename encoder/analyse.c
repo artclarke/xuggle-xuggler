@@ -581,6 +581,10 @@ static void inline x264_psy_trellis_init( x264_t *h, int do_both_dct )
 /* Reset fenc satd scores cache for psy RD */
 static inline void x264_mb_init_fenc_cache( x264_t *h, int b_satd )
 {
+    if( h->param.analyse.i_trellis == 2 && h->mb.i_psy_trellis )
+        x264_psy_trellis_init( h, h->param.analyse.b_transform_8x8 );
+    if( !h->mb.i_psy_rd )
+        return;
     /* Writes beyond the end of the array, but not a problem since fenc_satd_cache is right after. */
     h->mc.memzero_aligned( h->mb.pic.fenc_hadamard_cache, sizeof(h->mb.pic.fenc_hadamard_cache) );
     if( b_satd )
