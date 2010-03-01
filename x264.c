@@ -57,6 +57,8 @@ typedef struct {
     hnd_t hin;
     hnd_t hout;
     FILE *qpfile;
+    FILE *tcfile_out;
+    double timebase_convert_multiplier;
 } cli_opt_t;
 
 /* i/o file operation function pointer structs */
@@ -506,6 +508,11 @@ static void Help( x264_param_t *defaults, int longhelp )
     H2( "      --sps-id <integer>      Set SPS and PPS id numbers [%d]\n", defaults->i_sps_id );
     H2( "      --aud                   Use access unit delimiters\n" );
     H2( "      --force-cfr             Force constant framerate timestamp generation\n" );
+    H2( "      --tcfile-in <string>    Force timestamp generation with timecode file\n" );
+    H2( "      --tcfile-out <string>   Output timecode v2 file from input timestamps\n" );
+    H2( "      --timebase <int/int>    Specify timebase numerator and denominator\n"
+        "                 <integer>    Specify timebase numerator for input timecode file\n"
+        "                              or specify timebase denominator for other input\n" );
     H0( "\n" );
 }
 
@@ -527,6 +534,9 @@ static void Help( x264_param_t *defaults, int longhelp )
 #define OPT_DEMUXER 271
 #define OPT_INDEX 272
 #define OPT_INTERLACED 273
+#define OPT_TCFILE_IN 274
+#define OPT_TCFILE_OUT 275
+#define OPT_TIMEBASE 276
 
 static char short_options[] = "8A:B:b:f:hI:i:m:o:p:q:r:t:Vvw";
 static struct option long_options[] =
@@ -661,6 +671,9 @@ static struct option long_options[] =
     { "colormatrix", required_argument, NULL, 0 },
     { "chromaloc",   required_argument, NULL, 0 },
     { "force-cfr",         no_argument, NULL, 0 },
+    { "tcfile-in",   required_argument, NULL, OPT_TCFILE_IN },
+    { "tcfile-out",  required_argument, NULL, OPT_TCFILE_OUT },
+    { "timebase",    required_argument, NULL, OPT_TIMEBASE },
     {0, 0, 0, 0}
 };
 
@@ -793,6 +806,7 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
     const char *demuxer = demuxer_names[0];
     char *output_filename = NULL;
     const char *muxer = muxer_names[0];
+    char *tcfile_name = NULL;
     x264_param_t defaults;
     char *profile = NULL;
     int b_thread_input = 0;
@@ -953,6 +967,20 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
             case OPT_INTERLACED:
                 b_user_interlaced = 1;
                 goto generic_option;
+            case OPT_TCFILE_IN:
+                tcfile_name = optarg;
+                break;
+            case OPT_TCFILE_OUT:
+                opt->tcfile_out = fopen( optarg, "wb" );
+                if( !opt->tcfile_out )
+                {
+                    fprintf( stderr, "x264 [error]: can't open `%s'\n", optarg );
+                    return -1;
+                }
+                break;
+            case OPT_TIMEBASE:
+                input_opt.timebase = optarg;
+                break;
             default:
 generic_option:
             {
@@ -1038,6 +1066,27 @@ generic_option:
                  info.height, info.interlaced ? 'i' : 'p', info.sar_width, info.sar_height,
                  info.fps_num, info.fps_den, info.vfr ? 'v' : 'c' );
 
+    if( tcfile_name )
+    {
+        if( b_user_fps )
+        {
+            fprintf( stderr, "x264 [error]: --fps + --tcfile-in is incompatible.\n" );
+            return -1;
+        }
+        if( timecode_input.open_file( tcfile_name, &opt->hin, &info, &input_opt ) )
+        {
+            fprintf( stderr, "x264 [error]: timecode input failed\n" );
+            return -1;
+        }
+        else
+            input = timecode_input;
+    }
+    else if( !info.vfr && input_opt.timebase )
+    {
+        fprintf( stderr, "x264 [error]: --timebase is incompatible with cfr input\n" );
+        return -1;
+    }
+
     /* set param flags from the info flags as necessary */
     param->i_csp       = info.csp;
     param->i_height    = info.height;
@@ -1061,8 +1110,35 @@ generic_option:
     }
     else
     {
-        param->i_timebase_den = param->i_fps_num;
         param->i_timebase_num = param->i_fps_den;
+        param->i_timebase_den = param->i_fps_num;
+    }
+    if( !tcfile_name && input_opt.timebase )
+    {
+        int i_user_timebase_num;
+        int i_user_timebase_den;
+        int ret = sscanf( input_opt.timebase, "%d/%d", &i_user_timebase_num, &i_user_timebase_den );
+        if( !ret )
+        {
+            fprintf( stderr, "x264 [error]: invalid argument: timebase = %s\n", input_opt.timebase );
+            return -1;
+        }
+        else if( ret == 1 )
+        {
+            i_user_timebase_num = param->i_timebase_num;
+            i_user_timebase_den = atoi( input_opt.timebase );
+        }
+        opt->timebase_convert_multiplier = ((double)i_user_timebase_den / param->i_timebase_den)
+                                         * ((double)param->i_timebase_num / i_user_timebase_num);
+        if( opt->timebase_convert_multiplier < 1 )
+        {
+            fprintf( stderr, "x264 [error]: timebase you specified will generate nonmonotonic pts: %d/%d\n",
+                     i_user_timebase_num, i_user_timebase_den );
+            return -1;
+        }
+        param->i_timebase_num = i_user_timebase_num;
+        param->i_timebase_den = i_user_timebase_den;
+        param->b_vfr_input = 1;
     }
     if( !param->vui.i_sar_width || !param->vui.i_sar_height )
     {
@@ -1274,6 +1350,9 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
             return -1;
     }
 
+    if( opt->tcfile_out )
+        fprintf( opt->tcfile_out, "# timecode format v2\n" );
+
     /* Encode frames */
     for( i_frame = 0, i_frame_output = 0; b_ctrl_c == 0 && (i_frame < i_frame_total || i_frame_total == 0); )
     {
@@ -1282,21 +1361,29 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
 
         if( !param->b_vfr_input )
             pic.i_pts = i_frame;
+        if( opt->timebase_convert_multiplier )
+            pic.i_pts = (int64_t)( pic.i_pts * opt->timebase_convert_multiplier + 0.5 );
+
+        int64_t output_pts = pic.i_pts * dts_compress_multiplier;   /* pts libx264 returns */
+
         if( pic.i_pts <= largest_pts )
         {
             if( param->i_log_level >= X264_LOG_WARNING )
             {
                 if( param->i_log_level >= X264_LOG_DEBUG || pts_warning_cnt < MAX_PTS_WARNING )
                     fprintf( stderr, "x264 [warning]: non-strictly-monotonic pts at frame %d (%"PRId64" <= %"PRId64")\n",
-                             i_frame, pic.i_pts * dts_compress_multiplier, largest_pts * dts_compress_multiplier );
+                             i_frame, output_pts, largest_pts * dts_compress_multiplier );
                 else if( pts_warning_cnt == MAX_PTS_WARNING )
                     fprintf( stderr, "x264 [warning]: too many nonmonotonic pts warnings, suppressing further ones\n" );
                 pts_warning_cnt++;
             }
             pic.i_pts = largest_pts + ticks_per_frame;
+            output_pts = pic.i_pts * dts_compress_multiplier;
         }
         second_largest_pts = largest_pts;
         largest_pts = pic.i_pts;
+        if( opt->tcfile_out )
+            fprintf( opt->tcfile_out, "%.6f\n", output_pts * ((double)param->i_timebase_num / param->i_timebase_den) * 1e3 );
 
         if( opt->qpfile )
             parse_qpfile( opt, &pic, i_frame + opt->i_seek );
@@ -1355,6 +1442,12 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
 
     if( b_ctrl_c )
         fprintf( stderr, "aborted at input frame %d, output frame %d\n", opt->i_seek + i_frame, i_frame_output );
+
+    if( opt->tcfile_out )
+    {
+        fclose( opt->tcfile_out );
+        opt->tcfile_out = NULL;
+    }
 
     input.close_file( opt->hin );
     output.close_file( opt->hout, largest_pts, second_largest_pts );

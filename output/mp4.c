@@ -93,7 +93,6 @@ static void recompute_bitrate_mp4( GF_ISOFile *p_file, int i_track )
 static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest_pts )
 {
     mp4_hnd_t *p_mp4 = handle;
-    uint64_t total_duration = 0;
 
     if( !p_mp4 )
         return 0;
@@ -117,13 +116,11 @@ static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest
          * And then, the mdhd duration is updated, but it time-wise doesn't give the actual duration.
          * The tkhd duration is the actual track duration. */
         uint64_t mdhd_duration = (2 * largest_pts - second_largest_pts - p_mp4->i_delay_time) * p_mp4->i_time_inc;
-        total_duration = gf_isom_get_media_duration( p_mp4->p_file, p_mp4->i_track );
-        if( mdhd_duration != total_duration )
+        if( mdhd_duration != gf_isom_get_media_duration( p_mp4->p_file, p_mp4->i_track ) )
         {
             uint64_t last_dts = gf_isom_get_sample_dts( p_mp4->p_file, p_mp4->i_track, p_mp4->i_numframe );
             uint32_t last_duration = (uint32_t)( mdhd_duration > last_dts ? mdhd_duration - last_dts : (largest_pts - second_largest_pts) * p_mp4->i_time_inc );
             gf_isom_set_last_sample_duration( p_mp4->p_file, p_mp4->i_track, last_duration );
-            total_duration = gf_isom_get_media_duration( p_mp4->p_file, p_mp4->i_track );
         }
 
         /* Write an Edit Box if the first CTS offset is positive.

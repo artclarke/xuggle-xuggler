@@ -41,6 +41,11 @@ static inline int64_t gcd( int64_t a, int64_t b )
     }
 }
 
+static inline int64_t lcm( int64_t a, int64_t b )
+{
+    return ( a / gcd( a, b ) ) * b;
+}
+
 static inline char *get_filename_extension( char *filename )
 {
     char *ext = filename + strlen( filename );

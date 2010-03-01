@@ -30,6 +30,7 @@ typedef struct
 {
     char *index;
     char *resolution; /* resolution string parsed by raw yuv input */
+    char *timebase;
     int seek;
 } cli_input_opt_t;
 
@@ -66,5 +67,6 @@ extern const cli_input_t avs_input;
 extern cli_input_t thread_input;
 extern const cli_input_t lavf_input;
 extern const cli_input_t ffms_input;
+extern cli_input_t timecode_input;
 
 #endif

@@ -900,10 +900,12 @@ x264_t *x264_encoder_open( x264_param_t *param )
         /* h->i_dts_compress_multiplier == h->frames.i_bframe_delay + 1 */
         h->i_dts_compress_multiplier = h->param.i_bframe ? (h->param.i_bframe_pyramid ? 3 : 2) : 1;
         if( h->i_dts_compress_multiplier != 1 )
+        {
             x264_log( h, X264_LOG_DEBUG, "DTS compresion changed timebase: %d/%d -> %d/%d\n",
                       h->param.i_timebase_num, h->param.i_timebase_den,
                       h->param.i_timebase_num, h->param.i_timebase_den * h->i_dts_compress_multiplier );
-        h->param.i_timebase_den *= h->i_dts_compress_multiplier;
+            h->param.i_timebase_den *= h->i_dts_compress_multiplier;
+        }
     }
     else
         h->i_dts_compress_multiplier = 1;
@@ -2462,7 +2464,7 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     pic_out->i_pts = h->fenc->i_pts *= h->i_dts_compress_multiplier;
     if( h->frames.i_bframe_delay )
     {
-        int64_t *i_prev_dts = thread_current->frames.i_prev_dts;
+        int64_t *prev_reordered_pts = thread_current->frames.i_prev_reordered_pts;
         if( h->i_frame <= h->frames.i_bframe_delay )
         {
             if( h->i_dts_compress_multiplier == 1 )
@@ -2476,8 +2478,8 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
             }
         }
         else
-            pic_out->i_dts = i_prev_dts[ (h->i_frame - h->frames.i_bframe_delay) % h->frames.i_bframe_delay ];
-        i_prev_dts[ h->i_frame % h->frames.i_bframe_delay ] = h->fenc->i_reordered_pts * h->i_dts_compress_multiplier;
+            pic_out->i_dts = prev_reordered_pts[ (h->i_frame - h->frames.i_bframe_delay) % h->frames.i_bframe_delay ];
+        prev_reordered_pts[ h->i_frame % h->frames.i_bframe_delay ] = h->fenc->i_reordered_pts * h->i_dts_compress_multiplier;
     }
     else
         pic_out->i_dts = h->fenc->i_reordered_pts;

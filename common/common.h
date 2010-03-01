@@ -431,7 +431,7 @@ struct x264_t
         int     i_bframe_delay;
         int64_t i_bframe_delay_time;
         int64_t i_init_delta;
-        int64_t i_prev_dts[2];
+        int64_t i_prev_reordered_pts[2];
         int b_have_lowres;  /* Whether 1/2 resolution luma planes are being used */
         int b_have_sub8x8_esa;
     } frames;
