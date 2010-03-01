@@ -279,8 +279,7 @@ static inline int idct_dequant_round_2x2_dc( int16_t ref[4], int16_t dct[4], int
 static inline int x264_mb_optimize_chroma_dc( x264_t *h, int b_inter, int i_qp, int16_t dct2x2[4] )
 {
     int16_t dct2x2_orig[4];
-    int coeff;
-    int nz = 0;
+    int coeff, nz;
 
     /* If the QP is too high, there's no benefit to rounding optimization. */
     if( h->dequant4_mf[CQM_4IC + b_inter][i_qp%6][0] << (i_qp/6) > 32*64 )
@@ -297,27 +296,25 @@ static inline int x264_mb_optimize_chroma_dc( x264_t *h, int b_inter, int i_qp, 
         return 0;
 
     /* Start with the highest frequency coefficient... is this the best option? */
-    for( coeff = 3; coeff >= 0; coeff-- )
+    for( nz = 0, coeff = h->quantf.coeff_last[DCT_CHROMA_DC]( dct2x2 ); coeff >= 0; coeff-- )
     {
-        int sign = dct2x2[coeff] < 0 ? -1 : 1;
         int level = dct2x2[coeff];
-
-        if( !level )
-            continue;
+        int sign = level>>31 | 1; /* dct2x2[coeff] < 0 ? -1 : 1 */
 
         while( level )
         {
             dct2x2[coeff] = level - sign;
             if( idct_dequant_round_2x2_dc( dct2x2_orig, dct2x2, h->dequant4_mf[CQM_4IC + b_inter], i_qp ) )
+            {
+                nz = 1;
+                dct2x2[coeff] = level;
                 break;
+            }
             level -= sign;
         }
-
-        nz |= level;
-        dct2x2[coeff] = level;
     }
 
-    return !!nz;
+    return nz;
 }
 
 void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp )
