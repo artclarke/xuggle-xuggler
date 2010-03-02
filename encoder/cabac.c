@@ -785,11 +785,6 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
         cb->i_queue = -1;
         cb->i_bytes_outstanding = 0;
 
-        /* if PCM is chosen, we need to store reconstructed frame data */
-        h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fdec[0], FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE, 16 );
-        h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fenc[1], FENC_STRIDE, 8 );
-        h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[2], FDEC_STRIDE, h->mb.pic.p_fenc[2], FENC_STRIDE, 8 );
-
         h->stat.frame.i_tex_bits += x264_cabac_pos( cb ) - i_mb_pos_tex;
         return;
     }

@@ -593,6 +593,15 @@ void x264_macroblock_encode( x264_t *h )
     h->mb.i_cbp_luma = 0;
     h->mb.cache.non_zero_count[x264_scan8[24]] = 0;
 
+    if( h->mb.i_type == I_PCM )
+    {
+        /* if PCM is chosen, we need to store reconstructed frame data */
+        h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fdec[0], FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE, 16 );
+        h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fenc[1], FENC_STRIDE, 8 );
+        h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[2], FDEC_STRIDE, h->mb.pic.p_fenc[2], FENC_STRIDE, 8 );
+        return;
+    }
+
     if( h->sh.b_mbaff
         && h->mb.i_mb_xy == h->sh.i_first_mb + h->mb.i_mb_stride
         && IS_SKIP(h->mb.type[h->sh.i_first_mb]) )

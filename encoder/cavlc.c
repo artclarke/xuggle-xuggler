@@ -323,11 +323,6 @@ void x264_macroblock_write_cavlc( x264_t *h )
         bs_init( s, s->p, s->p_end - s->p );
         s->p_start = p_start;
 
-        /* if PCM is chosen, we need to store reconstructed frame data */
-        h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fdec[0], FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE, 16 );
-        h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fenc[1], FENC_STRIDE, 8 );
-        h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[2], FDEC_STRIDE, h->mb.pic.p_fenc[2], FENC_STRIDE, 8 );
-
         h->stat.frame.i_tex_bits += bs_pos(s) - i_mb_pos_tex;
         return;
     }
