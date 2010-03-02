@@ -116,6 +116,27 @@ typedef struct
         int i_time_scale;
         int b_fixed_frame_rate;
 
+        int b_nal_hrd_parameters_present;
+        int b_vcl_hrd_parameters_present;
+
+        struct
+        {
+            int i_cpb_cnt;
+            int i_bit_rate_scale;
+            int i_cpb_size_scale;
+            int i_bit_rate_value;
+            int i_cpb_size_value;
+            int i_bit_rate_unscaled;
+            int i_cpb_size_unscaled;
+            int b_cbr_hrd;
+
+            int i_initial_cpb_removal_delay_length;
+            int i_cpb_removal_delay_length;
+            int i_dpb_output_delay_length;
+            int i_time_offset_length;
+        } hrd;
+
+        int b_pic_struct_present;
         int b_bitstream_restriction;
         int b_motion_vectors_over_pic_boundaries;
         int i_max_bytes_per_pic_denom;

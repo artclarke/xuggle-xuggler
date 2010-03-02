@@ -59,6 +59,7 @@ typedef struct {
     FILE *qpfile;
     FILE *tcfile_out;
     double timebase_convert_multiplier;
+    int i_pulldown;
 } cli_opt_t;
 
 /* i/o file operation function pointer structs */
@@ -93,6 +94,48 @@ static const char * const muxer_names[] =
 #endif
     0
 };
+
+static const char * const pulldown_names[] = { "none", "22", "32", "64", "double", "triple", "euro", 0 };
+
+typedef struct{
+    int mod;
+    uint8_t pattern[24];
+    float fps_factor;
+} cli_pulldown_t;
+
+enum pulldown_type_e
+{
+    X264_PULLDOWN_22 = 1,
+    X264_PULLDOWN_32,
+    X264_PULLDOWN_64,
+    X264_PULLDOWN_DOUBLE,
+    X264_PULLDOWN_TRIPLE,
+    X264_PULLDOWN_EURO
+};
+
+#define TB  PIC_STRUCT_TOP_BOTTOM
+#define BT  PIC_STRUCT_BOTTOM_TOP
+#define TBT PIC_STRUCT_TOP_BOTTOM_TOP
+#define BTB PIC_STRUCT_BOTTOM_TOP_BOTTOM
+
+static const cli_pulldown_t pulldown_values[] =
+{
+    [X264_PULLDOWN_22]     = {1,  {TB},                                   2.0},
+    [X264_PULLDOWN_32]     = {4,  {TBT, BT, BTB, TB},                     1.25},
+    [X264_PULLDOWN_64]     = {2,  {PIC_STRUCT_DOUBLE, PIC_STRUCT_TRIPLE}, 1.0},
+    [X264_PULLDOWN_DOUBLE] = {1,  {PIC_STRUCT_DOUBLE},                    2.0},
+    [X264_PULLDOWN_TRIPLE] = {1,  {PIC_STRUCT_TRIPLE},                    3.0},
+    [X264_PULLDOWN_EURO]   = {24, {TBT, BT, BT, BT, BT, BT, BT, BT, BT, BT, BT, BT,
+                                   BTB, TB, TB, TB, TB, TB, TB, TB, TB, TB, TB, TB}, 25.0/24.0}
+};
+
+#undef TB
+#undef BT
+#undef TBT
+#undef BTB
+
+// indexed by pic_struct enum
+static const float pulldown_frame_duration[10] = { 0.0, 1, 0.5, 0.5, 1, 1, 1.5, 1.5, 2, 3 };
 
 static void Help( x264_param_t *defaults, int longhelp );
 static int  Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt );
@@ -299,7 +342,7 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                    --no-cabac --no-deblock --no-weightb\n"
         "                                    --weightp 0\n"
         "                                  - zerolatency:\n"
-        "                                    --bframes 0 --rc-lookahead 0\n"
+        "                                    --bframes 0 --force-cfr --rc-lookahead 0\n"
         "                                    --sync-lookahead 0 --sliced-threads\n" );
     else H0( "                                  - psy tunings: film,animation,grain,psnr,ssim\n"
              "                                  - other tunings: fastdecode,zerolatency\n" );
@@ -334,7 +377,8 @@ static void Help( x264_param_t *defaults, int longhelp )
     else H1( "      --slices <integer>      Number of slices per frame\n" );
     H2( "      --slice-max-size <integer> Limit the size of each slice in bytes\n");
     H2( "      --slice-max-mbs <integer> Limit the size of each slice in macroblocks\n");
-    H0( "      --interlaced            Enable pure-interlaced mode\n" );
+    H0( "      --tff                   Enable interlaced mode (top field first)\n" );
+    H0( "      --bff                   Enable interlaced mode (bottom field first)\n" );
     H2( "      --constrained-intra     Enable constrained intra prediction.\n" );
     H0( "\n" );
     H0( "Ratecontrol:\n" );
@@ -476,6 +520,11 @@ static void Help( x264_param_t *defaults, int longhelp )
                                        strtable_lookup( x264_colmatrix_names, defaults->vui.i_colmatrix ) );
     H2( "      --chromaloc <integer>   Specify chroma sample location (0 to 5) [%d]\n",
                                        defaults->vui.i_chroma_loc );
+
+    H2( "      --nal-hrd <string>      Signal HRD information (requires vbv-bufsize)\n"
+        "                                  - none, vbr, cbr (cbr not allowed in .mp4)\n" );
+    H2( "      --pic-struct            Force pic_struct in Picture Timing SEI\n" );
+
     H0( "\n" );
     H0( "Input/Output:\n" );
     H0( "\n" );
@@ -513,6 +562,8 @@ static void Help( x264_param_t *defaults, int longhelp )
     H2( "      --timebase <int/int>    Specify timebase numerator and denominator\n"
         "                 <integer>    Specify timebase numerator for input timecode file\n"
         "                              or specify timebase denominator for other input\n" );
+    H0( "      --pulldown <string>     Use soft pulldown to change frame rate\n"
+        "                                  - none, 22, 32, 64, double, triple, euro (requires cfr input)\n" );
     H0( "\n" );
 }
 
@@ -537,6 +588,7 @@ static void Help( x264_param_t *defaults, int longhelp )
 #define OPT_TCFILE_IN 274
 #define OPT_TCFILE_OUT 275
 #define OPT_TIMEBASE 276
+#define OPT_PULLDOWN 277
 
 static char short_options[] = "8A:B:b:f:hI:i:m:o:p:q:r:t:Vvw";
 static struct option long_options[] =
@@ -565,6 +617,8 @@ static struct option long_options[] =
     { "filter",      required_argument, NULL, 0 },
     { "deblock",     required_argument, NULL, 'f' },
     { "interlaced",        no_argument, NULL, OPT_INTERLACED },
+    { "tff",               no_argument, NULL, OPT_INTERLACED },
+    { "bff",               no_argument, NULL, OPT_INTERLACED },
     { "no-interlaced",     no_argument, NULL, OPT_INTERLACED },
     { "constrained-intra", no_argument, NULL, 0 },
     { "cabac",             no_argument, NULL, 0 },
@@ -674,6 +728,9 @@ static struct option long_options[] =
     { "tcfile-in",   required_argument, NULL, OPT_TCFILE_IN },
     { "tcfile-out",  required_argument, NULL, OPT_TCFILE_OUT },
     { "timebase",    required_argument, NULL, OPT_TIMEBASE },
+    { "pic-struct",        no_argument, NULL, 0 },
+    { "nal-hrd",     required_argument, NULL, 0 },
+    { "pulldown",    required_argument, NULL, OPT_PULLDOWN },
     {0, 0, 0, 0}
 };
 
@@ -688,9 +745,13 @@ static int select_output( const char *muxer, char *filename, x264_param_t *param
 #ifdef MP4_OUTPUT
         output = mp4_output;
         param->b_annexb = 0;
-        param->b_aud = 0;
         param->b_dts_compress = 0;
         param->b_repeat_headers = 0;
+        if( param->i_nal_hrd == X264_NAL_HRD_CBR )
+        {
+            fprintf( stderr, "x264 [warning]: cbr nal-hrd is not compatible with mp4\n" );
+            param->i_nal_hrd = X264_NAL_HRD_VBR;
+        }
 #else
         fprintf( stderr, "x264 [error]: not compiled with MP4 output support\n" );
         return -1;
@@ -700,7 +761,6 @@ static int select_output( const char *muxer, char *filename, x264_param_t *param
     {
         output = mkv_output;
         param->b_annexb = 0;
-        param->b_aud = 0;
         param->b_dts_compress = 0;
         param->b_repeat_headers = 0;
     }
@@ -708,7 +768,6 @@ static int select_output( const char *muxer, char *filename, x264_param_t *param
     {
         output = flv_output;
         param->b_annexb = 0;
-        param->b_aud = 0;
         param->b_dts_compress = 1;
         param->b_repeat_headers = 0;
     }
@@ -980,6 +1039,16 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
                 break;
             case OPT_TIMEBASE:
                 input_opt.timebase = optarg;
+                break;
+            case OPT_PULLDOWN:
+                for( i = 0; pulldown_names[i] && strcasecmp( pulldown_names[i], optarg ); )
+                    i++;
+                if( !pulldown_names[i] )
+                {
+                    fprintf( stderr, "x264 [error]: invalid pulldown '%s'\n", optarg );
+                    return -1;
+                }
+                opt->i_pulldown = i;
                 break;
             default:
 generic_option:
@@ -1274,6 +1343,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
 {
     x264_t *h;
     x264_picture_t pic;
+    const cli_pulldown_t *pulldown = NULL; // shut up gcc
 
     int     i_frame, i_frame_total, i_frame_output;
     int64_t i_start, i_end;
@@ -1289,6 +1359,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     double  duration;
     int     prev_timebase_den = param->i_timebase_den / gcd( param->i_timebase_num, param->i_timebase_den );
     int     dts_compress_multiplier;
+    double  pulldown_pts = 0;
 
     opt->b_progress &= param->i_log_level < X264_LOG_DEBUG;
     i_frame_total = input.get_frame_total( opt->hin );
@@ -1298,6 +1369,20 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         i_frame_total = param->i_frame_total;
     param->i_frame_total = i_frame_total;
     i_update_interval = i_frame_total ? x264_clip3( i_frame_total / 1000, 1, 10 ) : 10;
+
+    /* set up pulldown */
+    if( opt->i_pulldown && !param->b_vfr_input )
+    {
+        param->b_pic_struct = 1;
+        pulldown = &pulldown_values[opt->i_pulldown];
+        param->i_timebase_num = param->i_fps_den;
+        if( fmod( param->i_fps_num * pulldown->fps_factor, 1 ) )
+        {
+            fprintf( stderr, "x264 [error]: unsupported framerate for chosen pulldown\n" );
+            return -1;
+        }
+        param->i_timebase_den = param->i_fps_num * pulldown->fps_factor;
+    }
 
     if( ( h = x264_encoder_open( param ) ) == NULL )
     {
@@ -1361,7 +1446,14 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
 
         if( !param->b_vfr_input )
             pic.i_pts = i_frame;
-        if( opt->timebase_convert_multiplier )
+
+        if( opt->i_pulldown && !param->b_vfr_input )
+        {
+            pic.i_pic_struct = pulldown->pattern[ i_frame % pulldown->mod ];
+            pic.i_pts = (int64_t)( pulldown_pts + 0.5 );
+            pulldown_pts += pulldown_frame_duration[pic.i_pic_struct];
+        }
+        else if( opt->timebase_convert_multiplier )
             pic.i_pts = (int64_t)( pic.i_pts * opt->timebase_convert_multiplier + 0.5 );
 
         int64_t output_pts = pic.i_pts * dts_compress_multiplier;   /* pts libx264 returns */
@@ -1380,6 +1472,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
             pic.i_pts = largest_pts + ticks_per_frame;
             output_pts = pic.i_pts * dts_compress_multiplier;
         }
+
         second_largest_pts = largest_pts;
         largest_pts = pic.i_pts;
         if( opt->tcfile_out )
@@ -1430,7 +1523,8 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         duration = (double)param->i_fps_den / param->i_fps_num;
     else
         duration = (double)(2 * largest_pts - second_largest_pts) * param->i_timebase_num / param->i_timebase_den;
-    duration *= dts_compress_multiplier;
+    if( !(opt->i_pulldown && !param->b_vfr_input) )
+        duration *= dts_compress_multiplier;
 
     i_end = x264_mdate();
     input.picture_clean( &pic );

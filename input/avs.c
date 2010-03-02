@@ -263,6 +263,7 @@ static int picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_hei
     pic->img.i_csp = i_csp;
     pic->img.i_plane = 3;
     pic->param = NULL;
+    pic->i_pic_struct = PIC_STRUCT_AUTO;
     return 0;
 }
 

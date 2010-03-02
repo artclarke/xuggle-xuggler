@@ -67,6 +67,9 @@ do {\
 
 #define X264_WEIGHTP_FAKE (-1)
 
+#define NALU_OVERHEAD 5 // startcode + NAL type costs 5 bytes per frame
+#define FILLER_OVERHEAD (NALU_OVERHEAD+1)
+
 /****************************************************************************
  * Includes
  ****************************************************************************/
@@ -214,6 +217,17 @@ enum slice_type_e
 
 static const char slice_type_to_char[] = { 'P', 'B', 'I', 'S', 'S' };
 
+enum sei_payload_type_e
+{
+    SEI_BUFFERING_PERIOD       = 0,
+    SEI_PIC_TIMING             = 1,
+    SEI_PAN_SCAN_RECT          = 2,
+    SEI_FILLER                 = 3,
+    SEI_USER_DATA_REGISTERED   = 4,
+    SEI_USER_DATA_UNREGISTERED = 5,
+    SEI_RECOVERY_POINT         = 6,
+};
+
 typedef struct
 {
     x264_sps_t *sps;
@@ -233,7 +247,7 @@ typedef struct
 
     int i_idr_pic_id;   /* -1 if nal_type != 5 */
 
-    int i_poc_lsb;
+    int i_poc;
     int i_delta_poc_bottom;
 
     int i_delta_poc[2];
@@ -367,6 +381,15 @@ struct x264_t
     int             i_nal_type;
     int             i_nal_ref_idc;
 
+    int             i_disp_fields;  /* Number of displayed fields (both coded and implied via pic_struct) */
+    int             i_disp_fields_last_frame;
+    int             i_prev_duration; /* Duration of previous frame */
+    int             i_coded_fields; /* Number of coded fields (both coded and implied via pic_struct) */
+    int             i_cpb_delay;    /* Equal to number of fields preceding this field
+                                     * since last buffering_period SEI */
+    int             i_coded_fields_lookahead; /* Use separate counters for lookahead */
+    int             i_cpb_delay_lookahead;
+
     /* We use only one SPS and one PPS */
     x264_sps_t      sps_array[1];
     x264_sps_t      *sps;
@@ -432,6 +455,8 @@ struct x264_t
         int64_t i_bframe_delay_time;
         int64_t i_init_delta;
         int64_t i_prev_reordered_pts[2];
+        int64_t i_largest_pts;
+        int64_t i_second_largest_pts;
         int b_have_lowres;  /* Whether 1/2 resolution luma planes are being used */
         int b_have_sub8x8_esa;
     } frames;
@@ -449,7 +474,9 @@ struct x264_t
     x264_frame_t    *fref1[16+3];     /* ref list 1 */
     int             b_ref_reorder[2];
 
-
+    /* hrd */
+    int initial_cpb_removal_delay;
+    int64_t first_pts;
 
     /* Current MB DCT coeffs */
     struct

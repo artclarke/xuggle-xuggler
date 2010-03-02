@@ -225,13 +225,13 @@ static int write_headers( hnd_t handle, x264_nal_t *p_nal )
     mp4_hnd_t *p_mp4 = handle;
     GF_AVCConfigSlot *p_slot;
 
-    int sei_size = p_nal[0].i_payload;
-    int sps_size = p_nal[1].i_payload - 4;
-    int pps_size = p_nal[2].i_payload - 4;
+    int sps_size = p_nal[0].i_payload - 4;
+    int pps_size = p_nal[1].i_payload - 4;
+    int sei_size = p_nal[2].i_payload;
 
-    uint8_t *sei = p_nal[0].p_payload;
-    uint8_t *sps = p_nal[1].p_payload + 4;
-    uint8_t *pps = p_nal[2].p_payload + 4;
+    uint8_t *sps = p_nal[0].p_payload + 4;
+    uint8_t *pps = p_nal[1].p_payload + 4;
+    uint8_t *sei = p_nal[2].p_payload;
 
     // SPS
 

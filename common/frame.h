@@ -36,12 +36,18 @@ typedef struct x264_frame
     int     i_qpplus1;
     int64_t i_pts;
     int64_t i_reordered_pts;
+    int     i_duration;  /* in SPS time_scale units (i.e 2 * timebase units) used for vfr */
+    int     i_cpb_duration;
+    int     i_cpb_delay; /* in SPS time_scale units (i.e 2 * timebase units) */
+    int     i_dpb_output_delay;
     x264_param_t *param;
 
     int     i_frame;     /* Presentation frame number */
     int     i_coded;     /* Coded frame number */
+    int     i_field_cnt; /* Presentation field count */
     int     i_frame_num; /* 7.4.3 frame_num */
     int     b_kept_as_ref;
+    int     i_pic_struct;
     int     b_keyframe;
     uint8_t b_fdec;
     uint8_t b_last_minigop_bframe; /* this frame is the last b in a sequence of bframes */
@@ -109,9 +115,15 @@ typedef struct x264_frame
     uint32_t i_pixel_sum;
     uint64_t i_pixel_ssd;
 
+    /* hrd */
+    x264_hrd_t hrd_timing;
+
     /* vbv */
     uint8_t i_planned_type[X264_LOOKAHEAD_MAX+1];
     int i_planned_satd[X264_LOOKAHEAD_MAX+1];
+    double f_planned_cpb_duration[X264_LOOKAHEAD_MAX+1];
+    int i_coded_fields_lookahead;
+    int i_cpb_delay_lookahead;
 
     /* threading */
     int     i_lines_completed; /* in pixels */

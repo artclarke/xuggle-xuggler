@@ -73,6 +73,15 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
     frame->i_frame_num = -1;
     frame->i_lines_completed = -1;
     frame->b_fdec = b_fdec;
+    frame->i_pic_struct = PIC_STRUCT_AUTO;
+    frame->i_field_cnt = -1;
+    frame->i_duration =
+    frame->i_cpb_duration =
+    frame->i_dpb_output_delay =
+    frame->i_cpb_delay = 0;
+    frame->i_coded_fields_lookahead =
+    frame->i_cpb_delay_lookahead = -1;
+
     frame->orig = frame;
 
     /* all 4 luma planes allocated together, since the cacheline split code
@@ -227,6 +236,7 @@ int x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
     dst->i_qpplus1  = src->i_qpplus1;
     dst->i_pts      = dst->i_reordered_pts = src->i_pts;
     dst->param      = src->param;
+    dst->i_pic_struct = src->i_pic_struct;
 
     for( i=0; i<3; i++ )
     {

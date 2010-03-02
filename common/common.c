@@ -158,6 +158,9 @@ void x264_param_default( x264_param_t *param )
     param->b_aud = 0;
     param->b_vfr_input = 1;
     param->b_dts_compress = 0;
+    param->i_nal_hrd = X264_NAL_HRD_NONE;
+    param->b_tff = 1;
+    param->b_pic_struct = 0;
 }
 
 static int x264_param_apply_preset( x264_param_t *param, const char *preset )
@@ -331,6 +334,7 @@ static int x264_param_apply_tune( x264_param_t *param, const char *tune )
             param->i_sync_lookahead = 0;
             param->i_bframe = 0;
             param->b_sliced_threads = 1;
+            param->b_vfr_input = 0;
         }
         else if( !strncasecmp( s, "touhou", 6 ) )
         {
@@ -676,6 +680,13 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->i_cabac_init_idc = atoi(value);
     OPT("interlaced")
         p->b_interlaced = atobool(value);
+    OPT("tff")
+        p->b_interlaced = p->b_tff = atobool(value);
+    OPT("bff")
+    {
+        p->b_interlaced = atobool(value);
+        p->b_tff = !p->b_interlaced;
+    }
     OPT("constrained-intra")
         p->b_constrained_intra = atobool(value);
     OPT("cqm")
@@ -895,6 +906,10 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->b_annexb = atobool(value);
     OPT("force-cfr")
         p->b_vfr_input = !atobool(value);
+    OPT("nal-hrd")
+        b_error |= parse_enum( value, x264_nal_hrd_names, &p->i_nal_hrd );
+    OPT("pic-struct")
+        p->b_pic_struct = atobool(value);
     else
         return X264_PARAM_BAD_NAME;
 #undef OPT
@@ -970,6 +985,7 @@ int x264_picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_heigh
     pic->img.i_stride[1] = i_width / 2;
     pic->img.i_stride[2] = i_width / 2;
     pic->param = NULL;
+    pic->i_pic_struct = PIC_STRUCT_AUTO;
     return 0;
 }
 
@@ -1149,6 +1165,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
     {
         s += sprintf( s, "%dx%d ", p->i_width, p->i_height );
         s += sprintf( s, "fps=%d/%d ", p->i_fps_num, p->i_fps_den );
+        s += sprintf( s, "timebase=%d/%d ", p->i_timebase_num, p->i_timebase_den );
     }
 
     s += sprintf( s, "cabac=%d", p->b_cabac );
@@ -1180,7 +1197,8 @@ char *x264_param2string( x264_param_t *p, int b_res )
         s += sprintf( s, " slice_max_mbs=%d", p->i_slice_max_mbs );
     s += sprintf( s, " nr=%d", p->analyse.i_noise_reduction );
     s += sprintf( s, " decimate=%d", p->analyse.b_dct_decimate );
-    s += sprintf( s, " mbaff=%d", p->b_interlaced );
+    s += sprintf( s, " interlaced=%s", p->b_interlaced ? p->b_tff ? "tff" : "bff" : "0" );
+
     s += sprintf( s, " constrained_intra=%d", p->b_constrained_intra );
 
     s += sprintf( s, " bframes=%d", p->i_bframe );
@@ -1233,6 +1251,8 @@ char *x264_param2string( x264_param_t *p, int b_res )
             s += sprintf( s, " zones" );
     }
 
+    if( p->rc.i_vbv_buffer_size )
+        s += sprintf( s, " nal_hrd=%s", x264_nal_hrd_names[p->i_nal_hrd] );
     return buf;
 }
 
