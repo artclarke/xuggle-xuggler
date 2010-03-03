@@ -262,7 +262,7 @@ static int x264_param_apply_preset( x264_param_t *param, const char *preset )
     }
     else
     {
-        fprintf( stderr, "x264 [error]: invalid preset '%s'\n", preset );
+        x264_log( NULL, X264_LOG_ERROR, "invalid preset '%s'\n", preset );
         return -1;
     }
     return 0;
@@ -349,14 +349,14 @@ static int x264_param_apply_tune( x264_param_t *param, const char *tune )
         }
         else
         {
-            fprintf( stderr, "x264 [error]: invalid tune '%s'\n", s );
+            x264_log( NULL, X264_LOG_ERROR, "invalid tune '%s'\n", s );
             x264_free( tmp );
             return -1;
         }
         if( 0 )
         {
     psy_failure:
-            fprintf( stderr, "x264 [warning]: only 1 psy tuning can be used: ignoring tune %s\n", s );
+            x264_log( NULL, X264_LOG_WARNING, "only 1 psy tuning can be used: ignoring tune %s\n", s );
         }
         s = strtok( NULL, ",./-+" );
     }
@@ -403,7 +403,7 @@ int x264_param_apply_profile( x264_param_t *param, const char *profile )
         param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
         if( param->b_interlaced )
         {
-            fprintf( stderr, "x264 [error]: baseline profile doesn't support interlacing\n" );
+            x264_log( NULL, X264_LOG_ERROR, "baseline profile doesn't support interlacing\n" );
             return -1;
         }
     }
@@ -418,13 +418,13 @@ int x264_param_apply_profile( x264_param_t *param, const char *profile )
     }
     else
     {
-        fprintf( stderr, "x264 [error]: invalid profile: %s\n", profile );
+        x264_log( NULL, X264_LOG_ERROR, "invalid profile: %s\n", profile );
         return -1;
     }
     if( (param->rc.i_rc_method == X264_RC_CQP && param->rc.i_qp_constant == 0) ||
         (param->rc.i_rc_method == X264_RC_CRF && param->rc.f_rf_constant == 0) )
     {
-        fprintf( stderr, "x264 [error]: %s profile doesn't support lossless\n", profile );
+        x264_log( NULL, X264_LOG_ERROR, "%s profile doesn't support lossless\n", profile );
         return -1;
     }
     return 0;

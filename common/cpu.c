@@ -213,7 +213,7 @@ uint32_t x264_cpu_detect( void )
         else if( cache == 64 )
             cpu |= X264_CPU_CACHELINE_64;
         else
-            fprintf( stderr, "x264 [warning]: unable to determine cacheline size\n" );
+            x264_log( NULL, X264_LOG_WARNING, "unable to determine cacheline size\n" );
     }
 
 #ifdef BROKEN_STACK_ALIGNMENT

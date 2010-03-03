@@ -3322,13 +3322,13 @@ static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a  )
             if( (h->mb.cache.mv[l][x264_scan8[15]][1] >> (2 - h->mb.b_interlaced)) + h->mb.i_mb_y*16 > completed )
             {
                 x264_log( h, X264_LOG_WARNING, "internal error (MV out of thread range)\n");
-                fprintf(stderr, "mb type: %d \n", h->mb.i_type);
-                fprintf(stderr, "mv: l%dr%d (%d,%d) \n", l, ref,
+                x264_log( h, X264_LOG_DEBUG, "mb type: %d \n", h->mb.i_type);
+                x264_log( h, X264_LOG_DEBUG, "mv: l%dr%d (%d,%d) \n", l, ref,
                                 h->mb.cache.mv[l][x264_scan8[15]][0],
                                 h->mb.cache.mv[l][x264_scan8[15]][1] );
-                fprintf(stderr, "limit: %d \n", h->mb.mv_max_spel[1]);
-                fprintf(stderr, "mb_xy: %d,%d \n", h->mb.i_mb_x, h->mb.i_mb_y);
-                fprintf(stderr, "completed: %d \n", completed );
+                x264_log( h, X264_LOG_DEBUG, "limit: %d \n", h->mb.mv_max_spel[1]);
+                x264_log( h, X264_LOG_DEBUG, "mb_xy: %d,%d \n", h->mb.i_mb_x, h->mb.i_mb_y);
+                x264_log( h, X264_LOG_DEBUG, "completed: %d \n", completed );
                 x264_log( h, X264_LOG_WARNING, "recovering by using intra mode\n");
                 x264_mb_analyse_intra( h, a, COST_MAX );
                 h->mb.i_type = I_16x16;
