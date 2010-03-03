@@ -450,9 +450,10 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
     if( h->fref0[0]->i_ref[0] > 0 )
     {
         x264_frame_t *l0 = h->fref0[0];
+        x264_frame_t **fref = i_list ? h->fref1 : h->fref0;
         int field = h->mb.i_mb_y&1;
         int curpoc = h->fdec->i_poc + field*h->sh.i_delta_poc_bottom;
-        int refpoc = h->fref0[i_ref>>h->sh.b_mbaff]->i_poc;
+        int refpoc = fref[i_ref>>h->sh.b_mbaff]->i_poc;
         if( h->sh.b_mbaff && field^(i_ref&1) )
             refpoc += h->sh.i_delta_poc_bottom;
 

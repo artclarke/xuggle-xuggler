@@ -420,10 +420,6 @@ struct x264_t
 
     const uint8_t   *chroma_qp_table; /* includes both the nonlinear luma->chroma mapping and chroma_qp_offset */
 
-    ALIGNED_16( uint32_t nr_residual_sum[2][64] );
-    ALIGNED_16( uint16_t nr_offset[2][64] );
-    uint32_t        nr_count[2];
-
     /* Slice header */
     x264_slice_header_t sh;
 
@@ -751,6 +747,10 @@ struct x264_t
         int     i_wpred[3];
 
     } stat;
+
+    ALIGNED_16( uint32_t nr_residual_sum[2][64] );
+    ALIGNED_16( uint16_t nr_offset[2][64] );
+    uint32_t        nr_count[2];
 
     void *scratch_buffer; /* for any temporary storage that doesn't want repeated malloc */
 

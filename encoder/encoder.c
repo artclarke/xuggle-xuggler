@@ -2624,7 +2624,7 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 
     h->out.i_nal = 0;
 
-    x264_noise_reduction_update( thread_current );
+    x264_noise_reduction_update( h );
 
     /* ---------------------- Compute/Print statistics --------------------- */
     x264_thread_sync_stat( h, h->thread[0] );
