@@ -1181,7 +1181,6 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
             {
                 const int i8 = x264_scan8[0] + 4 - 1*8;
                 h->mb.cache.ref[i_list][i8] = -2;
-                M32( h->mb.cache.mv[i_list][i8] ) = 0;
             }
 
             if( h->mb.i_neighbour & MB_LEFT )

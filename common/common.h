@@ -308,6 +308,7 @@ typedef struct x264_lookahead_t
 /* From ffmpeg
  */
 #define X264_SCAN8_SIZE (6*8)
+#define X264_SCAN8_LUMA_SIZE (5*8)
 #define X264_SCAN8_0 (4+1*8)
 
 static const int x264_scan8[16+2*4+3] =
@@ -632,20 +633,20 @@ struct x264_t
         struct
         {
             /* real intra4x4_pred_mode if I_4X4 or I_8X8, I_PRED_4x4_DC if mb available, -1 if not */
-            ALIGNED_8( int8_t intra4x4_pred_mode[X264_SCAN8_SIZE] );
+            ALIGNED_8( int8_t intra4x4_pred_mode[X264_SCAN8_LUMA_SIZE] );
 
             /* i_non_zero_count if available else 0x80 */
             ALIGNED_4( uint8_t non_zero_count[X264_SCAN8_SIZE] );
 
             /* -1 if unused, -2 if unavailable */
-            ALIGNED_4( int8_t ref[2][X264_SCAN8_SIZE] );
+            ALIGNED_4( int8_t ref[2][X264_SCAN8_LUMA_SIZE] );
 
             /* 0 if not available */
-            ALIGNED_16( int16_t mv[2][X264_SCAN8_SIZE][2] );
-            ALIGNED_8( uint8_t mvd[2][X264_SCAN8_SIZE][2] );
+            ALIGNED_16( int16_t mv[2][X264_SCAN8_LUMA_SIZE][2] );
+            ALIGNED_8( uint8_t mvd[2][X264_SCAN8_LUMA_SIZE][2] );
 
             /* 1 if SKIP or DIRECT. set only for B-frames + CABAC */
-            ALIGNED_4( int8_t skip[X264_SCAN8_SIZE] );
+            ALIGNED_4( int8_t skip[X264_SCAN8_LUMA_SIZE] );
 
             ALIGNED_4( int16_t direct_mv[2][4][2] );
             ALIGNED_4( int8_t  direct_ref[2][4] );
