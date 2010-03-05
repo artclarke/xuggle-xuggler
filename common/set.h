@@ -163,8 +163,8 @@ typedef struct
     int b_pic_order;
     int i_num_slice_groups;
 
-    int i_num_ref_idx_l0_active;
-    int i_num_ref_idx_l1_active;
+    int i_num_ref_idx_l0_default_active;
+    int i_num_ref_idx_l1_default_active;
 
     int b_weighted_pred;
     int b_weighted_bipred;

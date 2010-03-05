@@ -1732,10 +1732,13 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_global_qp )
     {
         x264_slice_header_init( h, &h->sh, h->sps, h->pps, -1, h->i_frame_num, i_global_qp );
 
-        /* always set the real higher num of ref frame used */
-        h->sh.b_num_ref_idx_override = 1;
         h->sh.i_num_ref_idx_l0_active = h->i_ref0 <= 0 ? 1 : h->i_ref0;
         h->sh.i_num_ref_idx_l1_active = h->i_ref1 <= 0 ? 1 : h->i_ref1;
+        if( h->sh.i_num_ref_idx_l0_active != h->pps->i_num_ref_idx_l0_default_active ||
+            (h->sh.i_type == SLICE_TYPE_B && h->sh.i_num_ref_idx_l1_active != h->pps->i_num_ref_idx_l1_default_active) )
+        {
+            h->sh.b_num_ref_idx_override = 1;
+        }
     }
 
     h->fdec->i_frame_num = h->sh.i_frame_num;
