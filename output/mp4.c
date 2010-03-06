@@ -24,6 +24,13 @@
 #include "muxers.h"
 #include <gpac/isomedia.h>
 
+#ifdef HAVE_GF_MALLOC
+#undef malloc
+#undef free
+#define malloc gf_malloc
+#define free gf_free
+#endif
+
 typedef struct
 {
     GF_ISOFile *p_file;

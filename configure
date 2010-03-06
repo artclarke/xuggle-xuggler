@@ -597,6 +597,9 @@ if [ "$mp4_output" = "auto" ] ; then
 fi
 if [ "$mp4_output" = "yes" ] ; then
     define MP4_OUTPUT
+    if cc_check gpac/isomedia.h "-Werror $MP4_LDFLAGS" "gf_malloc(1); gf_free(NULL);" ; then
+        define HAVE_GF_MALLOC
+    fi
     LDFLAGSCLI="$LDFLAGSCLI $MP4_LDFLAGS"
 fi
 
