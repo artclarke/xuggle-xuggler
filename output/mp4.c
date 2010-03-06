@@ -122,7 +122,7 @@ static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest
          * So, if mdhd duration is equal to the last DTS or less, we give the last composition time delta to the last sample duration.
          * And then, the mdhd duration is updated, but it time-wise doesn't give the actual duration.
          * The tkhd duration is the actual track duration. */
-        uint64_t mdhd_duration = (2 * largest_pts - second_largest_pts - p_mp4->i_delay_time) * p_mp4->i_time_inc;
+        uint64_t mdhd_duration = (2 * largest_pts - second_largest_pts) * p_mp4->i_time_inc;
         if( mdhd_duration != gf_isom_get_media_duration( p_mp4->p_file, p_mp4->i_track ) )
         {
             uint64_t last_dts = gf_isom_get_sample_dts( p_mp4->p_file, p_mp4->i_track, p_mp4->i_numframe );
