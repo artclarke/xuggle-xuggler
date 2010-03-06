@@ -10,25 +10,22 @@ use strict;
 # implements the subset of the gas preprocessor used by x264 and ffmpeg
 # that isn't supported by Apple's gas.
 
-# FIXME: doesn't work if the path has spaces, but oh well...
-my $gcc_cmd = join(' ', @ARGV);
-my $preprocess_c_cmd;
+my @gcc_cmd = @ARGV;
+my @preprocess_c_cmd;
 
-if ($gcc_cmd =~ /\S+\.c/) {
+if (grep /\.c$/, @gcc_cmd) {
     # C file (inline asm?) - compile
-    $preprocess_c_cmd = "$gcc_cmd -S";
-    $gcc_cmd =~ s/\S+\.c/-x assembler -/g;
-} elsif ($gcc_cmd =~ /\S+\.S/) {
+    @preprocess_c_cmd = (@gcc_cmd, "-S");
+} elsif (grep /\.S$/, @gcc_cmd) {
     # asm file, just do C preprocessor
-    $preprocess_c_cmd = "$gcc_cmd -E";
-    $gcc_cmd =~ s/\S+\.S/-x assembler -/g;
+    @preprocess_c_cmd = (@gcc_cmd, "-E");
 } else {
     die "Unrecognized input filetype";
 }
+@gcc_cmd = map { /\.[cS]$/ ? qw(-x assembler -) : $_ } @gcc_cmd;
+@preprocess_c_cmd = map { /\.o$/ ? "-" : $_ } @preprocess_c_cmd;
 
-$preprocess_c_cmd =~ s/\S+\.o/-/g;
-
-open(ASMFILE, "-|", $preprocess_c_cmd) || die "Error running preprocessor";
+open(ASMFILE, "-|", @preprocess_c_cmd) || die "Error running preprocessor";
 
 my $current_macro = '';
 my %macro_lines;
@@ -160,7 +157,7 @@ sub expand_macros {
 }
 
 close(ASMFILE) or exit 1;
-open(ASMFILE, "|-", $gcc_cmd) or die "Error running assembler";
+open(ASMFILE, "|-", @gcc_cmd) or die "Error running assembler";
 
 my @sections;
 my $num_repts;
