@@ -402,7 +402,8 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
     int16_t (*mvr)[2] = h->mb.mvr[i_list][i_ref];
     int i = 0;
 
-#define SET_MVP(mvp) { \
+#define SET_MVP(mvp)\
+    { \
         CP32( mvc[i], mvp ); \
         i++; \
     }
@@ -429,19 +430,16 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
     if( h->mb.i_neighbour & MB_LEFT )
     {
         int i_mb_l = h->mb.i_mb_xy - 1;
-        /* skip MBs didn't go through the whole search process, so mvr is undefined */
-        if( !IS_SKIP( h->mb.type[i_mb_l] ) )
-            SET_MVP( mvr[i_mb_l] );
+        SET_MVP( mvr[i_mb_l] );
     }
     if( h->mb.i_neighbour & MB_TOP )
     {
         int i_mb_t = h->mb.i_mb_top_xy;
-        if( !IS_SKIP( h->mb.type[i_mb_t] ) )
-            SET_MVP( mvr[i_mb_t] );
+        SET_MVP( mvr[i_mb_t] );
 
-        if( h->mb.i_neighbour & MB_TOPLEFT && !IS_SKIP( h->mb.type[i_mb_t - 1] ) )
+        if( h->mb.i_neighbour & MB_TOPLEFT )
             SET_MVP( mvr[i_mb_t-1] );
-        if( h->mb.i_mb_x < h->mb.i_mb_stride - 1 && !IS_SKIP( h->mb.type[i_mb_t + 1] ) )
+        if( h->mb.i_mb_x < h->mb.i_mb_stride - 1 )
             SET_MVP( mvr[i_mb_t+1] );
     }
 #undef SET_MVP

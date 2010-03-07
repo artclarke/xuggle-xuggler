@@ -84,7 +84,7 @@ typedef struct
     /* Take some shortcuts in intra search if intra is deemed unlikely */
     int b_fast_intra;
     int b_force_intra; /* For Periodic Intra Refresh.  Only supported in P-frames. */
-    int b_try_pskip;
+    int b_try_skip;
 
     /* Luma part */
     int i_satd_i16x16;
@@ -1142,10 +1142,14 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
         else
             x264_me_search_ref( h, &m, mvc, i_mvc, p_halfpel_thresh );
 
+        /* save mv for predicting neighbors */
+        CP32( h->mb.mvr[0][i_ref][h->mb.i_mb_xy], m.mv );
+        CP32( a->l0.mvc[i_ref][0], m.mv );
+
         /* early termination
          * SSD threshold would probably be better than SATD */
         if( i_ref == 0
-            && a->b_try_pskip
+            && a->b_try_skip
             && m.cost-m.cost_mv < 300*a->i_lambda
             &&  abs(m.mv[0]-h->mb.cache.pskip_mv[0])
               + abs(m.mv[1]-h->mb.cache.pskip_mv[1]) <= 1
@@ -1162,10 +1166,6 @@ static void x264_mb_analyse_inter_p16x16( x264_t *h, x264_mb_analysis_t *a )
 
         if( m.cost < a->l0.me16x16.cost )
             h->mc.memcpy_aligned( &a->l0.me16x16, &m, sizeof(x264_me_t) );
-
-        /* save mv for predicting neighbors */
-        CP32( a->l0.mvc[i_ref][0], m.mv );
-        CP32( h->mb.mvr[0][i_ref][h->mb.i_mb_xy], m.mv );
     }
 
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, a->l0.me16x16.i_ref );
@@ -1637,6 +1637,11 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     int stride0 = 16, stride1 = 16;
     int i_ref, i_mvc, l;
     ALIGNED_4( int16_t mvc[9][2] );
+    int try_skip = a->b_try_skip;
+    int list1_skipped = 0;
+    int i_halfpel_thresh[2] = {INT_MAX, INT_MAX};
+    int *p_halfpel_thresh[2] = {h->mb.pic.i_fref[0]>1 ? &i_halfpel_thresh[0] : NULL,
+                                h->mb.pic.i_fref[1]>1 ? &i_halfpel_thresh[1] : NULL};
 
     x264_me_t m;
     m.i_pixel = PIXEL_16x16;
@@ -1644,22 +1649,35 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     LOAD_FENC( &m, h->mb.pic.p_fenc, 0, 0 );
 
     /* 16x16 Search on list 0 and list 1 */
-    for( l = 0; l < 2; l++ )
+    a->l0.me16x16.cost = INT_MAX;
+    a->l1.me16x16.cost = INT_MAX;
+    for( l = 1; l >= 0; )
     {
-        int i_halfpel_thresh = INT_MAX;
-        int *p_halfpel_thresh = h->mb.pic.i_fref[l]>1 ? &i_halfpel_thresh : NULL;
         x264_mb_analysis_list_t *lX = l ? &a->l1 : &a->l0;
 
-        lX->me16x16.cost = INT_MAX;
-        for( i_ref = 0; i_ref < h->mb.pic.i_fref[l]; i_ref++ )
+        /* This loop is extremely munged in order to facilitate the following order of operations,
+         * necessary for an efficient fast skip.
+         * 1.  Search list1 ref0.
+         * 2.  Search list0 ref0.
+         * 3.  Try skip.
+         * 4.  Search the rest of list0.
+         * 5.  Go back and finish list1.
+         */
+        for( i_ref = (list1_skipped && l == 1) ? 1 : 0; i_ref < h->mb.pic.i_fref[l]; i_ref++ )
         {
+            if( try_skip && l == 1 && i_ref > 0 )
+            {
+                list1_skipped = 1;
+                break;
+            }
+
             m.i_ref_cost = REF_COST( l, i_ref );
 
             /* search with ref */
             LOAD_HPELS( &m, h->mb.pic.p_fref[l][i_ref], l, i_ref, 0, 0 );
             x264_mb_predict_mv_16x16( h, l, i_ref, m.mvp );
             x264_mb_predict_mv_ref16x16( h, l, i_ref, mvc, &i_mvc );
-            x264_me_search_ref( h, &m, mvc, i_mvc, p_halfpel_thresh );
+            x264_me_search_ref( h, &m, mvc, i_mvc, p_halfpel_thresh[l] );
 
             /* add ref cost */
             m.cost += m.i_ref_cost;
@@ -1670,7 +1688,30 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
             /* save mv for predicting neighbors */
             CP32( lX->mvc[i_ref][0], m.mv );
             CP32( h->mb.mvr[l][i_ref][h->mb.i_mb_xy], m.mv );
+
+            /* Fast skip detection. */
+            if( i_ref == 0 && try_skip )
+            {
+                if( abs(lX->bi16x16.mv[0]-h->mb.cache.direct_mv[l][0][0]) +
+                    abs(lX->bi16x16.mv[1]-h->mb.cache.direct_mv[l][0][1]) > 1 )
+                {
+                    try_skip = 0;
+                }
+                else if( !l )
+                {
+                    /* We already tested skip */
+                    h->mb.i_type = B_SKIP;
+                    x264_analyse_update_cache( h, a );
+                    return;
+                }
+            }
         }
+        if( list1_skipped && l == 1 && i_ref == h->mb.pic.i_fref[1] )
+            break;
+        if( list1_skipped && l == 0 )
+            l = 1;
+        else
+            l--;
     }
 
     /* get cost of BI mode */
@@ -1690,7 +1731,6 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
                      + ref_costs
                      + a->l0.bi16x16.cost_mv
                      + a->l1.bi16x16.cost_mv;
-
 
     /* Always try the 0,0,0,0 vector; helps avoid errant motion vectors in fades */
     if( M32( a->l0.bi16x16.mv ) | M32( a->l1.bi16x16.mv ) )
@@ -2538,7 +2578,7 @@ intra_analysis:
 
         h->mc.prefetch_ref( h->mb.pic.p_fref[0][0][h->mb.i_mb_x&3], h->mb.pic.i_stride[0], 0 );
 
-        analysis.b_try_pskip = 0;
+        analysis.b_try_skip = 0;
         if( analysis.b_force_intra )
         {
             if( !h->param.analyse.b_psy )
@@ -2556,7 +2596,7 @@ intra_analysis:
                     // FIXME don't need to check this if the reference frame is done
                     {}
                 else if( h->param.analyse.i_subpel_refine >= 3 )
-                    analysis.b_try_pskip = 1;
+                    analysis.b_try_skip = 1;
                 else if( h->mb.i_mb_type_left == P_SKIP ||
                          h->mb.i_mb_type_top == P_SKIP ||
                          h->mb.i_mb_type_topleft == P_SKIP ||
@@ -2572,6 +2612,10 @@ intra_analysis:
             h->mb.i_type = P_SKIP;
             h->mb.i_partition = D_16x16;
             assert( h->mb.cache.pskip_mv[1] <= h->mb.mv_max_spel[1] || h->i_thread_frames == 1 );
+            /* Set up MVs for future predictors */
+            if( b_skip )
+                for( i = 0; i < h->mb.pic.i_fref[0]; i++ )
+                    M32( h->mb.mvr[0][i][h->mb.i_mb_xy] ) = 0;
         }
         else
         {
@@ -2586,7 +2630,11 @@ intra_analysis:
             x264_mb_analyse_inter_p16x16( h, &analysis );
 
             if( h->mb.i_type == P_SKIP )
+            {
+                for( i = 1; i < h->mb.pic.i_fref[0]; i++ )
+                    M32( h->mb.mvr[0][i][h->mb.i_mb_xy] ) = 0;
                 return;
+            }
 
             if( flags & X264_ANALYSE_PSUB16x16 )
             {
@@ -2861,6 +2909,7 @@ intra_analysis:
         else
             analysis.b_direct_available = x264_mb_predict_mv_direct16x16( h, NULL );
 
+        analysis.b_try_skip = 0;
         if( analysis.b_direct_available )
         {
             if( !h->mb.b_direct_auto_write )
@@ -2875,7 +2924,17 @@ intra_analysis:
             {
                 /* Conditioning the probe on neighboring block types
                  * doesn't seem to help speed or quality. */
-                b_skip = x264_macroblock_probe_bskip( h );
+                analysis.b_try_skip = x264_macroblock_probe_bskip( h );
+                if( h->param.analyse.i_subpel_refine < 3 )
+                    b_skip = analysis.b_try_skip;
+            }
+            /* Set up MVs for future predictors */
+            if( b_skip )
+            {
+                for( i = 0; i < h->mb.pic.i_fref[0]; i++ )
+                    M32( h->mb.mvr[0][i][h->mb.i_mb_xy] ) = 0;
+                for( i = 0; i < h->mb.pic.i_fref[1]; i++ )
+                    M32( h->mb.mvr[1][i][h->mb.i_mb_xy] ) = 0;
             }
         }
 
@@ -2886,6 +2945,7 @@ intra_analysis:
             int i_partition;
             int i_satd_inter;
             h->mb.b_skip_mc = 0;
+            h->mb.i_type = B_DIRECT;
 
             x264_mb_analyse_load_costs( h, &analysis );
 
@@ -2895,6 +2955,15 @@ intra_analysis:
                 x264_mb_analyse_inter_direct( h, &analysis );
 
             x264_mb_analyse_inter_b16x16( h, &analysis );
+
+            if( h->mb.i_type == B_SKIP )
+            {
+                for( i = 1; i < h->mb.pic.i_fref[0]; i++ )
+                    M32( h->mb.mvr[0][i][h->mb.i_mb_xy] ) = 0;
+                for( i = 1; i < h->mb.pic.i_fref[1]; i++ )
+                    M32( h->mb.mvr[0][i][h->mb.i_mb_xy] ) = 0;
+                return;
+            }
 
             i_type = B_L0_L0;
             i_partition = D_16x16;
