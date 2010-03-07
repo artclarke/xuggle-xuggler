@@ -270,12 +270,14 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                  Overrides all settings.\n" );
     H2( "                                  - baseline:\n"
         "                                    --no-8x8dct --bframes 0 --no-cabac\n"
-        "                                    --cqm flat --weightp 0 No interlaced\n"
-        "                                    No lossless\n"
+        "                                    --cqm flat --weightp 0\n"
+        "                                    No interlaced.\n"
+        "                                    No lossless.\n"
         "                                  - main:\n"
-        "                                    --no-8x8dct --cqm flat No lossless\n"
+        "                                    --no-8x8dct --cqm flat\n"
+        "                                    No lossless.\n"
         "                                  - high:\n"
-        "                                    No lossless\n" );
+        "                                    No lossless.\n" );
         else H0( "                                  - baseline,main,high\n" );
     H0( "      --preset                Use a preset to select encoding settings [medium]\n"
         "                                  Overridden by user settings.\n" );
