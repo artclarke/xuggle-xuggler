@@ -546,7 +546,7 @@ if [ "$ffms_input" = "auto" ] ; then
     [ $ffms_bump -gt 0 ] && vbump=".$ffms_bump"
     if ${cross_prefix}pkg-config --atleast-version="$ffms_major.$ffms_minor$vmicro$vbump" ffms2 2>$DEVNULL; then
         FFMS2_LIBS="$FFMS2_LIBS $(${cross_prefix}pkg-config --libs ffms2)"
-        FFMS2_CFLAGS="$FFMS2_LIBS $(${cross_prefix}pkg-config --cflags ffms2)"
+        FFMS2_CFLAGS="$FFMS2_CFLAGS $(${cross_prefix}pkg-config --cflags ffms2)"
         api_check="no"
     else
         api_check="yes"
