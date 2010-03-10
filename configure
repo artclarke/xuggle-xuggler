@@ -393,6 +393,9 @@ case $host_cpu in
   parisc|parisc64)
     ARCH="PARISC"
     ;;
+  ia64)
+    ARCH="IA64"
+    ;;
   *)
     ARCH="$(echo $host_cpu | tr a-z A-Z)"
     ;;
@@ -418,7 +421,7 @@ elif cc_check '' -std=c99 ; then
     CFLAGS="$CFLAGS -std=c99 -D_POSIX_C_SOURCE=200112L -D_BSD_SOURCE"
 fi
 
-if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" -o $ARCH = "ARM" \) ] ; then
+if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" -o $ARCH = "ARM" -o $ARCH = "IA64" \) ] ; then
     pic="yes"
 fi
 
