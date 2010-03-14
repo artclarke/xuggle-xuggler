@@ -61,7 +61,7 @@ static uint16_t cabac_size_5ones[128];
 #define COPY_CABAC h->mc.memcpy_aligned( &cabac_tmp.f8_bits_encoded, &h->cabac.f8_bits_encoded, \
         sizeof(x264_cabac_t) - offsetof(x264_cabac_t,f8_bits_encoded) )
 
-static inline uint64_t cached_hadamard( x264_t *h, int pixel, int x, int y )
+static ALWAYS_INLINE uint64_t cached_hadamard( x264_t *h, int pixel, int x, int y )
 {
     static const uint8_t hadamard_shift_x[4] = {4,   4,   3,   3};
     static const uint8_t hadamard_shift_y[4] = {4-0, 3-0, 4-1, 3-1};
@@ -80,7 +80,7 @@ static inline uint64_t cached_hadamard( x264_t *h, int pixel, int x, int y )
     }
 }
 
-static inline int cached_satd( x264_t *h, int pixel, int x, int y )
+static ALWAYS_INLINE int cached_satd( x264_t *h, int pixel, int x, int y )
 {
     static const uint8_t satd_shift_x[3] = {3,   2,   2};
     static const uint8_t satd_shift_y[3] = {2-1, 3-2, 2-2};

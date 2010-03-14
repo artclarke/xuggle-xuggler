@@ -26,7 +26,7 @@
 
 #ifdef __GNUC__
 #define x264_median_mv x264_median_mv_mmxext
-static inline void x264_median_mv_mmxext( int16_t *dst, int16_t *a, int16_t *b, int16_t *c )
+static ALWAYS_INLINE void x264_median_mv_mmxext( int16_t *dst, int16_t *a, int16_t *b, int16_t *c )
 {
     asm(
         "movd   %1,    %%mm0 \n"
@@ -43,7 +43,7 @@ static inline void x264_median_mv_mmxext( int16_t *dst, int16_t *a, int16_t *b, 
     );
 }
 #define x264_predictor_difference x264_predictor_difference_mmxext
-static inline int x264_predictor_difference_mmxext( int16_t (*mvc)[2], intptr_t i_mvc )
+static ALWAYS_INLINE int x264_predictor_difference_mmxext( int16_t (*mvc)[2], intptr_t i_mvc )
 {
     int sum;
     static const uint64_t pw_1 = 0x0001000100010001ULL;

@@ -445,7 +445,7 @@ static ALWAYS_INLINE int array_non_zero_int( int16_t *v, int i_count )
         return 0;
     }
 }
-static inline int x264_mb_predict_intra4x4_mode( x264_t *h, int idx )
+static ALWAYS_INLINE int x264_mb_predict_intra4x4_mode( x264_t *h, int idx )
 {
     const int ma = h->mb.cache.intra4x4_pred_mode[x264_scan8[idx] - 1];
     const int mb = h->mb.cache.intra4x4_pred_mode[x264_scan8[idx] - 8];
@@ -457,7 +457,7 @@ static inline int x264_mb_predict_intra4x4_mode( x264_t *h, int idx )
 
     return m;
 }
-static inline int x264_mb_predict_non_zero_code( x264_t *h, int idx )
+static ALWAYS_INLINE int x264_mb_predict_non_zero_code( x264_t *h, int idx )
 {
     const int za = h->mb.cache.non_zero_count[x264_scan8[idx] - 1];
     const int zb = h->mb.cache.non_zero_count[x264_scan8[idx] - 8];
@@ -474,7 +474,7 @@ static inline int x264_mb_predict_non_zero_code( x264_t *h, int idx )
  *      check whether any partition is smaller than 8x8 (or at least
  *      might be, according to just partition type.)
  *      doesn't check for cbp */
-static inline int x264_mb_transform_8x8_allowed( x264_t *h )
+static ALWAYS_INLINE int x264_mb_transform_8x8_allowed( x264_t *h )
 {
     // intra and skip are disallowed
     // large partitions are allowed

@@ -132,22 +132,22 @@ void x264_log( x264_t *h, int i_level, const char *psz_fmt, ... );
 void x264_reduce_fraction( int *n, int *d );
 void x264_init_vlc_tables();
 
-static inline uint8_t x264_clip_uint8( int x )
+static ALWAYS_INLINE uint8_t x264_clip_uint8( int x )
 {
     return x&(~255) ? (-x)>>31 : x;
 }
 
-static inline int x264_clip3( int v, int i_min, int i_max )
+static ALWAYS_INLINE int x264_clip3( int v, int i_min, int i_max )
 {
     return ( (v < i_min) ? i_min : (v > i_max) ? i_max : v );
 }
 
-static inline double x264_clip3f( double v, double f_min, double f_max )
+static ALWAYS_INLINE double x264_clip3f( double v, double f_min, double f_max )
 {
     return ( (v < f_min) ? f_min : (v > f_max) ? f_max : v );
 }
 
-static inline int x264_median( int a, int b, int c )
+static ALWAYS_INLINE int x264_median( int a, int b, int c )
 {
     int t = (a-b)&((a-b)>>31);
     a -= t;
@@ -157,13 +157,13 @@ static inline int x264_median( int a, int b, int c )
     return b;
 }
 
-static inline void x264_median_mv( int16_t *dst, int16_t *a, int16_t *b, int16_t *c )
+static ALWAYS_INLINE void x264_median_mv( int16_t *dst, int16_t *a, int16_t *b, int16_t *c )
 {
     dst[0] = x264_median( a[0], b[0], c[0] );
     dst[1] = x264_median( a[1], b[1], c[1] );
 }
 
-static inline int x264_predictor_difference( int16_t (*mvc)[2], intptr_t i_mvc )
+static ALWAYS_INLINE int x264_predictor_difference( int16_t (*mvc)[2], intptr_t i_mvc )
 {
     int sum = 0, i;
     for( i = 0; i < i_mvc-1; i++ )
@@ -174,7 +174,7 @@ static inline int x264_predictor_difference( int16_t (*mvc)[2], intptr_t i_mvc )
     return sum;
 }
 
-static inline uint16_t x264_cabac_mvd_sum( uint8_t *mvdleft, uint8_t *mvdtop )
+static ALWAYS_INLINE uint16_t x264_cabac_mvd_sum( uint8_t *mvdleft, uint8_t *mvdtop )
 {
     int amvd0 = abs(mvdleft[0]) + abs(mvdtop[0]);
     int amvd1 = abs(mvdleft[1]) + abs(mvdtop[1]);

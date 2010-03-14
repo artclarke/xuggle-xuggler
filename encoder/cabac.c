@@ -301,7 +301,7 @@ static inline void x264_cabac_mb_sub_p_partition( x264_cabac_t *cb, int i_sub )
     }
 }
 
-static inline void x264_cabac_mb_sub_b_partition( x264_cabac_t *cb, int i_sub )
+static ALWAYS_INLINE void x264_cabac_mb_sub_b_partition( x264_cabac_t *cb, int i_sub )
 {
     if( i_sub == D_DIRECT_8x8 )
     {
@@ -321,7 +321,7 @@ static inline void x264_cabac_mb_sub_b_partition( x264_cabac_t *cb, int i_sub )
     x264_cabac_encode_decision( cb, 39, i_sub == D_L1_8x8 );
 }
 
-static inline void x264_cabac_mb_transform_size( x264_t *h, x264_cabac_t *cb )
+static ALWAYS_INLINE void x264_cabac_mb_transform_size( x264_t *h, x264_cabac_t *cb )
 {
     int ctx = 399 + h->mb.cache.i_neighbour_transform_size;
     x264_cabac_encode_decision_noup( cb, ctx, h->mb.b_transform_8x8 );
@@ -349,7 +349,7 @@ static void x264_cabac_mb_ref( x264_t *h, x264_cabac_t *cb, int i_list, int idx 
     x264_cabac_encode_decision( cb, 54 + ctx, 0 );
 }
 
-static inline int x264_cabac_mb_mvd_cpn( x264_t *h, x264_cabac_t *cb, int i_list, int idx, int l, int mvd, int ctx )
+static ALWAYS_INLINE int x264_cabac_mb_mvd_cpn( x264_t *h, x264_cabac_t *cb, int i_list, int idx, int l, int mvd, int ctx )
 {
     const int i_abs = abs( mvd );
     const int ctxbase = l ? 47 : 40;
