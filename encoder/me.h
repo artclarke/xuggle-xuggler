@@ -98,16 +98,6 @@ if((y)<(x))\
     (e)=(f);\
 }
 
-#define COPY5_IF_LT(x,y,a,b,c,d,e,f,g,h)\
-if((y)<(x))\
-{\
-    (x)=(y);\
-    (a)=(b);\
-    (c)=(d);\
-    (e)=(f);\
-    (g)=(h);\
-}
-
 #define COPY2_IF_GT(x,y,a,b)\
 if((y)>(x))\
 {\
