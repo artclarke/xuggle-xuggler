@@ -777,6 +777,7 @@ struct x264_t
 
 // included at the end because it needs x264_t
 #include "macroblock.h"
+#include "rectangle.h"
 
 #ifdef HAVE_MMX
 #include "x86/util.h"

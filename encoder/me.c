@@ -1087,6 +1087,7 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int
     int satd;
     int dir = -2;
     int i8 = i4>>2;
+    uint16_t amvd;
 
     uint8_t *pix  = &h->mb.pic.p_fdec[0][block_idx_xy_fdec[i4]];
     uint8_t *pixu = &h->mb.pic.p_fdec[1][(i8>>1)*4*FDEC_STRIDE+(i8&1)*4];
@@ -1174,7 +1175,7 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int
     m->mv[0] = bmx;
     m->mv[1] = bmy;
     x264_macroblock_cache_mv ( h, block_idx_x[i4], block_idx_y[i4], bw>>2, bh>>2, i_list, pack16to32_mask(bmx, bmy) );
-    uint16_t amvd = pack8to16(X264_MIN(abs(bmx - m->mvp[0]),33), X264_MIN(abs(bmy - m->mvp[1]),33));
+    amvd = pack8to16( X264_MIN(abs(bmx - m->mvp[0]),33), X264_MIN(abs(bmy - m->mvp[1]),33) );
     x264_macroblock_cache_mvd( h, block_idx_x[i4], block_idx_y[i4], bw>>2, bh>>2, i_list, amvd );
     h->mb.b_skip_mc = 0;
 }
