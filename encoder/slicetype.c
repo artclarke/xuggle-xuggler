@@ -923,11 +923,8 @@ static int x264_slicetype_path_cost( x264_t *h, x264_mb_analysis_t *a, x264_fram
         int next_p = loc;
         int next_b;
         /* Find the location of the next P-frame. */
-        while( path[next_p] && path[next_p] != 'P' )
+        while( path[next_p] != 'P' )
             next_p++;
-        /* Return if the path doesn't end on a P-frame. */
-        if( path[next_p] != 'P' )
-            return cost;
 
         /* Add the cost of the P-frame found above */
         cost += x264_slicetype_frame_cost( h, a, frames, cur_p, next_p, next_p, 0 );
@@ -956,36 +953,36 @@ static int x264_slicetype_path_cost( x264_t *h, x264_mb_analysis_t *a, x264_fram
 
 /* Viterbi/trellis slicetype decision algorithm. */
 /* Uses strings due to the fact that the speed of the control functions is
-   negligable compared to the cost of running slicetype_frame_cost, and because
+   negligible compared to the cost of running slicetype_frame_cost, and because
    it makes debugging easier. */
-static void x264_slicetype_path( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, int length, int max_bframes, char (*best_paths)[X264_LOOKAHEAD_MAX] )
+static void x264_slicetype_path( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, int length, char (*best_paths)[X264_LOOKAHEAD_MAX] )
 {
-    char paths[X264_BFRAME_MAX+1][X264_LOOKAHEAD_MAX] = {{0}};
-    int num_paths = X264_MIN( max_bframes+1, length );
+    char paths[2][X264_LOOKAHEAD_MAX];
+    int num_paths = X264_MIN( h->param.i_bframe+1, length );
     int path;
     int best_cost = COST_MAX;
-    int best_path_index = 0;
+    int idx = 0;
 
     /* Iterate over all currently possible paths */
     for( path = 0; path < num_paths; path++ )
     {
         /* Add suffixes to the current path */
         int len = length - (path + 1);
-        memcpy( paths[path], best_paths[len % (X264_BFRAME_MAX+1)], len );
-        memset( paths[path]+len, 'B', path );
-        strcat( paths[path], "P" );
+        memcpy( paths[idx], best_paths[len % (X264_BFRAME_MAX+1)], len );
+        memset( paths[idx]+len, 'B', path );
+        strcpy( paths[idx]+len+path, "P" );
 
         /* Calculate the actual cost of the current path */
-        int cost = x264_slicetype_path_cost( h, a, frames, paths[path], best_cost );
+        int cost = x264_slicetype_path_cost( h, a, frames, paths[idx], best_cost );
         if( cost < best_cost )
         {
             best_cost = cost;
-            best_path_index = path;
+            idx ^= 1;
         }
     }
 
     /* Store the best path. */
-    memcpy( best_paths[length % (X264_BFRAME_MAX+1)], paths[best_path_index], length );
+    memcpy( best_paths[length % (X264_BFRAME_MAX+1)], paths[idx^1], length );
 }
 
 static int scenecut_internal( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, int p0, int p1, int print )
@@ -1118,7 +1115,6 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
     }
 
     int num_bframes = 0;
-    int max_bframes = X264_MIN(num_frames-1, h->param.i_bframe);
     int num_analysed_frames = num_frames;
     int reset_start;
     if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, 0, 1, 1, orig_num_frames ) )
@@ -1131,15 +1127,15 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
     {
         if( h->param.i_bframe_adaptive == X264_B_ADAPT_TRELLIS )
         {
-            char best_paths[X264_BFRAME_MAX+1][X264_LOOKAHEAD_MAX] = {"","P"};
-            int n;
-
-            /* Perform the frametype analysis. */
-            for( n = 2; n < num_frames; n++ )
-                x264_slicetype_path( h, &a, frames, n, max_bframes, best_paths );
             if( num_frames > 1 )
             {
+                char best_paths[X264_BFRAME_MAX+1][X264_LOOKAHEAD_MAX] = {"","P"};
                 int best_path_index = (num_frames-1) % (X264_BFRAME_MAX+1);
+
+                /* Perform the frametype analysis. */
+                for( j = 2; j < num_frames; j++ )
+                    x264_slicetype_path( h, &a, frames, j, best_paths );
+
                 num_bframes = strspn( best_paths[best_path_index], "B" );
                 /* Load the results of the analysis into the frame types. */
                 for( j = 1; j < num_frames; j++ )
