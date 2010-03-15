@@ -345,7 +345,6 @@ static void x264_mb_analyse_init_qp( x264_t *h, x264_mb_analysis_t *a, int i_qp 
     h->mb.i_psy_rd_lambda = a->i_lambda;
     /* Adjusting chroma lambda based on QP offset hurts PSNR but improves visual quality. */
     h->mb.i_chroma_lambda2_offset = h->param.analyse.b_psy ? x264_chroma_lambda2_offset_tab[h->mb.i_qp-h->mb.i_chroma_qp+12] : 256;
-
 }
 
 static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
@@ -358,15 +357,6 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     a->i_mbrd = (i>=6) + (i>=8) + (h->param.analyse.i_subpel_refine>=10);
 
     x264_mb_analyse_init_qp( h, a, i_qp );
-
-    h->mb.i_me_method = h->param.analyse.i_me_method;
-    h->mb.i_subpel_refine = h->param.analyse.i_subpel_refine;
-    if( h->sh.i_type == SLICE_TYPE_B && (h->mb.i_subpel_refine == 6 || h->mb.i_subpel_refine == 8) )
-        h->mb.i_subpel_refine--;
-    h->mb.b_chroma_me = h->param.analyse.b_chroma_me && h->sh.i_type == SLICE_TYPE_P
-                        && h->mb.i_subpel_refine >= 5;
-    h->mb.b_dct_decimate = h->sh.i_type == SLICE_TYPE_B ||
-                          (h->param.analyse.b_dct_decimate && h->sh.i_type != SLICE_TYPE_I);
 
     h->mb.b_transform_8x8 = 0;
     h->mb.b_noise_reduction = 0;
@@ -452,31 +442,18 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
 
         a->l0.me16x16.cost =
         a->l0.i_rd16x16    =
-        a->l0.i_cost8x8    = COST_MAX;
-
-        for( i = 0; i < 4; i++ )
-        {
-            a->l0.i_cost4x4[i] =
-            a->l0.i_cost8x4[i] =
-            a->l0.i_cost4x8[i] = COST_MAX;
-        }
-
+        a->l0.i_cost8x8    =
         a->l0.i_cost16x8   =
         a->l0.i_cost8x16   = COST_MAX;
         if( h->sh.i_type == SLICE_TYPE_B )
         {
             a->l1.me16x16.cost =
             a->l1.i_rd16x16    =
-            a->l1.i_cost8x8    = COST_MAX;
-
-            for( i = 0; i < 4; i++ )
-            {
-                a->l1.i_cost4x4[i] =
-                a->l1.i_cost8x4[i] =
-                a->l1.i_cost4x8[i] =
-                a->i_cost8x8direct[i] = COST_MAX;
-            }
-
+            a->l1.i_cost8x8    =
+            a->i_cost8x8direct[0] =
+            a->i_cost8x8direct[1] =
+            a->i_cost8x8direct[2] =
+            a->i_cost8x8direct[3] =
             a->l1.i_cost16x8   =
             a->l1.i_cost8x16   =
             a->i_rd16x16bi     =
@@ -490,6 +467,13 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
             a->i_cost16x8bi    =
             a->i_cost8x16bi    = COST_MAX;
         }
+        else if( h->param.analyse.inter & X264_ANALYSE_PSUB8x8 )
+            for( i = 0; i < 4; i++ )
+            {
+                a->l0.i_cost4x4[i] =
+                a->l0.i_cost8x4[i] =
+                a->l0.i_cost4x8[i] = COST_MAX;
+            }
 
         /* Fast intra decision */
         if( h->mb.i_mb_xy - h->sh.i_first_mb > 4 )
