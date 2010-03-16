@@ -838,11 +838,10 @@ void x264_macroblock_slice_init( x264_t *h )
         }
     }
     if( h->sh.i_type == SLICE_TYPE_P )
-        memset( h->mb.cache.skip, 0, X264_SCAN8_SIZE * sizeof( int8_t ) );
+        memset( h->mb.cache.skip, 0, sizeof( h->mb.cache.skip ) );
 
     /* init with not available (for top right idx=7,15) */
-    memset( h->mb.cache.ref[0], -2, X264_SCAN8_SIZE * sizeof( int8_t ) );
-    memset( h->mb.cache.ref[1], -2, X264_SCAN8_SIZE * sizeof( int8_t ) );
+    memset( h->mb.cache.ref, -2, sizeof( h->mb.cache.ref ) );
 
     setup_inverse_delta_pocs( h );
 
@@ -1333,7 +1332,7 @@ void x264_macroblock_cache_save( x264_t *h )
         h->mb.i_cbp_luma = 0xf;
         h->mb.cbp[i_mb_xy] = 0x72f;   /* all set */
         h->mb.b_transform_8x8 = 0;
-        memset( non_zero_count, 16, 24 );
+        memset( non_zero_count, 16, sizeof( *h->mb.non_zero_count ) );
     }
     else
     {

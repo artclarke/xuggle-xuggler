@@ -464,7 +464,7 @@ static void x264_macroblock_encode_skip( x264_t *h )
 {
     h->mb.i_cbp_luma = 0x00;
     h->mb.i_cbp_chroma = 0x00;
-    memset( h->mb.cache.non_zero_count, 0, X264_SCAN8_SIZE );
+    memset( h->mb.cache.non_zero_count, 0, sizeof( h->mb.cache.non_zero_count ) );
     /* store cbp */
     h->mb.cbp[h->mb.i_mb_xy] = 0;
 }

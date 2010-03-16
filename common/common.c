@@ -146,12 +146,12 @@ void x264_param_default( x264_param_t *param )
     param->analyse.b_ssim = 0;
 
     param->i_cqm_preset = X264_CQM_FLAT;
-    memset( param->cqm_4iy, 16, 16 );
-    memset( param->cqm_4ic, 16, 16 );
-    memset( param->cqm_4py, 16, 16 );
-    memset( param->cqm_4pc, 16, 16 );
-    memset( param->cqm_8iy, 16, 64 );
-    memset( param->cqm_8py, 16, 64 );
+    memset( param->cqm_4iy, 16, sizeof( param->cqm_4iy ) );
+    memset( param->cqm_4ic, 16, sizeof( param->cqm_4ic ) );
+    memset( param->cqm_4py, 16, sizeof( param->cqm_4py ) );
+    memset( param->cqm_4pc, 16, sizeof( param->cqm_4pc ) );
+    memset( param->cqm_8iy, 16, sizeof( param->cqm_8iy ) );
+    memset( param->cqm_8py, 16, sizeof( param->cqm_8py ) );
 
     param->b_repeat_headers = 1;
     param->b_annexb = 1;
