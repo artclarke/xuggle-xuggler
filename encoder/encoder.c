@@ -2100,7 +2100,7 @@ static int x264_threaded_slices_write( x264_t *h )
         t->sh.i_last_mb  =   t->i_threadslice_end * h->sps->i_mb_width - 1;
     }
 
-    x264_analyse_weight_frame( h, h->sps->i_mb_height*16 + 16 );
+    x264_stack_align( x264_analyse_weight_frame, h, h->sps->i_mb_height*16 + 16 );
 
     x264_threads_distribute_ratecontrol( h );
 
@@ -2121,7 +2121,7 @@ static int x264_threaded_slices_write( x264_t *h )
 
     /* deblocking and hpel filtering */
     for( i = 0; i <= h->sps->i_mb_height; i++ )
-        x264_fdec_filter_row( h, i );
+        x264_stack_align( x264_fdec_filter_row, h, i );
 
     x264_threads_merge_ratecontrol( h );
 
