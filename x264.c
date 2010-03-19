@@ -390,6 +390,8 @@ static void Help( x264_param_t *defaults, int longhelp )
     H0( "      --vbv-maxrate <integer> Max local bitrate (kbit/s) [%d]\n", defaults->rc.i_vbv_max_bitrate );
     H0( "      --vbv-bufsize <integer> Set size of the VBV buffer (kbit) [%d]\n", defaults->rc.i_vbv_buffer_size );
     H2( "      --vbv-init <float>      Initial VBV buffer occupancy [%.1f]\n", defaults->rc.f_vbv_buffer_init );
+    H2( "      --crf-max <float>       With CRF+VBV, limit RF to this value\n"
+        "                                  May cause VBV underflows!\n" );
     H2( "      --qpmin <integer>       Set min QP [%d]\n", defaults->rc.i_qp_min );
     H2( "      --qpmax <integer>       Set max QP [%d]\n", defaults->rc.i_qp_max );
     H2( "      --qpstep <integer>      Set max QP step [%d]\n", defaults->rc.i_qp_step );
@@ -673,7 +675,8 @@ static struct option long_options[] =
     { "ratetol",     required_argument, NULL, 0 },
     { "vbv-maxrate", required_argument, NULL, 0 },
     { "vbv-bufsize", required_argument, NULL, 0 },
-    { "vbv-init",    required_argument, NULL,  0 },
+    { "vbv-init",    required_argument, NULL, 0 },
+    { "crf-max",     required_argument, NULL, 0 },
     { "ipratio",     required_argument, NULL, 0 },
     { "pbratio",     required_argument, NULL, 0 },
     { "chroma-qp-offset", required_argument, NULL, 0 },

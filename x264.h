@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 89
+#define X264_BUILD 90
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -294,6 +294,7 @@ typedef struct x264_param_t
 
         int         i_bitrate;
         float       f_rf_constant;  /* 1pass VBR, nominal QP */
+        float       f_rf_constant_max;  /* In CRF mode, maximum CRF as caused by VBV */
         float       f_rate_tolerance;
         int         i_vbv_max_bitrate;
         int         i_vbv_buffer_size;

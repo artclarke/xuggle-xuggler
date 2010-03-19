@@ -1186,6 +1186,11 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
         COPY( rc.f_rf_constant );
         rc_reconfig = 1;
     }
+    if( h->param.rc.f_rf_constant_max != param->rc.f_rf_constant_max )
+    {
+        COPY( rc.f_rf_constant_max );
+        rc_reconfig = 1;
+    }
 
 #undef COPY
 

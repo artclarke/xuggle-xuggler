@@ -99,6 +99,7 @@ struct x264_ratecontrol_t
     double vbv_max_rate;        /* # of bits added to buffer_fill per second */
     predictor_t *pred;          /* predict frame size from satd */
     int single_frame_vbv;
+    double rate_factor_max_increment; /* Don't allow RF above (CRF + this value). */
 
     /* ABR stuff */
     int    last_satd;
@@ -487,6 +488,15 @@ void x264_ratecontrol_init_reconfigurable( x264_t *h, int b_init )
         rc->single_frame_vbv = rc->buffer_rate * 1.1 > rc->buffer_size;
         rc->cbr_decay = 1.0 - rc->buffer_rate / rc->buffer_size
                       * 0.5 * X264_MAX(0, 1.5 - rc->buffer_rate * rc->fps / rc->bitrate);
+        if( h->param.rc.i_rc_method == X264_RC_CRF && h->param.rc.f_rf_constant_max )
+        {
+            rc->rate_factor_max_increment = h->param.rc.f_rf_constant_max - h->param.rc.f_rf_constant;
+            if( rc->rate_factor_max_increment <= 0 )
+            {
+                x264_log( h, X264_LOG_WARNING, "CRF max must be greater than CRF\n" );
+                rc->rate_factor_max_increment = 0;
+            }
+        }
         if( b_init )
         {
             if( h->param.rc.f_vbv_buffer_init > 1. )
@@ -1266,8 +1276,11 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     {
         int i;
         int prev_row_qp = h->fdec->i_row_qp[y];
-        int i_qp_max = X264_MIN( prev_row_qp + h->param.rc.i_qp_step, h->param.rc.i_qp_max );
         int i_qp_min = X264_MAX( prev_row_qp - h->param.rc.i_qp_step, h->param.rc.i_qp_min );
+        int i_qp_absolute_max = h->param.rc.i_qp_max;
+        if( rc->rate_factor_max_increment )
+            i_qp_absolute_max = X264_MIN( i_qp_absolute_max, rc->qp_novbv + rc->rate_factor_max_increment );
+        int i_qp_max = X264_MIN( prev_row_qp + h->param.rc.i_qp_step, i_qp_absolute_max );
 
         /* B-frames shouldn't use lower QP than their reference frames. */
         if( h->sh.i_type == SLICE_TYPE_B )
@@ -1322,7 +1335,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
         }
 
         /* avoid VBV underflow or MinCR violation */
-        while( (rc->qpm < h->param.rc.i_qp_max)
+        while( (rc->qpm < i_qp_absolute_max)
                && ((rc->buffer_fill - b1 < rc->buffer_rate * rc->max_frame_error) ||
                    (rc->frame_size_maximum - b1 < rc->frame_size_maximum * rc->max_frame_error)))
         {
@@ -1765,6 +1778,8 @@ static double clip_qscale( x264_t *h, int pict_type, double q )
     x264_ratecontrol_t *rcc = h->rc;
     double lmin = rcc->lmin[pict_type];
     double lmax = rcc->lmax[pict_type];
+    if( rcc->rate_factor_max_increment )
+        lmax = X264_MIN( lmax, qp2qscale( rcc->qp_novbv + rcc->rate_factor_max_increment ) );
     double q0 = q;
 
     /* B-frames are not directly subject to VBV,

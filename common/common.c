@@ -845,6 +845,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->rc.f_rf_constant = atof(value);
         p->rc.i_rc_method = X264_RC_CRF;
     }
+    OPT("crf-max")
+        p->rc.f_rf_constant_max = atof(value);
     OPT("rc-lookahead")
         p->rc.i_lookahead = atoi(value);
     OPT2("qpmin", "qp-min")
@@ -1232,8 +1234,12 @@ char *x264_param2string( x264_param_t *p, int b_res )
             s += sprintf( s, " cplxblur=%.1f qblur=%.1f",
                           p->rc.f_complexity_blur, p->rc.f_qblur );
         if( p->rc.i_vbv_buffer_size )
+        {
             s += sprintf( s, " vbv_maxrate=%d vbv_bufsize=%d",
                           p->rc.i_vbv_max_bitrate, p->rc.i_vbv_buffer_size );
+            if( p->rc.i_rc_method == X264_RC_CRF )
+                s += sprintf( s, " crf-max=%f", p->rc.f_rf_constant_max );
+        }
     }
     else if( p->rc.i_rc_method == X264_RC_CQP )
         s += sprintf( s, " qp=%d", p->rc.i_qp_constant );
