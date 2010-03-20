@@ -754,15 +754,6 @@ avg_w16_align%1_%2_ssse3:
     rep ret
 %endmacro
 
-%assign j 1
-%assign k 2
-%rep 15
-AVG16_CACHELINE_LOOP_SSSE3 j, j
-AVG16_CACHELINE_LOOP_SSSE3 j, k
-%assign j j+1
-%assign k k+1
-%endrep
-
 cglobal x264_pixel_avg2_w16_cache64_ssse3
     mov    eax, r2m
     and    eax, 0x3f
@@ -790,6 +781,14 @@ cglobal x264_pixel_avg2_w16_cache64_ssse3
     RET
 %endif
 
+%assign j 1
+%assign k 2
+%rep 15
+AVG16_CACHELINE_LOOP_SSSE3 j, j
+AVG16_CACHELINE_LOOP_SSSE3 j, k
+%assign j j+1
+%assign k k+1
+%endrep
 
 ;=============================================================================
 ; pixel copy

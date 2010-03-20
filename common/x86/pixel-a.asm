@@ -1247,8 +1247,8 @@ cglobal x264_intra_sa8d_x3_8x8_core_%1, 3,3,16
 ; in: r0 = fenc
 ; out: m0..m3 = hadamard coefs
 INIT_MMX
-ALIGN 16
-load_hadamard:
+cglobal x264_hadamard_load
+; not really a global, but otherwise cycles get attributed to the wrong function in profiling
     pxor        m7, m7
     movd        m0, [r0+0*FENC_STRIDE]
     movd        m1, [r0+1*FENC_STRIDE]
@@ -1259,7 +1259,7 @@ load_hadamard:
     punpcklbw   m2, m7
     punpcklbw   m3, m7
     HADAMARD4_2D 0, 1, 2, 3, 4
-    SAVE_MM_PERMUTATION load_hadamard
+    SAVE_MM_PERMUTATION x264_hadamard_load
     ret
 
 %macro SCALAR_SUMSUB 4
@@ -1393,7 +1393,7 @@ cglobal x264_intra_satd_x3_4x4_%1, 2,6
     %define  t0 r2
 %endif
 
-    call load_hadamard
+    call x264_hadamard_load
     SCALAR_HADAMARD_LEFT 0, r0, r3, r4, r5
     mov         t0d, r0d
     SCALAR_HADAMARD_TOP  0, r0, r3, r4, r5
@@ -1466,7 +1466,7 @@ cglobal x264_intra_satd_x3_16x16_%1, 0,7
 .loop_y:
     xor         r4d, r4d
 .loop_x:
-    call load_hadamard
+    call x264_hadamard_load
 
     SUM3x4 %1
     SUM4x3 t2d, [left_1d+8*r3], [top_1d+8*r4]
@@ -1555,7 +1555,7 @@ cglobal x264_intra_satd_x3_8x8c_%1, 0,6
 .loop_y:
     xor         r4d, r4d
 .loop_x:
-    call load_hadamard
+    call x264_hadamard_load
 
     SUM3x4 %1
     SUM4x3 [r5+4*r4], [left_1d+8*r3], [top_1d+8*r4]
