@@ -348,7 +348,10 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                    --sync-lookahead 0 --sliced-threads\n" );
     else H0( "                                  - psy tunings: film,animation,grain,psnr,ssim\n"
              "                                  - other tunings: fastdecode,zerolatency\n" );
-    H1( "      --slow-firstpass        Don't use faster settings with --pass 1\n" );
+    H2( "      --slow-firstpass        Don't force these faster settings with --pass 1:\n"
+        "                                  --no-8x8dct --me dia --partitions none --ref 1\n"
+        "                                  --subme {2 if >2 else unchanged} --trellis 0\n" );
+    else H1( "      --slow-firstpass        Don't force faster settings with --pass 1\n" );
     H0( "\n" );
     H0( "Frame-type options:\n" );
     H0( "\n" );
