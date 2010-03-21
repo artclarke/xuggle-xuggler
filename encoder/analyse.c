@@ -689,11 +689,12 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
         ALIGNED_ARRAY_16( uint8_t, edge,[33] );
         x264_pixel_cmp_t sa8d = (h->pixf.mbcmp[0] == h->pixf.satd[0]) ? h->pixf.sa8d[PIXEL_8x8] : h->pixf.mbcmp[PIXEL_8x8];
         int i_satd_thresh = a->i_mbrd ? COST_MAX : X264_MIN( i_satd_inter, a->i_satd_i16x16 );
-        int i_cost = 0;
+
+        // FIXME some bias like in i4x4?
+        int i_cost = a->i_lambda * 4; /* base predmode costs */
         h->mb.i_cbp_luma = 0;
         b_merged_satd = h->pixf.intra_mbcmp_x3_8x8 && !h->mb.b_lossless;
 
-        // FIXME some bias like in i4x4?
         if( h->sh.i_type == SLICE_TYPE_B )
             i_cost += a->i_lambda * i_mb_b_cost_table[I_8x8];
 
@@ -716,13 +717,13 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
                 satd[i_pred_mode] -= 3 * a->i_lambda;
                 for( i=2; i>=0; i-- )
                 {
-                    int cost = a->i_satd_i8x8_dir[i][idx] = satd[i] + 4 * a->i_lambda;
+                    int cost = a->i_satd_i8x8_dir[i][idx] = satd[i];
                     COPY2_IF_LT( i_best, cost, a->i_predict8x8[idx], i );
                 }
                 predict_mode += 3;
             }
 
-            for( ; *predict_mode >= 0; predict_mode++ )
+            for( ; *predict_mode >= 0 && (i_best >= 0 || a->i_mbrd >= 2); predict_mode++ )
             {
                 int i_satd;
                 int i_mode = *predict_mode;
@@ -732,14 +733,14 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
                 else
                     h->predict_8x8[i_mode]( p_dst_by, edge );
 
-                i_satd = sa8d( p_dst_by, FDEC_STRIDE, p_src_by, FENC_STRIDE ) + a->i_lambda * 4;
+                i_satd = sa8d( p_dst_by, FDEC_STRIDE, p_src_by, FENC_STRIDE );
                 if( i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) )
-                    i_satd -= a->i_lambda * 3;
+                    i_satd -= 3 * a->i_lambda;
 
                 COPY2_IF_LT( i_best, i_satd, a->i_predict8x8[idx], i_mode );
-                a->i_satd_i8x8_dir[i_mode][idx] = i_satd;
+                a->i_satd_i8x8_dir[i_mode][idx] = i_satd + 4 * a->i_lambda;
             }
-            i_cost += i_best;
+            i_cost += i_best + 3 * a->i_lambda;
 
             if( idx == 3 || i_cost > i_satd_thresh )
                 break;
@@ -779,14 +780,13 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     /* 4x4 prediction selection */
     if( flags & X264_ANALYSE_I4x4 )
     {
-        int i_cost;
+        int i_cost = a->i_lambda * (24+16); /* 24from JVT (SATD0), 16 from base predmode costs */
         int i_satd_thresh = X264_MIN3( i_satd_inter, a->i_satd_i16x16, a->i_satd_i8x8 );
         h->mb.i_cbp_luma = 0;
         b_merged_satd = h->pixf.intra_mbcmp_x3_4x4 && !h->mb.b_lossless;
         if( a->i_mbrd )
             i_satd_thresh = i_satd_thresh * (10-a->b_fast_intra)/8;
 
-        i_cost = a->i_lambda * 24;    /* from JVT (SATD0) */
         if( h->sh.i_type == SLICE_TYPE_B )
             i_cost += a->i_lambda * i_mb_b_cost_table[I_4x4];
 
@@ -813,23 +813,34 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
                 predict_mode += 3;
             }
 
-            for( ; *predict_mode >= 0; predict_mode++ )
+            if( i_best > 0 )
             {
-                int i_satd;
-                int i_mode = *predict_mode;
+                for( ; *predict_mode >= 0; predict_mode++ )
+                {
+                    int i_satd;
+                    int i_mode = *predict_mode;
 
-                if( h->mb.b_lossless )
-                    x264_predict_lossless_4x4( h, p_dst_by, idx, i_mode );
-                else
-                    h->predict_4x4[i_mode]( p_dst_by );
+                    if( h->mb.b_lossless )
+                        x264_predict_lossless_4x4( h, p_dst_by, idx, i_mode );
+                    else
+                        h->predict_4x4[i_mode]( p_dst_by );
 
-                i_satd = h->pixf.mbcmp[PIXEL_4x4]( p_dst_by, FDEC_STRIDE, p_src_by, FENC_STRIDE );
-                if( i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) )
-                    i_satd -= a->i_lambda * 3;
+                    i_satd = h->pixf.mbcmp[PIXEL_4x4]( p_dst_by, FDEC_STRIDE, p_src_by, FENC_STRIDE );
+                    if( i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) )
+                    {
+                        i_satd -= a->i_lambda * 3;
+                        if( i_satd <= 0 )
+                        {
+                            i_best = i_satd;
+                            a->i_predict4x4[idx] = i_mode;
+                            break;
+                        }
+                    }
 
-                COPY2_IF_LT( i_best, i_satd, a->i_predict4x4[idx], i_mode );
+                    COPY2_IF_LT( i_best, i_satd, a->i_predict4x4[idx], i_mode );
+                }
             }
-            i_cost += i_best + 4 * a->i_lambda;
+            i_cost += i_best + 3 * a->i_lambda;
 
             if( i_cost > i_satd_thresh || idx == 15 )
                 break;
