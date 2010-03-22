@@ -363,10 +363,9 @@ void x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame )
         }
         if( i_pady )
         {
-            //FIXME interlace? or just let it pad using the wrong field
             for( y = i_height; y < i_height + i_pady; y++ )
                 memcpy( &frame->plane[i][y*frame->i_stride[i]],
-                        &frame->plane[i][(i_height-1)*frame->i_stride[i]],
+                        &frame->plane[i][(i_height-(~y&h->param.b_interlaced)-1)*frame->i_stride[i]],
                         i_width + i_padx );
         }
     }
