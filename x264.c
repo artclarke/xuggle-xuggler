@@ -336,6 +336,9 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                    --deblock -2:-2 --ipratio 1.1 \n"
         "                                    --pbratio 1.1 --psy-rd <unset>:0.25\n"
         "                                    --qcomp 0.8\n"
+        "                                  - stillimage (psy tuning):\n"
+        "                                    --aq-strength 1.2 --deblock -3:-3\n"
+        "                                    --psy-rd 2.0:0.7\n"
         "                                  - psnr (psy tuning):\n"
         "                                    --aq-mode 0 --no-psy\n"
         "                                  - ssim (psy tuning):\n"
@@ -346,7 +349,8 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                  - zerolatency:\n"
         "                                    --bframes 0 --force-cfr --rc-lookahead 0\n"
         "                                    --sync-lookahead 0 --sliced-threads\n" );
-    else H0( "                                  - psy tunings: film,animation,grain,psnr,ssim\n"
+    else H0( "                                  - psy tunings: film,animation,grain,\n"
+             "                                                 stillimage,psnr,ssim\n"
              "                                  - other tunings: fastdecode,zerolatency\n" );
     H2( "      --slow-firstpass        Don't force these faster settings with --pass 1:\n"
         "                                  --no-8x8dct --me dia --partitions none --ref 1\n"

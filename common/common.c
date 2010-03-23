@@ -309,6 +309,15 @@ static int x264_param_apply_tune( x264_param_t *param, const char *tune )
             param->analyse.i_luma_deadzone[1] = 6;
             param->rc.f_qcompress = 0.8;
         }
+        else if( !strncasecmp( s, "stillimage", 5 ) )
+        {
+            if( psy_tuning_used++ ) goto psy_failure;
+            param->i_deblocking_filter_alphac0 = -3;
+            param->i_deblocking_filter_beta = -3;
+            param->analyse.f_psy_rd = 2.0;
+            param->analyse.f_psy_trellis = 0.7;
+            param->rc.f_aq_strength = 1.2;
+        }
         else if( !strncasecmp( s, "psnr", 4 ) )
         {
             if( psy_tuning_used++ ) goto psy_failure;

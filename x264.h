@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 90
+#define X264_BUILD 91
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -432,7 +432,7 @@ static const char * const x264_preset_names[] = { "ultrafast", "veryfast", "fast
  *      100 times faster than placebo!
  *
  *      Currently available tunings are: */
-static const char * const x264_tune_names[] = { "film", "animation", "grain", "psnr", "ssim", "fastdecode", "zerolatency", 0 };
+static const char * const x264_tune_names[] = { "film", "animation", "grain", "stillimage", "psnr", "ssim", "fastdecode", "zerolatency", 0 };
 
 /*      Multiple tunings can be used if separated by a delimiter in ",./-+",
  *      however multiple psy tunings cannot be used.
