@@ -5,7 +5,7 @@
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
 ;*          Jason Garrett-Glaser <darkshikari@gmail.com>
-;*          Holger Lubitz <hal@duncan.ol.sub.de>
+;*          Holger Lubitz <holger@lubitz.org>
 ;*          Mathieu Monnier <manao@melix.net>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
@@ -29,7 +29,9 @@
 SECTION_RODATA
 
 filt_mul20: times 16 db 20
-filt_mul51: times 8 db 1, -5
+filt_mul15: times 8 db 1, -5
+filt_mul51: times 8 db -5, 1
+hpel_shuf: db 0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15
 
 pw_1:  times 8 dw 1
 pw_16: times 8 dw 16
@@ -59,19 +61,19 @@ SECTION .text
     paddw      %2, %6
 %endmacro
 
-%macro FILT_V2 0
-    psubw  m1, m2  ; a-b
-    psubw  m4, m5
-    psubw  m2, m3  ; b-c
-    psubw  m5, m6
-    psllw  m2, 2
-    psllw  m5, 2
-    psubw  m1, m2  ; a-5*b+4*c
-    psubw  m4, m5
-    psllw  m3, 4
-    psllw  m6, 4
-    paddw  m1, m3  ; a-5*b+20*c
-    paddw  m4, m6
+%macro FILT_V2 6
+    psubw  %1, %2  ; a-b
+    psubw  %4, %5
+    psubw  %2, %3  ; b-c
+    psubw  %5, %6
+    psllw  %2, 2
+    psllw  %5, 2
+    psubw  %1, %2  ; a-5*b+4*c
+    psllw  %3, 4
+    psubw  %4, %5
+    psllw  %6, 4
+    paddw  %1, %3  ; a-5*b+20*c
+    paddw  %4, %6
 %endmacro
 
 %macro FILT_H 3
@@ -98,13 +100,22 @@ SECTION .text
     paddw  %4, %6
 %endmacro
 
-%macro FILT_PACK 3
-    paddw     %1, m7
-    paddw     %2, m7
+%macro FILT_PACK 4
+    paddw     %1, %4
+    paddw     %2, %4
     psraw     %1, %3
     psraw     %2, %3
     packuswb  %1, %2
 %endmacro
+
+;The hpel_filter routines use non-temporal writes for output.
+;The following defines may be uncommented for testing.
+;Doing the hpel_filter temporal may be a win if the last level cache
+;is big enough (preliminary benching suggests on the order of 4* framesize).
+
+;%define movntq movq
+;%define movntps movaps
+;%define sfence
 
 INIT_MMX
 
@@ -125,7 +136,7 @@ cglobal x264_hpel_filter_v_%1, 5,6,%2
 %ifnidn %1, ssse3
     pxor m0, m0
 %else
-    mova m0, [filt_mul51]
+    mova m0, [filt_mul15]
 %endif
 .loop:
 %ifidn %1, ssse3
@@ -153,17 +164,13 @@ cglobal x264_hpel_filter_v_%1, 5,6,%2
     LOAD_ADD_2 m2, m5, [r1+r3  ], [r5+r3  ], m6, m7            ; b0 / b1
     LOAD_ADD   m3,     [r1+r3*2], [r5     ], m7                ; c0
     LOAD_ADD   m6,     [r1+r3*2+mmsize/2], [r5+mmsize/2], m7 ; c1
-    FILT_V2
+    FILT_V2 m1, m2, m3, m4, m5, m6
 %endif
     mova      m7, [pw_16]
     mova      [r2+r4*2], m1
     mova      [r2+r4*2+mmsize], m4
-    paddw     m1, m7
-    paddw     m4, m7
-    psraw     m1, 5
-    psraw     m4, 5
-    packuswb  m1, m4
-    mova     [r0+r4], m1
+    FILT_PACK m1, m4, 5, m7
+    movnt     [r0+r4], m1
     add r1, mmsize
     add r5, mmsize
     add r4, mmsize
@@ -195,7 +202,7 @@ cglobal x264_hpel_filter_c_mmxext, 3,3
     paddw  m5, [src+12] ; b1
     paddw  m6, [src+10] ; c1
     FILT_H2 m1, m2, m3, m4, m5, m6
-    FILT_PACK m1, m4, 6
+    FILT_PACK m1, m4, 6, m7
     movntq [r0+r2], m1
     add r2, 8
     jl .loop
@@ -239,7 +246,7 @@ cglobal x264_hpel_filter_h_mmxext, 3,3
     paddw      m6, m7 ; a1
     movq       m7, [pw_1]
     FILT_H2 m1, m2, m3, m4, m5, m6
-    FILT_PACK m1, m4, 1
+    FILT_PACK m1, m4, 1, m7
     movntq     [r0+r2], m1
     add r2, 8
     jl .loop
@@ -256,7 +263,7 @@ cglobal x264_hpel_filter_c_%1, 3,3,9
     lea r1, [r1+r2*2]
     neg r2
     %define src r1+r2*2
-%ifidn %1, ssse3
+%ifnidn %1, sse2
     mova    m7, [pw_32]
     %define tpw_32 m7
 %elifdef ARCH_X86_64
@@ -265,37 +272,60 @@ cglobal x264_hpel_filter_c_%1, 3,3,9
 %else
     %define tpw_32 [pw_32]
 %endif
-.loop:
 %ifidn %1,sse2_misalign
-    movu    m0, [src-4]
-    movu    m1, [src-2]
-    mova    m2, [src]
-    paddw   m0, [src+6]
-    paddw   m1, [src+4]
-    paddw   m2, [src+2]
+.loop:
+    movu    m4, [src-4]
+    movu    m5, [src-2]
+    mova    m6, [src]
+    movu    m3, [src+12]
+    movu    m2, [src+14]
+    mova    m1, [src+16]
+    paddw   m4, [src+6]
+    paddw   m5, [src+4]
+    paddw   m6, [src+2]
+    paddw   m3, [src+22]
+    paddw   m2, [src+20]
+    paddw   m1, [src+18]
+    FILT_H2 m4, m5, m6, m3, m2, m1
 %else
-    mova    m6, [src-16]
-    mova    m2, [src]
-    mova    m3, [src+16]
-    mova    m0, m2
-    mova    m1, m2
-    mova    m4, m3
-    mova    m5, m3
-    PALIGNR m3, m2, 2, m7
-    PALIGNR m4, m2, 4, m7
-    PALIGNR m5, m2, 6, m7
-    PALIGNR m0, m6, 12, m7
-    PALIGNR m1, m6, 14, m7
-    paddw   m2, m3
-    paddw   m1, m4
-    paddw   m0, m5
+    mova      m0, [src-16]
+    mova      m1, [src]
+.loop:
+    mova      m2, [src+16]
+    mova      m4, m1
+    PALIGNR   m4, m0, 12, m7
+    mova      m5, m1
+    PALIGNR   m5, m0, 14, m0
+    mova      m0, m2
+    PALIGNR   m0, m1, 6, m7
+    paddw     m4, m0
+    mova      m0, m2
+    PALIGNR   m0, m1, 4, m7
+    paddw     m5, m0
+    mova      m6, m2
+    PALIGNR   m6, m1, 2, m7
+    paddw     m6, m1
+    FILT_H    m4, m5, m6
+
+    mova      m0, m2
+    mova      m5, m2
+    PALIGNR   m2, m1, 12, m7
+    PALIGNR   m5, m1, 14, m1
+    mova      m1, [src+32]
+    mova      m3, m1
+    PALIGNR   m3, m0, 6, m7
+    paddw     m3, m2
+    mova      m6, m1
+    PALIGNR   m6, m0, 4, m7
+    paddw     m5, m6
+    mova      m6, m1
+    PALIGNR   m6, m0, 2, m7
+    paddw     m6, m0
+    FILT_H    m3, m5, m6
 %endif
-    FILT_H  m0, m1, m2
-    paddw   m0, tpw_32
-    psraw   m0, 6
-    packuswb m0, m0
-    movq [r0+r2], m0
-    add r2, 8
+    FILT_PACK m4, m3, 6, tpw_32
+    movntps [r0+r2], m4
+    add r2, 16
     jl .loop
     REP_RET
 %endmacro
@@ -342,8 +372,8 @@ cglobal x264_hpel_filter_h_sse2, 3,3,8
     paddw      m6, m7 ; c1
     mova       m7, [pw_1] ; FIXME xmm8
     FILT_H2 m1, m2, m3, m4, m5, m6
-    FILT_PACK m1, m4, 1
-    movntdq    [r0+r2], m1
+    FILT_PACK m1, m4, 1, m7
+    movntps    [r0+r2], m1
     add r2, 16
     jl .loop
     REP_RET
@@ -357,63 +387,39 @@ cglobal x264_hpel_filter_h_ssse3, 3,3
     add r1, r2
     neg r2
     %define src r1+r2
-    pxor m0, m0
-    movh m1, [src-8]
-    punpcklbw m1, m0         ; 00 -1 00 -2 00 -3 00 -4 00 -5 00 -6 00 -7 00 -8
-    movh m2, [src]
-    punpcklbw m2, m0
-    mova       m7, [pw_1]
+    mova      m0, [src-16]
+    mova      m1, [src]
+    mova      m7, [pw_16]
 .loop:
-    movh       m3, [src+8]
-    punpcklbw  m3, m0
-
-    mova       m4, m2
-    palignr    m2, m1, 14
-    mova       m5, m3
-    palignr    m3, m4, 4
-    paddw      m3, m2
-
-    mova       m2, m4
-    palignr    m4, m1, 12
-    mova       m1, m5
-    palignr    m5, m2, 6
-    paddw      m5, m4
-
-    mova       m4, m1
-    palignr    m1, m2, 2
-    paddw      m1, m2
-
-    FILT_H     m5, m3, m1
-
-    movh       m1, [src+16]
-    punpcklbw  m1, m0
-
-    mova       m3, m4
-    palignr    m4, m2, 14
-    mova       m6, m1
-    palignr    m1, m3, 4
-    paddw      m1, m4
-
-    mova       m4, m3
-    palignr    m3, m2, 12
-    mova       m2, m6
-    palignr    m6, m4, 6
-    paddw      m6, m3
-
-    mova       m3, m2
-    palignr    m2, m4, 2
-    paddw      m2, m4
-
-    FILT_H m6, m1, m2
-    FILT_PACK m5, m6, 1
-    movdqa    [r0+r2], m5
-
+    mova      m2, [src+16]
+    mova      m3, m1
+    palignr   m3, m0, 14
+    mova      m4, m1
+    palignr   m4, m0, 15
+    mova      m0, m2
+    palignr   m0, m1, 2
+    pmaddubsw m3, [filt_mul15]
+    pmaddubsw m4, [filt_mul15]
+    pmaddubsw m0, [filt_mul51]
+    mova      m5, m2
+    palignr   m5, m1, 1
+    mova      m6, m2
+    palignr   m6, m1, 3
+    paddw     m3, m0
+    mova      m0, m1
+    pmaddubsw m1, [filt_mul20]
+    pmaddubsw m5, [filt_mul20]
+    pmaddubsw m6, [filt_mul51]
+    paddw     m3, m1
+    paddw     m4, m5
+    paddw     m4, m6
+    FILT_PACK m3, m4, 5, m7
+    pshufb    m3, [hpel_shuf]
+    mova      m1, m2
+    movntps [r0+r2], m3
     add r2, 16
-    mova      m2, m3
-    mova      m1, m4
-
     jl .loop
-    REP_RET
+    RET
 %endif
 
 %define PALIGNR PALIGNR_MMX
@@ -429,93 +435,124 @@ HPEL_V ssse3
 %ifdef ARCH_X86_64
 
 %macro DO_FILT_V 6
+    ;The optimum prefetch distance is difficult to determine in checkasm:
+    ;any prefetch seems slower than not prefetching.
+    ;In real use, the prefetch seems to be a slight win.
+    ;+16 is picked somewhat arbitrarily here based on the fact that even one
+    ;loop iteration is going to take longer than the prefetch.
+    prefetcht0 [r1+r2*2+16]
 %ifidn %6, ssse3
     mova m1, [r3]
     mova m2, [r3+r2]
     mova %3, [r3+r2*2]
     mova m3, [r1]
-    mova %4, [r1+r2]
-    mova m0, [r1+r2*2]
-    mova %2, [filt_mul51]
+    mova %1, [r1+r2]
+    mova %2, [r1+r2*2]
     mova m4, m1
     punpcklbw m1, m2
     punpckhbw m4, m2
-    mova m2, m0
-    punpcklbw m0, %4
-    punpckhbw m2, %4
-    mova %1, m3
+    mova m2, %1
+    punpcklbw %1, %2
+    punpckhbw m2, %2
+    mova %2, m3
     punpcklbw m3, %3
-    punpckhbw %1, %3
-    mova %3, m3
-    mova %4, %1
-    pmaddubsw m1, %2
-    pmaddubsw m4, %2
-    pmaddubsw m0, %2
-    pmaddubsw m2, %2
-    pmaddubsw m3, [filt_mul20]
-    pmaddubsw %1, [filt_mul20]
-    psrlw     %3, 8
-    psrlw     %4, 8
-    paddw m1, m0
+    punpckhbw %2, %3
+
+    pmaddubsw m1, m12
+    pmaddubsw m4, m12
+    pmaddubsw %1, m0
+    pmaddubsw m2, m0
+    pmaddubsw m3, m14
+    pmaddubsw %2, m14
+
+    paddw m1, %1
     paddw m4, m2
     paddw m1, m3
-    paddw m4, %1
+    paddw m4, %2
 %else
     LOAD_ADD_2 m1, m4, [r3     ], [r1+r2*2], m2, m5            ; a0 / a1
     LOAD_ADD_2 m2, m5, [r3+r2  ], [r1+r2  ], m3, m6            ; b0 / b1
     LOAD_ADD_2 m3, m6, [r3+r2*2], [r1     ], %3, %4            ; c0 / c1
-    FILT_V2
+    packuswb %3, %4
+    FILT_V2 m1, m2, m3, m4, m5, m6
 %endif
-    mova      %1, m1
-    mova      %2, m4
-    paddw     m1, m15
-    paddw     m4, m15
     add       r3, 16
     add       r1, 16
-    psraw     m1, 5
-    psraw     m4, 5
-    packuswb  m1, m4
+    mova      %1, m1
+    mova      %2, m4
+    FILT_PACK m1, m4, 5, m15
     movntps  [r11+r4+%5], m1
+%endmacro
+
+%macro FILT_C 4
+    mova      m1, %2
+    PALIGNR   m1, %1, 12, m2
+    mova      m2, %2
+    PALIGNR   m2, %1, 14, %1
+    mova      m3, %3
+    PALIGNR   m3, %2, 4, %1
+    mova      m4, %3
+    PALIGNR   m4, %2, 2, %1
+    paddw     m3, m2
+    mova      %1, %3
+    PALIGNR   %3, %2, 6, m2
+    paddw     m4, %2
+    paddw     %3, m1
+    FILT_H    %3, m3, m4
+%endmacro
+
+%macro DO_FILT_C 4
+    FILT_C %1, %2, %3, 6
+    FILT_C %2, %1, %4, 6
+    FILT_PACK %3, %4, 6, m15
+    movntps   [r5+r4], %3
+%endmacro
+
+%macro ADD8TO16 5
+    mova      %3, %1
+    mova      %4, %2
+    punpcklbw %1, %5
+    punpckhbw %2, %5
+    punpckhbw %3, %5
+    punpcklbw %4, %5
+    paddw     %2, %3
+    paddw     %1, %4
 %endmacro
 
 %macro DO_FILT_H 4
     mova      m1, %2
-    PALIGNR   m1, %1, 12, m4
+    PALIGNR   m1, %1, 14, m3
     mova      m2, %2
-    PALIGNR   m2, %1, 14, m4
-    mova      %1, %3
-    PALIGNR   %3, %2, 6, m4
-    mova      m3, %1
-    PALIGNR   m3, %2, 4, m4
-    mova      m4, %1
-    paddw     %3, m1
-    PALIGNR   m4, %2, 2, m1
-    paddw     m3, m2
-    paddw     m4, %2
-    FILT_H    %3, m3, m4
-    paddw     %3, m15
-    psraw     %3, %4
-%endmacro
-
-%macro DO_FILT_CC 4
-    DO_FILT_H %1, %2, %3, 6
-    DO_FILT_H %2, %1, %4, 6
-    packuswb  %3, %4
-    movntps   [r5+r4], %3
-%endmacro
-
-%macro DO_FILT_HH 4
-    DO_FILT_H %1, %2, %3, 1
-    DO_FILT_H %2, %1, %4, 1
-    packuswb  %3, %4
-    movntps   [r0+r4], %3
-%endmacro
-
-%macro DO_FILT_H2 6
-    DO_FILT_H %1, %2, %3, 6
-    psrlw    m15, 5
-    DO_FILT_H %4, %5, %6, 1
-    packuswb  %6, %3
+    PALIGNR   m2, %1, 15, m3
+    mova      m4, %3
+    PALIGNR   m4, %2, 1 , m3
+    mova      m5, %3
+    PALIGNR   m5, %2, 2 , m3
+    mova      m6, %3
+    PALIGNR   m6, %2, 3 , m3
+    mova      %1, %2
+%ifidn %4, sse2
+    ADD8TO16  m1, m6, m12, m3, m0 ; a
+    ADD8TO16  m2, m5, m12, m3, m0 ; b
+    ADD8TO16  %2, m4, m12, m3, m0 ; c
+    FILT_V2   m1, m2, %2, m6, m5, m4
+    FILT_PACK m1, m6, 5, m15
+%else ; ssse3
+    pmaddubsw m1, m12
+    pmaddubsw m2, m12
+    pmaddubsw %2, m14
+    pmaddubsw m4, m14
+    pmaddubsw m5, m0
+    pmaddubsw m6, m0
+    paddw     m1, %2
+    paddw     m2, m4
+    paddw     m1, m5
+    paddw     m2, m6
+    FILT_PACK m1, m2, 5, m15
+    pshufb    m1, [hpel_shuf]
+%endif
+    movntps [r0+r4], m1
+    mova      %2, %3
 %endmacro
 
 %macro HPEL 1
@@ -543,30 +580,27 @@ cglobal x264_hpel_filter_%1, 7,7,16
     sub       r3, r2
     sub       r3, r2
     mov       r4, r10
+    mova     m15, [pw_16]
 %ifidn %1, sse2
     pxor      m0, m0
+%else ; ssse3
+    mova      m0, [filt_mul51]
+    mova     m12, [filt_mul15]
+    mova     m14, [filt_mul20]
 %endif
-    pcmpeqw  m15, m15
-    psrlw    m15, 15 ; pw_1
-    psllw    m15, 4
 ;ALIGN 16
 .loopy:
 ; first filter_v
-; prefetching does not help here! lots of variants tested, all slower
     DO_FILT_V m8, m7, m13, m12, 0, %1
 ;ALIGN 16
 .loopx:
-    DO_FILT_V m6, m5, m11, m10, 16, %1
+    DO_FILT_V m6, m5, m11, m12, 16, %1
 .lastx:
-    paddw    m15, m15
-    DO_FILT_CC m9, m8, m7, m6
-    movdqa   m7, m12        ; not really necessary, but seems free and
-    movdqa   m6, m11	     ; gives far shorter code
-    psrlw    m15, 5
-    DO_FILT_HH m14, m13, m7, m6
-    psllw    m15, 4 ; pw_16
+    paddw   m15, m15 ; pw_32
+    DO_FILT_C m9, m8, m7, m6
+    psrlw   m15, 1 ; pw_16
     movdqa   m7, m5
-    movdqa  m12, m10
+    DO_FILT_H m10, m13, m11, %1
     add      r4, 16
     jl .loopx
     cmp      r4, 16
@@ -590,12 +624,15 @@ cglobal x264_hpel_filter_%1, 7,7,16
 HPEL sse2
 %define PALIGNR PALIGNR_SSSE3
 HPEL ssse3
-
 %endif
 
 cglobal x264_sfence
     sfence
     ret
+
+%undef movntq
+%undef movntps
+%undef sfence
 
 ;-----------------------------------------------------------------------------
 ; void x264_plane_copy_core_mmxext( uint8_t *dst, int i_dst,
