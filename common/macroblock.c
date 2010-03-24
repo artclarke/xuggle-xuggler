@@ -711,8 +711,8 @@ int x264_macroblock_cache_init( x264_t *h )
     if( h->param.b_cabac )
     {
         CHECKED_MALLOC( h->mb.chroma_pred_mode, i_mb_count * sizeof(int8_t) );
-        CHECKED_MALLOC( h->mb.mvd[0], 2*8 * i_mb_count * sizeof(uint8_t) );
-        CHECKED_MALLOC( h->mb.mvd[1], 2*8 * i_mb_count * sizeof(uint8_t) );
+        CHECKED_MALLOC( h->mb.mvd[0], i_mb_count * sizeof( **h->mb.mvd ) );
+        CHECKED_MALLOC( h->mb.mvd[1], i_mb_count * sizeof( **h->mb.mvd ) );
     }
 
     for( i=0; i<2; i++ )
@@ -1218,16 +1218,16 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
             if( h->param.b_cabac )
             {
                 if( i_top_type >= 0 )
-                    CP64( h->mb.cache.mvd[i_list][x264_scan8[0]-8], h->mb.mvd[i_list][i_top_xy*8] );
+                    CP64( h->mb.cache.mvd[i_list][x264_scan8[0] - 8], h->mb.mvd[i_list][i_top_xy][0] );
                 else
-                    M64( h->mb.cache.mvd[i_list][x264_scan8[0]-8] ) = 0;
+                    M64( h->mb.cache.mvd[i_list][x264_scan8[0] - 8] ) = 0;
 
                 if( i_left_type >= 0 )
                 {
-                    CP16( h->mb.cache.mvd[i_list][x264_scan8[0]-1+0*8], h->mb.mvd[i_list][i_left_xy*8+4] );
-                    CP16( h->mb.cache.mvd[i_list][x264_scan8[0]-1+1*8], h->mb.mvd[i_list][i_left_xy*8+5] );
-                    CP16( h->mb.cache.mvd[i_list][x264_scan8[0]-1+2*8], h->mb.mvd[i_list][i_left_xy*8+6] );
-                    CP16( h->mb.cache.mvd[i_list][x264_scan8[0]-1+3*8], h->mb.mvd[i_list][i_left_xy*8+3] );
+                    CP16( h->mb.cache.mvd[i_list][x264_scan8[0 ] - 1], h->mb.mvd[i_list][i_left_xy][4] );
+                    CP16( h->mb.cache.mvd[i_list][x264_scan8[2 ] - 1], h->mb.mvd[i_list][i_left_xy][5] );
+                    CP16( h->mb.cache.mvd[i_list][x264_scan8[8 ] - 1], h->mb.mvd[i_list][i_left_xy][6] );
+                    CP16( h->mb.cache.mvd[i_list][x264_scan8[10] - 1], h->mb.mvd[i_list][i_left_xy][3] );
                 }
                 else
                     for( i = 0; i < 4; i++ )
@@ -1408,26 +1408,26 @@ void x264_macroblock_cache_save( x264_t *h )
 
         if( !IS_INTRA( i_mb_type ) && !IS_SKIP( i_mb_type ) && !IS_DIRECT( i_mb_type ) )
         {
-            CP64( h->mb.mvd[0][i_mb_xy*8+0], h->mb.cache.mvd[0][x264_scan8[0]+8*3] );
-            CP16( h->mb.mvd[0][i_mb_xy*8+4], h->mb.cache.mvd[0][x264_scan8[0]+8*0+3] );
-            CP16( h->mb.mvd[0][i_mb_xy*8+5], h->mb.cache.mvd[0][x264_scan8[0]+8*1+3] );
-            CP16( h->mb.mvd[0][i_mb_xy*8+6], h->mb.cache.mvd[0][x264_scan8[0]+8*2+3] );
+            CP64( h->mb.mvd[0][i_mb_xy][0], h->mb.cache.mvd[0][x264_scan8[10]] );
+            CP16( h->mb.mvd[0][i_mb_xy][4], h->mb.cache.mvd[0][x264_scan8[5 ]] );
+            CP16( h->mb.mvd[0][i_mb_xy][5], h->mb.cache.mvd[0][x264_scan8[7 ]] );
+            CP16( h->mb.mvd[0][i_mb_xy][6], h->mb.cache.mvd[0][x264_scan8[13]] );
             if( h->sh.i_type == SLICE_TYPE_B )
             {
-                CP64( h->mb.mvd[1][i_mb_xy*8+0], h->mb.cache.mvd[1][x264_scan8[0]+8*3] );
-                CP16( h->mb.mvd[1][i_mb_xy*8+4], h->mb.cache.mvd[1][x264_scan8[0]+8*0+3] );
-                CP16( h->mb.mvd[1][i_mb_xy*8+5], h->mb.cache.mvd[1][x264_scan8[0]+8*1+3] );
-                CP16( h->mb.mvd[1][i_mb_xy*8+6], h->mb.cache.mvd[1][x264_scan8[0]+8*2+3] );
+                CP64( h->mb.mvd[1][i_mb_xy][0], h->mb.cache.mvd[1][x264_scan8[10]] );
+                CP16( h->mb.mvd[1][i_mb_xy][4], h->mb.cache.mvd[1][x264_scan8[5 ]] );
+                CP16( h->mb.mvd[1][i_mb_xy][5], h->mb.cache.mvd[1][x264_scan8[7 ]] );
+                CP16( h->mb.mvd[1][i_mb_xy][6], h->mb.cache.mvd[1][x264_scan8[13]] );
             }
         }
         else
         {
-            M64( h->mb.mvd[0][i_mb_xy*8+0] ) = 0;
-            M64( h->mb.mvd[0][i_mb_xy*8+4] ) = 0;
+            M64( h->mb.mvd[0][i_mb_xy][0] ) = 0;
+            M64( h->mb.mvd[0][i_mb_xy][4] ) = 0;
             if( h->sh.i_type == SLICE_TYPE_B )
             {
-                M64( h->mb.mvd[1][i_mb_xy*8+0] ) = 0;
-                M64( h->mb.mvd[1][i_mb_xy*8+4] ) = 0;
+                M64( h->mb.mvd[1][i_mb_xy][0] ) = 0;
+                M64( h->mb.mvd[1][i_mb_xy][4] ) = 0;
             }
         }
 
