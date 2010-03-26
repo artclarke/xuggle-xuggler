@@ -184,11 +184,21 @@ static int x264_param_apply_preset( x264_param_t *param, const char *preset )
         param->rc.b_mb_tree = 0;
         param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
     }
-    else if( !strcasecmp( preset, "veryfast" ) )
+    else if( !strcasecmp( preset, "superfast" ) )
     {
         param->analyse.inter = X264_ANALYSE_I8x8|X264_ANALYSE_I4x4;
         param->analyse.i_me_method = X264_ME_DIA;
         param->analyse.i_subpel_refine = 1;
+        param->i_frame_reference = 1;
+        param->analyse.b_mixed_references = 0;
+        param->analyse.i_trellis = 0;
+        param->rc.b_mb_tree = 0;
+        param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
+    }
+    else if( !strcasecmp( preset, "veryfast" ) )
+    {
+        param->analyse.i_me_method = X264_ME_HEX;
+        param->analyse.i_subpel_refine = 2;
         param->i_frame_reference = 1;
         param->analyse.b_mixed_references = 0;
         param->analyse.i_trellis = 0;
@@ -200,8 +210,8 @@ static int x264_param_apply_preset( x264_param_t *param, const char *preset )
         param->analyse.b_mixed_references = 0;
         param->i_frame_reference = 2;
         param->analyse.i_subpel_refine = 4;
-        param->rc.b_mb_tree = 0;
         param->analyse.i_weighted_pred = X264_WEIGHTP_BLIND;
+        param->rc.i_lookahead = 20;
     }
     else if( !strcasecmp( preset, "fast" ) )
     {

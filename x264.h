@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 91
+#define X264_BUILD 92
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -426,7 +426,7 @@ int x264_param_parse( x264_param_t *, const char *name, const char *value );
  *      (either can be NULL, which implies no preset or no tune, respectively)
  *
  *      Currently available presets are, ordered from fastest to slowest: */
-static const char * const x264_preset_names[] = { "ultrafast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo", 0 };
+static const char * const x264_preset_names[] = { "ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo", 0 };
 
 /*      Warning: the speed of these presets scales dramatically.  Ultrafast is a full
  *      100 times faster than placebo!

@@ -478,12 +478,14 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
         /* Fast intra decision */
         if( h->mb.i_mb_xy - h->sh.i_first_mb > 4 )
         {
-            if(   IS_INTRA( h->mb.i_mb_type_left )
-               || IS_INTRA( h->mb.i_mb_type_top )
-               || IS_INTRA( h->mb.i_mb_type_topleft )
-               || IS_INTRA( h->mb.i_mb_type_topright )
-               || (h->sh.i_type == SLICE_TYPE_P && IS_INTRA( h->fref0[0]->mb_type[h->mb.i_mb_xy] ))
-               || (h->mb.i_mb_xy - h->sh.i_first_mb < 3*(h->stat.frame.i_mb_count[I_4x4] + h->stat.frame.i_mb_count[I_8x8] + h->stat.frame.i_mb_count[I_16x16])) )
+            /* Always run in fast-intra mode for subme < 3 */
+            if( h->mb.i_subpel_refine > 2 &&
+              ( IS_INTRA( h->mb.i_mb_type_left ) ||
+                IS_INTRA( h->mb.i_mb_type_top ) ||
+                IS_INTRA( h->mb.i_mb_type_topleft ) ||
+                IS_INTRA( h->mb.i_mb_type_topright ) ||
+                (h->sh.i_type == SLICE_TYPE_P && IS_INTRA( h->fref0[0]->mb_type[h->mb.i_mb_xy] )) ||
+                (h->mb.i_mb_xy - h->sh.i_first_mb < 3*(h->stat.frame.i_mb_count[I_4x4] + h->stat.frame.i_mb_count[I_8x8] + h->stat.frame.i_mb_count[I_16x16])) ) )
             { /* intra is likely */ }
             else
             {
@@ -680,7 +682,11 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     if( h->sh.i_type == SLICE_TYPE_B )
         /* cavlc mb type prefix */
         a->i_satd_i16x16 += a->i_lambda * i_mb_b_cost_table[I_16x16];
-    if( a->b_fast_intra && a->i_satd_i16x16 > 2*i_satd_inter )
+
+    /* Not heavily tuned */
+    const uint8_t i16x16_thresh[11] = { 2, 2, 2, 3, 3, 4, 4, 4, 4, 4, 4 };
+    int thresh = i16x16_thresh[h->mb.i_subpel_refine];
+    if( a->b_fast_intra && a->i_satd_i16x16 > (thresh*i_satd_inter)>>1 )
         return;
 
     /* 8x8 prediction selection */
@@ -773,7 +779,10 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
             a->i_satd_i8x8 = COST_MAX;
             i_cost = (i_cost * cost_div_fix8[idx]) >> 8;
         }
-        if( X264_MIN(i_cost, a->i_satd_i16x16) > i_satd_inter*(5+!!a->i_mbrd)/4 )
+        /* Not heavily tuned */
+        const uint8_t i8x8_thresh[11] = { 4, 4, 4, 5, 5, 5, 6, 6, 6, 6, 6 };
+        int thresh = i8x8_thresh[h->mb.i_subpel_refine];
+        if( X264_MIN(i_cost, a->i_satd_i16x16) > (i_satd_inter*thresh)>>2 )
             return;
     }
 
