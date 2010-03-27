@@ -554,7 +554,7 @@ int x264_sei_version_write( x264_t *h, bs_t *s )
     CHECKED_MALLOC( version, 200 + strlen( opts ) );
 
     sprintf( version, "x264 - core %d%s - H.264/MPEG-4 AVC codec - "
-             "Copyleft 2003-2009 - http://www.videolan.org/x264.html - options: %s",
+             "Copyleft 2003-2010 - http://www.videolan.org/x264.html - options: %s",
              X264_BUILD, X264_VERSION, opts );
     length = strlen(version)+1+16;
 
