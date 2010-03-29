@@ -227,7 +227,7 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
                     start = end = timecodes_num - 1;
                 seq_fps_sig = sigexp10( seq_fps, &exponent );
                 seq_fps = MKV_TIMEBASE_DEN / ( round( MKV_TIMEBASE_DEN / seq_fps_sig ) / exponent );
-                for( ; num < start - h->seek && num < timecodes_num - 1; num++ )
+                for( ; num < start && num < timecodes_num - 1; num++ )
                     timecodes[num + 1] = timecodes[num] + 1 / assume_fps;
                 for( num = start; num <= end && num < timecodes_num - 1; num++ )
                     timecodes[num + 1] = timecodes[num] + 1 / seq_fps;
