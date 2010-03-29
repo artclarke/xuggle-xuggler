@@ -1214,12 +1214,6 @@ generic_option:
         }
         opt->timebase_convert_multiplier = ((double)i_user_timebase_den / param->i_timebase_den)
                                          * ((double)param->i_timebase_num / i_user_timebase_num);
-        if( opt->timebase_convert_multiplier < 1 )
-        {
-            fprintf( stderr, "x264 [error]: timebase you specified will generate nonmonotonic pts: %d/%d\n",
-                     i_user_timebase_num, i_user_timebase_den );
-            return -1;
-        }
         param->i_timebase_num = i_user_timebase_num;
         param->i_timebase_den = i_user_timebase_den;
         param->b_vfr_input = 1;
