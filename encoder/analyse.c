@@ -1617,22 +1617,24 @@ static void x264_mb_analyse_inter_direct( x264_t *h, x264_mb_analysis_t *a )
     /* Assumes that fdec still contains the results of
      * x264_mb_predict_mv_direct16x16 and x264_mb_mc */
 
-    uint8_t **p_fenc = h->mb.pic.p_fenc;
-    uint8_t **p_fdec = h->mb.pic.p_fdec;
-    int i;
+    uint8_t *p_fenc = h->mb.pic.p_fenc[0];
+    uint8_t *p_fdec = h->mb.pic.p_fdec[0];
 
     a->i_cost16x16direct = a->i_lambda * i_mb_b_cost_table[B_DIRECT];
-    for( i = 0; i < 4; i++ )
-    {
-        const int x = (i&1)*8;
-        const int y = (i>>1)*8;
-        a->i_cost16x16direct +=
-        a->i_cost8x8direct[i] =
-            h->pixf.mbcmp[PIXEL_8x8]( &p_fenc[0][x+y*FENC_STRIDE], FENC_STRIDE, &p_fdec[0][x+y*FDEC_STRIDE], FDEC_STRIDE );
+    if( h->param.analyse.inter & X264_ANALYSE_BSUB16x16 )
+        for( int i = 0; i < 4; i++ )
+        {
+            const int x = (i&1)*8;
+            const int y = (i>>1)*8;
+            a->i_cost16x16direct +=
+            a->i_cost8x8direct[i] =
+                h->pixf.mbcmp[PIXEL_8x8]( &p_fenc[x+y*FENC_STRIDE], FENC_STRIDE, &p_fdec[x+y*FDEC_STRIDE], FDEC_STRIDE );
 
-        /* mb type cost */
-        a->i_cost8x8direct[i] += a->i_lambda * i_sub_mb_b_cost_table[D_DIRECT_8x8];
-    }
+            /* mb type cost */
+            a->i_cost8x8direct[i] += a->i_lambda * i_sub_mb_b_cost_table[D_DIRECT_8x8];
+        }
+    else
+        a->i_cost16x16direct += h->pixf.mbcmp[PIXEL_16x16]( p_fenc, FENC_STRIDE, p_fdec, FDEC_STRIDE );
 }
 
 static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
