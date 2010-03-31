@@ -2121,7 +2121,7 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
 static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
 {
     ALIGNED_ARRAY_8( uint8_t, pix,[2],[8*16] );
-    ALIGNED_4( int16_t mvc[2][2] );
+    ALIGNED_4( int16_t mvc[3][2] );
     int i, j, l, i_ref;
 
     h->mb.i_partition = D_8x16;
