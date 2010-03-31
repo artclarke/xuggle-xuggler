@@ -1,5 +1,5 @@
 /*****************************************************************************
- * x264: h264 encoder
+ * x264: visualization module
  *****************************************************************************
  * Copyright (C) 2005 Tuukka Toivonen <tuukkat@ee.oulu.fi>
  *
@@ -41,7 +41,8 @@
 #include "visualize.h"
 #include "display.h"
 
-typedef struct {
+typedef struct
+{
     int     i_type;
     int     i_partition;
     int     i_sub_partition[4];
@@ -51,92 +52,86 @@ typedef struct {
     int16_t mv[2][4][4][2];                /* [list][y][x][mvxy] */
 } visualize_t;
 
-/* {{{ [fold] char *get_string(const stringlist_t *sl, int entries, int code) */
 /* Return string from stringlist corresponding to the given code */
 #define GET_STRING(sl, code) get_string((sl), sizeof(sl)/sizeof(*(sl)), code)
 
-typedef struct {
+typedef struct
+{
     int code;
     char *string;
 } stringlist_t;
 
-static char *get_string(const stringlist_t *sl, int entries, int code)
+static char *get_string( const stringlist_t *sl, int entries, int code )
 {
-    int i;
-
-    for (i=0; i<entries; i++) {
-        if (sl[i].code==code) break;
-    }
-    return (i>=entries) ? "?" : sl[i].string;
+    for( int i = 0; i < entries; i++ )
+        if( sl[i].code == code )
+            return sl[i].string;
+    return "?";
 }
-/* }}} */
-/* {{{ [fold] void mv(int x0, int y0, int16_t dmv[2], int ref, int zoom, char *col) */
+
 /* Plot motion vector */
-static void mv(int x0, int y0, int16_t dmv[2], int ref, int zoom, char *col)
+static void mv( int x0, int y0, int16_t dmv[2], int ref, int zoom, char *col )
 {
     int dx = dmv[0];
     int dy = dmv[1];
-    int i;
 
-    dx = (dx * zoom + 2) >> 2;                     /* Quarter pixel accurate MVs */
+    dx = (dx * zoom + 2) >> 2;
     dy = (dy * zoom + 2) >> 2;
-    disp_line(0, x0, y0, x0+dx, y0+dy);
-    for (i=1; i<ref; i++){
-        disp_line(0, x0, y0-i, x0+i, y0);
-        disp_line(0, x0+i, y0, x0, y0+i);
-        disp_line(0, x0, y0+i, x0-i, y0);
-        disp_line(0, x0-i, y0, x0, y0-i);
+    disp_line( 0, x0, y0, x0+dx, y0+dy );
+    for( int i = 1; i < ref; i++ )
+    {
+        disp_line( 0, x0  , y0-i, x0+i, y0   );
+        disp_line( 0, x0+i, y0  , x0  , y0+i );
+        disp_line( 0, x0  , y0+i, x0-i, y0   );
+        disp_line( 0, x0-i, y0  , x0  , y0-i );
     }
-    disp_setcolor("black");
-    disp_point(0, x0, y0);
-    disp_setcolor(col);
+    disp_setcolor( "black" );
+    disp_point( 0, x0, y0 );
+    disp_setcolor( col );
 }
-/* }}} */
 
-/* {{{ [fold] void x264_visualize_init( x264_t *h ) */
 int x264_visualize_init( x264_t *h )
 {
-    int mb = h->sps->i_mb_width * h->sps->i_mb_height;
-    CHECKED_MALLOC( h->visualize, mb * sizeof(visualize_t) );
+    CHECKED_MALLOC( h->visualize, h->sps->i_mb_width * h->sps->i_mb_height * sizeof(visualize_t) );
     return 0;
 fail:
     return -1;
 }
-/* }}} */
-/* {{{ [fold] void x264_visualize_mb( x264_t *h ) */
+
 void x264_visualize_mb( x264_t *h )
 {
     visualize_t *v = (visualize_t*)h->visualize + h->mb.i_mb_xy;
-    int i, l, x, y;
 
-    /* Save all data for the MB what we need for drawing the visualization */
+    /* Save all data for the MB that we need for drawing the visualization */
     v->i_type = h->mb.i_type;
     v->i_partition = h->mb.i_partition;
-    for (i=0; i<4; i++) v->i_sub_partition[i] = h->mb.i_sub_partition[i];
-    for (y=0; y<4; y++) for (x=0; x<4; x++)
-        v->intra4x4_pred_mode[y][x] = h->mb.cache.intra4x4_pred_mode[X264_SCAN8_0+y*8+x];
-    for (l=0; l<2; l++) for (y=0; y<4; y++) for (x=0; x<4; x++) {
-        for (i=0; i<2; i++) {
-            v->mv[l][y][x][i] = h->mb.cache.mv[l][X264_SCAN8_0+y*8+x][i];
-        }
-        v->ref[l][y][x] = h->mb.cache.ref[l][X264_SCAN8_0+y*8+x];
-    }
+    for( int i = 0; i < 4; i++ )
+        v->i_sub_partition[i] = h->mb.i_sub_partition[i];
+    for( int y = 0; y < 4; y++ )
+        for( int x = 0; x < 4; x++ )
+            v->intra4x4_pred_mode[y][x] = h->mb.cache.intra4x4_pred_mode[X264_SCAN8_0+y*8+x];
+    for( int l = 0; l < 2; l++ )
+        for( int y = 0; y < 4; y++ )
+            for( int x = 0; x < 4; x++ )
+            {
+                for( int i = 0; i < 2; i++ )
+                    v->mv[l][y][x][i] = h->mb.cache.mv[l][X264_SCAN8_0+y*8+x][i];
+                v->ref[l][y][x] = h->mb.cache.ref[l][X264_SCAN8_0+y*8+x];
+            }
     v->i_intra16x16_pred_mode = h->mb.i_intra16x16_pred_mode;
 }
-/* }}} */
-/* {{{ [fold] void x264_visualize_close( x264_t *h ) */
+
 void x264_visualize_close( x264_t *h )
 {
     x264_free(h->visualize);
 }
-/* }}} */
-/* {{{ [fold] void x264_visualize_show( x264_t *h ) */
+
 /* Display visualization (block types, MVs) of the encoded frame */
 /* FIXME: B-type MBs not handled yet properly */
 void x264_visualize_show( x264_t *h )
 {
-    int mb_xy;
-    static const stringlist_t mb_types[] = {
+    static const stringlist_t mb_types[] =
+    {
         /* Block types marked as NULL will not be drawn */
         { I_4x4   , "red" },
         { I_8x8   , "#ff5640" },
@@ -170,154 +165,171 @@ void x264_visualize_show( x264_t *h )
     const int height = h->param.i_height;
     const int stride = h->fdec->i_stride[0];
 
-    if (borders) {
-        disp_gray_zoom(0, frame - pad*stride - pad, width+2*pad, height+2*pad, stride, "fdec", zoom);
-    } else {
-        disp_gray_zoom(0, frame, width, height, stride, "fdec", zoom);
-    }
+    if( borders )
+        disp_gray_zoom( 0, frame - pad*stride - pad, width+2*pad, height+2*pad, stride, "fdec", zoom );
+    else
+        disp_gray_zoom( 0, frame, width, height, stride, "fdec", zoom );
 
-    for( mb_xy = 0; mb_xy < h->sps->i_mb_width * h->sps->i_mb_height; mb_xy++ )
+    for( int mb_xy = 0; mb_xy < h->sps->i_mb_width * h->sps->i_mb_height; mb_xy++ )
     {
         visualize_t *const v = (visualize_t*)h->visualize + mb_xy;
         const int mb_y = mb_xy / h->sps->i_mb_width;
         const int mb_x = mb_xy % h->sps->i_mb_width;
-        char *const col = GET_STRING(mb_types, v->i_type);
+        char *const col = GET_STRING( mb_types, v->i_type );
         int x = mb_x*16*zoom;
         int y = mb_y*16*zoom;
         int l = 0;
-        unsigned int i, j;
 
-        if (col==NULL) continue;
-        if (borders) {
+        if( !col )
+            continue;
+
+        if( borders )
+        {
             x += pad*zoom;
             y += pad*zoom;
         }
-        disp_setcolor(col);
-        if (drawbox) disp_rect(0, x, y, x+16*zoom-1, y+16*zoom-1);
 
-        if (v->i_type==P_L0 || v->i_type==P_8x8 || v->i_type==P_SKIP) {
+        disp_setcolor( col );
+        if( drawbox ) disp_rect( 0, x, y, x+16*zoom-1, y+16*zoom-1 );
 
+        if( v->i_type==P_L0 || v->i_type==P_8x8 || v->i_type==P_SKIP )
+        {
             /* Predicted (inter) mode, with motion vector */
-            if (v->i_partition==D_16x16 || v->i_type==P_SKIP) {
-                mv(x+8*zoom, y+8*zoom, v->mv[l][0][0], v->ref[l][0][0], zoom, col);
+            if( v->i_partition == D_16x16 || v->i_type == P_SKIP )
+                mv( x+8*zoom, y+8*zoom, v->mv[l][0][0], v->ref[l][0][0], zoom, col );
+            else if (v->i_partition == D_16x8)
+            {
+                if( drawbox ) disp_rect( 0, x, y, x+16*zoom, y+8*zoom );
+                mv( x+8*zoom, y+4*zoom, v->mv[l][0][0], v->ref[l][0][0], zoom, col );
+                if( drawbox ) disp_rect( 0, x, y+8*zoom, x+16*zoom, y+16*zoom );
+                mv( x+8*zoom, y+12*zoom, v->mv[l][2][0], v->ref[l][2][0], zoom, col );
             }
-            if (v->i_partition==D_16x8) {
-                if (drawbox) disp_rect(0, x, y, x+16*zoom, y+8*zoom);
-                mv(x+8*zoom, y+4*zoom, v->mv[l][0][0], v->ref[l][0][0], zoom, col);
-                if (drawbox) disp_rect(0, x, y+8*zoom, x+16*zoom, y+16*zoom);
-                mv(x+8*zoom, y+12*zoom, v->mv[l][2][0], v->ref[l][2][0], zoom, col);
+            else if( v->i_partition==D_8x16 )
+            {
+                if( drawbox ) disp_rect( 0, x,          y, x+8*zoom,  y+16*zoom );
+                mv( x+4*zoom, y+8*zoom, v->mv[l][0][0], v->ref[l][0][0], zoom, col );
+                if( drawbox ) disp_rect( 0, x+8*zoom,   y, x+16*zoom, y+16*zoom );
+                mv( x+12*zoom, y+8*zoom, v->mv[l][0][2], v->ref[l][0][2], zoom, col );
             }
-            if (v->i_partition==D_8x16) {
-                if (drawbox) disp_rect(0, x,          y, x+8*zoom,  y+16*zoom);
-                mv(x+4*zoom, y+8*zoom, v->mv[l][0][0], v->ref[l][0][0], zoom, col);
-                if (drawbox) disp_rect(0, x+8*zoom,   y, x+16*zoom, y+16*zoom);
-                mv(x+12*zoom, y+8*zoom, v->mv[l][0][2], v->ref[l][0][2], zoom, col);
-            }
-            if (v->i_partition==D_8x8) {
-                for (i=0; i<2; i++) for (j=0; j<2; j++) {
-                    int sp = v->i_sub_partition[i*2+j];
-                    const int x0 = x + j*8*zoom;
-                    const int y0 = y + i*8*zoom;
-                    l = x264_mb_partition_listX_table[0][sp] ? 0 : 1; /* FIXME: not tested if this works */
-                    if (IS_SUB8x8(sp)) {
-                        if (drawbox) disp_rect(0, x0, y0, x0+8*zoom, y0+8*zoom);
-                        mv(x0+4*zoom, y0+4*zoom, v->mv[l][2*i][2*j], v->ref[l][2*i][2*j], zoom, col);
+            else if( v->i_partition==D_8x8 )
+            {
+                for( int i = 0; i < 2; i++ )
+                    for( int j = 0; j < 2; j++ )
+                    {
+                        int sp = v->i_sub_partition[i*2+j];
+                        const int x0 = x + j*8*zoom;
+                        const int y0 = y + i*8*zoom;
+                        l = x264_mb_partition_listX_table[0][sp] ? 0 : 1; /* FIXME: not tested if this works */
+                        if( IS_SUB8x8(sp) )
+                        {
+                            if( drawbox ) disp_rect( 0, x0, y0, x0+8*zoom, y0+8*zoom );
+                            mv( x0+4*zoom, y0+4*zoom, v->mv[l][2*i][2*j], v->ref[l][2*i][2*j], zoom, col );
+                        }
+                        else if( IS_SUB8x4(sp) )
+                        {
+                            if( drawbox ) disp_rect( 0, x0, y0, x0+8*zoom, y0+4*zoom );
+                            if( drawbox ) disp_rect( 0, x0, y0+4*zoom, x0+8*zoom, y0+8*zoom );
+                            mv( x0+4*zoom, y0+2*zoom, v->mv[l][2*i][2*j], v->ref[l][2*i][2*j], zoom, col );
+                            mv( x0+4*zoom, y0+6*zoom, v->mv[l][2*i+1][2*j], v->ref[l][2*i+1][2*j], zoom, col );
+                        }
+                        else if( IS_SUB4x8(sp) )
+                        {
+                            if( drawbox ) disp_rect( 0, x0, y0, x0+4*zoom, y0+8*zoom );
+                            if( drawbox ) disp_rect( 0, x0+4*zoom, y0, x0+8*zoom, y0+8*zoom );
+                            mv( x0+2*zoom, y0+4*zoom, v->mv[l][2*i][2*j], v->ref[l][2*i][2*j], zoom, col );
+                            mv( x0+6*zoom, y0+4*zoom, v->mv[l][2*i][2*j+1], v->ref[l][2*i][2*j+1], zoom, col );
+                        }
+                        else if( IS_SUB4x4(sp) )
+                        {
+                            if( drawbox ) disp_rect( 0, x0, y0, x0+4*zoom, y0+4*zoom );
+                            if( drawbox ) disp_rect( 0, x0+4*zoom, y0, x0+8*zoom, y0+4*zoom );
+                            if( drawbox ) disp_rect( 0, x0, y0+4*zoom, x0+4*zoom, y0+8*zoom );
+                            if( drawbox ) disp_rect( 0, x0+4*zoom, y0+4*zoom, x0+8*zoom, y0+8*zoom );
+                            mv( x0+2*zoom, y0+2*zoom, v->mv[l][2*i][2*j], v->ref[l][2*i][2*j], zoom, col );
+                            mv( x0+6*zoom, y0+2*zoom, v->mv[l][2*i][2*j+1], v->ref[l][2*i][2*j+1], zoom, col );
+                            mv( x0+2*zoom, y0+6*zoom, v->mv[l][2*i+1][2*j], v->ref[l][2*i+1][2*j], zoom, col );
+                            mv( x0+6*zoom, y0+6*zoom, v->mv[l][2*i+1][2*j+1], v->ref[l][2*i+1][2*j+1], zoom, col );
+                        }
                     }
-                    if (IS_SUB8x4(sp)) {
-                        if (drawbox) disp_rect(0, x0, y0, x0+8*zoom, y0+4*zoom);
-                        if (drawbox) disp_rect(0, x0, y0+4*zoom, x0+8*zoom, y0+8*zoom);
-                        mv(x0+4*zoom, y0+2*zoom, v->mv[l][2*i][2*j], v->ref[l][2*i][2*j], zoom, col);
-                        mv(x0+4*zoom, y0+6*zoom, v->mv[l][2*i+1][2*j], v->ref[l][2*i+1][2*j], zoom, col);
-                    }
-                    if (IS_SUB4x8(sp)) {
-                        if (drawbox) disp_rect(0, x0, y0, x0+4*zoom, y0+8*zoom);
-                        if (drawbox) disp_rect(0, x0+4*zoom, y0, x0+8*zoom, y0+8*zoom);
-                        mv(x0+2*zoom, y0+4*zoom, v->mv[l][2*i][2*j], v->ref[l][2*i][2*j], zoom, col);
-                        mv(x0+6*zoom, y0+4*zoom, v->mv[l][2*i][2*j+1], v->ref[l][2*i][2*j+1], zoom, col);
-                    }
-                    if (IS_SUB4x4(sp)) {
-                        if (drawbox) disp_rect(0, x0, y0, x0+4*zoom, y0+4*zoom);
-                        if (drawbox) disp_rect(0, x0+4*zoom, y0, x0+8*zoom, y0+4*zoom);
-                        if (drawbox) disp_rect(0, x0, y0+4*zoom, x0+4*zoom, y0+8*zoom);
-                        if (drawbox) disp_rect(0, x0+4*zoom, y0+4*zoom, x0+8*zoom, y0+8*zoom);
-                        mv(x0+2*zoom, y0+2*zoom, v->mv[l][2*i][2*j], v->ref[l][2*i][2*j], zoom, col);
-                        mv(x0+6*zoom, y0+2*zoom, v->mv[l][2*i][2*j+1], v->ref[l][2*i][2*j+1], zoom, col);
-                        mv(x0+2*zoom, y0+6*zoom, v->mv[l][2*i+1][2*j], v->ref[l][2*i+1][2*j], zoom, col);
-                        mv(x0+6*zoom, y0+6*zoom, v->mv[l][2*i+1][2*j+1], v->ref[l][2*i+1][2*j+1], zoom, col);
-                    }
-                }
             }
         }
 
-        if (IS_INTRA(v->i_type) || v->i_type==I_PCM) {
+        if( IS_INTRA(v->i_type) || v->i_type == I_PCM )
+        {
             /* Intra coded */
-            if (v->i_type==I_16x16) {
+            if( v->i_type == I_16x16 )
+            {
                 switch (v->i_intra16x16_pred_mode) {
                 case I_PRED_16x16_V:
-                    disp_line(0, x+2*zoom, y+2*zoom, x+14*zoom, y+2*zoom);
+                    disp_line( 0, x+2*zoom, y+2*zoom, x+14*zoom, y+2*zoom );
                     break;
                 case I_PRED_16x16_H:
-                    disp_line(0, x+2*zoom, y+2*zoom, x+2*zoom, y+14*zoom);
+                    disp_line( 0, x+2*zoom, y+2*zoom, x+2*zoom, y+14*zoom );
                     break;
                 case I_PRED_16x16_DC:
                 case I_PRED_16x16_DC_LEFT:
                 case I_PRED_16x16_DC_TOP:
                 case I_PRED_16x16_DC_128:
-                    disp_line(0, x+2*zoom, y+2*zoom, x+14*zoom, y+2*zoom);
-                    disp_line(0, x+2*zoom, y+2*zoom, x+2*zoom, y+14*zoom);
+                    disp_line( 0, x+2*zoom, y+2*zoom, x+14*zoom, y+2*zoom );
+                    disp_line( 0, x+2*zoom, y+2*zoom, x+2*zoom, y+14*zoom );
                     break;
                 case I_PRED_16x16_P:
-                    disp_line(0, x+2*zoom, y+2*zoom, x+8*zoom, y+8*zoom);
+                    disp_line( 0, x+2*zoom, y+2*zoom, x+8*zoom, y+8*zoom );
                     break;
                 }
             }
-            if (v->i_type==I_4x4 || v->i_type==I_8x8) {
-                const int di = v->i_type==I_8x8 ? 2 : 1;
+            if( v->i_type==I_4x4 || v->i_type==I_8x8 )
+            {
+                const int di = v->i_type == I_8x8 ? 2 : 1;
                 const int zoom2 = zoom * di;
-                for (i=0; i<4; i+=di) for (j=0; j<4; j+=di) {
-                    const int x0 = x + j*4*zoom;
-                    const int y0 = y + i*4*zoom;
-                    if (drawbox) disp_rect(0, x0, y0, x0+4*zoom2, y0+4*zoom2);
-                    switch (v->intra4x4_pred_mode[i][j]) {
-                    case I_PRED_4x4_V:		/* Vertical */
-                        disp_line(0, x0+0*zoom2, y0+1*zoom2, x0+4*zoom2, y0+1*zoom2);
-                        break;
-                    case I_PRED_4x4_H:		/* Horizontal */
-                        disp_line(0, x0+1*zoom2, y0+0*zoom2, x0+1*zoom2, y0+4*zoom2);
-                        break;
-                    case I_PRED_4x4_DC:		/* DC, average from top and left sides */
-                    case I_PRED_4x4_DC_LEFT:
-                    case I_PRED_4x4_DC_TOP:
-                    case I_PRED_4x4_DC_128:
-                        disp_line(0, x0+1*zoom2, y0+1*zoom2, x0+4*zoom2, y0+1*zoom2);
-                        disp_line(0, x0+1*zoom2, y0+1*zoom2, x0+1*zoom2, y0+4*zoom2);
-                        break;
-                    case I_PRED_4x4_DDL:	/* Topright-bottomleft */
-                        disp_line(0, x0+0*zoom2, y0+0*zoom2, x0+4*zoom2, y0+4*zoom2);
-                        break;
-                    case I_PRED_4x4_DDR:	/* Topleft-bottomright */
-                        disp_line(0, x0+0*zoom2, y0+4*zoom2, x0+4*zoom2, y0+0*zoom2);
-                        break;
-                    case I_PRED_4x4_VR:		/* Mix of topleft-bottomright and vertical */
-                        disp_line(0, x0+0*zoom2, y0+2*zoom2, x0+4*zoom2, y0+1*zoom2);
-                        break;
-                    case I_PRED_4x4_HD:		/* Mix of topleft-bottomright and horizontal */
-                        disp_line(0, x0+2*zoom2, y0+0*zoom2, x0+1*zoom2, y0+4*zoom2);
-                        break;
-                    case I_PRED_4x4_VL:		/* Mix of topright-bottomleft and vertical */
-                        disp_line(0, x0+0*zoom2, y0+1*zoom2, x0+4*zoom2, y0+2*zoom2);
-                        break;
-                    case I_PRED_4x4_HU:		/* Mix of topright-bottomleft and horizontal */
-                        disp_line(0, x0+1*zoom2, y0+0*zoom2, x0+2*zoom2, y0+4*zoom2);
-                        break;
+                for( int i = 0; i < 4; i += di )
+                    for( int j = 0; j < 4; j += di )
+                    {
+                        const int x0 = x + j*4*zoom;
+                        const int y0 = y + i*4*zoom;
+                        if( drawbox ) disp_rect( 0, x0, y0, x0+4*zoom2, y0+4*zoom2 );
+                        switch( v->intra4x4_pred_mode[i][j] )
+                        {
+                            case I_PRED_4x4_V:        /* Vertical */
+                                disp_line( 0, x0+0*zoom2, y0+1*zoom2, x0+4*zoom2, y0+1*zoom2 );
+                                break;
+                            case I_PRED_4x4_H:        /* Horizontal */
+                                disp_line( 0, x0+1*zoom2, y0+0*zoom2, x0+1*zoom2, y0+4*zoom2 );
+                                break;
+                            case I_PRED_4x4_DC:        /* DC, average from top and left sides */
+                            case I_PRED_4x4_DC_LEFT:
+                            case I_PRED_4x4_DC_TOP:
+                            case I_PRED_4x4_DC_128:
+                                disp_line( 0, x0+1*zoom2, y0+1*zoom2, x0+4*zoom2, y0+1*zoom2 );
+                                disp_line( 0, x0+1*zoom2, y0+1*zoom2, x0+1*zoom2, y0+4*zoom2 );
+                                break;
+                            case I_PRED_4x4_DDL:    /* Topright-bottomleft */
+                                disp_line( 0, x0+0*zoom2, y0+0*zoom2, x0+4*zoom2, y0+4*zoom2 );
+                                break;
+                            case I_PRED_4x4_DDR:    /* Topleft-bottomright */
+                                disp_line( 0, x0+0*zoom2, y0+4*zoom2, x0+4*zoom2, y0+0*zoom2 );
+                                break;
+                            case I_PRED_4x4_VR:        /* Mix of topleft-bottomright and vertical */
+                                disp_line( 0, x0+0*zoom2, y0+2*zoom2, x0+4*zoom2, y0+1*zoom2 );
+                                break;
+                            case I_PRED_4x4_HD:        /* Mix of topleft-bottomright and horizontal */
+                                disp_line( 0, x0+2*zoom2, y0+0*zoom2, x0+1*zoom2, y0+4*zoom2 );
+                                break;
+                            case I_PRED_4x4_VL:        /* Mix of topright-bottomleft and vertical */
+                                disp_line( 0, x0+0*zoom2, y0+1*zoom2, x0+4*zoom2, y0+2*zoom2 );
+                                break;
+                            case I_PRED_4x4_HU:        /* Mix of topright-bottomleft and horizontal */
+                                disp_line( 0, x0+1*zoom2, y0+0*zoom2, x0+2*zoom2, y0+4*zoom2 );
+                                break;
+                        }
                     }
-                }
             }
         }
     }
 
     disp_sync();
-    if (waitkey) getchar();
+    if( waitkey )
+        getchar();
 }
 /* }}} */
 

@@ -45,10 +45,9 @@ static int name( uint8_t *pix1, int i_stride_pix1,  \
                  uint8_t *pix2, int i_stride_pix2 ) \
 {                                                   \
     int i_sum = 0;                                  \
-    int x, y;                                       \
-    for( y = 0; y < ly; y++ )                       \
+    for( int y = 0; y < ly; y++ )                   \
     {                                               \
-        for( x = 0; x < lx; x++ )                   \
+        for( int x = 0; x < lx; x++ )               \
         {                                           \
             i_sum += abs( pix1[x] - pix2[x] );      \
         }                                           \
@@ -76,10 +75,9 @@ static int name( uint8_t *pix1, int i_stride_pix1,  \
                  uint8_t *pix2, int i_stride_pix2 ) \
 {                                                   \
     int i_sum = 0;                                  \
-    int x, y;                                       \
-    for( y = 0; y < ly; y++ )                       \
+    for( int y = 0; y < ly; y++ )                   \
     {                                               \
-        for( x = 0; x < lx; x++ )                   \
+        for( int x = 0; x < lx; x++ )               \
         {                                           \
             int d = pix1[x] - pix2[x];              \
             i_sum += d*d;                           \
@@ -101,14 +99,14 @@ PIXEL_SSD_C( x264_pixel_ssd_4x4,    4,  4 )
 int64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2, int i_width, int i_height )
 {
     int64_t i_ssd = 0;
-    int x, y;
+    int y;
     int align = !(((intptr_t)pix1 | (intptr_t)pix2 | i_pix1 | i_pix2) & 15);
 
 #define SSD(size) i_ssd += pf->ssd[size]( pix1 + y*i_pix1 + x, i_pix1, \
                                           pix2 + y*i_pix2 + x, i_pix2 );
     for( y = 0; y < i_height-15; y += 16 )
     {
-        x = 0;
+        int x = 0;
         if( align )
             for( ; x < i_width-15; x += 16 )
                 SSD(PIXEL_16x16);
@@ -116,21 +114,21 @@ int64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, uint8_t *pix1, int i_pix1
             SSD(PIXEL_8x16);
     }
     if( y < i_height-7 )
-        for( x = 0; x < i_width-7; x += 8 )
+        for( int x = 0; x < i_width-7; x += 8 )
             SSD(PIXEL_8x8);
 #undef SSD
 
 #define SSD1 { int d = pix1[y*i_pix1+x] - pix2[y*i_pix2+x]; i_ssd += d*d; }
-    if( i_width % 8 != 0 )
+    if( i_width & 7 )
     {
         for( y = 0; y < (i_height & ~7); y++ )
-            for( x = i_width & ~7; x < i_width; x++ )
+            for( int x = i_width & ~7; x < i_width; x++ )
                 SSD1;
     }
-    if( i_height % 8 != 0 )
+    if( i_height & 7 )
     {
         for( y = i_height & ~7; y < i_height; y++ )
-            for( x = 0; x < i_width; x++ )
+            for( int x = 0; x < i_width; x++ )
                 SSD1;
     }
 #undef SSD1
@@ -146,10 +144,9 @@ int64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, uint8_t *pix1, int i_pix1
 static uint64_t name( uint8_t *pix, int i_stride ) \
 {                                             \
     uint32_t sum = 0, sqr = 0;                \
-    int x, y;                                 \
-    for( y = 0; y < w; y++ )                  \
+    for( int y = 0; y < w; y++ )              \
     {                                         \
-        for( x = 0; x < w; x++ )              \
+        for( int x = 0; x < w; x++ )          \
         {                                     \
             sum += pix[x];                    \
             sqr += pix[x] * pix[x];           \
@@ -168,10 +165,9 @@ PIXEL_VAR_C( x264_pixel_var_8x8,    8 )
 static int pixel_var2_8x8( uint8_t *pix1, int i_stride1, uint8_t *pix2, int i_stride2, int *ssd )
 {
     uint32_t var = 0, sum = 0, sqr = 0;
-    int x, y;
-    for( y = 0; y < 8; y++ )
+    for( int y = 0; y < 8; y++ )
     {
-        for( x = 0; x < 8; x++ )
+        for( int x = 0; x < 8; x++ )
         {
             int diff = pix1[x] - pix2[x];
             sum += diff;
@@ -187,7 +183,7 @@ static int pixel_var2_8x8( uint8_t *pix1, int i_stride1, uint8_t *pix2, int i_st
 }
 
 
-#define HADAMARD4(d0,d1,d2,d3,s0,s1,s2,s3) {\
+#define HADAMARD4(d0, d1, d2, d3, s0, s1, s2, s3) {\
     int t0 = s0 + s1;\
     int t1 = s0 - s1;\
     int t2 = s2 + s3;\
@@ -213,9 +209,9 @@ static ALWAYS_INLINE uint32_t abs2( uint32_t a )
 static NOINLINE int x264_pixel_satd_4x4( uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
 {
     uint32_t tmp[4][2];
-    uint32_t a0,a1,a2,a3,b0,b1;
-    int sum=0, i;
-    for( i=0; i<4; i++, pix1+=i_pix1, pix2+=i_pix2 )
+    uint32_t a0, a1, a2, a3, b0, b1;
+    int sum = 0;
+    for( int i = 0; i < 4; i++, pix1 += i_pix1, pix2 += i_pix2 )
     {
         a0 = pix1[0] - pix2[0];
         a1 = pix1[1] - pix2[1];
@@ -226,9 +222,9 @@ static NOINLINE int x264_pixel_satd_4x4( uint8_t *pix1, int i_pix1, uint8_t *pix
         tmp[i][0] = b0 + b1;
         tmp[i][1] = b0 - b1;
     }
-    for( i=0; i<2; i++ )
+    for( int i = 0; i < 2; i++ )
     {
-        HADAMARD4( a0,a1,a2,a3, tmp[0][i], tmp[1][i], tmp[2][i], tmp[3][i] );
+        HADAMARD4( a0, a1, a2, a3, tmp[0][i], tmp[1][i], tmp[2][i], tmp[3][i] );
         a0 = abs2(a0) + abs2(a1) + abs2(a2) + abs2(a3);
         sum += ((uint16_t)a0) + (a0>>16);
     }
@@ -238,9 +234,9 @@ static NOINLINE int x264_pixel_satd_4x4( uint8_t *pix1, int i_pix1, uint8_t *pix
 static NOINLINE int x264_pixel_satd_8x4( uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
 {
     uint32_t tmp[4][4];
-    uint32_t a0,a1,a2,a3;
-    int sum=0, i;
-    for( i=0; i<4; i++, pix1+=i_pix1, pix2+=i_pix2 )
+    uint32_t a0, a1, a2, a3;
+    int sum = 0;
+    for( int i = 0; i < 4; i++, pix1 += i_pix1, pix2 += i_pix2 )
     {
         a0 = (pix1[0] - pix2[0]) + ((pix1[4] - pix2[4]) << 16);
         a1 = (pix1[1] - pix2[1]) + ((pix1[5] - pix2[5]) << 16);
@@ -248,9 +244,9 @@ static NOINLINE int x264_pixel_satd_8x4( uint8_t *pix1, int i_pix1, uint8_t *pix
         a3 = (pix1[3] - pix2[3]) + ((pix1[7] - pix2[7]) << 16);
         HADAMARD4( tmp[i][0], tmp[i][1], tmp[i][2], tmp[i][3], a0,a1,a2,a3 );
     }
-    for( i=0; i<4; i++ )
+    for( int i = 0; i < 4; i++ )
     {
-        HADAMARD4( a0,a1,a2,a3, tmp[0][i], tmp[1][i], tmp[2][i], tmp[3][i] );
+        HADAMARD4( a0, a1, a2, a3, tmp[0][i], tmp[1][i], tmp[2][i], tmp[3][i] );
         sum += abs2(a0) + abs2(a1) + abs2(a2) + abs2(a3);
     }
     return (((uint16_t)sum) + ((uint32_t)sum>>16)) >> 1;
@@ -282,9 +278,9 @@ PIXEL_SATD_C( 4,  8,  x264_pixel_satd_4x4 )
 static NOINLINE int sa8d_8x8( uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pix2 )
 {
     uint32_t tmp[8][4];
-    uint32_t a0,a1,a2,a3,a4,a5,a6,a7,b0,b1,b2,b3;
-    int sum=0, i;
-    for( i=0; i<8; i++, pix1+=i_pix1, pix2+=i_pix2 )
+    uint32_t a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3;
+    int sum = 0;
+    for( int i = 0; i < 8; i++, pix1 += i_pix1, pix2 += i_pix2 )
     {
         a0 = pix1[0] - pix2[0];
         a1 = pix1[1] - pix2[1];
@@ -300,10 +296,10 @@ static NOINLINE int sa8d_8x8( uint8_t *pix1, int i_pix1, uint8_t *pix2, int i_pi
         b3 = (a6+a7) + ((a6-a7)<<16);
         HADAMARD4( tmp[i][0], tmp[i][1], tmp[i][2], tmp[i][3], b0,b1,b2,b3 );
     }
-    for( i=0; i<4; i++ )
+    for( int i = 0; i < 4; i++ )
     {
-        HADAMARD4( a0,a1,a2,a3, tmp[0][i], tmp[1][i], tmp[2][i], tmp[3][i] );
-        HADAMARD4( a4,a5,a6,a7, tmp[4][i], tmp[5][i], tmp[6][i], tmp[7][i] );
+        HADAMARD4( a0, a1, a2, a3, tmp[0][i], tmp[1][i], tmp[2][i], tmp[3][i] );
+        HADAMARD4( a4, a5, a6, a7, tmp[4][i], tmp[5][i], tmp[6][i], tmp[7][i] );
         b0  = abs2(a0+a4) + abs2(a0-a4);
         b0 += abs2(a1+a5) + abs2(a1-a5);
         b0 += abs2(a2+a6) + abs2(a2-a6);
@@ -332,9 +328,9 @@ static int x264_pixel_sa8d_16x16( uint8_t *pix1, int i_pix1, uint8_t *pix2, int 
 static NOINLINE uint64_t pixel_hadamard_ac( uint8_t *pix, int stride )
 {
     uint32_t tmp[32];
-    uint32_t a0,a1,a2,a3,dc;
-    int sum4=0, sum8=0, i;
-    for( i=0; i<8; i++, pix+=stride )
+    uint32_t a0, a1, a2, a3, dc;
+    int sum4 = 0, sum8 = 0;
+    for( int i = 0; i < 8; i++, pix+=stride )
     {
         uint32_t *t = tmp + (i&3) + (i&4)*4;
         a0 = (pix[0]+pix[1]) + ((pix[0]-pix[1])<<16);
@@ -346,16 +342,16 @@ static NOINLINE uint64_t pixel_hadamard_ac( uint8_t *pix, int stride )
         t[8] = a2 + a3;
         t[12] = a2 - a3;
     }
-    for( i=0; i<8; i++ )
+    for( int i = 0; i < 8; i++ )
     {
-        HADAMARD4( a0,a1,a2,a3, tmp[i*4+0], tmp[i*4+1], tmp[i*4+2], tmp[i*4+3] );
+        HADAMARD4( a0, a1, a2, a3, tmp[i*4+0], tmp[i*4+1], tmp[i*4+2], tmp[i*4+3] );
         tmp[i*4+0] = a0;
         tmp[i*4+1] = a1;
         tmp[i*4+2] = a2;
         tmp[i*4+3] = a3;
         sum4 += abs2(a0) + abs2(a1) + abs2(a2) + abs2(a3);
     }
-    for( i=0; i<8; i++ )
+    for( int i = 0; i < 8; i++ )
     {
         HADAMARD4( a0,a1,a2,a3, tmp[i], tmp[8+i], tmp[16+i], tmp[24+i] );
         sum8 += abs2(a0) + abs2(a1) + abs2(a2) + abs2(a3);
@@ -466,12 +462,11 @@ static void ssim_4x4x2_core( const uint8_t *pix1, int stride1,
                              const uint8_t *pix2, int stride2,
                              int sums[2][4])
 {
-    int x, y, z;
-    for(z=0; z<2; z++)
+    for( int z = 0; z < 2; z++ )
     {
-        uint32_t s1=0, s2=0, ss=0, s12=0;
-        for(y=0; y<4; y++)
-            for(x=0; x<4; x++)
+        uint32_t s1 = 0, s2 = 0, ss = 0, s12 = 0;
+        for( int y = 0; y < 4; y++ )
+            for( int x = 0; x < 4; x++ )
             {
                 int a = pix1[x+y*stride1];
                 int b = pix2[x+y*stride2];
@@ -496,15 +491,14 @@ static float ssim_end1( int s1, int s2, int ss, int s12 )
     static const int ssim_c2 = (int)(.03*.03*255*255*64*63 + .5);
     int vars = ss*64 - s1*s1 - s2*s2;
     int covar = s12*64 - s1*s2;
-    return (float)(2*s1*s2 + ssim_c1) * (float)(2*covar + ssim_c2)\
-           / ((float)(s1*s1 + s2*s2 + ssim_c1) * (float)(vars + ssim_c2));
+    return (float)(2*s1*s2 + ssim_c1) * (float)(2*covar + ssim_c2)
+         / ((float)(s1*s1 + s2*s2 + ssim_c1) * (float)(vars + ssim_c2));
 }
 
 static float ssim_end4( int sum0[5][4], int sum1[5][4], int width )
 {
-    int i;
     float ssim = 0.0;
-    for( i = 0; i < width; i++ )
+    for( int i = 0; i < width; i++ )
         ssim += ssim_end1( sum0[i][0] + sum0[i+1][0] + sum1[i][0] + sum1[i+1][0],
                            sum0[i][1] + sum0[i+1][1] + sum1[i][1] + sum1[i+1][1],
                            sum0[i][2] + sum0[i+1][2] + sum1[i][2] + sum1[i+1][2],
@@ -517,22 +511,21 @@ float x264_pixel_ssim_wxh( x264_pixel_function_t *pf,
                            uint8_t *pix2, int stride2,
                            int width, int height, void *buf )
 {
-    int x, y, z;
+    int z = 0;
     float ssim = 0.0;
     int (*sum0)[4] = buf;
     int (*sum1)[4] = sum0 + width/4+3;
     width >>= 2;
     height >>= 2;
-    z = 0;
-    for( y = 1; y < height; y++ )
+    for( int y = 1; y < height; y++ )
     {
         for( ; z <= y; z++ )
         {
             XCHG( void*, sum0, sum1 );
-            for( x = 0; x < width; x+=2 )
+            for( int x = 0; x < width; x+=2 )
                 pf->ssim_4x4x2_core( &pix1[4*(x+z*stride1)], stride1, &pix2[4*(x+z*stride2)], stride2, &sum0[x] );
         }
-        for( x = 0; x < width-1; x += 4 )
+        for( int x = 0; x < width-1; x += 4 )
             ssim += pf->ssim_end4( sum0+x, sum1+x, X264_MIN(4,width-x-1) );
     }
     return ssim;
@@ -545,8 +538,8 @@ float x264_pixel_ssim_wxh( x264_pixel_function_t *pf,
 static int x264_pixel_ads4( int enc_dc[4], uint16_t *sums, int delta,
                             uint16_t *cost_mvx, int16_t *mvs, int width, int thresh )
 {
-    int nmv=0, i;
-    for( i=0; i<width; i++, sums++ )
+    int nmv = 0;
+    for( int i = 0; i < width; i++, sums++ )
     {
         int ads = abs( enc_dc[0] - sums[0] )
                 + abs( enc_dc[1] - sums[8] )
@@ -562,8 +555,8 @@ static int x264_pixel_ads4( int enc_dc[4], uint16_t *sums, int delta,
 static int x264_pixel_ads2( int enc_dc[2], uint16_t *sums, int delta,
                             uint16_t *cost_mvx, int16_t *mvs, int width, int thresh )
 {
-    int nmv=0, i;
-    for( i=0; i<width; i++, sums++ )
+    int nmv = 0;
+    for( int i = 0; i < width; i++, sums++ )
     {
         int ads = abs( enc_dc[0] - sums[0] )
                 + abs( enc_dc[1] - sums[delta] )
@@ -577,8 +570,8 @@ static int x264_pixel_ads2( int enc_dc[2], uint16_t *sums, int delta,
 static int x264_pixel_ads1( int enc_dc[1], uint16_t *sums, int delta,
                             uint16_t *cost_mvx, int16_t *mvs, int width, int thresh )
 {
-    int nmv=0, i;
-    for( i=0; i<width; i++, sums++ )
+    int nmv = 0;
+    for( int i = 0; i<width; i++, sums++ )
     {
         int ads = abs( enc_dc[0] - sums[0] )
                 + cost_mvx[i];

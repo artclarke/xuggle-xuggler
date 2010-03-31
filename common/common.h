@@ -165,8 +165,8 @@ static ALWAYS_INLINE void x264_median_mv( int16_t *dst, int16_t *a, int16_t *b, 
 
 static ALWAYS_INLINE int x264_predictor_difference( int16_t (*mvc)[2], intptr_t i_mvc )
 {
-    int sum = 0, i;
-    for( i = 0; i < i_mvc-1; i++ )
+    int sum = 0;
+    for( int i = 0; i < i_mvc-1; i++ )
     {
         sum += abs( mvc[i][0] - mvc[i+1][0] )
              + abs( mvc[i][1] - mvc[i+1][1] );

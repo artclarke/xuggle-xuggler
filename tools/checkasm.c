@@ -96,13 +96,13 @@ static inline uint32_t read_time(void)
 static bench_t* get_bench( const char *name, int cpu )
 {
     int i, j;
-    for( i=0; benchs[i].name && strcmp(name, benchs[i].name); i++ )
+    for( i = 0; benchs[i].name && strcmp(name, benchs[i].name); i++ )
         assert( i < MAX_FUNCS );
     if( !benchs[i].name )
         benchs[i].name = strdup( name );
     if( !cpu )
         return &benchs[i].vers[0];
-    for( j=1; benchs[i].vers[j].cpu && benchs[i].vers[j].cpu != cpu; j++ )
+    for( j = 1; benchs[i].vers[j].cpu && benchs[i].vers[j].cpu != cpu; j++ )
         assert( j < MAX_CPUS );
     benchs[i].vers[j].cpu = cpu;
     return &benchs[i].vers[j];
@@ -118,41 +118,45 @@ static int cmp_bench( const void *a, const void *b )
     // asciibetical sort except preserving numbers
     const char *sa = ((bench_func_t*)a)->name;
     const char *sb = ((bench_func_t*)b)->name;
-    for(;; sa++, sb++)
+    for( ;; sa++, sb++ )
     {
-        if( !*sa && !*sb ) return 0;
-        if( isdigit(*sa) && isdigit(*sb) && isdigit(sa[1]) != isdigit(sb[1]) )
-            return isdigit(sa[1]) - isdigit(sb[1]);
-        if( *sa != *sb ) return *sa - *sb;
+        if( !*sa && !*sb )
+            return 0;
+        if( isdigit( *sa ) && isdigit( *sb ) && isdigit( sa[1] ) != isdigit( sb[1] ) )
+            return isdigit( sa[1] ) - isdigit( sb[1] );
+        if( *sa != *sb )
+            return *sa - *sb;
     }
 }
 
 static void print_bench(void)
 {
     uint16_t nops[10000] = {0};
-    int i, j, k, nfuncs, nop_time=0;
+    int nfuncs, nop_time=0;
 
-    for( i=0; i<10000; i++ )
+    for( int i = 0; i < 10000; i++ )
     {
         int t = read_time();
         nops[i] = read_time() - t;
     }
     qsort( nops, 10000, sizeof(uint16_t), cmp_nop );
-    for( i=500; i<9500; i++ )
+    for( int i = 500; i < 9500; i++ )
         nop_time += nops[i];
     nop_time /= 900;
     printf( "nop: %d\n", nop_time );
 
-    for( i=0; i<MAX_FUNCS && benchs[i].name; i++ );
-    nfuncs=i;
+    for( nfuncs = 0; nfuncs < MAX_FUNCS && benchs[nfuncs].name; nfuncs++ );
     qsort( benchs, nfuncs, sizeof(bench_func_t), cmp_bench );
-    for( i=0; i<nfuncs; i++ )
-        for( j=0; j<MAX_CPUS && (!j || benchs[i].vers[j].cpu); j++ )
+    for( int i = 0; i < nfuncs; i++ )
+        for( int j = 0; j < MAX_CPUS && (!j || benchs[i].vers[j].cpu); j++ )
         {
+            int k;
             bench_t *b = &benchs[i].vers[j];
-            if( !b->den ) continue;
-            for( k=0; k<j && benchs[i].vers[k].pointer != b->pointer; k++ );
-            if( k<j ) continue;
+            if( !b->den )
+                continue;
+            for( k = 0; k < j && benchs[i].vers[k].pointer != b->pointer; k++ );
+            if( k < j )
+                continue;
             printf( "%s_%s%s: %"PRId64"\n", benchs[i].name,
                     b->cpu&X264_CPU_SSE4 ? "sse4" :
                     b->cpu&X264_CPU_SHUFFLE_IS_FAST ? "fastshuffle" :
@@ -196,9 +200,8 @@ intptr_t x264_checkasm_call( intptr_t (*func)(), int *ok, ... );
     {\
         uint32_t tsum = 0;\
         int tcount = 0;\
-        int ti;\
         call_a1(func, __VA_ARGS__);\
-        for( ti=0; ti<(cpu?BENCH_RUNS:BENCH_RUNS/4); ti++ )\
+        for( int ti = 0; ti < (cpu?BENCH_RUNS:BENCH_RUNS/4); ti++ )\
         {\
             uint32_t t = read_time();\
             func(__VA_ARGS__);\
@@ -239,7 +242,6 @@ static int check_pixel( int cpu_ref, int cpu_new )
     ALIGNED_16( uint8_t edge[33] );
     uint16_t cost_mv[32];
     int ret = 0, ok, used_asm;
-    int i, j;
 
     x264_pixel_init( 0, &pixel_c );
     x264_pixel_init( cpu_ref, &pixel_ref );
@@ -251,7 +253,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     predict_8x8_filter( buf2+40, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
 
     // maximize sum
-    for( i=0; i<256; i++ )
+    for( int i = 0; i < 256; i++ )
     {
         int z = i|(i>>4);
         z ^= z>>2;
@@ -259,18 +261,19 @@ static int check_pixel( int cpu_ref, int cpu_new )
         buf3[i] = ~(buf4[i] = -(z&1));
     }
     // random pattern made of maxed pixel differences, in case an intermediate value overflows
-    for( ; i<0x1000; i++ )
+    for( int i = 256; i < 0x1000; i++ )
         buf3[i] = ~(buf4[i] = -(buf1[i&~0x88]&1));
 
 #define TEST_PIXEL( name, align ) \
-    for( i = 0, ok = 1, used_asm = 0; i < 7; i++ ) \
+    ok = 1, used_asm = 0;\
+    for( int i = 0; i < 7; i++ ) \
     { \
         int res_c, res_asm; \
         if( pixel_asm.name[i] != pixel_ref.name[i] ) \
         { \
             set_func_name( "%s_%s", #name, pixel_names[i] ); \
             used_asm = 1; \
-            for( j=0; j<64; j++ ) \
+            for( int j = 0; j < 64; j++ ) \
             { \
                 res_c   = call_c( pixel_c.name[i], buf1, 16, buf2+j*!align, 64 ); \
                 res_asm = call_a( pixel_asm.name[i], buf1, 16, buf2+j*!align, 64 ); \
@@ -281,7 +284,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
                     break; \
                 } \
             } \
-            for( j=0; j<0x1000 && ok; j+=256 ) \
+            for( int j = 0; j < 0x1000 && ok; j += 256 ) \
             { \
                 res_c   = pixel_c  .name[i]( buf3+j, 16, buf4+j, 16 ); \
                 res_asm = pixel_asm.name[i]( buf3+j, 16, buf4+j, 16 ); \
@@ -302,20 +305,21 @@ static int check_pixel( int cpu_ref, int cpu_new )
     TEST_PIXEL( sa8d, 1 );
 
 #define TEST_PIXEL_X( N ) \
-    for( i = 0, ok = 1, used_asm = 0; i < 7; i++ ) \
+    ok = 1; used_asm = 0;\
+    for( int i = 0; i < 7; i++ ) \
     { \
         int res_c[4]={0}, res_asm[4]={0}; \
         if( pixel_asm.sad_x##N[i] && pixel_asm.sad_x##N[i] != pixel_ref.sad_x##N[i] ) \
         { \
             set_func_name( "sad_x%d_%s", N, pixel_names[i] ); \
             used_asm = 1; \
-            for( j=0; j<64; j++) \
+            for( int j = 0; j < 64; j++ ) \
             { \
                 uint8_t *pix2 = buf2+j; \
                 res_c[0] = pixel_c.sad[i]( buf1, 16, pix2, 64 ); \
                 res_c[1] = pixel_c.sad[i]( buf1, 16, pix2+6, 64 ); \
                 res_c[2] = pixel_c.sad[i]( buf1, 16, pix2+1, 64 ); \
-                if(N==4) \
+                if( N == 4 ) \
                 { \
                     res_c[3] = pixel_c.sad[i]( buf1, 16, pix2+10, 64 ); \
                     call_a( pixel_asm.sad_x4[i], buf1, pix2, pix2+6, pix2+1, pix2+10, 64, res_asm ); \
@@ -329,7 +333,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
                              i, res_c[0], res_c[1], res_c[2], res_c[3], \
                              res_asm[0], res_asm[1], res_asm[2], res_asm[3] ); \
                 } \
-                if(N==4) \
+                if( N == 4 ) \
                     call_c2( pixel_c.sad_x4[i], buf1, pix2, pix2+6, pix2+1, pix2+10, 64, res_asm ); \
                 else \
                     call_c2( pixel_c.sad_x3[i], buf1, pix2, pix2+6, pix2+1, 64, res_asm ); \
@@ -376,18 +380,19 @@ static int check_pixel( int cpu_ref, int cpu_new )
         if( res_c != res_asm || ssd_c != ssd_asm )
         {
             ok = 0;
-            fprintf( stderr, "var[%d]: %d != %d or %d != %d [FAILED]\n", i, res_c, res_asm, ssd_c, ssd_asm );
+            fprintf( stderr, "var2_8x8: %d != %d or %d != %d [FAILED]\n", res_c, res_asm, ssd_c, ssd_asm );
         }
     }
 
     report( "pixel var2 :" );
 
-    for( i=0, ok=1, used_asm=0; i<4; i++ )
+    ok = 1; used_asm = 0;
+    for( int i = 0; i < 4; i++ )
         if( pixel_asm.hadamard_ac[i] != pixel_ref.hadamard_ac[i] )
         {
             set_func_name( "hadamard_ac_%s", pixel_names[i] );
             used_asm = 1;
-            for( j=0; j<32; j++ )
+            for( int j = 0; j < 32; j++ )
             {
                 uint8_t *pix = (j&16 ? buf1 : buf3) + (j&15)*256;
                 call_c1( pixel_c.hadamard_ac[i], buf1, 16 );
@@ -413,7 +418,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
         set_func_name( #name );\
         used_asm = 1; \
         memcpy( buf3, buf2, 1024 ); \
-        for( i=0; i<3; i++ ) \
+        for( int i = 0; i < 3; i++ ) \
         { \
             pred[i]( buf3+48, ##__VA_ARGS__ ); \
             res_c[i] = pixel_c.satd( buf1+48, 16, buf3+48, 32 ); \
@@ -449,7 +454,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
         x264_emms();
         res_c = x264_pixel_ssim_wxh( &pixel_c,   buf1+2, 32, buf2+2, 32, 32, 28, buf3 );
         res_a = x264_pixel_ssim_wxh( &pixel_asm, buf1+2, 32, buf2+2, 32, 32, 28, buf3 );
-        if( fabs(res_c - res_a) > 1e-6 )
+        if( fabs( res_c - res_a ) > 1e-6 )
         {
             ok = 0;
             fprintf( stderr, "ssim: %.7f != %.7f [FAILED]\n", res_c, res_a );
@@ -464,9 +469,9 @@ static int check_pixel( int cpu_ref, int cpu_new )
     }
 
     ok = 1; used_asm = 0;
-    for( i=0; i<32; i++ )
+    for( int i = 0; i < 32; i++ )
         cost_mv[i] = i*10;
-    for( i=0; i<100 && ok; i++ )
+    for( int i = 0; i < 100 && ok; i++ )
         if( pixel_asm.ads[i&3] != pixel_ref.ads[i&3] )
         {
             ALIGNED_16( uint16_t sums[72] );
@@ -475,9 +480,9 @@ static int check_pixel( int cpu_ref, int cpu_new )
             int mvn_a, mvn_c;
             int thresh = rand() & 0x3fff;
             set_func_name( "esa_ads" );
-            for( j=0; j<72; j++ )
+            for( int j = 0; j < 72; j++ )
                 sums[j] = rand() & 0x3fff;
-            for( j=0; j<4; j++ )
+            for( int j = 0; j < 4; j++ )
                 dc[j] = rand() & 0x3fff;
             used_asm = 1;
             mvn_c = call_c( pixel_c.ads[i&3], dc, sums, 32, cost_mv, mvs_c, 28, thresh );
@@ -485,13 +490,13 @@ static int check_pixel( int cpu_ref, int cpu_new )
             if( mvn_c != mvn_a || memcmp( mvs_c, mvs_a, mvn_c*sizeof(*mvs_c) ) )
             {
                 ok = 0;
-                printf("c%d: ", i&3);
-                for(j=0; j<mvn_c; j++)
-                    printf("%d ", mvs_c[j]);
-                printf("\na%d: ", i&3);
-                for(j=0; j<mvn_a; j++)
-                    printf("%d ", mvs_a[j]);
-                printf("\n\n");
+                printf( "c%d: ", i&3 );
+                for( int j = 0; j < mvn_c; j++ )
+                    printf( "%d ", mvs_c[j] );
+                printf( "\na%d: ", i&3 );
+                for( int j = 0; j < mvn_a; j++ )
+                    printf( "%d ", mvs_a[j] );
+                printf( "\n\n" );
             }
         }
     report( "esa ads:" );
@@ -505,7 +510,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_dct_function_t dct_ref;
     x264_dct_function_t dct_asm;
     x264_quant_function_t qf;
-    int ret = 0, ok, used_asm, i, j, interlace;
+    int ret = 0, ok, used_asm, interlace;
     ALIGNED_16( int16_t dct1[16][16] );
     ALIGNED_16( int16_t dct2[16][16] );
     ALIGNED_16( int16_t dct4[16][16] );
@@ -525,7 +530,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     h->param.analyse.i_luma_deadzone[0] = 0;
     h->param.analyse.i_luma_deadzone[1] = 0;
     h->param.analyse.b_transform_8x8 = 1;
-    for( i=0; i<6; i++ )
+    for( int i = 0; i < 6; i++ )
         h->pps->scaling_list[i] = x264_cqm_flat16;
     x264_cqm_init( h );
     x264_quant_init( h, 0, &qf );
@@ -560,12 +565,12 @@ static int check_dct( int cpu_ref, int cpu_new )
     // is needed to force the coefs into the right range.
     dct_c.sub16x16_dct( dct4, buf1, buf2 );
     dct_c.sub16x16_dct8( dct8, buf1, buf2 );
-    for( i=0; i<16; i++ )
+    for( int i = 0; i < 16; i++ )
     {
         qf.quant_4x4( dct4[i], h->quant4_mf[CQM_4IY][20], h->quant4_bias[CQM_4IY][20] );
         qf.dequant_4x4( dct4[i], h->dequant4_mf[CQM_4IY], 20 );
     }
-    for( i=0; i<4; i++ )
+    for( int i = 0; i < 4; i++ )
     {
         qf.quant_8x8( dct8[i], h->quant8_mf[CQM_8IY][20], h->quant8_bias[CQM_8IY][20] );
         qf.dequant_8x8( dct8[i], h->dequant8_mf[CQM_8IY], 20 );
@@ -611,9 +616,9 @@ static int check_dct( int cpu_ref, int cpu_new )
         set_func_name( #name );\
         used_asm = 1;\
         uint16_t *p = (uint16_t*)buf1;\
-        for( i=0; i<16 && ok; i++ )\
+        for( int i = 0; i < 16 && ok; i++ )\
         {\
-            for( j=0; j<16; j++ )\
+            for( int j = 0; j < 16; j++ )\
                 dct1[0][j] = !i ? (j^j>>1^j>>2^j>>3)&1 ? 4080 : -4080 /* max dc */\
                            : i<8 ? (*p++)&1 ? 4080 : -4080 /* max elements */\
                            : ((*p++)&0x1fff)-0x1000; /* general case */\
@@ -680,11 +685,11 @@ static int check_dct( int cpu_ref, int cpu_new )
         int16_t dc_a, dc_c; \
         set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" );\
         used_asm = 1; \
-        for( i = 0; i < 2; i++ ) \
+        for( int i = 0; i < 2; i++ ) \
         { \
             memcpy( buf3, buf2, 16*FDEC_STRIDE ); \
             memcpy( buf4, buf2, 16*FDEC_STRIDE ); \
-            for( j = 0; j < 4; j++ ) \
+            for( int j = 0; j < 4; j++ ) \
             { \
                 memcpy( buf3 + j*FDEC_STRIDE, (i?buf1:buf2) + j*FENC_STRIDE, 4 ); \
                 memcpy( buf4 + j*FDEC_STRIDE, (i?buf1:buf2) + j*FENC_STRIDE, 4 ); \
@@ -705,12 +710,12 @@ static int check_dct( int cpu_ref, int cpu_new )
 #define TEST_INTERLEAVE( name, t1, t2, dct, size )   \
     if( zigzag_asm.name != zigzag_ref.name ) \
     { \
-        for( j=0; j<100; j++ ) \
+        for( int j = 0; j < 100; j++ ) \
         { \
             set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" );\
             used_asm = 1; \
             memcpy(dct, buf1, size*sizeof(int16_t));\
-            for( i=0; i<size; i++ ) \
+            for( int i = 0; i < size; i++ ) \
                 dct[i] = rand()&0x1F ? 0 : dct[i]; \
             memcpy(buf3, buf4, 10*sizeof(uint8_t)); \
             call_c( zigzag_c.name, t1, dct, buf3 ); \
@@ -768,7 +773,6 @@ static int check_mc( int cpu_ref, int cpu_new )
     uint8_t *dst1    = buf3;
     uint8_t *dst2    = buf4;
 
-    int dx, dy, i, j, k, w;
     int ret = 0, ok, used_asm;
 
     x264_mc_init( 0, &mc_c );
@@ -782,8 +786,8 @@ static int check_mc( int cpu_ref, int cpu_new )
             const x264_weight_t *weight = weight_none; \
             set_func_name( "mc_luma_%dx%d", w, h );\
             used_asm = 1; \
-            memset(buf3, 0xCD, 1024); \
-            memset(buf4, 0xCD, 1024); \
+            memset( buf3, 0xCD, 1024 ); \
+            memset( buf4, 0xCD, 1024 ); \
             call_c( mc_c.mc_luma, dst1, 32, src2, 64, dx, dy, w, h, weight ); \
             call_a( mc_a.mc_luma, dst2, 32, src2, 64, dx, dy, w, h, weight ); \
             if( memcmp( buf3, buf4, 1024 ) ) \
@@ -799,11 +803,11 @@ static int check_mc( int cpu_ref, int cpu_new )
             const x264_weight_t *weight = weight_none; \
             set_func_name( "get_ref_%dx%d", w, h );\
             used_asm = 1; \
-            memset(buf3, 0xCD, 1024); \
-            memset(buf4, 0xCD, 1024); \
+            memset( buf3, 0xCD, 1024 ); \
+            memset( buf4, 0xCD, 1024 ); \
             call_c( mc_c.mc_luma, dst1, 32, src2, 64, dx, dy, w, h, weight ); \
             ref = (uint8_t*) call_a( mc_a.get_ref, ref, &ref_stride, src2, 64, dx, dy, w, h, weight ); \
-            for( i=0; i<h; i++ ) \
+            for( int i = 0; i < h; i++ ) \
                 if( memcmp( dst1+i*32, ref+i*ref_stride, w ) ) \
                 { \
                     fprintf( stderr, "get_ref[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h ); \
@@ -817,13 +821,13 @@ static int check_mc( int cpu_ref, int cpu_new )
         { \
             set_func_name( "mc_chroma_%dx%d", w, h );\
             used_asm = 1; \
-            memset(buf3, 0xCD, 1024); \
-            memset(buf4, 0xCD, 1024); \
+            memset( buf3, 0xCD, 1024 ); \
+            memset( buf4, 0xCD, 1024 ); \
             call_c( mc_c.mc_chroma, dst1, 16, src, 64, dx, dy, w, h ); \
             call_a( mc_a.mc_chroma, dst2, 16, src, 64, dx, dy, w, h ); \
             /* mc_chroma width=2 may write garbage to the right of dst. ignore that. */\
-            for( j=0; j<h; j++ ) \
-                for( i=w; i<4; i++ ) \
+            for( int j = 0; j < h; j++ ) \
+                for( int i = w; i < 4; i++ ) \
                     dst2[i+j*16] = dst1[i+j*16]; \
             if( memcmp( buf3, buf4, 1024 ) ) \
             { \
@@ -832,8 +836,8 @@ static int check_mc( int cpu_ref, int cpu_new )
             } \
         }
     ok = 1; used_asm = 0;
-    for( dy = -8; dy < 8; dy++ )
-        for( dx = -128; dx < 128; dx++ )
+    for( int dy = -8; dy < 8; dy++ )
+        for( int dx = -128; dx < 128; dx++ )
         {
             if( rand()&15 ) continue; // running all of them is too slow
             MC_TEST_LUMA( 20, 18 );
@@ -849,8 +853,8 @@ static int check_mc( int cpu_ref, int cpu_new )
     report( "mc luma :" );
 
     ok = 1; used_asm = 0;
-    for( dy = -1; dy < 9; dy++ )
-        for( dx = -128; dx < 128; dx++ )
+    for( int dy = -1; dy < 9; dy++ )
+        for( int dx = -128; dx < 128; dx++ )
         {
             if( rand()&15 ) continue;
             MC_TEST_CHROMA( 8, 8 );
@@ -866,7 +870,9 @@ static int check_mc( int cpu_ref, int cpu_new )
 #undef MC_TEST_CHROMA
 
 #define MC_TEST_AVG( name, weight ) \
-    for( i = 0, ok = 1, used_asm = 0; i < 10; i++ ) \
+{ \
+    ok = 1, used_asm = 0; \
+    for( int i = 0; i < 10; i++ ) \
     { \
         memcpy( buf3, buf1+320, 320 ); \
         memcpy( buf4, buf1+320, 320 ); \
@@ -884,19 +890,21 @@ static int check_mc( int cpu_ref, int cpu_new )
             call_c2( mc_c.name[i], buf3, 16, buf2+1, 16, buf1+18, 16, weight ); \
             call_a2( mc_a.name[i], buf4, 16, buf2+1, 16, buf1+18, 16, weight ); \
         } \
-    }
-    ok = 1; used_asm = 0;
-    for( w = -63; w <= 127 && ok; w++ )
+    } \
+}
+
+    for( int w = -63; w <= 127 && ok; w++ )
         MC_TEST_AVG( avg, w );
     report( "mc wpredb :" );
 
 #define MC_TEST_WEIGHT( name, weight, aligned ) \
     int align_off = (aligned ? 0 : rand()%16); \
-    for( i = 1, ok = 1, used_asm = 0; i <= 5; i++ ) \
+    ok = 1, used_asm = 0;\
+    for( int i = 1; i <= 5; i++ ) \
     { \
         ALIGNED_16( uint8_t buffC[640] ); \
         ALIGNED_16( uint8_t buffA[640] ); \
-        j = X264_MAX( i*4, 2 ); \
+        int j = X264_MAX( i*4, 2 ); \
         memset( buffC, 0, 640 ); \
         memset( buffA, 0, 640 ); \
         x264_t ha; \
@@ -906,13 +914,12 @@ static int check_mc( int cpu_ref, int cpu_new )
             continue; \
         if( mc_a.name[i] != mc_ref.name[i] ) \
         { \
-            int k; \
             set_func_name( "%s_w%d", #name, j ); \
             used_asm = 1; \
             call_c1( mc_c.weight[i], buffC, 32, buf2+align_off, 32, &weight, 16 ); \
             mc_a.weight_cache(&ha, &weight); \
             call_a1( weight.weightfn[i], buffA, 32, buf2+align_off, 32, &weight, 16 ); \
-            for( k = 0; k < 16; k++ ) \
+            for( int k = 0; k < 16; k++ ) \
                 if( memcmp( &buffC[k*32], &buffA[k*32], j ) ) \
                 { \
                     ok = 0; \
@@ -926,14 +933,13 @@ static int check_mc( int cpu_ref, int cpu_new )
 
     ok = 1; used_asm = 0;
 
-    int s,o,d;
     int align_cnt = 0;
-    for( s = 0; s <= 127 && ok; s++ )
+    for( int s = 0; s <= 127 && ok; s++ )
     {
-        for( o = -128; o <= 127 && ok; o++ )
+        for( int o = -128; o <= 127 && ok; o++ )
         {
             if( rand() & 2047 ) continue;
-            for( d = 0; d <= 7 && ok; d++ )
+            for( int d = 0; d <= 7 && ok; d++ )
             {
                 if( s == 1<<d )
                     continue;
@@ -946,17 +952,18 @@ static int check_mc( int cpu_ref, int cpu_new )
     report( "mc weight :" );
 
     ok = 1; used_asm = 0;
-    s = 1; d = 0;
-    for( o = 0; o <= 127 && ok; o++ )
+    for( int o = 0; o <= 127 && ok; o++ )
     {
+        int s = 1, d = 0;
         if( rand() & 15 ) continue;
         x264_weight_t weight = { .i_scale = 1, .i_denom = 0, .i_offset = o };
         MC_TEST_WEIGHT( offsetadd, weight, (align_cnt++ % 4) );
     }
     report( "mc offsetadd :" );
     ok = 1; used_asm = 0;
-    for( o = -128; o < 0 && ok; o++ )
+    for( int o = -128; o < 0 && ok; o++ )
     {
+        int s = 1, d = 0;
         if( rand() & 15 ) continue;
         x264_weight_t weight = { .i_scale = 1, .i_denom = 0, .i_offset = o };
         MC_TEST_WEIGHT( offsetsub, weight, (align_cnt++ % 4) );
@@ -965,7 +972,7 @@ static int check_mc( int cpu_ref, int cpu_new )
 
     if( mc_a.hpel_filter != mc_ref.hpel_filter )
     {
-        uint8_t *src = buf1+8+2*64;
+        uint8_t *srchpel = buf1+8+2*64;
         uint8_t *dstc[3] = { buf3+8, buf3+8+16*64, buf3+8+32*64 };
         uint8_t *dsta[3] = { buf4+8, buf4+8+16*64, buf4+8+32*64 };
         void *tmp = buf3+49*64;
@@ -973,21 +980,21 @@ static int check_mc( int cpu_ref, int cpu_new )
         ok = 1; used_asm = 1;
         memset( buf3, 0, 4096 );
         memset( buf4, 0, 4096 );
-        call_c( mc_c.hpel_filter, dstc[0], dstc[1], dstc[2], src, 64, 48, 10, tmp );
-        call_a( mc_a.hpel_filter, dsta[0], dsta[1], dsta[2], src, 64, 48, 10, tmp );
-        for( i=0; i<3; i++ )
-            for( j=0; j<10; j++ )
+        call_c( mc_c.hpel_filter, dstc[0], dstc[1], dstc[2], srchpel, 64, 48, 10, tmp );
+        call_a( mc_a.hpel_filter, dsta[0], dsta[1], dsta[2], srchpel, 64, 48, 10, tmp );
+        for( int i = 0; i < 3; i++ )
+            for( int j = 0; j < 10; j++ )
                 //FIXME ideally the first pixels would match too, but they aren't actually used
                 if( memcmp( dstc[i]+j*64+2, dsta[i]+j*64+2, 43 ) )
                 {
                     ok = 0;
                     fprintf( stderr, "hpel filter differs at plane %c line %d\n", "hvc"[i], j );
-                    for( k=0; k<48; k++ )
-                        printf("%02x%s", dstc[i][j*64+k], (k+1)&3 ? "" : " ");
-                    printf("\n");
-                    for( k=0; k<48; k++ )
-                        printf("%02x%s", dsta[i][j*64+k], (k+1)&3 ? "" : " ");
-                    printf("\n");
+                    for( int k = 0; k < 48; k++ )
+                        printf( "%02x%s", dstc[i][j*64+k], (k+1)&3 ? "" : " " );
+                    printf( "\n" );
+                    for( int k = 0; k < 48; k++ )
+                        printf( "%02x%s", dsta[i][j*64+k], (k+1)&3 ? "" : " " );
+                    printf( "\n" );
                     break;
                 }
         report( "hpel filter :" );
@@ -999,24 +1006,24 @@ static int check_mc( int cpu_ref, int cpu_new )
         uint8_t *dsta[4] = { buf4, buf4+1024, buf4+2048, buf4+3072 };
         set_func_name( "lowres_init" );
         ok = 1; used_asm = 1;
-        for( w=40; w<=48; w+=8 )
+        for( int w = 40; w <= 48; w += 8 )
         {
             int stride = (w+8)&~15;
             call_c( mc_c.frame_init_lowres_core, buf1, dstc[0], dstc[1], dstc[2], dstc[3], w*2, stride, w, 16 );
             call_a( mc_a.frame_init_lowres_core, buf1, dsta[0], dsta[1], dsta[2], dsta[3], w*2, stride, w, 16 );
-            for( i=0; i<16; i++)
+            for( int i = 0; i < 16; i++ )
             {
-                for( j=0; j<4; j++)
+                for( int j = 0; j < 4; j++ )
                     if( memcmp( dstc[j]+i*stride, dsta[j]+i*stride, w ) )
                     {
                         ok = 0;
                         fprintf( stderr, "frame_init_lowres differs at plane %d line %d\n", j, i );
-                        for( k=0; k<w; k++ )
+                        for( int k = 0; k < w; k++ )
                             printf( "%d ", dstc[j][k+i*stride] );
-                        printf("\n");
-                        for( k=0; k<w; k++ )
+                        printf( "\n" );
+                        for( int k = 0; k < w; k++ )
                             printf( "%d ", dsta[j][k+i*stride] );
-                        printf("\n");
+                        printf( "\n" );
                         break;
                     }
             }
@@ -1059,21 +1066,21 @@ static int check_mc( int cpu_ref, int cpu_new )
         uint16_t *intra = (uint16_t*)buf4;
         uint16_t *inter = intra+400;
         uint16_t *qscale = inter+400;
-        uint16_t *rand = (uint16_t*)buf2;
+        uint16_t *rnd = (uint16_t*)buf2;
         x264_emms();
-        for( i=0; i<400; i++ )
+        for( int i = 0; i < 400; i++ )
         {
-            intra[i]  = *rand++ & 0x7fff;
+            intra[i]  = *rnd++ & 0x7fff;
             intra[i] += !intra[i];
-            inter[i]  = *rand++ & 0x7fff;
-            qscale[i] = *rand++ & 0x7fff;
+            inter[i]  = *rnd++ & 0x7fff;
+            qscale[i] = *rnd++ & 0x7fff;
         }
         call_c( mc_c.mbtree_propagate_cost, dstc, prop, intra, inter, qscale, 400 );
         call_a( mc_a.mbtree_propagate_cost, dsta, prop, intra, inter, qscale, 400 );
         // I don't care about exact rounding, this is just how close the floating-point implementation happens to be
         x264_emms();
-        for( i=0; i<400; i++ )
-            ok &= abs(dstc[i]-dsta[i]) <= (abs(dstc[i])>512) || fabs((double)dstc[i]/dsta[i]-1) < 1e-6;
+        for( int i = 0; i < 400; i++ )
+            ok &= abs( dstc[i]-dsta[i] ) <= (abs( dstc[i])>512 ) || fabs( (double)dstc[i]/dsta[i]-1 ) < 1e-6;
         report( "mbtree propagate :" );
     }
 
@@ -1088,16 +1095,15 @@ static int check_deblock( int cpu_ref, int cpu_new )
     int ret = 0, ok = 1, used_asm = 0;
     int alphas[36], betas[36];
     int8_t tcs[36][4];
-    int a, c, i, j;
 
     x264_deblock_init( 0, &db_c );
     x264_deblock_init( cpu_ref, &db_ref );
     x264_deblock_init( cpu_new, &db_a );
 
     /* not exactly the real values of a,b,tc but close enough */
-    a = 255; c = 250;
-    for( i = 35; i >= 0; i-- )
+    for( int i = 35; i >= 0; i-- )
     {
+        int a = 255, c = 250;
         alphas[i] = a;
         betas[i] = (i+1)/2;
         tcs[i][0] = tcs[i][2] = (c+6)/10;
@@ -1107,10 +1113,10 @@ static int check_deblock( int cpu_ref, int cpu_new )
     }
 
 #define TEST_DEBLOCK( name, align, ... ) \
-    for( i = 0; i < 36; i++ ) \
+    for( int i = 0; i < 36; i++ ) \
     { \
         int off = 8*32 + (i&15)*4*!align; /* benchmark various alignments of h filter */\
-        for( j = 0; j < 1024; j++ ) \
+        for( int j = 0; j < 1024; j++ ) \
             /* two distributions of random to excersize different failure modes */\
             buf3[j] = rand() & (i&1 ? 0xf : 0xff ); \
         memcpy( buf4, buf3, 1024 ); \
@@ -1155,7 +1161,6 @@ static int check_quant( int cpu_ref, int cpu_new )
     ALIGNED_16( uint8_t cqm_buf[64] );
     int ret = 0, ok, used_asm;
     int oks[2] = {1,1}, used_asms[2] = {0,0};
-    int i, j, i_cqm, qp;
     x264_t h_buf;
     x264_t *h = &h_buf;
     memset( h, 0, sizeof(*h) );
@@ -1165,29 +1170,29 @@ static int check_quant( int cpu_ref, int cpu_new )
     h->param.rc.i_qp_min = 26;
     h->param.analyse.b_transform_8x8 = 1;
 
-    for( i_cqm = 0; i_cqm < 4; i_cqm++ )
+    for( int i_cqm = 0; i_cqm < 4; i_cqm++ )
     {
         if( i_cqm == 0 )
         {
-            for( i = 0; i < 6; i++ )
+            for( int i = 0; i < 6; i++ )
                 h->pps->scaling_list[i] = x264_cqm_flat16;
             h->param.i_cqm_preset = h->pps->i_cqm_preset = X264_CQM_FLAT;
         }
         else if( i_cqm == 1 )
         {
-            for( i = 0; i < 6; i++ )
+            for( int i = 0; i < 6; i++ )
                 h->pps->scaling_list[i] = x264_cqm_jvt[i];
             h->param.i_cqm_preset = h->pps->i_cqm_preset = X264_CQM_JVT;
         }
         else
         {
             if( i_cqm == 2 )
-                for( i = 0; i < 64; i++ )
+                for( int i = 0; i < 64; i++ )
                     cqm_buf[i] = 10 + rand() % 246;
             else
-                for( i = 0; i < 64; i++ )
+                for( int i = 0; i < 64; i++ )
                     cqm_buf[i] = 1;
-            for( i = 0; i < 6; i++ )
+            for( int i = 0; i < 6; i++ )
                 h->pps->scaling_list[i] = cqm_buf;
             h->param.i_cqm_preset = h->pps->i_cqm_preset = X264_CQM_CUSTOM;
         }
@@ -1197,20 +1202,20 @@ static int check_quant( int cpu_ref, int cpu_new )
         x264_quant_init( h, cpu_ref, &qf_ref );
         x264_quant_init( h, cpu_new, &qf_a );
 
-#define INIT_QUANT8() \
+#define INIT_QUANT8(j) \
         { \
             static const int scale1d[8] = {32,31,24,31,32,31,24,31}; \
-            for( i = 0; i < 64; i++ ) \
+            for( int i = 0; i < 64; i++ ) \
             { \
                 unsigned int scale = (255*scale1d[i>>3]*scale1d[i&7])/16; \
                 dct1[i] = dct2[i] = j ? (rand()%(2*scale+1))-scale : 0; \
             } \
         }
 
-#define INIT_QUANT4() \
+#define INIT_QUANT4(j) \
         { \
             static const int scale1d[4] = {4,6,4,6}; \
-            for( i = 0; i < 16; i++ ) \
+            for( int i = 0; i < 16; i++ ) \
             { \
                 unsigned int scale = 255*scale1d[i>>2]*scale1d[i&3]; \
                 dct1[i] = dct2[i] = j ? (rand()%(2*scale+1))-scale : 0; \
@@ -1222,12 +1227,12 @@ static int check_quant( int cpu_ref, int cpu_new )
         { \
             set_func_name( #name ); \
             used_asms[0] = 1; \
-            for( qp = 51; qp > 0; qp-- ) \
+            for( int qp = 51; qp > 0; qp-- ) \
             { \
-                for( j = 0; j < 2; j++ ) \
+                for( int j = 0; j < 2; j++ ) \
                 { \
                     int result_c, result_a; \
-                    for( i = 0; i < 16; i++ ) \
+                    for( int i = 0; i < 16; i++ ) \
                         dct1[i] = dct2[i] = j ? (rand() & 0x1fff) - 0xfff : 0; \
                     result_c = call_c1( qf_c.name, dct1, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
                     result_a = call_a1( qf_a.name, dct2, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
@@ -1248,14 +1253,13 @@ static int check_quant( int cpu_ref, int cpu_new )
         { \
             set_func_name( #qname ); \
             used_asms[0] = 1; \
-            for( qp = 51; qp > 0; qp-- ) \
+            for( int qp = 51; qp > 0; qp-- ) \
             { \
-                for( j = 0; j < 2; j++ ) \
+                for( int j = 0; j < 2; j++ ) \
                 { \
-                    int result_c, result_a; \
-                    INIT_QUANT##w() \
-                    result_c = call_c1( qf_c.qname, dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
-                    result_a = call_a1( qf_a.qname, dct2, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
+                    INIT_QUANT##w(j) \
+                    int result_c = call_c1( qf_c.qname, dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
+                    int result_a = call_a1( qf_a.qname, dct2, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
                     if( memcmp( dct1, dct2, w*w*2 ) || result_c != result_a ) \
                     { \
                         oks[0] = 0; \
@@ -1280,10 +1284,9 @@ static int check_quant( int cpu_ref, int cpu_new )
         { \
             set_func_name( "%s_%s", #dqname, i_cqm?"cqm":"flat" ); \
             used_asms[1] = 1; \
-            j = 1; \
-            for( qp = 51; qp > 0; qp-- ) \
+            for( int qp = 51; qp > 0; qp-- ) \
             { \
-                INIT_QUANT##w() \
+                INIT_QUANT##w(1) \
                 call_c1( qf_c.qname, dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
                 memcpy( dct2, dct1, w*w*2 ); \
                 call_c1( qf_c.dqname, dct1, h->dequant##w##_mf[block], qp ); \
@@ -1309,9 +1312,9 @@ static int check_quant( int cpu_ref, int cpu_new )
         { \
             set_func_name( "%s_%s", #dqname, i_cqm?"cqm":"flat" ); \
             used_asms[1] = 1; \
-            for( qp = 51; qp > 0; qp-- ) \
+            for( int qp = 51; qp > 0; qp-- ) \
             { \
-                for( i = 0; i < 16; i++ ) \
+                for( int i = 0; i < 16; i++ ) \
                     dct1[i] = rand(); \
                 call_c1( qf_c.qname, dct1, h->quant##w##_mf[block][qp][0]>>1, h->quant##w##_bias[block][qp][0]>>1 ); \
                 memcpy( dct2, dct1, w*w*2 ); \
@@ -1341,14 +1344,13 @@ static int check_quant( int cpu_ref, int cpu_new )
     ok = 1; used_asm = 0;
     if( qf_a.denoise_dct != qf_ref.denoise_dct )
     {
-        int size;
         used_asm = 1;
-        for( size = 16; size <= 64; size += 48 )
+        for( int size = 16; size <= 64; size += 48 )
         {
             set_func_name( "denoise_dct" );
-            memcpy(dct1, buf1, size*2);
-            memcpy(dct2, buf1, size*2);
-            memcpy(buf3+256, buf3, 256);
+            memcpy( dct1, buf1, size*2 );
+            memcpy( dct2, buf1, size*2 );
+            memcpy( buf3+256, buf3, 256 );
             call_c1( qf_c.denoise_dct, dct1, (uint32_t*)buf3, (uint16_t*)buf2, size );
             call_a1( qf_a.denoise_dct, dct2, (uint32_t*)(buf3+256), (uint16_t*)buf2, size );
             if( memcmp( dct1, dct2, size*2 ) || memcmp( buf3+4, buf3+256+4, (size-1)*sizeof(uint32_t) ) )
@@ -1364,15 +1366,14 @@ static int check_quant( int cpu_ref, int cpu_new )
     { \
         set_func_name( #decname ); \
         used_asm = 1; \
-        for( i = 0; i < 100; i++ ) \
+        for( int i = 0; i < 100; i++ ) \
         { \
-            int result_c, result_a, idx; \
-            for( idx = 0; idx < w*w; idx++ ) \
+            for( int idx = 0; idx < w*w; idx++ ) \
                 dct1[idx] = !(rand()&3) + (!(rand()&15))*(rand()&3); \
             if( ac ) \
                 dct1[0] = 0; \
-            result_c = call_c( qf_c.decname, dct1 ); \
-            result_a = call_a( qf_a.decname, dct1 ); \
+            int result_c = call_c( qf_c.decname, dct1 ); \
+            int result_a = call_a( qf_a.decname, dct1 ); \
             if( X264_MIN(result_c,thresh) != X264_MIN(result_a,thresh) ) \
             { \
                 ok = 0; \
@@ -1393,17 +1394,17 @@ static int check_quant( int cpu_ref, int cpu_new )
     { \
         set_func_name( #lastname ); \
         used_asm = 1; \
-        for( i = 0; i < 100; i++ ) \
+        for( int i = 0; i < 100; i++ ) \
         { \
-            int result_c, result_a, idx, nnz=0; \
+            int nnz = 0; \
             int max = rand() & (w*w-1); \
             memset( dct1, 0, w*w*2 ); \
-            for( idx = ac; idx < max; idx++ ) \
+            for( int idx = ac; idx < max; idx++ ) \
                 nnz |= dct1[idx] = !(rand()&3) + (!(rand()&15))*rand(); \
             if( !nnz ) \
                 dct1[ac] = 1; \
-            result_c = call_c( qf_c.last, dct1+ac ); \
-            result_a = call_a( qf_a.last, dct1+ac ); \
+            int result_c = call_c( qf_c.last, dct1+ac ); \
+            int result_a = call_a( qf_a.last, dct1+ac ); \
             if( result_c != result_a ) \
             { \
                 ok = 0; \
@@ -1425,20 +1426,20 @@ static int check_quant( int cpu_ref, int cpu_new )
     { \
         set_func_name( #name ); \
         used_asm = 1; \
-        for( i = 0; i < 100; i++ ) \
+        for( int i = 0; i < 100; i++ ) \
         { \
             x264_run_level_t runlevel_c, runlevel_a; \
-            int result_c, result_a, idx, nnz=0; \
+            int nnz = 0; \
             int max = rand() & (w*w-1); \
             memset( dct1, 0, w*w*2 ); \
             memcpy( &runlevel_a, buf1+i, sizeof(x264_run_level_t) ); \
             memcpy( &runlevel_c, buf1+i, sizeof(x264_run_level_t) ); \
-            for( idx = ac; idx < max; idx++ ) \
+            for( int idx = ac; idx < max; idx++ ) \
                 nnz |= dct1[idx] = !(rand()&3) + (!(rand()&15))*rand(); \
             if( !nnz ) \
                 dct1[ac] = 1; \
-            result_c = call_c( qf_c.lastname, dct1+ac, &runlevel_c ); \
-            result_a = call_a( qf_a.lastname, dct1+ac, &runlevel_a ); \
+            int result_c = call_c( qf_c.lastname, dct1+ac, &runlevel_c ); \
+            int result_a = call_a( qf_a.lastname, dct1+ac, &runlevel_a ); \
             if( result_c != result_a || runlevel_c.last != runlevel_a.last || \
                 memcmp(runlevel_c.level, runlevel_a.level, sizeof(int16_t)*result_c) || \
                 memcmp(runlevel_c.run, runlevel_a.run, sizeof(uint8_t)*(result_c-1)) ) \
@@ -1462,7 +1463,6 @@ static int check_quant( int cpu_ref, int cpu_new )
 static int check_intra( int cpu_ref, int cpu_new )
 {
     int ret = 0, ok = 1, used_asm = 0;
-    int i;
     ALIGNED_16( uint8_t edge[33] );
     ALIGNED_16( uint8_t edge2[33] );
     struct
@@ -1504,40 +1504,41 @@ static int check_intra( int cpu_ref, int cpu_new )
         {\
             fprintf( stderr, #name "[%d] :  [FAILED]\n", dir );\
             ok = 0;\
-            int j,k;\
-            for(k=-1; k<16; k++)\
-                printf("%2x ", edge[16+k]);\
-            printf("\n");\
-            for(j=0; j<w; j++){\
-                printf("%2x ", edge[14-j]);\
-                for(k=0; k<w; k++)\
-                    printf("%2x ", buf4[48+k+j*32]);\
-                printf("\n");\
+            for( int k = -1; k < 16; k++ )\
+                printf( "%2x ", edge[16+k] );\
+            printf( "\n" );\
+            for( int j = 0; j < w; j++ )\
+            {\
+                printf( "%2x ", edge[14-j] );\
+                for( int k = 0; k < w; k++ )\
+                    printf( "%2x ", buf4[48+k+j*32] );\
+                printf( "\n" );\
             }\
-            printf("\n");\
-            for(j=0; j<w; j++){\
-                printf("   ");\
-                for(k=0; k<w; k++)\
-                    printf("%2x ", buf3[48+k+j*32]);\
-                printf("\n");\
+            printf( "\n" );\
+            for( int j = 0; j < w; j++ )\
+            {\
+                printf( "   " );\
+                for( int k = 0; k < w; k++ )\
+                    printf( "%2x ", buf3[48+k+j*32] );\
+                printf( "\n" );\
             }\
         }\
     }
 
-    for( i = 0; i < 12; i++ )
+    for( int i = 0; i < 12; i++ )
         INTRA_TEST( predict_4x4, i, 4 );
-    for( i = 0; i < 7; i++ )
+    for( int i = 0; i < 7; i++ )
         INTRA_TEST( predict_8x8c, i, 8 );
-    for( i = 0; i < 7; i++ )
+    for( int i = 0; i < 7; i++ )
         INTRA_TEST( predict_16x16, i, 16 );
-    for( i = 0; i < 12; i++ )
+    for( int i = 0; i < 12; i++ )
         INTRA_TEST( predict_8x8, i, 8, edge );
 
     set_func_name("intra_predict_8x8_filter");
     if( ip_a.predict_8x8_filter != ip_ref.predict_8x8_filter )
     {
         used_asm = 1;
-        for( i = 0; i < 32; i++ )
+        for( int i = 0; i < 32; i++ )
         {
             memcpy( edge2, edge, 33 );
             call_c(ip_c.predict_8x8_filter, buf1+48, edge, (i&24)>>1, i&7);
@@ -1557,11 +1558,10 @@ static int check_intra( int cpu_ref, int cpu_new )
 #define DECL_CABAC(cpu) \
 static void run_cabac_##cpu( uint8_t *dst )\
 {\
-    int i;\
     x264_cabac_t cb;\
     x264_cabac_context_init( &cb, SLICE_TYPE_P, 26, 0 );\
     x264_cabac_encode_init( &cb, dst, dst+0xff0 );\
-    for( i=0; i<0x1000; i++ )\
+    for( int i = 0; i < 0x1000; i++ )\
         x264_cabac_encode_decision_##cpu( &cb, buf1[i]>>1, buf1[i]&1 );\
 }
 DECL_CABAC(c)
@@ -1682,7 +1682,6 @@ static int check_all_flags( void )
 int main(int argc, char *argv[])
 {
     int ret = 0;
-    int i;
 
     if( argc > 1 && !strncmp( argv[1], "--bench", 7 ) )
     {
@@ -1700,9 +1699,9 @@ int main(int argc, char *argv[])
         argv++;
     }
 
-    i = ( argc > 1 ) ? atoi(argv[1]) : x264_mdate();
-    fprintf( stderr, "x264: using random seed %u\n", i );
-    srand( i );
+    int seed = ( argc > 1 ) ? atoi(argv[1]) : x264_mdate();
+    fprintf( stderr, "x264: using random seed %u\n", seed );
+    srand( seed );
 
     buf1 = x264_malloc( 0x3e00 + 16*BENCH_ALIGNS );
     if( !buf1 )
@@ -1713,13 +1712,13 @@ int main(int argc, char *argv[])
     buf2 = buf1 + 0xf00;
     buf3 = buf2 + 0xf00;
     buf4 = buf3 + 0x1000;
-    for( i=0; i<0x1e00; i++ )
+    for( int i = 0; i < 0x1e00; i++ )
         buf1[i] = rand() & 0xFF;
     memset( buf1+0x1e00, 0, 0x2000 );
 
     /* 16-byte alignment is guaranteed whenever it's useful, but some functions also vary in speed depending on %64 */
     if( do_bench )
-        for( i=0; i<BENCH_ALIGNS && !ret; i++ )
+        for( int i = 0; i < BENCH_ALIGNS && !ret; i++ )
         {
             buf2 = buf1 + 0xf00;
             buf3 = buf2 + 0xf00;

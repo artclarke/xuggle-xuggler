@@ -105,7 +105,7 @@ fail:
 /* generate a filter sequence to try based on the filename extension */
 static void avs_build_filter_sequence( char *filename_ext, const char *filter[AVS_MAX_SEQUENCE+1] )
 {
-    int i=0, j;
+    int i = 0;
     const char *all_purpose[] = { "FFmpegSource2", "DSS2", "DirectShowSource", 0 };
     if( !strcasecmp( filename_ext, "avi" ) )
         filter[i++] = "AVISource";
@@ -113,7 +113,7 @@ static void avs_build_filter_sequence( char *filename_ext, const char *filter[AV
         filter[i++] = "MPEG2Source";
     if( !strcasecmp( filename_ext, "dga" ) )
         filter[i++] = "AVCSource";
-    for( j = 0; all_purpose[j] && i < AVS_MAX_SEQUENCE; j++ )
+    for( int j = 0; all_purpose[j] && i < AVS_MAX_SEQUENCE; j++ )
         filter[i++] = all_purpose[j];
 }
 
@@ -273,16 +273,14 @@ static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
     avs_hnd_t *h = handle;
     if( i_frame >= h->num_frames )
         return -1;
-    AVS_VideoFrame *frm =
-    p_pic->opaque = h->func.avs_get_frame( h->clip, i_frame );
-    int i;
+    AVS_VideoFrame *frm = p_pic->opaque = h->func.avs_get_frame( h->clip, i_frame );
     const char *err = h->func.avs_clip_get_error( h->clip );
     if( err )
     {
         fprintf( stderr, "avs [error]: %s occurred while reading frame %d\n", err, i_frame );
         return -1;
     }
-    for( i = 0; i < 3; i++ )
+    for( int i = 0; i < 3; i++ )
     {
         /* explicitly cast away the const attribute to avoid a warning */
         p_pic->img.plane[i] = (uint8_t*)avs_get_read_ptr_p( frm, plane[i] );

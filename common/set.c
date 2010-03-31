@@ -73,16 +73,16 @@ int x264_cqm_init( x264_t *h )
     int def_dequant8[6][64];
     int quant4_mf[4][6][16];
     int quant8_mf[2][6][64];
-    int q, i, j, i_list;
     int deadzone[4] = { 32 - h->param.analyse.i_luma_deadzone[1],
                         32 - h->param.analyse.i_luma_deadzone[0],
                         32 - 11, 32 - 21 };
     int max_qp_err = -1;
     int max_chroma_qp_err = -1;
 
-    for( i = 0; i < 6; i++ )
+    for( int i = 0; i < 6; i++ )
     {
         int size = i<4 ? 16 : 64;
+        int j;
         for( j = (i<4 ? 0 : 4); j < i; j++ )
             if( !memcmp( h->pps->scaling_list[i], h->pps->scaling_list[j], size*sizeof(uint8_t) ) )
                 break;
@@ -109,15 +109,15 @@ int x264_cqm_init( x264_t *h )
             CHECKED_MALLOC( h->quant4_bias[i], 52*size*sizeof(uint16_t) );
     }
 
-    for( q = 0; q < 6; q++ )
+    for( int q = 0; q < 6; q++ )
     {
-        for( i = 0; i < 16; i++ )
+        for( int i = 0; i < 16; i++ )
         {
             int j = (i&1) + ((i>>2)&1);
             def_dequant4[q][i] = dequant4_scale[q][j];
             def_quant4[q][i]   =   quant4_scale[q][j];
         }
-        for( i = 0; i < 64; i++ )
+        for( int i = 0; i < 64; i++ )
         {
             int j = quant8_scan[((i>>1)&12) | (i&3)];
             def_dequant8[q][i] = dequant8_scale[q][j];
@@ -125,28 +125,29 @@ int x264_cqm_init( x264_t *h )
         }
     }
 
-    for( q = 0; q < 6; q++ )
+    for( int q = 0; q < 6; q++ )
     {
-        for( i_list = 0; i_list < 4; i_list++ )
-            for( i = 0; i < 16; i++ )
+        for( int i_list = 0; i_list < 4; i_list++ )
+            for( int i = 0; i < 16; i++ )
             {
                 h->dequant4_mf[i_list][q][i] = def_dequant4[q][i] * h->pps->scaling_list[i_list][i];
                      quant4_mf[i_list][q][i] = DIV(def_quant4[q][i] * 16, h->pps->scaling_list[i_list][i]);
             }
-        for( i_list = 0; i_list < 2; i_list++ )
-            for( i = 0; i < 64; i++ )
+        for( int i_list = 0; i_list < 2; i_list++ )
+            for( int i = 0; i < 64; i++ )
             {
                 h->dequant8_mf[i_list][q][i] = def_dequant8[q][i] * h->pps->scaling_list[4+i_list][i];
                      quant8_mf[i_list][q][i] = DIV(def_quant8[q][i] * 16, h->pps->scaling_list[4+i_list][i]);
             }
     }
-    for( q = 0; q < 52; q++ )
+    for( int q = 0; q < 52; q++ )
     {
-        for( i_list = 0; i_list < 4; i_list++ )
-            for( i = 0; i < 16; i++ )
+        int j;
+        for( int i_list = 0; i_list < 4; i_list++ )
+            for( int i = 0; i < 16; i++ )
             {
                 h->unquant4_mf[i_list][q][i] = (1ULL << (q/6 + 15 + 8)) / quant4_mf[i_list][q%6][i];
-                h->  quant4_mf[i_list][q][i] = j = SHIFT(quant4_mf[i_list][q%6][i], q/6 - 1);
+                h->quant4_mf[i_list][q][i] = j = SHIFT(quant4_mf[i_list][q%6][i], q/6 - 1);
                 // round to nearest, unless that would cause the deadzone to be negative
                 h->quant4_bias[i_list][q][i] = X264_MIN( DIV(deadzone[i_list]<<10, j), (1<<15)/j );
                 if( j > 0xffff && q > max_qp_err && (i_list == CQM_4IY || i_list == CQM_4PY) )
@@ -155,15 +156,15 @@ int x264_cqm_init( x264_t *h )
                     max_chroma_qp_err = q;
             }
         if( h->param.analyse.b_transform_8x8 )
-        for( i_list = 0; i_list < 2; i_list++ )
-            for( i = 0; i < 64; i++ )
-            {
-                h->unquant8_mf[i_list][q][i] = (1ULL << (q/6 + 16 + 8)) / quant8_mf[i_list][q%6][i];
-                h->  quant8_mf[i_list][q][i] = j = SHIFT(quant8_mf[i_list][q%6][i], q/6);
-                h->quant8_bias[i_list][q][i] = X264_MIN( DIV(deadzone[i_list]<<10, j), (1<<15)/j );
-                if( j > 0xffff && q > max_qp_err )
-                    max_qp_err = q;
-            }
+            for( int i_list = 0; i_list < 2; i_list++ )
+                for( int i = 0; i < 64; i++ )
+                {
+                    h->unquant8_mf[i_list][q][i] = (1ULL << (q/6 + 16 + 8)) / quant8_mf[i_list][q%6][i];
+                    h->quant8_mf[i_list][q][i] = j = SHIFT(quant8_mf[i_list][q%6][i], q/6);
+                    h->quant8_bias[i_list][q][i] = X264_MIN( DIV(deadzone[i_list]<<10, j), (1<<15)/j );
+                    if( j > 0xffff && q > max_qp_err )
+                        max_qp_err = q;
+                }
     }
 
     if( !h->mb.b_lossless && max_qp_err >= h->param.rc.i_qp_min )
@@ -185,8 +186,9 @@ fail:
 }
 
 #define CQM_DELETE( n, max )\
-    for( i = 0; i < max; i++ )\
+    for( int i = 0; i < max; i++ )\
     {\
+        int j;\
         for( j = 0; j < i; j++ )\
             if( h->quant##n##_mf[i] == h->quant##n##_mf[j] )\
                 break;\
@@ -205,7 +207,6 @@ fail:
 
 void x264_cqm_delete( x264_t *h )
 {
-    int i, j;
     CQM_DELETE( 4, 4 );
     CQM_DELETE( 8, 2 );
 }
@@ -213,11 +214,9 @@ void x264_cqm_delete( x264_t *h )
 static int x264_cqm_parse_jmlist( x264_t *h, const char *buf, const char *name,
                            uint8_t *cqm, const uint8_t *jvt, int length )
 {
-    char *p;
-    char *nextvar;
     int i;
 
-    p = strstr( buf, name );
+    char *p = strstr( buf, name );
     if( !p )
     {
         memset( cqm, 16, length );
@@ -228,7 +227,7 @@ static int x264_cqm_parse_jmlist( x264_t *h, const char *buf, const char *name,
     if( *p == 'U' || *p == 'V' )
         p++;
 
-    nextvar = strstr( p, "INT" );
+    char *nextvar = strstr( p, "INT" );
 
     for( i = 0; i < length && (p = strpbrk( p, " \t\n," )) && (p = strpbrk( p, "0123456789" )); i++ )
     {
@@ -258,12 +257,12 @@ static int x264_cqm_parse_jmlist( x264_t *h, const char *buf, const char *name,
 
 int x264_cqm_parse_file( x264_t *h, const char *filename )
 {
-    char *buf, *p;
+    char *p;
     int b_error = 0;
 
     h->param.i_cqm_preset = X264_CQM_CUSTOM;
 
-    buf = x264_slurp_file( filename );
+    char *buf = x264_slurp_file( filename );
     if( !buf )
     {
         x264_log( h, X264_LOG_ERROR, "can't open file '%s'\n", filename );

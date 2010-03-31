@@ -129,8 +129,7 @@ int x264_lookahead_init( x264_t *h, int i_slicetype_length )
 {
     x264_lookahead_t *look;
     CHECKED_MALLOCZERO( look, sizeof(x264_lookahead_t) );
-    int i;
-    for( i = 0; i < h->param.i_threads; i++ )
+    for( int i = 0; i < h->param.i_threads; i++ )
         h->thread[i]->lookahead = look;
 
     look->i_last_keyframe = - h->param.i_keyint_max;
@@ -193,10 +192,9 @@ void x264_lookahead_put_frame( x264_t *h, x264_frame_t *frame )
 
 int x264_lookahead_is_empty( x264_t *h )
 {
-    int b_empty;
     x264_pthread_mutex_lock( &h->lookahead->ofbuf.mutex );
     x264_pthread_mutex_lock( &h->lookahead->next.mutex );
-    b_empty = !h->lookahead->next.i_size && !h->lookahead->ofbuf.i_size;
+    int b_empty = !h->lookahead->next.i_size && !h->lookahead->ofbuf.i_size;
     x264_pthread_mutex_unlock( &h->lookahead->next.mutex );
     x264_pthread_mutex_unlock( &h->lookahead->ofbuf.mutex );
     return b_empty;

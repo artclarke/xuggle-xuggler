@@ -21,7 +21,8 @@
 #include "common/common.h"
 #include "ppccommon.h"
 
-#define transpose4x16(r0, r1, r2, r3) {      \
+#define transpose4x16(r0, r1, r2, r3)        \
+{                                            \
     register vec_u8_t r4;                    \
     register vec_u8_t r5;                    \
     register vec_u8_t r6;                    \
@@ -38,9 +39,10 @@
     r3 = vec_mergel(r5, r7);  /*all set 3*/  \
 }
 
-static inline void write16x4(uint8_t *dst, int dst_stride,
-                             register vec_u8_t r0, register vec_u8_t r1,
-                             register vec_u8_t r2, register vec_u8_t r3) {
+static inline void write16x4( uint8_t *dst, int dst_stride,
+                              register vec_u8_t r0, register vec_u8_t r1,
+                              register vec_u8_t r2, register vec_u8_t r3 )
+{
     ALIGNED_16(unsigned char result[64]);
     uint32_t *src_int = (uint32_t *)result, *dst_int = (uint32_t *)dst;
     int int_dst_stride = dst_stride/4;
@@ -69,7 +71,8 @@ static inline void write16x4(uint8_t *dst, int dst_stride,
 }
 
 /** \brief performs a 6x16 transpose of data in src, and stores it to dst */
-#define readAndTranspose16x6(src, src_stride, r8, r9, r10, r11, r12, r13) {\
+#define readAndTranspose16x6(src, src_stride, r8, r9, r10, r11, r12, r13)\
+{\
     register vec_u8_t r0, r1, r2, r3, r4, r5, r6, r7, r14, r15;\
     VEC_LOAD(src,                  r0, 16, vec_u8_t, pix );    \
     VEC_LOAD(src +    src_stride,  r1, 16, vec_u8_t, pix );    \
@@ -130,10 +133,8 @@ static inline void write16x4(uint8_t *dst, int dst_stride,
 }
 
 // out: o = |x-y| < a
-static inline vec_u8_t diff_lt_altivec ( register vec_u8_t x,
-                                         register vec_u8_t y,
-                                         register vec_u8_t a) {
-
+static inline vec_u8_t diff_lt_altivec( register vec_u8_t x, register vec_u8_t y, register vec_u8_t a )
+{
     register vec_u8_t diff = vec_subs(x, y);
     register vec_u8_t diffneg = vec_subs(y, x);
     register vec_u8_t o = vec_or(diff, diffneg); /* |x-y| */
@@ -141,13 +142,9 @@ static inline vec_u8_t diff_lt_altivec ( register vec_u8_t x,
     return o;
 }
 
-static inline vec_u8_t h264_deblock_mask ( register vec_u8_t p0,
-                                           register vec_u8_t p1,
-                                           register vec_u8_t q0,
-                                           register vec_u8_t q1,
-                                           register vec_u8_t alpha,
-                                           register vec_u8_t beta) {
-
+static inline vec_u8_t h264_deblock_mask( register vec_u8_t p0, register vec_u8_t p1, register vec_u8_t q0,
+                                          register vec_u8_t q1, register vec_u8_t alpha, register vec_u8_t beta )
+{
     register vec_u8_t mask;
     register vec_u8_t tempmask;
 
@@ -161,11 +158,9 @@ static inline vec_u8_t h264_deblock_mask ( register vec_u8_t p0,
 }
 
 // out: newp1 = clip((p2 + ((p0 + q0 + 1) >> 1)) >> 1, p1-tc0, p1+tc0)
-static inline vec_u8_t h264_deblock_q1(register vec_u8_t p0,
-                                       register vec_u8_t p1,
-                                       register vec_u8_t p2,
-                                       register vec_u8_t q0,
-                                       register vec_u8_t tc0) {
+static inline vec_u8_t h264_deblock_q1( register vec_u8_t p0, register vec_u8_t p1, register vec_u8_t p2,
+                                        register vec_u8_t q0, register vec_u8_t tc0 )
+{
 
     register vec_u8_t average = vec_avg(p0, q0);
     register vec_u8_t temp;
@@ -187,8 +182,8 @@ static inline vec_u8_t h264_deblock_q1(register vec_u8_t p0,
     return newp1;
 }
 
-#define h264_deblock_p0_q0(p0, p1, q0, q1, tc0masked) {                                         \
-                                                                                                \
+#define h264_deblock_p0_q0(p0, p1, q0, q1, tc0masked)                                           \
+{                                                                                               \
     const vec_u8_t A0v = vec_sl(vec_splat_u8(10), vec_splat_u8(4));                             \
                                                                                                 \
     register vec_u8_t pq0bit = vec_xor(p0,q0);                                                  \
@@ -219,8 +214,9 @@ static inline vec_u8_t h264_deblock_q1(register vec_u8_t p0,
     q0 = vec_adds(q0, deltaneg);                                                                \
 }
 
-#define h264_loop_filter_luma_altivec(p2, p1, p0, q0, q1, q2, alpha, beta, tc0) {            \
-    ALIGNED_16(unsigned char temp[16]);                                              \
+#define h264_loop_filter_luma_altivec(p2, p1, p0, q0, q1, q2, alpha, beta, tc0)              \
+{                                                                                            \
+    ALIGNED_16(unsigned char temp[16]);                                                      \
     register vec_u8_t alphavec;                                                              \
     register vec_u8_t betavec;                                                               \
     register vec_u8_t mask;                                                                  \
@@ -239,7 +235,7 @@ static inline vec_u8_t h264_deblock_q1(register vec_u8_t p0,
     alphavec = vec_splat(alphavec, 0x0);                                                     \
     mask = h264_deblock_mask(p0, p1, q0, q1, alphavec, betavec); /*if in block */            \
                                                                                              \
-    *((int *)temp) = *((int *)tc0);                                                          \
+    M32( temp ) = M32( tc0 );                                                                \
     tc0vec = vec_ld(0, (signed char*)temp);                                                  \
     tc0vec = vec_mergeh(tc0vec, tc0vec);                                                     \
     tc0vec = vec_mergeh(tc0vec, tc0vec);                                                     \
@@ -265,9 +261,10 @@ static inline vec_u8_t h264_deblock_q1(register vec_u8_t p0,
     q1 = newq1;                                                                              \
 }
 
-void x264_deblock_v_luma_altivec(uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0) {
-
-    if((tc0[0] & tc0[1] & tc0[2] & tc0[3]) >= 0) {
+void x264_deblock_v_luma_altivec( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+{
+    if( (tc0[0] & tc0[1] & tc0[2] & tc0[3]) >= 0 )
+    {
         register vec_u8_t p2 = vec_ld(-3*stride, pix);
         register vec_u8_t p1 = vec_ld(-2*stride, pix);
         register vec_u8_t p0 = vec_ld(-1*stride, pix);
@@ -282,10 +279,11 @@ void x264_deblock_v_luma_altivec(uint8_t *pix, int stride, int alpha, int beta, 
     }
 }
 
-void x264_deblock_h_luma_altivec(uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0) {
+void x264_deblock_h_luma_altivec( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+{
 
     register vec_u8_t line0, line1, line2, line3, line4, line5;
-    if((tc0[0] & tc0[1] & tc0[2] & tc0[3]) < 0)
+    if( (tc0[0] & tc0[1] & tc0[2] & tc0[3]) < 0 )
         return;
     PREP_LOAD;
     vec_u8_t _pix_ = vec_lvsl(0, pix-3);

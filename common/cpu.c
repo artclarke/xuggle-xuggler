@@ -167,7 +167,7 @@ uint32_t x264_cpu_detect( void )
         /* 6/9 (pentium-m "banias"), 6/13 (pentium-m "dothan"), and 6/14 (core1 "yonah")
          * theoretically support sse2, but it's significantly slower than mmx for
          * almost all of x264's functions, so let's just pretend they don't. */
-        if( family==6 && (model==9 || model==13 || model==14) )
+        if( family == 6 && (model == 9 || model == 13 || model == 14) )
         {
             cpu &= ~(X264_CPU_SSE2|X264_CPU_SSE3);
             assert(!(cpu&(X264_CPU_SSSE3|X264_CPU_SSE4)));
@@ -188,14 +188,15 @@ uint32_t x264_cpu_detect( void )
         {
             // Cache and TLB Information
             static const char cache32_ids[] = { 0x0a, 0x0c, 0x41, 0x42, 0x43, 0x44, 0x45, 0x82, 0x83, 0x84, 0x85, 0 };
-            static const char cache64_ids[] = { 0x22, 0x23, 0x25, 0x29, 0x2c, 0x46, 0x47, 0x49, 0x60, 0x66, 0x67, 0x68, 0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7c, 0x7f, 0x86, 0x87, 0 };
+            static const char cache64_ids[] = { 0x22, 0x23, 0x25, 0x29, 0x2c, 0x46, 0x47, 0x49, 0x60, 0x66, 0x67,
+                                                0x68, 0x78, 0x79, 0x7a, 0x7b, 0x7c, 0x7c, 0x7f, 0x86, 0x87, 0 };
             uint32_t buf[4];
-            int max, i=0, j;
+            int max, i = 0;
             do {
                 x264_cpu_cpuid( 2, buf+0, buf+1, buf+2, buf+3 );
                 max = buf[0]&0xff;
                 buf[0] &= ~0xff;
-                for(j=0; j<4; j++)
+                for( int j = 0; j < 4; j++ )
                     if( !(buf[j]>>31) )
                         while( buf[j] )
                         {
@@ -241,9 +242,7 @@ uint32_t x264_cpu_detect( void )
     int      error = sysctl( selectors, 2, &has_altivec, &length, NULL, 0 );
 
     if( error == 0 && has_altivec != 0 )
-    {
         cpu |= X264_CPU_ALTIVEC;
-    }
 
     return cpu;
 }
@@ -252,7 +251,7 @@ uint32_t x264_cpu_detect( void )
 
 uint32_t x264_cpu_detect( void )
 {
-    static void (* oldsig)( int );
+    static void (*oldsig)( int );
 
     oldsig = signal( SIGILL, sigill_handler );
     if( sigsetjmp( jmpbuf, 1 ) )

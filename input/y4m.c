@@ -42,7 +42,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     y4m_hnd_t *h = malloc( sizeof(y4m_hnd_t) );
     int  i, n, d;
     char header[MAX_YUV4_HEADER+10];
-    char *tokstart, *tokend, *header_end;
+    char *tokend, *header_end;
     int colorspace = X264_CSP_NONE;
     int alt_colorspace = X264_CSP_NONE;
     if( !h )
@@ -79,7 +79,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     /* Scan properties */
     header_end = &header[i+1]; /* Include space */
     h->seq_header_len = i+1;
-    for( tokstart = &header[strlen( Y4M_MAGIC )+1]; tokstart < header_end; tokstart++ )
+    for( char *tokstart = &header[strlen( Y4M_MAGIC )+1]; tokstart < header_end; tokstart++ )
     {
         if( *tokstart == 0x20 )
             continue;

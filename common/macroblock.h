@@ -346,8 +346,7 @@ static ALWAYS_INLINE int array_non_zero_int( int16_t *v, int i_count )
         return !!(M64( &v[0] ) | M64( &v[4] ) | M64( &v[8] ) | M64( &v[12] ));
     else
     {
-        int i;
-        for( i = 0; i < i_count; i+=4 )
+        for( int i = 0; i < i_count; i+=4 )
             if( M64( &v[i] ) ) return 1;
         return 0;
     }
@@ -372,9 +371,7 @@ static ALWAYS_INLINE int x264_mb_predict_non_zero_code( x264_t *h, int idx )
     int i_ret = za + zb;
 
     if( i_ret < 0x80 )
-    {
         i_ret = ( i_ret + 1 ) >> 1;
-    }
     return i_ret & 0x7f;
 }
 /* x264_mb_transform_8x8_allowed:

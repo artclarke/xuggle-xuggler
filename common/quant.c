@@ -44,24 +44,24 @@
 
 static int quant_8x8( int16_t dct[64], uint16_t mf[64], uint16_t bias[64] )
 {
-    int i, nz = 0;
-    for( i = 0; i < 64; i++ )
+    int nz = 0;
+    for( int i = 0; i < 64; i++ )
         QUANT_ONE( dct[i], mf[i], bias[i] );
     return !!nz;
 }
 
 static int quant_4x4( int16_t dct[16], uint16_t mf[16], uint16_t bias[16] )
 {
-    int i, nz = 0;
-    for( i = 0; i < 16; i++ )
+    int nz = 0;
+    for( int i = 0; i < 16; i++ )
         QUANT_ONE( dct[i], mf[i], bias[i] );
     return !!nz;
 }
 
 static int quant_4x4_dc( int16_t dct[16], int mf, int bias )
 {
-    int i, nz = 0;
-    for( i = 0; i < 16; i++ )
+    int nz = 0;
+    for( int i = 0; i < 16; i++ )
         QUANT_ONE( dct[i], mf, bias );
     return !!nz;
 }
@@ -86,17 +86,16 @@ static void dequant_4x4( int16_t dct[16], int dequant_mf[6][16], int i_qp )
 {
     const int i_mf = i_qp%6;
     const int i_qbits = i_qp/6 - 4;
-    int i;
 
     if( i_qbits >= 0 )
     {
-        for( i = 0; i < 16; i++ )
+        for( int i = 0; i < 16; i++ )
             DEQUANT_SHL( i );
     }
     else
     {
         const int f = 1 << (-i_qbits-1);
-        for( i = 0; i < 16; i++ )
+        for( int i = 0; i < 16; i++ )
             DEQUANT_SHR( i );
     }
 }
@@ -105,17 +104,16 @@ static void dequant_8x8( int16_t dct[64], int dequant_mf[6][64], int i_qp )
 {
     const int i_mf = i_qp%6;
     const int i_qbits = i_qp/6 - 6;
-    int i;
 
     if( i_qbits >= 0 )
     {
-        for( i = 0; i < 64; i++ )
+        for( int i = 0; i < 64; i++ )
             DEQUANT_SHL( i );
     }
     else
     {
         const int f = 1 << (-i_qbits-1);
-        for( i = 0; i < 64; i++ )
+        for( int i = 0; i < 64; i++ )
             DEQUANT_SHR( i );
     }
 }
@@ -123,27 +121,25 @@ static void dequant_8x8( int16_t dct[64], int dequant_mf[6][64], int i_qp )
 static void dequant_4x4_dc( int16_t dct[16], int dequant_mf[6][16], int i_qp )
 {
     const int i_qbits = i_qp/6 - 6;
-    int i;
 
     if( i_qbits >= 0 )
     {
         const int i_dmf = dequant_mf[i_qp%6][0] << i_qbits;
-        for( i = 0; i < 16; i++ )
+        for( int i = 0; i < 16; i++ )
             dct[i] *= i_dmf;
     }
     else
     {
         const int i_dmf = dequant_mf[i_qp%6][0];
         const int f = 1 << (-i_qbits-1);
-        for( i = 0; i < 16; i++ )
+        for( int i = 0; i < 16; i++ )
             dct[i] = ( dct[i] * i_dmf + f ) >> (-i_qbits);
     }
 }
 
 static void x264_denoise_dct( int16_t *dct, uint32_t *sum, uint16_t *offset, int size )
 {
-    int i;
-    for( i=1; i<size; i++ )
+    for( int i = 1; i < size; i++ )
     {
         int level = dct[i];
         int sign = level>>15;
@@ -163,13 +159,17 @@ static void x264_denoise_dct( int16_t *dct, uint32_t *sum, uint16_t *offset, int
  *  chroma: for the complete mb: if score < 7 -> null
  */
 
-const uint8_t x264_decimate_table4[16] = {
-    3,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0 };
-const uint8_t x264_decimate_table8[64] = {
+const uint8_t x264_decimate_table4[16] =
+{
+    3,2,2,1,1,1,0,0,0,0,0,0,0,0,0,0
+};
+const uint8_t x264_decimate_table8[64] =
+{
     3,3,3,3,2,2,2,2,2,2,2,2,1,1,1,1,
     1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
+    0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+};
 
 static int ALWAYS_INLINE x264_decimate_score_internal( int16_t *dct, int i_max )
 {

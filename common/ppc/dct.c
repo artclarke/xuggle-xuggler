@@ -36,8 +36,7 @@
     b3 = vec_sub( a0, a1 );              \
     b3 = vec_sub( b3, a1 )
 
-void x264_sub4x4_dct_altivec( int16_t dct[4][4],
-        uint8_t *pix1, uint8_t *pix2 )
+void x264_sub4x4_dct_altivec( int16_t dct[4][4], uint8_t *pix1, uint8_t *pix2 )
 {
     PREP_DIFF_8BYTEALIGNED;
     vec_s16_t dct0v, dct1v, dct2v, dct3v;
@@ -59,8 +58,7 @@ void x264_sub4x4_dct_altivec( int16_t dct[4][4],
     vec_st(vec_perm(tmp2v, tmp3v, permHighv), 16, (int16_t*)dct);
 }
 
-void x264_sub8x8_dct_altivec( int16_t dct[4][4][4],
-        uint8_t *pix1, uint8_t *pix2 )
+void x264_sub8x8_dct_altivec( int16_t dct[4][4][4], uint8_t *pix1, uint8_t *pix2 )
 {
     PREP_DIFF_8BYTEALIGNED;
     vec_s16_t dct0v, dct1v, dct2v, dct3v, dct4v, dct5v, dct6v, dct7v;
@@ -99,8 +97,7 @@ void x264_sub8x8_dct_altivec( int16_t dct[4][4][4],
     vec_st(vec_perm(tmp6v, tmp7v, permLowv),  112, (int16_t*)dct);
 }
 
-void x264_sub16x16_dct_altivec( int16_t dct[16][4][4],
-        uint8_t *pix1, uint8_t *pix2 ) 
+void x264_sub16x16_dct_altivec( int16_t dct[16][4][4], uint8_t *pix1, uint8_t *pix2 )
 {
     x264_sub8x8_dct_altivec( &dct[ 0], &pix1[0], &pix2[0] );
     x264_sub8x8_dct_altivec( &dct[ 4], &pix1[8], &pix2[8] );

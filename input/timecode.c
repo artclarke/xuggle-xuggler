@@ -41,11 +41,11 @@ typedef struct
     double last_timecode;
 } timecode_hnd_t;
 
-static inline double sigexp10( double value, double *exp )
+static inline double sigexp10( double value, double *exponent )
 {
     /* This function separates significand and exp10 from double floating point. */
-    *exp = pow( 10, floor( log10( value ) ) );
-    return value / *exp;
+    *exponent = pow( 10, floor( log10( value ) ) );
+    return value / *exponent;
 }
 
 #define DOUBLE_EPSILON 5e-6
@@ -82,10 +82,9 @@ static double correct_fps( double fps, timecode_hnd_t *h )
 
 static int try_mkv_timebase_den( double *fpss, timecode_hnd_t *h, int loop_num )
 {
-    int num;
     h->timebase_num = 0;
     h->timebase_den = MKV_TIMEBASE_DEN;
-    for( num = 0; num < loop_num; num++ )
+    for( int num = 0; num < loop_num; num++ )
     {
         int fps_den;
         double exponent;

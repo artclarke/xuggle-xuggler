@@ -38,7 +38,8 @@
 #endif
 
 #ifndef HAVE_LOG2F
-#define log2f(x) (logf((x))/0.693147180559945f)
+#define log2f(x) (logf(x)/0.693147180559945f)
+#define log2(x) (log(x)/0.693147180559945)
 #endif
 
 #ifdef _WIN32

@@ -871,6 +871,28 @@ static int select_input( const char *demuxer, char *used_demuxer, char *filename
     return 0;
 }
 
+static int parse_enum_name( const char *arg, const char * const *names, const char **dst )
+{
+    for( int i = 0; names[i]; i++ )
+        if( !strcasecmp( arg, names[i] ) )
+        {
+            *dst = names[i];
+            return 0;
+        }
+    return -1;
+}
+
+static int parse_enum_value( const char *arg, const char * const *names, int *dst )
+{
+    for( int i = 0; names[i]; i++ )
+        if( !strcasecmp( arg, names[i] ) )
+        {
+            *dst = i;
+            return 0;
+        }
+    return -1;
+}
+
 /*****************************************************************************
  * Parse:
  *****************************************************************************/
@@ -888,7 +910,6 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
     int b_user_ref = 0;
     int b_user_fps = 0;
     int b_user_interlaced = 0;
-    int i;
     cli_input_opt_t input_opt;
     char *preset = NULL;
     char *tune = NULL;
@@ -966,24 +987,12 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
                 output_filename = optarg;
                 break;
             case OPT_MUXER:
-                for( i = 0; muxer_names[i] && strcasecmp( muxer_names[i], optarg ); )
-                    i++;
-                if( !muxer_names[i] )
-                {
-                    fprintf( stderr, "x264 [error]: invalid muxer '%s'\n", optarg );
+                if( parse_enum_name( optarg, muxer_names, &muxer ) < 0 )
                     return -1;
-                }
-                muxer = optarg;
                 break;
             case OPT_DEMUXER:
-                for( i = 0; demuxer_names[i] && strcasecmp( demuxer_names[i], optarg ); )
-                    i++;
-                if( !demuxer_names[i] )
-                {
-                    fprintf( stderr, "x264 [error]: invalid demuxer '%s'\n", optarg );
+                if( parse_enum_name( optarg, demuxer_names, &demuxer ) < 0 )
                     return -1;
-                }
-                demuxer = optarg;
                 break;
             case OPT_INDEX:
                 input_opt.index = optarg;
@@ -1015,7 +1024,7 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
                 opt->b_progress = 0;
                 break;
             case OPT_VISUALIZE:
-#ifdef VISUALIZE
+#ifdef HAVE_VISUALIZE
                 param->b_visualize = 1;
                 b_exit_on_ctrl_c = 1;
 #else
@@ -1056,22 +1065,15 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
                 input_opt.timebase = optarg;
                 break;
             case OPT_PULLDOWN:
-                for( i = 0; pulldown_names[i] && strcasecmp( pulldown_names[i], optarg ); )
-                    i++;
-                if( !pulldown_names[i] )
-                {
-                    fprintf( stderr, "x264 [error]: invalid pulldown '%s'\n", optarg );
+                if( parse_enum_value( optarg, pulldown_names, &opt->i_pulldown ) < 0 )
                     return -1;
-                }
-                opt->i_pulldown = i;
                 break;
             default:
 generic_option:
             {
-                int i;
                 if( long_options_index < 0 )
                 {
-                    for( i = 0; long_options[i].name; i++ )
+                    for( int i = 0; long_options[i].name; i++ )
                         if( long_options[i].val == c )
                         {
                             long_options_index = i;
@@ -1244,12 +1246,11 @@ generic_option:
     if( !b_user_ref )
     {
         int mbs = (((param->i_width)+15)>>4) * (((param->i_height)+15)>>4);
-        int i;
-        for( i = 0; x264_levels[i].level_idc != 0; i++ )
+        for( int i = 0; x264_levels[i].level_idc != 0; i++ )
             if( param->i_level_idc == x264_levels[i].level_idc )
             {
-                while( mbs * 384 * param->i_frame_reference > x264_levels[i].dpb
-                       && param->i_frame_reference > 1 )
+                while( mbs * 384 * param->i_frame_reference > x264_levels[i].dpb &&
+                       param->i_frame_reference > 1 )
                 {
                     param->i_frame_reference--;
                 }

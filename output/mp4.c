@@ -46,7 +46,7 @@ typedef struct
 
 static void recompute_bitrate_mp4( GF_ISOFile *p_file, int i_track )
 {
-    u32 i, count, di, timescale, time_wnd, rate;
+    u32 count, di, timescale, time_wnd, rate;
     u64 offset;
     Double br;
     GF_ESD *esd;
@@ -61,7 +61,7 @@ static void recompute_bitrate_mp4( GF_ISOFile *p_file, int i_track )
 
     timescale = gf_isom_get_media_timescale( p_file, i_track );
     count = gf_isom_get_sample_count( p_file, i_track );
-    for( i = 0; i < count; i++ )
+    for( int i = 0; i < count; i++ )
     {
         GF_ISOSample *samp = gf_isom_get_sample_info( p_file, i_track, i+1, &di, &offset );
         if( !samp )

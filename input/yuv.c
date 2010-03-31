@@ -39,8 +39,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     if( !opt->resolution )
     {
         /* try to parse the file name */
-        char *p;
-        for( p = psz_filename; *p; p++ )
+        for( char *p = psz_filename; *p; p++ )
             if( *p >= '0' && *p <= '9' && sscanf( p, "%ux%u", &info->width, &info->height ) == 2 )
                 break;
     }

@@ -33,9 +33,8 @@ static const uint8_t num_clock_ts[10] = { 0, 1, 1, 1, 2, 2, 3, 3, 2, 3 };
 
 static void transpose( uint8_t *buf, int w )
 {
-    int i, j;
-    for( i = 0; i < w; i++ )
-        for( j = 0; j < i; j++ )
+    for( int i = 0; i < w; i++ )
+        for( int j = 0; j < i; j++ )
             XCHG( uint8_t, buf[w*i+j], buf[w*j+i] );
 }
 
@@ -56,7 +55,7 @@ static void scaling_list_write( bs_t *s, x264_pps_t *pps, int idx )
     }
     else
     {
-        int j, run;
+        int run;
         bs_write( s, 1, 1 ); // scaling_list_present_flag
 
         // try run-length compression of trailing values
@@ -66,7 +65,7 @@ static void scaling_list_write( bs_t *s, x264_pps_t *pps, int idx )
         if( run < len && len - run < bs_size_se( (int8_t)-list[zigzag[run]] ) )
             run = len;
 
-        for( j = 0; j < run; j++ )
+        for( int j = 0; j < run; j++ )
             bs_write_se( s, (int8_t)(list[zigzag[j]] - (j>0 ? list[zigzag[j-1]] : 8)) ); // delta
 
         if( run < len )
@@ -417,8 +416,6 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
 
 void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *sps )
 {
-    int i, j;
-
     pps->i_id = i_id;
     pps->i_sps_id = sps->i_id;
     pps->b_cabac = param->b_cabac;
@@ -446,11 +443,11 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
     switch( pps->i_cqm_preset )
     {
     case X264_CQM_FLAT:
-        for( i = 0; i < 6; i++ )
+        for( int i = 0; i < 6; i++ )
             pps->scaling_list[i] = x264_cqm_flat16;
         break;
     case X264_CQM_JVT:
-        for( i = 0; i < 6; i++ )
+        for( int i = 0; i < 6; i++ )
             pps->scaling_list[i] = x264_cqm_jvt[i];
         break;
     case X264_CQM_CUSTOM:
@@ -467,8 +464,8 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
         pps->scaling_list[CQM_4PC] = param->cqm_4pc;
         pps->scaling_list[CQM_8IY+4] = param->cqm_8iy;
         pps->scaling_list[CQM_8PY+4] = param->cqm_8py;
-        for( i = 0; i < 6; i++ )
-            for( j = 0; j < (i<4?16:64); j++ )
+        for( int i = 0; i < 6; i++ )
+            for( int j = 0; j < (i < 4 ? 16 : 64); j++ )
                 if( pps->scaling_list[i][j] == 0 )
                     pps->scaling_list[i] = x264_cqm_jvt[i];
         break;
@@ -565,10 +562,10 @@ int x264_sei_version_write( x264_t *h, bs_t *s )
         bs_write( s, 8, 255 );
     bs_write( s, 8, length-i );
 
-    for( i = 0; i < 16; i++ )
-        bs_write( s, 8, uuid[i] );
-    for( i = 0; i < length-16; i++ )
-        bs_write( s, 8, version[i] );
+    for( int j = 0; j < 16; j++ )
+        bs_write( s, 8, uuid[j] );
+    for( int j = 0; j < length-16; j++ )
+        bs_write( s, 8, version[j] );
 
     bs_rbsp_trailing( s );
     bs_flush( s );
@@ -627,11 +624,9 @@ void x264_sei_pic_timing_write( x264_t *h, bs_t *s, int cpb_removal_delay, int d
 
 void x264_filler_write( x264_t *h, bs_t *s, int filler )
 {
-    int i;
-
     bs_realign( s );
 
-    for( i = 0; i < filler; i++ )
+    for( int i = 0; i < filler; i++ )
         bs_write( s, 8, 0xff );
 
     bs_rbsp_trailing( s );

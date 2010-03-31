@@ -200,9 +200,7 @@ static uint64_t x264_rd_cost_subpart( x264_t *h, int i_lambda2, int i4, int i_pi
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
     else
-    {
         i_bits = x264_subpartition_size_cavlc( h, i4, i_pixel );
-    }
 
     return (i_ssd<<8) + i_bits;
 }
@@ -243,9 +241,7 @@ uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i4, int i_pixel )
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
     else
-    {
         i_bits = x264_partition_size_cavlc( h, i8, i_pixel ) * i_lambda2;
-    }
 
     return (i_ssd<<8) + i_bits;
 }
@@ -267,9 +263,7 @@ static uint64_t x264_rd_cost_i8x8( x264_t *h, int i_lambda2, int i8, int i_mode 
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
     else
-    {
         i_bits = x264_partition_i8x8_size_cavlc( h, i8, i_mode ) * i_lambda2;
-    }
 
     return (i_ssd<<8) + i_bits;
 }
@@ -289,9 +283,7 @@ static uint64_t x264_rd_cost_i4x4( x264_t *h, int i_lambda2, int i4, int i_mode 
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
     else
-    {
         i_bits = x264_partition_i4x4_size_cavlc( h, i4, i_mode ) * i_lambda2;
-    }
 
     return (i_ssd<<8) + i_bits;
 }
@@ -315,9 +307,7 @@ static uint64_t x264_rd_cost_i8x8_chroma( x264_t *h, int i_lambda2, int i_mode, 
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
     else
-    {
         i_bits = x264_i8x8_chroma_size_cavlc( h ) * i_lambda2;
-    }
 
     return (i_ssd<<8) + i_bits;
 }
@@ -333,15 +323,14 @@ static uint64_t x264_rd_cost_i8x8_chroma( x264_t *h, int i_lambda2, int i_mode, 
 /* precalculate the cost of coding various combinations of bits in a single context */
 void x264_rdo_init( void )
 {
-    int i_prefix, i_ctx, i;
-    for( i_prefix = 0; i_prefix < 15; i_prefix++ )
+    for( int i_prefix = 0; i_prefix < 15; i_prefix++ )
     {
-        for( i_ctx = 0; i_ctx < 128; i_ctx++ )
+        for( int i_ctx = 0; i_ctx < 128; i_ctx++ )
         {
             int f8_bits = 0;
             uint8_t ctx = i_ctx;
 
-            for( i = 1; i < i_prefix; i++ )
+            for( int i = 1; i < i_prefix; i++ )
                 f8_bits += x264_cabac_size_decision2( &ctx, 1 );
             if( i_prefix > 0 && i_prefix < 14 )
                 f8_bits += x264_cabac_size_decision2( &ctx, 0 );
@@ -351,12 +340,12 @@ void x264_rdo_init( void )
             cabac_transition_unary[i_prefix][i_ctx] = ctx;
         }
     }
-    for( i_ctx = 0; i_ctx < 128; i_ctx++ )
+    for( int i_ctx = 0; i_ctx < 128; i_ctx++ )
     {
         int f8_bits = 0;
         uint8_t ctx = i_ctx;
 
-        for( i = 0; i < 5; i++ )
+        for( int i = 0; i < 5; i++ )
             f8_bits += x264_cabac_size_decision2( &ctx, 1 );
         f8_bits += 1 << CABAC_SIZE_BITS; //sign
 
@@ -406,7 +395,7 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
     uint8_t *cabac_state_last = &h->cabac.state[ last_coeff_flag_offset[b_interlaced][i_ctxBlockCat] ];
     const int f = 1 << 15; // no deadzone
     int i_last_nnz;
-    int i, j;
+    int i;
 
     // (# of coefs) * (# of ctx) * (# of levels tried) = 1024
     // we don't need to keep all of those: (# of coefs) * (# of ctx) would be enough,
@@ -441,8 +430,8 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
     }
 
     /* init trellis */
-    for( i = 1; i < 8; i++ )
-        nodes_cur[i].score = TRELLIS_SCORE_MAX;
+    for( int j = 1; j < 8; j++ )
+        nodes_cur[j].score = TRELLIS_SCORE_MAX;
     nodes_cur[0].score = 0;
     nodes_cur[0].level_idx = 0;
     level_tree[0].abs_level = 0;
@@ -462,7 +451,6 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
     {
         int i_coef = abs_coefs[i];
         int q = ( f + i_coef * (dc?quant_mf[0]>>1:quant_mf[zigzag[i]]) ) >> 16;
-        int abs_level;
         int cost_sig[2], cost_last[2];
         trellis_node_t n;
 
@@ -474,7 +462,7 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
             int sigindex = i_coefs == 64 ? significant_coeff_flag_offset_8x8[b_interlaced][i] : i;
             const uint32_t cost_sig0 = x264_cabac_size_decision_noup2( &cabac_state_sig[sigindex], 0 )
                                      * (uint64_t)i_lambda2 >> ( CABAC_SIZE_BITS - LAMBDA_BITS );
-            for( j = 1; j < 8; j++ )
+            for( int j = 1; j < 8; j++ )
             {
                 if( nodes_cur[j].score != TRELLIS_SCORE_MAX )
                 {
@@ -493,7 +481,7 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
 
         XCHG( trellis_node_t*, nodes_cur, nodes_prev );
 
-        for( j = 0; j < 8; j++ )
+        for( int j = 0; j < 8; j++ )
             nodes_cur[j].score = TRELLIS_SCORE_MAX;
 
         if( i < i_coefs-1 )
@@ -515,7 +503,7 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
         // but it's only around .003 dB, and skipping them ~doubles the speed of trellis.
         // could also try q-2: that sometimes helps, but also sometimes decimates blocks
         // that are better left coded, especially at QP > 40.
-        for( abs_level = q; abs_level >= q-1; abs_level-- )
+        for( int abs_level = q; abs_level >= q-1; abs_level-- )
         {
             int unquant_abs_level = (((dc?unquant_mf[0]<<1:unquant_mf[zigzag[i]]) * abs_level + 128) >> 8);
             int d = i_coef - unquant_abs_level;
@@ -533,7 +521,7 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
             /* FIXME: for i16x16 dc is this weight optimal? */
                 ssd = (int64_t)d*d * (dc?256:coef_weight[i]);
 
-            for( j = 0; j < 8; j++ )
+            for( int j = 0; j < 8; j++ )
             {
                 int node_ctx = j;
                 if( nodes_prev[j].score == TRELLIS_SCORE_MAX )
@@ -588,7 +576,7 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
 
     /* output levels from the best path through the trellis */
     bnode = &nodes_cur[0];
-    for( j = 1; j < 8; j++ )
+    for( int j = 1; j < 8; j++ )
         if( nodes_cur[j].score < bnode->score )
             bnode = &nodes_cur[j];
 
@@ -599,11 +587,11 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
         return 0;
     }
 
-    j = bnode->level_idx;
-    for( i = b_ac; j; i++ )
+    int level = bnode->level_idx;
+    for( i = b_ac; level; i++ )
     {
-        dct[zigzag[i]] = level_tree[j].abs_level * signs[i];
-        j = level_tree[j].next;
+        dct[zigzag[i]] = level_tree[level].abs_level * signs[i];
+        level = level_tree[level].next;
     }
     for( ; i < i_coefs; i++ )
         dct[zigzag[i]] = 0;
