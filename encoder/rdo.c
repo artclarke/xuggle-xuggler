@@ -60,6 +60,8 @@ static uint16_t cabac_size_5ones[128];
 
 #define COPY_CABAC h->mc.memcpy_aligned( &cabac_tmp.f8_bits_encoded, &h->cabac.f8_bits_encoded, \
         sizeof(x264_cabac_t) - offsetof(x264_cabac_t,f8_bits_encoded) )
+#define COPY_CABAC_PART( pos, size )\
+        memcpy( &cb->state[pos], &h->cabac.state[pos], size )
 
 static ALWAYS_INLINE uint64_t cached_hadamard( x264_t *h, int pixel, int x, int y )
 {
@@ -178,6 +180,29 @@ static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
     return i_ssd + i_bits;
 }
 
+/* For small partitions (i.e. those using at most one DCT category's worth of CABAC states),
+ * it's faster to copy the individual parts than to perform a whole CABAC_COPY. */
+static ALWAYS_INLINE void x264_copy_cabac_part( x264_t *h, x264_cabac_t *cb, int cat, int intra )
+{
+    if( intra )
+        COPY_CABAC_PART( 68, 2 );  //intra pred mode
+    else
+        COPY_CABAC_PART( 40, 16 ); //mvd, rounded up to 16 bytes
+
+    /* 8x8dct writes CBP, while non-8x8dct writes CBF */
+    if( cat != DCT_LUMA_8x8 )
+        COPY_CABAC_PART( 85 + cat * 4, 4 );
+    else
+        COPY_CABAC_PART( 73, 4 );
+
+    /* Really should be 15 bytes, but rounding up a byte saves some
+     * instructions and is faster, and copying extra data doesn't hurt. */
+    COPY_CABAC_PART( significant_coeff_flag_offset[h->mb.b_interlaced][cat], 16 );
+    COPY_CABAC_PART( last_coeff_flag_offset[h->mb.b_interlaced][cat], 16 );
+    COPY_CABAC_PART( coeff_abs_level_m1_offset[cat], 10 );
+    cb->f8_bits_encoded = 0;
+}
+
 /* partition RD functions use 8 bits more precision to avoid large rounding errors at low QPs */
 
 static uint64_t x264_rd_cost_subpart( x264_t *h, int i_lambda2, int i4, int i_pixel )
@@ -195,7 +220,7 @@ static uint64_t x264_rd_cost_subpart( x264_t *h, int i_lambda2, int i4, int i_pi
     if( h->param.b_cabac )
     {
         x264_cabac_t cabac_tmp;
-        COPY_CABAC;
+        x264_copy_cabac_part( h, &cabac_tmp, DCT_LUMA_4x4, 0 );
         x264_subpartition_size_cabac( h, &cabac_tmp, i4, i_pixel );
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
@@ -258,7 +283,7 @@ static uint64_t x264_rd_cost_i8x8( x264_t *h, int i_lambda2, int i8, int i_mode 
     if( h->param.b_cabac )
     {
         x264_cabac_t cabac_tmp;
-        COPY_CABAC;
+        x264_copy_cabac_part( h, &cabac_tmp, DCT_LUMA_8x8, 1 );
         x264_partition_i8x8_size_cabac( h, &cabac_tmp, i8, i_mode );
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
@@ -278,7 +303,7 @@ static uint64_t x264_rd_cost_i4x4( x264_t *h, int i_lambda2, int i4, int i_mode 
     if( h->param.b_cabac )
     {
         x264_cabac_t cabac_tmp;
-        COPY_CABAC;
+        x264_copy_cabac_part( h, &cabac_tmp, DCT_LUMA_4x4, 1 );
         x264_partition_i4x4_size_cabac( h, &cabac_tmp, i4, i_mode );
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
