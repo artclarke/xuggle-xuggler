@@ -1682,8 +1682,8 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
             /* Fast skip detection. */
             if( i_ref == 0 && try_skip )
             {
-                if( abs(lX->bi16x16.mv[0]-h->mb.cache.direct_mv[l][0][0]) +
-                    abs(lX->bi16x16.mv[1]-h->mb.cache.direct_mv[l][0][1]) > 1 )
+                if( abs(lX->me16x16.mv[0]-h->mb.cache.direct_mv[l][0][0]) +
+                    abs(lX->me16x16.mv[1]-h->mb.cache.direct_mv[l][0][1]) > 1 )
                 {
                     try_skip = 0;
                 }
