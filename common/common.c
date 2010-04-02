@@ -1237,7 +1237,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
         s += sprintf( s, " rc_lookahead=%d", p->rc.i_lookahead );
 
     s += sprintf( s, " rc=%s mbtree=%d", p->rc.i_rc_method == X264_RC_ABR ?
-                               ( p->rc.b_stat_read ? "2pass" : p->rc.i_vbv_buffer_size ? "cbr" : "abr" )
+                               ( p->rc.b_stat_read ? "2pass" : p->rc.i_vbv_buffer_size == p->rc.i_bitrate ? "cbr" : "abr" )
                                : p->rc.i_rc_method == X264_RC_CRF ? "crf" : "cqp", p->rc.b_mb_tree );
     if( p->rc.i_rc_method == X264_RC_ABR || p->rc.i_rc_method == X264_RC_CRF )
     {
