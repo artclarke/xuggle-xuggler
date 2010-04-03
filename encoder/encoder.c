@@ -2382,17 +2382,7 @@ int     x264_encoder_encode( x264_t *h,
             overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD;
         }
 
-        /* generate sei buffering period */
-        if( h->sps->vui.b_nal_hrd_parameters_present )
-        {
-            h->initial_cpb_removal_delay = x264_hrd_fullness( h, overhead*8 );
-
-            x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
-            x264_sei_buffering_period_write( h, &h->out.bs, h->initial_cpb_removal_delay );
-            if( x264_nal_end( h ) )
-               return -1;
-            overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD - (h->param.b_annexb && h->out.i_nal-1);
-        }
+        /* buffering period sei is written in x264_encoder_frame_end */
 
         if( h->param.b_repeat_headers && h->fenc->i_frame == 0 )
         {
@@ -2419,7 +2409,7 @@ int     x264_encoder_encode( x264_t *h,
     if( h->sps->vui.b_pic_struct_present || h->sps->vui.b_nal_hrd_parameters_present )
     {
         x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
-        x264_sei_pic_timing_write( h, &h->out.bs, h->fenc->i_cpb_delay, h->fenc->i_dpb_output_delay, h->fenc->i_pic_struct );
+        x264_sei_pic_timing_write( h, &h->out.bs );
         if( x264_nal_end( h ) )
             return -1;
         overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD - (h->param.b_annexb && h->out.i_nal-1);
@@ -2497,6 +2487,27 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 
     x264_frame_push_unused( thread_current, h->fenc );
 
+    x264_emms();
+    /* generate sei buffering period and insert it into place */
+    if( h->fenc->b_keyframe && h->sps->vui.b_nal_hrd_parameters_present )
+    {
+        h->initial_cpb_removal_delay = x264_hrd_fullness( h );
+
+        x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
+        x264_sei_buffering_period_write( h, &h->out.bs );
+        if( x264_nal_end( h ) )
+           return -1;
+        /* buffering period sei must follow AUD, SPS and PPS and precede all other SEIs */
+        int idx = 0;
+        while( h->out.nal[idx].i_type == NAL_AUD ||
+               h->out.nal[idx].i_type == NAL_SPS ||
+               h->out.nal[idx].i_type == NAL_PPS )
+            idx++;
+        x264_nal_t nal_tmp = h->out.nal[h->out.i_nal-1];
+        memmove( &h->out.nal[idx+1], &h->out.nal[idx], (h->out.i_nal-idx-1)*sizeof(x264_nal_t) );
+        h->out.nal[idx] = nal_tmp;
+    }
+
     int frame_size = x264_encoder_encapsulate_nals( h, 0 );
 
     /* Set output picture properties */
@@ -2544,7 +2555,6 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     /* ---------------------- Update encoder state ------------------------- */
 
     /* update rc */
-    x264_emms();
     int filler = 0;
     if( x264_ratecontrol_end( h, frame_size * 8, &filler ) < 0 )
         return -1;

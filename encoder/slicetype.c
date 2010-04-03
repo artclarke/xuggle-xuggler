@@ -847,10 +847,10 @@ static void x264_vbv_lookahead( x264_t *h, x264_mb_analysis_t *a, x264_frame_t *
         cur_nonb++;
     int next_nonb = keyframe ? last_nonb : cur_nonb;
 
-    if( frames[0]->i_coded_fields_lookahead >= 0 )
+    if( frames[cur_nonb]->i_coded_fields_lookahead >= 0 )
     {
-        h->i_coded_fields_lookahead = frames[0]->i_coded_fields_lookahead;
-        h->i_cpb_delay_lookahead = frames[0]->i_cpb_delay_lookahead;
+        h->i_coded_fields_lookahead = frames[cur_nonb]->i_coded_fields_lookahead;
+        h->i_cpb_delay_lookahead = frames[cur_nonb]->i_cpb_delay_lookahead;
     }
 
     while( cur_nonb < num_frames )

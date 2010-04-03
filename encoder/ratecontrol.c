@@ -156,6 +156,7 @@ struct x264_ratecontrol_t
 
     /* hrd stuff */
     int initial_cpb_removal_delay;
+    int initial_cpb_removal_delay_offset;
     double nrt_first_access_unit; /* nominal removal time */
     double previous_cpb_final_arrival_time;
 };
@@ -497,7 +498,7 @@ void x264_ratecontrol_init_reconfigurable( x264_t *h, int b_init )
         {
             if( h->param.rc.f_vbv_buffer_init > 1. )
                 h->param.rc.f_vbv_buffer_init = x264_clip3f( h->param.rc.f_vbv_buffer_init / h->param.rc.i_vbv_buffer_size, 0, 1 );
-            h->param.rc.f_vbv_buffer_init = X264_MAX( h->param.rc.f_vbv_buffer_init, rc->buffer_rate / rc->buffer_size );
+            h->param.rc.f_vbv_buffer_init = x264_clip3f( X264_MAX( h->param.rc.f_vbv_buffer_init, rc->buffer_rate / rc->buffer_size ), 0, 1);
             rc->buffer_fill_final = rc->buffer_size * h->param.rc.f_vbv_buffer_init;
             rc->b_vbv = 1;
             rc->b_vbv_min_rate = !rc->b_2pass
@@ -1514,26 +1515,28 @@ int x264_ratecontrol_end( x264_t *h, int bits, int *filler )
             // access unit initialises the HRD
             h->fenc->hrd_timing.cpb_initial_arrival_time = 0;
             rc->initial_cpb_removal_delay = h->initial_cpb_removal_delay;
+            rc->initial_cpb_removal_delay_offset = h->initial_cpb_removal_delay_offset;
             h->fenc->hrd_timing.cpb_removal_time = rc->nrt_first_access_unit = (double)rc->initial_cpb_removal_delay / 90000;
         }
         else
         {
             h->fenc->hrd_timing.cpb_removal_time = rc->nrt_first_access_unit + (double)h->fenc->i_cpb_delay *
                                                    h->sps->vui.i_num_units_in_tick / h->sps->vui.i_time_scale;
+
+            double cpb_earliest_arrival_time = h->fenc->hrd_timing.cpb_removal_time - (double)rc->initial_cpb_removal_delay / 90000;
             if( h->fenc->b_keyframe )
             {
                  rc->nrt_first_access_unit = h->fenc->hrd_timing.cpb_removal_time;
                  rc->initial_cpb_removal_delay = h->initial_cpb_removal_delay;
+                 rc->initial_cpb_removal_delay_offset = h->initial_cpb_removal_delay_offset;
             }
+            else
+                 cpb_earliest_arrival_time -= (double)rc->initial_cpb_removal_delay_offset / 90000;
 
             if( h->sps->vui.hrd.b_cbr_hrd )
                 h->fenc->hrd_timing.cpb_initial_arrival_time = rc->previous_cpb_final_arrival_time;
             else
-            {
-                // NOTE: Equation C-4 has initial_cpb_removal_delay_offset which is hardcoded to zero in x264.
-                double cpb_earliest_arrival_time = h->fenc->hrd_timing.cpb_removal_time - (double)rc->initial_cpb_removal_delay / 90000;
                 h->fenc->hrd_timing.cpb_initial_arrival_time = X264_MAX( rc->previous_cpb_final_arrival_time, cpb_earliest_arrival_time );
-            }
         }
         int filler_bits = *filler ? X264_MAX( (FILLER_OVERHEAD - h->param.b_annexb), *filler )*8 : 0;
         // Equation C-6
@@ -1709,10 +1712,10 @@ static int update_vbv( x264_t *h, int bits )
     return filler;
 }
 
-int x264_hrd_fullness( x264_t *h, int overhead )
+int x264_hrd_fullness( x264_t *h )
 {
     x264_ratecontrol_t *rct = h->thread[0]->rc;
-    double cpb_bits = rct->buffer_fill_final - overhead;
+    double cpb_bits = rct->buffer_fill_final;
     double bps = h->sps->vui.hrd.i_bit_rate_unscaled;
     double cpb_size = h->sps->vui.hrd.i_cpb_size_unscaled;
     double cpb_fullness = 90000.0*cpb_bits/bps;
@@ -1722,6 +1725,8 @@ int x264_hrd_fullness( x264_t *h, int overhead )
          x264_log( h, X264_LOG_WARNING, "CPB %s: %.0lf bits in a %.0lf-bit buffer\n",
                    cpb_bits < 0 ? "underflow" : "overflow", cpb_bits, cpb_size );
     }
+
+    h->initial_cpb_removal_delay_offset = 90000.0*(cpb_size - cpb_bits)/bps;
 
     return x264_clip3f( cpb_fullness + 0.5, 0, 90000.0*cpb_size/bps ); // just lie if we are in a weird state
 }
@@ -2264,6 +2269,7 @@ void x264_thread_sync_ratecontrol( x264_t *cur, x264_t *prev, x264_t *next )
         COPY(wanted_bits_window);
         COPY(bframe_bits);
         COPY(initial_cpb_removal_delay);
+        COPY(initial_cpb_removal_delay_offset);
         COPY(nrt_first_access_unit);
         COPY(previous_cpb_final_arrival_time);
 #undef COPY

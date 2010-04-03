@@ -578,7 +578,7 @@ fail:
     return -1;
 }
 
-void x264_sei_buffering_period_write( x264_t *h, bs_t *s, int initial_cpb_removal_delay )
+void x264_sei_buffering_period_write( x264_t *h, bs_t *s )
 {
     x264_sps_t *sps = h->sps;
     bs_realign( s );
@@ -588,15 +588,15 @@ void x264_sei_buffering_period_write( x264_t *h, bs_t *s, int initial_cpb_remova
 
     if( sps->vui.b_nal_hrd_parameters_present )
     {
-        bs_write( s, sps->vui.hrd.i_initial_cpb_removal_delay_length, initial_cpb_removal_delay );
-        bs_write( s, sps->vui.hrd.i_initial_cpb_removal_delay_length, 0 ); /* initial_cpb_removal_delay_offset */
+        bs_write( s, sps->vui.hrd.i_initial_cpb_removal_delay_length, h->initial_cpb_removal_delay );
+        bs_write( s, sps->vui.hrd.i_initial_cpb_removal_delay_length, h->initial_cpb_removal_delay_offset );
     }
 
     x264_sei_write( s, p_start );
     bs_flush( s );
 }
 
-void x264_sei_pic_timing_write( x264_t *h, bs_t *s, int cpb_removal_delay, int dpb_output_delay, int pic_struct )
+void x264_sei_pic_timing_write( x264_t *h, bs_t *s )
 {
     x264_sps_t *sps = h->sps;
     bs_realign( s );
@@ -604,17 +604,17 @@ void x264_sei_pic_timing_write( x264_t *h, bs_t *s, int cpb_removal_delay, int d
 
     if( sps->vui.b_nal_hrd_parameters_present || sps->vui.b_vcl_hrd_parameters_present )
     {
-        bs_write( s, sps->vui.hrd.i_cpb_removal_delay_length, cpb_removal_delay );
-        bs_write( s, sps->vui.hrd.i_dpb_output_delay_length, dpb_output_delay );
+        bs_write( s, sps->vui.hrd.i_cpb_removal_delay_length, h->fenc->i_cpb_delay );
+        bs_write( s, sps->vui.hrd.i_dpb_output_delay_length, h->fenc->i_dpb_output_delay );
     }
 
     if( sps->vui.b_pic_struct_present )
     {
-        bs_write( s, 4, pic_struct-1 ); // We use index 0 for "Auto"
+        bs_write( s, 4, h->fenc->i_pic_struct-1 ); // We use index 0 for "Auto"
 
         // These clock timestamps are not standardised so we don't set them
         // They could be time of origin, capture or alternative ideal display
-        for( int i = 0; i < num_clock_ts[pic_struct]; i++ )
+        for( int i = 0; i < num_clock_ts[h->fenc->i_pic_struct]; i++ )
             bs_write1( s, 0 ); // clock_timestamp_flag
     }
 
