@@ -914,7 +914,7 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int i_mb
         memcpy( &h->mb.pic.p_fdec[i][-1-FDEC_STRIDE], intra_fdec-1, w*3/2+1 );
     else
         memset( &h->mb.pic.p_fdec[i][-1-FDEC_STRIDE], 0, w*3/2+1 );
-    if( h->mb.b_interlaced || h->mb.b_reencode_mb )
+    if( h->mb.b_interlaced )
         for( int j = 0; j < w; j++ )
             h->mb.pic.p_fdec[i][-1+j*FDEC_STRIDE] = plane_fdec[-1+j*i_stride2];
     for( int j = 0; j < h->mb.pic.i_fref[0]; j++ )
@@ -1084,7 +1084,7 @@ void x264_macroblock_cache_load( x264_t *h, int i_mb_x, int i_mb_y )
           + !!(h->mb.i_neighbour & MB_TOP);
     }
 
-    if( !h->mb.b_interlaced && !h->mb.b_reencode_mb )
+    if( !h->mb.b_interlaced )
     {
         copy_column8( h->mb.pic.p_fdec[0]-1+ 4*FDEC_STRIDE, h->mb.pic.p_fdec[0]+15+ 4*FDEC_STRIDE );
         copy_column8( h->mb.pic.p_fdec[0]-1+12*FDEC_STRIDE, h->mb.pic.p_fdec[0]+15+12*FDEC_STRIDE );
