@@ -61,7 +61,7 @@ namespace com { namespace xuggle { namespace xuggler
   ICodec::Type
   Codec :: getType()
   {
-    Type retval = CODEC_TYPE_UNKNOWN;
+    Type retval = (Type) AVMEDIA_TYPE_UNKNOWN;
     if (mCodec)
       retval = (Type) mCodec->type;
     return retval;
@@ -200,7 +200,7 @@ namespace com { namespace xuggle { namespace xuggler
     if (oFmt)
     {
       enum CodecID id = av_guess_codec(oFmt, shortName, url,
-          mimeType, (enum CodecType) type);
+          mimeType, (enum AVMediaType) type);
       retval = Codec::findEncodingCodecByIntID((int)id);
     }
     return retval;

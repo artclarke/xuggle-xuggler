@@ -34,7 +34,6 @@
 #include <com/xuggle/xuggler/MetaData.h>
 #include <com/xuggle/ferry/IBuffer.h>
 
-
 VS_LOG_SETUP(VS_CPP_PACKAGE);
 
 #define XUGGLER_CHECK_INTERRUPT(retval) do { \

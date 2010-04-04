@@ -172,7 +172,7 @@ StreamCoder::make(Direction direction, IStreamCoder* aCoder)
         }
         switch (codec->codec_type)
         {
-        case CODEC_TYPE_AUDIO:
+        case AVMEDIA_TYPE_AUDIO:
           codec->channel_layout = icodec->channel_layout;
           codec->sample_rate = icodec->sample_rate;
           codec->channels = icodec->channels;
@@ -183,13 +183,13 @@ StreamCoder::make(Direction direction, IStreamCoder* aCoder)
           if (codec->codec_id == CODEC_ID_AC3)
             codec->block_align = 0;
           break;
-        case CODEC_TYPE_VIDEO:
+        case AVMEDIA_TYPE_VIDEO:
           codec->pix_fmt = icodec->pix_fmt;
           codec->width = icodec->width;
           codec->height = icodec->height;
           codec->has_b_frames = icodec->has_b_frames;
           break;
-        case CODEC_TYPE_SUBTITLE:
+        case AVMEDIA_TYPE_SUBTITLE:
           codec->width = icodec->width;
           codec->height = icodec->height;
           break;
@@ -313,7 +313,7 @@ StreamCoder::setCodec(ICodec * newCodec)
     // thing
     if (mCodec && mCodecContext && !mOpened)
     {
-      mCodecContext->codec_type = (enum CodecType) mCodec->getType();
+      mCodecContext->codec_type = (enum AVMediaType) mCodec->getType();
       //      if (mDirection == ENCODING)
       //      {
       //        avcodec_get_context_defaults2(mCodecContext, mCodecContext->codec_type);
