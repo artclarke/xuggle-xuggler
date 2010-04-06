@@ -2485,8 +2485,6 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
         return 0;
     }
 
-    x264_frame_push_unused( thread_current, h->fenc );
-
     x264_emms();
     /* generate sei buffering period and insert it into place */
     if( h->fenc->b_keyframe && h->sps->vui.b_nal_hrd_parameters_present )
@@ -2511,12 +2509,7 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     int frame_size = x264_encoder_encapsulate_nals( h, 0 );
 
     /* Set output picture properties */
-    if( h->sh.i_type == SLICE_TYPE_I )
-        pic_out->i_type = h->i_nal_type == NAL_SLICE_IDR ? X264_TYPE_IDR : X264_TYPE_I;
-    else if( h->sh.i_type == SLICE_TYPE_P )
-        pic_out->i_type = X264_TYPE_P;
-    else
-        pic_out->i_type = X264_TYPE_B;
+    pic_out->i_type = h->fenc->i_type;
 
     pic_out->b_keyframe = h->fenc->b_keyframe;
 
@@ -2551,6 +2544,8 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
         pic_out->img.i_stride[i] = h->fdec->i_stride[i];
         pic_out->img.plane[i] = h->fdec->plane[i];
     }
+
+    x264_frame_push_unused( thread_current, h->fenc );
 
     /* ---------------------- Update encoder state ------------------------- */
 
