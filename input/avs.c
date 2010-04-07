@@ -117,6 +117,15 @@ static void avs_build_filter_sequence( char *filename_ext, const char *filter[AV
         filter[i++] = all_purpose[j];
 }
 
+static AVS_Value update_clip( avs_hnd_t *h, const AVS_VideoInfo **vi, AVS_Value res, AVS_Value release )
+{
+    h->func.avs_release_clip( h->clip );
+    h->clip = h->func.avs_take_clip( res, h->env );
+    h->func.avs_release_value( release );
+    *vi = h->func.avs_get_video_info( h->clip );
+    return res;
+}
+
 static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, cli_input_opt_t *opt )
 {
     FILE *fh = fopen( psz_filename, "r" );
@@ -213,17 +222,36 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         fprintf( stderr, "avs [error]: `%s' has no video data\n", psz_filename );
         return -1;
     }
+    /* if the clip is made of fields instead of frames, call weave to make them frames */
+    if( avs_is_field_based( vi ) )
+    {
+        fprintf( stderr, "avs [warning]: detected fieldbased (separated) input, weaving to frames\n" );
+        AVS_Value tmp = h->func.avs_invoke( h->env, "Weave", res, NULL );
+        if( avs_is_error( tmp ) )
+        {
+            fprintf( stderr, "avs [error]: couldn't weave fields into frames\n" );
+            return -1;
+        }
+        res = update_clip( h, &vi, tmp, res );
+    }
     if( vi->width&1 || vi->height&1 )
     {
         fprintf( stderr, "avs [error]: input clip width or height not divisible by 2 (%dx%d)\n",
                  vi->width, vi->height );
         return -1;
     }
+    /* bff/tff flags in avisynth are not technically mutually exclusive, which can lead to both being set.
+     * avisynth's own functions enact mutual exclusion, but source filters are not guaranteed to do this. */
+    int tff = avs_is_tff( vi );
+    if( avs_is_bff( vi ) ^ tff )
+    {
+        info->interlaced = 1;
+        info->tff = !!tff;
+    }
     /* always call ConvertToYV12 to convert non YV12 planar colorspaces to YV12 when user's AVS supports them,
        as all planar colorspaces are flagged as YV12. If it is already YV12 in this case, the call does nothing */
     if( !avs_is_yv12( vi ) || avs_version >= AVS_INTERFACE_OTHER_PLANAR )
     {
-        h->func.avs_release_clip( h->clip );
         fprintf( stderr, "avs %s\n", !avs_is_yv12( vi ) ? "[warning]: converting input clip to YV12"
                : "[info]: avisynth 2.6+ detected, forcing conversion to YV12" );
         const char *arg_name[2] = { NULL, "interlaced" };
@@ -234,9 +262,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
             fprintf( stderr, "avs [error]: couldn't convert input clip to YV12\n" );
             return -1;
         }
-        h->clip = h->func.avs_take_clip( res2, h->env );
-        h->func.avs_release_value( res2 );
-        vi = h->func.avs_get_video_info( h->clip );
+        res = update_clip( h, &vi, res2, res );
     }
     h->func.avs_release_value( res );
 

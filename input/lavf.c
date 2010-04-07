@@ -124,7 +124,10 @@ static int read_frame_internal( x264_picture_t *p_pic, lavf_hnd_t *h, int i_fram
     sws_scale( h->scaler, frame->data, frame->linesize, 0, c->height, p_pic->img.plane, p_pic->img.i_stride );
 
     if( info )
+    {
         info->interlaced = frame->interlaced_frame;
+        info->tff = frame->top_field_first;
+    }
 
     if( h->vfr_input )
     {

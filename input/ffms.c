@@ -133,6 +133,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     h->init_height = h->cur_height = info->height = frame->EncodedHeight;
     h->cur_pix_fmt = frame->EncodedPixelFormat;
     info->interlaced = frame->InterlacedFrame;
+    info->tff        = frame->TopFieldFirst;
 
     if( h->cur_pix_fmt != PIX_FMT_YUV420P )
         fprintf( stderr, "ffms [warning]: converting from %s to YV12\n",

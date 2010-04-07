@@ -44,6 +44,7 @@ typedef struct
     int interlaced;
     int sar_width;
     int sar_height;
+    int tff;
     int timebase_num;
     int timebase_den;
     int vfr;

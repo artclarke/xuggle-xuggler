@@ -1134,6 +1134,7 @@ generic_option:
     info.interlaced = param->b_interlaced;
     info.sar_width  = param->vui.i_sar_width;
     info.sar_height = param->vui.i_sar_height;
+    info.tff        = param->b_tff;
     info.vfr        = param->b_vfr_input;
 
     if( select_input( demuxer, demuxername, input_filename, &opt->hin, &info, &input_opt ) )
@@ -1180,9 +1181,11 @@ generic_option:
     param->i_width     = info.width;
     if( !b_user_interlaced && info.interlaced )
     {
-        fprintf( stderr, "x264 [warning]: input appears to be interlaced, enabling interlaced mode.\n"
-                         "                If you want otherwise, use --no-interlaced\n" );
+        fprintf( stderr, "x264 [warning]: input appears to be interlaced, enabling %cff interlaced mode.\n"
+                         "                If you want otherwise, use --no-interlaced or --%cff\n",
+                 info.tff ? 't' : 'b', info.tff ? 'b' : 't' );
         param->b_interlaced = 1;
+        param->b_tff = !!info.tff;
     }
     if( !b_user_fps )
     {
