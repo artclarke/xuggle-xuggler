@@ -420,17 +420,17 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
     }
 
     /* spatial predictors */
-    if( h->mb.i_neighbour & MB_LEFT )
+    if( h->mb.i_neighbour_frame & MB_LEFT )
     {
         SET_MVP( mvr[h->mb.i_mb_left_xy] );
     }
-    if( h->mb.i_neighbour & MB_TOP )
+    if( h->mb.i_neighbour_frame & MB_TOP )
     {
         SET_MVP( mvr[h->mb.i_mb_top_xy] );
 
-        if( h->mb.i_neighbour & MB_TOPLEFT )
+        if( h->mb.i_neighbour_frame & MB_TOPLEFT )
             SET_MVP( mvr[h->mb.i_mb_topleft_xy] );
-        if( h->mb.i_neighbour & MB_TOPRIGHT )
+        if( h->mb.i_neighbour_frame & MB_TOPRIGHT )
             SET_MVP( mvr[h->mb.i_mb_topright_xy] );
     }
 #undef SET_MVP
