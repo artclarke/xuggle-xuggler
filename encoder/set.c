@@ -234,7 +234,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->vui.i_max_bytes_per_pic_denom = 0;
         sps->vui.i_max_bits_per_mb_denom = 0;
         sps->vui.i_log2_max_mv_length_horizontal =
-        sps->vui.i_log2_max_mv_length_vertical = (int)log2f( param->analyse.i_mv_range*4-1 ) + 1;
+        sps->vui.i_log2_max_mv_length_vertical = (int)log2f( X264_MAX( 1, param->analyse.i_mv_range*4-1 ) ) + 1;
     }
 }
 
