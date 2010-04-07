@@ -114,7 +114,9 @@ typedef struct
     int i_cost16x16direct;
     int i_cost8x8bi;
     int i_cost8x8direct[4];
-    int i_satd8x8bi[3][4]; /* [L0,L1,BI][8x8 0..3] SATD only */
+    int i_satd8x8[3][4]; /* [L0,L1,BI][8x8 0..3] SATD only */
+    int i_cost_est16x8[2]; /* Per-partition estimated cost */
+    int i_cost_est8x16[2];
     int i_cost16x8bi;
     int i_cost8x16bi;
     int i_rd16x16bi;
@@ -1256,6 +1258,8 @@ static void x264_mb_analyse_inter_p8x8_mixed_ref( x264_t *h, x264_mb_analysis_t 
         x264_macroblock_cache_mv_ptr( h, 2*x8, 2*y8, 2, 2, 0, l0m->mv );
         x264_macroblock_cache_ref( h, 2*x8, 2*y8, 2, 2, 0, l0m->i_ref );
 
+        a->i_satd8x8[0][i] = l0m->cost - ( l0m->cost_mv + l0m->i_ref_cost );
+
         /* If CABAC is on and we're not doing sub-8x8 analysis, the costs
            are effectively zero. */
         if( !h->param.b_cabac || (h->param.analyse.inter & X264_ANALYSE_PSUB8x8) )
@@ -1310,6 +1314,8 @@ static void x264_mb_analyse_inter_p8x8( x264_t *h, x264_mb_analysis_t *a )
         CP32( mvc[i_mvc], m->mv );
         i_mvc++;
 
+        a->i_satd8x8[0][i] = m->cost - m->cost_mv;
+
         /* mb type cost */
         m->cost += i_ref_cost;
         if( !h->param.b_cabac || (h->param.analyse.inter & X264_ANALYSE_PSUB8x8) )
@@ -1326,7 +1332,7 @@ static void x264_mb_analyse_inter_p8x8( x264_t *h, x264_mb_analysis_t *a )
     h->mb.i_sub_partition[2] = h->mb.i_sub_partition[3] = D_L0_8x8;
 }
 
-static void x264_mb_analyse_inter_p16x8( x264_t *h, x264_mb_analysis_t *a )
+static void x264_mb_analyse_inter_p16x8( x264_t *h, x264_mb_analysis_t *a, int i_best_satd )
 {
     x264_me_t m;
     uint8_t  **p_fenc = h->mb.pic.p_fenc;
@@ -1376,6 +1382,15 @@ static void x264_mb_analyse_inter_p16x8( x264_t *h, x264_mb_analysis_t *a )
             if( m.cost < l0m->cost )
                 h->mc.memcpy_aligned( l0m, &m, sizeof(x264_me_t) );
         }
+
+        /* Early termination based on the current SATD score of partition[0]
+           plus the estimated SATD score of partition[1] */
+        if( !i && l0m->cost + a->i_cost_est16x8[1] > i_best_satd * (4 + !!a->i_mbrd) / 4 )
+        {
+            a->l0.i_cost16x8 = COST_MAX;
+            return;
+        }
+
         x264_macroblock_cache_mv_ptr( h, 0, 2*i, 4, 2, 0, l0m->mv );
         x264_macroblock_cache_ref( h, 0, 2*i, 4, 2, 0, l0m->i_ref );
     }
@@ -1383,7 +1398,7 @@ static void x264_mb_analyse_inter_p16x8( x264_t *h, x264_mb_analysis_t *a )
     a->l0.i_cost16x8 = a->l0.me16x8[0].cost + a->l0.me16x8[1].cost;
 }
 
-static void x264_mb_analyse_inter_p8x16( x264_t *h, x264_mb_analysis_t *a )
+static void x264_mb_analyse_inter_p8x16( x264_t *h, x264_mb_analysis_t *a, int i_best_satd )
 {
     x264_me_t m;
     uint8_t  **p_fenc = h->mb.pic.p_fenc;
@@ -1432,6 +1447,15 @@ static void x264_mb_analyse_inter_p8x16( x264_t *h, x264_mb_analysis_t *a )
             if( m.cost < l0m->cost )
                 h->mc.memcpy_aligned( l0m, &m, sizeof(x264_me_t) );
         }
+
+        /* Early termination based on the current SATD score of partition[0]
+           plus the estimated SATD score of partition[1] */
+        if( !i && l0m->cost + a->i_cost_est8x16[1] > i_best_satd * (4 + !!a->i_mbrd) / 4 )
+        {
+            a->l0.i_cost8x16 = COST_MAX;
+            return;
+        }
+
         x264_macroblock_cache_mv_ptr( h, 2*i, 0, 2, 4, 0, l0m->mv );
         x264_macroblock_cache_ref( h, 2*i, 0, 2, 4, 0, l0m->i_ref );
     }
@@ -1912,7 +1936,7 @@ static void x264_mb_analyse_inter_b8x8_mixed_ref( x264_t *h, x264_mb_analysis_t 
                 if( m.cost < lX->me8x8[i].cost )
                 {
                     h->mc.memcpy_aligned( &lX->me8x8[i], &m, sizeof(x264_me_t) );
-                    a->i_satd8x8bi[l][i] = m.cost - ( m.cost_mv + m.i_ref_cost );
+                    a->i_satd8x8[l][i] = m.cost - ( m.cost_mv + m.i_ref_cost );
                 }
 
                 /* save mv for predicting other partitions within this MB */
@@ -1928,8 +1952,8 @@ static void x264_mb_analyse_inter_b8x8_mixed_ref( x264_t *h, x264_mb_analysis_t 
         h->mc.avg[PIXEL_8x8]( pix[0], 8, src[0], stride[0], src[1], stride[1],
                                 h->mb.bipred_weight[a->l0.me8x8[i].i_ref][a->l1.me8x8[i].i_ref] );
 
-        a->i_satd8x8bi[2][i] = h->pixf.mbcmp[PIXEL_8x8]( a->l0.me8x8[i].p_fenc[0], FENC_STRIDE, pix[0], 8 );
-        i_part_cost_bi = a->i_satd8x8bi[2][i] + a->l0.me8x8[i].cost_mv + a->l1.me8x8[i].cost_mv
+        a->i_satd8x8[2][i] = h->pixf.mbcmp[PIXEL_8x8]( a->l0.me8x8[i].p_fenc[0], FENC_STRIDE, pix[0], 8 );
+        i_part_cost_bi = a->i_satd8x8[2][i] + a->l0.me8x8[i].cost_mv + a->l1.me8x8[i].cost_mv
                          + a->l0.me8x8[i].i_ref_cost + a->l1.me8x8[i].i_ref_cost
                          + a->i_lambda * i_sub_mb_b_cost_table[D_BI_8x8];
 
@@ -1987,7 +2011,7 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
             x264_macroblock_cache_ref( h, x8*2, y8*2, 2, 2, l, lX->me16x16.i_ref );
             x264_mb_predict_mv( h, l, 4*i, 2, m->mvp );
             x264_me_search( h, m, &lX->me16x16.mv, 1 );
-            a->i_satd8x8bi[l][i] = m->cost - m->cost_mv;
+            a->i_satd8x8[l][i] = m->cost - m->cost_mv;
             m->cost += m->i_ref_cost;
 
             x264_macroblock_cache_mv_ptr( h, 2*x8, 2*y8, 2, 2, l, m->mv );
@@ -2001,8 +2025,8 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
             i_part_cost_bi += m->cost_mv + m->i_ref_cost;
         }
         h->mc.avg[PIXEL_8x8]( pix[0], 8, src[0], stride[0], src[1], stride[1], h->mb.bipred_weight[a->l0.me16x16.i_ref][a->l1.me16x16.i_ref] );
-        a->i_satd8x8bi[2][i] = h->pixf.mbcmp[PIXEL_8x8]( a->l0.me8x8[i].p_fenc[0], FENC_STRIDE, pix[0], 8 );
-        i_part_cost_bi += a->i_satd8x8bi[2][i] + a->i_lambda * i_sub_mb_b_cost_table[D_BI_8x8];
+        a->i_satd8x8[2][i] = h->pixf.mbcmp[PIXEL_8x8]( a->l0.me8x8[i].p_fenc[0], FENC_STRIDE, pix[0], 8 );
+        i_part_cost_bi += a->i_satd8x8[2][i] + a->i_lambda * i_sub_mb_b_cost_table[D_BI_8x8];
         a->l0.me8x8[i].cost += a->i_lambda * i_sub_mb_b_cost_table[D_L0_8x8];
         a->l1.me8x8[i].cost += a->i_lambda * i_sub_mb_b_cost_table[D_L1_8x8];
 
@@ -2021,7 +2045,7 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
     a->i_cost8x8bi += a->i_lambda * i_mb_b_cost_table[B_8x8];
 }
 
-static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
+static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a, int i_best_satd )
 {
     ALIGNED_ARRAY_16( uint8_t, pix,[2],[16*8] );
     ALIGNED_4( int16_t mvc[3][2] );
@@ -2093,6 +2117,15 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
         }
         a->i_cost16x8bi += i_part_cost;
 
+        /* Early termination based on the current SATD score of partition[0]
+           plus the estimated SATD score of partition[1] */
+        if( !i && i_part_cost + a->i_cost_est16x8[1] > i_best_satd
+            * (16 + (!!a->i_mbrd + !!h->mb.i_psy_rd))/16 )
+        {
+            a->i_cost16x8bi = COST_MAX;
+            return;
+        }
+
         x264_mb_cache_mv_b16x8( h, a, i, 0 );
     }
 
@@ -2103,7 +2136,7 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a )
     a->i_cost16x8bi += a->i_lambda * i_mb_b16x8_cost_table[a->i_mb_type16x8];
 }
 
-static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
+static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a, int i_best_satd )
 {
     ALIGNED_ARRAY_8( uint8_t, pix,[2],[8*16] );
     ALIGNED_4( int16_t mvc[3][2] );
@@ -2173,6 +2206,15 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a )
             a->i_mb_partition8x16[i] = D_BI_8x8;
         }
         a->i_cost8x16bi += i_part_cost;
+
+        /* Early termination based on the current SATD score of partition[0]
+           plus the estimated SATD score of partition[1] */
+        if( !i && i_part_cost + a->i_cost_est8x16[1] > i_best_satd
+            * (16 + (!!a->i_mbrd + !!h->mb.i_psy_rd))/16 )
+        {
+            a->i_cost8x16bi = COST_MAX;
+            return;
+        }
 
         x264_mb_cache_mv_b8x16( h, a, i, 0 );
     }
@@ -2675,10 +2717,18 @@ intra_analysis:
             if( ( flags & X264_ANALYSE_PSUB16x16 ) &&
                 analysis.l0.i_cost8x8 < analysis.l0.me16x16.cost + i_thresh16x8 )
             {
-                x264_mb_analyse_inter_p16x8( h, &analysis );
+                int i_avg_mv_ref_cost = (analysis.l0.me8x8[2].cost_mv + analysis.l0.me8x8[2].i_ref_cost
+                                      + analysis.l0.me8x8[3].cost_mv + analysis.l0.me8x8[3].i_ref_cost + 1) >> 1;
+                analysis.i_cost_est16x8[1] = analysis.i_satd8x8[0][2] + analysis.i_satd8x8[0][3] + i_avg_mv_ref_cost;
+
+                x264_mb_analyse_inter_p16x8( h, &analysis, i_cost );
                 COPY3_IF_LT( i_cost, analysis.l0.i_cost16x8, i_type, P_L0, i_partition, D_16x8 );
 
-                x264_mb_analyse_inter_p8x16( h, &analysis );
+                i_avg_mv_ref_cost = (analysis.l0.me8x8[1].cost_mv + analysis.l0.me8x8[1].i_ref_cost
+                                  + analysis.l0.me8x8[3].cost_mv + analysis.l0.me8x8[3].i_ref_cost + 1) >> 1;
+                analysis.i_cost_est8x16[1] = analysis.i_satd8x8[0][1] + analysis.i_satd8x8[0][3] + i_avg_mv_ref_cost;
+
+                x264_mb_analyse_inter_p8x16( h, &analysis, i_cost );
                 COPY3_IF_LT( i_cost, analysis.l0.i_cost8x16, i_type, P_L0, i_partition, D_8x16 );
             }
 
@@ -2981,7 +3031,7 @@ intra_analysis:
                 COPY3_IF_LT( i_cost, analysis.i_cost8x8bi, i_type, B_8x8, i_partition, D_8x8 );
 
                 /* Try to estimate the cost of b16x8/b8x16 based on the satd scores of the b8x8 modes */
-                int i_cost_est16x8bi = 0, i_cost_est8x16bi = 0;
+                int i_cost_est16x8bi_total = 0, i_cost_est8x16bi_total = 0;
                 int i_mb_type, i_partition16x8[2], i_partition8x16[2];
                 for( int i = 0; i < 2; i++ )
                 {
@@ -2989,9 +3039,9 @@ intra_analysis:
                     int i_l0_satd, i_l1_satd, i_bi_satd, i_best_cost;
                     // 16x8
                     i_best_cost = COST_MAX;
-                    i_l0_satd = analysis.i_satd8x8bi[0][i*2] + analysis.i_satd8x8bi[0][i*2+1];
-                    i_l1_satd = analysis.i_satd8x8bi[1][i*2] + analysis.i_satd8x8bi[1][i*2+1];
-                    i_bi_satd = analysis.i_satd8x8bi[2][i*2] + analysis.i_satd8x8bi[2][i*2+1];
+                    i_l0_satd = analysis.i_satd8x8[0][i*2] + analysis.i_satd8x8[0][i*2+1];
+                    i_l1_satd = analysis.i_satd8x8[1][i*2] + analysis.i_satd8x8[1][i*2+1];
+                    i_bi_satd = analysis.i_satd8x8[2][i*2] + analysis.i_satd8x8[2][i*2+1];
                     avg_l0_mv_ref_cost = ( analysis.l0.me8x8[i*2].cost_mv + analysis.l0.me8x8[i*2].i_ref_cost
                                          + analysis.l0.me8x8[i*2+1].cost_mv + analysis.l0.me8x8[i*2+1].i_ref_cost + 1 ) >> 1;
                     avg_l1_mv_ref_cost = ( analysis.l1.me8x8[i*2].cost_mv + analysis.l1.me8x8[i*2].i_ref_cost
@@ -2999,13 +3049,13 @@ intra_analysis:
                     COPY2_IF_LT( i_best_cost, i_l0_satd + avg_l0_mv_ref_cost, i_partition16x8[i], D_L0_8x8 );
                     COPY2_IF_LT( i_best_cost, i_l1_satd + avg_l1_mv_ref_cost, i_partition16x8[i], D_L1_8x8 );
                     COPY2_IF_LT( i_best_cost, i_bi_satd + avg_l0_mv_ref_cost + avg_l1_mv_ref_cost, i_partition16x8[i], D_BI_8x8 );
-                    i_cost_est16x8bi += i_best_cost;
+                    analysis.i_cost_est16x8[i] = i_best_cost;
 
                     // 8x16
                     i_best_cost = COST_MAX;
-                    i_l0_satd = analysis.i_satd8x8bi[0][i] + analysis.i_satd8x8bi[0][i+2];
-                    i_l1_satd = analysis.i_satd8x8bi[1][i] + analysis.i_satd8x8bi[1][i+2];
-                    i_bi_satd = analysis.i_satd8x8bi[2][i] + analysis.i_satd8x8bi[2][i+2];
+                    i_l0_satd = analysis.i_satd8x8[0][i] + analysis.i_satd8x8[0][i+2];
+                    i_l1_satd = analysis.i_satd8x8[1][i] + analysis.i_satd8x8[1][i+2];
+                    i_bi_satd = analysis.i_satd8x8[2][i] + analysis.i_satd8x8[2][i+2];
                     avg_l0_mv_ref_cost = ( analysis.l0.me8x8[i].cost_mv + analysis.l0.me8x8[i].i_ref_cost
                                          + analysis.l0.me8x8[i+2].cost_mv + analysis.l0.me8x8[i+2].i_ref_cost + 1 ) >> 1;
                     avg_l1_mv_ref_cost = ( analysis.l1.me8x8[i].cost_mv + analysis.l1.me8x8[i].i_ref_cost
@@ -3013,28 +3063,30 @@ intra_analysis:
                     COPY2_IF_LT( i_best_cost, i_l0_satd + avg_l0_mv_ref_cost, i_partition8x16[i], D_L0_8x8 );
                     COPY2_IF_LT( i_best_cost, i_l1_satd + avg_l1_mv_ref_cost, i_partition8x16[i], D_L1_8x8 );
                     COPY2_IF_LT( i_best_cost, i_bi_satd + avg_l0_mv_ref_cost + avg_l1_mv_ref_cost, i_partition8x16[i], D_BI_8x8 );
-                    i_cost_est8x16bi += i_best_cost;
+                    analysis.i_cost_est8x16[i] = i_best_cost;
                 }
                 i_mb_type = B_L0_L0 + (i_partition16x8[0]>>2) * 3 + (i_partition16x8[1]>>2);
-                i_cost_est16x8bi += analysis.i_lambda * i_mb_b16x8_cost_table[i_mb_type];
+                analysis.i_cost_est16x8[1] += analysis.i_lambda * i_mb_b16x8_cost_table[i_mb_type];
+                i_cost_est16x8bi_total = analysis.i_cost_est16x8[0] + analysis.i_cost_est16x8[1];
                 i_mb_type = B_L0_L0 + (i_partition8x16[0]>>2) * 3 + (i_partition8x16[1]>>2);
-                i_cost_est8x16bi += analysis.i_lambda * i_mb_b16x8_cost_table[i_mb_type];
+                analysis.i_cost_est8x16[1] += analysis.i_lambda * i_mb_b16x8_cost_table[i_mb_type];
+                i_cost_est8x16bi_total = analysis.i_cost_est8x16[0] + analysis.i_cost_est8x16[1];
 
                 /* We can gain a little speed by checking the mode with the lowest estimated cost first */
-                int try_16x8_first = i_cost_est16x8bi < i_cost_est8x16bi;
-                if( try_16x8_first && i_cost_est16x8bi < i_cost )
+                int try_16x8_first = i_cost_est16x8bi_total < i_cost_est8x16bi_total;
+                if( try_16x8_first && i_cost_est16x8bi_total < i_cost )
                 {
-                    x264_mb_analyse_inter_b16x8( h, &analysis );
+                    x264_mb_analyse_inter_b16x8( h, &analysis, i_cost );
                     COPY3_IF_LT( i_cost, analysis.i_cost16x8bi, i_type, analysis.i_mb_type16x8, i_partition, D_16x8 );
                 }
-                if( i_cost_est8x16bi < i_cost )
+                if( i_cost_est8x16bi_total < i_cost )
                 {
-                    x264_mb_analyse_inter_b8x16( h, &analysis );
+                    x264_mb_analyse_inter_b8x16( h, &analysis, i_cost );
                     COPY3_IF_LT( i_cost, analysis.i_cost8x16bi, i_type, analysis.i_mb_type8x16, i_partition, D_8x16 );
                 }
-                if( !try_16x8_first && i_cost_est16x8bi < i_cost )
+                if( !try_16x8_first && i_cost_est16x8bi_total < i_cost )
                 {
-                    x264_mb_analyse_inter_b16x8( h, &analysis );
+                    x264_mb_analyse_inter_b16x8( h, &analysis, i_cost );
                     COPY3_IF_LT( i_cost, analysis.i_cost16x8bi, i_type, analysis.i_mb_type16x8, i_partition, D_16x8 );
                 }
             }
