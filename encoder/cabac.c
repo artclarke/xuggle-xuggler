@@ -191,11 +191,11 @@ static void x264_cabac_mb_intra4x4_pred_mode( x264_cabac_t *cb, int i_pred, int 
 
 static void x264_cabac_mb_intra_chroma_pred_mode( x264_t *h, x264_cabac_t *cb )
 {
-    const int i_mode = x264_mb_pred_mode8x8c_fix[ h->mb.i_chroma_pred_mode ];
+    const int i_mode = x264_mb_pred_mode8x8c_fix[h->mb.i_chroma_pred_mode];
     int       ctx = 0;
 
     /* No need to test for I4x4 or I_16x16 as cache_save handle that */
-    if( (h->mb.i_neighbour & MB_LEFT) && h->mb.chroma_pred_mode[h->mb.i_mb_xy - 1] != 0 )
+    if( (h->mb.i_neighbour & MB_LEFT) && h->mb.chroma_pred_mode[h->mb.i_mb_left_xy] != 0 )
         ctx++;
     if( (h->mb.i_neighbour & MB_TOP) && h->mb.chroma_pred_mode[h->mb.i_mb_top_xy] != 0 )
         ctx++;
