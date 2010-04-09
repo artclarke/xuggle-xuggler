@@ -1001,9 +1001,23 @@ x264_t *x264_encoder_open( x264_param_t *param )
             goto fail;
     if( x264_analyse_init_costs( h, X264_LOOKAHEAD_QP ) )
         goto fail;
+
+    /* Checks for known miscompilation issues. */
     if( h->cost_mv[1][2013] != 24 )
     {
         x264_log( h, X264_LOG_ERROR, "MV cost test failed: x264 has been miscompiled!\n" );
+        goto fail;
+    }
+
+    /* Must be volatile or else GCC will optimize it out. */
+    volatile int temp = 392;
+    if( x264_clz( temp ) != 23 )
+    {
+        x264_log( h, X264_LOG_ERROR, "CLZ test failed: x264 has been miscompiled!\n" );
+#if defined(ARCH_X86) || defined(ARCH_X86_64)
+        x264_log( h, X264_LOG_ERROR, "Are you attempting to run an SSE4a-targeted build on a CPU that\n" );
+        x264_log( h, X264_LOG_ERROR, "doesn't support it?\n" );
+#endif
         goto fail;
     }
 
