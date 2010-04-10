@@ -363,7 +363,7 @@ static void Help( x264_param_t *defaults, int longhelp )
     H0( "Frame-type options:\n" );
     H0( "\n" );
     H0( "  -I, --keyint <integer>      Maximum GOP size [%d]\n", defaults->i_keyint_max );
-    H2( "  -i, --min-keyint <integer>  Minimum GOP size [%d]\n", defaults->i_keyint_min );
+    H2( "  -i, --min-keyint <integer>  Minimum GOP size [auto]\n" );
     H2( "      --no-scenecut           Disable adaptive I-frame decision\n" );
     H2( "      --scenecut <integer>    How aggressively to insert extra I-frames [%d]\n", defaults->i_scenecut_threshold );
     H2( "      --intra-refresh         Use Periodic Intra Refresh instead of IDR frames\n" );

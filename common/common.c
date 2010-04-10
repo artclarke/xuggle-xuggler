@@ -70,7 +70,7 @@ void x264_param_default( x264_param_t *param )
     /* Encoder parameters */
     param->i_frame_reference = 3;
     param->i_keyint_max = 250;
-    param->i_keyint_min = 25;
+    param->i_keyint_min = X264_KEYINT_MIN_AUTO;
     param->i_bframe = 3;
     param->i_scenecut_threshold = 40;
     param->i_bframe_adaptive = X264_B_ADAPT_FAST;

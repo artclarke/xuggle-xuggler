@@ -577,6 +577,8 @@ static int x264_validate_parameters( x264_t *h )
         x264_log( h, X264_LOG_WARNING, "ref > 1 + intra-refresh is not supported\n" );
         h->param.i_frame_reference = 1;
     }
+    if( h->param.i_keyint_min == X264_KEYINT_MIN_AUTO )
+        h->param.i_keyint_min = h->param.i_keyint_max / 10;
     h->param.i_keyint_min = x264_clip3( h->param.i_keyint_min, 1, h->param.i_keyint_max/2+1 );
     h->param.rc.i_lookahead = x264_clip3( h->param.rc.i_lookahead, 0, X264_LOOKAHEAD_MAX );
     {
