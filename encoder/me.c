@@ -788,13 +788,7 @@ if( b_refine_qpel || (dir^1) != odir ) \
             cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[2], FENC_STRIDE, pix[0], 8 ); \
         } \
     } \
-    if( cost < bcost ) \
-    {                  \
-        bcost = cost;  \
-        bmx = mx;      \
-        bmy = my;      \
-        bdir = dir;    \
-    } \
+    COPY4_IF_LT( bcost, cost, bmx, mx, bmy, my, bdir, dir ); \
 }
 
 static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters, int *p_halfpel_thresh, int b_refine_qpel )
@@ -865,19 +859,38 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     }
 
     /* quarterpel diamond search */
-    bdir = -1;
-    for( int i = qpel_iters; i > 0; i-- )
+    if( h->mb.i_subpel_refine > 1 )
     {
-        if( bmy <= h->mb.mv_min_spel[1] || bmy >= h->mb.mv_max_spel[1] || bmx <= h->mb.mv_min_spel[0] || bmx >= h->mb.mv_max_spel[0] )
-            break;
-        odir = bdir;
+        bdir = -1;
+        for( int i = qpel_iters; i > 0; i-- )
+        {
+            if( bmy <= h->mb.mv_min_spel[1] || bmy >= h->mb.mv_max_spel[1] || bmx <= h->mb.mv_min_spel[0] || bmx >= h->mb.mv_max_spel[0] )
+                break;
+            odir = bdir;
+            int omx = bmx, omy = bmy;
+            COST_MV_SATD( omx, omy - 1, 0 );
+            COST_MV_SATD( omx, omy + 1, 1 );
+            COST_MV_SATD( omx - 1, omy, 2 );
+            COST_MV_SATD( omx + 1, omy, 3 );
+            if( (bmx == omx) & (bmy == omy) )
+                break;
+        }
+    }
+    /* Special simplified case for subme=1 */
+    else if( bmy > h->mb.mv_min_spel[1] && bmy < h->mb.mv_max_spel[1] && bmx > h->mb.mv_min_spel[0] && bmx < h->mb.mv_max_spel[0] )
+    {
+        int costs[4];
         int omx = bmx, omy = bmy;
-        COST_MV_SATD( omx, omy - 1, 0 );
-        COST_MV_SATD( omx, omy + 1, 1 );
-        COST_MV_SATD( omx - 1, omy, 2 );
-        COST_MV_SATD( omx + 1, omy, 3 );
-        if( bmx == omx && bmy == omy )
-            break;
+        /* We have to use mc_luma because all strides must be the same to use fpelcmp_x4 */
+        h->mc.mc_luma( pix[0]   , 32, m->p_fref, m->i_stride[0], omx, omy-1, bw, bh, &m->weight[0] );
+        h->mc.mc_luma( pix[0]+16, 32, m->p_fref, m->i_stride[0], omx, omy+1, bw, bh, &m->weight[0] );
+        h->mc.mc_luma( pix[1]   , 32, m->p_fref, m->i_stride[0], omx-1, omy, bw, bh, &m->weight[0] );
+        h->mc.mc_luma( pix[1]+16, 32, m->p_fref, m->i_stride[0], omx+1, omy, bw, bh, &m->weight[0] );
+        h->pixf.fpelcmp_x4[i_pixel]( m->p_fenc[0], pix[0], pix[0]+16, pix[1], pix[1]+16, 32, costs );
+        COPY2_IF_LT( bcost, costs[0] + p_cost_mvx[omx  ] + p_cost_mvy[omy-1], bmy, omy-1 );
+        COPY2_IF_LT( bcost, costs[1] + p_cost_mvx[omx  ] + p_cost_mvy[omy+1], bmy, omy+1 );
+        COPY3_IF_LT( bcost, costs[2] + p_cost_mvx[omx-1] + p_cost_mvy[omy  ], bmx, omx-1, bmy, omy );
+        COPY3_IF_LT( bcost, costs[3] + p_cost_mvx[omx+1] + p_cost_mvy[omy  ], bmx, omx+1, bmy, omy );
     }
 
     m->cost = bcost;
