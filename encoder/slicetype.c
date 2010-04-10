@@ -686,12 +686,24 @@ static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, in
                 for( int list = 0; list < 2; list++ )
                     if( (lists_used >> list)&1 )
                     {
+#define CLIP_ADD(s,x) (s) = X264_MIN((s)+(x),(1<<16)-1)
+                        int listamount = propagate_amount;
+                        /* Apply bipred weighting. */
+                        if( lists_used == 3 )
+                            listamount = (listamount * bipred_weights[list] + 32) >> 6;
+
+                        /* Early termination for simple case of mv0. */
+                        if( !M32( mvs[list][mb_index] ) )
+                        {
+                            CLIP_ADD( ref_costs[list][mb_index], listamount );
+                            continue;
+                        }
+
                         int x = mvs[list][mb_index][0];
                         int y = mvs[list][mb_index][1];
-                        int listamount = propagate_amount;
                         int mbx = (x>>5)+h->mb.i_mb_x;
                         int mby = (y>>5)+h->mb.i_mb_y;
-                        int idx0 = mbx + mby*h->mb.i_mb_stride;
+                        int idx0 = mbx + mby * h->mb.i_mb_stride;
                         int idx1 = idx0 + 1;
                         int idx2 = idx0 + h->mb.i_mb_stride;
                         int idx3 = idx0 + h->mb.i_mb_stride + 1;
@@ -701,12 +713,6 @@ static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, in
                         int idx1weight = (32-y)*x;
                         int idx2weight = y*(32-x);
                         int idx3weight = y*x;
-
-                        /* Apply bipred weighting. */
-                        if( lists_used == 3 )
-                            listamount = (listamount * bipred_weights[list] + 32) >> 6;
-
-#define CLIP_ADD(s,x) (s) = X264_MIN((s)+(x),(1<<16)-1)
 
                         /* We could just clip the MVs, but pixels that lie outside the frame probably shouldn't
                          * be counted. */
