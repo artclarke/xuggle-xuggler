@@ -140,7 +140,7 @@ static int block_residual_write_cavlc( x264_t *h, int i_ctxBlockCat, int16_t *l,
     i_sign >>= 3-i_trailing;
 
     /* total/trailing */
-    bs_write_vlc( s, x264_coeff_token[nC][i_total*4+i_trailing-4] );
+    bs_write_vlc( s, x264_coeff_token[nC][i_total-1][i_trailing] );
 
     i_suffix_length = i_total > 10 && i_trailing < 3;
     bs_write( s, i_trailing, i_sign );

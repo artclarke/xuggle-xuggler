@@ -58,7 +58,7 @@ typedef struct
 } x264_run_level_t;
 
 extern const vlc_t x264_coeff0_token[5];
-extern const vlc_t x264_coeff_token[5][16*4];
+extern const vlc_t x264_coeff_token[5][16][4];
 extern const vlc_t x264_total_zeros[15][16];
 extern const vlc_t x264_total_zeros_dc[3][4];
 extern const vlc_t x264_run_before[7][16];
