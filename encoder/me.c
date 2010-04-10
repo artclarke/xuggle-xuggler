@@ -232,14 +232,15 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
     else
     {
         /* check the MVP */
-        COST_MV( pmx, pmy );
+        bmx = pmx;
+        bmy = pmy;
         /* Because we are rounding the predicted motion vector to fullpel, there will be
          * an extra MV cost in 15 out of 16 cases.  However, when the predicted MV is
          * chosen as the best predictor, it is often the case that the subpel search will
          * result in a vector at or next to the predicted motion vector.  Therefore, it is
-         * sensible to remove the cost of the MV from the rounded MVP to avoid unfairly
+         * sensible to omit the cost of the MV from the rounded MVP to avoid unfairly
          * biasing against use of the predicted motion vector. */
-        bcost -= BITS_MVD( pmx, pmy );
+        bcost = h->pixf.fpelcmp[i_pixel]( p_fenc, FENC_STRIDE, &p_fref_w[bmy*stride+bmx], stride );
         for( int i = 0; i < i_mvc; i++ )
         {
             int mx = (mvc[i][0] + 2) >> 2;
@@ -896,7 +897,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     m->cost = bcost;
     m->mv[0] = bmx;
     m->mv[1] = bmy;
-    m->cost_mv = p_cost_mvx[ bmx ] + p_cost_mvy[ bmy ];
+    m->cost_mv = p_cost_mvx[bmx] + p_cost_mvy[bmy];
 }
 
 #define BIME_CACHE( dx, dy, list ) \
