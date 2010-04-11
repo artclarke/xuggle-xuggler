@@ -43,7 +43,7 @@ public class ContainerTest extends TestCase
    */
   @Test
   @Ignore
-  public void testContainerOpenAndClose2()
+  public void disabled_testContainerOpenAndClose2()
   {
     IContainer container = null;
     IContainerFormat fmt = null;    
