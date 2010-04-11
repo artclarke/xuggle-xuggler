@@ -958,66 +958,65 @@ static void inline x264_macroblock_cache_load_neighbours( x264_t *h, int mb_x, i
     h->mb.i_mb_type_topleft = -1;
     h->mb.i_mb_type_topright = -1;
 
-    if( top >= 0 )
-    {
-        h->mb.i_neighbour_frame |= MB_TOP;
-        h->mb.i_mb_top_xy = top;
-        if( top >= h->sh.i_first_mb )
-        {
-            h->mb.i_neighbour |= MB_TOP;
-            h->mb.i_mb_type_top = h->mb.type[h->mb.i_mb_top_xy];
-
-            if( !h->param.b_constrained_intra || IS_INTRA( h->mb.i_mb_type_top ) )
-                h->mb.i_neighbour_intra |= MB_TOP;
-        }
-    }
-
     if( mb_x > 0 )
     {
         h->mb.i_neighbour_frame |= MB_LEFT;
         h->mb.i_mb_left_xy = h->mb.i_mb_xy - 1;
+        h->mb.i_mb_type_left = h->mb.type[h->mb.i_mb_left_xy];
         if( h->mb.i_mb_xy > h->sh.i_first_mb )
         {
             h->mb.i_neighbour |= MB_LEFT;
-            h->mb.i_mb_type_left = h->mb.type[h->mb.i_mb_left_xy];
 
             if( !h->param.b_constrained_intra || IS_INTRA( h->mb.i_mb_type_left ) )
                 h->mb.i_neighbour_intra |= MB_LEFT;
         }
     }
 
-    if( mb_x > 0 && top - 1 >= 0  )
+    /* We can't predict from the previous threadslice since it hasn't been encoded yet. */
+    if( (h->i_threadslice_start >> h->mb.b_interlaced) != (mb_y >> h->mb.b_interlaced) )
     {
-        h->mb.i_neighbour_frame |= MB_TOPLEFT;
-        h->mb.i_mb_topleft_xy = top - 1;
-        if( top - 1 >= h->sh.i_first_mb )
+        if( top >= 0 )
         {
-            h->mb.i_neighbour |= MB_TOPLEFT;
+            h->mb.i_neighbour_frame |= MB_TOP;
+            h->mb.i_mb_top_xy = top;
+            h->mb.i_mb_type_top = h->mb.type[h->mb.i_mb_top_xy];
+            if( top >= h->sh.i_first_mb )
+            {
+                h->mb.i_neighbour |= MB_TOP;
+
+                if( !h->param.b_constrained_intra || IS_INTRA( h->mb.i_mb_type_top ) )
+                    h->mb.i_neighbour_intra |= MB_TOP;
+            }
+        }
+
+        if( mb_x > 0 && top - 1 >= 0  )
+        {
+            h->mb.i_neighbour_frame |= MB_TOPLEFT;
+            h->mb.i_mb_topleft_xy = top - 1;
             h->mb.i_mb_type_topright = h->mb.type[h->mb.i_mb_topleft_xy];
+            if( top - 1 >= h->sh.i_first_mb )
+            {
+                h->mb.i_neighbour |= MB_TOPLEFT;
 
-            if( !h->param.b_constrained_intra || IS_INTRA( h->mb.i_mb_type_topleft ) )
-                h->mb.i_neighbour_intra |= MB_TOPLEFT;
+                if( !h->param.b_constrained_intra || IS_INTRA( h->mb.i_mb_type_topleft ) )
+                    h->mb.i_neighbour_intra |= MB_TOPLEFT;
+            }
         }
-    }
 
-    if( mb_x < h->sps->i_mb_width - 1 && top + 1 >= 0 )
-    {
-        h->mb.i_neighbour_frame |= MB_TOPRIGHT;
-        h->mb.i_mb_topright_xy = top + 1;
-        if( top + 1 >= h->sh.i_first_mb )
+        if( mb_x < h->sps->i_mb_width - 1 && top + 1 >= 0 )
         {
-            h->mb.i_neighbour |= MB_TOPRIGHT;
+            h->mb.i_neighbour_frame |= MB_TOPRIGHT;
+            h->mb.i_mb_topright_xy = top + 1;
             h->mb.i_mb_type_topleft = h->mb.type[h->mb.i_mb_topright_xy];
+            if( top + 1 >= h->sh.i_first_mb )
+            {
+                h->mb.i_neighbour |= MB_TOPRIGHT;
 
-            if( !h->param.b_constrained_intra || IS_INTRA( h->mb.i_mb_type_topright ) )
-                h->mb.i_neighbour_intra |= MB_TOPRIGHT;
+                if( !h->param.b_constrained_intra || IS_INTRA( h->mb.i_mb_type_topright ) )
+                    h->mb.i_neighbour_intra |= MB_TOPRIGHT;
+            }
         }
     }
-
-    /* We can't predict from the previous threadslice since it hasn't been encoded yet, so
-     * only use left. */
-    if( h->i_threadslice_start == mb_y )
-        h->mb.i_neighbour_frame &= MB_LEFT;
 }
 
 void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )

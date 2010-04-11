@@ -76,9 +76,9 @@ static void x264_cabac_mb_type( x264_t *h, x264_cabac_t *cb )
     if( h->sh.i_type == SLICE_TYPE_I )
     {
         int ctx = 0;
-        if( h->mb.i_mb_type_left >= 0 && h->mb.i_mb_type_left != I_4x4 )
+        if( (h->mb.i_neighbour & MB_LEFT) && h->mb.i_mb_type_left != I_4x4 )
             ctx++;
-        if( h->mb.i_mb_type_top >= 0 && h->mb.i_mb_type_top != I_4x4 )
+        if( (h->mb.i_neighbour & MB_TOP) && h->mb.i_mb_type_top != I_4x4 )
             ctx++;
 
         x264_cabac_mb_type_intra( h, cb, i_mb_type, 3+ctx, 3+3, 3+4, 3+5, 3+6, 3+7 );
@@ -110,9 +110,9 @@ static void x264_cabac_mb_type( x264_t *h, x264_cabac_t *cb )
     else //if( h->sh.i_type == SLICE_TYPE_B )
     {
         int ctx = 0;
-        if( h->mb.i_mb_type_left >= 0 && h->mb.i_mb_type_left != B_SKIP && h->mb.i_mb_type_left != B_DIRECT )
+        if( (h->mb.i_neighbour & MB_LEFT) && h->mb.i_mb_type_left != B_SKIP && h->mb.i_mb_type_left != B_DIRECT )
             ctx++;
-        if( h->mb.i_mb_type_top >= 0 && h->mb.i_mb_type_top != B_SKIP && h->mb.i_mb_type_top != B_DIRECT )
+        if( (h->mb.i_neighbour & MB_TOP) && h->mb.i_mb_type_top != B_SKIP && h->mb.i_mb_type_top != B_DIRECT )
             ctx++;
 
         if( i_mb_type == B_DIRECT )
@@ -277,8 +277,8 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
 #if !RDO_SKIP_BS
 void x264_cabac_mb_skip( x264_t *h, int b_skip )
 {
-    int ctx = (h->mb.i_mb_type_left >= 0 && !IS_SKIP( h->mb.i_mb_type_left ))
-            + (h->mb.i_mb_type_top >= 0 && !IS_SKIP( h->mb.i_mb_type_top ))
+    int ctx = ((h->mb.i_neighbour & MB_LEFT) && !IS_SKIP( h->mb.i_mb_type_left ))
+            + ((h->mb.i_neighbour & MB_TOP) && !IS_SKIP( h->mb.i_mb_type_top ))
             + (h->sh.i_type == SLICE_TYPE_P ? 11 : 24);
     x264_cabac_encode_decision( &h->cabac, ctx, b_skip );
 }
