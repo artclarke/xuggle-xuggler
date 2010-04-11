@@ -760,7 +760,7 @@ void x264_me_refine_qpel_refdupe( x264_t *h, x264_me_t *m, int *p_halfpel_thresh
 #define COST_MV_SAD( mx, my ) \
 { \
     int stride = 16; \
-    uint8_t *src = h->mc.get_ref( pix[0], &stride, m->p_fref, m->i_stride[0], mx, my, bw, bh, &m->weight[0] ); \
+    uint8_t *src = h->mc.get_ref( pix, &stride, m->p_fref, m->i_stride[0], mx, my, bw, bh, &m->weight[0] ); \
     int cost = h->pixf.fpelcmp[i_pixel]( m->p_fenc[0], FENC_STRIDE, src, stride ) \
              + p_cost_mvx[ mx ] + p_cost_mvy[ my ]; \
     COPY3_IF_LT( bcost, cost, bmx, mx, bmy, my ); \
@@ -770,23 +770,23 @@ void x264_me_refine_qpel_refdupe( x264_t *h, x264_me_t *m, int *p_halfpel_thresh
 if( b_refine_qpel || (dir^1) != odir ) \
 { \
     int stride = 16; \
-    uint8_t *src = h->mc.get_ref( pix[0], &stride, m->p_fref, m->i_stride[0], mx, my, bw, bh, &m->weight[0] ); \
+    uint8_t *src = h->mc.get_ref( pix, &stride, m->p_fref, m->i_stride[0], mx, my, bw, bh, &m->weight[0] ); \
     int cost = h->pixf.mbcmp_unaligned[i_pixel]( m->p_fenc[0], FENC_STRIDE, src, stride ) \
              + p_cost_mvx[ mx ] + p_cost_mvy[ my ]; \
     if( b_chroma_me && cost < bcost ) \
     { \
-        h->mc.mc_chroma( pix[0], 8, m->p_fref[4], m->i_stride[1], mx, my + mvy_offset, bw/2, bh/2 ); \
+        h->mc.mc_chroma( pix, 8, m->p_fref[4], m->i_stride[1], mx, my + mvy_offset, bw/2, bh/2 ); \
         if( m->weight[1].weightfn ) \
-            m->weight[1].weightfn[x264_pixel_size[i_pixel].w>>3]( pix[0], 8, pix[0], 8, \
+            m->weight[1].weightfn[x264_pixel_size[i_pixel].w>>3]( pix, 8, pix, 8, \
                                                                   &m->weight[1], x264_pixel_size[i_pixel].h>>1 ); \
-        cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[1], FENC_STRIDE, pix[0], 8 ); \
+        cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[1], FENC_STRIDE, pix, 8 ); \
         if( cost < bcost ) \
         { \
-            h->mc.mc_chroma( pix[0], 8, m->p_fref[5], m->i_stride[1], mx, my + mvy_offset, bw/2, bh/2 ); \
+            h->mc.mc_chroma( pix, 8, m->p_fref[5], m->i_stride[1], mx, my + mvy_offset, bw/2, bh/2 ); \
             if( m->weight[2].weightfn ) \
-                m->weight[2].weightfn[x264_pixel_size[i_pixel].w>>3]( pix[0], 8, pix[0], 8, \
+                m->weight[2].weightfn[x264_pixel_size[i_pixel].w>>3]( pix, 8, pix, 8, \
                                                                       &m->weight[2], x264_pixel_size[i_pixel].h>>1 ); \
-            cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[2], FENC_STRIDE, pix[0], 8 ); \
+            cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[2], FENC_STRIDE, pix, 8 ); \
         } \
     } \
     COPY4_IF_LT( bcost, cost, bmx, mx, bmy, my, bdir, dir ); \
@@ -802,7 +802,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     const int b_chroma_me = h->mb.b_chroma_me && i_pixel <= PIXEL_8x8;
     const int mvy_offset = h->mb.b_interlaced & m->i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
 
-    ALIGNED_ARRAY_16( uint8_t, pix,[2],[32*18] );   // really 17x17, but round up for alignment
+    ALIGNED_ARRAY_16( uint8_t, pix,[64*18] ); // really 17x17x2, but round up for alignment
 
     int bmx = m->mv[0];
     int bmy = m->mv[1];
@@ -823,10 +823,10 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     {
         int omx = bmx, omy = bmy;
         int costs[4];
-        int stride = 32; // candidates are either all hpel or all qpel, so one stride is enough
+        int stride = 64; // candidates are either all hpel or all qpel, so one stride is enough
         uint8_t *src0, *src1, *src2, *src3;
-        src0 = h->mc.get_ref( pix[0], &stride, m->p_fref, m->i_stride[0], omx, omy-2, bw, bh+1, &m->weight[0] );
-        src2 = h->mc.get_ref( pix[1], &stride, m->p_fref, m->i_stride[0], omx-2, omy, bw+4, bh, &m->weight[0] );
+        src0 = h->mc.get_ref( pix,    &stride, m->p_fref, m->i_stride[0], omx, omy-2, bw, bh+1, &m->weight[0] );
+        src2 = h->mc.get_ref( pix+32, &stride, m->p_fref, m->i_stride[0], omx-2, omy, bw+4, bh, &m->weight[0] );
         src1 = src0 + stride;
         src3 = src2 + 1;
         h->pixf.fpelcmp_x4[i_pixel]( m->p_fenc[0], src0, src1, src2, src3, stride, costs );
@@ -883,11 +883,11 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
         int costs[4];
         int omx = bmx, omy = bmy;
         /* We have to use mc_luma because all strides must be the same to use fpelcmp_x4 */
-        h->mc.mc_luma( pix[0]   , 32, m->p_fref, m->i_stride[0], omx, omy-1, bw, bh, &m->weight[0] );
-        h->mc.mc_luma( pix[0]+16, 32, m->p_fref, m->i_stride[0], omx, omy+1, bw, bh, &m->weight[0] );
-        h->mc.mc_luma( pix[1]   , 32, m->p_fref, m->i_stride[0], omx-1, omy, bw, bh, &m->weight[0] );
-        h->mc.mc_luma( pix[1]+16, 32, m->p_fref, m->i_stride[0], omx+1, omy, bw, bh, &m->weight[0] );
-        h->pixf.fpelcmp_x4[i_pixel]( m->p_fenc[0], pix[0], pix[0]+16, pix[1], pix[1]+16, 32, costs );
+        h->mc.mc_luma( pix   , 64, m->p_fref, m->i_stride[0], omx, omy-1, bw, bh, &m->weight[0] );
+        h->mc.mc_luma( pix+16, 64, m->p_fref, m->i_stride[0], omx, omy+1, bw, bh, &m->weight[0] );
+        h->mc.mc_luma( pix+32, 64, m->p_fref, m->i_stride[0], omx-1, omy, bw, bh, &m->weight[0] );
+        h->mc.mc_luma( pix+48, 64, m->p_fref, m->i_stride[0], omx+1, omy, bw, bh, &m->weight[0] );
+        h->pixf.fpelcmp_x4[i_pixel]( m->p_fenc[0], pix, pix+16, pix+32, pix+48, 64, costs );
         COPY2_IF_LT( bcost, costs[0] + p_cost_mvx[omx  ] + p_cost_mvy[omy-1], bmy, omy-1 );
         COPY2_IF_LT( bcost, costs[1] + p_cost_mvx[omx  ] + p_cost_mvy[omy+1], bmy, omy+1 );
         COPY3_IF_LT( bcost, costs[2] + p_cost_mvx[omx-1] + p_cost_mvy[omy  ], bmx, omx-1, bmy, omy );
