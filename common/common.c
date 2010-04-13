@@ -405,6 +405,7 @@ void x264_param_apply_fastfirstpass( x264_param_t *param )
         param->analyse.i_me_method = X264_ME_DIA;
         param->analyse.i_subpel_refine = X264_MIN( 2, param->analyse.i_subpel_refine );
         param->analyse.i_trellis = 0;
+        param->analyse.b_fast_pskip = 1;
     }
 }
 

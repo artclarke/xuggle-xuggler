@@ -356,8 +356,9 @@ static void Help( x264_param_t *defaults, int longhelp )
              "                                                 stillimage,psnr,ssim\n"
              "                                  - other tunings: fastdecode,zerolatency\n" );
     H2( "      --slow-firstpass        Don't force these faster settings with --pass 1:\n"
-        "                                  --no-8x8dct --me dia --partitions none --ref 1\n"
-        "                                  --subme {2 if >2 else unchanged} --trellis 0\n" );
+        "                                  --no-8x8dct --me dia --partitions none\n"
+        "                                  --ref 1 --subme {2 if >2 else unchanged}\n"
+        "                                  --trellis 0 --fast-pskip\n" );
     else H1( "      --slow-firstpass        Don't force faster settings with --pass 1\n" );
     H0( "\n" );
     H0( "Frame-type options:\n" );
