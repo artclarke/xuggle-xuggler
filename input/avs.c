@@ -233,20 +233,14 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
             return -1;
         }
         res = update_clip( h, &vi, tmp, res );
+        info->interlaced = 1;
+        info->tff = avs_is_tff( vi );
     }
     if( vi->width&1 || vi->height&1 )
     {
         fprintf( stderr, "avs [error]: input clip width or height not divisible by 2 (%dx%d)\n",
                  vi->width, vi->height );
         return -1;
-    }
-    /* bff/tff flags in avisynth are not technically mutually exclusive, which can lead to both being set.
-     * avisynth's own functions enact mutual exclusion, but source filters are not guaranteed to do this. */
-    int tff = avs_is_tff( vi );
-    if( avs_is_bff( vi ) ^ tff )
-    {
-        info->interlaced = 1;
-        info->tff = !!tff;
     }
     /* always call ConvertToYV12 to convert non YV12 planar colorspaces to YV12 when user's AVS supports them,
        as all planar colorspaces are flagged as YV12. If it is already YV12 in this case, the call does nothing */
