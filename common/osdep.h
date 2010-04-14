@@ -251,6 +251,22 @@ static int ALWAYS_INLINE x264_ctz( uint32_t x )
 }
 #endif
 
+#if defined(__GNUC__) && defined(HAVE_MMX)
+/* Don't use __builtin_prefetch; even as recent as 4.3.4, GCC seems incapable of
+ * using complex address modes properly unless we use inline asm. */
+static ALWAYS_INLINE void x264_prefetch( void *p )
+{
+    asm volatile( "prefetcht0 %0"::"m"(*(uint8_t*)p) );
+}
+/* We require that prefetch not fault on invalid reads, so we only enable it on
+ * known architectures. */
+#elif defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 1) &&\
+      (defined(ARCH_X86) || defined(ARCH_X86_64) || defined(ARCH_ARM) || defined(ARCH_PPC))
+#define x264_prefetch(x) __builtin_prefetch(x)
+#else
+#define x264_prefetch(x)
+#endif
+
 #ifdef USE_REAL_PTHREAD
 #ifdef SYS_MINGW
 #define x264_lower_thread_priority(p)\

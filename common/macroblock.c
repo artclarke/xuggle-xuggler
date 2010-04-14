@@ -941,6 +941,7 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x
 static void inline x264_macroblock_cache_load_neighbours( x264_t *h, int mb_x, int mb_y )
 {
     int top = (mb_y - (1 << h->mb.b_interlaced)) * h->mb.i_mb_stride + mb_x;
+
     h->mb.i_mb_x = mb_x;
     h->mb.i_mb_y = mb_y;
     h->mb.i_mb_xy = mb_y * h->mb.i_mb_stride + mb_x;
@@ -986,6 +987,16 @@ static void inline x264_macroblock_cache_load_neighbours( x264_t *h, int mb_x, i
 
                 if( !h->param.b_constrained_intra || IS_INTRA( h->mb.i_mb_type_top ) )
                     h->mb.i_neighbour_intra |= MB_TOP;
+
+                /* We only need to prefetch the top blocks because the left was just written
+                 * to as part of the previous cache_save.  Since most target CPUs use write-allocate
+                 * caches, left blocks are near-guaranteed to be in L1 cache.  Top--not so much. */
+                x264_prefetch( &h->mb.cbp[top] );
+                x264_prefetch( h->mb.intra4x4_pred_mode[top] );
+                x264_prefetch( &h->mb.non_zero_count[top][12] );
+                /* These aren't always allocated, but prefetching an invalid address can't hurt. */
+                x264_prefetch( &h->mb.mb_transform_size[top] );
+                x264_prefetch( &h->mb.skipbp[top] );
             }
         }
 
@@ -1025,6 +1036,9 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
 
     int left = h->mb.i_mb_left_xy;
     int top  = h->mb.i_mb_top_xy;
+    int top_y = mb_y - (1 << h->mb.b_interlaced);
+    int top_8x8 = (2*top_y+1) * h->mb.i_b8_stride + 2*mb_x;
+    int top_4x4 = (4*top_y+3) * h->mb.i_b4_stride + 4*mb_x;
 
     /* GCC pessimizes direct loads from heap-allocated arrays due to aliasing. */
     /* By only dereferencing them once, we avoid this issue. */
@@ -1079,6 +1093,18 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
 
         h->mb.cache.non_zero_count[x264_scan8[16+4+0] - 1] = nnz[left][16+4+1];
         h->mb.cache.non_zero_count[x264_scan8[16+4+2] - 1] = nnz[left][16+4+3];
+
+        /* Finish the prefetching */
+        if( h->sh.i_type != SLICE_TYPE_I )
+            for( int l = 0; l < (h->sh.i_type == SLICE_TYPE_B) + 1; l++ )
+            {
+                x264_prefetch( &h->mb.mv[l][top_4x4-1] );
+                /* Top right being not in the same cacheline as top left will happen
+                 * once every 4 MBs, so one extra prefetch is worthwhile */
+                x264_prefetch( &h->mb.mv[l][top_4x4+4] );
+                x264_prefetch( &h->mb.ref[l][top_8x8-1] );
+                x264_prefetch( &h->mb.mvd[l][top] );
+            }
     }
     else
     {
@@ -1143,11 +1169,8 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
     /* load ref/mv/mvd */
     if( h->sh.i_type != SLICE_TYPE_I )
     {
-        const int s8x8 = h->mb.i_b8_stride;
-        const int s4x4 = h->mb.i_b4_stride;
-        const int top_y = mb_y - (1 << h->mb.b_interlaced);
-        const int top_8x8 = (2*top_y+1) * h->mb.i_b8_stride + 2*mb_x;
-        const int top_4x4 = (4*top_y+3) * h->mb.i_b4_stride + 4*mb_x;
+        int s8x8 = h->mb.i_b8_stride;
+        int s4x4 = h->mb.i_b4_stride;
 
         for( int l = 0; l < (h->sh.i_type == SLICE_TYPE_B) + 1; l++ )
         {
