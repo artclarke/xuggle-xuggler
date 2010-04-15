@@ -566,7 +566,8 @@ struct x264_t
         int16_t (*mvr[2][32])[2];           /* 16x16 mv for each possible ref */
         int8_t  *skipbp;                    /* block pattern for SKIP or DIRECT (sub)mbs. B-frames + cabac only */
         int8_t  *mb_transform_size;         /* transform_size_8x8_flag of each mb */
-        uint8_t *intra_border_backup[2][3]; /* bottom pixels of the previous mb row, used for intra prediction after the framebuffer has been deblocked */
+        uint16_t *slice_table;              /* sh->first_mb of the slice that the indexed mb is part of
+                                             * NOTE: this will fail on resolutions above 2^16 MBs... */
 
          /* buffer for weighted versions of the reference frames */
         uint8_t *p_weight_buf[16];
@@ -763,7 +764,9 @@ struct x264_t
     ALIGNED_16( uint16_t nr_offset[2][64] );
     uint32_t        nr_count[2];
 
+    /* Buffers that are allocated per-thread even in sliced threads. */
     void *scratch_buffer; /* for any temporary storage that doesn't want repeated malloc */
+    uint8_t *intra_border_backup[2][3]; /* bottom pixels of the previous mb row, used for intra prediction after the framebuffer has been deblocked */
 
     /* CPU functions dependents */
     x264_predict_t      predict_16x16[4+3];

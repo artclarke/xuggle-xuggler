@@ -658,6 +658,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
     int stride2y  = stridey << b_interlaced;
     int strideuv  = h->fdec->i_stride[1];
     int stride2uv = strideuv << b_interlaced;
+    int deblock_on_slice_edges = h->sh.i_disable_deblocking_filter_idc != 2;
     uint8_t (*nnz_backup)[16] = h->scratch_buffer;
 
     if( !h->pps->b_cabac && h->pps->b_transform_8x8_mode )
@@ -778,9 +779,18 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
          * i_dir == 1 -> horizontal edge */
         #define DEBLOCK_DIR(i_dir)\
         {\
-            int i_edge = (i_dir ? (mb_y <= b_interlaced) : (mb_x == 0));\
+            int i_edge = 0;\
             int i_qpn, mbn_xy, mbn_8x8, mbn_4x4;\
             ALIGNED_4( uint8_t bS[4] );  /* filtering strength */\
+            /* We don't have to consider the MBAFF case of a slice breaking in the middle\
+             * of a row because x264 doesn't support that case.  If we add support for that,\
+             * this will have to become significantly more complex. */\
+            if( i_dir == 0 && (mb_x == 0 || (!deblock_on_slice_edges &&\
+                h->mb.slice_table[mb_xy] != h->mb.slice_table[mb_xy-1])) )\
+                i_edge++;\
+            if( i_dir == 1 && (mb_y <= b_interlaced || (!deblock_on_slice_edges &&\
+                h->mb.slice_table[mb_xy] != h->mb.slice_table[mb_xy-(h->mb.i_mb_stride<<b_interlaced)])) )\
+                i_edge++;\
             if( i_edge )\
                 i_edge+= b_8x8_transform;\
             else\
