@@ -817,10 +817,10 @@ static void x264_set_aspect_ratio( x264_t *h, x264_param_t *param, int initial )
     /* VUI */
     if( param->vui.i_sar_width > 0 && param->vui.i_sar_height > 0 )
     {
-        int i_w = param->vui.i_sar_width;
-        int i_h = param->vui.i_sar_height;
-        int old_w = h->param.vui.i_sar_width;
-        int old_h = h->param.vui.i_sar_height;
+        uint32_t i_w = param->vui.i_sar_width;
+        uint32_t i_h = param->vui.i_sar_height;
+        uint32_t old_w = h->param.vui.i_sar_width;
+        uint32_t old_h = h->param.vui.i_sar_height;
 
         x264_reduce_fraction( &i_w, &i_h );
 
@@ -886,20 +886,28 @@ x264_t *x264_encoder_open( x264_param_t *param )
     h->i_frame = -1;
     h->i_frame_num = 0;
     h->i_idr_pic_id = 0;
+    uint64_t new_timebase_den = h->param.i_timebase_den;
     if( h->param.b_dts_compress )
     {
         /* h->i_dts_compress_multiplier == h->frames.i_bframe_delay + 1 */
         h->i_dts_compress_multiplier = h->param.i_bframe ? (h->param.i_bframe_pyramid ? 3 : 2) : 1;
         if( h->i_dts_compress_multiplier != 1 )
         {
-            x264_log( h, X264_LOG_DEBUG, "DTS compresion changed timebase: %d/%d -> %d/%d\n",
+            new_timebase_den = h->param.i_timebase_den * h->i_dts_compress_multiplier;
+            x264_log( h, X264_LOG_DEBUG, "DTS compresion changed timebase: %u/%u -> %u/%"PRIu64"\n",
                       h->param.i_timebase_num, h->param.i_timebase_den,
-                      h->param.i_timebase_num, h->param.i_timebase_den * h->i_dts_compress_multiplier );
-            h->param.i_timebase_den *= h->i_dts_compress_multiplier;
+                      h->param.i_timebase_num, new_timebase_den );
         }
     }
     else
         h->i_dts_compress_multiplier = 1;
+
+    if( new_timebase_den * 2 > UINT32_MAX )
+    {
+        x264_log( h, X264_LOG_ERROR, "Effective timebase denominator %"PRIu64" exceeds H.264 maximum\n", new_timebase_den );
+        goto fail;
+    }
+    h->param.i_timebase_den = new_timebase_den;
 
     h->sps = &h->sps_array[0];
     x264_sps_init( h->sps, h->param.i_sps_id, &h->param );

@@ -38,15 +38,15 @@ typedef struct
 typedef struct
 {
     int csp; /* X264_CSP_YV12 or X264_CSP_I420 */
-    int fps_num;
-    int fps_den;
+    uint32_t fps_num;
+    uint32_t fps_den;
     int height;
     int interlaced;
-    int sar_width;
-    int sar_height;
+    uint32_t sar_width;
+    uint32_t sar_height;
     int tff;
-    int timebase_num;
-    int timebase_den;
+    uint32_t timebase_num;
+    uint32_t timebase_den;
     int vfr;
     int width;
 } video_info_t;

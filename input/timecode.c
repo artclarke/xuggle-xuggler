@@ -32,8 +32,8 @@ typedef struct
     int frame_total;
     int auto_timebase_num;
     int auto_timebase_den;
-    int timebase_num;
-    int timebase_den;
+    uint64_t timebase_num;
+    uint64_t timebase_den;
     int seek;
     int stored_pts_num;
     int64_t *pts;
@@ -53,15 +53,15 @@ static inline double sigexp10( double value, double *exponent )
 
 static double correct_fps( double fps, timecode_hnd_t *h )
 {
-    int64_t i = 1;
-    int64_t fps_num, fps_den;
+    int i = 1;
+    uint64_t fps_num, fps_den;
     double exponent;
     double fps_sig = sigexp10( fps, &exponent );
     while( 1 )
     {
         fps_den = i * h->timebase_num;
         fps_num = round( fps_den * fps_sig ) * exponent;
-        if( fps_num < 0 )
+        if( fps_num > UINT32_MAX )
         {
             fprintf( stderr, "timecode [error]: tcfile fps correction failed.\n"
                              "                  Specify an appropriate timebase manually or remake tcfile.\n" );
@@ -74,7 +74,7 @@ static double correct_fps( double fps, timecode_hnd_t *h )
     if( h->auto_timebase_den )
     {
         h->timebase_den = h->timebase_den ? lcm( h->timebase_den, fps_num ) : fps_num;
-        if( h->timebase_den < 0 )
+        if( h->timebase_den > UINT32_MAX )
             h->auto_timebase_den = 0;
     }
     return (double)fps_num / fps_den;
@@ -86,12 +86,12 @@ static int try_mkv_timebase_den( double *fpss, timecode_hnd_t *h, int loop_num )
     h->timebase_den = MKV_TIMEBASE_DEN;
     for( int num = 0; num < loop_num; num++ )
     {
-        int fps_den;
+        uint64_t fps_den;
         double exponent;
         double fps_sig = sigexp10( fpss[num], &exponent );
         fps_den = round( MKV_TIMEBASE_DEN / fps_sig ) / exponent;
-        h->timebase_num = fps_den > 0 && h->timebase_num ? gcd( h->timebase_num, fps_den ) : fps_den;
-        if( h->timebase_num <= 0 )
+        h->timebase_num = fps_den && h->timebase_num ? gcd( h->timebase_num, fps_den ) : fps_den;
+        if( h->timebase_num > UINT32_MAX || !h->timebase_num )
         {
             fprintf( stderr, "timecode [error]: automatic timebase generation failed.\n"
                              "                  Specify timebase manually.\n" );
@@ -305,19 +305,19 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
                 if( h->timebase_den >= 0 )
                 {
                     int i = 1;
-                    int fps_num, fps_den;
+                    uint64_t fps_num, fps_den;
                     double exponent;
                     double fps_sig = sigexp10( fpss[num], &exponent );
                     while( 1 )
                     {
                         fps_den = i * h->timebase_num;
                         fps_num = round( fps_den * fps_sig ) * exponent;
-                        if( fps_num < 0 || fabs( ((double)fps_num / fps_den) / exponent - fps_sig ) < DOUBLE_EPSILON )
+                        if( fps_num > UINT32_MAX || fabs( ((double)fps_num / fps_den) / exponent - fps_sig ) < DOUBLE_EPSILON )
                             break;
                         ++i;
                     }
-                    h->timebase_den = fps_num > 0 && h->timebase_den ? lcm( h->timebase_den, fps_num ) : fps_num;
-                    if( h->timebase_den < 0 )
+                    h->timebase_den = fps_num && h->timebase_den ? lcm( h->timebase_den, fps_num ) : fps_num;
+                    if( h->timebase_den > UINT32_MAX )
                     {
                         h->auto_timebase_den = 0;
                         continue;
@@ -339,10 +339,12 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
 
     if( h->auto_timebase_den || h->auto_timebase_num )
     {
-        x264_reduce_fraction( &h->timebase_num, &h->timebase_den );
-        fprintf( stderr, "timecode [info]: automatic timebase generation %d/%d\n", h->timebase_num, h->timebase_den );
+        uint64_t i = gcd( h->timebase_num, h->timebase_den );
+        h->timebase_num /= i;
+        h->timebase_den /= i;
+        fprintf( stderr, "timecode [info]: automatic timebase generation %"PRIu64"/%"PRIu64"\n", h->timebase_num, h->timebase_den );
     }
-    else if( h->timebase_den <= 0 )
+    else if( h->timebase_den > UINT32_MAX || !h->timebase_den )
     {
         fprintf( stderr, "timecode [error]: automatic timebase generation failed.\n"
                          "                  Specify an appropriate timebase manually.\n" );
@@ -394,9 +396,16 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     h->frame_total = input.get_frame_total( h->p_handle );
     h->seek = opt->seek;
     if( opt->timebase )
-        ret = sscanf( opt->timebase, "%d/%d", &h->timebase_num, &h->timebase_den );
-    if( ret == 1 )
-        h->timebase_num = atoi( opt->timebase );
+    {
+        ret = sscanf( opt->timebase, "%"SCNu64"/%"SCNu64, &h->timebase_num, &h->timebase_den );
+        if( ret == 1 )
+            h->timebase_num = strtoul( opt->timebase, NULL, 10 );
+        if( h->timebase_num > UINT32_MAX || h->timebase_den > UINT32_MAX )
+        {
+            fprintf( stderr, "timecode [error]: timebase you specified exceeds H.264 maximum\n" );
+            return -1;
+        }
+    }
     h->auto_timebase_num = !ret;
     h->auto_timebase_den = ret < 2;
     if( h->auto_timebase_num )

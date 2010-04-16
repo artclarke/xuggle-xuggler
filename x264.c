@@ -1205,9 +1205,9 @@ generic_option:
     }
     if( !tcfile_name && input_opt.timebase )
     {
-        int i_user_timebase_num;
-        int i_user_timebase_den;
-        int ret = sscanf( input_opt.timebase, "%d/%d", &i_user_timebase_num, &i_user_timebase_den );
+        uint64_t i_user_timebase_num;
+        uint64_t i_user_timebase_den;
+        int ret = sscanf( input_opt.timebase, "%"SCNu64"/%"SCNu64, &i_user_timebase_num, &i_user_timebase_den );
         if( !ret )
         {
             fprintf( stderr, "x264 [error]: invalid argument: timebase = %s\n", input_opt.timebase );
@@ -1216,7 +1216,12 @@ generic_option:
         else if( ret == 1 )
         {
             i_user_timebase_num = param->i_timebase_num;
-            i_user_timebase_den = atoi( input_opt.timebase );
+            i_user_timebase_den = strtoul( input_opt.timebase, NULL, 10 );
+        }
+        if( i_user_timebase_num > UINT32_MAX || i_user_timebase_den > UINT32_MAX )
+        {
+            fprintf( stderr, "x264 [error]: timebase you specified exceeds H.264 maximum\n" );
+            return -1;
         }
         opt->timebase_convert_multiplier = ((double)i_user_timebase_den / param->i_timebase_den)
                                          * ((double)param->i_timebase_num / i_user_timebase_num);

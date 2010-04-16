@@ -30,8 +30,8 @@ typedef struct
     int64_t frame_duration;
 
     char b_writing_frame;
-    int i_timebase_num;
-    int i_timebase_den;
+    uint32_t i_timebase_num;
+    uint32_t i_timebase_den;
 
 } mkv_hnd_t;
 

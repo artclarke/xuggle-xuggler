@@ -112,8 +112,8 @@ typedef struct
         int i_chroma_loc_bottom;
 
         int b_timing_info_present;
-        int i_num_units_in_tick;
-        int i_time_scale;
+        uint32_t i_num_units_in_tick;
+        uint32_t i_time_scale;
         int b_fixed_frame_rate;
 
         int b_nal_hrd_parameters_present;

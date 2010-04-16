@@ -639,6 +639,7 @@ int x264_ratecontrol_new( x264_t *h )
         if( !strncmp( stats_buf, "#options:", 9 ) )
         {
             int i, j;
+            uint32_t k, l;
             char *opts = stats_buf;
             stats_in = strchr( stats_buf, '\n' );
             if( !stats_in )
@@ -657,15 +658,15 @@ int x264_ratecontrol_new( x264_t *h )
                 return -1;
             }
 
-            if( ( p = strstr( opts, "timebase=" ) ) && sscanf( p, "timebase=%d/%d", &i, &j ) != 2 )
+            if( ( p = strstr( opts, "timebase=" ) ) && sscanf( p, "timebase=%u/%u", &k, &l ) != 2 )
             {
                 x264_log( h, X264_LOG_ERROR, "timebase specified in stats file not valid\n" );
                 return -1;
             }
-            if( i != h->param.i_timebase_num || j != h->param.i_timebase_den )
+            if( k != h->param.i_timebase_num || l != h->param.i_timebase_den )
             {
-                x264_log( h, X264_LOG_ERROR, "timebase mismatch with 1st pass (%d/%d vs %d/%d)\n",
-                          h->param.i_timebase_num, h->param.i_timebase_den, i, j );
+                x264_log( h, X264_LOG_ERROR, "timebase mismatch with 1st pass (%u/%u vs %u/%u)\n",
+                          h->param.i_timebase_num, h->param.i_timebase_den, k, l );
                 return -1;
             }
 

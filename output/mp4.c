@@ -38,7 +38,7 @@ typedef struct
     GF_ISOSample *p_sample;
     int i_track;
     uint32_t i_descidx;
-    int i_time_res;
+    uint32_t i_time_res;
     int64_t i_time_inc;
     int i_numframe;
     int i_delay_time;

@@ -47,8 +47,8 @@ typedef struct
     int64_t i_prev_dts;
     int64_t i_prev_pts;
 
-    int i_timebase_num;
-    int i_timebase_den;
+    uint32_t i_timebase_num;
+    uint32_t i_timebase_den;
     int b_vfr_input;
 
     unsigned start;

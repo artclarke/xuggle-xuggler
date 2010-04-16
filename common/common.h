@@ -134,7 +134,7 @@ int x264_nal_encode( uint8_t *dst, x264_nal_t *nal, int b_annexb, int b_long_sta
 /* log */
 void x264_log( x264_t *h, int i_level, const char *psz_fmt, ... );
 
-void x264_reduce_fraction( int *n, int *d );
+void x264_reduce_fraction( uint32_t *n, uint32_t *d );
 void x264_init_vlc_tables();
 
 static ALWAYS_INLINE uint8_t x264_clip_uint8( int x )
