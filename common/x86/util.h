@@ -45,6 +45,7 @@ static ALWAYS_INLINE void x264_median_mv_mmxext( int16_t *dst, int16_t *a, int16
         :"m"(M32( a )), "m"(M32( b )), "m"(M32( c ))
     );
 }
+
 #define x264_predictor_difference x264_predictor_difference_mmxext
 static ALWAYS_INLINE int x264_predictor_difference_mmxext( int16_t (*mvc)[2], intptr_t i_mvc )
 {
@@ -80,6 +81,7 @@ static ALWAYS_INLINE int x264_predictor_difference_mmxext( int16_t (*mvc)[2], in
     );
     return sum;
 }
+
 #define x264_cabac_mvd_sum x264_cabac_mvd_sum_mmxext
 static ALWAYS_INLINE uint16_t x264_cabac_mvd_sum_mmxext(uint8_t *mvdleft, uint8_t *mvdtop)
 {
@@ -103,6 +105,45 @@ static ALWAYS_INLINE uint16_t x264_cabac_mvd_sum_mmxext(uint8_t *mvdleft, uint8_
     );
     return amvd;
 }
+
+#define x264_predictor_roundclip x264_predictor_roundclip_mmxext
+static void ALWAYS_INLINE x264_predictor_roundclip_mmxext( int16_t (*mvc)[2], int i_mvc, int mv_x_min, int mv_x_max, int mv_y_min, int mv_y_max )
+{
+    uint32_t mv_min = pack16to32_mask( mv_x_min, mv_y_min );
+    uint32_t mv_max = pack16to32_mask( mv_x_max, mv_y_max );
+    static const uint64_t pw_2 = 0x0002000200020002ULL;
+    intptr_t i = i_mvc;
+    asm(
+        "movd    %2, %%mm5       \n"
+        "movd    %3, %%mm6       \n"
+        "movq    %4, %%mm7       \n"
+        "punpckldq %%mm5, %%mm5  \n"
+        "punpckldq %%mm6, %%mm6  \n"
+        "test $1, %0             \n"
+        "jz 1f                   \n"
+        "movd -4(%5,%0,4), %%mm0 \n"
+        "paddw %%mm7, %%mm0      \n"
+        "psraw $2, %%mm0         \n"
+        "pmaxsw %%mm5, %%mm0     \n"
+        "pminsw %%mm6, %%mm0     \n"
+        "movd %%mm0, -4(%5,%0,4) \n"
+        "dec %0                  \n"
+        "jz 2f                   \n"
+        "1:                      \n"
+        "movq -8(%5,%0,4), %%mm0 \n"
+        "paddw %%mm7, %%mm0      \n"
+        "psraw $2, %%mm0         \n"
+        "pmaxsw %%mm5, %%mm0     \n"
+        "pminsw %%mm6, %%mm0     \n"
+        "movq %%mm0, -8(%5,%0,4) \n"
+        "sub $2, %0              \n"
+        "jnz 1b                  \n"
+        "2:                      \n"
+        :"+r"(i), "+m"(M64( mvc ))
+        :"g"(mv_min), "g"(mv_max), "m"(pw_2), "r"(mvc)
+    );
+}
+
 #undef M128_ZERO
 #define M128_ZERO ((__m128){0,0,0,0})
 #define x264_union128_t x264_union128_sse_t

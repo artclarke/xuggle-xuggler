@@ -188,6 +188,17 @@ static ALWAYS_INLINE uint16_t x264_cabac_mvd_sum( uint8_t *mvdleft, uint8_t *mvd
     return amvd0 + (amvd1<<8);
 }
 
+static void ALWAYS_INLINE x264_predictor_roundclip( int16_t (*mvc)[2], int i_mvc, int mv_x_min, int mv_x_max, int mv_y_min, int mv_y_max )
+{
+    for( int i = 0; i < i_mvc; i++ )
+    {
+        int mx = (mvc[i][0] + 2) >> 2;
+        int my = (mvc[i][1] + 2) >> 2;
+        mvc[i][0] = x264_clip3( mx, mv_x_min, mv_x_max );
+        mvc[i][0] = x264_clip3( my, mv_y_min, mv_y_max );
+    }
+}
+
 extern const uint8_t x264_exp2_lut[64];
 extern const float x264_log2_lut[128];
 extern const float x264_log2_lz_lut[32];

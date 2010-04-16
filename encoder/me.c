@@ -241,14 +241,15 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
          * sensible to omit the cost of the MV from the rounded MVP to avoid unfairly
          * biasing against use of the predicted motion vector. */
         bcost = h->pixf.fpelcmp[i_pixel]( p_fenc, FENC_STRIDE, &p_fref_w[bmy*stride+bmx], stride );
+        uint32_t bmv = pack16to32_mask( bmx, bmy );
+        if( i_mvc )
+            x264_predictor_roundclip( mvc, i_mvc, mv_x_min, mv_x_max, mv_y_min, mv_y_max );
         for( int i = 0; i < i_mvc; i++ )
         {
-            int mx = (mvc[i][0] + 2) >> 2;
-            int my = (mvc[i][1] + 2) >> 2;
-            if( (mx | my) && ((mx-bmx) | (my-bmy)) )
+            if( M32( mvc[i] ) && (bmv - M32( mvc[i] )) )
             {
-                mx = x264_clip3( mx, mv_x_min, mv_x_max );
-                my = x264_clip3( my, mv_y_min, mv_y_max );
+                int mx = mvc[i][0];
+                int my = mvc[i][1];
                 COST_MV( mx, my );
             }
         }
