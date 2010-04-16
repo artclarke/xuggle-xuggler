@@ -1902,7 +1902,8 @@ static int x264_slice_write( x264_t *h )
         /* accumulate mb stats */
         h->stat.frame.i_mb_count[h->mb.i_type]++;
 
-        if( !IS_INTRA(h->mb.i_type) && !IS_SKIP(h->mb.i_type) && !IS_DIRECT(h->mb.i_type) )
+        int b_intra = IS_INTRA( h->mb.i_type );
+        if( !b_intra && !IS_SKIP( h->mb.i_type ) && !IS_DIRECT( h->mb.i_type ) )
         {
             if( h->mb.i_partition != D_8x8 )
                     h->stat.frame.i_mb_partition[h->mb.i_partition] += 4;
@@ -1921,21 +1922,20 @@ static int x264_slice_write( x264_t *h )
 
         if( h->param.i_log_level >= X264_LOG_INFO )
         {
-            if( h->mb.i_cbp_luma || h->mb.i_cbp_chroma )
+            if( h->mb.i_cbp_luma | h->mb.i_cbp_chroma )
             {
                 int cbpsum = (h->mb.i_cbp_luma&1) + ((h->mb.i_cbp_luma>>1)&1)
                            + ((h->mb.i_cbp_luma>>2)&1) + (h->mb.i_cbp_luma>>3);
-                int b_intra = IS_INTRA(h->mb.i_type);
                 h->stat.frame.i_mb_cbp[!b_intra + 0] += cbpsum;
-                h->stat.frame.i_mb_cbp[!b_intra + 2] += h->mb.i_cbp_chroma >= 1;
-                h->stat.frame.i_mb_cbp[!b_intra + 4] += h->mb.i_cbp_chroma == 2;
+                h->stat.frame.i_mb_cbp[!b_intra + 2] += !!h->mb.i_cbp_chroma;
+                h->stat.frame.i_mb_cbp[!b_intra + 4] += h->mb.i_cbp_chroma >> 1;
             }
-            if( h->mb.i_cbp_luma && !IS_INTRA(h->mb.i_type) )
+            if( h->mb.i_cbp_luma && !b_intra )
             {
                 h->stat.frame.i_mb_count_8x8dct[0] ++;
                 h->stat.frame.i_mb_count_8x8dct[1] += h->mb.b_transform_8x8;
             }
-            if( IS_INTRA(h->mb.i_type) && h->mb.i_type != I_PCM )
+            if( b_intra && h->mb.i_type != I_PCM )
             {
                 if( h->mb.i_type == I_16x16 )
                     h->stat.frame.i_mb_pred_mode[0][h->mb.i_intra16x16_pred_mode]++;

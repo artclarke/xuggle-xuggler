@@ -347,7 +347,7 @@ static const int x264_scan8[16+2*4+3] =
     4+5*8,
 
     /* Chroma DC */
-    5+5*8, 6+5*8
+    6+5*8, 7+5*8
 };
 /*
    0 1 2 3 4 5 6 7
@@ -356,7 +356,7 @@ static const int x264_scan8[16+2*4+3] =
  2   B B   L L L L
  3         L L L L
  4   R R   L L L L
- 5   R R   DyDuDv
+ 5   R R   Dy  DuDv
 */
 
 typedef struct x264_ratecontrol_t   x264_ratecontrol_t;

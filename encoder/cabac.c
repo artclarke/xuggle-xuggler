@@ -237,7 +237,7 @@ static void x264_cabac_mb_cbp_chroma( x264_t *h, x264_cabac_t *cb )
         ctx = 4;
         if( cbp_a == 0x20 ) ctx++;
         if( cbp_b == 0x20 ) ctx += 2;
-        x264_cabac_encode_decision_noup( cb, 77 + ctx, h->mb.i_cbp_chroma > 1 );
+        x264_cabac_encode_decision_noup( cb, 77 + ctx, h->mb.i_cbp_chroma >> 1 );
     }
 }
 
@@ -960,7 +960,7 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
                     block_residual_write_cabac_cbf( h, cb, DCT_LUMA_4x4, i, h->dct.luma4x4[i], b_intra );
         }
 
-        if( h->mb.i_cbp_chroma&0x03 )    /* Chroma DC residual present */
+        if( h->mb.i_cbp_chroma ) /* Chroma DC residual present */
         {
             block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_DC, 25, h->dct.chroma_dc[0], b_intra );
             block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_DC, 26, h->dct.chroma_dc[1], b_intra );

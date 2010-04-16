@@ -343,8 +343,8 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp )
             h->mb.cache.non_zero_count[x264_scan8[21]] = 0;
             h->mb.cache.non_zero_count[x264_scan8[22]] = 0;
             h->mb.cache.non_zero_count[x264_scan8[23]] = 0;
-            h->mb.cache.non_zero_count[x264_scan8[25]] = 0;
-            h->mb.cache.non_zero_count[x264_scan8[26]] = 0;
+            M16( &h->mb.cache.non_zero_count[x264_scan8[25]] ) = 0;
+
             for( int ch = 0; ch < 2; ch++ )
             {
                 if( ssd[ch] > thresh )
@@ -452,11 +452,8 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp )
         }
     }
 
-    if( h->mb.i_cbp_chroma )
-        h->mb.i_cbp_chroma = 2;    /* dc+ac (we can't do only ac) */
-    else if( h->mb.cache.non_zero_count[x264_scan8[25]] |
-             h->mb.cache.non_zero_count[x264_scan8[26]] )
-        h->mb.i_cbp_chroma = 1;    /* dc only */
+    /* 0 = none, 1 = DC only, 2 = DC+AC */
+    h->mb.i_cbp_chroma = ((!!M16( &h->mb.cache.non_zero_count[x264_scan8[25]] )) | h->mb.i_cbp_chroma) + h->mb.i_cbp_chroma;
 }
 
 static void x264_macroblock_encode_skip( x264_t *h )
@@ -581,7 +578,6 @@ void x264_predict_lossless_16x16( x264_t *h, int i_mode )
  *****************************************************************************/
 void x264_macroblock_encode( x264_t *h )
 {
-    int i_cbp_dc = 0;
     int i_qp = h->mb.i_qp;
     int b_decimate = h->mb.b_dct_decimate;
     int b_force_no_skip = 0;
@@ -865,15 +861,13 @@ void x264_macroblock_encode( x264_t *h )
     /* encode the 8x8 blocks */
     x264_mb_encode_8x8_chroma( h, !IS_INTRA( h->mb.i_type ), h->mb.i_chroma_qp );
 
-    if( h->param.b_cabac )
-    {
-        i_cbp_dc = h->mb.cache.non_zero_count[x264_scan8[24]]
-                 | h->mb.cache.non_zero_count[x264_scan8[25]] << 1
-                 | h->mb.cache.non_zero_count[x264_scan8[26]] << 2;
-    }
-
     /* store cbp */
-    h->mb.cbp[h->mb.i_mb_xy] = (i_cbp_dc << 8) | (h->mb.i_cbp_chroma << 4) | h->mb.i_cbp_luma;
+    int cbp = h->mb.i_cbp_chroma << 4 | h->mb.i_cbp_luma;
+    if( h->param.b_cabac )
+        cbp |= h->mb.cache.non_zero_count[x264_scan8[24]] << 8
+            |  h->mb.cache.non_zero_count[x264_scan8[25]] << 9
+            |  h->mb.cache.non_zero_count[x264_scan8[26]] << 10;
+    h->mb.cbp[h->mb.i_mb_xy] = cbp;
 
     /* Check for P_SKIP
      * XXX: in the me perhaps we should take x264_mb_predict_mv_pskip into account
