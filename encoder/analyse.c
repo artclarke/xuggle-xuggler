@@ -1480,7 +1480,7 @@ static int x264_mb_analyse_inter_p4x4_chroma( x264_t *h, x264_mb_analysis_t *a, 
         weight[1].weightfn[width>>2]( &pix1[x+y*16], 16, &pix1[x+y*16], 16, &weight[1], height ); \
     h->mc.mc_chroma( &pix2[x+y*16], 16, &p_fref[5][or+x+y*i_stride], i_stride, (me).mv[0], (me).mv[1]+mvy_offset, width, height ); \
     if( weight[2].weightfn ) \
-        weight[1].weightfn[width>>2]( &pix2[x+y*16], 16, &pix2[x+y*16], 16, &weight[2], height );
+        weight[2].weightfn[width>>2]( &pix2[x+y*16], 16, &pix2[x+y*16], 16, &weight[2], height );
 
 
     if( pixel == PIXEL_4x4 )

@@ -194,15 +194,18 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
             ret = sscanf( buff, "%d,%d,%lf", &start, &end, &seq_fps );
             if( ret != 3 )
                 start = end = timecodes_num - 1;
-            if( h->auto_timebase_den || h->auto_timebase_num )
-                fpss[seq_num++] = seq_fps;
-            seq_fps = correct_fps( seq_fps, h );
-            if( seq_fps < 0 )
-                goto fail;
             for( ; num < start && num < timecodes_num - 1; num++ )
                 timecodes[num + 1] = timecodes[num] + 1 / assume_fps;
-            for( num = start; num <= end && num < timecodes_num - 1; num++ )
-                timecodes[num + 1] = timecodes[num] + 1 / seq_fps;
+            if( num < timecodes_num - 1 )
+            {
+                if( h->auto_timebase_den || h->auto_timebase_num )
+                    fpss[seq_num++] = seq_fps;
+                seq_fps = correct_fps( seq_fps, h );
+                if( seq_fps < 0 )
+                    goto fail;
+                for( num = start; num <= end && num < timecodes_num - 1; num++ )
+                    timecodes[num + 1] = timecodes[num] + 1 / seq_fps;
+            }
         }
         if( h->auto_timebase_den || h->auto_timebase_num )
             fpss[seq_num] = h->assume_fps;

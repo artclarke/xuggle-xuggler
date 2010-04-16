@@ -1338,7 +1338,7 @@ int x264_weighted_reference_duplicate( x264_t *h, int i_ref, const x264_weight_t
         if( h->fref0[i_ref]->i_frame != h->fref0[j]->i_frame )
         {
             /* found a place, after j, make sure there is not already a duplicate there */
-            if( j == i-1 || ( h->fref0[j+1] && h->fref0[i_ref]->i_frame != h->fref0[j+1]->i_frame ) )
+            if( j == i-1 || ( h->fref0[i_ref]->i_frame != h->fref0[j+1]->i_frame ) )
                 break;
         }
 
