@@ -659,7 +659,19 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
     int strideuv  = h->fdec->i_stride[1];
     int stride2uv = strideuv << b_interlaced;
     int deblock_on_slice_edges = h->sh.i_disable_deblocking_filter_idc != 2;
+    int ref_table[32+2];
+    #define ref_table(x) ref_table[x+2]
     uint8_t (*nnz_backup)[16] = h->scratch_buffer;
+
+    ref_table(-2) = -2;
+    ref_table(-1) = -1;
+    for( int i = 0; i < (h->i_ref0 << h->sh.b_mbaff); i++ )
+    {
+        if( !h->mb.b_interlaced )
+            ref_table(i) = h->fref0[i]->i_poc;
+        else
+            ref_table(i) = h->fref0[i>>1]->i_poc + (i&1);
+    }
 
     if( !h->pps->b_cabac && h->pps->b_transform_8x8_mode )
         munge_cavlc_nnz( h, mb_y, nnz_backup, munge_cavlc_nnz_row );
@@ -750,16 +762,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                             int i8q= mbn_8x8+(xn>>1)+(yn>>1)*s8x8;\
                             int i4p= mb_4x4+x+y*s4x4;\
                             int i4q= mbn_4x4+xn+yn*s4x4;\
-                            int refs_equal;\
-                            /* We don't use duplicate refs in B-frames, so we can take this shortcut for now. */ \
-                            if( h->sh.i_type == SLICE_TYPE_B || h->mb.ref[0][i8p] < 0 || h->mb.ref[0][i8q] < 0 )\
-                                refs_equal = h->mb.ref[0][i8p] == h->mb.ref[0][i8q];\
-                            else if( !h->mb.b_interlaced )\
-                                refs_equal = h->fref0[h->mb.ref[0][i8p]]->i_poc == h->fref0[h->mb.ref[0][i8q]]->i_poc;\
-                            else\
-                                refs_equal = h->fref0[h->mb.ref[0][i8p]>>1]->i_poc == h->fref0[h->mb.ref[0][i8q]>>1]->i_poc\
-                                           && (h->mb.ref[0][i8p]&1) == (h->mb.ref[0][i8q]&1);\
-                            if((!refs_equal ||\
+                            if((!(ref_table(h->mb.ref[0][i8p]) == ref_table(h->mb.ref[0][i8q])) ||\
                                 abs( h->mb.mv[0][i4p][0] - h->mb.mv[0][i4q][0] ) >= 4 ||\
                                 abs( h->mb.mv[0][i4p][1] - h->mb.mv[0][i4q][1] ) >= mvy_limit ) ||\
                                (h->sh.i_type == SLICE_TYPE_B &&\
