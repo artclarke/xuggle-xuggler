@@ -483,18 +483,26 @@ static void x264_macroblock_encode_pskip( x264_t *h )
                        h->mb.pic.p_fref[0][0], h->mb.pic.i_stride[0],
                        mvx, mvy, 16, 16, &h->sh.weight[0][0] );
 
-        h->mc.mc_chroma( h->mb.pic.p_fdec[1],       FDEC_STRIDE,
-                         h->mb.pic.p_fref[0][0][4], h->mb.pic.i_stride[1],
-                         mvx, mvy, 8, 8 );
+        /* Special case for mv0, which is (of course) very common in P-skip mode. */
+        if( mvx | mvy )
+        {
+            h->mc.mc_chroma( h->mb.pic.p_fdec[1],       FDEC_STRIDE,
+                             h->mb.pic.p_fref[0][0][4], h->mb.pic.i_stride[1],
+                             mvx, mvy, 8, 8 );
+            h->mc.mc_chroma( h->mb.pic.p_fdec[2],       FDEC_STRIDE,
+                             h->mb.pic.p_fref[0][0][5], h->mb.pic.i_stride[2],
+                             mvx, mvy, 8, 8 );
+        }
+        else
+        {
+            h->mc.copy[PIXEL_8x8]( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fref[0][0][4], h->mb.pic.i_stride[1], 8 );
+            h->mc.copy[PIXEL_8x8]( h->mb.pic.p_fdec[2], FDEC_STRIDE, h->mb.pic.p_fref[0][0][5], h->mb.pic.i_stride[2], 8 );
+        }
 
         if( h->sh.weight[0][1].weightfn )
             h->sh.weight[0][1].weightfn[8>>2]( h->mb.pic.p_fdec[1], FDEC_STRIDE,
                                                h->mb.pic.p_fdec[1], FDEC_STRIDE,
                                                &h->sh.weight[0][1], 8 );
-
-        h->mc.mc_chroma( h->mb.pic.p_fdec[2],       FDEC_STRIDE,
-                         h->mb.pic.p_fref[0][0][5], h->mb.pic.i_stride[2],
-                         mvx, mvy, 8, 8 );
 
         if( h->sh.weight[0][2].weightfn )
             h->sh.weight[0][2].weightfn[8>>2]( h->mb.pic.p_fdec[2], FDEC_STRIDE,
@@ -899,9 +907,9 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
     ALIGNED_ARRAY_16( int16_t, dct4x4,[4],[16] );
     ALIGNED_ARRAY_16( int16_t, dct2x2,[4] );
     ALIGNED_ARRAY_16( int16_t, dctscan,[16] );
+    ALIGNED_4( int16_t mvp[2] );
 
     int i_qp = h->mb.i_qp;
-    int mvp[2];
     int thresh, ssd;
 
     if( !b_bidir )
@@ -946,9 +954,15 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
 
         if( !b_bidir )
         {
-            h->mc.mc_chroma( h->mb.pic.p_fdec[1+ch],       FDEC_STRIDE,
-                             h->mb.pic.p_fref[0][0][4+ch], h->mb.pic.i_stride[1+ch],
-                             mvp[0], mvp[1], 8, 8 );
+            /* Special case for mv0, which is (of course) very common in P-skip mode. */
+            if( M32( mvp ) )
+            {
+                h->mc.mc_chroma( h->mb.pic.p_fdec[1+ch],       FDEC_STRIDE,
+                                 h->mb.pic.p_fref[0][0][4+ch], h->mb.pic.i_stride[1+ch],
+                                 mvp[0], mvp[1], 8, 8 );
+            }
+            else
+                h->mc.copy[PIXEL_8x8]( h->mb.pic.p_fdec[1+ch], FDEC_STRIDE, h->mb.pic.p_fref[0][0][4+ch], h->mb.pic.i_stride[1+ch], 8 );
 
             if( h->sh.weight[0][1+ch].weightfn )
                 h->sh.weight[0][1+ch].weightfn[8>>2]( h->mb.pic.p_fdec[1+ch], FDEC_STRIDE,
