@@ -140,10 +140,8 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
         for( int i = 0; i < h->i_ref0; i++ )
         {
             int diff = h->fref0[i]->i_frame_num - pred_frame_num;
-            if( diff == 0 )
-                x264_log( h, X264_LOG_ERROR, "diff frame num == 0\n" );
             sh->ref_pic_list_order[0][i].idc = ( diff > 0 );
-            sh->ref_pic_list_order[0][i].arg = abs( diff ) - 1;
+            sh->ref_pic_list_order[0][i].arg = (abs(diff) - 1) & ((1 << sps->i_log2_max_frame_num) - 1);
             pred_frame_num = h->fref0[i]->i_frame_num;
         }
     }
@@ -1336,23 +1334,10 @@ static inline void x264_reference_check_reorder( x264_t *h )
 int x264_weighted_reference_duplicate( x264_t *h, int i_ref, const x264_weight_t *w )
 {
     int i = h->i_ref0;
-    int j;
+    int j = 1;
     x264_frame_t *newframe;
     if( i <= 1 ) /* empty list, definitely can't duplicate frame */
         return -1;
-
-    /* Find a place to insert the duplicate in the reference list. */
-    for( j = 0; j < i; j++ )
-        if( h->fref0[i_ref]->i_frame != h->fref0[j]->i_frame )
-        {
-            /* found a place, after j, make sure there is not already a duplicate there */
-            if( j == i-1 || ( h->fref0[i_ref]->i_frame != h->fref0[j+1]->i_frame ) )
-                break;
-        }
-
-    if( j == i ) /* No room in the reference list for the duplicate. */
-        return -1;
-    j++;
 
     newframe = x264_frame_pop_blank_unused( h );
 
