@@ -1033,7 +1033,7 @@ static void inline x264_macroblock_cache_load_neighbours( x264_t *h, int mb_x, i
         {
             h->mb.i_neighbour_frame |= MB_TOPLEFT;
             h->mb.i_mb_topleft_xy = top - 1;
-            h->mb.i_mb_type_topright = h->mb.type[h->mb.i_mb_topleft_xy];
+            h->mb.i_mb_type_topleft = h->mb.type[h->mb.i_mb_topleft_xy];
             if( top - 1 >= h->sh.i_first_mb )
             {
                 h->mb.i_neighbour |= MB_TOPLEFT;
@@ -1047,7 +1047,7 @@ static void inline x264_macroblock_cache_load_neighbours( x264_t *h, int mb_x, i
         {
             h->mb.i_neighbour_frame |= MB_TOPRIGHT;
             h->mb.i_mb_topright_xy = top + 1;
-            h->mb.i_mb_type_topleft = h->mb.type[h->mb.i_mb_topright_xy];
+            h->mb.i_mb_type_topright = h->mb.type[h->mb.i_mb_topright_xy];
             if( top + 1 >= h->sh.i_first_mb )
             {
                 h->mb.i_neighbour |= MB_TOPRIGHT;
