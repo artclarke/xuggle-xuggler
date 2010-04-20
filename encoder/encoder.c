@@ -2913,7 +2913,7 @@ void    x264_encoder_close  ( x264_t *h )
         float fps = (float) h->param.i_fps_num / h->param.i_fps_den;
         float f_bitrate;
         /* duration algorithm fails with one frame */
-        if( i_count == 1 )
+        if( !h->param.b_vfr_input || i_count == 1 )
             f_bitrate = fps * SUM3(h->stat.i_frame_size) / i_count / 125;
         else
         {
