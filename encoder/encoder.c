@@ -1945,6 +1945,7 @@ static int x264_slice_write( x264_t *h )
                 else //if( h->mb.i_type == I_4x4 )
                     for( int i = 0; i < 16; i++ )
                         h->stat.frame.i_mb_pred_mode[2][h->mb.cache.intra4x4_pred_mode[x264_scan8[i]]]++;
+                h->stat.frame.i_mb_pred_mode[3][x264_mb_pred_mode8x8c_fix[h->mb.i_chroma_pred_mode]]++;
             }
         }
 
@@ -2638,7 +2639,7 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
         h->stat.i_mb_count_8x8dct[i] += h->stat.frame.i_mb_count_8x8dct[i];
     for( int i = 0; i < 6; i++ )
         h->stat.i_mb_cbp[i] += h->stat.frame.i_mb_cbp[i];
-    for( int i = 0; i < 3; i++ )
+    for( int i = 0; i < 4; i++ )
         for( int j = 0; j < 13; j++ )
             h->stat.i_mb_pred_mode[i][j] += h->stat.frame.i_mb_pred_mode[i][j];
     if( h->sh.i_type != SLICE_TYPE_I )
@@ -2963,8 +2964,8 @@ void    x264_encoder_close  ( x264_t *h )
                   h->stat.i_mb_cbp[2] * 100.0 / (i_all_intra  ),
                   h->stat.i_mb_cbp[4] * 100.0 / (i_all_intra  ), buf );
 
-        int64_t fixed_pred_modes[3][9] = {{0}};
-        int64_t sum_pred_modes[3] = {0};
+        int64_t fixed_pred_modes[4][9] = {{0}};
+        int64_t sum_pred_modes[4] = {0};
         for( int i = 0; i <= I_PRED_16x16_DC_128; i++ )
         {
             fixed_pred_modes[0][x264_mb_pred_mode16x16_fix[i]] += h->stat.i_mb_pred_mode[0][i];
@@ -2995,6 +2996,17 @@ void    x264_encoder_close  ( x264_t *h )
                           fixed_pred_modes[i][7] * 100.0 / sum_pred_modes[i],
                           fixed_pred_modes[i][8] * 100.0 / sum_pred_modes[i] );
         }
+        for( int i = 0; i <= I_PRED_CHROMA_DC_128; i++ )
+        {
+            fixed_pred_modes[3][x264_mb_pred_mode8x8c_fix[i]] += h->stat.i_mb_pred_mode[3][i];
+            sum_pred_modes[3] += h->stat.i_mb_pred_mode[3][i];
+        }
+        if( sum_pred_modes[3] )
+            x264_log( h, X264_LOG_INFO, "i8c dc,h,v,p: %2.0f%% %2.0f%% %2.0f%% %2.0f%%\n",
+                      fixed_pred_modes[3][0] * 100.0 / sum_pred_modes[3],
+                      fixed_pred_modes[3][1] * 100.0 / sum_pred_modes[3],
+                      fixed_pred_modes[3][2] * 100.0 / sum_pred_modes[3],
+                      fixed_pred_modes[3][3] * 100.0 / sum_pred_modes[3] );
 
         if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART && h->stat.i_frame_count[SLICE_TYPE_P] > 0 )
             x264_log( h, X264_LOG_INFO, "Weighted P-Frames: Y:%.1f%%\n",
