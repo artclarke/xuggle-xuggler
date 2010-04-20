@@ -1101,13 +1101,13 @@ static int check_deblock( int cpu_ref, int cpu_new )
     x264_deblock_init( cpu_new, &db_a );
 
     /* not exactly the real values of a,b,tc but close enough */
-    for( int i = 35; i >= 0; i-- )
+    for( int i = 35, a = 255, c = 250; i >= 0; i-- )
     {
-        int a = 255, c = 250;
         alphas[i] = a;
         betas[i] = (i+1)/2;
-        tcs[i][0] = tcs[i][2] = (c+6)/10;
-        tcs[i][1] = tcs[i][3] = (c+9)/20;
+        tcs[i][0] = tcs[i][3] = (c+6)/10;
+        tcs[i][1] = (c+7)/15;
+        tcs[i][2] = (c+9)/20;
         a = a*9/10;
         c = c*9/10;
     }
