@@ -110,7 +110,6 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     }
 
     h->track = FFMS_GetTrackFromVideo( h->video_source );
-    const FFMS_TrackTimeBase *timebase = FFMS_GetTimeBase( h->track );
 
     FFMS_DestroyIndex( index );
     const FFMS_VideoProperties *videop = FFMS_GetVideoProperties( h->video_source );
@@ -119,7 +118,6 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     info->sar_width    = videop->SARNum;
     info->fps_den      = videop->FPSDenominator;
     info->fps_num      = videop->FPSNumerator;
-    info->timebase_num = (int)timebase->Num;
     h->vfr_input       = info->vfr;
 
     const FFMS_Frame *frame = FFMS_GetFrame( h->video_source, 0, &e );
@@ -139,22 +137,23 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         fprintf( stderr, "ffms [warning]: converting from %s to YV12\n",
                  avcodec_get_pix_fmt_name( h->cur_pix_fmt ) );
 
-    /* ffms timestamps are in milliseconds. Increasing timebase denominator could cause integer overflow.
-     * Conversely, reducing PTS may lose too much accuracy */
+    /* ffms timestamps are in milliseconds. ffms also uses int64_ts for timebase,
+     * so we need to reduce large timebases to prevent overflow */
     if( h->vfr_input )
     {
-        int64_t timebase_den = (int64_t)timebase->Den * 1000;
+        const FFMS_TrackTimeBase *timebase = FFMS_GetTimeBase( h->track );
+        int64_t timebase_num = timebase->Num;
+        int64_t timebase_den = timebase->Den * 1000;
+        h->reduce_pts = 0;
 
-        if( timebase_den > INT_MAX )
+        while( timebase_num > UINT32_MAX || timebase_den > INT32_MAX )
         {
-            info->timebase_den = (int)timebase->Den;
-            h->reduce_pts = 1;
+            timebase_num >>= 1;
+            timebase_den >>= 1;
+            h->reduce_pts++;
         }
-        else
-        {
-            info->timebase_den = (int)timebase->Den * 1000;
-            h->reduce_pts = 0;
-        }
+        info->timebase_num = timebase_num;
+        info->timebase_den = timebase_den;
     }
 
     *p_handle = h;
@@ -228,10 +227,7 @@ static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
             h->pts_offset_flag = 1;
         }
 
-        if( h->reduce_pts )
-            p_pic->i_pts = (int64_t)(((info->PTS - h->pts_offset) / 1000) + 0.5);
-        else
-            p_pic->i_pts = info->PTS - h->pts_offset;
+        p_pic->i_pts = (info->PTS - h->pts_offset) >> h->reduce_pts;
     }
     return 0;
 }
