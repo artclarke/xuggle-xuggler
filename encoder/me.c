@@ -204,6 +204,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
     const uint16_t *p_cost_mvx = m->p_cost_mv - m->mvp[0];
     const uint16_t *p_cost_mvy = m->p_cost_mv - m->mvp[1];
 
+    uint32_t pmv;
     bmx = x264_clip3( m->mvp[0], mv_x_min_qpel, mv_x_max_qpel );
     bmy = x264_clip3( m->mvp[1], mv_y_min_qpel, mv_y_max_qpel );
     pmx = ( bmx + 2 ) >> 2;
@@ -213,12 +214,12 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
     /* try extra predictors if provided */
     if( h->mb.i_subpel_refine >= 3 )
     {
-        uint32_t bmv = pack16to32_mask(bmx,bmy);
+        pmv = pack16to32_mask(bmx,bmy);
         if( i_mvc )
             COST_MV_HPEL( bmx, bmy );
         for( int i = 0; i < i_mvc; i++ )
         {
-            if( M32( mvc[i] ) && (bmv - M32( mvc[i] )) )
+            if( M32( mvc[i] ) && (pmv - M32( mvc[i] )) )
             {
                 int mx = x264_clip3( mvc[i][0], mv_x_min_qpel, mv_x_max_qpel );
                 int my = x264_clip3( mvc[i][1], mv_y_min_qpel, mv_y_max_qpel );
@@ -241,12 +242,12 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
          * sensible to omit the cost of the MV from the rounded MVP to avoid unfairly
          * biasing against use of the predicted motion vector. */
         bcost = h->pixf.fpelcmp[i_pixel]( p_fenc, FENC_STRIDE, &p_fref_w[bmy*stride+bmx], stride );
-        uint32_t bmv = pack16to32_mask( bmx, bmy );
+        pmv = pack16to32_mask( bmx, bmy );
         if( i_mvc )
             x264_predictor_roundclip( mvc, i_mvc, mv_x_min, mv_x_max, mv_y_min, mv_y_max );
         for( int i = 0; i < i_mvc; i++ )
         {
-            if( M32( mvc[i] ) && (bmv - M32( mvc[i] )) )
+            if( M32( mvc[i] ) && (pmv - M32( mvc[i] )) )
             {
                 int mx = mvc[i][0];
                 int my = mvc[i][1];
@@ -254,7 +255,9 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
             }
         }
     }
-    COST_MV( 0, 0 );
+
+    if( pmv )
+        COST_MV( 0, 0 );
 
     switch( h->mb.i_me_method )
     {
