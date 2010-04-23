@@ -88,12 +88,17 @@ do {\
 typedef union { uint16_t i; uint8_t  c[2]; } MAY_ALIAS x264_union16_t;
 typedef union { uint32_t i; uint16_t b[2]; uint8_t  c[4]; } MAY_ALIAS x264_union32_t;
 typedef union { uint64_t i; uint32_t a[2]; uint16_t b[4]; uint8_t c[8]; } MAY_ALIAS x264_union64_t;
+typedef struct { uint64_t i[2]; } x264_uint128_t;
+typedef union { x264_uint128_t i; uint64_t a[2]; uint32_t b[4]; uint16_t c[8]; uint8_t d[16]; } MAY_ALIAS x264_union128_t;
 #define M16(src) (((x264_union16_t*)(src))->i)
 #define M32(src) (((x264_union32_t*)(src))->i)
 #define M64(src) (((x264_union64_t*)(src))->i)
+#define M128(src) (((x264_union128_t*)(src))->i)
+#define M128_ZERO ((x264_uint128_t){{0,0}})
 #define CP16(dst,src) M16(dst) = M16(src)
 #define CP32(dst,src) M32(dst) = M32(src)
 #define CP64(dst,src) M64(dst) = M64(src)
+#define CP128(dst,src) M128(dst) = M128(src)
 
 #include "x264.h"
 #include "bs.h"

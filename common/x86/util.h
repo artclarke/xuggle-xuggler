@@ -25,6 +25,9 @@
 #define X264_X86_UTIL_H
 
 #ifdef __GNUC__
+
+#include <xmmintrin.h>
+
 #define x264_median_mv x264_median_mv_mmxext
 static ALWAYS_INLINE void x264_median_mv_mmxext( int16_t *dst, int16_t *a, int16_t *b, int16_t *c )
 {
@@ -100,6 +103,11 @@ static ALWAYS_INLINE uint16_t x264_cabac_mvd_sum_mmxext(uint8_t *mvdleft, uint8_
     );
     return amvd;
 }
+#undef M128_ZERO
+#define M128_ZERO ((__m128){0,0,0,0})
+#define x264_union128_t x264_union128_sse_t
+typedef union { __m128 i; uint64_t a[2]; uint32_t b[4]; uint16_t c[8]; uint8_t d[16]; } MAY_ALIAS x264_union128_sse_t;
+
 #endif
 
 #endif
