@@ -101,7 +101,7 @@ OBJASM  = $(ASMSRC:%.asm=%.o)
 endif
 
 ifneq ($(HAVE_GETOPT_LONG),1)
-SRCS += extras/getopt.c
+SRCCLI += extras/getopt.c
 endif
 
 ifneq ($(SONAME),)
