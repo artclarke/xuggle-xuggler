@@ -1885,24 +1885,27 @@ static int x264_slice_write( x264_t *h )
         x264_macroblock_cache_save( h );
 
         /* accumulate mb stats */
-        h->stat.frame.i_mb_count[h->mb.i_type]++;
 
         int b_intra = IS_INTRA( h->mb.i_type );
-        if( !b_intra && !IS_SKIP( h->mb.i_type ) && !IS_DIRECT( h->mb.i_type ) )
+        if( h->param.i_log_level >= X264_LOG_INFO || h->param.rc.b_stat_write )
         {
-            if( h->mb.i_partition != D_8x8 )
-                    h->stat.frame.i_mb_partition[h->mb.i_partition] += 4;
-                else
-                    for( int i = 0; i < 4; i++ )
-                        h->stat.frame.i_mb_partition[h->mb.i_sub_partition[i]] ++;
-            if( h->param.i_frame_reference > 1 )
-                for( int i_list = 0; i_list <= (h->sh.i_type == SLICE_TYPE_B); i_list++ )
-                    for( int i = 0; i < 4; i++ )
-                    {
-                        int i_ref = h->mb.cache.ref[i_list][ x264_scan8[4*i] ];
-                        if( i_ref >= 0 )
-                            h->stat.frame.i_mb_count_ref[i_list][i_ref] ++;
-                    }
+            h->stat.frame.i_mb_count[h->mb.i_type]++;
+            if( !b_intra && !IS_SKIP( h->mb.i_type ) && !IS_DIRECT( h->mb.i_type ) )
+            {
+                if( h->mb.i_partition != D_8x8 )
+                        h->stat.frame.i_mb_partition[h->mb.i_partition] += 4;
+                    else
+                        for( int i = 0; i < 4; i++ )
+                            h->stat.frame.i_mb_partition[h->mb.i_sub_partition[i]] ++;
+                if( h->param.i_frame_reference > 1 )
+                    for( int i_list = 0; i_list <= (h->sh.i_type == SLICE_TYPE_B); i_list++ )
+                        for( int i = 0; i < 4; i++ )
+                        {
+                            int i_ref = h->mb.cache.ref[i_list][ x264_scan8[4*i] ];
+                            if( i_ref >= 0 )
+                                h->stat.frame.i_mb_count_ref[i_list][i_ref] ++;
+                        }
+            }
         }
 
         if( h->param.i_log_level >= X264_LOG_INFO )
