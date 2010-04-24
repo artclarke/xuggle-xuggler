@@ -7,7 +7,7 @@ Index: libavutil/common.h
  static inline av_const int32_t av_clipl_int32(int64_t a)
  {
 -    if ((a+2147483648) & ~2147483647) return (a>>63) ^ 2147483647;
-+    if ((a+2147483648U) & ~INT64_C(4294967295)) return (a>>63) ^ 2147483647;
++    if ((a+INT64_C(2147483648)) & ~INT64_C(4294967295)) return (a>>63) ^ 2147483647;
      else                              return a;
  }
  
