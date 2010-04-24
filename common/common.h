@@ -195,7 +195,7 @@ static void ALWAYS_INLINE x264_predictor_roundclip( int16_t (*mvc)[2], int i_mvc
         int mx = (mvc[i][0] + 2) >> 2;
         int my = (mvc[i][1] + 2) >> 2;
         mvc[i][0] = x264_clip3( mx, mv_x_min, mv_x_max );
-        mvc[i][0] = x264_clip3( my, mv_y_min, mv_y_max );
+        mvc[i][1] = x264_clip3( my, mv_y_min, mv_y_max );
     }
 }
 
