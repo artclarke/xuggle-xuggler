@@ -1,0 +1,13 @@
+Index: libavutil/common.h
+===================================================================
+--- libavutil/common.h	(revision 22960)
++++ libavutil/common.h	(working copy)
+@@ -151,7 +151,7 @@
+  */
+ static inline av_const int32_t av_clipl_int32(int64_t a)
+ {
+-    if ((a+2147483648) & ~2147483647) return (a>>63) ^ 2147483647;
++    if ((a+2147483648LL) & ~2147483647LL) return (a>>63) ^ 2147483647;
+     else                              return a;
+ }
+ 
