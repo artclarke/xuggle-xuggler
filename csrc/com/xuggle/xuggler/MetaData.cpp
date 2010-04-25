@@ -99,7 +99,7 @@ MetaData :: setValue(const char* key, const char* value)
 {
   if (!key || !*key || !mMetaData)
     return -1;
-  return (int32_t)av_metadata_set(mMetaData, key, value);
+  return (int32_t)av_metadata_set2(mMetaData, key, value,0);
 }
 
 MetaData*
@@ -127,7 +127,7 @@ MetaData :: make(AVMetadata* metaDataToCopy)
       tag = av_metadata_get(metaDataToCopy, "", tag, 
           AV_METADATA_IGNORE_SUFFIX);
       if (tag)
-        if (av_metadata_set(retval->mMetaData, tag->key, tag->value) < 0)
+        if (av_metadata_set2(retval->mMetaData, tag->key, tag->value,0) < 0)
         {
           VS_REF_RELEASE(retval);
           break;
@@ -156,8 +156,8 @@ MetaData :: copy(IMetaData* dataToCopy)
     tag = av_metadata_get(*data->mMetaData, "", tag, 
         AV_METADATA_IGNORE_SUFFIX);
     if (tag) {
-      int32_t retval = av_metadata_set(mMetaData,
-          tag->key, tag->value);
+      int32_t retval = av_metadata_set2(mMetaData,
+          tag->key, tag->value, 0);
       if (retval < 0)
       {
         return retval;
