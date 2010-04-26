@@ -22,6 +22,10 @@
 
 extern "C"
 {
+#ifdef HAVE_STDINT_H
+#include <stdint.h>
+#endif
+#include <libavutil/avutil.h>
 #include <libavformat/avformat.h>
 }
 #endif /*FFMPEGINCLUDES_H_*/
