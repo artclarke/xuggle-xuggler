@@ -37,6 +37,7 @@ pw_1:  times 8 dw 1
 pw_16: times 8 dw 16
 pw_32: times 8 dw 32
 pd_128: times 4 dd 128
+pw_0x3fff: times 4 dw 0x3fff
 
 SECTION .text
 
@@ -1132,8 +1133,9 @@ cglobal x264_mbtree_propagate_cost_sse2, 6,6
     pmaddwd   xmm0, xmm2
     paddd     xmm0, xmm4
     psrld     xmm0, 8       ; intra*invq>>8
-    movq      xmm1, [r1+r5] ; prop
     movq      xmm3, [r3+r5] ; inter
+    movq      xmm1, [r1+r5] ; prop
+    pand      xmm3, [pw_0x3fff]
     punpcklwd xmm1, xmm5
     punpcklwd xmm3, xmm5
     paddd     xmm0, xmm1    ; prop + (intra*invq>>8)

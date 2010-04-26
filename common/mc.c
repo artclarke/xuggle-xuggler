@@ -427,7 +427,7 @@ static void mbtree_propagate_cost( int *dst, uint16_t *propagate_in, uint16_t *i
     for( int i = 0; i < len; i++ )
     {
         int propagate_amount = propagate_in[i] + ((intra_costs[i] * inv_qscales[i] + 128)>>8);
-        dst[i] = div_64_32((int64_t)propagate_amount * (intra_costs[i] - inter_costs[i]), intra_costs[i]);
+        dst[i] = div_64_32((int64_t)propagate_amount * (intra_costs[i] - (inter_costs[i] & LOWRES_COST_MASK)), intra_costs[i]);
     }
 }
 

@@ -84,9 +84,14 @@ typedef struct x264_frame
     uint8_t *mb_partition;
     int16_t (*mv[2])[2];
     int16_t (*lowres_mvs[2][X264_BFRAME_MAX+1])[2];
+
+    /* Stored as (lists_used << LOWRES_COST_SHIFT) + (cost).
+     * Doesn't need special addressing for intra cost because
+     * lists_used is guaranteed to be zero in that cast. */
     uint16_t (*lowres_costs[X264_BFRAME_MAX+2][X264_BFRAME_MAX+2]);
-    /* Actually a width-2 bitfield with 4 values per uint8_t. */
-    uint8_t  (*lowres_inter_types[X264_BFRAME_MAX+2][X264_BFRAME_MAX+2]);
+    #define LOWRES_COST_MASK ((1<<14)-1)
+    #define LOWRES_COST_SHIFT 14
+
     int     *lowres_mv_costs[2][X264_BFRAME_MAX+1];
     int8_t  *ref[2];
     int     i_ref[2];

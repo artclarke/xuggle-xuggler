@@ -416,10 +416,6 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     if( b_bidir && ( M32( m[0].mv ) || M32( m[1].mv ) ) )
         TRY_BIDIR( m[0].mv, m[1].mv, 5 );
 
-    /* Store to width-2 bitfield. */
-    frames[b]->lowres_inter_types[b-p0][p1-b][i_mb_xy>>2] &= ~(3<<((i_mb_xy&3)*2));
-    frames[b]->lowres_inter_types[b-p0][p1-b][i_mb_xy>>2] |= list_used<<((i_mb_xy&3)*2);
-
 lowres_intra_mb:
     if( !fenc->b_intra_calculated )
     {
@@ -481,7 +477,10 @@ lowres_intra_mb:
         int i_icost = fenc->i_intra_cost[i_mb_xy];
         int b_intra = i_icost < i_bcost;
         if( b_intra )
+        {
             i_bcost = i_icost;
+            list_used = 0;
+        }
         if( b_frame_score_mb )
             fenc->i_intra_mbs[b-p0] += b_intra;
     }
@@ -501,7 +500,8 @@ lowres_intra_mb:
         }
     }
 
-    fenc->lowres_costs[b-p0][p1-b][i_mb_xy] = i_bcost;
+    assert(i_bcost < (1<<14));
+    fenc->lowres_costs[b-p0][p1-b][i_mb_xy] = i_bcost + (list_used << LOWRES_COST_SHIFT);
 }
 #undef TRY_BIDIR
 
@@ -615,7 +615,7 @@ static int x264_slicetype_frame_cost_recalculate( x264_t *h, x264_frame_t **fram
         for( h->mb.i_mb_x = h->sps->i_mb_width - 1; h->mb.i_mb_x >= 0; h->mb.i_mb_x-- )
         {
             int i_mb_xy = h->mb.i_mb_x + h->mb.i_mb_y*h->mb.i_mb_stride;
-            int i_mb_cost = frames[b]->lowres_costs[b-p0][p1-b][i_mb_xy];
+            int i_mb_cost = frames[b]->lowres_costs[b-p0][p1-b][i_mb_xy] & LOWRES_COST_MASK;
             float qp_adj = qp_offset[i_mb_xy];
             i_mb_cost = (i_mb_cost * x264_exp2fix8(qp_adj) + 128) >> 8;
             row_satd[ h->mb.i_mb_y ] += i_mb_cost;
@@ -681,7 +681,7 @@ static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, in
             if( propagate_amount > 0 )
             {
                 /* Access width-2 bitfield. */
-                int lists_used = (frames[b]->lowres_inter_types[b-p0][p1-b][mb_index>>2] >> ((mb_index&3)*2))&3;
+                int lists_used = frames[b]->lowres_costs[b-p0][p1-b][mb_index] >> LOWRES_COST_SHIFT;
                 /* Follow the MVs to the previous frame(s). */
                 for( int list = 0; list < 2; list++ )
                     if( (lists_used >> list)&1 )
@@ -1490,7 +1490,7 @@ int x264_rc_analyse_slice( x264_t *h )
             for( int x = h->fdec->i_pir_start_col; x <= h->fdec->i_pir_end_col; x++, mb_xy++ )
             {
                 int intra_cost = (h->fenc->i_intra_cost[mb_xy] * ip_factor + 128) >> 8;
-                int inter_cost = h->fenc->lowres_costs[b-p0][p1-b][mb_xy];
+                int inter_cost = h->fenc->lowres_costs[b-p0][p1-b][mb_xy] & LOWRES_COST_MASK;
                 int diff = intra_cost - inter_cost;
                 if( h->param.rc.i_aq_mode )
                     h->fdec->i_row_satd[y] += (diff * frames[b]->i_inv_qscale_factor[mb_xy] + 128) >> 8;
