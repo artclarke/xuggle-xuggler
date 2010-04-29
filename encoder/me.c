@@ -245,14 +245,15 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
         pmv = pack16to32_mask( bmx, bmy );
         if( i_mvc > 0 )
         {
-            x264_predictor_roundclip( mvc, i_mvc, mv_x_min, mv_x_max, mv_y_min, mv_y_max );
+            ALIGNED_ARRAY_8( int16_t, mvc_fpel,[16][2] );
+            x264_predictor_roundclip( mvc_fpel, mvc, i_mvc, mv_x_min, mv_x_max, mv_y_min, mv_y_max );
             bcost <<= 4;
             for( int i = 1; i <= i_mvc; i++ )
             {
-                if( M32( mvc[i-1] ) && (pmv != M32( mvc[i-1] )) )
+                if( M32( mvc_fpel[i-1] ) && (pmv != M32( mvc[i-1] )) )
                 {
-                    int mx = mvc[i-1][0];
-                    int my = mvc[i-1][1];
+                    int mx = mvc_fpel[i-1][0];
+                    int my = mvc_fpel[i-1][1];
                     int cost = h->pixf.fpelcmp[i_pixel]( p_fenc, FENC_STRIDE, &p_fref_w[my*stride+mx], stride ) + BITS_MVD( mx, my );
                     cost = (cost << 4) + i;
                     COPY1_IF_LT( bcost, cost );
@@ -260,8 +261,8 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
             }
             if( bcost&15 )
             {
-                bmx = mvc[(bcost&15)-1][0];
-                bmy = mvc[(bcost&15)-1][1];
+                bmx = mvc_fpel[(bcost&15)-1][0];
+                bmy = mvc_fpel[(bcost&15)-1][1];
             }
             bcost >>= 4;
         }

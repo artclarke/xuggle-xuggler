@@ -109,7 +109,7 @@ static ALWAYS_INLINE uint16_t x264_cabac_mvd_sum_mmxext(uint8_t *mvdleft, uint8_
 }
 
 #define x264_predictor_roundclip x264_predictor_roundclip_mmxext
-static void ALWAYS_INLINE x264_predictor_roundclip_mmxext( int16_t (*mvc)[2], int i_mvc, int mv_x_min, int mv_x_max, int mv_y_min, int mv_y_max )
+static void ALWAYS_INLINE x264_predictor_roundclip_mmxext( int16_t (*dst)[2], int16_t (*mvc)[2], int i_mvc, int mv_x_min, int mv_x_max, int mv_y_min, int mv_y_max )
 {
     uint32_t mv_min = pack16to32_mask( mv_x_min, mv_y_min );
     uint32_t mv_max = pack16to32_mask( mv_x_max, mv_y_max );
@@ -123,7 +123,7 @@ static void ALWAYS_INLINE x264_predictor_roundclip_mmxext( int16_t (*mvc)[2], in
         "punpckldq %%mm6, %%mm6  \n"
         "test $1, %0             \n"
         "jz 1f                   \n"
-        "movd -4(%5,%0,4), %%mm0 \n"
+        "movd -4(%6,%0,4), %%mm0 \n"
         "paddw %%mm7, %%mm0      \n"
         "psraw $2, %%mm0         \n"
         "pmaxsw %%mm5, %%mm0     \n"
@@ -132,7 +132,7 @@ static void ALWAYS_INLINE x264_predictor_roundclip_mmxext( int16_t (*mvc)[2], in
         "dec %0                  \n"
         "jz 2f                   \n"
         "1:                      \n"
-        "movq -8(%5,%0,4), %%mm0 \n"
+        "movq -8(%6,%0,4), %%mm0 \n"
         "paddw %%mm7, %%mm0      \n"
         "psraw $2, %%mm0         \n"
         "pmaxsw %%mm5, %%mm0     \n"
@@ -141,8 +141,8 @@ static void ALWAYS_INLINE x264_predictor_roundclip_mmxext( int16_t (*mvc)[2], in
         "sub $2, %0              \n"
         "jnz 1b                  \n"
         "2:                      \n"
-        :"+r"(i), "+m"(M64( mvc ))
-        :"g"(mv_min), "g"(mv_max), "m"(pw_2), "r"(mvc)
+        :"+r"(i), "=m"(M64( dst ))
+        :"g"(mv_min), "g"(mv_max), "m"(pw_2), "r"(dst), "r"(mvc), "m"(M64( mvc ))
     );
 }
 
