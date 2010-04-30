@@ -539,16 +539,16 @@ static const uint8_t last_coeff_flag_offset_8x8[63] = {
 // node ctx: 0..3: abslevel1 (with abslevelgt1 == 0).
 //           4..7: abslevelgt1 + 3 (and abslevel1 doesn't matter).
 /* map node ctx => cabac ctx for level=1 */
-static const int coeff_abs_level1_ctx[8] = { 1, 2, 3, 4, 0, 0, 0, 0 };
+static const uint8_t coeff_abs_level1_ctx[8] = { 1, 2, 3, 4, 0, 0, 0, 0 };
 /* map node ctx => cabac ctx for level>1 */
-static const int coeff_abs_levelgt1_ctx[8] = { 5, 5, 5, 5, 6, 7, 8, 9 };
+static const uint8_t coeff_abs_levelgt1_ctx[8] = { 5, 5, 5, 5, 6, 7, 8, 9 };
 static const uint8_t coeff_abs_level_transition[2][8] = {
 /* update node ctx after coding a level=1 */
     { 1, 2, 3, 3, 4, 5, 6, 7 },
 /* update node ctx after coding a level>1 */
     { 4, 4, 4, 4, 5, 6, 7, 7 }
 };
-static const int count_cat_m1[5] = {15, 14, 15, 3, 14};
+static const uint8_t count_cat_m1[5] = {15, 14, 15, 3, 14};
 
 #if !RDO_SKIP_BS
 static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBlockCat, int16_t *l )

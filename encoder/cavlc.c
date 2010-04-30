@@ -117,7 +117,7 @@ static int block_residual_write_cavlc( x264_t *h, int i_ctxBlockCat, int16_t *l,
 {
     bs_t *s = &h->out.bs;
     static const uint8_t ctz_index[8] = {3,0,1,0,2,0,1,0};
-    static const int count_cat[5] = {16, 15, 16, 4, 15};
+    static const uint8_t count_cat[5] = {16, 15, 16, 4, 15};
     x264_run_level_t runlevel;
     int i_trailing, i_total_zero, i_suffix_length;
     int i_total = 0;
@@ -172,7 +172,7 @@ static int block_residual_write_cavlc( x264_t *h, int i_ctxBlockCat, int16_t *l,
         }
     }
 
-    if( i_total < count_cat[i_ctxBlockCat] )
+    if( (uint8_t)i_total < count_cat[i_ctxBlockCat] )
     {
         if( i_ctxBlockCat == DCT_CHROMA_DC )
             bs_write_vlc( s, x264_total_zeros_dc[i_total-1][i_total_zero] );

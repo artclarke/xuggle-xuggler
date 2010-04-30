@@ -48,8 +48,8 @@ static const uint8_t subpel_iterations[][4] =
 /* (x-1)%6 */
 static const uint8_t mod6m1[8] = {5,0,1,2,3,4,5,0};
 /* radius 2 hexagon. repeated entries are to avoid having to compute mod6 every time. */
-static const int hex2[8][2] = {{-1,-2}, {-2,0}, {-1,2}, {1,2}, {2,0}, {1,-2}, {-1,-2}, {-2,0}};
-static const int square1[9][2] = {{0,0}, {0,-1}, {0,1}, {-1,0}, {1,0}, {-1,-1}, {-1,1}, {1,-1}, {1,1}};
+static const int8_t hex2[8][2] = {{-1,-2}, {-2,0}, {-1,2}, {1,2}, {2,0}, {1,-2}, {-1,-2}, {-2,0}};
+static const int8_t square1[9][2] = {{0,0}, {0,-1}, {0,1}, {-1,0}, {1,0}, {-1,-1}, {-1,1}, {1,-1}, {1,1}};
 
 static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_iters, int *p_halfpel_thresh, int b_refine_qpel );
 
@@ -377,7 +377,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
             /* Uneven-cross Multi-Hexagon-grid Search
              * as in JM, except with different early termination */
 
-            static const int x264_pixel_size_shift[7] = { 0, 1, 1, 2, 3, 3, 4 };
+            static const uint8_t x264_pixel_size_shift[7] = { 0, 1, 1, 2, 3, 3, 4 };
 
             int ucost1, ucost2;
             int cross_start = 1;
@@ -424,7 +424,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
                 /* range multipliers based on casual inspection of some statistics of
                  * average distance between current predictor and final mv found by ESA.
                  * these have not been tuned much by actual encoding. */
-                static const int range_mul[4][4] =
+                static const uint8_t range_mul[4][4] =
                 {
                     { 3, 3, 4, 4 },
                     { 3, 4, 4, 4 },
@@ -468,7 +468,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
                         : mvd < 20*denom ? 1
                         : mvd < 40*denom ? 2 : 3;
 
-                i_me_range = i_me_range * range_mul[mvd_ctx][sad_ctx] / 4;
+                i_me_range = i_me_range * range_mul[mvd_ctx][sad_ctx] >> 2;
             }
 
             /* FIXME if the above DIA2/OCT2/CROSS found a new mv, it has not updated omx/omy.
@@ -658,7 +658,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
                     bsad += ycost;
                 }
 
-                limit = i_me_range / 2;
+                limit = i_me_range >> 1;
                 sad_thresh = bsad*sad_thresh>>3;
                 while( nmvsad > limit*2 && sad_thresh > bsad )
                 {
