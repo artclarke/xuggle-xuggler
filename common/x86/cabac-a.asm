@@ -24,13 +24,11 @@
 
 %include "x86inc.asm"
 
-SECTION_RODATA
-
 SECTION .text
 
-cextern x264_cabac_range_lps
-cextern x264_cabac_transition
-cextern x264_cabac_renorm_shift
+cextern cabac_range_lps
+cextern cabac_transition
+cextern cabac_renorm_shift
 
 ; t3 must be ecx, since it's used for shift.
 %ifdef WIN64
@@ -70,7 +68,7 @@ endstruc
 %endif
 %endmacro
 
-cglobal x264_cabac_encode_decision_asm, 0,7
+cglobal cabac_encode_decision_asm, 0,7
     movifnidn t0,  r0mp
     movifnidn t1d, r1m
     mov   t5d, [t0+cb.range]
@@ -78,8 +76,8 @@ cglobal x264_cabac_encode_decision_asm, 0,7
     mov   t3d, t5d
     shr   t5d, 6
     movifnidn t2d, r2m
-    LOAD_GLOBAL t5d, x264_cabac_range_lps-4, t5, t6*4
-    LOAD_GLOBAL t4d, x264_cabac_transition, t2, t6*2
+    LOAD_GLOBAL t5d, cabac_range_lps-4, t5, t6*4
+    LOAD_GLOBAL t4d, cabac_transition, t2, t6*2
     shr   t6d, 6
     sub   t3d, t5d
     cmp   t6d, t2d
@@ -88,17 +86,17 @@ cglobal x264_cabac_encode_decision_asm, 0,7
     cmovne t3d, t5d
     cmovne t6d, t7d
     mov   [t0+cb.state+t1], t4b
-;x264_cabac_encode_renorm
+;cabac_encode_renorm
     mov   t4d, t3d
     shr   t3d, 3
-    LOAD_GLOBAL t3d, x264_cabac_renorm_shift, 0, t3
+    LOAD_GLOBAL t3d, cabac_renorm_shift, 0, t3
     shl   t4d, t3b
     shl   t6d, t3b
     add   t3d, [t0+cb.queue]
     mov   [t0+cb.range], t4d
     cmp   t3d, 8
     jl .update_queue_low
-;x264_cabac_putbyte
+;cabac_putbyte
     ; alive: t0=cb t3=queue t6=low
 %ifdef WIN64
     DECLARE_REG_TMP 3,4,1,0,2,5,6,10

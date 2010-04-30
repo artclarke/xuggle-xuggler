@@ -32,6 +32,8 @@
 ; as this feature might be useful for others as well.  Send patches or ideas
 ; to x264-devel@videolan.org .
 
+%define program_name x264
+
 %ifdef ARCH_X86_64
     %ifidn __OUTPUT_FORMAT__,win32
         %define WIN64
@@ -436,7 +438,7 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 
 ; Symbol prefix for C linkage
 %macro cglobal 1-2+
-    %xdefine %1 mangle(%1)
+    %xdefine %1 mangle(program_name %+ _ %+ %1)
     %xdefine %1.skip_prologue %1 %+ .skip_prologue
     %ifidn __OUTPUT_FORMAT__,elf
         global %1:function hidden
@@ -453,8 +455,20 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 %endmacro
 
 %macro cextern 1
+    %xdefine %1 mangle(program_name %+ _ %+ %1)
+    extern %1
+%endmacro
+
+;like cextern, but without the prefix
+%macro cextern_naked 1
     %xdefine %1 mangle(%1)
     extern %1
+%endmacro
+
+%macro const 2+
+    %xdefine %1 mangle(program_name %+ _ %+ %1)
+    global %1
+    %1: %2
 %endmacro
 
 ; This is needed for ELF, otherwise the GNU linker assumes the stack is

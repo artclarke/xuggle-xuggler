@@ -43,7 +43,7 @@ x15: ddq 0x6de8f4c914c334d5011ff554472a7a10
 
 SECTION .text
 
-cextern puts
+cextern_naked puts
 
 ; max number of args used by any x264 asm function.
 ; (max_args % 4) must equal 3 for stack alignment
@@ -54,7 +54,7 @@ cextern puts
 ;-----------------------------------------------------------------------------
 ; intptr_t x264_checkasm_call( intptr_t (*func)(), int *ok, ... )
 ;-----------------------------------------------------------------------------
-cglobal x264_checkasm_call, 4,7,16
+cglobal checkasm_call, 4,7,16
     sub  rsp, max_args*8
     %assign stack_offset stack_offset+max_args*8
     mov  r6, r0
@@ -113,7 +113,7 @@ cglobal x264_checkasm_call, 4,7,16
 ;-----------------------------------------------------------------------------
 ; intptr_t x264_checkasm_call( intptr_t (*func)(), int *ok, ... )
 ;-----------------------------------------------------------------------------
-cglobal x264_checkasm_call, 1,7
+cglobal checkasm_call, 1,7
     mov  r3, n3
     mov  r4, n4
     mov  r5, n5
@@ -147,7 +147,7 @@ cglobal x264_checkasm_call, 1,7
 ;-----------------------------------------------------------------------------
 ; int x264_stack_pagealign( int (*func)(), int align )
 ;-----------------------------------------------------------------------------
-cglobal x264_stack_pagealign, 2,2
+cglobal stack_pagealign, 2,2
     push rbp
     mov  rbp, rsp
     and  rsp, ~0xfff

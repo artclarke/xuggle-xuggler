@@ -35,12 +35,6 @@
 %endmacro
 
 SECTION_RODATA
-pw_32_0: times 4 dw 32
-         times 4 dw 0
-pw_32: times 8 dw 32
-pw_8000: times 8 dw 0x8000
-hsub_mul: times 8 db 1, -1
-
 pb_sub4frame:   db 0,1,4,8,5,2,3,6,9,12,13,10,7,11,14,15
 pb_sub4field:   db 0,4,1,8,12,5,9,13,2,6,10,14,3,7,11,15
 pb_subacmask:   dw 0,-1,-1,-1,-1,-1,-1,-1
@@ -48,10 +42,15 @@ pb_scan4framea: SHUFFLE_16BIT 6,3,7,0,4,1,2,5
 pb_scan4frameb: SHUFFLE_16BIT 0,4,1,2,5,6,3,7
 pb_idctdc_unpack: db 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3
 pb_idctdc_unpack2: db 4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7
-pb_1: times 16 db 1
-pw_1: times 8 dw 1
 
 SECTION .text
+
+cextern pw_32_0
+cextern pw_32
+cextern pw_8000
+cextern hsub_mul
+cextern pb_1
+cextern pw_1
 
 %macro WALSH4_1D 5
     SUMSUB_BADC m%4, m%3, m%2, m%1, m%5
@@ -73,9 +72,9 @@ SECTION .text
 
 INIT_MMX
 ;-----------------------------------------------------------------------------
-; void x264_dct4x4dc_mmx( int16_t d[4][4] )
+; void dct4x4dc( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
-cglobal x264_dct4x4dc_mmx, 1,1
+cglobal dct4x4dc_mmx, 1,1
     movq   m3, [r0+24]
     movq   m2, [r0+16]
     movq   m1, [r0+ 8]
@@ -95,9 +94,9 @@ cglobal x264_dct4x4dc_mmx, 1,1
     RET
 
 ;-----------------------------------------------------------------------------
-; void x264_idct4x4dc_mmx( int16_t d[4][4] )
+; void idct4x4dc( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
-cglobal x264_idct4x4dc_mmx, 1,1
+cglobal idct4x4dc_mmx, 1,1
     movq   m3, [r0+24]
     movq   m2, [r0+16]
     movq   m1, [r0+ 8]
@@ -113,9 +112,9 @@ cglobal x264_idct4x4dc_mmx, 1,1
 
 %macro SUB_DCT4 1
 ;-----------------------------------------------------------------------------
-; void x264_sub4x4_dct_mmx( int16_t dct[4][4], uint8_t *pix1, uint8_t *pix2 )
+; void sub4x4_dct( int16_t dct[4][4], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
-cglobal x264_sub4x4_dct_%1, 3,3
+cglobal sub4x4_dct_%1, 3,3
 %ifidn %1, mmx
 .skip_prologue:
     LOAD_DIFF  m0, m4, m5, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
@@ -140,9 +139,9 @@ SUB_DCT4 mmx
 SUB_DCT4 ssse3
 
 ;-----------------------------------------------------------------------------
-; void x264_add4x4_idct_mmx( uint8_t *p_dst, int16_t dct[4][4] )
+; void add4x4_idct( uint8_t *p_dst, int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
-cglobal x264_add4x4_idct_mmx, 2,2
+cglobal add4x4_idct_mmx, 2,2
     pxor m7, m7
 .skip_prologue:
     movq  m1, [r1+ 8]
@@ -160,7 +159,7 @@ cglobal x264_add4x4_idct_mmx, 2,2
     RET
 
 INIT_XMM
-cglobal x264_add4x4_idct_sse4, 2,2,6
+cglobal add4x4_idct_sse4, 2,2,6
     mova      m0, [r1+0x00]     ; row1/row0
     mova      m2, [r1+0x10]     ; row3/row2
     mova      m1, m0            ; row1/row0
@@ -213,7 +212,7 @@ cglobal x264_add4x4_idct_sse4, 2,2,6
 
 INIT_MMX
 ;-----------------------------------------------------------------------------
-; void x264_sub8x8_dct_mmx( int16_t dct[4][4][4], uint8_t *pix1, uint8_t *pix2 )
+; void sub8x8_dct( int16_t dct[4][4][4], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
 %macro SUB_NxN_DCT 6
 cglobal %1, 3,3,11
@@ -249,7 +248,7 @@ cglobal %1, 3,3,11
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void x264_add8x8_idct_mmx( uint8_t *pix, int16_t dct[4][4][4] )
+; void add8x8_idct( uint8_t *pix, int16_t dct[4][4][4] )
 ;-----------------------------------------------------------------------------
 %macro ADD_NxN_IDCT 6-7
 cglobal %1, 2,2,11
@@ -280,33 +279,33 @@ cglobal %1, 2,2,11
 %endmacro
 
 %ifndef ARCH_X86_64
-SUB_NxN_DCT  x264_sub8x8_dct_mmx,    x264_sub4x4_dct_mmx.skip_prologue,  32, 4, 0, 0
-ADD_NxN_IDCT x264_add8x8_idct_mmx,   x264_add4x4_idct_mmx.skip_prologue, 32, 4, 0, 0
-SUB_NxN_DCT  x264_sub16x16_dct_mmx,  x264_sub8x8_dct_mmx.skip_prologue,  32, 8, 4, 4
-ADD_NxN_IDCT x264_add16x16_idct_mmx, x264_add8x8_idct_mmx.skip_prologue, 32, 8, 4, 4
+SUB_NxN_DCT  sub8x8_dct_mmx,    sub4x4_dct_mmx.skip_prologue,  32, 4, 0, 0
+ADD_NxN_IDCT add8x8_idct_mmx,   add4x4_idct_mmx.skip_prologue, 32, 4, 0, 0
+SUB_NxN_DCT  sub16x16_dct_mmx,  sub8x8_dct_mmx.skip_prologue,  32, 8, 4, 4
+ADD_NxN_IDCT add16x16_idct_mmx, add8x8_idct_mmx.skip_prologue, 32, 8, 4, 4
 
-cextern x264_sub8x8_dct8_mmx.skip_prologue
-cextern x264_add8x8_idct8_mmx.skip_prologue
-SUB_NxN_DCT  x264_sub16x16_dct8_mmx,  x264_sub8x8_dct8_mmx.skip_prologue,  128, 8, 0, 0
-ADD_NxN_IDCT x264_add16x16_idct8_mmx, x264_add8x8_idct8_mmx.skip_prologue, 128, 8, 0, 0
+cextern sub8x8_dct8_mmx.skip_prologue
+cextern add8x8_idct8_mmx.skip_prologue
+SUB_NxN_DCT  sub16x16_dct8_mmx,  sub8x8_dct8_mmx.skip_prologue,  128, 8, 0, 0
+ADD_NxN_IDCT add16x16_idct8_mmx, add8x8_idct8_mmx.skip_prologue, 128, 8, 0, 0
 %endif
 
 INIT_XMM
 
-cextern x264_sub8x8_dct_sse2.skip_prologue
-cextern x264_sub8x8_dct_ssse3.skip_prologue
-SUB_NxN_DCT  x264_sub16x16_dct_sse2, x264_sub8x8_dct_sse2.skip_prologue, 128, 8, 0, 0
-SUB_NxN_DCT  x264_sub16x16_dct_ssse3, x264_sub8x8_dct_ssse3.skip_prologue, 128, 8, 0, 0
-cextern x264_add8x8_idct_sse2.skip_prologue
-ADD_NxN_IDCT x264_add16x16_idct_sse2, x264_add8x8_idct_sse2.skip_prologue, 2*64, 8, 0, 0
+cextern sub8x8_dct_sse2.skip_prologue
+cextern sub8x8_dct_ssse3.skip_prologue
+SUB_NxN_DCT  sub16x16_dct_sse2,  sub8x8_dct_sse2.skip_prologue,  128, 8, 0, 0
+SUB_NxN_DCT  sub16x16_dct_ssse3, sub8x8_dct_ssse3.skip_prologue, 128, 8, 0, 0
+cextern add8x8_idct_sse2.skip_prologue
+ADD_NxN_IDCT add16x16_idct_sse2, add8x8_idct_sse2.skip_prologue, 2*64, 8, 0, 0
 
-cextern x264_sub8x8_dct8_sse2.skip_prologue
-cextern x264_add8x8_idct8_sse2.skip_prologue
-SUB_NxN_DCT  x264_sub16x16_dct8_sse2,  x264_sub8x8_dct8_sse2.skip_prologue,  128, 8, 0, 0
-ADD_NxN_IDCT x264_add16x16_idct8_sse2, x264_add8x8_idct8_sse2.skip_prologue, 128, 8, 0, 0
+cextern sub8x8_dct8_sse2.skip_prologue
+cextern add8x8_idct8_sse2.skip_prologue
+SUB_NxN_DCT  sub16x16_dct8_sse2,  sub8x8_dct8_sse2.skip_prologue,  128, 8, 0, 0
+ADD_NxN_IDCT add16x16_idct8_sse2, add8x8_idct8_sse2.skip_prologue, 128, 8, 0, 0
 
-cextern x264_sub8x8_dct8_ssse3.skip_prologue
-SUB_NxN_DCT  x264_sub16x16_dct8_ssse3,  x264_sub8x8_dct8_ssse3.skip_prologue,  128, 8, 0, 0
+cextern sub8x8_dct8_ssse3.skip_prologue
+SUB_NxN_DCT  sub16x16_dct8_ssse3, sub8x8_dct8_ssse3.skip_prologue, 128, 8, 0, 0
 
 
 ;-----------------------------------------------------------------------------
@@ -331,7 +330,7 @@ SUB_NxN_DCT  x264_sub16x16_dct8_ssse3,  x264_sub8x8_dct8_ssse3.skip_prologue,  1
     movq      [%3+FDEC_STRIDE*3], %1
 %endmacro
 
-cglobal x264_add8x8_idct_dc_mmx, 2,2
+cglobal add8x8_idct_dc_mmx, 2,2
     movq      mm0, [r1]
     pxor      mm1, mm1
     add        r0, FDEC_STRIDE*4
@@ -350,7 +349,7 @@ cglobal x264_add8x8_idct_dc_mmx, 2,2
     ADD_DC    mm2, mm3, r0
     RET
 
-cglobal x264_add8x8_idct_dc_ssse3, 2,2
+cglobal add8x8_idct_dc_ssse3, 2,2
     movq      xmm0, [r1]
     pxor      xmm1, xmm1
     add         r0, FDEC_STRIDE*4
@@ -388,7 +387,7 @@ cglobal x264_add8x8_idct_dc_ssse3, 2,2
     movhps    [r0+FDEC_STRIDE* 3], xmm5
     RET
 
-cglobal x264_add16x16_idct_dc_mmx, 2,3
+cglobal add16x16_idct_dc_mmx, 2,3
     mov       r2, 4
 .loop:
     movq      mm0, [r1]
@@ -431,7 +430,7 @@ cglobal x264_add16x16_idct_dc_mmx, 2,3
     movdqa    [r0+%1+FDEC_STRIDE*3], xmm7
 %endmacro
 
-cglobal x264_add16x16_idct_dc_sse2, 2,2,8
+cglobal add16x16_idct_dc_sse2, 2,2,8
     call .loop
     add       r0, FDEC_STRIDE*4
 %ifdef WIN64
@@ -465,7 +464,7 @@ cglobal x264_add16x16_idct_dc_sse2, 2,2,8
     IDCT_DC_STORE 0, xmm2, xmm3
     ret
 
-cglobal x264_add16x16_idct_dc_ssse3, 2,2,8
+cglobal add16x16_idct_dc_ssse3, 2,2,8
     call .loop
     add       r0, FDEC_STRIDE*4
 %ifdef WIN64
@@ -531,7 +530,7 @@ cglobal x264_add16x16_idct_dc_ssse3, 2,2,8
 %endmacro
 
 INIT_MMX
-cglobal x264_sub8x8_dct_dc_mmxext, 3,3
+cglobal sub8x8_dct_dc_mmxext, 3,3
     DCTDC_2ROW_MMX m0, m4, 0
     DCTDC_2ROW_MMX m5, m6, 2
     paddw     m0, m5
@@ -567,7 +566,7 @@ INIT_XMM
 %endif
 %endmacro
 
-cglobal x264_sub8x8_dct_dc_sse2, 3,3,8
+cglobal sub8x8_dct_dc_sse2, 3,3,8
     pxor     m7, m7
     DCTDC_2ROW_SSE2 0, 0, m4
     DCTDC_2ROW_SSE2 2, 1, m4
@@ -586,10 +585,10 @@ cglobal x264_sub8x8_dct_dc_sse2, 3,3,8
     RET
 
 ;-----------------------------------------------------------------------------
-; void x264_zigzag_scan_8x8_frame_ssse3( int16_t level[64], int16_t dct[8][8] )
+; void zigzag_scan_8x8_frame( int16_t level[64], int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
 %macro SCAN_8x8 1
-cglobal x264_zigzag_scan_8x8_frame_%1, 2,2,8
+cglobal zigzag_scan_8x8_frame_%1, 2,2,8
     movdqa    xmm0, [r1]
     movdqa    xmm1, [r1+16]
     movdq2q    mm0, xmm0
@@ -703,9 +702,9 @@ SCAN_8x8 sse2
 SCAN_8x8 ssse3
 
 ;-----------------------------------------------------------------------------
-; void x264_zigzag_scan_8x8_frame_mmxext( int16_t level[64], int16_t dct[8][8] )
+; void zigzag_scan_8x8_frame( int16_t level[64], int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
-cglobal x264_zigzag_scan_8x8_frame_mmxext, 2,2
+cglobal zigzag_scan_8x8_frame_mmxext, 2,2
     movq       mm0, [r1]
     movq       mm1, [r1+2*8]
     movq       mm2, [r1+2*14]
@@ -798,9 +797,9 @@ cglobal x264_zigzag_scan_8x8_frame_mmxext, 2,2
     RET
 
 ;-----------------------------------------------------------------------------
-; void x264_zigzag_scan_4x4_frame_mmx( int16_t level[16], int16_t dct[4][4] )
+; void zigzag_scan_4x4_frame( int16_t level[16], int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
-cglobal x264_zigzag_scan_4x4_frame_mmx, 2,2
+cglobal zigzag_scan_4x4_frame_mmx, 2,2
     movq       mm0, [r1]
     movq       mm1, [r1+8]
     movq       mm2, [r1+16]
@@ -828,9 +827,9 @@ cglobal x264_zigzag_scan_4x4_frame_mmx, 2,2
     RET
 
 ;-----------------------------------------------------------------------------
-; void x264_zigzag_scan_4x4_frame_ssse3( int16_t level[16], int16_t dct[4][4] )
+; void zigzag_scan_4x4_frame( int16_t level[16], int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
-cglobal x264_zigzag_scan_4x4_frame_ssse3, 2,2
+cglobal zigzag_scan_4x4_frame_ssse3, 2,2
     movdqa    xmm1, [r1+16]
     movdqa    xmm0, [r1]
     pshufb    xmm1, [pb_scan4frameb]
@@ -845,10 +844,10 @@ cglobal x264_zigzag_scan_4x4_frame_ssse3, 2,2
     RET
 
 ;-----------------------------------------------------------------------------
-; void x264_zigzag_scan_4x4_field_mmxext( int16_t level[16], int16_t dct[4][4] )
+; void zigzag_scan_4x4_field( int16_t level[16], int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
 ; sse2 is only 1 cycle faster, and ssse3/pshufb is slower on core2
-cglobal x264_zigzag_scan_4x4_field_mmxext, 2,3
+cglobal zigzag_scan_4x4_field_mmxext, 2,3
     pshufw     mm0, [r1+4], 0xd2
     movq       mm1, [r1+16]
     movq       mm2, [r1+24]
@@ -862,7 +861,7 @@ cglobal x264_zigzag_scan_4x4_field_mmxext, 2,3
     RET
 
 ;-----------------------------------------------------------------------------
-; void x264_zigzag_scan_8x8_field_mmxext( int16_t level[64], int16_t dct[8][8] )
+; void zigzag_scan_8x8_field( int16_t level[64], int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
 
 ; Output order:
@@ -875,7 +874,7 @@ cglobal x264_zigzag_scan_4x4_field_mmxext, 2,3
 ; 45 46 47 51 56 57 52 53
 ; 54 55 58 59 60 61 62 63
 
-cglobal x264_zigzag_scan_8x8_field_mmxext, 2,3
+cglobal zigzag_scan_8x8_field_mmxext, 2,3
     movq       mm0, [r1+2*0]        ; 03 02 01 00
     movq       mm1, [r1+2*4]        ; 07 06 05 04
     movq       mm2, [r1+2*8]        ; 11 10 09 08
@@ -954,13 +953,13 @@ cglobal x264_zigzag_scan_8x8_field_mmxext, 2,3
     RET
 
 ;-----------------------------------------------------------------------------
-; void x264_zigzag_sub_4x4_frame_ssse3( int16_t level[16], const uint8_t *src, uint8_t *dst )
+; void zigzag_sub_4x4_frame( int16_t level[16], const uint8_t *src, uint8_t *dst )
 ;-----------------------------------------------------------------------------
 %macro ZIGZAG_SUB_4x4 2
 %ifidn %1, ac
-cglobal x264_zigzag_sub_4x4%1_%2_ssse3, 4,4,8
+cglobal zigzag_sub_4x4%1_%2_ssse3, 4,4,8
 %else
-cglobal x264_zigzag_sub_4x4%1_%2_ssse3, 3,3,8
+cglobal zigzag_sub_4x4%1_%2_ssse3, 3,3,8
 %endif
     movd      xmm0, [r1+0*FENC_STRIDE]
     movd      xmm1, [r1+1*FENC_STRIDE]
@@ -1020,7 +1019,7 @@ ZIGZAG_SUB_4x4   , field
 ZIGZAG_SUB_4x4 ac, field
 
 ;-----------------------------------------------------------------------------
-; void x264_zigzag_interleave_8x8_cavlc_mmx( int16_t *dst, int16_t *src, uint8_t *nnz )
+; void zigzag_interleave_8x8_cavlc( int16_t *dst, int16_t *src, uint8_t *nnz )
 ;-----------------------------------------------------------------------------
 
 %macro INTERLEAVE 1
@@ -1047,7 +1046,7 @@ ZIGZAG_SUB_4x4 ac, field
 %endmacro
 
 INIT_MMX
-cglobal x264_zigzag_interleave_8x8_cavlc_mmx, 3,3
+cglobal zigzag_interleave_8x8_cavlc_mmx, 3,3
     INTERLEAVE  0
     INTERLEAVE  8
     INTERLEAVE 16
@@ -1095,7 +1094,7 @@ cglobal x264_zigzag_interleave_8x8_cavlc_mmx, 3,3
 %endmacro
 
 INIT_XMM
-cglobal x264_zigzag_interleave_8x8_cavlc_sse2, 3,3,8
+cglobal zigzag_interleave_8x8_cavlc_sse2, 3,3,8
     INTERLEAVE_XMM  0
     INTERLEAVE_XMM 16
     packsswb m2, m3

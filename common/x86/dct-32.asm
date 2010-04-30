@@ -27,12 +27,10 @@
 %include "x86inc.asm"
 %include "x86util.asm"
 
-SECTION_RODATA
-
-pw_32: times 8 dw 32
-hsub_mul: times 8 db 1, -1
-
 SECTION .text
+
+cextern pw_32
+cextern hsub_mul
 
 ; in: m0..m7
 ; out: 0,4,6 in mem, rest in regs
@@ -188,10 +186,10 @@ dct8_mmx:
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void x264_sub8x8_dct8_mmx( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
+; void sub8x8_dct8( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
-cglobal x264_sub8x8_dct8_mmx, 3,3
-global x264_sub8x8_dct8_mmx.skip_prologue
+cglobal sub8x8_dct8_mmx, 3,3
+global sub8x8_dct8_mmx.skip_prologue
 .skip_prologue:
     INIT_MMX
     call load_diff_4x8_mmx
@@ -254,10 +252,10 @@ idct8_mmx:
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void x264_add8x8_idct8_mmx( uint8_t *dst, int16_t dct[8][8] )
+; void add8x8_idct8( uint8_t *dst, int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
-cglobal x264_add8x8_idct8_mmx, 2,2
-global x264_add8x8_idct8_mmx.skip_prologue
+cglobal add8x8_idct8_mmx, 2,2
+global add8x8_idct8_mmx.skip_prologue
 .skip_prologue:
     INIT_MMX
     add word [r1], 32
@@ -344,9 +342,9 @@ global x264_add8x8_idct8_mmx.skip_prologue
 
 INIT_XMM
 %macro DCT_SUB8 1
-cglobal x264_sub8x8_dct_%1, 3,3
+cglobal sub8x8_dct_%1, 3,3
     add r2, 4*FDEC_STRIDE
-global x264_sub8x8_dct_%1.skip_prologue
+global sub8x8_dct_%1.skip_prologue
 .skip_prologue:
 %ifnidn %1, sse2
     mova m7, [hsub_mul]
@@ -375,11 +373,11 @@ global x264_sub8x8_dct_%1.skip_prologue
     ret
 
 ;-----------------------------------------------------------------------------
-; void x264_sub8x8_dct8_sse2( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
+; void sub8x8_dct8( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
-cglobal x264_sub8x8_dct8_%1, 3,3
+cglobal sub8x8_dct8_%1, 3,3
     add r2, 4*FDEC_STRIDE
-global x264_sub8x8_dct8_%1.skip_prologue
+global sub8x8_dct8_%1.skip_prologue
 .skip_prologue:
 %ifidn %1, sse2
     LOAD_DIFF m0, m7, none, [r1+0*FENC_STRIDE], [r2-4*FDEC_STRIDE]
@@ -419,11 +417,11 @@ DCT_SUB8 sse2
 DCT_SUB8 ssse3
 
 ;-----------------------------------------------------------------------------
-; void x264_add8x8_idct_sse2( uint8_t *pix, int16_t dct[4][4][4] )
+; void add8x8_idct( uint8_t *pix, int16_t dct[4][4][4] )
 ;-----------------------------------------------------------------------------
-cglobal x264_add8x8_idct_sse2, 2,2
+cglobal add8x8_idct_sse2, 2,2
     add r0, 4*FDEC_STRIDE
-global x264_add8x8_idct_sse2.skip_prologue
+global add8x8_idct_sse2.skip_prologue
 .skip_prologue:
     UNSPILL_SHUFFLE r1, 0,2,1,3, 0,1,2,3
     SBUTTERFLY qdq, 0, 1, 4
@@ -456,11 +454,11 @@ global x264_add8x8_idct_sse2.skip_prologue
     ret
 
 ;-----------------------------------------------------------------------------
-; void x264_add8x8_idct8_sse2( uint8_t *p_dst, int16_t dct[8][8] )
+; void add8x8_idct8( uint8_t *p_dst, int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
-cglobal x264_add8x8_idct8_sse2, 2,2
+cglobal add8x8_idct8_sse2, 2,2
     add r0, 4*FDEC_STRIDE
-global x264_add8x8_idct8_sse2.skip_prologue
+global add8x8_idct8_sse2.skip_prologue
 .skip_prologue:
     UNSPILL r1, 1,2,3,5,6,7
     IDCT8_1D   0,1,2,3,4,5,6,7,r1

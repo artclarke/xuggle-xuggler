@@ -324,13 +324,6 @@ uint32_t x264_cpu_detect( void )
 
 #endif
 
-#ifndef HAVE_MMX
-void x264_emms( void )
-{
-}
-#endif
-
-
 int x264_cpu_num_processors( void )
 {
 #if !defined(HAVE_PTHREAD)

@@ -25,7 +25,6 @@
 #include <math.h>
 
 #include "common/common.h"
-#include "common/cpu.h"
 #include "macroblock.h"
 #include "me.h"
 

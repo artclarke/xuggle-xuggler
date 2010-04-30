@@ -22,7 +22,6 @@
  *****************************************************************************/
 
 #include "common.h"
-#include "cpu.h"
 
 #include <stdarg.h>
 #include <ctype.h>

@@ -25,7 +25,6 @@
 #include <math.h>
 
 #include "common/common.h"
-#include "common/cpu.h"
 
 #include "set.h"
 #include "analyse.h"

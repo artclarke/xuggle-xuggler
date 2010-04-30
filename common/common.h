@@ -110,6 +110,7 @@ typedef union { x264_uint128_t i; uint64_t a[2]; uint32_t b[4]; uint16_t c[8]; u
 #include "dct.h"
 #include "cabac.h"
 #include "quant.h"
+#include "cpu.h"
 
 /****************************************************************************
  * General functions

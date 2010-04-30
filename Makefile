@@ -50,8 +50,8 @@ endif
 
 # MMX/SSE optims
 ifneq ($(AS),)
-X86SRC0 = cabac-a.asm dct-a.asm deblock-a.asm mc-a.asm mc-a2.asm \
-          pixel-a.asm predict-a.asm quant-a.asm sad-a.asm \
+X86SRC0 = const-a.asm cabac-a.asm dct-a.asm deblock-a.asm mc-a.asm \
+          mc-a2.asm pixel-a.asm predict-a.asm quant-a.asm sad-a.asm \
           cpu-a.asm dct-32.asm
 X86SRC = $(X86SRC0:%=common/x86/%)
 

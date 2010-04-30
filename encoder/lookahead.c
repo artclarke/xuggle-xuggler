@@ -35,7 +35,6 @@
  * # of bframes + # of threads.
  */
 #include "common/common.h"
-#include "common/cpu.h"
 #include "analyse.h"
 
 static void x264_lookahead_shift( x264_synch_frame_list_t *dst, x264_synch_frame_list_t *src, int count )

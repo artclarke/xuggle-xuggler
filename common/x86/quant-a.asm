@@ -26,10 +26,6 @@
 %include "x86util.asm"
 
 SECTION_RODATA
-pb_1:     times 16 db 1
-pw_1:     times 8 dw 1
-pd_1:     times 4 dd 1
-pb_01:    times 8 db 0, 1
 
 %macro DQM4 3
     dw %1, %2, %1, %2, %2, %3, %2, %3
@@ -70,6 +66,11 @@ decimate_mask_table4:
     db 13,16,16,20,10,13,13,17,13,16,16,20,13,17,16,20,17,20,20,24
 
 SECTION .text
+
+cextern pb_1
+cextern pw_1
+cextern pd_1
+cextern pb_01
 
 %macro QUANT_DC_START_MMX 0
     movd       m6, r1m     ; mf
@@ -183,7 +184,7 @@ SECTION .text
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void x264_quant_4x4_dc_mmxext( int16_t dct[16], int mf, int bias )
+; void quant_4x4_dc( int16_t dct[16], int mf, int bias )
 ;-----------------------------------------------------------------------------
 %macro QUANT_DC 2-3 0
 cglobal %1, 1,1,%3
@@ -202,7 +203,7 @@ cglobal %1, 1,1,%3
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; int x264_quant_4x4_mmx( int16_t dct[16], uint16_t mf[16], uint16_t bias[16] )
+; int quant_4x4( int16_t dct[16], uint16_t mf[16], uint16_t bias[16] )
 ;-----------------------------------------------------------------------------
 %macro QUANT_AC 2
 cglobal %1, 3,3
@@ -220,33 +221,33 @@ INIT_MMX
 %define PABSW PABSW_MMX
 %define PSIGNW PSIGNW_MMX
 %define QUANT_DC_START QUANT_DC_START_MMX
-QUANT_DC x264_quant_2x2_dc_mmxext, 1
+QUANT_DC quant_2x2_dc_mmxext, 1
 %ifndef ARCH_X86_64 ; not needed because sse2 is faster
-QUANT_DC x264_quant_4x4_dc_mmxext, 4
-QUANT_AC x264_quant_4x4_mmx, 4
-QUANT_AC x264_quant_8x8_mmx, 16
+QUANT_DC quant_4x4_dc_mmxext, 4
+QUANT_AC quant_4x4_mmx, 4
+QUANT_AC quant_8x8_mmx, 16
 %endif
 
 INIT_XMM
-QUANT_DC x264_quant_4x4_dc_sse2, 2, 8
-QUANT_AC x264_quant_4x4_sse2, 2
-QUANT_AC x264_quant_8x8_sse2, 8
+QUANT_DC quant_4x4_dc_sse2, 2, 8
+QUANT_AC quant_4x4_sse2, 2
+QUANT_AC quant_8x8_sse2, 8
 
 %define PABSW PABSW_SSSE3
 %define PSIGNW PSIGNW_SSSE3
-QUANT_DC x264_quant_4x4_dc_ssse3, 2, 8
-QUANT_AC x264_quant_4x4_ssse3, 2
-QUANT_AC x264_quant_8x8_ssse3, 8
+QUANT_DC quant_4x4_dc_ssse3, 2, 8
+QUANT_AC quant_4x4_ssse3, 2
+QUANT_AC quant_8x8_ssse3, 8
 
 INIT_MMX
-QUANT_DC x264_quant_2x2_dc_ssse3, 1
+QUANT_DC quant_2x2_dc_ssse3, 1
 %define QUANT_END QUANT_END_SSE4
 ;Not faster on Conroe, so only used in SSE4 versions
 %define QUANT_DC_START QUANT_DC_START_SSSE3
 INIT_XMM
-QUANT_DC x264_quant_4x4_dc_sse4, 2, 8
-QUANT_AC x264_quant_4x4_sse4, 2
-QUANT_AC x264_quant_8x8_sse4, 8
+QUANT_DC quant_4x4_dc_sse4, 2, 8
+QUANT_AC quant_4x4_sse4, 2
+QUANT_AC quant_8x8_sse4, 8
 
 
 
@@ -347,10 +348,10 @@ QUANT_AC x264_quant_8x8_sse4, 8
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void x264_dequant_4x4_mmx( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
+; void dequant_4x4( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
 ;-----------------------------------------------------------------------------
 %macro DEQUANT 4
-cglobal x264_dequant_%2x%2_%1, 0,3
+cglobal dequant_%2x%2_%1, 0,3
 .skip_prologue:
     DEQUANT_START %3+2, %3
 
@@ -367,11 +368,11 @@ cglobal x264_dequant_%2x%2_%1, 0,3
     psrld m3, 1
     DEQUANT_LOOP DEQUANT32_R, %2*%2/4, %4
 
-cglobal x264_dequant_%2x%2_flat16_%1, 0,3
+cglobal dequant_%2x%2_flat16_%1, 0,3
     movifnidn t2d, r2m
 %if %2 == 8
     cmp  t2d, 12
-    jl x264_dequant_%2x%2_%1.skip_prologue
+    jl dequant_%2x%2_%1.skip_prologue
     sub  t2d, 12
 %endif
     imul t0d, t2d, 0x2b
@@ -418,7 +419,7 @@ DEQUANT sse2, 4, 4, 2
 DEQUANT sse2, 8, 6, 2
 
 %macro DEQUANT_DC 1
-cglobal x264_dequant_4x4dc_%1, 0,3
+cglobal dequant_4x4dc_%1, 0,3
     DEQUANT_START 6, 6
 
 .lshift:
@@ -480,10 +481,10 @@ INIT_XMM
 DEQUANT_DC sse2
 
 ;-----------------------------------------------------------------------------
-; void x264_denoise_dct_mmx( int16_t *dct, uint32_t *sum, uint16_t *offset, int size )
+; void denoise_dct( int16_t *dct, uint32_t *sum, uint16_t *offset, int size )
 ;-----------------------------------------------------------------------------
 %macro DENOISE_DCT 1-2 0
-cglobal x264_denoise_dct_%1, 4,5,%2
+cglobal denoise_dct_%1, 4,5,%2
     movzx     r4d, word [r0] ; backup DC coefficient
     pxor      m6, m6
 .loop:
@@ -534,7 +535,7 @@ DENOISE_DCT ssse3, 7
 
 
 ;-----------------------------------------------------------------------------
-; int x264_decimate_score( int16_t *dct )
+; int decimate_score( int16_t *dct )
 ;-----------------------------------------------------------------------------
 
 %macro DECIMATE_MASK_SSE2 6
@@ -579,21 +580,21 @@ DENOISE_DCT ssse3, 7
     or         %2, %6
 %endmacro
 
-cextern x264_decimate_table4
-cextern x264_decimate_table8
+cextern decimate_table4
+cextern decimate_table8
 
 %macro DECIMATE4x4 2
 
 ;A LUT is faster than bsf on AMD processors, and no slower on Intel
 ;This is not true for score64.
-cglobal x264_decimate_score%1_%2, 1,3
+cglobal decimate_score%1_%2, 1,3
 %ifdef PIC
-    lea r10, [x264_decimate_table4]
+    lea r10, [decimate_table4]
     lea r11, [decimate_mask_table4]
     %define table r10
     %define mask_table r11
 %else
-    %define table x264_decimate_table4
+    %define table decimate_table4
     %define mask_table decimate_mask_table4
 %endif
     DECIMATE_MASK edx, eax, r0, [pb_1], %2, ecx
@@ -638,12 +639,12 @@ DECIMATE4x4 16, ssse3
 %macro DECIMATE8x8 1
 
 %ifdef ARCH_X86_64
-cglobal x264_decimate_score64_%1, 1,4
+cglobal decimate_score64_%1, 1,4
 %ifdef PIC
-    lea r10, [x264_decimate_table8]
+    lea r10, [decimate_table8]
     %define table r10
 %else
-    %define table x264_decimate_table8
+    %define table decimate_table8
 %endif
     mova  m5, [pb_1]
     DECIMATE_MASK r1d, eax, r0, m5, %1, null
@@ -677,9 +678,9 @@ cglobal x264_decimate_score64_%1, 1,4
 
 %else ; ARCH
 %ifidn %1, mmxext
-cglobal x264_decimate_score64_%1, 1,6
+cglobal decimate_score64_%1, 1,6
 %else
-cglobal x264_decimate_score64_%1, 1,5
+cglobal decimate_score64_%1, 1,5
 %endif
     mova  m7, [pb_1]
     DECIMATE_MASK r3, r2, r0, m7, %1, r5
@@ -705,7 +706,7 @@ cglobal x264_decimate_score64_%1, 1,5
     je   .largerun
     shrd  r3, r4, cl
     shr   r4, cl
-    add   r0b, byte [x264_decimate_table8 + ecx]
+    add   r0b, byte [decimate_table8 + ecx]
     shrd  r3, r4, 1
     shr   r4, 1
     cmp   r0, 6     ;score64's threshold is never higher than 6
@@ -746,7 +747,7 @@ DECIMATE8x8 sse2
 DECIMATE8x8 ssse3
 
 ;-----------------------------------------------------------------------------
-; int x264_coeff_last( int16_t *dct )
+; int coeff_last( int16_t *dct )
 ;-----------------------------------------------------------------------------
 
 %macro LAST_MASK_SSE2 2-3
@@ -780,12 +781,12 @@ DECIMATE8x8 ssse3
 
 %macro COEFF_LAST4 1
 %ifdef ARCH_X86_64
-cglobal x264_coeff_last4_%1, 1,1
+cglobal coeff_last4_%1, 1,1
     LAST rax, [r0], 0x3f
     shr eax, 4
     RET
 %else
-cglobal x264_coeff_last4_%1, 0,3
+cglobal coeff_last4_%1, 0,3
     mov   edx, r0mp
     mov   eax, [edx+4]
     xor   ecx, ecx
@@ -805,7 +806,7 @@ COEFF_LAST4 mmxext
 COEFF_LAST4 mmxext_lzcnt
 
 %macro COEFF_LAST 1
-cglobal x264_coeff_last15_%1, 1,3
+cglobal coeff_last15_%1, 1,3
     pxor m2, m2
     LAST_MASK r1d, r0-2, r2d
     xor r1d, 0xffff
@@ -813,7 +814,7 @@ cglobal x264_coeff_last15_%1, 1,3
     dec eax
     RET
 
-cglobal x264_coeff_last16_%1, 1,3
+cglobal coeff_last16_%1, 1,3
     pxor m2, m2
     LAST_MASK r1d, r0, r2d
     xor r1d, 0xffff
@@ -821,7 +822,7 @@ cglobal x264_coeff_last16_%1, 1,3
     RET
 
 %ifndef ARCH_X86_64
-cglobal x264_coeff_last64_%1, 1, 5-mmsize/16
+cglobal coeff_last64_%1, 1, 5-mmsize/16
     pxor m2, m2
     LAST_MASK r2d, r0+64, r4d
     LAST_MASK r3d, r0+96, r4d
@@ -841,7 +842,7 @@ cglobal x264_coeff_last64_%1, 1, 5-mmsize/16
     add eax, 32
     RET
 %else
-cglobal x264_coeff_last64_%1, 1,4
+cglobal coeff_last64_%1, 1,4
     pxor m2, m2
     LAST_MASK_SSE2 r1d, r0
     LAST_MASK_SSE2 r2d, r0+32
@@ -872,7 +873,7 @@ COEFF_LAST sse2
 COEFF_LAST sse2_lzcnt
 
 ;-----------------------------------------------------------------------------
-; int x264_coeff_level_run( int16_t *dct, x264_run_level_t *runlevel )
+; int coeff_level_run( int16_t *dct, run_level_t *runlevel )
 ;-----------------------------------------------------------------------------
 
 %macro LAST_MASK4_MMX 2-3
@@ -901,7 +902,7 @@ COEFF_LAST sse2_lzcnt
 %endif
 
 %macro COEFF_LEVELRUN 2
-cglobal x264_coeff_level_run%2_%1,0,7
+cglobal coeff_level_run%2_%1,0,7
     movifnidn t0, r0mp
     movifnidn t1, r1mp
     pxor    m2, m2

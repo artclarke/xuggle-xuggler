@@ -61,9 +61,9 @@ INIT_MMX
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; int x264_pixel_sa8d_8x8_mmxext( uint8_t *, int, uint8_t *, int )
+; int pixel_sa8d_8x8( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_sa8d_8x8_internal_mmxext
+cglobal pixel_sa8d_8x8_internal_mmxext
     push   r0
     push   r2
     sub    esp, 0x74
@@ -169,9 +169,9 @@ cglobal x264_pixel_sa8d_8x8_internal_mmxext
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void x264_intra_sa8d_x3_8x8_core_mmxext( uint8_t *fenc, int16_t edges[2][8], int *res )
+; void intra_sa8d_x3_8x8_core( uint8_t *fenc, int16_t edges[2][8], int *res )
 ;-----------------------------------------------------------------------------
-cglobal x264_intra_sa8d_x3_8x8_core_mmxext
+cglobal intra_sa8d_x3_8x8_core_mmxext
     mov    eax, [esp+4]
     mov    ecx, [esp+8]
     sub    esp, 0x70
@@ -329,10 +329,10 @@ cglobal x264_intra_sa8d_x3_8x8_core_mmxext
 
 
 ;-----------------------------------------------------------------------------
-; void x264_pixel_ssim_4x4x2_core_mmxext( const uint8_t *pix1, int stride1,
-;                                         const uint8_t *pix2, int stride2, int sums[2][4] )
+; void pixel_ssim_4x4x2_core( const uint8_t *pix1, int stride1,
+;                             const uint8_t *pix2, int stride2, int sums[2][4] )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_ssim_4x4x2_core_mmxext
+cglobal pixel_ssim_4x4x2_core_mmxext
     push     ebx
     push     edi
     mov      ebx, [esp+16]

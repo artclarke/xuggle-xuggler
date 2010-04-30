@@ -33,13 +33,13 @@ filt_mul15: times 8 db 1, -5
 filt_mul51: times 8 db -5, 1
 hpel_shuf: db 0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15
 
-pw_1:  times 8 dw 1
-pw_16: times 8 dw 16
-pw_32: times 8 dw 32
-pd_128: times 4 dd 128
-pw_0x3fff: times 4 dw 0x3fff
-
 SECTION .text
+
+cextern pw_1
+cextern pw_16
+cextern pw_32
+cextern pd_128
+cextern pw_3fff
 
 %macro LOAD_ADD 4
     movh       %4, %3
@@ -122,9 +122,9 @@ INIT_MMX
 
 %macro HPEL_V 1-2 0
 ;-----------------------------------------------------------------------------
-; void x264_hpel_filter_v_mmxext( uint8_t *dst, uint8_t *src, int16_t *buf, int stride, int width );
+; void hpel_filter_v( uint8_t *dst, uint8_t *src, int16_t *buf, int stride, int width );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_v_%1, 5,6,%2
+cglobal hpel_filter_v_%1, 5,6,%2
 %ifdef WIN64
     movsxd   r4, r4d
 %endif
@@ -181,9 +181,9 @@ cglobal x264_hpel_filter_v_%1, 5,6,%2
 HPEL_V mmxext
 
 ;-----------------------------------------------------------------------------
-; void x264_hpel_filter_c_mmxext( uint8_t *dst, int16_t *buf, int width );
+; void hpel_filter_c( uint8_t *dst, int16_t *buf, int width );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_c_mmxext, 3,3
+cglobal hpel_filter_c_mmxext, 3,3
     add r0, r2
     lea r1, [r1+r2*2]
     neg r2
@@ -210,9 +210,9 @@ cglobal x264_hpel_filter_c_mmxext, 3,3
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void x264_hpel_filter_h_mmxext( uint8_t *dst, uint8_t *src, int width );
+; void hpel_filter_h( uint8_t *dst, uint8_t *src, int width );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_h_mmxext, 3,3
+cglobal hpel_filter_h_mmxext, 3,3
     add r0, r2
     add r1, r2
     neg r2
@@ -257,9 +257,9 @@ INIT_XMM
 
 %macro HPEL_C 1
 ;-----------------------------------------------------------------------------
-; void x264_hpel_filter_c_sse2( uint8_t *dst, int16_t *buf, int width );
+; void hpel_filter_c( uint8_t *dst, int16_t *buf, int width );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_c_%1, 3,3,9
+cglobal hpel_filter_c_%1, 3,3,9
     add r0, r2
     lea r1, [r1+r2*2]
     neg r2
@@ -332,9 +332,9 @@ cglobal x264_hpel_filter_c_%1, 3,3,9
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void x264_hpel_filter_h_sse2( uint8_t *dst, uint8_t *src, int width );
+; void hpel_filter_h( uint8_t *dst, uint8_t *src, int width );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_h_sse2, 3,3,8
+cglobal hpel_filter_h_sse2, 3,3,8
     add r0, r2
     add r1, r2
     neg r2
@@ -381,9 +381,9 @@ cglobal x264_hpel_filter_h_sse2, 3,3,8
 
 %ifndef ARCH_X86_64
 ;-----------------------------------------------------------------------------
-; void x264_hpel_filter_h_ssse3( uint8_t *dst, uint8_t *src, int width );
+; void hpel_filter_h( uint8_t *dst, uint8_t *src, int width );
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_h_ssse3, 3,3
+cglobal hpel_filter_h_ssse3, 3,3
     add r0, r2
     add r1, r2
     neg r2
@@ -558,10 +558,10 @@ HPEL_V ssse3
 
 %macro HPEL 1
 ;-----------------------------------------------------------------------------
-; void x264_hpel_filter_sse2( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
-;                             uint8_t *src, int stride, int width, int height)
+; void hpel_filter( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
+;                   uint8_t *src, int stride, int width, int height)
 ;-----------------------------------------------------------------------------
-cglobal x264_hpel_filter_%1, 7,7,16
+cglobal hpel_filter_%1, 7,7,16
 %ifdef WIN64
     movsxd   r4, r4d
     movsxd   r5, r5d
@@ -627,20 +627,16 @@ HPEL sse2
 HPEL ssse3
 %endif
 
-cglobal x264_sfence
-    sfence
-    ret
-
 %undef movntq
 %undef movntps
 %undef sfence
 
 ;-----------------------------------------------------------------------------
-; void x264_plane_copy_core_mmxext( uint8_t *dst, int i_dst,
-;                                   uint8_t *src, int i_src, int w, int h)
+; void plane_copy_core( uint8_t *dst, int i_dst,
+;                       uint8_t *src, int i_src, int w, int h)
 ;-----------------------------------------------------------------------------
 ; assumes i_dst and w are multiples of 16, and i_dst>w
-cglobal x264_plane_copy_core_mmxext, 6,7
+cglobal plane_copy_core_mmxext, 6,7
     movsxdifnidn r1, r1d
     movsxdifnidn r3, r3d
     movsxdifnidn r4, r4d
@@ -699,9 +695,9 @@ cglobal x264_plane_copy_core_mmxext, 6,7
 ; memzero SSE will fail for non-mod128.
 
 ;-----------------------------------------------------------------------------
-; void *x264_memcpy_aligned_mmx( void *dst, const void *src, size_t n );
+; void *memcpy_aligned( void *dst, const void *src, size_t n );
 ;-----------------------------------------------------------------------------
-cglobal x264_memcpy_aligned_mmx, 3,3
+cglobal memcpy_aligned_mmx, 3,3
     test r2d, 16
     jz .copy32
     sub r2d, 16
@@ -723,9 +719,9 @@ cglobal x264_memcpy_aligned_mmx, 3,3
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void *x264_memcpy_aligned_sse2( void *dst, const void *src, size_t n );
+; void *memcpy_aligned( void *dst, const void *src, size_t n );
 ;-----------------------------------------------------------------------------
-cglobal x264_memcpy_aligned_sse2, 3,3
+cglobal memcpy_aligned_sse2, 3,3
     test r2d, 16
     jz .copy32
     sub r2d, 16
@@ -753,10 +749,10 @@ cglobal x264_memcpy_aligned_sse2, 3,3
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void *x264_memzero_aligned( void *dst, size_t n );
+; void *memzero_aligned( void *dst, size_t n );
 ;-----------------------------------------------------------------------------
 %macro MEMZERO 1
-cglobal x264_memzero_aligned_%1, 2,2
+cglobal memzero_aligned_%1, 2,2
     add  r0, r1
     neg  r1
     pxor m0, m0
@@ -779,9 +775,9 @@ MEMZERO sse2
 
 
 ;-----------------------------------------------------------------------------
-; void x264_integral_init4h_sse4( uint16_t *sum, uint8_t *pix, int stride )
+; void integral_init4h( uint16_t *sum, uint8_t *pix, int stride )
 ;-----------------------------------------------------------------------------
-cglobal x264_integral_init4h_sse4, 3,4
+cglobal integral_init4h_sse4, 3,4
     lea     r3, [r0+r2*2]
     add     r1, r2
     neg     r2
@@ -800,7 +796,7 @@ cglobal x264_integral_init4h_sse4, 3,4
     jl .loop
     REP_RET
 
-cglobal x264_integral_init8h_sse4, 3,4
+cglobal integral_init8h_sse4, 3,4
     lea     r3, [r0+r2*2]
     add     r1, r2
     neg     r2
@@ -827,9 +823,9 @@ cglobal x264_integral_init8h_sse4, 3,4
 
 %macro INTEGRAL_INIT_8V 1
 ;-----------------------------------------------------------------------------
-; void x264_integral_init8v_mmx( uint16_t *sum8, int stride )
+; void integral_init8v( uint16_t *sum8, int stride )
 ;-----------------------------------------------------------------------------
-cglobal x264_integral_init8v_%1, 3,3
+cglobal integral_init8v_%1, 3,3
     shl   r1, 1
     add   r0, r1
     lea   r2, [r0+r1*8]
@@ -852,10 +848,10 @@ INIT_XMM
 INTEGRAL_INIT_8V sse2
 
 ;-----------------------------------------------------------------------------
-; void x264_integral_init4v_mmx( uint16_t *sum8, uint16_t *sum4, int stride )
+; void integral_init4v( uint16_t *sum8, uint16_t *sum4, int stride )
 ;-----------------------------------------------------------------------------
 INIT_MMX
-cglobal x264_integral_init4v_mmx, 3,5
+cglobal integral_init4v_mmx, 3,5
     shl   r2, 1
     lea   r3, [r0+r2*4]
     lea   r4, [r0+r2*8]
@@ -877,7 +873,7 @@ cglobal x264_integral_init4v_mmx, 3,5
     REP_RET
 
 INIT_XMM
-cglobal x264_integral_init4v_sse2, 3,5
+cglobal integral_init4v_sse2, 3,5
     shl     r2, 1
     add     r0, r2
     add     r1, r2
@@ -902,7 +898,7 @@ cglobal x264_integral_init4v_sse2, 3,5
     jl .loop
     REP_RET
 
-cglobal x264_integral_init4v_ssse3, 3,5
+cglobal integral_init4v_ssse3, 3,5
     shl     r2, 1
     add     r0, r2
     add     r1, r2
@@ -994,7 +990,7 @@ cglobal x264_integral_init4v_ssse3, 3,5
 ;                              int src_stride, int dst_stride, int width, int height )
 ;-----------------------------------------------------------------------------
 %macro FRAME_INIT_LOWRES 1-2 0 ; FIXME
-cglobal x264_frame_init_lowres_core_%1, 6,7,%2
+cglobal frame_init_lowres_core_%1, 6,7,%2
 %ifdef WIN64
     movsxd   r5, r5d
 %endif
@@ -1115,7 +1111,7 @@ FRAME_INIT_LOWRES ssse3, 12
 ; void mbtree_propagate_cost( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
 ;                             uint16_t *inter_costs, uint16_t *inv_qscales, int len )
 ;-----------------------------------------------------------------------------
-cglobal x264_mbtree_propagate_cost_sse2, 6,6
+cglobal mbtree_propagate_cost_sse2, 6,6
     shl r5d, 1
     lea r0, [r0+r5*2]
     add r1, r5
@@ -1135,7 +1131,7 @@ cglobal x264_mbtree_propagate_cost_sse2, 6,6
     psrld     xmm0, 8       ; intra*invq>>8
     movq      xmm3, [r3+r5] ; inter
     movq      xmm1, [r1+r5] ; prop
-    pand      xmm3, [pw_0x3fff]
+    pand      xmm3, [pw_3fff]
     punpcklwd xmm1, xmm5
     punpcklwd xmm3, xmm5
     paddd     xmm0, xmm1    ; prop + (intra*invq>>8)

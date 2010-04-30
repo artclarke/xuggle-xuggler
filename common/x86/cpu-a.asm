@@ -29,9 +29,9 @@ SECTION .text
 %ifdef ARCH_X86_64
 
 ;-----------------------------------------------------------------------------
-; int x264_cpu_cpuid( int op, int *eax, int *ebx, int *ecx, int *edx )
+; int cpu_cpuid( int op, int *eax, int *ebx, int *ecx, int *edx )
 ;-----------------------------------------------------------------------------
-cglobal x264_cpu_cpuid, 5,7
+cglobal cpu_cpuid, 5,7
     push    rbx
     mov     r11,   r1
     mov     r10,   r2
@@ -49,10 +49,10 @@ cglobal x264_cpu_cpuid, 5,7
 %else
 
 ;-----------------------------------------------------------------------------
-; int x264_cpu_cpuid_test( void )
+; int cpu_cpuid_test( void )
 ; return 0 if unsupported
 ;-----------------------------------------------------------------------------
-cglobal x264_cpu_cpuid_test
+cglobal cpu_cpuid_test
     pushfd
     push    ebx
     push    ebp
@@ -75,9 +75,9 @@ cglobal x264_cpu_cpuid_test
     ret
 
 ;-----------------------------------------------------------------------------
-; int x264_cpu_cpuid( int op, int *eax, int *ebx, int *ecx, int *edx )
+; int cpu_cpuid( int op, int *eax, int *ebx, int *ecx, int *edx )
 ;-----------------------------------------------------------------------------
-cglobal x264_cpu_cpuid, 0,6
+cglobal cpu_cpuid, 0,6
     mov     eax,    r0m
     cpuid
     mov     esi,    r1m
@@ -91,9 +91,9 @@ cglobal x264_cpu_cpuid, 0,6
     RET
 
 ;-----------------------------------------------------------------------------
-; void x264_stack_align( void (*func)(void*), void *arg );
+; void stack_align( void (*func)(void*), void *arg );
 ;-----------------------------------------------------------------------------
-cglobal x264_stack_align
+cglobal stack_align
     push ebp
     mov  ebp, esp
     sub  esp, 8
@@ -110,16 +110,23 @@ cglobal x264_stack_align
 %endif
 
 ;-----------------------------------------------------------------------------
-; void x264_emms( void )
+; void cpu_emms( void )
 ;-----------------------------------------------------------------------------
-cglobal x264_emms
+cglobal cpu_emms
     emms
     ret
 
 ;-----------------------------------------------------------------------------
-; void x264_cpu_mask_misalign_sse(void)
+; void cpu_sfence( void )
 ;-----------------------------------------------------------------------------
-cglobal x264_cpu_mask_misalign_sse
+cglobal cpu_sfence
+    sfence
+    ret
+
+;-----------------------------------------------------------------------------
+; void cpu_mask_misalign_sse( void )
+;-----------------------------------------------------------------------------
+cglobal cpu_mask_misalign_sse
     sub   rsp, 4
     stmxcsr [rsp]
     or dword [rsp], 1<<17

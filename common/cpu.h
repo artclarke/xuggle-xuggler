@@ -23,7 +23,14 @@
 
 uint32_t x264_cpu_detect( void );
 int      x264_cpu_num_processors( void );
-void     x264_emms( void );
+void     x264_cpu_emms( void );
+void     x264_cpu_sfence( void );
+#ifdef HAVE_MMX
+#define x264_emms() x264_cpu_emms()
+#else
+#define x264_emms()
+#endif
+#define x264_sfence x264_cpu_sfence
 void     x264_cpu_mask_misalign_sse( void );
 
 /* kluge:

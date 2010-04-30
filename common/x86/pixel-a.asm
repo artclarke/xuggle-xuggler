@@ -27,17 +27,14 @@
 %include "x86inc.asm"
 %include "x86util.asm"
 
-SECTION_RODATA
-pw_1:      times 8 dw 1
-pw_00ff:   times 8 dw 0xff
-ssim_c1:   times 4 dd 416    ; .01*.01*255*255*64
-ssim_c2:   times 4 dd 235963 ; .03*.03*255*255*64*63
+SECTION_RODATA 32
 mask_ff:   times 16 db 0xff
            times 16 db 0
+ssim_c1:   times 4 dd 416    ; .01*.01*255*255*64
+ssim_c2:   times 4 dd 235963 ; .03*.03*255*255*64*63
 mask_ac4:  dw 0, -1, -1, -1, 0, -1, -1, -1
 mask_ac4b: dw 0, -1, 0, -1, -1, -1, -1, -1
 mask_ac8:  dw 0, -1, -1, -1, -1, -1, -1, -1
-hsub_mul:  times 8 db 1, -1
 hmul_4p:   times 2 db 1, 1, 1, 1, 1, -1, 1, -1
 hmul_8p:   times 8 db 1
            times 4 db 1, -1
@@ -45,6 +42,11 @@ mask_10:   times 4 dw 0, -1
 mask_1100: times 2 dd 0, -1
 
 SECTION .text
+
+cextern pw_1
+cextern pw_00ff
+
+cextern hsub_mul
 
 %macro HADDD 2 ; sum junk
 %if mmsize == 16
@@ -213,7 +215,7 @@ SECTION .text
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; int x264_pixel_ssd_16x16_mmx( uint8_t *, int, uint8_t *, int )
+; int pixel_ssd_16x16( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
 %macro SSD 3-4 0
 %if %1 != %2
@@ -221,7 +223,7 @@ SECTION .text
 %else
     %assign function_align 16
 %endif
-cglobal x264_pixel_ssd_%1x%2_%3, 0,0,0
+cglobal pixel_ssd_%1x%2_%3, 0,0,0
     mov     al, %1*%2/mmsize/2
 
 %if %1 != %2
@@ -365,21 +367,21 @@ SSD  4,  8, ssse3
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; int x264_pixel_var_wxh_mmxext( uint8_t *, int )
+; int pixel_var_wxh( uint8_t *, int )
 ;-----------------------------------------------------------------------------
 INIT_MMX
-cglobal x264_pixel_var_16x16_mmxext, 2,3
+cglobal pixel_var_16x16_mmxext, 2,3
     VAR_START 0
     VAR_2ROW 8, 16
     VAR_END
 
-cglobal x264_pixel_var_8x8_mmxext, 2,3
+cglobal pixel_var_8x8_mmxext, 2,3
     VAR_START 0
     VAR_2ROW r1, 4
     VAR_END
 
 INIT_XMM
-cglobal x264_pixel_var_16x16_sse2, 2,3,8
+cglobal pixel_var_16x16_sse2, 2,3,8
     VAR_START 1
     mov      r2d, 8
 .loop:
@@ -392,7 +394,7 @@ cglobal x264_pixel_var_16x16_sse2, 2,3,8
     jg .loop
     VAR_END
 
-cglobal x264_pixel_var_8x8_sse2, 2,4,8
+cglobal pixel_var_8x8_sse2, 2,4,8
     VAR_START 1
     mov      r2d, 2
     lea       r3, [r1*3]
@@ -421,11 +423,11 @@ cglobal x264_pixel_var_8x8_sse2, 2,4,8
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; int x264_pixel_var2_8x8_mmxext( uint8_t *, int, uint8_t *, int, int * )
+; int pixel_var2_8x8( uint8_t *, int, uint8_t *, int, int * )
 ;-----------------------------------------------------------------------------
 %ifndef ARCH_X86_64
 INIT_MMX
-cglobal x264_pixel_var2_8x8_mmxext, 5,6
+cglobal pixel_var2_8x8_mmxext, 5,6
     VAR_START 0
     mov      r5d, 8
 .loop:
@@ -455,7 +457,7 @@ cglobal x264_pixel_var2_8x8_mmxext, 5,6
 %endif
 
 INIT_XMM
-cglobal x264_pixel_var2_8x8_sse2, 5,6,8
+cglobal pixel_var2_8x8_sse2, 5,6,8
     VAR_START 1
     mov      r5d, 4
 .loop:
@@ -479,7 +481,7 @@ cglobal x264_pixel_var2_8x8_sse2, 5,6,8
     VAR2_END
     RET
 
-cglobal x264_pixel_var2_8x8_ssse3, 5,6,8
+cglobal pixel_var2_8x8_ssse3, 5,6,8
     pxor      m5, m5    ; sum
     pxor      m6, m6    ; sum squared
     mova      m7, [hsub_mul]
@@ -692,10 +694,10 @@ cglobal x264_pixel_var2_8x8_ssse3, 5,6,8
 ; for small blocks on x86_32, modify pixel pointer instead.
 
 ;-----------------------------------------------------------------------------
-; int x264_pixel_satd_16x16_mmxext (uint8_t *, int, uint8_t *, int )
+; int pixel_satd_16x16( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
 INIT_MMX
-cglobal x264_pixel_satd_16x4_internal_mmxext
+cglobal pixel_satd_16x4_internal_mmxext
     SATD_4x4_MMX m2,  0, 0
     SATD_4x4_MMX m1,  4, 0
     paddw        m0, m2
@@ -706,69 +708,69 @@ cglobal x264_pixel_satd_16x4_internal_mmxext
     paddw        m0, m1
     ret
 
-cglobal x264_pixel_satd_8x8_internal_mmxext
+cglobal pixel_satd_8x8_internal_mmxext
     SATD_4x4_MMX m2,  0, 0
     SATD_4x4_MMX m1,  4, 1
     paddw        m0, m2
     paddw        m0, m1
-x264_pixel_satd_8x4_internal_mmxext:
+pixel_satd_8x4_internal_mmxext:
     SATD_4x4_MMX m2,  0, 0
     SATD_4x4_MMX m1,  4, 0
     paddw        m0, m2
     paddw        m0, m1
     ret
 
-cglobal x264_pixel_satd_16x16_mmxext, 4,6
+cglobal pixel_satd_16x16_mmxext, 4,6
     SATD_START_MMX
     pxor   m0, m0
 %rep 3
-    call x264_pixel_satd_16x4_internal_mmxext
+    call pixel_satd_16x4_internal_mmxext
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
 %endrep
-    call x264_pixel_satd_16x4_internal_mmxext
+    call pixel_satd_16x4_internal_mmxext
     HADDUW m0, m1
     movd  eax, m0
     RET
 
-cglobal x264_pixel_satd_16x8_mmxext, 4,6
+cglobal pixel_satd_16x8_mmxext, 4,6
     SATD_START_MMX
     pxor   m0, m0
-    call x264_pixel_satd_16x4_internal_mmxext
+    call pixel_satd_16x4_internal_mmxext
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
-    call x264_pixel_satd_16x4_internal_mmxext
+    call pixel_satd_16x4_internal_mmxext
     SATD_END_MMX
 
-cglobal x264_pixel_satd_8x16_mmxext, 4,6
+cglobal pixel_satd_8x16_mmxext, 4,6
     SATD_START_MMX
     pxor   m0, m0
-    call x264_pixel_satd_8x8_internal_mmxext
+    call pixel_satd_8x8_internal_mmxext
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
-    call x264_pixel_satd_8x8_internal_mmxext
+    call pixel_satd_8x8_internal_mmxext
     SATD_END_MMX
 
-cglobal x264_pixel_satd_8x8_mmxext, 4,6
+cglobal pixel_satd_8x8_mmxext, 4,6
     SATD_START_MMX
     pxor   m0, m0
-    call x264_pixel_satd_8x8_internal_mmxext
+    call pixel_satd_8x8_internal_mmxext
     SATD_END_MMX
 
-cglobal x264_pixel_satd_8x4_mmxext, 4,6
+cglobal pixel_satd_8x4_mmxext, 4,6
     SATD_START_MMX
     pxor   m0, m0
-    call x264_pixel_satd_8x4_internal_mmxext
+    call pixel_satd_8x4_internal_mmxext
     SATD_END_MMX
 
-cglobal x264_pixel_satd_4x8_mmxext, 4,6
+cglobal pixel_satd_4x8_mmxext, 4,6
     SATD_START_MMX
     SATD_4x4_MMX m0, 0, 1
     SATD_4x4_MMX m1, 0, 0
     paddw  m0, m1
     SATD_END_MMX
 
-cglobal x264_pixel_satd_4x4_mmxext, 4,6
+cglobal pixel_satd_4x4_mmxext, 4,6
     SATD_START_MMX
     SATD_4x4_MMX m0, 0, 0
     SATD_END_MMX
@@ -808,12 +810,12 @@ cglobal x264_pixel_satd_4x4_mmxext, 4,6
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; int x264_pixel_satd_8x4_sse2 (uint8_t *, int, uint8_t *, int )
+; int pixel_satd_8x4( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
 %macro SATDS_SSE2 1
 INIT_XMM
 %ifnidn %1, sse2
-cglobal x264_pixel_satd_4x4_%1, 4, 6, 6
+cglobal pixel_satd_4x4_%1, 4, 6, 6
     SATD_START_MMX
     mova m4, [hmul_4p]
     LOAD_DUP_2x4P m2, m5, [r2], [r2+r3]
@@ -829,7 +831,7 @@ cglobal x264_pixel_satd_4x4_%1, 4, 6, 6
     RET
 %endif
 
-cglobal x264_pixel_satd_4x8_%1, 4, 6, 8
+cglobal pixel_satd_4x8_%1, 4, 6, 8
     SATD_START_MMX
 %ifnidn %1, sse2
     mova m7, [hmul_4p]
@@ -869,16 +871,16 @@ cglobal x264_pixel_satd_4x8_%1, 4, 6, 8
     movd eax, m6
     RET
 
-cglobal x264_pixel_satd_8x8_internal_%1
+cglobal pixel_satd_8x8_internal_%1
     LOAD_SUMSUB_8x4P 0, 1, 2, 3, 4, 5, 7, r0, r2, 1
     SATD_8x4_SSE %1, 0, 1, 2, 3, 4, 5, 6
-x264_pixel_satd_8x4_internal_%1:
+pixel_satd_8x4_internal_%1:
     LOAD_SUMSUB_8x4P 0, 1, 2, 3, 4, 5, 7, r0, r2, 1
     SATD_8x4_SSE %1, 0, 1, 2, 3, 4, 5, 6
     ret
 
 %ifdef UNIX64 ; 16x8 regresses on phenom win64, 16x16 is almost the same
-cglobal x264_pixel_satd_16x4_internal_%1
+cglobal pixel_satd_16x4_internal_%1
     LOAD_SUMSUB_16x4P 0, 1, 2, 3, 4, 8, 5, 9, 6, 7, r0, r2, 11
     lea  r2, [r2+4*r3]
     lea  r0, [r0+4*r1]
@@ -886,67 +888,67 @@ cglobal x264_pixel_satd_16x4_internal_%1
     SATD_8x4_SSE ssse3, 4, 8, 5, 9, 6, 3, 10
     ret
 
-cglobal x264_pixel_satd_16x8_%1, 4,6,12
+cglobal pixel_satd_16x8_%1, 4,6,12
     SATD_START_SSE2 %1, m10, m7
 %ifidn %1, sse2
     mova m7, [pw_00ff]
 %endif
-    jmp x264_pixel_satd_16x8_internal_%1
+    jmp pixel_satd_16x8_internal_%1
 
-cglobal x264_pixel_satd_16x16_%1, 4,6,12
+cglobal pixel_satd_16x16_%1, 4,6,12
     SATD_START_SSE2 %1, m10, m7
 %ifidn %1, sse2
     mova m7, [pw_00ff]
 %endif
-    call x264_pixel_satd_16x4_internal_%1
-    call x264_pixel_satd_16x4_internal_%1
-x264_pixel_satd_16x8_internal_%1:
-    call x264_pixel_satd_16x4_internal_%1
-    call x264_pixel_satd_16x4_internal_%1
+    call pixel_satd_16x4_internal_%1
+    call pixel_satd_16x4_internal_%1
+pixel_satd_16x8_internal_%1:
+    call pixel_satd_16x4_internal_%1
+    call pixel_satd_16x4_internal_%1
     SATD_END_SSE2 %1, m10
 %else
-cglobal x264_pixel_satd_16x8_%1, 4,6,8
+cglobal pixel_satd_16x8_%1, 4,6,8
     SATD_START_SSE2 %1, m6, m7
     BACKUP_POINTERS
-    call x264_pixel_satd_8x8_internal_%1
+    call pixel_satd_8x8_internal_%1
     RESTORE_AND_INC_POINTERS
-    call x264_pixel_satd_8x8_internal_%1
+    call pixel_satd_8x8_internal_%1
     SATD_END_SSE2 %1, m6
 
-cglobal x264_pixel_satd_16x16_%1, 4,6,8
+cglobal pixel_satd_16x16_%1, 4,6,8
     SATD_START_SSE2 %1, m6, m7
     BACKUP_POINTERS
-    call x264_pixel_satd_8x8_internal_%1
-    call x264_pixel_satd_8x8_internal_%1
+    call pixel_satd_8x8_internal_%1
+    call pixel_satd_8x8_internal_%1
     RESTORE_AND_INC_POINTERS
-    call x264_pixel_satd_8x8_internal_%1
-    call x264_pixel_satd_8x8_internal_%1
+    call pixel_satd_8x8_internal_%1
+    call pixel_satd_8x8_internal_%1
     SATD_END_SSE2 %1, m6
 %endif
 
-cglobal x264_pixel_satd_8x16_%1, 4,6,8
+cglobal pixel_satd_8x16_%1, 4,6,8
     SATD_START_SSE2 %1, m6, m7
-    call x264_pixel_satd_8x8_internal_%1
-    call x264_pixel_satd_8x8_internal_%1
+    call pixel_satd_8x8_internal_%1
+    call pixel_satd_8x8_internal_%1
     SATD_END_SSE2 %1, m6
 
-cglobal x264_pixel_satd_8x8_%1, 4,6,8
+cglobal pixel_satd_8x8_%1, 4,6,8
     SATD_START_SSE2 %1, m6, m7
-    call x264_pixel_satd_8x8_internal_%1
+    call pixel_satd_8x8_internal_%1
     SATD_END_SSE2 %1, m6
 
-cglobal x264_pixel_satd_8x4_%1, 4,6,8
+cglobal pixel_satd_8x4_%1, 4,6,8
     SATD_START_SSE2 %1, m6, m7
-    call x264_pixel_satd_8x4_internal_%1
+    call pixel_satd_8x4_internal_%1
     SATD_END_SSE2 %1, m6
 %endmacro ; SATDS_SSE2
 
 %macro SA8D 1
 %ifdef ARCH_X86_64
 ;-----------------------------------------------------------------------------
-; int x264_pixel_sa8d_8x8_sse2( uint8_t *, int, uint8_t *, int )
+; int pixel_sa8d_8x8( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_sa8d_8x8_internal_%1
+cglobal pixel_sa8d_8x8_internal_%1
     lea  r10, [r0+4*r1]
     lea  r11, [r2+4*r3]
     LOAD_SUMSUB_8x4P 0, 1, 2, 8, 5, 6, 7, r0, r2
@@ -970,41 +972,41 @@ cglobal x264_pixel_sa8d_8x8_internal_%1
     paddw m0, m1
     paddw m0, m2
     paddw m0, m8
-    SAVE_MM_PERMUTATION x264_pixel_sa8d_8x8_internal_%1
+    SAVE_MM_PERMUTATION pixel_sa8d_8x8_internal_%1
     ret
 
-cglobal x264_pixel_sa8d_8x8_%1, 4,6,12
+cglobal pixel_sa8d_8x8_%1, 4,6,12
     lea  r4, [3*r1]
     lea  r5, [3*r3]
 %ifnidn %1, sse2
     mova m7, [hmul_8p]
 %endif
-    call x264_pixel_sa8d_8x8_internal_%1
+    call pixel_sa8d_8x8_internal_%1
     HADDW m0, m1
     movd eax, m0
     add eax, 1
     shr eax, 1
     RET
 
-cglobal x264_pixel_sa8d_16x16_%1, 4,6,12
+cglobal pixel_sa8d_16x16_%1, 4,6,12
     lea  r4, [3*r1]
     lea  r5, [3*r3]
 %ifnidn %1, sse2
     mova m7, [hmul_8p]
 %endif
-    call x264_pixel_sa8d_8x8_internal_%1 ; pix[0]
+    call pixel_sa8d_8x8_internal_%1 ; pix[0]
     add  r2, 8
     add  r0, 8
     mova m10, m0
-    call x264_pixel_sa8d_8x8_internal_%1 ; pix[8]
+    call pixel_sa8d_8x8_internal_%1 ; pix[8]
     lea  r2, [r2+8*r3]
     lea  r0, [r0+8*r1]
     paddusw m10, m0
-    call x264_pixel_sa8d_8x8_internal_%1 ; pix[8*stride+8]
+    call pixel_sa8d_8x8_internal_%1 ; pix[8*stride+8]
     sub  r2, 8
     sub  r0, 8
     paddusw m10, m0
-    call x264_pixel_sa8d_8x8_internal_%1 ; pix[8*stride]
+    call pixel_sa8d_8x8_internal_%1 ; pix[8*stride]
     paddusw m0, m10
     HADDUW m0, m1
     movd eax, m0
@@ -1014,7 +1016,7 @@ cglobal x264_pixel_sa8d_16x16_%1, 4,6,12
 
 %else ; ARCH_X86_32
 %ifnidn %1, mmxext
-cglobal x264_pixel_sa8d_8x8_internal_%1
+cglobal pixel_sa8d_8x8_internal_%1
     %define spill0 [esp+4]
     %define spill1 [esp+20]
     %define spill2 [esp+36]
@@ -1064,13 +1066,13 @@ cglobal x264_pixel_sa8d_8x8_internal_%1
     ret
 %endif ; ifndef mmxext
 
-cglobal x264_pixel_sa8d_8x8_%1, 4,7
+cglobal pixel_sa8d_8x8_%1, 4,7
     mov  r6, esp
     and  esp, ~15
     sub  esp, 48
     lea  r4, [3*r1]
     lea  r5, [3*r3]
-    call x264_pixel_sa8d_8x8_internal_%1
+    call pixel_sa8d_8x8_internal_%1
     HADDW m0, m1
     movd eax, m0
     add  eax, 1
@@ -1078,26 +1080,26 @@ cglobal x264_pixel_sa8d_8x8_%1, 4,7
     mov  esp, r6
     RET
 
-cglobal x264_pixel_sa8d_16x16_%1, 4,7
+cglobal pixel_sa8d_16x16_%1, 4,7
     mov  r6, esp
     and  esp, ~15
     sub  esp, 64
     lea  r4, [3*r1]
     lea  r5, [3*r3]
-    call x264_pixel_sa8d_8x8_internal_%1
+    call pixel_sa8d_8x8_internal_%1
 %ifidn %1, mmxext
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
 %endif
     mova [esp+48], m0
-    call x264_pixel_sa8d_8x8_internal_%1
+    call pixel_sa8d_8x8_internal_%1
     mov  r0, [r6+20]
     mov  r2, [r6+28]
     add  r0, 8
     add  r2, 8
     paddusw m0, [esp+48]
     mova [esp+48], m0
-    call x264_pixel_sa8d_8x8_internal_%1
+    call pixel_sa8d_8x8_internal_%1
 %ifidn %1, mmxext
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
@@ -1106,7 +1108,7 @@ cglobal x264_pixel_sa8d_16x16_%1, 4,7
     paddusw m0, [esp+48]
 %endif
     mova [esp+64-mmsize], m0
-    call x264_pixel_sa8d_8x8_internal_%1
+    call pixel_sa8d_8x8_internal_%1
     paddusw m0, [esp+64-mmsize]
 %if mmsize == 16
     HADDUW m0, m1
@@ -1140,9 +1142,9 @@ cglobal x264_pixel_sa8d_16x16_%1, 4,7
 %ifdef ARCH_X86_64
 INIT_XMM
 ;-----------------------------------------------------------------------------
-; void x264_intra_sa8d_x3_8x8_core_sse2( uint8_t *fenc, int16_t edges[2][8], int *res )
+; void intra_sa8d_x3_8x8_core( uint8_t *fenc, int16_t edges[2][8], int *res )
 ;-----------------------------------------------------------------------------
-cglobal x264_intra_sa8d_x3_8x8_core_%1, 3,3,16
+cglobal intra_sa8d_x3_8x8_core_%1, 3,3,16
     ; 8x8 hadamard
     pxor        m8, m8
     movq        m0, [r0+0*FENC_STRIDE]
@@ -1247,7 +1249,7 @@ cglobal x264_intra_sa8d_x3_8x8_core_%1, 3,3,16
 ; in: r0 = fenc
 ; out: m0..m3 = hadamard coefs
 INIT_MMX
-cglobal x264_hadamard_load
+cglobal hadamard_load
 ; not really a global, but otherwise cycles get attributed to the wrong function in profiling
     pxor        m7, m7
     movd        m0, [r0+0*FENC_STRIDE]
@@ -1259,7 +1261,7 @@ cglobal x264_hadamard_load
     punpcklbw   m2, m7
     punpcklbw   m3, m7
     HADAMARD4_2D 0, 1, 2, 3, 4
-    SAVE_MM_PERMUTATION x264_hadamard_load
+    SAVE_MM_PERMUTATION hadamard_load
     ret
 
 %macro SCALAR_SUMSUB 4
@@ -1377,9 +1379,9 @@ cglobal x264_hadamard_load
 %macro INTRA_SATDS_MMX 1
 INIT_MMX
 ;-----------------------------------------------------------------------------
-; void x264_intra_satd_x3_4x4_mmxext( uint8_t *fenc, uint8_t *fdec, int *res )
+; void intra_satd_x3_4x4( uint8_t *fenc, uint8_t *fdec, int *res )
 ;-----------------------------------------------------------------------------
-cglobal x264_intra_satd_x3_4x4_%1, 2,6
+cglobal intra_satd_x3_4x4_%1, 2,6
 %ifdef ARCH_X86_64
     ; stack is 16 byte aligned because abi says so
     %define  top_1d  rsp-8  ; size 8
@@ -1393,7 +1395,7 @@ cglobal x264_intra_satd_x3_4x4_%1, 2,6
     %define  t0 r2
 %endif
 
-    call x264_hadamard_load
+    call hadamard_load
     SCALAR_HADAMARD_LEFT 0, r0, r3, r4, r5
     mov         t0d, r0d
     SCALAR_HADAMARD_TOP  0, r0, r3, r4, r5
@@ -1430,9 +1432,9 @@ cglobal x264_intra_satd_x3_4x4_%1, 2,6
 %endif
 
 ;-----------------------------------------------------------------------------
-; void x264_intra_satd_x3_16x16_mmxext( uint8_t *fenc, uint8_t *fdec, int *res )
+; void intra_satd_x3_16x16( uint8_t *fenc, uint8_t *fdec, int *res )
 ;-----------------------------------------------------------------------------
-cglobal x264_intra_satd_x3_16x16_%1, 0,7
+cglobal intra_satd_x3_16x16_%1, 0,7
 %ifdef ARCH_X86_64
     %assign  stack_pad  88
 %else
@@ -1466,7 +1468,7 @@ cglobal x264_intra_satd_x3_16x16_%1, 0,7
 .loop_y:
     xor         r4d, r4d
 .loop_x:
-    call x264_hadamard_load
+    call hadamard_load
 
     SUM3x4 %1
     SUM4x3 t2d, [left_1d+8*r3], [top_1d+8*r4]
@@ -1507,9 +1509,9 @@ cglobal x264_intra_satd_x3_16x16_%1, 0,7
     RET
 
 ;-----------------------------------------------------------------------------
-; void x264_intra_satd_x3_8x8c_mmxext( uint8_t *fenc, uint8_t *fdec, int *res )
+; void intra_satd_x3_8x8c( uint8_t *fenc, uint8_t *fdec, int *res )
 ;-----------------------------------------------------------------------------
-cglobal x264_intra_satd_x3_8x8c_%1, 0,6
+cglobal intra_satd_x3_8x8c_%1, 0,6
     ; not really needed on x86_64, just shuts up valgrind about storing data below the stack across a function call
     SUB          rsp, 72
 %define  sums    rsp+48 ; size 24
@@ -1555,7 +1557,7 @@ cglobal x264_intra_satd_x3_8x8c_%1, 0,6
 .loop_y:
     xor         r4d, r4d
 .loop_x:
-    call x264_hadamard_load
+    call hadamard_load
 
     SUM3x4 %1
     SUM4x3 [r5+4*r4], [left_1d+8*r3], [top_1d+8*r4]
@@ -1609,7 +1611,7 @@ cglobal x264_intra_satd_x3_8x8c_%1, 0,6
 
 ; in:  r0=pix, r1=stride, r2=stride*3, r3=tmp, m6=mask_ac4, m7=0
 ; out: [tmp]=hadamard4, m0=satd
-cglobal x264_hadamard_ac_4x4_mmxext
+cglobal hadamard_ac_4x4_mmxext
     movh      m0, [r0]
     movh      m1, [r0+r1]
     movh      m2, [r0+r1*2]
@@ -1631,10 +1633,10 @@ cglobal x264_hadamard_ac_4x4_mmxext
     paddw     m0, m1
     paddw     m2, m3
     paddw     m0, m2
-    SAVE_MM_PERMUTATION x264_hadamard_ac_4x4_mmxext
+    SAVE_MM_PERMUTATION hadamard_ac_4x4_mmxext
     ret
 
-cglobal x264_hadamard_ac_2x2max_mmxext
+cglobal hadamard_ac_2x2max_mmxext
     mova      m0, [r3+0x00]
     mova      m1, [r3+0x20]
     mova      m2, [r3+0x40]
@@ -1646,30 +1648,30 @@ cglobal x264_hadamard_ac_2x2max_mmxext
     HADAMARD 0, max, 1, 3, 4, 5
     paddw     m7, m0
     paddw     m7, m1
-    SAVE_MM_PERMUTATION x264_hadamard_ac_2x2max_mmxext
+    SAVE_MM_PERMUTATION hadamard_ac_2x2max_mmxext
     ret
 
-cglobal x264_hadamard_ac_8x8_mmxext
+cglobal hadamard_ac_8x8_mmxext
     mova      m6, [mask_ac4]
     pxor      m7, m7
-    call x264_hadamard_ac_4x4_mmxext
+    call hadamard_ac_4x4_mmxext
     add       r0, 4
     add       r3, 32
     mova      m5, m0
-    call x264_hadamard_ac_4x4_mmxext
+    call hadamard_ac_4x4_mmxext
     lea       r0, [r0+4*r1]
     add       r3, 64
     paddw     m5, m0
-    call x264_hadamard_ac_4x4_mmxext
+    call hadamard_ac_4x4_mmxext
     sub       r0, 4
     sub       r3, 32
     paddw     m5, m0
-    call x264_hadamard_ac_4x4_mmxext
+    call hadamard_ac_4x4_mmxext
     paddw     m5, m0
     sub       r3, 40
     mova [rsp+gprsize+8], m5 ; save satd
 %rep 3
-    call x264_hadamard_ac_2x2max_mmxext
+    call hadamard_ac_2x2max_mmxext
 %endrep
     mova      m0, [r3+0x00]
     mova      m1, [r3+0x20]
@@ -1686,33 +1688,33 @@ cglobal x264_hadamard_ac_8x8_mmxext
     paddw     m6, m7
     mova [rsp+gprsize], m6 ; save sa8d
     SWAP      m0, m6
-    SAVE_MM_PERMUTATION x264_hadamard_ac_8x8_mmxext
+    SAVE_MM_PERMUTATION hadamard_ac_8x8_mmxext
     ret
 
 %macro HADAMARD_AC_WXH_MMX 2
-cglobal x264_pixel_hadamard_ac_%1x%2_mmxext, 2,4
+cglobal pixel_hadamard_ac_%1x%2_mmxext, 2,4
     %assign pad 16-gprsize-(stack_offset&15)
     %define ysub r1
     sub  rsp, 16+128+pad
     lea  r2, [r1*3]
     lea  r3, [rsp+16]
-    call x264_hadamard_ac_8x8_mmxext
+    call hadamard_ac_8x8_mmxext
 %if %2==16
     %define ysub r2
     lea  r0, [r0+r1*4]
     sub  rsp, 16
-    call x264_hadamard_ac_8x8_mmxext
+    call hadamard_ac_8x8_mmxext
 %endif
 %if %1==16
     neg  ysub
     sub  rsp, 16
     lea  r0, [r0+ysub*4+8]
     neg  ysub
-    call x264_hadamard_ac_8x8_mmxext
+    call hadamard_ac_8x8_mmxext
 %if %2==16
     lea  r0, [r0+r1*4]
     sub  rsp, 16
-    call x264_hadamard_ac_8x8_mmxext
+    call hadamard_ac_8x8_mmxext
 %endif
 %endif
     mova    m1, [rsp+0x08]
@@ -1779,7 +1781,7 @@ HADAMARD_AC_WXH_MMX  8,  8
 INIT_XMM
 ; in:  r0=pix, r1=stride, r2=stride*3
 ; out: [esp+16]=sa8d, [esp+32]=satd, r0+=stride*4
-cglobal x264_hadamard_ac_8x8_%1
+cglobal hadamard_ac_8x8_%1
 %ifdef ARCH_X86_64
     %define spill0 m8
     %define spill1 m9
@@ -1883,7 +1885,7 @@ cglobal x264_hadamard_ac_8x8_%1
     paddw m2, m4
     paddw m0, m2
     mova  [rsp+gprsize+16], m0 ; save sa8d
-    SAVE_MM_PERMUTATION x264_hadamard_ac_8x8_%1
+    SAVE_MM_PERMUTATION hadamard_ac_8x8_%1
     ret
 
 HADAMARD_AC_WXH_SSE2 16, 16, %1
@@ -1892,30 +1894,30 @@ HADAMARD_AC_WXH_SSE2 16,  8, %1
 HADAMARD_AC_WXH_SSE2  8,  8, %1
 %endmacro ; HADAMARD_AC_SSE2
 
-; struct { int satd, int sa8d; } x264_pixel_hadamard_ac_16x16( uint8_t *pix, int stride )
+; struct { int satd, int sa8d; } pixel_hadamard_ac_16x16( uint8_t *pix, int stride )
 %macro HADAMARD_AC_WXH_SSE2 3
-cglobal x264_pixel_hadamard_ac_%1x%2_%3, 2,3,11
+cglobal pixel_hadamard_ac_%1x%2_%3, 2,3,11
     %assign pad 16-gprsize-(stack_offset&15)
     %define ysub r1
     sub  rsp, 48+pad
     lea  r2, [r1*3]
-    call x264_hadamard_ac_8x8_%3
+    call hadamard_ac_8x8_%3
 %if %2==16
     %define ysub r2
     lea  r0, [r0+r1*4]
     sub  rsp, 32
-    call x264_hadamard_ac_8x8_%3
+    call hadamard_ac_8x8_%3
 %endif
 %if %1==16
     neg  ysub
     sub  rsp, 32
     lea  r0, [r0+ysub*4+8]
     neg  ysub
-    call x264_hadamard_ac_8x8_%3
+    call hadamard_ac_8x8_%3
 %if %2==16
     lea  r0, [r0+r1*4]
     sub  rsp, 32
-    call x264_hadamard_ac_8x8_%3
+    call hadamard_ac_8x8_%3
 %endif
 %endif
     mova    m1, [rsp+0x20]
@@ -1947,7 +1949,7 @@ cglobal x264_pixel_hadamard_ac_%1x%2_%3, 2,3,11
 ; instantiate satds
 
 %ifndef ARCH_X86_64
-cextern x264_pixel_sa8d_8x8_internal_mmxext
+cextern pixel_sa8d_8x8_internal_mmxext
 SA8D mmxext
 %endif
 
@@ -1999,8 +2001,8 @@ HADAMARD_AC_SSE2 sse4
 ;=============================================================================
 
 ;-----------------------------------------------------------------------------
-; void x264_pixel_ssim_4x4x2_core_sse2( const uint8_t *pix1, int stride1,
-;                                       const uint8_t *pix2, int stride2, int sums[2][4] )
+; void pixel_ssim_4x4x2_core( const uint8_t *pix1, int stride1,
+;                             const uint8_t *pix2, int stride2, int sums[2][4] )
 ;-----------------------------------------------------------------------------
 
 %macro SSIM_ITER 1
@@ -2033,7 +2035,7 @@ HADAMARD_AC_SSE2 sse4
     paddd     m3, m6
 %endmacro
 
-cglobal x264_pixel_ssim_4x4x2_core_sse2, 4,4,8
+cglobal pixel_ssim_4x4x2_core_sse2, 4,4,8
     pxor      m0, m0
     SSIM_ITER 0
     SSIM_ITER 1
@@ -2069,9 +2071,9 @@ cglobal x264_pixel_ssim_4x4x2_core_sse2, 4,4,8
     RET
 
 ;-----------------------------------------------------------------------------
-; float x264_pixel_ssim_end_sse2( int sum0[5][4], int sum1[5][4], int width )
+; float pixel_ssim_end( int sum0[5][4], int sum1[5][4], int width )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_ssim_end4_sse2, 3,3,7
+cglobal pixel_ssim_end4_sse2, 3,3,7
     movdqa    m0, [r0+ 0]
     movdqa    m1, [r0+16]
     movdqa    m2, [r0+32]
@@ -2175,10 +2177,10 @@ cglobal x264_pixel_ssim_end4_sse2, 3,3,7
 %define ABS1 ABS1_MMX
 
 ;-----------------------------------------------------------------------------
-; int x264_pixel_ads4_mmxext( int enc_dc[4], uint16_t *sums, int delta,
-;                             uint16_t *cost_mvx, int16_t *mvs, int width, int thresh )
+; int pixel_ads4( int enc_dc[4], uint16_t *sums, int delta,
+;                 uint16_t *cost_mvx, int16_t *mvs, int width, int thresh )
 ;-----------------------------------------------------------------------------
-cglobal x264_pixel_ads4_mmxext, 4,7
+cglobal pixel_ads4_mmxext, 4,7
     movq    mm6, [r0]
     movq    mm4, [r0+8]
     pshufw  mm7, mm6, 0
@@ -2215,7 +2217,7 @@ cglobal x264_pixel_ads4_mmxext, 4,7
     movd    [t0], mm1
     ADS_END 1
 
-cglobal x264_pixel_ads2_mmxext, 4,7
+cglobal pixel_ads2_mmxext, 4,7
     movq    mm6, [r0]
     pshufw  mm5, r6m, 0
     pshufw  mm7, mm6, 0
@@ -2236,7 +2238,7 @@ cglobal x264_pixel_ads2_mmxext, 4,7
     movd    [t0], mm4
     ADS_END 1
 
-cglobal x264_pixel_ads1_mmxext, 4,7
+cglobal pixel_ads1_mmxext, 4,7
     pshufw  mm7, [r0], 0
     pshufw  mm6, r6m, 0
     ADS_START 2
@@ -2258,7 +2260,7 @@ cglobal x264_pixel_ads1_mmxext, 4,7
     ADS_END 2
 
 %macro ADS_SSE2 1
-cglobal x264_pixel_ads4_%1, 4,7,12
+cglobal pixel_ads4_%1, 4,7,12
     movdqa  xmm4, [r0]
     pshuflw xmm7, xmm4, 0
     pshuflw xmm6, xmm4, 0xAA
@@ -2327,7 +2329,7 @@ cglobal x264_pixel_ads4_%1, 4,7,12
 %endif ; ARCH
     ADS_END 2
 
-cglobal x264_pixel_ads2_%1, 4,7,8
+cglobal pixel_ads2_%1, 4,7,8
     movq    xmm6, [r0]
     movd    xmm5, r6m
     pshuflw xmm7, xmm6, 0
@@ -2353,7 +2355,7 @@ cglobal x264_pixel_ads2_%1, 4,7,8
     movq    [t0], xmm1
     ADS_END 2
 
-cglobal x264_pixel_ads1_%1, 4,7,8
+cglobal pixel_ads1_%1, 4,7,8
     movd    xmm7, [r0]
     movd    xmm6, r6m
     pshuflw xmm7, xmm7, 0
@@ -2385,7 +2387,7 @@ ADS_SSE2 sse2
 %define ABS1 ABS1_SSSE3
 ADS_SSE2 ssse3
 
-; int x264_pixel_ads_mvs( int16_t *mvs, uint8_t *masks, int width )
+; int pixel_ads_mvs( int16_t *mvs, uint8_t *masks, int width )
 ; {
 ;     int nmv=0, i, j;
 ;     *(uint32_t*)(masks+width) = 0;
@@ -2399,7 +2401,7 @@ ADS_SSE2 ssse3
 ;     }
 ;     return nmv;
 ; }
-cglobal x264_pixel_ads_mvs, 0,7,0
+cglobal pixel_ads_mvs, 0,7,0
 ads_mvs:
 %ifdef ARCH_X86_64
     ; mvs = r4

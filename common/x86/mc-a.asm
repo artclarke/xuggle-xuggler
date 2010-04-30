@@ -29,14 +29,15 @@
 SECTION_RODATA 32
 
 ch_shuffle: db 0,1,1,2,2,3,3,4,4,5,5,6,6,7,7,8,8,9,9,10,10,11,11,12,12,13,13,14,14,15,0,0
-pw_1:  times 8 dw  1
-pw_4:  times 8 dw  4
-pw_8:  times 8 dw  8
-pw_32: times 8 dw 32
-pw_64: times 8 dw 64
-sw_64: dd 64
 
 SECTION .text
+
+cextern pw_1
+cextern pw_4
+cextern pw_8
+cextern pw_32
+cextern pw_64
+cextern sw_64
 
 ;=============================================================================
 ; implicit weighted biprediction
@@ -129,10 +130,10 @@ SECTION .text
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; int x264_pixel_avg_weight_w16_mmxext( uint8_t *dst, int, uint8_t *src1, int, uint8_t *src2, int, int i_weight )
+; int pixel_avg_weight_w16( uint8_t *dst, int, uint8_t *src1, int, uint8_t *src2, int, int i_weight )
 ;-----------------------------------------------------------------------------
 %macro AVG_WEIGHT 2-3 0
-cglobal x264_pixel_avg_weight_w%2_%1
+cglobal pixel_avg_weight_w%2_%1
     BIWEIGHT_START
     AVG_START %3
 %if %2==8 && mmsize==16
@@ -165,7 +166,7 @@ AVG_WEIGHT mmxext, 4
 AVG_WEIGHT mmxext, 8
 AVG_WEIGHT mmxext, 16
 INIT_XMM
-%define x264_pixel_avg_weight_w4_sse2 x264_pixel_avg_weight_w4_mmxext
+%define pixel_avg_weight_w4_sse2 pixel_avg_weight_w4_mmxext
 AVG_WEIGHT sse2, 8,  7
 AVG_WEIGHT sse2, 16, 7
 %define BIWEIGHT BIWEIGHT_SSSE3
@@ -293,8 +294,9 @@ AVG_WEIGHT ssse3, 16, 7
 %endrep
 %endmacro
 
-
-;void x264_mc_weight_wX( uint8_t *dst, int i_dst_stride, uint8_t *src,int i_src_stride, x264_weight_t *weight,int h)
+;-----------------------------------------------------------------------------
+;void mc_weight_wX( uint8_t *dst, int i_dst_stride, uint8_t *src, int i_src_stride, weight_t *weight, int h )
+;-----------------------------------------------------------------------------
 
 %ifdef ARCH_X86_64
 %define NUMREGS 6
@@ -307,7 +309,7 @@ AVG_WEIGHT ssse3, 16, 7
 %endif
 
 %macro WEIGHTER 2
-    cglobal x264_mc_weight_w%1_%2, NUMREGS, NUMREGS, 7
+    cglobal mc_weight_w%1_%2, NUMREGS, NUMREGS, 7
     WEIGHT_START %1
     LOAD_HEIGHT
 .loop:
@@ -363,9 +365,11 @@ WEIGHTER 20, ssse3
 %endrep
 %endmacro
 
-;void x264_mc_offset_wX( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, x264_weight_t *w, int h )
+;-----------------------------------------------------------------------------
+;void mc_offset_wX( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, weight_t *w, int h )
+;-----------------------------------------------------------------------------
 %macro OFFSET 3
-    cglobal x264_mc_offset%3_w%1_%2, NUMREGS, NUMREGS
+    cglobal mc_offset%3_w%1_%2, NUMREGS, NUMREGS
     mova m2, [r4]
     LOAD_HEIGHT
 .loop:
@@ -402,25 +406,25 @@ OFFSETPN 20, sse2
 ;=============================================================================
 
 ;-----------------------------------------------------------------------------
-; void x264_pixel_avg_4x4_mmxext( uint8_t *dst, int dst_stride,
-;                                 uint8_t *src1, int src1_stride, uint8_t *src2, int src2_stride, int weight );
+; void pixel_avg_4x4( uint8_t *dst, int dst_stride,
+;                     uint8_t *src1, int src1_stride, uint8_t *src2, int src2_stride, int weight );
 ;-----------------------------------------------------------------------------
 %macro AVGH 3
-cglobal x264_pixel_avg_%1x%2_%3
+cglobal pixel_avg_%1x%2_%3
     mov eax, %2
     cmp dword r6m, 32
-    jne x264_pixel_avg_weight_w%1_%3
+    jne pixel_avg_weight_w%1_%3
 %if mmsize == 16 && %1 == 16
     test dword r4m, 15
-    jz x264_pixel_avg_w%1_sse2
+    jz pixel_avg_w%1_sse2
 %endif
-    jmp x264_pixel_avg_w%1_mmxext
+    jmp pixel_avg_w%1_mmxext
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void x264_pixel_avg_w4_mmxext( uint8_t *dst, int dst_stride,
-;                                uint8_t *src1, int src1_stride, uint8_t *src2, int src2_stride,
-;                                int height, int weight );
+; void pixel_avg_w4( uint8_t *dst, int dst_stride,
+;                    uint8_t *src1, int src1_stride, uint8_t *src2, int src2_stride,
+;                    int height, int weight );
 ;-----------------------------------------------------------------------------
 
 %macro AVG_END 0
@@ -445,17 +449,17 @@ cglobal %1
 %endmacro
 
 INIT_MMX
-AVG_FUNC x264_pixel_avg_w4_mmxext, movd, movd
+AVG_FUNC pixel_avg_w4_mmxext, movd, movd
 AVGH 4, 8, mmxext
 AVGH 4, 4, mmxext
 AVGH 4, 2, mmxext
 
-AVG_FUNC x264_pixel_avg_w8_mmxext, movq, movq
+AVG_FUNC pixel_avg_w8_mmxext, movq, movq
 AVGH 8, 16, mmxext
 AVGH 8, 8,  mmxext
 AVGH 8, 4,  mmxext
 
-cglobal x264_pixel_avg_w16_mmxext
+cglobal pixel_avg_w16_mmxext
     AVG_START
     movq   mm0, [t2  ]
     movq   mm1, [t2+8]
@@ -475,7 +479,7 @@ AVGH 16, 16, mmxext
 AVGH 16, 8,  mmxext
 
 INIT_XMM
-AVG_FUNC x264_pixel_avg_w16_sse2, movdqu, movdqa
+AVG_FUNC pixel_avg_w16_sse2, movdqu, movdqa
 AVGH 16, 16, sse2
 AVGH 16,  8, sse2
 AVGH  8, 16, sse2
@@ -498,12 +502,12 @@ AVGH  4,  2, ssse3
 ;=============================================================================
 
 ;-----------------------------------------------------------------------------
-; void x264_pixel_avg2_w4_mmxext( uint8_t *dst, int dst_stride,
-;                                 uint8_t *src1, int src_stride,
-;                                 uint8_t *src2, int height );
+; void pixel_avg2_w4( uint8_t *dst, int dst_stride,
+;                     uint8_t *src1, int src_stride,
+;                     uint8_t *src2, int height );
 ;-----------------------------------------------------------------------------
 %macro AVG2_W8 2
-cglobal x264_pixel_avg2_w%1_mmxext, 6,7
+cglobal pixel_avg2_w%1_mmxext, 6,7
     sub    r4, r2
     lea    r6, [r4+r3]
 .height_loop:
@@ -524,7 +528,7 @@ AVG2_W8 4, movd
 AVG2_W8 8, movq
 
 %macro AVG2_W16 2
-cglobal x264_pixel_avg2_w%1_mmxext, 6,7
+cglobal pixel_avg2_w%1_mmxext, 6,7
     sub    r4, r2
     lea    r6, [r4+r3]
 .height_loop:
@@ -550,7 +554,7 @@ cglobal x264_pixel_avg2_w%1_mmxext, 6,7
 AVG2_W16 12, movd
 AVG2_W16 16, movq
 
-cglobal x264_pixel_avg2_w20_mmxext, 6,7
+cglobal pixel_avg2_w20_mmxext, 6,7
     sub    r4, r2
     lea    r6, [r4+r3]
 .height_loop:
@@ -578,7 +582,7 @@ cglobal x264_pixel_avg2_w20_mmxext, 6,7
     jg     .height_loop
     REP_RET
 
-cglobal x264_pixel_avg2_w16_sse2, 6,7
+cglobal pixel_avg2_w16_sse2, 6,7
     sub    r4, r2
     lea    r6, [r4+r3]
 .height_loop:
@@ -597,7 +601,7 @@ cglobal x264_pixel_avg2_w16_sse2, 6,7
     REP_RET
 
 %macro AVG2_W20 1
-cglobal x264_pixel_avg2_w20_%1, 6,7
+cglobal pixel_avg2_w20_%1, 6,7
     sub    r4, r2
     lea    r6, [r4+r3]
 .height_loop:
@@ -647,16 +651,16 @@ AVG2_W20 sse2_misalign
 %endmacro
 
 %macro AVG_CACHELINE_CHECK 3 ; width, cacheline, instruction set
-cglobal x264_pixel_avg2_w%1_cache%2_%3
+cglobal pixel_avg2_w%1_cache%2_%3
     mov    eax, r2m
     and    eax, 0x1f|(%2>>1)
     cmp    eax, (32-%1)|(%2>>1)
-    jle x264_pixel_avg2_w%1_%3
+    jle pixel_avg2_w%1_%3
 ;w12 isn't needed because w16 is just as fast if there's no cacheline split
 %if %1 == 12
-    jmp x264_pixel_avg2_w16_cache_mmxext
+    jmp pixel_avg2_w16_cache_mmxext
 %else
-    jmp x264_pixel_avg2_w%1_cache_mmxext
+    jmp pixel_avg2_w%1_cache_mmxext
 %endif
 %endmacro
 
@@ -687,7 +691,7 @@ cglobal x264_pixel_avg2_w%1_cache%2_%3
     %2 [r0+%1], mm0
 %endmacro
 
-x264_pixel_avg2_w8_cache_mmxext:
+pixel_avg2_w8_cache_mmxext:
     AVG_CACHELINE_START
     AVG_CACHELINE_LOOP 0, movq
     add    r2, r3
@@ -696,7 +700,7 @@ x264_pixel_avg2_w8_cache_mmxext:
     jg     .height_loop
     REP_RET
 
-x264_pixel_avg2_w16_cache_mmxext:
+pixel_avg2_w16_cache_mmxext:
     AVG_CACHELINE_START
     AVG_CACHELINE_LOOP 0, movq
     AVG_CACHELINE_LOOP 8, movq
@@ -706,7 +710,7 @@ x264_pixel_avg2_w16_cache_mmxext:
     jg .height_loop
     REP_RET
 
-x264_pixel_avg2_w20_cache_mmxext:
+pixel_avg2_w20_cache_mmxext:
     AVG_CACHELINE_START
     AVG_CACHELINE_LOOP 0, movq
     AVG_CACHELINE_LOOP 8, movq
@@ -754,11 +758,11 @@ avg_w16_align%1_%2_ssse3:
     rep ret
 %endmacro
 
-cglobal x264_pixel_avg2_w16_cache64_ssse3
+cglobal pixel_avg2_w16_cache64_ssse3
     mov    eax, r2m
     and    eax, 0x3f
     cmp    eax, 0x30
-    jle x264_pixel_avg2_w16_sse2
+    jle pixel_avg2_w16_sse2
     PROLOGUE 6,7
     lea    r6, [r4+r2]
     and    r4, ~0xf
@@ -807,10 +811,10 @@ AVG16_CACHELINE_LOOP_SSSE3 j, k
 
 INIT_MMX
 ;-----------------------------------------------------------------------------
-; void x264_mc_copy_w4_mmx( uint8_t *dst, int i_dst_stride,
-;                           uint8_t *src, int i_src_stride, int i_height )
+; void mc_copy_w4( uint8_t *dst, int i_dst_stride,
+;                  uint8_t *src, int i_src_stride, int i_height )
 ;-----------------------------------------------------------------------------
-cglobal x264_mc_copy_w4_mmx, 4,6
+cglobal mc_copy_w4_mmx, 4,6
     cmp     dword r4m, 4
     lea     r5, [r3*3]
     lea     r4, [r1*3]
@@ -822,7 +826,7 @@ cglobal x264_mc_copy_w4_mmx, 4,6
     COPY4 movd, movd, r4, r5
     RET
 
-cglobal x264_mc_copy_w8_mmx, 5,7
+cglobal mc_copy_w8_mmx, 5,7
     lea     r6, [r3*3]
     lea     r5, [r1*3]
 .height_loop:
@@ -833,7 +837,7 @@ cglobal x264_mc_copy_w8_mmx, 5,7
     jg      .height_loop
     REP_RET
 
-cglobal x264_mc_copy_w16_mmx, 5,7
+cglobal mc_copy_w16_mmx, 5,7
     lea     r6, [r3*3]
     lea     r5, [r1*3]
 .height_loop:
@@ -873,11 +877,11 @@ cglobal %1, 5,7
     REP_RET
 %endmacro
 
-COPY_W16_SSE2 x264_mc_copy_w16_sse2, movdqu
+COPY_W16_SSE2 mc_copy_w16_sse2, movdqu
 ; cacheline split with mmx has too much overhead; the speed benefit is near-zero.
 ; but with SSE3 the overhead is zero, so there's no reason not to include it.
-COPY_W16_SSE2 x264_mc_copy_w16_sse3, lddqu
-COPY_W16_SSE2 x264_mc_copy_w16_aligned_sse2, movdqa
+COPY_W16_SSE2 mc_copy_w16_sse3, lddqu
+COPY_W16_SSE2 mc_copy_w16_aligned_sse2, movdqa
 
 
 
@@ -887,11 +891,11 @@ COPY_W16_SSE2 x264_mc_copy_w16_aligned_sse2, movdqa
 ; FIXME assumes 64 byte cachelines
 
 ;-----------------------------------------------------------------------------
-; void x264_prefetch_fenc_mmxext( uint8_t *pix_y, int stride_y,
-;                                 uint8_t *pix_uv, int stride_uv, int mb_x )
+; void prefetch_fenc( uint8_t *pix_y, int stride_y,
+;                     uint8_t *pix_uv, int stride_uv, int mb_x )
 ;-----------------------------------------------------------------------------
 %ifdef ARCH_X86_64
-cglobal x264_prefetch_fenc_mmxext, 5,5
+cglobal prefetch_fenc_mmxext, 5,5
     mov    eax, r4d
     and    eax, 3
     imul   eax, r1d
@@ -910,7 +914,7 @@ cglobal x264_prefetch_fenc_mmxext, 5,5
     RET
 
 %else
-cglobal x264_prefetch_fenc_mmxext
+cglobal prefetch_fenc_mmxext
     mov    r2, [esp+20]
     mov    r1, [esp+8]
     mov    r0, [esp+4]
@@ -935,9 +939,9 @@ cglobal x264_prefetch_fenc_mmxext
 %endif ; ARCH_X86_64
 
 ;-----------------------------------------------------------------------------
-; void x264_prefetch_ref_mmxext( uint8_t *pix, int stride, int parity )
+; void prefetch_ref( uint8_t *pix, int stride, int parity )
 ;-----------------------------------------------------------------------------
-cglobal x264_prefetch_ref_mmxext, 3,3
+cglobal prefetch_ref_mmxext, 3,3
     dec    r2d
     and    r2d, r1d
     lea    r0,  [r0+r2*8+64]
@@ -982,16 +986,16 @@ cglobal x264_prefetch_ref_mmxext, 3,3
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void x264_mc_chroma_mmxext( uint8_t *dst, int dst_stride,
-;                             uint8_t *src, int src_stride,
-;                             int dx, int dy,
-;                             int width, int height )
+; void mc_chroma( uint8_t *dst, int dst_stride,
+;                 uint8_t *src, int src_stride,
+;                 int dx, int dy,
+;                 int width, int height )
 ;-----------------------------------------------------------------------------
 %macro MC_CHROMA 1-2 0
-cglobal x264_mc_chroma_%1
+cglobal mc_chroma_%1
 %if mmsize == 16
     cmp dword r6m, 4
-    jle x264_mc_chroma_mmxext
+    jle mc_chroma_mmxext
 %endif
     PROLOGUE 0,6,%2
     MC_CHROMA_START
@@ -1151,7 +1155,7 @@ MC_CHROMA sse2, 8
 
 %macro MC_CHROMA_SSSE3 2
 INIT_MMX
-cglobal x264_mc_chroma_ssse3%1, 0,6,%2
+cglobal mc_chroma_ssse3%1, 0,6,%2
     MC_CHROMA_START
     and       r4d, 7
     and       r5d, 7
