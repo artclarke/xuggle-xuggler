@@ -669,7 +669,7 @@ int x264_ratecontrol_new( x264_t *h )
                 return -1;
             }
 
-            CMP_OPT_FIRST_PASS( "wpredp", X264_MAX( 0, h->param.analyse.i_weighted_pred ) );
+            CMP_OPT_FIRST_PASS( "weightp", X264_MAX( 0, h->param.analyse.i_weighted_pred ) );
             CMP_OPT_FIRST_PASS( "bframes", h->param.i_bframe );
             CMP_OPT_FIRST_PASS( "b_pyramid", h->param.i_bframe_pyramid );
             CMP_OPT_FIRST_PASS( "intra_refresh", h->param.b_intra_refresh );
