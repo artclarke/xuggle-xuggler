@@ -526,10 +526,14 @@ cglobal x264_intra_sad_x3_16x16_%1,3,5,%2
 %endif
 %assign x 0
 %rep 16
-    movzx   r4d, byte [r1-1+FDEC_STRIDE*x]
+    movzx   r4d, byte [r1-1+FDEC_STRIDE*(x&3)]
+%if (x&3)==3 && x!=15
+    add      r1, FDEC_STRIDE*4
+%endif
     add     r3d, r4d
 %assign x x+1
 %endrep
+    sub      r1, FDEC_STRIDE*12
     add     r3d, 16
     shr     r3d, 5
     imul    r3d, 0x01010101

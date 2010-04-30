@@ -506,10 +506,10 @@ cglobal predict_8x8_ddl_mmxext, 2,2
     movq        mm4, [r1+25]
     movq        mm1, mm5
     psllq       mm1, 8
+    add          r0, FDEC_STRIDE*4
     PRED8x8_LOWPASS mm0, mm1, mm2, mm5, mm7
     PRED8x8_LOWPASS mm1, mm3, mm4, [r1+24], mm6
-
-%assign Y 7
+%assign Y 3
 %rep 6
     movq        [r0+Y*FDEC_STRIDE], mm1
     movq        mm2, mm0
@@ -535,10 +535,10 @@ cglobal predict_8x8_ddr_mmxext, 2,2
     movq        mm2, [r1+9]
     movq        mm3, [r1+15]
     movq        mm4, [r1+17]
+    add          r0, FDEC_STRIDE*4
     PRED8x8_LOWPASS mm0, mm1, mm2, [r1+8], mm7
     PRED8x8_LOWPASS mm1, mm3, mm4, [r1+16], mm6
-
-%assign Y 7
+%assign Y 3
 %rep 6
     movq        [r0+Y*FDEC_STRIDE], mm0
     movq        mm2, mm1
@@ -622,9 +622,10 @@ cglobal predict_8x8_vr_core_mmxext, 2,2
     movq        mm1, [r1+14]
     movq        mm4, mm3
     pavgb       mm3, mm2
+    add          r0, FDEC_STRIDE*4
     PRED8x8_LOWPASS mm0, mm1, mm2, mm4, mm7
 
-%assign Y 0
+%assign Y -4
 %rep 3
     movq        [r0+ Y   *FDEC_STRIDE], mm3
     movq        [r0+(Y+1)*FDEC_STRIDE], mm0
@@ -717,9 +718,10 @@ cglobal predict_8x8_ddl_sse2, 2,2
     movdqu      xmm2, [r1+17]
     movdqa      xmm1, xmm3
     pslldq      xmm1, 1
+    add          r0, FDEC_STRIDE*4
     PRED8x8_LOWPASS_XMM xmm0, xmm1, xmm2, xmm3, xmm4
 
-%assign Y 0
+%assign Y -4
 %rep 8
     psrldq      xmm0, 1
     movq        [r0+Y*FDEC_STRIDE], xmm0
@@ -735,11 +737,12 @@ cglobal predict_8x8_ddr_sse2, 2,2
     movdqu      xmm1, [r1+7]
     movdqa      xmm2, xmm3
     psrldq      xmm2, 1
+    add           r0, FDEC_STRIDE*4
     PRED8x8_LOWPASS_XMM xmm0, xmm1, xmm2, xmm3, xmm4
 
     movdqa      xmm1, xmm0
     psrldq      xmm1, 1
-%assign Y 7
+%assign Y 3
 %rep 3
     movq        [r0+Y*FDEC_STRIDE], xmm0
     movq        [r0+(Y-1)*FDEC_STRIDE], xmm1
@@ -747,8 +750,8 @@ cglobal predict_8x8_ddr_sse2, 2,2
     psrldq      xmm1, 2
 %assign Y (Y-2)
 %endrep
-    movq        [r0+1*FDEC_STRIDE], xmm0
-    movq        [r0+0*FDEC_STRIDE], xmm1
+    movq        [r0-3*FDEC_STRIDE], xmm0
+    movq        [r0-4*FDEC_STRIDE], xmm1
 
     RET
 
@@ -763,11 +766,12 @@ cglobal predict_8x8_vl_sse2, 2,2
     psrldq      xmm2, 1
     pslldq      xmm1, 1
     pavgb       xmm3, xmm2
+    add           r0, FDEC_STRIDE*4
     PRED8x8_LOWPASS_XMM xmm0, xmm1, xmm2, xmm4, xmm5
 ; xmm0: (t0 + 2*t1 + t2 + 2) >> 2
 ; xmm3: (t0 + t1 + 1) >> 1
 
-%assign Y 0
+%assign Y -4
 %rep 3
     psrldq      xmm0, 1
     movq        [r0+ Y   *FDEC_STRIDE], xmm3
