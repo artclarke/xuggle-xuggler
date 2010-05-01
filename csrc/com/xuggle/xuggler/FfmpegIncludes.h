@@ -26,6 +26,9 @@ extern "C"
 //#define attribute_deprecated
 
 #ifdef HAVE_STDINT_H
+#ifndef __STDC_CONSTANT_MACROS
+#define __STDC_CONSTANT_MACROS
+#endif
 #include <stdint.h>
 #endif
 #include <libavutil/avutil.h>
