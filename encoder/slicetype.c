@@ -499,7 +499,6 @@ lowres_intra_mb:
         }
     }
 
-    assert(i_bcost < (1<<14));
     fenc->lowres_costs[b-p0][p1-b][i_mb_xy] = i_bcost + (list_used << LOWRES_COST_SHIFT);
 }
 #undef TRY_BIDIR
