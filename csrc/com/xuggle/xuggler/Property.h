@@ -24,7 +24,7 @@
 #include <com/xuggle/xuggler/IRational.h>
 
 extern "C" {
-#include <libavcodec/opt.h>
+#include "FfmpegIncludes.h"
 }
 
 namespace com { namespace xuggle { namespace xuggler {

@@ -25,16 +25,25 @@ extern "C"
 // Hack here to get rid of deprecation compilation warnings
 //#define attribute_deprecated
 
-#ifdef HAVE_STDINT_H
-#ifndef __STDC_CONSTANT_MACROS
-#define __STDC_CONSTANT_MACROS
-#endif
+// WARNING: This is GCC specific and is to fix a build issue
+// in FFmpeg where UINT64_C is not always defined.  The
+// __WORDSIZE value is a GCC constant
+#define __STDC_CONSTANT_MACROS 1
 #include <stdint.h>
+#ifndef UINT64_C
+# if __WORDSIZE == 64
+#  define UINT64_C(c)	c ## UL
+# else
+#  define UINT64_C(c)	c ## ULL
+# endif
 #endif
+
+
 #include <libavutil/avutil.h>
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libavdevice/avdevice.h>
+#include <libavcodec/opt.h>
 // FFmpeg changes these form enums to #defines.  change them back.
 #undef CODEC_TYPE_UNKNOWN
 #undef CODEC_TYPE_VIDEO

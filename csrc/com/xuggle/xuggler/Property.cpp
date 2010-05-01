@@ -21,7 +21,7 @@
 #include <com/xuggle/ferry/Logger.h>
 #include <com/xuggle/xuggler/Property.h>
 extern "C" {
-#include <libavcodec/opt.h>
+#include "FfmpegIncludes.h"
 }
 
 #include <stdexcept>
