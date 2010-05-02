@@ -219,7 +219,7 @@ int x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
     int i_csp = src->img.i_csp & X264_CSP_MASK;
     if( i_csp != X264_CSP_I420 && i_csp != X264_CSP_YV12 )
     {
-        x264_log( h, X264_LOG_ERROR, "Arg invalid CSP\n" );
+        x264_log( h, X264_LOG_ERROR, "Invalid input colorspace\n" );
         return -1;
     }
 
@@ -240,6 +240,11 @@ int x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
         {
             plane += (height-1)*stride;
             stride = -stride;
+        }
+        if( width > abs(stride) )
+        {
+            x264_log( h, X264_LOG_ERROR, "Input picture width is greater than stride\n" );
+            return -1;
         }
         h->mc.plane_copy( dst->plane[i], dst->i_stride[i], plane, stride, width, height );
     }
