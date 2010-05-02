@@ -105,6 +105,7 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
         CHECKED_MALLOC( frame->mb_type, i_mb_count * sizeof(int8_t));
         CHECKED_MALLOC( frame->mb_partition, i_mb_count * sizeof(uint8_t));
         CHECKED_MALLOC( frame->mv[0], 2*16 * i_mb_count * sizeof(int16_t) );
+        CHECKED_MALLOC( frame->mv16x16, 2*i_mb_count * sizeof(int16_t) );
         CHECKED_MALLOC( frame->ref[0], 4 * i_mb_count * sizeof(int8_t) );
         if( h->param.i_bframe )
         {
@@ -206,6 +207,7 @@ void x264_frame_delete( x264_frame_t *frame )
         x264_free( frame->mb_partition );
         x264_free( frame->mv[0] );
         x264_free( frame->mv[1] );
+        x264_free( frame->mv16x16 );
         x264_free( frame->ref[0] );
         x264_free( frame->ref[1] );
         x264_pthread_mutex_destroy( &frame->mutex );

@@ -445,17 +445,13 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
         if( h->sh.b_mbaff && field^(i_ref&1) )
             refpoc += h->sh.i_delta_poc_bottom;
 
-#define SET_TMVP(dx, dy) { \
-            int i_b4 = h->mb.i_b4_xy + dx*4 + dy*4*h->mb.i_b4_stride; \
-            int i_b8 = h->mb.i_b8_xy + dx*2 + dy*2*h->mb.i_b8_stride; \
-            int ref_col = l0->ref[0][i_b8]; \
-            if( ref_col >= 0 ) \
-            { \
-                int scale = (curpoc - refpoc) * l0->inv_ref_poc[h->mb.b_interlaced&field][ref_col];\
-                mvc[i][0] = (l0->mv[0][i_b4][0]*scale + 128) >> 8;\
-                mvc[i][1] = (l0->mv[0][i_b4][1]*scale + 128) >> 8;\
-                i++; \
-            } \
+#define SET_TMVP( dx, dy )\
+        { \
+            int mb_index = h->mb.i_mb_xy + dx + dy*h->mb.i_mb_stride; \
+            int scale = (curpoc - refpoc) * l0->inv_ref_poc[h->mb.b_interlaced&field];\
+            mvc[i][0] = (l0->mv16x16[mb_index][0]*scale + 128) >> 8;\
+            mvc[i][1] = (l0->mv16x16[mb_index][1]*scale + 128) >> 8;\
+            i++;\
         }
 
         SET_TMVP(0,0);

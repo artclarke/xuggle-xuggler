@@ -25,24 +25,6 @@
 #include "common.h"
 #include "encoder/me.h"
 
-/* Set up a lookup table for delta pocs to reduce an IDIV to an IMUL */
-static void setup_inverse_delta_pocs( x264_t *h )
-{
-    for( int field = 0; field <= h->sh.b_mbaff; field++ )
-    {
-        int curpoc = h->fdec->i_poc + field*h->sh.i_delta_poc_bottom;
-        for( int i = 0; i < (h->i_ref0<<h->sh.b_mbaff); i++ )
-        {
-            int refpoc = h->fref0[i>>h->sh.b_mbaff]->i_poc;
-            if( h->sh.b_mbaff && field^(i&1) )
-                refpoc += h->sh.i_delta_poc_bottom;
-            int delta = curpoc - refpoc;
-
-            h->fdec->inv_ref_poc[field][i] = (256 + delta/2) / delta;
-        }
-    }
-}
-
 static NOINLINE void x264_mb_mc_0xywh( x264_t *h, int x, int y, int width, int height )
 {
     int i8    = x264_scan8[0]+x+8*y;
@@ -268,7 +250,7 @@ int x264_macroblock_cache_allocate( x264_t *h )
         else if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_BLIND )
             i_refs = X264_MIN(16, i_refs + 1); //blind weights add one duplicate frame
 
-        for( int j = 0; j < i_refs; j++ )
+        for( int j = !i; j < i_refs; j++ )
             CHECKED_MALLOC( h->mb.mvr[i][j], 2 * i_mb_count * sizeof(int16_t) );
     }
 
@@ -318,7 +300,7 @@ fail: return -1;
 void x264_macroblock_cache_free( x264_t *h )
 {
     for( int i = 0; i < 2; i++ )
-        for( int j = 0; j < 32; j++ )
+        for( int j = !i; j < 32; j++ )
             x264_free( h->mb.mvr[i][j] );
     for( int i = 0; i < 16; i++ )
         x264_free( h->mb.p_weight_buf[i] );
@@ -382,6 +364,7 @@ void x264_macroblock_slice_init( x264_t *h )
 {
     h->mb.mv[0] = h->fdec->mv[0];
     h->mb.mv[1] = h->fdec->mv[1];
+    h->mb.mvr[0][0] = h->fdec->mv16x16;
     h->mb.ref[0] = h->fdec->ref[0];
     h->mb.ref[1] = h->fdec->ref[1];
     h->mb.type = h->fdec->mb_type;
@@ -416,7 +399,17 @@ void x264_macroblock_slice_init( x264_t *h )
     /* init with not available (for top right idx=7,15) */
     memset( h->mb.cache.ref, -2, sizeof( h->mb.cache.ref ) );
 
-    setup_inverse_delta_pocs( h );
+    if( h->i_ref0 > 0 )
+        for( int field = 0; field <= h->sh.b_mbaff; field++ )
+        {
+            int curpoc = h->fdec->i_poc + field*h->sh.i_delta_poc_bottom;
+            int refpoc = h->fref0[0]->i_poc;
+            if( h->sh.b_mbaff && field )
+                refpoc += h->sh.i_delta_poc_bottom;
+            int delta = curpoc - refpoc;
+
+            h->fdec->inv_ref_poc[field] = (256 + delta/2) / delta;
+        }
 
     h->mb.i_neighbour4[6] =
     h->mb.i_neighbour4[9] =
