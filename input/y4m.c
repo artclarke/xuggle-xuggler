@@ -104,13 +104,21 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
             case 'I': /* Interlace type */
                 switch( *tokstart++ )
                 {
-                    case 'p': break;
-                    case '?':
                     case 't':
-                    case 'b':
-                    case 'm':
-                    default:
                         info->interlaced = 1;
+                        info->tff = 1;
+                        break;
+                    case 'b':
+                        info->interlaced = 1;
+                        info->tff = 0;
+                        break;
+                    case 'm':
+                        info->interlaced = 1;
+                        break;
+                    //case '?':
+                    //case 'p':
+                    default:
+                        break;
                 }
                 break;
             case 'F': /* Frame rate - 0:0 if unknown */
