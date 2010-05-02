@@ -2103,7 +2103,11 @@ static int x264_threaded_slices_write( x264_t *h )
 
     /* Go back and fix up the hpel on the borders between slices. */
     for( int i = 1; i < h->param.i_threads; i++ )
+    {
         x264_fdec_filter_row( h->thread[i], h->thread[i]->i_threadslice_start + 1, 0 );
+        if( h->sh.b_mbaff )
+            x264_fdec_filter_row( h->thread[i], h->thread[i]->i_threadslice_start + 2, 0 );
+    }
 
     x264_threads_merge_ratecontrol( h );
 
