@@ -109,7 +109,7 @@ typedef struct x264_frame
     int     *i_row_satds[X264_BFRAME_MAX+2][X264_BFRAME_MAX+2];
     int     *i_row_satd;
     int     *i_row_bits;
-    int     *i_row_qp;
+    float   *f_row_qp;
     float   *f_qp_offset;
     float   *f_qp_offset_aq;
     int     b_intra_calculated;
