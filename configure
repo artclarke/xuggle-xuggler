@@ -118,7 +118,7 @@ lavf_input="auto"
 ffms_input="auto"
 mp4_output="auto"
 pthread="auto"
-asm="yes"
+asm="auto"
 debug="no"
 gprof="no"
 pic="no"
@@ -154,32 +154,17 @@ for opt do
         --includedir=*)
             includedir="$optarg"
             ;;
-        --enable-asm)
-            asm="yes"
-            ;;
         --disable-asm)
             asm="no"
-            ;;
-        --enable-avs-input)
-            avs_input="auto"
             ;;
         --disable-avs-input)
             avs_input="no"
             ;;
-        --enable-lavf-input)
-            lavf_input="auto"
-            ;;
         --disable-lavf-input)
             lavf_input="no"
             ;;
-        --enable-ffms-input)
-            ffms_input="auto"
-            ;;
         --disable-ffms-input)
             ffms_input="no"
-            ;;
-        --enable-mp4-output)
-            mp4_output="yes"
             ;;
         --disable-mp4-output)
             mp4_output="no"
@@ -192,9 +177,6 @@ for opt do
             ;;
         --extra-ldflags=*)
             LDFLAGS="$LDFLAGS ${opt#--extra-ldflags=}"
-            ;;
-        --enable-pthread)
-            pthread="auto" # can't skip detection, since it differs by OS
             ;;
         --disable-pthread)
             pthread="no"
@@ -214,8 +196,6 @@ for opt do
             shared="yes"
             ;;
         --enable-visualize)
-            LDFLAGS="$LDFLAGS -L/usr/X11R6/lib -lX11"
-            define HAVE_VISUALIZE
             vis="yes"
             ;;
         --host=*)
@@ -425,7 +405,7 @@ if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" -o
     pic="yes"
 fi
 
-if [ $asm = yes -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
+if [ $asm = auto -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
     if ! as_check "lzcnt eax, eax" ; then
         VER=`($AS --version || echo no assembler) 2>$DEVNULL | head -n 1`
         echo "Found $VER"
@@ -444,7 +424,7 @@ if [ $asm = yes -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
     define HAVE_MMX
 fi
 
-if [ $asm = yes -a $ARCH = ARM ] ; then
+if [ $asm = auto -a $ARCH = ARM ] ; then
     # set flags so neon is built by default
     echo $CFLAGS | grep -Eq '(-mcpu|-march|-mfpu|-mfloat-abi)' || CFLAGS="$CFLAGS -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp"
 
@@ -460,7 +440,7 @@ if [ $asm = yes -a $ARCH = ARM ] ; then
 fi
 
 [ $asm = no ] && AS=""
-[ "x$AS" = x ] && asm="no"
+[ "x$AS" = x ] && asm="no" || asm="yes"
 
 define ARCH_$ARCH
 define SYS_$SYS
@@ -514,6 +494,13 @@ fi
 
 if cc_check "math.h" "-Werror" "return log2f(2);" ; then
     define HAVE_LOG2F
+fi
+
+if [ "$vis" = "yes" ] && cc_check "X11/Xlib.h" "-L/usr/X11R6/lib -lX11" "XOpenDisplay( 0 );" ; then
+    LDFLAGS="-L/usr/X11R6/lib -lX11 $LDFLAGS"
+    define HAVE_VISUALIZE
+else
+    vis="no"
 fi
 
 if [ "$lavf_input" = "auto" ] ; then
