@@ -31,7 +31,6 @@ SECTION .text
 cextern pb_3
 cextern pb_shuf8x8c
 cextern pw_8
-cextern sw_6
 cextern sw_64
 
 ;=============================================================================
