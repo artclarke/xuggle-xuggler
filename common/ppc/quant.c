@@ -20,7 +20,7 @@
 
 #include "common/common.h"
 #include "ppccommon.h"
-#include "quant.h"            
+#include "quant.h"
 
 // quant of a whole 4x4 block, unrolled 2x and "pre-scheduled"
 #define QUANT_16_U( idx0, idx1 )                                    \
@@ -55,7 +55,7 @@
     nz = vec_or(nz, vec_or(temp1v, temp2v));                        \
     vec_st(temp2v, (idx1), (int16_t*)dct);                          \
 }
-                
+
 int x264_quant_4x4_altivec( int16_t dct[4][4], uint16_t mf[16], uint16_t bias[16] )
 {
     LOAD_ZERO;
@@ -220,7 +220,7 @@ int x264_quant_8x8_altivec( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[64
     vec_u16_t biasvB;
 
     vec_s16_t temp1v, temp2v;
-    
+
     vec_u32_u qbits_u;
     qbits_u.s[0]=16;
     i_qbitsv = vec_splat(qbits_u.v, 0);

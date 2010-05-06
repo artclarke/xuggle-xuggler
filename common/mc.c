@@ -97,9 +97,9 @@ static void name( uint8_t *pix1, int i_stride_pix1, \
                   uint8_t *pix2, int i_stride_pix2, \
                   uint8_t *pix3, int i_stride_pix3, int weight ) \
 { \
-    if( weight == 32 )\
+    if( weight == 32 ) \
         pixel_avg_wxh( pix1, i_stride_pix1, pix2, i_stride_pix2, pix3, i_stride_pix3, width, height ); \
-    else\
+    else \
         pixel_avg_weight_wxh( pix1, i_stride_pix1, pix2, i_stride_pix2, pix3, i_stride_pix3, width, height, weight ); \
 }
 PIXEL_AVG_C( pixel_avg_16x16, 16, 16 )

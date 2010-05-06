@@ -295,7 +295,8 @@ int x264_macroblock_cache_allocate( x264_t *h )
     }
 
     return 0;
-fail: return -1;
+fail:
+    return -1;
 }
 void x264_macroblock_cache_free( x264_t *h )
 {
@@ -348,7 +349,8 @@ int x264_macroblock_thread_allocate( x264_t *h, int b_lookahead )
     CHECKED_MALLOC( h->scratch_buffer, scratch_size );
 
     return 0;
-fail: return -1;
+fail:
+    return -1;
 }
 
 void x264_macroblock_thread_free( x264_t *h, int b_lookahead )

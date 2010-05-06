@@ -736,13 +736,13 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
 }
 #endif
 
-#define block_residual_write_cabac_cbf( h, cb, i_ctxBlockCat, i_idx, l, b_intra ) \
-{ \
-    int ctxidxinc = x264_cabac_mb_cbf_ctxidxinc( h, i_ctxBlockCat, i_idx, b_intra ); \
+#define block_residual_write_cabac_cbf( h, cb, i_ctxBlockCat, i_idx, l, b_intra )\
+{\
+    int ctxidxinc = x264_cabac_mb_cbf_ctxidxinc( h, i_ctxBlockCat, i_idx, b_intra );\
     if( h->mb.cache.non_zero_count[x264_scan8[i_idx]] )\
     {\
         x264_cabac_encode_decision( cb, ctxidxinc, 1 );\
-        block_residual_write_cabac( h, cb, i_ctxBlockCat, l ); \
+        block_residual_write_cabac( h, cb, i_ctxBlockCat, l );\
     }\
     else\
         x264_cabac_encode_decision( cb, ctxidxinc, 0 );\

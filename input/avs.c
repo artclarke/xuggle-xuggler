@@ -45,7 +45,7 @@
 /* maximum size of the sequence of filters to try on non script files */
 #define AVS_MAX_SEQUENCE 5
 
-#define LOAD_AVS_FUNC(name, continue_on_fail) \
+#define LOAD_AVS_FUNC(name, continue_on_fail)\
 {\
     h->func.name = (void*)GetProcAddress( h->library, #name );\
     if( !continue_on_fail && !h->func.name )\

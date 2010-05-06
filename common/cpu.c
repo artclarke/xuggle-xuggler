@@ -87,8 +87,8 @@ static void sigill_handler( int sig )
 #endif
 
 #ifdef HAVE_MMX
-extern int  x264_cpu_cpuid_test( void );
-extern uint32_t  x264_cpu_cpuid( uint32_t op, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx );
+int x264_cpu_cpuid_test( void );
+uint32_t x264_cpu_cpuid( uint32_t op, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx );
 
 uint32_t x264_cpu_detect( void )
 {

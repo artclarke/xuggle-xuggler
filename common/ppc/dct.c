@@ -205,7 +205,7 @@ void x264_sub8x8_dct8_altivec( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
     vec_st( dct_tr1v, 16,  (signed short *)dct );
     vec_st( dct_tr2v, 32,  (signed short *)dct );
     vec_st( dct_tr3v, 48,  (signed short *)dct );
-    
+
     vec_st( dct_tr4v, 64,  (signed short *)dct );
     vec_st( dct_tr5v, 80,  (signed short *)dct );
     vec_st( dct_tr6v, 96,  (signed short *)dct );

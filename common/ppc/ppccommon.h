@@ -113,13 +113,13 @@ typedef union {
     vec_u8_t _hv, _lv
 
 #define PREP_LOAD_SRC( src )              \
-    vec_u8_t _##src##_ = vec_lvsl(0, src) 
+    vec_u8_t _##src##_ = vec_lvsl(0, src)
 
 #define VEC_LOAD_G( p, v, n, t )                 \
     _hv = vec_ld( 0, p );                        \
     v   = (t) vec_lvsl( 0, p );                  \
     _lv = vec_ld( n - 1, p );                    \
-    v   = (t) vec_perm( _hv, _lv, (vec_u8_t) v ) 
+    v   = (t) vec_perm( _hv, _lv, (vec_u8_t) v )
 
 #define VEC_LOAD( p, v, n, t, g )                   \
     _hv = vec_ld( 0, p );                           \
@@ -134,7 +134,7 @@ typedef union {
 #define VEC_LOAD_PARTIAL( p, v, n, t, g)               \
     _hv = vec_ld( 0, p);                               \
     v   = (t) vec_perm( _hv, _hv, (vec_u8_t) _##g##_ )
-    
+
 
 /***********************************************************************
  * PREP_STORE##n: declares required vectors to store n bytes to a
@@ -155,7 +155,7 @@ typedef union {
     _lv    = vec_perm( (vec_u8_t) v, _tmp1v, _##o##r_ ); \
     vec_st( _lv, 15, (uint8_t *) p );                    \
     _hv    = vec_perm( _tmp1v, (vec_u8_t) v, _##o##r_ ); \
-    vec_st( _hv, 0, (uint8_t *) p ) 
+    vec_st( _hv, 0, (uint8_t *) p )
 
 
 #define PREP_STORE8 \

@@ -41,7 +41,7 @@
  * 16x16 prediction for intra luma block
  ****************************************************************************/
 
-#define PREDICT_16x16_DC(v) \
+#define PREDICT_16x16_DC(v)\
     for( int i = 0; i < 16; i++ )\
     {\
         M32( src+ 0 ) = v;\

@@ -265,7 +265,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
         buf3[i] = ~(buf4[i] = -(buf1[i&~0x88]&1));
 
 #define TEST_PIXEL( name, align ) \
-    ok = 1, used_asm = 0;\
+    ok = 1, used_asm = 0; \
     for( int i = 0; i < 7; i++ ) \
     { \
         int res_c, res_asm; \
@@ -305,7 +305,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     TEST_PIXEL( sa8d, 1 );
 
 #define TEST_PIXEL_X( N ) \
-    ok = 1; used_asm = 0;\
+    ok = 1; used_asm = 0; \
     for( int i = 0; i < 7; i++ ) \
     { \
         int res_c[4]={0}, res_asm[4]={0}; \
@@ -350,7 +350,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     { \
         set_func_name( "%s_%s", "var", pixel_names[i] ); \
         used_asm = 1; \
-        /* abi-check wrapper can't return uint64_t, so separate it from return value check */\
+        /* abi-check wrapper can't return uint64_t, so separate it from return value check */ \
         call_c1( pixel_c.var[i], buf1, 16 ); \
         call_a1( pixel_asm.var[i], buf1, 16 ); \
         uint64_t res_c   = pixel_c.var[i]( buf1, 16 ); \
@@ -415,7 +415,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     if( pixel_asm.name && pixel_asm.name != pixel_ref.name ) \
     { \
         int res_c[3], res_asm[3]; \
-        set_func_name( #name );\
+        set_func_name( #name ); \
         used_asm = 1; \
         memcpy( buf3, buf2, 1024 ); \
         for( int i = 0; i < 3; i++ ) \
@@ -538,7 +538,7 @@ static int check_dct( int cpu_ref, int cpu_new )
 #define TEST_DCT( name, t1, t2, size ) \
     if( dct_asm.name != dct_ref.name ) \
     { \
-        set_func_name( #name );\
+        set_func_name( #name ); \
         used_asm = 1; \
         call_c( dct_c.name, t1, buf1, buf2 ); \
         call_a( dct_asm.name, t2, buf1, buf2 ); \
@@ -579,7 +579,7 @@ static int check_dct( int cpu_ref, int cpu_new )
 #define TEST_IDCT( name, src ) \
     if( dct_asm.name != dct_ref.name ) \
     { \
-        set_func_name( #name );\
+        set_func_name( #name ); \
         used_asm = 1; \
         memcpy( buf3, buf1, 32*32 ); \
         memcpy( buf4, buf1, 32*32 ); \
@@ -644,12 +644,12 @@ static int check_dct( int cpu_ref, int cpu_new )
     ALIGNED_16( int16_t level1[64] );
     ALIGNED_16( int16_t level2[64] );
 
-#define TEST_ZIGZAG_SCAN( name, t1, t2, dct, size )   \
+#define TEST_ZIGZAG_SCAN( name, t1, t2, dct, size ) \
     if( zigzag_asm.name != zigzag_ref.name ) \
     { \
-        set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" );\
+        set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" ); \
         used_asm = 1; \
-        memcpy(dct, buf1, size*sizeof(int16_t));\
+        memcpy(dct, buf1, size*sizeof(int16_t)); \
         call_c( zigzag_c.name, t1, dct ); \
         call_a( zigzag_asm.name, t2, dct ); \
         if( memcmp( t1, t2, size*sizeof(int16_t) ) ) \
@@ -663,18 +663,18 @@ static int check_dct( int cpu_ref, int cpu_new )
     if( zigzag_asm.name != zigzag_ref.name ) \
     { \
         int nz_a, nz_c; \
-        set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" );\
+        set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" ); \
         used_asm = 1; \
         memcpy( buf3, buf1, 16*FDEC_STRIDE ); \
         memcpy( buf4, buf1, 16*FDEC_STRIDE ); \
-        nz_c = call_c1( zigzag_c.name, t1, buf2, buf3 );  \
+        nz_c = call_c1( zigzag_c.name, t1, buf2, buf3 ); \
         nz_a = call_a1( zigzag_asm.name, t2, buf2, buf4 ); \
-        if( memcmp( t1, t2, size*sizeof(int16_t) )|| memcmp( buf3, buf4, 16*FDEC_STRIDE ) || nz_c != nz_a )  \
+        if( memcmp( t1, t2, size*sizeof(int16_t) )|| memcmp( buf3, buf4, 16*FDEC_STRIDE ) || nz_c != nz_a ) \
         { \
             ok = 0; \
             fprintf( stderr, #name " [FAILED]\n" ); \
         } \
-        call_c2( zigzag_c.name, t1, buf2, buf3 );  \
+        call_c2( zigzag_c.name, t1, buf2, buf3 ); \
         call_a2( zigzag_asm.name, t2, buf2, buf4 ); \
     }
 
@@ -683,7 +683,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     { \
         int nz_a, nz_c; \
         int16_t dc_a, dc_c; \
-        set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" );\
+        set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" ); \
         used_asm = 1; \
         for( int i = 0; i < 2; i++ ) \
         { \
@@ -694,27 +694,27 @@ static int check_dct( int cpu_ref, int cpu_new )
                 memcpy( buf3 + j*FDEC_STRIDE, (i?buf1:buf2) + j*FENC_STRIDE, 4 ); \
                 memcpy( buf4 + j*FDEC_STRIDE, (i?buf1:buf2) + j*FENC_STRIDE, 4 ); \
             } \
-            nz_c = call_c1( zigzag_c.name, t1, buf2, buf3, &dc_c );  \
+            nz_c = call_c1( zigzag_c.name, t1, buf2, buf3, &dc_c ); \
             nz_a = call_a1( zigzag_asm.name, t2, buf2, buf4, &dc_a ); \
-            if( memcmp( t1+1, t2+1, 15*sizeof(int16_t) ) || memcmp( buf3, buf4, 16*FDEC_STRIDE ) || nz_c != nz_a || dc_c != dc_a )  \
+            if( memcmp( t1+1, t2+1, 15*sizeof(int16_t) ) || memcmp( buf3, buf4, 16*FDEC_STRIDE ) || nz_c != nz_a || dc_c != dc_a ) \
             { \
                 ok = 0; \
                 fprintf( stderr, #name " [FAILED]\n" ); \
                 break; \
             } \
         } \
-        call_c2( zigzag_c.name, t1, buf2, buf3, &dc_c );  \
+        call_c2( zigzag_c.name, t1, buf2, buf3, &dc_c ); \
         call_a2( zigzag_asm.name, t2, buf2, buf4, &dc_a ); \
     }
 
-#define TEST_INTERLEAVE( name, t1, t2, dct, size )   \
+#define TEST_INTERLEAVE( name, t1, t2, dct, size ) \
     if( zigzag_asm.name != zigzag_ref.name ) \
     { \
         for( int j = 0; j < 100; j++ ) \
         { \
-            set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" );\
+            set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" ); \
             used_asm = 1; \
-            memcpy(dct, buf1, size*sizeof(int16_t));\
+            memcpy(dct, buf1, size*sizeof(int16_t)); \
             for( int i = 0; i < size; i++ ) \
                 dct[i] = rand()&0x1F ? 0 : dct[i]; \
             memcpy(buf3, buf4, 10*sizeof(uint8_t)); \
@@ -784,7 +784,7 @@ static int check_mc( int cpu_ref, int cpu_new )
         if( mc_a.mc_luma != mc_ref.mc_luma && !(w&(w-1)) && h<=16 ) \
         { \
             const x264_weight_t *weight = weight_none; \
-            set_func_name( "mc_luma_%dx%d", w, h );\
+            set_func_name( "mc_luma_%dx%d", w, h ); \
             used_asm = 1; \
             memset( buf3, 0xCD, 1024 ); \
             memset( buf4, 0xCD, 1024 ); \
@@ -801,7 +801,7 @@ static int check_mc( int cpu_ref, int cpu_new )
             uint8_t *ref = dst2; \
             int ref_stride = 32; \
             const x264_weight_t *weight = weight_none; \
-            set_func_name( "get_ref_%dx%d", w, h );\
+            set_func_name( "get_ref_%dx%d", w, h ); \
             used_asm = 1; \
             memset( buf3, 0xCD, 1024 ); \
             memset( buf4, 0xCD, 1024 ); \
@@ -819,13 +819,13 @@ static int check_mc( int cpu_ref, int cpu_new )
 #define MC_TEST_CHROMA( w, h ) \
         if( mc_a.mc_chroma != mc_ref.mc_chroma ) \
         { \
-            set_func_name( "mc_chroma_%dx%d", w, h );\
+            set_func_name( "mc_chroma_%dx%d", w, h ); \
             used_asm = 1; \
             memset( buf3, 0xCD, 1024 ); \
             memset( buf4, 0xCD, 1024 ); \
             call_c( mc_c.mc_chroma, dst1, 16, src, 64, dx, dy, w, h ); \
             call_a( mc_a.mc_chroma, dst2, 16, src, 64, dx, dy, w, h ); \
-            /* mc_chroma width=2 may write garbage to the right of dst. ignore that. */\
+            /* mc_chroma width=2 may write garbage to the right of dst. ignore that. */ \
             for( int j = 0; j < h; j++ ) \
                 for( int i = w; i < 4; i++ ) \
                     dst2[i+j*16] = dst1[i+j*16]; \
@@ -878,7 +878,7 @@ static int check_mc( int cpu_ref, int cpu_new )
         memcpy( buf4, buf1+320, 320 ); \
         if( mc_a.name[i] != mc_ref.name[i] ) \
         { \
-            set_func_name( "%s_%s", #name, pixel_names[i] );\
+            set_func_name( "%s_%s", #name, pixel_names[i] ); \
             used_asm = 1; \
             call_c1( mc_c.name[i], buf3, 16, buf2+1, 16, buf1+18, 16, weight ); \
             call_a1( mc_a.name[i], buf4, 16, buf2+1, 16, buf1+18, 16, weight ); \
@@ -899,7 +899,7 @@ static int check_mc( int cpu_ref, int cpu_new )
 
 #define MC_TEST_WEIGHT( name, weight, aligned ) \
     int align_off = (aligned ? 0 : rand()%16); \
-    ok = 1, used_asm = 0;\
+    ok = 1, used_asm = 0; \
     for( int i = 1; i <= 5; i++ ) \
     { \
         ALIGNED_16( uint8_t buffC[640] ); \
@@ -1115,14 +1115,14 @@ static int check_deblock( int cpu_ref, int cpu_new )
 #define TEST_DEBLOCK( name, align, ... ) \
     for( int i = 0; i < 36; i++ ) \
     { \
-        int off = 8*32 + (i&15)*4*!align; /* benchmark various alignments of h filter */\
+        int off = 8*32 + (i&15)*4*!align; /* benchmark various alignments of h filter */ \
         for( int j = 0; j < 1024; j++ ) \
-            /* two distributions of random to excersize different failure modes */\
+            /* two distributions of random to excersize different failure modes */ \
             buf3[j] = rand() & (i&1 ? 0xf : 0xff ); \
         memcpy( buf4, buf3, 1024 ); \
         if( db_a.name != db_ref.name ) \
         { \
-            set_func_name( #name );\
+            set_func_name( #name ); \
             used_asm = 1; \
             call_c1( db_c.name, buf3+off, 32, alphas[i], betas[i], ##__VA_ARGS__ ); \
             call_a1( db_a.name, buf4+off, 32, alphas[i], betas[i], ##__VA_ARGS__ ); \
@@ -1236,7 +1236,7 @@ static int check_quant( int cpu_ref, int cpu_new )
                         dct1[i] = dct2[i] = j ? (rand() & 0x1fff) - 0xfff : 0; \
                     result_c = call_c1( qf_c.name, dct1, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
                     result_a = call_a1( qf_a.name, dct2, h->quant4_mf[CQM_4IY][qp][0], h->quant4_bias[CQM_4IY][qp][0] ); \
-                    if( memcmp( dct1, dct2, 16*2 ) || result_c != result_a )       \
+                    if( memcmp( dct1, dct2, 16*2 ) || result_c != result_a ) \
                     { \
                         oks[0] = 0; \
                         fprintf( stderr, #name "(cqm=%d): [FAILED]\n", i_cqm ); \
@@ -1491,11 +1491,11 @@ static int check_intra( int cpu_ref, int cpu_new )
 
     ip_c.predict_8x8_filter( buf1+48, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
 
-#define INTRA_TEST( name, dir, w, ... ) \
+#define INTRA_TEST( name, dir, w, ... )\
     if( ip_a.name[dir] != ip_ref.name[dir] )\
-    { \
+    {\
         set_func_name( "intra_%s_%s", #name, intra_##name##_names[dir] );\
-        used_asm = 1; \
+        used_asm = 1;\
         memcpy( buf3, buf1, 32*20 );\
         memcpy( buf4, buf1, 32*20 );\
         call_c( ip_c.name[dir], buf3+48, ##__VA_ARGS__ );\

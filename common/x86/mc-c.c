@@ -103,7 +103,7 @@ void x264_integral_init8v_sse2( uint16_t *sum8, int stride );
 void x264_integral_init4v_ssse3( uint16_t *sum8, uint16_t *sum4, int stride );
 void x264_mbtree_propagate_cost_sse2( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
                                       uint16_t *inter_costs, uint16_t *inv_qscales, int len );
-#define LOWRES(cpu) \
+#define LOWRES(cpu)\
 void x264_frame_init_lowres_core_##cpu( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,\
                                         int src_stride, int dst_stride, int width, int height );
 LOWRES(mmxext)

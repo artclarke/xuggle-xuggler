@@ -326,7 +326,7 @@ static void x264_predict_8x8_vr_mmxext( uint8_t *src, uint8_t edge[33] )
     t=e; e+=f; f-=t;\
     t=g; g+=h; h-=t;
 
-#define INTRA_SA8D_X3(cpu) \
+#define INTRA_SA8D_X3(cpu)\
 void x264_intra_sa8d_x3_8x8_##cpu( uint8_t *fenc, uint8_t edge[33], int res[3] )\
 {\
     PREDICT_8x8_LOAD_TOP\
