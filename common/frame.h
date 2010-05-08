@@ -142,6 +142,7 @@ typedef struct x264_frame
     float   f_pir_position;
     int     i_pir_start_col;
     int     i_pir_end_col;
+    int     i_frames_since_pir;
 } x264_frame_t;
 
 /* synchronized frame list */
