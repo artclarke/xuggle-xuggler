@@ -408,6 +408,8 @@ struct x264_t
     int             i_coded_fields_lookahead; /* Use separate counters for lookahead */
     int             i_cpb_delay_lookahead;
 
+    int             b_queued_intra_refresh;
+
     /* We use only one SPS and one PPS */
     x264_sps_t      sps_array[1];
     x264_sps_t      *sps;

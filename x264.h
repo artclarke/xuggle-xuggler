@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 94
+#define X264_BUILD 95
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -639,5 +639,13 @@ void    x264_encoder_close  ( x264_t * );
  *      return the number of currently delayed (buffered) frames
  *      this should be used at the end of the stream, to know when you have all the encoded frames. */
 int     x264_encoder_delayed_frames( x264_t * );
+/* x264_encoder_intra_refresh:
+ *      If an intra refresh is not in progress, begin one with the next P-frame.
+ *      If an intra refresh is in progress, begin one as soon as the current one finishes.
+ *      Requires that b_intra_refresh be set.
+ *      Useful for interactive streaming where the client can tell the server that packet loss has
+ *      occurred.  In this case, keyint can be set to an extremely high value so that intra refreshes
+ *      only occur when calling x264_encoder_intra_refresh. */
+void    x264_encoder_intra_refresh( x264_t * );
 
 #endif

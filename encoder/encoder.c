@@ -2131,6 +2131,12 @@ static int x264_threaded_slices_write( x264_t *h )
     return 0;
 }
 
+void x264_encoder_intra_refresh( x264_t *h )
+{
+    h = h->thread[h->i_thread_phase];
+    h->b_queued_intra_refresh = 1;
+}
+
 /****************************************************************************
  * x264_encoder_encode:
  *  XXX: i_poc   : is the poc of the current given picture
@@ -2380,6 +2386,7 @@ int     x264_encoder_encode( x264_t *h,
         if( IS_X264_TYPE_I( h->fenc->i_type ) )
         {
             h->fdec->i_frames_since_pir = 0;
+            h->b_queued_intra_refresh = 0;
             /* PIR is currently only supported with ref == 1, so any intra frame effectively refreshes
              * the whole frame and counts as an intra refresh. */
             h->fdec->f_pir_position = h->sps->i_mb_width;
@@ -2390,10 +2397,12 @@ int     x264_encoder_encode( x264_t *h,
             float increment = X264_MAX( ((float)h->sps->i_mb_width-1) / h->param.i_keyint_max, 1 );
             h->fdec->f_pir_position = h->fref0[0]->f_pir_position;
             h->fdec->i_frames_since_pir = h->fref0[0]->i_frames_since_pir + pocdiff;
-            if( h->fdec->i_frames_since_pir >= h->param.i_keyint_max )
+            if( h->fdec->i_frames_since_pir >= h->param.i_keyint_max ||
+                (h->b_queued_intra_refresh && h->fdec->f_pir_position + 0.5 >= h->sps->i_mb_width) )
             {
                 h->fdec->f_pir_position = 0;
                 h->fdec->i_frames_since_pir = 0;
+                h->b_queued_intra_refresh = 0;
                 h->fenc->b_keyframe = 1;
             }
             h->fdec->i_pir_start_col = h->fdec->f_pir_position+0.5;
