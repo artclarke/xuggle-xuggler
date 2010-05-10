@@ -315,26 +315,22 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
         if( sps->vui.b_aspect_ratio_info_present )
         {
             int i;
-            static const struct { int w, h; int sar; } sar[] =
+            static const struct { uint8_t w, h, sar; } sar[] =
             {
                 { 1,   1, 1 }, { 12, 11, 2 }, { 10, 11, 3 }, { 16, 11, 4 },
                 { 40, 33, 5 }, { 24, 11, 6 }, { 20, 11, 7 }, { 32, 11, 8 },
                 { 80, 33, 9 }, { 18, 11, 10}, { 15, 11, 11}, { 64, 33, 12},
-                { 160,99, 13}, { 0, 0, -1 }
+                { 160,99, 13}, { 0, 0, 255 }
             };
-            for( i = 0; sar[i].sar != -1; i++ )
+            for( i = 0; sar[i].sar != 255; i++ )
             {
                 if( sar[i].w == sps->vui.i_sar_width &&
                     sar[i].h == sps->vui.i_sar_height )
                     break;
             }
-            if( sar[i].sar != -1 )
+            bs_write( s, 8, sar[i].sar );
+            if( sar[i].sar == 255 ) /* aspect_ratio_idc (extended) */
             {
-                bs_write( s, 8, sar[i].sar );
-            }
-            else
-            {
-                bs_write( s, 8, 255);   /* aspect_ratio_idc (extended) */
                 bs_write( s, 16, sps->vui.i_sar_width );
                 bs_write( s, 16, sps->vui.i_sar_height );
             }

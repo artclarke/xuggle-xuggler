@@ -2816,8 +2816,8 @@ void    x264_encoder_close  ( x264_t *h )
     /* Slices used and PSNR */
     for( int i = 0; i < 5; i++ )
     {
-        static const int slice_order[] = { SLICE_TYPE_I, SLICE_TYPE_SI, SLICE_TYPE_P, SLICE_TYPE_SP, SLICE_TYPE_B };
-        static const char *slice_name[] = { "P", "B", "I", "SP", "SI" };
+        static const uint8_t slice_order[] = { SLICE_TYPE_I, SLICE_TYPE_SI, SLICE_TYPE_P, SLICE_TYPE_SP, SLICE_TYPE_B };
+        static const char * const slice_name[] = { "P", "B", "I", "SP", "SI" };
         int i_slice = slice_order[i];
 
         if( h->stat.i_frame_count[i_slice] > 0 )

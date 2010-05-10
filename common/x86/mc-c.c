@@ -228,8 +228,8 @@ static void x264_weight_cache_ssse3( x264_t *h, x264_weight_t *w )
     }
 }
 
-static const int hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
-static const int hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
+static const uint8_t hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
+static const uint8_t hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
 
 #define MC_LUMA(name,instr1,instr2)\
 static void mc_luma_##name( uint8_t *dst,    int i_dst_stride,\

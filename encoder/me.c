@@ -484,7 +484,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
             int i = 1;
             do
             {
-                static const int hex4[16][2] = {
+                static const int8_t hex4[16][2] = {
                     { 0,-4}, { 0, 4}, {-2,-3}, { 2,-3},
                     {-4,-2}, { 4,-2}, {-4,-1}, { 4,-1},
                     {-4, 0}, { 4, 0}, {-4, 1}, { 4, 1},

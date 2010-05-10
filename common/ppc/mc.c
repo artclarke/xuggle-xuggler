@@ -37,8 +37,8 @@ typedef void (*pf_mc_t)( uint8_t *src, int i_src,
                          uint8_t *dst, int i_dst, int i_height );
 
 
-static const int hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
-static const int hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
+static const uint8_t hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
+static const uint8_t hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
 
 
 static inline int x264_tapfilter( uint8_t *pix, int i_pix_next )

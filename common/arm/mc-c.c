@@ -112,8 +112,8 @@ static void (* const x264_mc_copy_wtab_neon[5])( uint8_t *, int, uint8_t *, int,
     x264_mc_copy_w16_neon,
 };
 
-static const int hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
-static const int hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
+static const uint8_t hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
+static const uint8_t hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
 
 static void mc_luma_neon( uint8_t *dst,    int i_dst_stride,
                           uint8_t *src[4], int i_src_stride,

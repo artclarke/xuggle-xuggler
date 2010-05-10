@@ -23,7 +23,7 @@
 #define SHIFT(x,s) ((s)<=0 ? (x)<<-(s) : ((x)+(1<<((s)-1)))>>(s))
 #define DIV(n,d) (((n) + ((d)>>1)) / (d))
 
-static const int dequant4_scale[6][3] =
+static const uint8_t dequant4_scale[6][3] =
 {
     { 10, 13, 16 },
     { 11, 14, 18 },
@@ -32,7 +32,7 @@ static const int dequant4_scale[6][3] =
     { 16, 20, 25 },
     { 18, 23, 29 }
 };
-static const int quant4_scale[6][3] =
+static const uint16_t quant4_scale[6][3] =
 {
     { 13107, 8066, 5243 },
     { 11916, 7490, 4660 },
@@ -42,11 +42,11 @@ static const int quant4_scale[6][3] =
     {  7282, 4559, 2893 },
 };
 
-static const int quant8_scan[16] =
+static const uint8_t quant8_scan[16] =
 {
     0,3,4,3, 3,1,5,1, 4,5,2,5, 3,1,5,1
 };
-static const int dequant8_scale[6][6] =
+static const uint8_t dequant8_scale[6][6] =
 {
     { 20, 18, 32, 19, 25, 24 },
     { 22, 19, 35, 21, 28, 26 },
@@ -55,7 +55,7 @@ static const int dequant8_scale[6][6] =
     { 32, 28, 51, 30, 40, 38 },
     { 36, 32, 58, 34, 46, 43 },
 };
-static const int quant8_scale[6][6] =
+static const uint16_t quant8_scale[6][6] =
 {
     { 13107, 11428, 20972, 12222, 16777, 15481 },
     { 11916, 10826, 19174, 11058, 14980, 14290 },
