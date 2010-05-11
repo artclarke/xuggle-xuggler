@@ -2066,6 +2066,10 @@ static void *x264_slices_write( x264_t *h )
 static int x264_threaded_slices_write( x264_t *h )
 {
     void *ret = NULL;
+#ifdef HAVE_MMX
+    if( h->param.cpu&X264_CPU_SSE_MISALIGN )
+        x264_cpu_mask_misalign_sse();
+#endif
     /* set first/last mb and sync contexts */
     for( int i = 0; i < h->param.i_threads; i++ )
     {
