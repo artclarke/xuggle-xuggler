@@ -1312,7 +1312,7 @@ static void parse_qpfile( cli_opt_t *opt, x264_picture_t *pic, int i_frame )
  * Encode:
  *****************************************************************************/
 
-static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic, int64_t *last_pts )
+static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic, int64_t *last_dts )
 {
     x264_picture_t pic_out;
     x264_nal_t *nal;
@@ -1330,18 +1330,22 @@ static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic, int64_t *l
     if( i_frame_size )
     {
         i_frame_size = output.write_frame( hout, nal[0].p_payload, i_frame_size, &pic_out );
-        *last_pts = pic_out.i_pts;
+        *last_dts = pic_out.i_dts;
     }
 
     return i_frame_size;
 }
 
-static void Print_status( int64_t i_start, int i_frame, int i_frame_total, int64_t i_file, x264_param_t *param, int64_t last_pts )
+static void Print_status( int64_t i_start, int i_frame, int i_frame_total, int64_t i_file, x264_param_t *param, int64_t last_ts )
 {
     char    buf[200];
     int64_t i_elapsed = x264_mdate() - i_start;
     double fps = i_elapsed > 0 ? i_frame * 1000000. / i_elapsed : 0;
-    double bitrate = (double) i_file * 8 / ( (double) last_pts * 1000 * param->i_timebase_num / param->i_timebase_den );
+    double bitrate;
+    if( last_ts )
+        bitrate = (double) i_file * 8 / ( (double) last_ts * 1000 * param->i_timebase_num / param->i_timebase_den );
+    else
+        bitrate = (double) i_file * 8 / ( (double) 1000 * param->i_fps_den / param->i_fps_num );
     if( i_frame_total )
     {
         int eta = i_elapsed * (i_frame_total - i_frame) / ((int64_t)i_frame * 1000000);
@@ -1369,7 +1373,9 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     int64_t i_file = 0;
     int     i_frame_size;
     int     i_update_interval;
-    int64_t last_pts = 0;
+    int64_t last_dts = 0;
+    int64_t prev_dts = 0;
+    int64_t first_dts = 0;
 #   define  MAX_PTS_WARNING 3 /* arbitrary */
     int     pts_warning_cnt = 0;
     int64_t largest_pts = -1;
@@ -1506,12 +1512,17 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
             pic.i_qpplus1 = 0;
         }
 
-        i_frame_size = Encode_frame( h, opt->hout, &pic, &last_pts );
+        prev_dts = last_dts;
+        i_frame_size = Encode_frame( h, opt->hout, &pic, &last_dts );
         if( i_frame_size < 0 )
             return -1;
         i_file += i_frame_size;
         if( i_frame_size )
+        {
             i_frame_output++;
+            if( i_frame_output == 1 )
+                first_dts = prev_dts = last_dts;
+        }
 
         i_frame++;
 
@@ -1520,19 +1531,24 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
 
         /* update status line (up to 1000 times per input file) */
         if( opt->b_progress && i_frame_output % i_update_interval == 0 && i_frame_output )
-            Print_status( i_start, i_frame_output, i_frame_total, i_file, param, last_pts );
+            Print_status( i_start, i_frame_output, i_frame_total, i_file, param, 2 * last_dts - prev_dts - first_dts );
     }
     /* Flush delayed frames */
     while( !b_ctrl_c && x264_encoder_delayed_frames( h ) )
     {
-        i_frame_size = Encode_frame( h, opt->hout, NULL, &last_pts );
+        prev_dts = last_dts;
+        i_frame_size = Encode_frame( h, opt->hout, NULL, &last_dts );
         if( i_frame_size < 0 )
             return -1;
         i_file += i_frame_size;
         if( i_frame_size )
+        {
             i_frame_output++;
+            if( i_frame_output == 1 )
+                first_dts = prev_dts = last_dts;
+        }
         if( opt->b_progress && i_frame_output % i_update_interval == 0 && i_frame_output )
-            Print_status( i_start, i_frame_output, i_frame_total, i_file, param, last_pts );
+            Print_status( i_start, i_frame_output, i_frame_total, i_file, param, 2 * last_dts - prev_dts - first_dts );
     }
     if( pts_warning_cnt >= MAX_PTS_WARNING && param->i_log_level < X264_LOG_DEBUG )
         fprintf( stderr, "x264 [warning]: %d suppressed nonmonotonic pts warnings\n", pts_warning_cnt-MAX_PTS_WARNING );
