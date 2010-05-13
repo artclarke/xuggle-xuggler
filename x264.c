@@ -120,7 +120,7 @@ enum pulldown_type_e
 
 static const cli_pulldown_t pulldown_values[] =
 {
-    [X264_PULLDOWN_22]     = {1,  {TB},                                   2.0},
+    [X264_PULLDOWN_22]     = {1,  {TB},                                   1.0},
     [X264_PULLDOWN_32]     = {4,  {TBT, BT, BTB, TB},                     1.25},
     [X264_PULLDOWN_64]     = {2,  {PIC_STRUCT_DOUBLE, PIC_STRUCT_TRIPLE}, 1.0},
     [X264_PULLDOWN_DOUBLE] = {1,  {PIC_STRUCT_DOUBLE},                    2.0},
