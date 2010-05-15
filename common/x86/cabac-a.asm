@@ -32,13 +32,13 @@ cextern cabac_renorm_shift
 
 ; t3 must be ecx, since it's used for shift.
 %ifdef WIN64
-    DECLARE_REG_TMP 3,1,2,0,4,5,6,10
+    DECLARE_REG_TMP 3,1,2,0,4,5,6,10,2
     %define pointer resq
 %elifdef ARCH_X86_64
-    DECLARE_REG_TMP 0,1,2,3,4,5,6,10
+    DECLARE_REG_TMP 0,1,2,3,4,5,6,10,6
     %define pointer resq
 %else
-    DECLARE_REG_TMP 0,4,2,1,3,5,6,2
+    DECLARE_REG_TMP 0,4,2,1,3,5,6,2,2
     %define pointer resd
 %endif
 
@@ -72,13 +72,15 @@ cglobal cabac_encode_decision_asm, 0,7
     movifnidn t0,  r0mp
     movifnidn t1d, r1m
     mov   t5d, [t0+cb.range]
-    movzx t6d, byte [t0+cb.state+t1]
+    movzx t4d, byte [t0+cb.state+t1]
     mov   t3d, t5d
+    mov   t6d, t4d
     shr   t5d, 6
+    shr   t4d, 1
     movifnidn t2d, r2m
-    LOAD_GLOBAL t5d, cabac_range_lps-4, t5, t6*4
+    LOAD_GLOBAL t5d, cabac_range_lps-4, t5, t4*4
     LOAD_GLOBAL t4d, cabac_transition, t2, t6*2
-    shr   t6d, 6
+    and   t6d, 1
     sub   t3d, t5d
     cmp   t6d, t2d
     mov   t6d, [t0+cb.low]
@@ -94,20 +96,66 @@ cglobal cabac_encode_decision_asm, 0,7
     shl   t6d, t3b
     add   t3d, [t0+cb.queue]
     mov   [t0+cb.range], t4d
-    cmp   t3d, 8
-    jl .update_queue_low
-;cabac_putbyte
+    jge cabac_putbyte
+.update_queue_low:
+    mov   [t0+cb.low], t6d
+    mov   [t0+cb.queue], t3d
+    RET
+
+cglobal cabac_encode_bypass_asm, 0,3
+    movifnidn  t0, r0mp
+    movifnidn t3d, r1m
+    neg       t3d
+    mov       t8d, [t0+cb.low]
+    and       t3d, [t0+cb.range]
+    lea       t8d, [t8*2+t3]
+    mov       t3d, [t0+cb.queue]
+    inc       t3d
+%ifdef UNIX64 ; .putbyte compiles to nothing but a jmp
+    jge cabac_putbyte
+%else
+    jge .putbyte
+%endif
+    mov   [t0+cb.low], t8d
+    mov   [t0+cb.queue], t3d
+    RET
+.putbyte:
+    PROLOGUE 0,7
+    movifnidn t6d, t8d
+    jmp cabac_putbyte
+
+cglobal cabac_encode_terminal_asm, 0,3
+    movifnidn  t0, r0mp
+    sub  dword [t0+cb.range], 2
+; shortcut: the renormalization shift in terminal
+; can only be 0 or 1 and is zero over 99% of the time.
+    test dword [t0+cb.range], 0x100
+    je .renorm
+    REP_RET
+.renorm:
+    shl  dword [t0+cb.low], 1
+    shl  dword [t0+cb.range], 1
+    inc  dword [t0+cb.queue]
+    jge .putbyte
+    REP_RET
+.putbyte:
+    PROLOGUE 0,7
+    mov t3d, [t0+cb.queue]
+    mov t6d, [t0+cb.low]
+    jmp cabac_putbyte
+
+cabac_putbyte:
     ; alive: t0=cb t3=queue t6=low
 %ifdef WIN64
     DECLARE_REG_TMP 3,4,1,0,2,5,6,10
 %endif
     mov   t1d, -1
-    add   t3d, 2
+    add   t3d, 10
     mov   t2d, t6d
     shl   t1d, t3b
     shr   t2d, t3b ; out
     not   t1d
-    sub   t3d, 10
+    sub   t3d, 18
     and   t6d, t1d
     mov   t5d, [t0+cb.bytes_outstanding]
     cmp   t2b, 0xff ; FIXME is a 32bit op faster?
@@ -125,8 +173,4 @@ cglobal cabac_encode_decision_asm, 0,7
 .postpone:
     inc   t5d
     mov   [t0+cb.bytes_outstanding], t5d
-.update_queue_low:
-    mov   [t0+cb.low], t6d
-    mov   [t0+cb.queue], t3d
-    RET
-
+    jmp mangle(x264_cabac_encode_decision_asm.update_queue_low)

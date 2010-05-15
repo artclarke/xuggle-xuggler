@@ -171,7 +171,7 @@ DECLARE_REG_SIZE bp, bpl
     %endrep
 %endmacro
 
-DECLARE_REG_TMP_SIZE 0,1,2,3,4,5,6,7
+DECLARE_REG_TMP_SIZE 0,1,2,3,4,5,6,7,8,9
 
 %ifdef ARCH_X86_64
     %define gprsize 8

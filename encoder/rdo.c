@@ -50,6 +50,8 @@ static uint16_t cabac_size_5ones[128];
  * fractional bits, but only finite precision. */
 #undef  x264_cabac_encode_decision
 #undef  x264_cabac_encode_decision_noup
+#undef  x264_cabac_encode_bypass
+#undef  x264_cabac_encode_terminal
 #define x264_cabac_encode_decision(c,x,v) x264_cabac_size_decision(c,x,v)
 #define x264_cabac_encode_decision_noup(c,x,v) x264_cabac_size_decision_noup(c,x,v)
 #define x264_cabac_encode_terminal(c)     ((c)->f8_bits_encoded += 7)

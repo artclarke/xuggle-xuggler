@@ -1556,32 +1556,66 @@ static int check_intra( int cpu_ref, int cpu_new )
 }
 
 #define DECL_CABAC(cpu) \
-static void run_cabac_##cpu( uint8_t *dst )\
+static void run_cabac_decision_##cpu( uint8_t *dst )\
 {\
     x264_cabac_t cb;\
     x264_cabac_context_init( &cb, SLICE_TYPE_P, 26, 0 );\
     x264_cabac_encode_init( &cb, dst, dst+0xff0 );\
     for( int i = 0; i < 0x1000; i++ )\
         x264_cabac_encode_decision_##cpu( &cb, buf1[i]>>1, buf1[i]&1 );\
+}\
+static void run_cabac_bypass_##cpu( uint8_t *dst )\
+{\
+    x264_cabac_t cb;\
+    x264_cabac_context_init( &cb, SLICE_TYPE_P, 26, 0 );\
+    x264_cabac_encode_init( &cb, dst, dst+0xff0 );\
+    for( int i = 0; i < 0x1000; i++ )\
+        x264_cabac_encode_bypass_##cpu( &cb, buf1[i]&1 );\
+}\
+static void run_cabac_terminal_##cpu( uint8_t *dst )\
+{\
+    x264_cabac_t cb;\
+    x264_cabac_context_init( &cb, SLICE_TYPE_P, 26, 0 );\
+    x264_cabac_encode_init( &cb, dst, dst+0xff0 );\
+    for( int i = 0; i < 0x1000; i++ )\
+        x264_cabac_encode_terminal_##cpu( &cb );\
 }
 DECL_CABAC(c)
 #ifdef HAVE_MMX
 DECL_CABAC(asm)
 #else
-#define run_cabac_asm run_cabac_c
+#define run_cabac_decision_asm run_cabac_decision_c
+#define run_cabac_bypass_asm run_cabac_bypass_c
+#define run_cabac_terminal_asm run_cabac_terminal_c
 #endif
 
 static int check_cabac( int cpu_ref, int cpu_new )
 {
     int ret = 0, ok, used_asm = 1;
-    if( cpu_ref || run_cabac_c == run_cabac_asm)
+    if( cpu_ref || run_cabac_decision_c == run_cabac_decision_asm )
         return 0;
+
     set_func_name( "cabac_encode_decision" );
     memcpy( buf4, buf3, 0x1000 );
-    call_c( run_cabac_c, buf3 );
-    call_a( run_cabac_asm, buf4 );
+    call_c( run_cabac_decision_c, buf3 );
+    call_a( run_cabac_decision_asm, buf4 );
     ok = !memcmp( buf3, buf4, 0x1000 );
-    report( "cabac :" );
+    report( "cabac decision:" );
+
+    set_func_name( "cabac_encode_bypass" );
+    memcpy( buf4, buf3, 0x1000 );
+    call_c( run_cabac_bypass_c, buf3 );
+    call_a( run_cabac_bypass_asm, buf4 );
+    ok = !memcmp( buf3, buf4, 0x1000 );
+    report( "cabac bypass:" );
+
+    set_func_name( "cabac_encode_terminal" );
+    memcpy( buf4, buf3, 0x1000 );
+    call_c( run_cabac_terminal_c, buf3 );
+    call_a( run_cabac_terminal_asm, buf4 );
+    ok = !memcmp( buf3, buf4, 0x1000 );
+    report( "cabac terminal:" );
+
     return ret;
 }
 
