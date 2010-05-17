@@ -928,7 +928,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
     h->mb.i_mb_count = h->sps->i_mb_width * h->sps->i_mb_height;
 
     /* Init frames. */
-    if( h->param.i_bframe_adaptive == X264_B_ADAPT_TRELLIS )
+    if( h->param.i_bframe_adaptive == X264_B_ADAPT_TRELLIS && !h->param.rc.b_stat_read )
         h->frames.i_delay = X264_MAX(h->param.i_bframe,3)*4;
     else
         h->frames.i_delay = h->param.i_bframe;
