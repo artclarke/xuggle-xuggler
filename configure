@@ -307,6 +307,7 @@ case $host_cpu in
       ASFLAGS="$ASFLAGS -f macho -DPREFIX"
     elif [ "$SYS" = MINGW ]; then
       ASFLAGS="$ASFLAGS -f win32 -DPREFIX"
+      LDFLAGS="$LDFLAGS -Wl,--large-address-aware"
     else
       ASFLAGS="$ASFLAGS -f elf"
     fi
