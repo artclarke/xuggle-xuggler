@@ -160,14 +160,13 @@ typedef void (*x264_deblock_inter_t)( uint8_t *pix, int stride, int alpha, int b
 typedef void (*x264_deblock_intra_t)( uint8_t *pix, int stride, int alpha, int beta );
 typedef struct
 {
-    x264_deblock_inter_t deblock_v_luma;
-    x264_deblock_inter_t deblock_h_luma;
-    x264_deblock_inter_t deblock_v_chroma;
-    x264_deblock_inter_t deblock_h_chroma;
-    x264_deblock_intra_t deblock_v_luma_intra;
-    x264_deblock_intra_t deblock_h_luma_intra;
-    x264_deblock_intra_t deblock_v_chroma_intra;
-    x264_deblock_intra_t deblock_h_chroma_intra;
+    x264_deblock_inter_t deblock_luma[2];
+    x264_deblock_inter_t deblock_chroma[2];
+    x264_deblock_intra_t deblock_luma_intra[2];
+    x264_deblock_intra_t deblock_chroma_intra[2];
+    void (*deblock_strength) ( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
+                               int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4], int mvy_limit,
+                               int bframe, int step, int first_edge_only );
 } x264_deblock_function_t;
 
 x264_frame_t *x264_frame_new( x264_t *h, int b_fdec );
@@ -180,7 +179,6 @@ void          x264_frame_expand_border_filtered( x264_t *h, x264_frame_t *frame,
 void          x264_frame_expand_border_lowres( x264_frame_t *frame );
 void          x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame );
 
-void          x264_frame_deblock( x264_t *h );
 void          x264_frame_deblock_row( x264_t *h, int mb_y );
 
 void          x264_frame_filter( x264_t *h, x264_frame_t *frame, int mb_y, int b_end );

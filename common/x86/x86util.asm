@@ -136,13 +136,39 @@
     pabsw   %2, %2
 %endmacro
 
-%define ABS1 ABS1_MMX
-%define ABS2 ABS2_MMX
+%macro ABSB_MMX 2
+    pxor    %2, %2
+    psubb   %2, %1
+    pminub  %1, %2
+%endmacro
+
+%macro ABSB2_MMX 4
+    pxor    %3, %3
+    pxor    %4, %4
+    psubb   %3, %1
+    psubb   %4, %2
+    pminub  %1, %3
+    pminub  %2, %4
+%endmacro
+
+%macro ABSB_SSSE3 2
+    pabsb   %1, %1
+%endmacro
+
+%macro ABSB2_SSSE3 4
+    pabsb   %1, %1
+    pabsb   %2, %2
+%endmacro
 
 %macro ABS4 6
     ABS2 %1, %2, %5, %6
     ABS2 %3, %4, %5, %6
 %endmacro
+
+%define ABS1 ABS1_MMX
+%define ABS2 ABS2_MMX
+%define ABSB ABSB_MMX
+%define ABSB2 ABSB2_MMX
 
 %macro SPLATB_MMX 3
     movd      %1, [%2-3] ;to avoid crossing a cacheline

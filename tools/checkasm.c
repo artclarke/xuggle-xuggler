@@ -1137,14 +1137,54 @@ static int check_deblock( int cpu_ref, int cpu_new )
         } \
     }
 
-    TEST_DEBLOCK( deblock_h_luma, 0, tcs[i] );
-    TEST_DEBLOCK( deblock_v_luma, 1, tcs[i] );
-    TEST_DEBLOCK( deblock_h_chroma, 0, tcs[i] );
-    TEST_DEBLOCK( deblock_v_chroma, 1, tcs[i] );
-    TEST_DEBLOCK( deblock_h_luma_intra, 0 );
-    TEST_DEBLOCK( deblock_v_luma_intra, 1 );
-    TEST_DEBLOCK( deblock_h_chroma_intra, 0 );
-    TEST_DEBLOCK( deblock_v_chroma_intra, 1 );
+    TEST_DEBLOCK( deblock_luma[0], 0, tcs[i] );
+    TEST_DEBLOCK( deblock_luma[1], 1, tcs[i] );
+    TEST_DEBLOCK( deblock_chroma[0], 0, tcs[i] );
+    TEST_DEBLOCK( deblock_chroma[1], 1, tcs[i] );
+    TEST_DEBLOCK( deblock_luma_intra[0], 0 );
+    TEST_DEBLOCK( deblock_luma_intra[1], 1 );
+    TEST_DEBLOCK( deblock_chroma_intra[0], 0 );
+    TEST_DEBLOCK( deblock_chroma_intra[1], 1 );
+
+    if( db_a.deblock_strength != db_ref.deblock_strength )
+    {
+        for( int i = 0; i < 100; i++ )
+        {
+            ALIGNED_ARRAY_16( uint8_t, nnz, [X264_SCAN8_SIZE] );
+            ALIGNED_4( int8_t ref[2][X264_SCAN8_LUMA_SIZE] );
+            ALIGNED_ARRAY_16( int16_t, mv, [2][X264_SCAN8_LUMA_SIZE][2] );
+            ALIGNED_ARRAY_16( uint8_t, bs, [2][2][4][4] );
+            for( int j = 0; j < X264_SCAN8_SIZE; j++ )
+                nnz[j] = ((rand()&7) == 7) * rand() & 0xf;
+            for( int j = 0; j < 2; j++ )
+                for( int k = 0; k < X264_SCAN8_LUMA_SIZE; k++ )
+                {
+                    ref[j][k] = ((rand()&3) != 3) ? 0 : (rand() & 31) - 2;
+                    for( int l = 0; l < 2; l++ )
+                        mv[j][k][l] = ((rand()&7) != 7) ? (rand()&7) - 3 : (rand()&1023) - 512;
+                }
+            set_func_name( "deblock_strength" );
+            call_c( db_c.deblock_strength, nnz, ref, mv, bs[0], 2<<(i&1), ((i>>1)&1), 1, 0 );
+            call_a( db_a.deblock_strength, nnz, ref, mv, bs[1], 2<<(i&1), ((i>>1)&1), 1, 0 );
+            if( memcmp( bs[0], bs[1], sizeof(bs[0]) ) )
+            {
+                ok = 0;
+                fprintf( stderr, "deblock_strength: [FAILED]\n" );
+                for( int j = 0; j < 2; j++ )
+                {
+                    for( int k = 0; k < 2; k++ )
+                        for( int l = 0; l < 4; l++ )
+                        {
+                            for( int m = 0; m < 4; m++ )
+                                printf("%d ",bs[j][k][l][m]);
+                            printf("\n");
+                        }
+                    printf("\n");
+                }
+                break;
+            }
+        }
+    }
 
     report( "deblock :" );
 

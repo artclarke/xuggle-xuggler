@@ -21,6 +21,11 @@
 ;*****************************************************************************
 
 %include "x86inc.asm"
+%include "x86util.asm"
+
+SECTION_RODATA
+
+transpose_shuf: db 0,4,8,12,1,5,9,13,2,6,10,14,3,7,11,15
 
 SECTION .text
 
@@ -101,7 +106,7 @@ cextern pb_a1
     movd       %8, m5
 %endmacro
 
-%macro SBUTTERFLY 4
+%macro SBUTTERFLY3 4
     movq       %4, %2
     punpckl%1  %2, %3
     punpckh%1  %4, %3
@@ -117,19 +122,19 @@ cextern pb_a1
     movq  m4, %5
     movq  m5, %6
     movq  m6, %7
-    SBUTTERFLY bw, m0, m1, m7
-    SBUTTERFLY bw, m2, m3, m1
-    SBUTTERFLY bw, m4, m5, m3
+    SBUTTERFLY3 bw, m0, m1, m7
+    SBUTTERFLY3 bw, m2, m3, m1
+    SBUTTERFLY3 bw, m4, m5, m3
     movq  [%9+0x10], m1
-    SBUTTERFLY bw, m6, %8, m5
-    SBUTTERFLY wd, m0, m2, m1
-    SBUTTERFLY wd, m4, m6, m2
+    SBUTTERFLY3 bw, m6, %8, m5
+    SBUTTERFLY3 wd, m0, m2, m1
+    SBUTTERFLY3 wd, m4, m6, m2
     punpckhdq m0, m4
     movq  [%9+0x00], m0
-    SBUTTERFLY wd, m7, [%9+0x10], m6
-    SBUTTERFLY wd, m3, m5, m4
-    SBUTTERFLY dq, m7, m3, m0
-    SBUTTERFLY dq, m1, m2, m5
+    SBUTTERFLY3 wd, m7, [%9+0x10], m6
+    SBUTTERFLY3 wd, m3, m5, m4
+    SBUTTERFLY3 dq, m7, m3, m0
+    SBUTTERFLY3 dq, m1, m2, m5
     punpckldq m6, m4
     movq  [%9+0x10], m1
     movq  [%9+0x20], m5
@@ -148,25 +153,25 @@ cextern pb_a1
     movq  m4, %5
     movq  m5, %6
     movq  m6, %7
-    SBUTTERFLY bw, m0, m1, m7
-    SBUTTERFLY bw, m2, m3, m1
-    SBUTTERFLY bw, m4, m5, m3
-    SBUTTERFLY bw, m6, %8, m5
+    SBUTTERFLY3 bw, m0, m1, m7
+    SBUTTERFLY3 bw, m2, m3, m1
+    SBUTTERFLY3 bw, m4, m5, m3
+    SBUTTERFLY3 bw, m6, %8, m5
     movq  %9,  m3
-    SBUTTERFLY wd, m0, m2, m3
-    SBUTTERFLY wd, m4, m6, m2
-    SBUTTERFLY wd, m7, m1, m6
+    SBUTTERFLY3 wd, m0, m2, m3
+    SBUTTERFLY3 wd, m4, m6, m2
+    SBUTTERFLY3 wd, m7, m1, m6
     movq  %11, m2
     movq  m2,  %9
-    SBUTTERFLY wd, m2, m5, m1
-    SBUTTERFLY dq, m0, m4, m5
-    SBUTTERFLY dq, m7, m2, m4
+    SBUTTERFLY3 wd, m2, m5, m1
+    SBUTTERFLY3 dq, m0, m4, m5
+    SBUTTERFLY3 dq, m7, m2, m4
     movq  %9,  m0
     movq  %10, m5
     movq  %13, m7
     movq  %14, m4
-    SBUTTERFLY dq, m3, %11, m0
-    SBUTTERFLY dq, m6, m1, m5
+    SBUTTERFLY3 dq, m3, %11, m0
+    SBUTTERFLY3 dq, m6, m1, m5
     movq  %11, m3
     movq  %12, m0
     movq  %15, m6
@@ -881,3 +886,223 @@ chroma_intra_body_mmxext:
     paddb  m1, m5
     paddb  m2, m6
     ret
+
+;-----------------------------------------------------------------------------
+; static void deblock_strength( uint8_t nnz[48], int8_t ref[2][40], int16_t mv[2][40][2],
+;                               uint8_t bs[2][4][4], int mvy_limit, int bframe, int step,
+;                               int first_edge_only )
+;-----------------------------------------------------------------------------
+
+%define scan8start (4+1*8)
+%define nnz r0+scan8start
+%define ref r1+scan8start
+%define mv  r2+scan8start*4
+%define bs0 r3
+%define bs1 r3+16
+
+%macro LOAD_BYTES_MMX 1
+    movd      m2, [%1+8*0-1]
+    movd      m0, [%1+8*0]
+    movd      m3, [%1+8*2-1]
+    movd      m1, [%1+8*2]
+    punpckldq m2, [%1+8*1-1]
+    punpckldq m0, [%1+8*1]
+    punpckldq m3, [%1+8*3-1]
+    punpckldq m1, [%1+8*3]
+%endmacro
+
+%macro DEBLOCK_STRENGTH_REFS_MMX 0
+    LOAD_BYTES_MMX ref
+    pxor      m2, m0
+    pxor      m3, m1
+    por       m2, [bs0+0]
+    por       m3, [bs0+8]
+    movq [bs0+0], m2
+    movq [bs0+8], m3
+
+    movd      m2, [ref-8*1]
+    movd      m3, [ref+8*1]
+    punpckldq m2, m0  ; row -1, row 0
+    punpckldq m3, m1  ; row  1, row 2
+    pxor      m0, m2
+    pxor      m1, m3
+    por       m0, [bs1+0]
+    por       m1, [bs1+8]
+    movq [bs1+0], m0
+    movq [bs1+8], m1
+%endmacro
+
+%macro DEBLOCK_STRENGTH_MVS_MMX 2
+    mova      m0, [mv-%2]
+    mova      m1, [mv-%2+8]
+    psubw     m0, [mv]
+    psubw     m1, [mv+8]
+    packsswb  m0, m1
+    ABSB      m0, m1
+    psubusb   m0, m7
+    packsswb  m0, m0
+    por       m0, [%1]
+    movd    [%1], m0
+%endmacro
+
+%macro DEBLOCK_STRENGTH_NNZ_MMX 1
+    por       m2, m0
+    por       m3, m1
+    mova      m4, [%1]
+    mova      m5, [%1+8]
+    pminub    m2, m6
+    pminub    m3, m6
+    pminub    m4, m6 ; mv ? 1 : 0
+    pminub    m5, m6
+    paddb     m2, m2 ; nnz ? 2 : 0
+    paddb     m3, m3
+    pmaxub    m2, m4
+    pmaxub    m3, m5
+%endmacro
+
+%macro LOAD_BYTES_XMM 1
+    movu      m0, [%1-4] ; FIXME could be aligned if we changed nnz's allocation
+    movu      m1, [%1+12]
+    mova      m2, m0
+    pslldq    m0, 1
+    shufps    m2, m1, 0xdd ; cur nnz, all rows
+    pslldq    m1, 1
+    shufps    m0, m1, 0xdd ; left neighbors
+    mova      m1, m2
+    movd      m3, [%1-8] ; could be palignr if nnz was aligned
+    pslldq    m1, 4
+    por       m1, m3 ; top neighbors
+%endmacro
+
+INIT_MMX
+cglobal deblock_strength_mmxext, 6,6
+    ; Prepare mv comparison register
+    shl      r4d, 8
+    add      r4d, 3 - (1<<8)
+    movd      m7, r4d
+    SPLATW    m7
+    mova      m6, [pb_1]
+    pxor      m0, m0
+    mova [bs0+0], m0
+    mova [bs0+8], m0
+    mova [bs1+0], m0
+    mova [bs1+8], m0
+
+.lists:
+    DEBLOCK_STRENGTH_REFS_MMX
+    mov      r4d, 4
+.mvs:
+    DEBLOCK_STRENGTH_MVS_MMX bs0, 4
+    DEBLOCK_STRENGTH_MVS_MMX bs1, 4*8
+    add       r2, 4*8
+    add       r3, 4
+    dec      r4d
+    jg .mvs
+    add       r1, 40
+    add       r2, 4*8
+    sub       r3, 16
+    dec      r5d
+    jge .lists
+
+    ; Check nnz
+    LOAD_BYTES_MMX nnz
+    DEBLOCK_STRENGTH_NNZ_MMX bs0
+    ; Transpose column output
+    SBUTTERFLY bw, 2, 3, 4
+    SBUTTERFLY bw, 2, 3, 4
+    mova [bs0+0], m2
+    mova [bs0+8], m3
+    movd      m2, [nnz-8*1]
+    movd      m3, [nnz+8*1]
+    punpckldq m2, m0  ; row -1, row 0
+    punpckldq m3, m1  ; row  1, row 2
+    DEBLOCK_STRENGTH_NNZ_MMX bs1
+    mova [bs1+0], m2
+    mova [bs1+8], m3
+    RET
+
+%macro DEBLOCK_STRENGTH_XMM 1
+cglobal deblock_strength_%1, 6,6,7
+    ; Prepare mv comparison register
+    shl      r4d, 8
+    add      r4d, 3 - (1<<8)
+    movd      m6, r4d
+    SPLATW    m6
+    pxor      m4, m4 ; bs0
+    pxor      m5, m5 ; bs1
+
+.lists:
+    ; Check refs
+    LOAD_BYTES_XMM ref
+    pxor      m0, m2
+    pxor      m1, m2
+    por       m4, m0
+    por       m5, m1
+
+    ; Check mvs
+    movu      m0, [mv-4+4*8*0]
+    movu      m1, [mv-4+4*8*1]
+    movu      m2, [mv-4+4*8*2]
+    movu      m3, [mv-4+4*8*3]
+    psubw     m0, [mv+4*8*0]
+    psubw     m1, [mv+4*8*1]
+    psubw     m2, [mv+4*8*2]
+    psubw     m3, [mv+4*8*3]
+    packsswb  m0, m1
+    packsswb  m2, m3
+    ABSB2     m0, m2, m1, m3
+    psubusb   m0, m6
+    psubusb   m2, m6
+    packsswb  m0, m2
+    por       m4, m0
+
+    mova      m0, [mv+4*8*-1]
+    mova      m1, [mv+4*8* 0]
+    mova      m2, [mv+4*8* 1]
+    mova      m3, [mv+4*8* 2]
+    psubw     m0, m1
+    psubw     m1, m2
+    psubw     m2, m3
+    psubw     m3, [mv+4*8* 3]
+    packsswb  m0, m1
+    packsswb  m2, m3
+    ABSB2     m0, m2, m1, m3
+    psubusb   m0, m6
+    psubusb   m2, m6
+    packsswb  m0, m2
+    por       m5, m0
+    add       r1, 40
+    add       r2, 4*8*5
+    dec      r5d
+    jge .lists
+
+    ; Check nnz
+    LOAD_BYTES_XMM nnz
+    por       m0, m2
+    por       m1, m2
+    mova      m6, [pb_1]
+    pminub    m0, m6
+    pminub    m1, m6
+    pminub    m4, m6 ; mv ? 1 : 0
+    pminub    m5, m6
+    paddb     m0, m0 ; nnz ? 2 : 0
+    paddb     m1, m1
+    pmaxub    m4, m0
+    pmaxub    m5, m1
+%ifidn %1,ssse3
+    pshufb    m4, [transpose_shuf]
+%else
+    movhlps   m3, m4
+    punpcklbw m4, m3
+    movhlps   m3, m4
+    punpcklbw m4, m3
+%endif
+    mova   [bs1], m5
+    mova   [bs0], m4
+    RET
+%endmacro
+
+INIT_XMM
+DEBLOCK_STRENGTH_XMM sse2
+%define ABSB2 ABSB2_SSSE3
+DEBLOCK_STRENGTH_XMM ssse3

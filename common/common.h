@@ -100,6 +100,42 @@ typedef union { x264_uint128_t i; uint64_t a[2]; uint32_t b[4]; uint16_t c[8]; u
 #define CP64(dst,src) M64(dst) = M64(src)
 #define CP128(dst,src) M128(dst) = M128(src)
 
+#define X264_SCAN8_SIZE (6*8)
+#define X264_SCAN8_LUMA_SIZE (5*8)
+#define X264_SCAN8_0 (4+1*8)
+
+static const int x264_scan8[16+2*4+3] =
+{
+    /* Luma */
+    4+1*8, 5+1*8, 4+2*8, 5+2*8,
+    6+1*8, 7+1*8, 6+2*8, 7+2*8,
+    4+3*8, 5+3*8, 4+4*8, 5+4*8,
+    6+3*8, 7+3*8, 6+4*8, 7+4*8,
+
+    /* Cb */
+    1+1*8, 2+1*8,
+    1+2*8, 2+2*8,
+
+    /* Cr */
+    1+4*8, 2+4*8,
+    1+5*8, 2+5*8,
+
+    /* Luma DC */
+    4+5*8,
+
+    /* Chroma DC */
+    6+5*8, 7+5*8
+};
+/*
+   0 1 2 3 4 5 6 7
+ 0
+ 1   B B   L L L L
+ 2   B B   L L L L
+ 3         L L L L
+ 4   R R   L L L L
+ 5   R R   Dy  DuDv
+*/
+
 #include "x264.h"
 #include "bs.h"
 #include "set.h"
@@ -321,44 +357,6 @@ typedef struct x264_lookahead_t
     x264_synch_frame_list_t       next;
     x264_synch_frame_list_t       ofbuf;
 } x264_lookahead_t;
-
-/* From ffmpeg
- */
-#define X264_SCAN8_SIZE (6*8)
-#define X264_SCAN8_LUMA_SIZE (5*8)
-#define X264_SCAN8_0 (4+1*8)
-
-static const int x264_scan8[16+2*4+3] =
-{
-    /* Luma */
-    4+1*8, 5+1*8, 4+2*8, 5+2*8,
-    6+1*8, 7+1*8, 6+2*8, 7+2*8,
-    4+3*8, 5+3*8, 4+4*8, 5+4*8,
-    6+3*8, 7+3*8, 6+4*8, 7+4*8,
-
-    /* Cb */
-    1+1*8, 2+1*8,
-    1+2*8, 2+2*8,
-
-    /* Cr */
-    1+4*8, 2+4*8,
-    1+5*8, 2+5*8,
-
-    /* Luma DC */
-    4+5*8,
-
-    /* Chroma DC */
-    6+5*8, 7+5*8
-};
-/*
-   0 1 2 3 4 5 6 7
- 0
- 1   B B   L L L L
- 2   B B   L L L L
- 3         L L L L
- 4   R R   L L L L
- 5   R R   Dy  DuDv
-*/
 
 typedef struct x264_ratecontrol_t   x264_ratecontrol_t;
 
