@@ -674,7 +674,7 @@ int x264_ratecontrol_new( x264_t *h )
                 return -1;
             }
 
-            if( h->param.rc.b_mb_tree && ( p = strstr( opts, "rc_lookahead=" ) ) && sscanf( p, "rc_lookahead=%d", &i ) )
+            if( (h->param.rc.b_mb_tree || h->param.rc.i_vbv_buffer_size) && ( p = strstr( opts, "rc_lookahead=" ) ) && sscanf( p, "rc_lookahead=%d", &i ) )
                 h->param.rc.i_lookahead = i;
         }
 
