@@ -1890,11 +1890,11 @@ static int x264_slice_write( x264_t *h )
         x264_macroblock_cache_save( h );
 
         /* accumulate mb stats */
+        h->stat.frame.i_mb_count[h->mb.i_type]++;
 
         int b_intra = IS_INTRA( h->mb.i_type );
         if( h->param.i_log_level >= X264_LOG_INFO || h->param.rc.b_stat_write )
         {
-            h->stat.frame.i_mb_count[h->mb.i_type]++;
             if( !b_intra && !IS_SKIP( h->mb.i_type ) && !IS_DIRECT( h->mb.i_type ) )
             {
                 if( h->mb.i_partition != D_8x8 )
