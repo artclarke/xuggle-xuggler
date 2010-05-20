@@ -149,16 +149,16 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     sps->b_gaps_in_frame_num_value_allowed = 0;
     sps->i_mb_width = ( param->i_width + 15 ) / 16;
     sps->i_mb_height= ( param->i_height + 15 ) / 16;
-    if( param->b_interlaced )
+    sps->b_frame_mbs_only = param->b_interlaced ? 0 : !param->b_fake_interlaced;
+    if( !sps->b_frame_mbs_only )
         sps->i_mb_height = ( sps->i_mb_height + 1 ) & ~1;
-    sps->b_frame_mbs_only = ! param->b_interlaced;
     sps->b_mb_adaptive_frame_field = param->b_interlaced;
     sps->b_direct8x8_inference = 1;
 
     sps->crop.i_left   = 0;
     sps->crop.i_top    = 0;
     sps->crop.i_right  = sps->i_mb_width*16 - param->i_width;
-    sps->crop.i_bottom = (sps->i_mb_height*16 - param->i_height) >> param->b_interlaced;
+    sps->crop.i_bottom = (sps->i_mb_height*16 - param->i_height) >> !sps->b_frame_mbs_only;
     sps->b_crop = sps->crop.i_left  || sps->crop.i_top ||
                   sps->crop.i_right || sps->crop.i_bottom;
 
@@ -685,6 +685,7 @@ int x264_validate_levels( x264_t *h, int verbose )
     CHECK( "VBV buffer", (l->cpb * cbp_factor) / 4, h->param.rc.i_vbv_buffer_size );
     CHECK( "MV range", l->mv_range, h->param.analyse.i_mv_range );
     CHECK( "interlaced", !l->frame_only, h->param.b_interlaced );
+    CHECK( "fake interlaced", !l->frame_only, h->param.b_fake_interlaced );
 
     if( h->param.i_fps_den > 0 )
         CHECK( "MB rate", l->mbps, (int64_t)mbs * h->param.i_fps_num / h->param.i_fps_den );

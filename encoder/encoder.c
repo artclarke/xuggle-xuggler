@@ -784,6 +784,7 @@ static int x264_validate_parameters( x264_t *h )
     BOOLIFY( b_annexb );
     BOOLIFY( b_vfr_input );
     BOOLIFY( b_pic_struct );
+    BOOLIFY( b_fake_interlaced );
     BOOLIFY( analyse.b_transform_8x8 );
     BOOLIFY( analyse.b_weighted_bipred );
     BOOLIFY( analyse.b_chroma_me );

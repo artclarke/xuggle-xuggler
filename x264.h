@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 95
+#define X264_BUILD 96
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -348,6 +348,14 @@ typedef struct x264_param_t
      */
 
     int b_pic_struct;
+
+    /* Fake Interlaced.
+     *
+     * Used only when b_interlaced=0. Setting this flag to zero makes it possible to flag the stream as PAFF interlaced yet
+     * encode all frames progessively. It is useful for encoding 25p and 30p Blu-Ray streams.
+     */
+
+    int b_fake_interlaced;
 
     /* Slicing parameters */
     int i_slice_max_size;    /* Max size per slice in bytes; includes estimated NAL overhead. */

@@ -160,6 +160,7 @@ void x264_param_default( x264_param_t *param )
     param->i_nal_hrd = X264_NAL_HRD_NONE;
     param->b_tff = 1;
     param->b_pic_struct = 0;
+    param->b_fake_interlaced = 0;
 }
 
 static int x264_param_apply_preset( x264_param_t *param, const char *preset )
@@ -425,6 +426,8 @@ int x264_param_apply_profile( x264_param_t *param, const char *profile )
             x264_log( NULL, X264_LOG_ERROR, "baseline profile doesn't support interlacing\n" );
             return -1;
         }
+        if( param->b_fake_interlaced )
+            x264_log( NULL, X264_LOG_WARNING, "baseline profile doesn't support fake interlacing\n" );
     }
     else if( !strcasecmp( profile, "main" ) )
     {
@@ -930,6 +933,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         b_error |= parse_enum( value, x264_nal_hrd_names, &p->i_nal_hrd );
     OPT("pic-struct")
         p->b_pic_struct = atobool(value);
+    OPT("fake-interlaced")
+        p->b_fake_interlaced = atobool(value);
     else
         return X264_PARAM_BAD_NAME;
 #undef OPT
