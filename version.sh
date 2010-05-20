@@ -9,11 +9,11 @@ if [ $LOCALVER \> 1 ] ; then
         VER="${VER}M"
     fi
     VER="$VER $(git rev-list HEAD -n 1 | cut -c 1-7)"
-    echo "#define X264_VERSION \" r$VER\"" >> config.h
+    echo "#define X264_VERSION \" r$VER\""
 else
-    echo "#define X264_VERSION \"\"" >> config.h
+    echo "#define X264_VERSION \"\""
     VER="x"
 fi
 rm -f config.git-hash
 API=`grep '#define X264_BUILD' < x264.h | sed -e 's/.* \([1-9][0-9]*\).*/\1/'`
-echo "#define X264_POINTVER \"0.$API.$VER\"" >> config.h
+echo "#define X264_POINTVER \"0.$API.$VER\""

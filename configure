@@ -684,7 +684,7 @@ if [ "$shared" = "yes" ]; then
     echo 'default: $(SONAME)' >> config.mak
 fi
 
-./version.sh
+./version.sh >> config.h
 
 pclibs="-L$libdir -lx264 $libpthread"
 
