@@ -852,7 +852,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
             break;
     }
 
-    if( !b_refine_qpel )
+    if( !b_refine_qpel && (h->pixf.mbcmp_unaligned[0] != h->pixf.fpelcmp[0] || b_chroma_me) )
     {
         bcost = COST_MAX;
         COST_MV_SATD( bmx, bmy, -1 );
