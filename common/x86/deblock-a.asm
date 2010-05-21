@@ -1022,7 +1022,7 @@ cglobal deblock_strength_mmxext, 6,6
     RET
 
 %macro DEBLOCK_STRENGTH_XMM 1
-cglobal deblock_strength_%1, 6,6,7
+cglobal deblock_strength_%1, 6,6,8
     ; Prepare mv comparison register
     shl      r4d, 8
     add      r4d, 3 - (1<<8)
@@ -1040,6 +1040,27 @@ cglobal deblock_strength_%1, 6,6,7
     por       m5, m1
 
     ; Check mvs
+%ifidn %1, ssse3
+    mova      m3, [mv+4*8*0]
+    mova      m2, [mv+4*8*1]
+    mova      m0, m3
+    mova      m1, m2
+    palignr   m3, [mv+4*8*0-16], 12
+    palignr   m2, [mv+4*8*1-16], 12
+    psubw     m0, m3
+    psubw     m1, m2
+    packsswb  m0, m1
+
+    mova      m3, [mv+4*8*2]
+    mova      m7, [mv+4*8*3]
+    mova      m2, m3
+    mova      m1, m7
+    palignr   m3, [mv+4*8*2-16], 12
+    palignr   m7, [mv+4*8*3-16], 12
+    psubw     m2, m3
+    psubw     m1, m7
+    packsswb  m2, m1
+%else
     movu      m0, [mv-4+4*8*0]
     movu      m1, [mv-4+4*8*1]
     movu      m2, [mv-4+4*8*2]
@@ -1050,6 +1071,7 @@ cglobal deblock_strength_%1, 6,6,7
     psubw     m3, [mv+4*8*3]
     packsswb  m0, m1
     packsswb  m2, m3
+%endif
     ABSB2     m0, m2, m1, m3
     psubusb   m0, m6
     psubusb   m2, m6
