@@ -603,8 +603,9 @@ static int x264_validate_parameters( x264_t *h )
     if( h->param.rc.b_stat_read )
         h->param.rc.i_lookahead = 0;
 #ifdef HAVE_PTHREAD
-    if( h->param.i_sync_lookahead )
-        h->param.i_sync_lookahead = x264_clip3( h->param.i_sync_lookahead, h->i_thread_frames + h->param.i_bframe, X264_LOOKAHEAD_MAX );
+    if( h->param.i_sync_lookahead < 0 )
+        h->param.i_sync_lookahead = h->param.i_bframe + 1;
+    h->param.i_sync_lookahead = X264_MIN( h->param.i_sync_lookahead, X264_LOOKAHEAD_MAX );
     if( h->param.rc.b_stat_read || h->i_thread_frames == 1 )
         h->param.i_sync_lookahead = 0;
 #else
@@ -937,7 +938,6 @@ x264_t *x264_encoder_open( x264_param_t *param )
         h->frames.i_delay = X264_MAX( h->frames.i_delay, h->param.rc.i_lookahead );
     i_slicetype_length = h->frames.i_delay;
     h->frames.i_delay += h->i_thread_frames - 1;
-    h->frames.i_delay = X264_MIN( h->frames.i_delay, X264_LOOKAHEAD_MAX );
     h->frames.i_delay += h->param.i_sync_lookahead;
     h->frames.i_delay += h->param.b_vfr_input && (h->param.rc.i_rc_method == X264_RC_ABR || h->param.rc.b_stat_write
                                                  || h->param.rc.i_vbv_buffer_size);
