@@ -297,10 +297,10 @@ case $host_cpu in
     ARCH="X86"
     AS="yasm"
     ASFLAGS="$ASFLAGS -O2"
-    if [[ "$asm" == yes && "$CFLAGS" != *-march* ]]; then
+    if [[ "$asm" == auto && "$CFLAGS" != *-march* ]]; then
       CFLAGS="$CFLAGS -march=i686"
     fi
-    if [[ "$asm" == yes && "$CFLAGS" != *-mfpmath* ]]; then
+    if [[ "$asm" == auto && "$CFLAGS" != *-mfpmath* ]]; then
       CFLAGS="$CFLAGS -mfpmath=sse -msse"
     fi
     if [ "$SYS" = MACOSX ]; then
@@ -329,7 +329,7 @@ case $host_cpu in
     ;;
   powerpc|powerpc64)
     ARCH="PPC"
-    if [ $asm = yes ] ; then
+    if [ $asm = auto ] ; then
       define HAVE_ALTIVEC
       AS="${AS-${cross_prefix}gcc}"
       if [ $SYS = MACOSX ] ; then
@@ -341,7 +341,7 @@ case $host_cpu in
     fi
     ;;
   sparc)
-    if [ $asm = yes ] && test "$(uname -m)" = "sun4u"; then
+    if [ $asm = auto ] && test "$(uname -m)" = "sun4u"; then
       ARCH="UltraSparc"
       CFLAGS="$CFLAGS -mcpu=ultrasparc"
       LDFLAGS="$LDFLAGS -mcpu=ultrasparc"
