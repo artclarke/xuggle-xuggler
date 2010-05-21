@@ -331,7 +331,8 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp )
     {
         int thresh = (x264_lambda2_tab[i_qp] + 32) >> 6;
         int ssd[2];
-        int score  = h->pixf.var2_8x8( h->mb.pic.p_fenc[1], FENC_STRIDE, h->mb.pic.p_fdec[1], FDEC_STRIDE, &ssd[0] );
+        int score = h->pixf.var2_8x8( h->mb.pic.p_fenc[1], FENC_STRIDE, h->mb.pic.p_fdec[1], FDEC_STRIDE, &ssd[0] );
+        if( score < thresh*4 )
             score += h->pixf.var2_8x8( h->mb.pic.p_fenc[2], FENC_STRIDE, h->mb.pic.p_fdec[2], FDEC_STRIDE, &ssd[1] );
         if( score < thresh*4 )
         {

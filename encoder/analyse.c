@@ -2637,9 +2637,8 @@ intra_analysis:
             h->mb.i_partition = D_16x16;
             assert( h->mb.cache.pskip_mv[1] <= h->mb.mv_max_spel[1] || h->i_thread_frames == 1 );
             /* Set up MVs for future predictors */
-            if( b_skip )
-                for( int i = 0; i < h->mb.pic.i_fref[0]; i++ )
-                    M32( h->mb.mvr[0][i][h->mb.i_mb_xy] ) = 0;
+            for( int i = 0; i < h->mb.pic.i_fref[0]; i++ )
+                M32( h->mb.mvr[0][i][h->mb.i_mb_xy] ) = 0;
         }
         else
         {
