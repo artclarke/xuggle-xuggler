@@ -351,7 +351,7 @@ typedef struct x264_param_t
 
     /* Fake Interlaced.
      *
-     * Used only when b_interlaced=0. Setting this flag to zero makes it possible to flag the stream as PAFF interlaced yet
+     * Used only when b_interlaced=0. Setting this flag makes it possible to flag the stream as PAFF interlaced yet
      * encode all frames progessively. It is useful for encoding 25p and 30p Blu-Ray streams.
      */
 
