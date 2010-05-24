@@ -1111,7 +1111,7 @@ FRAME_INIT_LOWRES ssse3, 12
 ; void mbtree_propagate_cost( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
 ;                             uint16_t *inter_costs, uint16_t *inv_qscales, int len )
 ;-----------------------------------------------------------------------------
-cglobal mbtree_propagate_cost_sse2, 6,6
+cglobal mbtree_propagate_cost_sse2, 6,6,7
     shl r5d, 1
     lea r0, [r0+r5*2]
     add r1, r5
@@ -1121,6 +1121,7 @@ cglobal mbtree_propagate_cost_sse2, 6,6
     neg r5
     pxor      xmm5, xmm5
     movdqa    xmm4, [pd_128]
+    movdqa    xmm6, [pw_3fff]
 .loop:
     movq      xmm2, [r2+r5] ; intra
     movq      xmm0, [r4+r5] ; invq
@@ -1131,7 +1132,7 @@ cglobal mbtree_propagate_cost_sse2, 6,6
     psrld     xmm0, 8       ; intra*invq>>8
     movq      xmm3, [r3+r5] ; inter
     movq      xmm1, [r1+r5] ; prop
-    pand      xmm3, [pw_3fff]
+    pand      xmm3, xmm6
     punpcklwd xmm1, xmm5
     punpcklwd xmm3, xmm5
     paddd     xmm0, xmm1    ; prop + (intra*invq>>8)
