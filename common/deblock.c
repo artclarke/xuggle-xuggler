@@ -274,13 +274,15 @@ static void deblock_h_chroma_intra_c( uint8_t *pix, int stride, int alpha, int b
     deblock_chroma_intra_c( pix, 1, stride, alpha, beta );
 }
 
-static void deblock_strength_c( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE], int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4], int mvy_limit, int bframe, int step, int first_edge_only )
+static void deblock_strength_c( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
+                                int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4], int mvy_limit,
+                                int bframe )
 {
     for( int dir = 0; dir < 2; dir++ )
     {
         int s1 = dir ? 1 : 8;
         int s2 = dir ? 8 : 1;
-        for( int edge = 0; edge < (first_edge_only ? 1 : 4); edge += step )
+        for( int edge = 0; edge < 4; edge++ )
             for( int i = 0, loc = X264_SCAN8_0+edge*s2; i < 4; i++, loc += s1 )
             {
                 int locn = loc - s2;
@@ -337,46 +339,25 @@ static inline void deblock_edge_intra( x264_t *h, uint8_t *pix1, uint8_t *pix2, 
 void x264_frame_deblock_row( x264_t *h, int mb_y )
 {
     int b_interlaced = h->sh.b_mbaff;
-    int mvy_limit = 4 >> b_interlaced;
     int qp_thresh = 15 - X264_MIN(h->sh.i_alpha_c0_offset, h->sh.i_beta_offset) - X264_MAX(0, h->param.analyse.i_chroma_qp_offset);
     int stridey   = h->fdec->i_stride[0];
     int stride2y  = stridey << b_interlaced;
     int strideuv  = h->fdec->i_stride[1];
     int stride2uv = strideuv << b_interlaced;
-    int deblock_ref_table[2][32+2];
     uint8_t (*nnz_backup)[16] = h->scratch_buffer;
-
-    for( int l = 0; l < 2; l++ )
-    {
-        int refs = (l ? h->i_ref1 : h->i_ref0) << h->sh.b_mbaff;
-        x264_frame_t **fref = l ? h->fref1 : h->fref0;
-        deblock_ref_table(l,-2) = -2;
-        deblock_ref_table(l,-1) = -1;
-        for( int i = 0; i < refs; i++ )
-        {
-            /* Mask off high bits to avoid frame num collisions with -1/-2.
-             * frame num values don't actually have to be correct, just unique.
-             * frame num values can't cover a range of more than 32. */
-            if( !h->mb.b_interlaced )
-                deblock_ref_table(l,i) = fref[i]->i_frame_num&63;
-            else
-                deblock_ref_table(l,i) = ((fref[i>>1]->i_frame_num&63)<<1) + (i&1);
-        }
-    }
 
     if( !h->pps->b_cabac && h->pps->b_transform_8x8_mode )
         munge_cavlc_nnz( h, mb_y, nnz_backup, munge_cavlc_nnz_row );
 
     for( int mb_x = 0; mb_x < h->sps->i_mb_width; mb_x += (~b_interlaced | mb_y)&1, mb_y ^= b_interlaced )
     {
-        ALIGNED_ARRAY_16( uint8_t, bs, [2][4][4] );
-
         x264_prefetch_fenc( h, h->fdec, mb_x, mb_y );
-        x264_macroblock_cache_load_deblock( h, mb_x, mb_y, deblock_ref_table );
+        x264_macroblock_cache_load_neighbours_deblock( h, mb_x, mb_y );
 
         int mb_xy = h->mb.i_mb_xy;
-        int transform_8x8 = h->mb.mb_transform_size[mb_xy];
+        int transform_8x8 = h->mb.mb_transform_size[h->mb.i_mb_xy];
         int intra_cur = IS_INTRA( h->mb.type[mb_xy] );
+        uint8_t (*bs)[4][4] = h->deblock_strength[mb_y&b_interlaced][mb_x];
 
         uint8_t *pixy = h->fdec->plane[0] + 16*mb_y*stridey  + 16*mb_x;
         uint8_t *pixu = h->fdec->plane[1] +  8*mb_y*strideuv +  8*mb_x;
@@ -403,11 +384,6 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                                      stride2uv, bs[dir][edge], chroma_qp, 1,\
                                      h->loopf.deblock_chroma##intra[dir] );\
         } while(0)
-
-        if( intra_cur )
-            memset( bs, 3, sizeof(bs) );
-        else
-            h->loopf.deblock_strength( h->mb.cache.non_zero_count, h->mb.cache.ref, h->mb.cache.mv, bs, mvy_limit, h->sh.i_type == SLICE_TYPE_B, transform_8x8 + 1, first_edge_only );
 
         if( h->mb.i_neighbour & MB_LEFT )
         {
@@ -468,13 +444,13 @@ void x264_deblock_v_luma_intra_sse2( uint8_t *pix, int stride, int alpha, int be
 void x264_deblock_h_luma_intra_sse2( uint8_t *pix, int stride, int alpha, int beta );
 void x264_deblock_strength_mmxext( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
                                    int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4],
-                                   int mvy_limit, int bframe, int step, int first_edge_only );
+                                   int mvy_limit, int bframe );
 void x264_deblock_strength_sse2  ( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
                                    int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4],
-                                   int mvy_limit, int bframe, int step, int first_edge_only );
+                                   int mvy_limit, int bframe );
 void x264_deblock_strength_ssse3 ( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
                                    int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4],
-                                   int mvy_limit, int bframe, int step, int first_edge_only );
+                                   int mvy_limit, int bframe );
 #ifdef ARCH_X86
 void x264_deblock_h_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_v8_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );

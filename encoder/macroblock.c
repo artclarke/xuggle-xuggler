@@ -459,8 +459,12 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp )
 
 static void x264_macroblock_encode_skip( x264_t *h )
 {
-    for( int i = 0; i < sizeof( h->mb.cache.non_zero_count ); i += 16 )
-        M128( &h->mb.cache.non_zero_count[i] ) = M128_ZERO;
+    M32( &h->mb.cache.non_zero_count[x264_scan8[0]+0*8] ) = 0;
+    M32( &h->mb.cache.non_zero_count[x264_scan8[0]+1*8] ) = 0;
+    M32( &h->mb.cache.non_zero_count[x264_scan8[0]+2*8] ) = 0;
+    M32( &h->mb.cache.non_zero_count[x264_scan8[0]+3*8] ) = 0;
+    for( int i = 16; i < 24; i++ )
+        h->mb.cache.non_zero_count[x264_scan8[i]] = 0;
     h->mb.i_cbp_luma = 0;
     h->mb.i_cbp_chroma = 0;
     h->mb.cbp[h->mb.i_mb_xy] = 0;

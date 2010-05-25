@@ -889,8 +889,7 @@ chroma_intra_body_mmxext:
 
 ;-----------------------------------------------------------------------------
 ; static void deblock_strength( uint8_t nnz[48], int8_t ref[2][40], int16_t mv[2][40][2],
-;                               uint8_t bs[2][4][4], int mvy_limit, int bframe, int step,
-;                               int first_edge_only )
+;                               uint8_t bs[2][4][4], int mvy_limit, int bframe )
 ;-----------------------------------------------------------------------------
 
 %define scan8start (4+1*8)
