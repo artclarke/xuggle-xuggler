@@ -1966,8 +1966,8 @@ static float rate_estimate_qscale( x264_t *h )
             int64_t diff;
             int64_t predicted_bits = total_bits;
             /* Adjust ABR buffer based on distance to the end of the video. */
-            if( rcc->num_entries > h->fenc->i_frame )
-                abr_buffer *= 0.5 * sqrt( rcc->num_entries - h->fenc->i_frame );
+            if( rcc->num_entries > h->i_frame )
+                abr_buffer *= 0.5 * sqrt( rcc->num_entries - h->i_frame );
 
             if( rcc->b_vbv )
             {
@@ -1987,8 +1987,8 @@ static float rate_estimate_qscale( x264_t *h )
             }
             else
             {
-                if( h->fenc->i_frame < h->i_thread_frames )
-                    predicted_bits += (int64_t)h->fenc->i_frame * rcc->bitrate / rcc->fps;
+                if( h->i_frame < h->i_thread_frames )
+                    predicted_bits += (int64_t)h->i_frame * rcc->bitrate / rcc->fps;
                 else
                     predicted_bits += (int64_t)(h->i_thread_frames - 1) * rcc->bitrate / rcc->fps;
             }
@@ -1996,12 +1996,12 @@ static float rate_estimate_qscale( x264_t *h )
             diff = predicted_bits - (int64_t)rce.expected_bits;
             q = rce.new_qscale;
             q /= x264_clip3f((double)(abr_buffer - diff) / abr_buffer, .5, 2);
-            if( ((h->fenc->i_frame + 1 - h->i_thread_frames) >= rcc->fps) &&
+            if( ((h->i_frame + 1 - h->i_thread_frames) >= rcc->fps) &&
                 (rcc->expected_bits_sum > 0))
             {
                 /* Adjust quant based on the difference between
                  * achieved and expected bitrate so far */
-                double cur_time = (double)h->fenc->i_frame / rcc->num_entries;
+                double cur_time = (double)h->i_frame / rcc->num_entries;
                 double w = x264_clip3f( cur_time*100, 0.0, 1.0 );
                 q *= pow( (double)total_bits / rcc->expected_bits_sum, w );
             }
@@ -2063,11 +2063,6 @@ static float rate_estimate_qscale( x264_t *h )
             }
             else
             {
-                int i_frame_done = h->fenc->i_frame + 1 - h->i_thread_frames;
-                double i_time_done = i_frame_done / rcc->fps;
-                if( h->param.b_vfr_input )
-                    i_time_done = ((double)(h->fenc->i_reordered_pts - h->first_pts)) * h->param.i_timebase_num / h->param.i_timebase_den;
-
                 q = get_qscale( h, &rce, rcc->wanted_bits_window / rcc->cplxr_sum, h->fenc->i_frame );
 
                 /* ABR code can potentially be counterproductive in CBR, so just don't bother.
@@ -2075,10 +2070,14 @@ static float rate_estimate_qscale( x264_t *h )
                 if( !rcc->b_vbv_min_rate && rcc->last_satd )
                 {
                     // FIXME is it simpler to keep track of wanted_bits in ratecontrol_end?
-                    wanted_bits = i_time_done * rcc->bitrate;
+                    int i_frame_done = h->i_frame + 1 - h->i_thread_frames;
+                    double time_done = i_frame_done / rcc->fps;
+                    if( h->param.b_vfr_input && i_frame_done > 0 )
+                        time_done = ((double)(h->fenc->i_reordered_pts - h->i_reordered_pts_delay)) * h->param.i_timebase_num / h->param.i_timebase_den;
+                    wanted_bits = time_done * rcc->bitrate;
                     if( wanted_bits > 0 )
                     {
-                        abr_buffer *= X264_MAX( 1, sqrt(i_time_done) );
+                        abr_buffer *= X264_MAX( 1, sqrt( time_done ) );
                         overflow = x264_clip3f( 1.0 + (total_bits - wanted_bits) / abr_buffer, .5, 2 );
                         q *= overflow;
                     }

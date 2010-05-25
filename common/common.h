@@ -491,7 +491,7 @@ struct x264_t
     /* hrd */
     int initial_cpb_removal_delay;
     int initial_cpb_removal_delay_offset;
-    int64_t first_pts;
+    int64_t i_reordered_pts_delay;
 
     /* Current MB DCT coeffs */
     struct

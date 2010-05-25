@@ -2275,8 +2275,8 @@ int     x264_encoder_encode( x264_t *h,
     /* ------------------- Get frame to be encoded ------------------------- */
     /* 4: get picture to encode */
     h->fenc = x264_frame_shift( h->frames.current );
-    if( h->i_frame == 0 )
-        h->first_pts = h->fenc->i_reordered_pts;
+    if( h->i_frame == h->i_thread_frames - 1 )
+        h->i_reordered_pts_delay = h->fenc->i_reordered_pts;
     if( h->fenc->param )
     {
         x264_encoder_reconfig( h, h->fenc->param );
