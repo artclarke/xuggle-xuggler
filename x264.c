@@ -1560,6 +1560,8 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     /* duration algorithm fails when only 1 frame is output */
     if( i_frame_output == 1 )
         duration = (double)param->i_fps_den / param->i_fps_num;
+    else if( b_ctrl_c )
+        duration = (double)(2 * last_dts - prev_dts - first_dts) * param->i_timebase_num / param->i_timebase_den;
     else
         duration = (double)(2 * largest_pts - second_largest_pts) * param->i_timebase_num / param->i_timebase_den;
     if( !(opt->i_pulldown && !param->b_vfr_input) )
