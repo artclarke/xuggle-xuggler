@@ -64,6 +64,8 @@ const x264_cpu_name_t x264_cpu_names[] = {
     {"ARMv6", X264_CPU_ARMV6},
     {"NEON",  X264_CPU_NEON},
     {"Fast_NEON_MRC",  X264_CPU_FAST_NEON_MRC},
+    {"SlowCTZ", X264_CPU_SLOW_CTZ},
+    {"SlowAtom", X264_CPU_SLOW_ATOM},
     {"", 0},
 };
 
@@ -135,6 +137,7 @@ uint32_t x264_cpu_detect( void )
 
     if( !strcmp((char*)vendor, "AuthenticAMD") && max_extended_cap >= 0x80000001 )
     {
+        cpu |= X264_CPU_SLOW_CTZ;
         x264_cpu_cpuid( 0x80000001, &eax, &ebx, &ecx, &edx );
         if( edx&0x00400000 )
             cpu |= X264_CPU_MMXEXT;
@@ -145,6 +148,7 @@ uint32_t x264_cpu_detect( void )
                 cpu |= X264_CPU_SSE2_IS_FAST;
                 cpu |= X264_CPU_LZCNT;
                 cpu |= X264_CPU_SHUFFLE_IS_FAST;
+                cpu &= ~X264_CPU_SLOW_CTZ;
             }
             else
                 cpu |= X264_CPU_SSE2_IS_SLOW;
@@ -159,11 +163,9 @@ uint32_t x264_cpu_detect( void )
 
     if( !strcmp((char*)vendor, "GenuineIntel") )
     {
-        int family, model, stepping;
         x264_cpu_cpuid( 1, &eax, &ebx, &ecx, &edx );
-        family = ((eax>>8)&0xf) + ((eax>>20)&0xff);
-        model  = ((eax>>4)&0xf) + ((eax>>12)&0xf0);
-        stepping = eax&0xf;
+        int family = ((eax>>8)&0xf) + ((eax>>20)&0xff);
+        int model  = ((eax>>4)&0xf) + ((eax>>12)&0xf0);
         /* 6/9 (pentium-m "banias"), 6/13 (pentium-m "dothan"), and 6/14 (core1 "yonah")
          * theoretically support sse2, but it's significantly slower than mmx for
          * almost all of x264's functions, so let's just pretend they don't. */
@@ -171,6 +173,12 @@ uint32_t x264_cpu_detect( void )
         {
             cpu &= ~(X264_CPU_SSE2|X264_CPU_SSE3);
             assert(!(cpu&(X264_CPU_SSSE3|X264_CPU_SSE4)));
+        }
+        /* Detect Atom CPU */
+        if( family == 6 && model == 28 )
+        {
+            cpu |= X264_CPU_SLOW_ATOM;
+            cpu |= X264_CPU_SLOW_CTZ;
         }
     }
 

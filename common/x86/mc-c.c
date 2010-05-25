@@ -427,8 +427,11 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
         return;
 
     pf->weight = x264_mc_weight_wtab_sse2;
-    pf->offsetadd = x264_mc_offsetadd_wtab_sse2;
-    pf->offsetsub = x264_mc_offsetsub_wtab_sse2;
+    if( !(cpu&X264_CPU_SLOW_ATOM) )
+    {
+        pf->offsetadd = x264_mc_offsetadd_wtab_sse2;
+        pf->offsetsub = x264_mc_offsetsub_wtab_sse2;
+    }
 
     pf->copy[PIXEL_16x16] = x264_mc_copy_w16_aligned_sse2;
     pf->avg[PIXEL_16x16] = x264_pixel_avg_16x16_sse2;
@@ -481,7 +484,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
         pf->weight = x264_mc_weight_wtab_ssse3;
     }
 
-    if( cpu&X264_CPU_SHUFFLE_IS_FAST )
+    if( (cpu&X264_CPU_SHUFFLE_IS_FAST) && !(cpu&X264_CPU_SLOW_ATOM) )
         pf->integral_init4v = x264_integral_init4v_ssse3;
 
     if( !(cpu&X264_CPU_SSE4) )

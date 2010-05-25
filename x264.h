@@ -66,6 +66,8 @@ typedef struct x264_t x264_t;
 #define X264_CPU_ARMV6          0x020000
 #define X264_CPU_NEON           0x040000  /* ARM NEON */
 #define X264_CPU_FAST_NEON_MRC  0x080000  /* Transfer from NEON to ARM register is fast (Cortex-A9) */
+#define X264_CPU_SLOW_CTZ       0x100000  /* BSR/BSF x86 instructions are really slow on some CPUs */
+#define X264_CPU_SLOW_ATOM      0x200000  /* The Atom just sucks */
 
 /* Analyse flags
  */

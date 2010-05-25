@@ -457,7 +457,7 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
         dctf->add16x16_idct_dc = x264_add16x16_idct_dc_sse2;
     }
 
-    if( cpu&X264_CPU_SSSE3 )
+    if( (cpu&X264_CPU_SSSE3) && !(cpu&X264_CPU_SLOW_ATOM) )
     {
         dctf->sub4x4_dct    = x264_sub4x4_dct_ssse3;
         dctf->sub8x8_dct    = x264_sub8x8_dct_ssse3;

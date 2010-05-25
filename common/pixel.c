@@ -768,17 +768,20 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
 
     if( cpu&X264_CPU_SSSE3 )
     {
-        INIT7( ssd, _ssse3 );
-        INIT7( satd, _ssse3 );
-        INIT7( satd_x3, _ssse3 );
-        INIT7( satd_x4, _ssse3 );
         if( !(cpu&X264_CPU_STACK_MOD4) )
         {
             INIT4( hadamard_ac, _ssse3 );
         }
         INIT_ADS( _ssse3 );
-        pixf->sa8d[PIXEL_16x16]= x264_pixel_sa8d_16x16_ssse3;
-        pixf->sa8d[PIXEL_8x8]  = x264_pixel_sa8d_8x8_ssse3;
+        if( !(cpu&X264_CPU_SLOW_ATOM) )
+        {
+            INIT7( ssd, _ssse3 );
+            pixf->sa8d[PIXEL_16x16]= x264_pixel_sa8d_16x16_ssse3;
+            pixf->sa8d[PIXEL_8x8]  = x264_pixel_sa8d_8x8_ssse3;
+            INIT7( satd, _ssse3 );
+            INIT7( satd_x3, _ssse3 );
+            INIT7( satd_x4, _ssse3 );
+        }
         pixf->intra_satd_x3_16x16 = x264_intra_satd_x3_16x16_ssse3;
         pixf->intra_sad_x3_16x16  = x264_intra_sad_x3_16x16_ssse3;
         pixf->intra_satd_x3_8x8c  = x264_intra_satd_x3_8x8c_ssse3;
@@ -794,7 +797,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
             INIT2( sad_x3, _cache64_ssse3 );
             INIT2( sad_x4, _cache64_ssse3 );
         }
-        if( !(cpu&X264_CPU_SHUFFLE_IS_FAST) )
+        if( cpu&X264_CPU_SLOW_ATOM || !(cpu&X264_CPU_SHUFFLE_IS_FAST) )
         {
             INIT5( ssd, _sse2 ); /* on conroe, sse2 is faster for width8/16 */
         }

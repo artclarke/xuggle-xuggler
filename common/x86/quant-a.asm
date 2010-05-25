@@ -583,9 +583,9 @@ DENOISE_DCT ssse3, 7
 cextern decimate_table4
 cextern decimate_table8
 
-%macro DECIMATE4x4 2
+%macro DECIMATE4x4 3
 
-;A LUT is faster than bsf on AMD processors, and no slower on Intel
+;A LUT is faster than bsf on AMD processors.
 ;This is not true for score64.
 cglobal decimate_score%1_%2, 1,3
 %ifdef PIC
@@ -605,6 +605,7 @@ cglobal decimate_score%1_%2, 1,3
 %if %1==15
     shr   edx, 1
 %endif
+%if %3==1
     movzx ecx, dl
     movzx eax, byte [mask_table + rcx]
     cmp   edx, ecx
@@ -617,8 +618,16 @@ cglobal decimate_score%1_%2, 1,3
     shr   edx, cl
     add    al, byte [table + rcx]
     add    al, byte [mask_table + rdx]
+%else
+.loop:
+    bsf   ecx, edx
+    shr   edx, cl
+    add    al, byte [table + rcx]
+    shr   edx, 1
+    jne  .loop
+%endif
 .ret:
-    REP_RET
+    RET
 .ret9:
     mov   eax, 9
     RET
@@ -627,14 +636,20 @@ cglobal decimate_score%1_%2, 1,3
 
 %ifndef ARCH_X86_64
 %define DECIMATE_MASK DECIMATE_MASK_MMX
-DECIMATE4x4 15, mmxext
-DECIMATE4x4 16, mmxext
+DECIMATE4x4 15, mmxext, 0
+DECIMATE4x4 16, mmxext, 0
+DECIMATE4x4 15, mmxext_slowctz, 1
+DECIMATE4x4 16, mmxext_slowctz, 1
 %endif
 %define DECIMATE_MASK DECIMATE_MASK_SSE2
-DECIMATE4x4 15, sse2
-DECIMATE4x4 15, ssse3
-DECIMATE4x4 16, sse2
-DECIMATE4x4 16, ssse3
+DECIMATE4x4 15, sse2, 0
+DECIMATE4x4 16, sse2, 0
+DECIMATE4x4 15, sse2_slowctz, 1
+DECIMATE4x4 16, sse2_slowctz, 1
+DECIMATE4x4 15, ssse3, 0
+DECIMATE4x4 16, ssse3, 0
+DECIMATE4x4 15, ssse3_slowctz, 1
+DECIMATE4x4 16, ssse3_slowctz, 1
 
 %macro DECIMATE8x8 1
 

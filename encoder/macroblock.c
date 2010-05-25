@@ -993,10 +993,7 @@ int x264_macroblock_probe_skip( x264_t *h, int b_bidir )
         /* calculate dct coeffs */
         for( int i4x4 = 0, i_decimate_mb = 0; i4x4 < 4; i4x4++ )
         {
-            /* We don't need to zero the DC coefficient before quantization because we already
-             * checked that all the DCs were zero above at twice the precision that quant4x4
-             * uses.  This applies even though the DC here is being quantized before the 2x2
-             * transform. */
+            dct4x4[i4x4][0] = 0;
             if( !h->quantf.quant_4x4( dct4x4[i4x4], h->quant4_mf[CQM_4PC][i_qp], h->quant4_bias[CQM_4PC][i_qp] ) )
                 continue;
             h->zigzagf.scan_4x4( dctscan, dct4x4[i4x4] );
