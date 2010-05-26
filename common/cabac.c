@@ -768,12 +768,17 @@ void x264_cabac_context_init( x264_cabac_t *cb, int i_slice_type, int i_qp, int 
     }
 }
 
-void x264_cabac_encode_init( x264_cabac_t *cb, uint8_t *p_data, uint8_t *p_end )
+void x264_cabac_encode_init_core( x264_cabac_t *cb )
 {
     cb->i_low   = 0;
     cb->i_range = 0x01FE;
     cb->i_queue = -9; // the first bit will be shifted away and not written
     cb->i_bytes_outstanding = 0;
+}
+
+void x264_cabac_encode_init( x264_cabac_t *cb, uint8_t *p_data, uint8_t *p_end )
+{
+    x264_cabac_encode_init_core( cb );
     cb->p_start = p_data;
     cb->p       = p_data;
     cb->p_end   = p_end;
@@ -877,9 +882,9 @@ void x264_cabac_encode_flush( x264_t *h, x264_cabac_t *cb )
     cb->i_queue += 9;
     x264_cabac_putbyte( cb );
     x264_cabac_putbyte( cb );
-    cb->i_low <<= 8 - cb->i_queue;
+    cb->i_low <<= -cb->i_queue;
     cb->i_low |= (0x35a4e4f5 >> (h->i_frame & 31) & 1) << 10;
-    cb->i_queue = 8;
+    cb->i_queue = 0;
     x264_cabac_putbyte( cb );
 
     while( cb->i_bytes_outstanding > 0 )

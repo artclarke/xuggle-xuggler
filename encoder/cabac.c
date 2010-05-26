@@ -776,10 +776,7 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
             memcpy( cb->p + i*8, h->mb.pic.p_fenc[2] + i*FENC_STRIDE, 8 );
         cb->p += 64;
 
-        cb->i_low   = 0;
-        cb->i_range = 0x01FE;
-        cb->i_queue = -1;
-        cb->i_bytes_outstanding = 0;
+        x264_cabac_encode_init_core( cb );
 
         h->stat.frame.i_tex_bits += x264_cabac_pos( cb ) - i_mb_pos_tex;
         return;
