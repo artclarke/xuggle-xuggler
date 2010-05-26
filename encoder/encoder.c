@@ -1893,19 +1893,6 @@ static int x264_slice_write( x264_t *h )
         /* save cache */
         x264_macroblock_cache_save( h );
 
-        /* calculate deblock strength values (actual deblocking is done per-row along with hpel) */
-        if( b_deblock )
-        {
-            int mvy_limit = 4 >> h->sh.b_mbaff;
-            uint8_t (*bs)[4][4] = h->deblock_strength[h->mb.i_mb_y&h->sh.b_mbaff][h->mb.i_mb_x];
-            x264_macroblock_cache_load_deblock( h );
-            if( IS_INTRA( h->mb.type[h->mb.i_mb_xy] ) )
-                memset( bs, 3, 2*4*4*sizeof(uint8_t) );
-            else
-                h->loopf.deblock_strength( h->mb.cache.non_zero_count, h->mb.cache.ref, h->mb.cache.mv,
-                                           bs, mvy_limit, h->sh.i_type == SLICE_TYPE_B );
-        }
-
         /* accumulate mb stats */
         h->stat.frame.i_mb_count[h->mb.i_type]++;
 
@@ -1957,6 +1944,19 @@ static int x264_slice_write( x264_t *h )
                         h->stat.frame.i_mb_pred_mode[2][h->mb.cache.intra4x4_pred_mode[x264_scan8[i]]]++;
                 h->stat.frame.i_mb_pred_mode[3][x264_mb_pred_mode8x8c_fix[h->mb.i_chroma_pred_mode]]++;
             }
+        }
+
+        /* calculate deblock strength values (actual deblocking is done per-row along with hpel) */
+        if( b_deblock )
+        {
+            int mvy_limit = 4 >> h->sh.b_mbaff;
+            uint8_t (*bs)[4][4] = h->deblock_strength[h->mb.i_mb_y&h->sh.b_mbaff][h->mb.i_mb_x];
+            x264_macroblock_cache_load_deblock( h );
+            if( IS_INTRA( h->mb.type[h->mb.i_mb_xy] ) )
+                memset( bs, 3, 2*4*4*sizeof(uint8_t) );
+            else
+                h->loopf.deblock_strength( h->mb.cache.non_zero_count, h->mb.cache.ref, h->mb.cache.mv,
+                                           bs, mvy_limit, h->sh.i_type == SLICE_TYPE_B );
         }
 
         x264_ratecontrol_mb( h, mb_size );
