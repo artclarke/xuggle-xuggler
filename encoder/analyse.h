@@ -33,7 +33,6 @@ void x264_slicetype_decide( x264_t *h );
 void x264_slicetype_analyse( x264_t *h, int keyframe );
 
 int x264_weighted_reference_duplicate( x264_t *h, int i_ref, const x264_weight_t *w );
-void x264_weight_plane_analyse( x264_t *h, x264_frame_t *frame );
 
 int  x264_lookahead_init( x264_t *h, int i_slicetype_length );
 int  x264_lookahead_is_empty( x264_t *h );

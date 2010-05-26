@@ -67,25 +67,6 @@ static void x264_weight_get_h264( unsigned int weight_nonh264, int offset, x264_
     w->i_scale = X264_MIN( w->i_scale, 127 );
 }
 
-void x264_weight_plane_analyse( x264_t *h, x264_frame_t *frame )
-{
-    uint32_t sad = 0;
-    uint64_t ssd = 0;
-    uint8_t *p = frame->plane[0];
-    int stride = frame->i_stride[0];
-    int width = frame->i_width[0];
-    int height = frame->i_lines[0];
-    for( int y = 0; y < height>>4; y++, p += stride*16 )
-        for( int x = 0; x < width; x += 16 )
-        {
-            uint64_t res = h->pixf.var[PIXEL_16x16]( p + x, stride );
-            sad += (uint32_t)res;
-            ssd += res >> 32;
-        }
-    frame->i_pixel_sum = sad;
-    frame->i_pixel_ssd = ssd - ((uint64_t)sad * sad + width * height / 2) / (width * height);
-}
-
 static NOINLINE uint8_t *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, uint8_t *dest )
 {
     int ref0_distance = fenc->i_frame - ref->i_frame - 1;
@@ -167,10 +148,10 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
     int found;
     x264_weight_t *weights = fenc->weight[0];
 
-    fenc_var = round( sqrt( fenc->i_pixel_ssd ) );
-    ref_var  = round( sqrt(  ref->i_pixel_ssd ) );
-    fenc_mean = (float)fenc->i_pixel_sum / (fenc->i_lines[0] * fenc->i_width[0]);
-    ref_mean  = (float) ref->i_pixel_sum / (fenc->i_lines[0] * fenc->i_width[0]);
+    fenc_var = round( sqrt( fenc->i_pixel_ssd[0] ) );
+    ref_var  = round( sqrt(  ref->i_pixel_ssd[0] ) );
+    fenc_mean = (float)fenc->i_pixel_sum[0] / (fenc->i_lines[0] * fenc->i_width[0]);
+    ref_mean  = (float) ref->i_pixel_sum[0] / (fenc->i_lines[0] * fenc->i_width[0]);
 
     //early termination
     if( fabs( ref_mean - fenc_mean ) < 0.5 && fabs( 1 - fenc_var / ref_var ) < epsilon )
@@ -534,8 +515,8 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
         do_search[1] = b != p1 && frames[b]->lowres_mvs[1][p1-b-1][0][0] == 0x7FFF;
         if( do_search[0] )
         {
-            if( ( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART
-                  || h->param.analyse.i_weighted_pred == X264_WEIGHTP_FAKE ) && b == p1 )
+            if( ( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART ||
+                  h->param.analyse.i_weighted_pred == X264_WEIGHTP_FAKE ) && b == p1 )
             {
                 x264_emms();
                 x264_weights_analyse( h, frames[b], frames[p0], 1 );

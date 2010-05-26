@@ -2246,20 +2246,16 @@ int     x264_encoder_encode( x264_t *h,
                 fenc->i_pic_struct = PIC_STRUCT_PROGRESSIVE;
         }
 
-        if( h->frames.b_have_lowres )
-        {
-            if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_FAKE || h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
-                x264_weight_plane_analyse( h, fenc );
-            x264_frame_init_lowres( h, fenc );
-        }
-
         if( h->param.rc.b_mb_tree && h->param.rc.b_stat_read )
         {
             if( x264_macroblock_tree_read( h, fenc ) )
                 return -1;
         }
-        else if( h->param.rc.i_aq_mode )
+        else
             x264_adaptive_quant_frame( h, fenc );
+
+        if( h->frames.b_have_lowres )
+            x264_frame_init_lowres( h, fenc );
 
         /* 2: Place the frame into the queue for its slice type decision */
         x264_lookahead_put_frame( h, fenc );
