@@ -446,7 +446,7 @@ static const char * const x264_tune_names[] = { "film", "animation", "grain", "s
 
 /*      Multiple tunings can be used if separated by a delimiter in ",./-+",
  *      however multiple psy tunings cannot be used.
- *      film, animation, grain, psnr, and ssim are psy tunings.
+ *      film, animation, grain, stillimage, psnr, and ssim are psy tunings.
  *
  *      returns 0 on success, negative on failure (e.g. invalid preset/tune name). */
 int     x264_param_default_preset( x264_param_t *, const char *preset, const char *tune );
