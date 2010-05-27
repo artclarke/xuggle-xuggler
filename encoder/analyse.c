@@ -907,8 +907,6 @@ static void x264_intra_rd( x264_t *h, x264_mb_analysis_t *a, int i_satd_thresh )
 static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
 {
     uint8_t  *p_dst = h->mb.pic.p_fdec[0];
-
-    int x, y;
     uint64_t i_satd, i_best;
     h->mb.i_skip_intra = 0;
 
@@ -1031,8 +1029,9 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
             int i_thresh = a->i_satd_i8x8_dir[a->i_predict8x8[idx]][idx] * 11/8;
 
             i_best = COST_MAX64;
-            x = idx&1;
-            y = idx>>1;
+            int x = idx&1;
+            int y = idx>>1;
+            int s8 = X264_SCAN8_0 + 2*x + 16*y;
 
             p_dst_by = p_dst + 8*x + 8*y*FDEC_STRIDE;
             predict_mode = predict_4x4_mode_available( h->mb.i_neighbour8[idx] );
@@ -1061,8 +1060,8 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
                     if( !(idx&1) )
                         for( int j = 0; j < 7; j++ )
                             pels_v[j] = p_dst_by[7+j*FDEC_STRIDE];
-                    i_nnz[0] = M16( &h->mb.cache.non_zero_count[x264_scan8[4*idx+0]] );
-                    i_nnz[1] = M16( &h->mb.cache.non_zero_count[x264_scan8[4*idx+2]] );
+                    i_nnz[0] = M16( &h->mb.cache.non_zero_count[s8 + 0*8] );
+                    i_nnz[1] = M16( &h->mb.cache.non_zero_count[s8 + 1*8] );
                 }
             }
             a->i_cbp_i8x8_luma = cbp_luma_new;
@@ -1070,8 +1069,8 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
             if( !(idx&1) )
                 for( int j = 0; j < 7; j++ )
                     p_dst_by[7+j*FDEC_STRIDE] = pels_v[j];
-            M16( &h->mb.cache.non_zero_count[x264_scan8[4*idx+0]] ) = i_nnz[0];
-            M16( &h->mb.cache.non_zero_count[x264_scan8[4*idx+2]] ) = i_nnz[1];
+            M16( &h->mb.cache.non_zero_count[s8 + 0*8] ) = i_nnz[0];
+            M16( &h->mb.cache.non_zero_count[s8 + 1*8] ) = i_nnz[1];
 
             x264_macroblock_cache_intra8x8_pred( h, 2*x, 2*y, a->i_predict8x8[idx] );
         }

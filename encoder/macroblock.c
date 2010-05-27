@@ -135,11 +135,12 @@ void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qp )
     }
 }
 
-#define STORE_8x8_NNZ(idx,nz)\
+#define STORE_8x8_NNZ( s8, nz )\
+do\
 {\
-    M16( &h->mb.cache.non_zero_count[x264_scan8[idx*4+0]] ) = nz * 0x0101;\
-    M16( &h->mb.cache.non_zero_count[x264_scan8[idx*4+2]] ) = nz * 0x0101;\
-}
+    M16( &h->mb.cache.non_zero_count[(s8) + 0*8] ) = (nz) * 0x0101;\
+    M16( &h->mb.cache.non_zero_count[(s8) + 1*8] ) = (nz) * 0x0101;\
+} while(0)
 
 #define CLEAR_16x16_NNZ \
 {\
@@ -151,17 +152,18 @@ void x264_mb_encode_i4x4( x264_t *h, int idx, int i_qp )
 
 void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qp )
 {
-    int x = 8 * (idx&1);
-    int y = 8 * (idx>>1);
+    int x = idx&1;
+    int y = idx>>1;
+    int s8 = X264_SCAN8_0 + 2*x + 16*y;
     int nz;
-    uint8_t *p_src = &h->mb.pic.p_fenc[0][x+y*FENC_STRIDE];
-    uint8_t *p_dst = &h->mb.pic.p_fdec[0][x+y*FDEC_STRIDE];
+    uint8_t *p_src = &h->mb.pic.p_fenc[0][8*x + 8*y*FENC_STRIDE];
+    uint8_t *p_dst = &h->mb.pic.p_fdec[0][8*x + 8*y*FDEC_STRIDE];
     ALIGNED_ARRAY_16( int16_t, dct8x8,[64] );
 
     if( h->mb.b_lossless )
     {
         nz = h->zigzagf.sub_8x8( h->dct.luma8x8[idx], p_src, p_dst );
-        STORE_8x8_NNZ(idx,nz);
+        STORE_8x8_NNZ( s8, nz );
         h->mb.i_cbp_luma |= nz<<idx;
         return;
     }
@@ -175,10 +177,10 @@ void x264_mb_encode_i8x8( x264_t *h, int idx, int i_qp )
         h->zigzagf.scan_8x8( h->dct.luma8x8[idx], dct8x8 );
         h->quantf.dequant_8x8( dct8x8, h->dequant8_mf[CQM_8IY], i_qp );
         h->dctf.add8x8_idct8( p_dst, dct8x8 );
-        STORE_8x8_NNZ(idx,1);
+        STORE_8x8_NNZ( s8, 1 );
     }
     else
-        STORE_8x8_NNZ(idx,0);
+        STORE_8x8_NNZ( s8, 0 );
 }
 
 static void x264_mb_encode_i16x16( x264_t *h, int i_qp )
@@ -728,12 +730,13 @@ void x264_macroblock_encode( x264_t *h )
             if( h->mb.b_transform_8x8 )
                 for( int i8x8 = 0; i8x8 < 4; i8x8++ )
                 {
-                    int x = 8*(i8x8&1);
-                    int y = 8*(i8x8>>1);
-                    nz = h->zigzagf.sub_8x8( h->dct.luma8x8[i8x8],
-                                        h->mb.pic.p_fenc[0]+x+y*FENC_STRIDE,
-                                        h->mb.pic.p_fdec[0]+x+y*FDEC_STRIDE );
-                    STORE_8x8_NNZ(i8x8,nz);
+                    int x = i8x8&1;
+                    int y = i8x8>>1;
+                    int s8 = X264_SCAN8_0 + 2*x + 16*y;
+
+                    nz = h->zigzagf.sub_8x8( h->dct.luma8x8[i8x8], h->mb.pic.p_fenc[0] + 8*x + 8*y*FENC_STRIDE,
+                                                                   h->mb.pic.p_fdec[0] + 8*x + 8*y*FDEC_STRIDE );
+                    STORE_8x8_NNZ( s8, nz );
                     h->mb.i_cbp_luma |= nz << i8x8;
                 }
             else
@@ -783,14 +786,18 @@ void x264_macroblock_encode( x264_t *h )
             {
                 for( int idx = 0; idx < 4; idx++ )
                 {
+                    int x = idx&1;
+                    int y = idx>>1;
+                    int s8 = X264_SCAN8_0 + 2*x + 16*y;
+
                     if( h->mb.i_cbp_luma&(1<<idx) )
                     {
                         h->quantf.dequant_8x8( dct8x8[idx], h->dequant8_mf[CQM_8PY], i_qp );
-                        h->dctf.add8x8_idct8( &h->mb.pic.p_fdec[0][(idx&1)*8 + (idx>>1)*8*FDEC_STRIDE], dct8x8[idx] );
-                        STORE_8x8_NNZ(idx,1);
+                        h->dctf.add8x8_idct8( &h->mb.pic.p_fdec[0][8*x + 8*y*FDEC_STRIDE], dct8x8[idx] );
+                        STORE_8x8_NNZ( s8, 1 );
                     }
                     else
-                        STORE_8x8_NNZ(idx,0);
+                        STORE_8x8_NNZ( s8, 0 );
                 }
             }
         }
@@ -825,18 +832,24 @@ void x264_macroblock_encode( x264_t *h )
                     }
                 }
 
+                int x = i8x8&1;
+                int y = i8x8>>1;
+
                 /* decimate this 8x8 block */
                 i_decimate_mb += i_decimate_8x8;
                 if( b_decimate )
                 {
                     if( i_decimate_8x8 < 4 )
-                        STORE_8x8_NNZ(i8x8,0)
+                    {
+                        int s8 = X264_SCAN8_0 + 2*x + 16*y;
+                        STORE_8x8_NNZ( s8, 0 );
+                    }
                     else
                         h->mb.i_cbp_luma |= 1<<i8x8;
                 }
                 else if( cbp )
                 {
-                    h->dctf.add8x8_idct( &h->mb.pic.p_fdec[0][(i8x8&1)*8 + (i8x8>>1)*8*FDEC_STRIDE], &dct4x4[i8x8*4] );
+                    h->dctf.add8x8_idct( &h->mb.pic.p_fdec[0][8*x + 8*y*FDEC_STRIDE], &dct4x4[i8x8*4] );
                     h->mb.i_cbp_luma |= 1<<i8x8;
                 }
             }
@@ -1045,8 +1058,11 @@ void x264_noise_reduction_update( x264_t *h )
 void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
 {
     int i_qp = h->mb.i_qp;
-    uint8_t *p_fenc = h->mb.pic.p_fenc[0] + (i8&1)*8 + (i8>>1)*8*FENC_STRIDE;
-    uint8_t *p_fdec = h->mb.pic.p_fdec[0] + (i8&1)*8 + (i8>>1)*8*FDEC_STRIDE;
+    int x = i8&1;
+    int y = i8>>1;
+    int s8 = X264_SCAN8_0 + 2*x + 16*y;
+    uint8_t *p_fenc = h->mb.pic.p_fenc[0] + 8*x + 8*y*FENC_STRIDE;
+    uint8_t *p_fdec = h->mb.pic.p_fdec[0] + 8*x + 8*y*FDEC_STRIDE;
     int b_decimate = h->mb.b_dct_decimate;
     int nnz8x8 = 0;
     int nz;
@@ -1059,7 +1075,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
         if( h->mb.b_transform_8x8 )
         {
             nnz8x8 = h->zigzagf.sub_8x8( h->dct.luma8x8[i8], p_fenc, p_fdec );
-            STORE_8x8_NNZ(i8,nnz8x8);
+            STORE_8x8_NNZ( s8, nnz8x8 );
         }
         else
         {
@@ -1075,8 +1091,8 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
         for( int ch = 0; ch < 2; ch++ )
         {
             int16_t dc;
-            p_fenc = h->mb.pic.p_fenc[1+ch] + (i8&1)*4 + (i8>>1)*4*FENC_STRIDE;
-            p_fdec = h->mb.pic.p_fdec[1+ch] + (i8&1)*4 + (i8>>1)*4*FDEC_STRIDE;
+            p_fenc = h->mb.pic.p_fenc[1+ch] + 4*x + 4*y*FENC_STRIDE;
+            p_fdec = h->mb.pic.p_fdec[1+ch] + 4*x + 4*y*FDEC_STRIDE;
             nz = h->zigzagf.sub_4x4ac( h->dct.luma4x4[16+i8+ch*4], p_fenc, p_fdec, &dc );
             h->mb.cache.non_zero_count[x264_scan8[16+i8+ch*4]] = nz;
         }
@@ -1099,13 +1115,13 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
                 {
                     h->quantf.dequant_8x8( dct8x8, h->dequant8_mf[CQM_8PY], i_qp );
                     h->dctf.add8x8_idct8( p_fdec, dct8x8 );
-                    STORE_8x8_NNZ(i8,1);
+                    STORE_8x8_NNZ( s8, 1 );
                 }
                 else
-                    STORE_8x8_NNZ(i8,0);
+                    STORE_8x8_NNZ( s8, 0 );
             }
             else
-                STORE_8x8_NNZ(i8,0);
+                STORE_8x8_NNZ( s8, 0 );
         }
         else
         {
@@ -1132,7 +1148,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
             if( nnz8x8 )
                 h->dctf.add8x8_idct( p_fdec, dct4x4 );
             else
-                STORE_8x8_NNZ(i8,0);
+                STORE_8x8_NNZ( s8, 0 );
         }
 
         i_qp = h->mb.i_chroma_qp;
@@ -1140,8 +1156,8 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
         for( int ch = 0; ch < 2; ch++ )
         {
             ALIGNED_ARRAY_16( int16_t, dct4x4,[16] );
-            p_fenc = h->mb.pic.p_fenc[1+ch] + (i8&1)*4 + (i8>>1)*4*FENC_STRIDE;
-            p_fdec = h->mb.pic.p_fdec[1+ch] + (i8&1)*4 + (i8>>1)*4*FDEC_STRIDE;
+            p_fenc = h->mb.pic.p_fenc[1+ch] + 4*x + 4*y*FENC_STRIDE;
+            p_fdec = h->mb.pic.p_fdec[1+ch] + 4*x + 4*y*FDEC_STRIDE;
 
             h->dctf.sub4x4_dct( dct4x4, p_fenc, p_fdec );
             dct4x4[0] = 0;

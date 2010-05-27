@@ -937,8 +937,11 @@ int x264_iter_kludge = 0;
 
 static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight, int i8, int i_lambda2, int rd )
 {
-    int16_t *cache0_mv = h->mb.cache.mv[0][x264_scan8[i8*4]];
-    int16_t *cache1_mv = h->mb.cache.mv[1][x264_scan8[i8*4]];
+    int x = i8&1;
+    int y = i8>>1;
+    int s8 = X264_SCAN8_0 + 2*x + 16*y;
+    int16_t *cache0_mv = h->mb.cache.mv[0][s8];
+    int16_t *cache1_mv = h->mb.cache.mv[1][s8];
     const int i_pixel = m0->i_pixel;
     const int bw = x264_pixel_size[i_pixel].w;
     const int bh = x264_pixel_size[i_pixel].h;
@@ -946,11 +949,11 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
     ALIGNED_ARRAY_8( uint8_t, pixu_buf,[2],[9][8*8] );
     ALIGNED_ARRAY_8( uint8_t, pixv_buf,[2],[9][8*8] );
     uint8_t *src[2][9];
-    uint8_t *pix  = &h->mb.pic.p_fdec[0][(i8>>1)*8*FDEC_STRIDE+(i8&1)*8];
-    uint8_t *pixu = &h->mb.pic.p_fdec[1][(i8>>1)*4*FDEC_STRIDE+(i8&1)*4];
-    uint8_t *pixv = &h->mb.pic.p_fdec[2][(i8>>1)*4*FDEC_STRIDE+(i8&1)*4];
-    const int ref0 = h->mb.cache.ref[0][x264_scan8[i8*4]];
-    const int ref1 = h->mb.cache.ref[1][x264_scan8[i8*4]];
+    uint8_t *pix  = &h->mb.pic.p_fdec[0][8*x + 8*y*FDEC_STRIDE];
+    uint8_t *pixu = &h->mb.pic.p_fdec[1][4*x + 4*y*FDEC_STRIDE];
+    uint8_t *pixv = &h->mb.pic.p_fdec[2][4*x + 4*y*FDEC_STRIDE];
+    int ref0 = h->mb.cache.ref[0][s8];
+    int ref1 = h->mb.cache.ref[1][s8];
     const int mv0y_offset = h->mb.b_interlaced & ref0 ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
     const int mv1y_offset = h->mb.b_interlaced & ref1 ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
     int stride[2][9];
@@ -1058,13 +1061,13 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
 
     if( rd )
     {
-        x264_macroblock_cache_mv ( h, (i8&1)*2, (i8>>1)*2, bw>>2, bh>>2, 0, pack16to32_mask(bm0x, bm0y) );
+        x264_macroblock_cache_mv ( h, 2*x, 2*y, bw>>2, bh>>2, 0, pack16to32_mask(bm0x, bm0y) );
         amvd = pack8to16( X264_MIN(abs(bm0x - m0->mvp[0]),33), X264_MIN(abs(bm0y - m0->mvp[1]),33) );
-        x264_macroblock_cache_mvd( h, (i8&1)*2, (i8>>1)*2, bw>>2, bh>>2, 0, amvd );
+        x264_macroblock_cache_mvd( h, 2*x, 2*y, bw>>2, bh>>2, 0, amvd );
 
-        x264_macroblock_cache_mv ( h, (i8&1)*2, (i8>>1)*2, bw>>2, bh>>2, 1, pack16to32_mask(bm1x, bm1y) );
+        x264_macroblock_cache_mv ( h, 2*x, 2*y, bw>>2, bh>>2, 1, pack16to32_mask(bm1x, bm1y) );
         amvd = pack8to16( X264_MIN(abs(bm1x - m1->mvp[0]),33), X264_MIN(abs(bm1y - m1->mvp[1]),33) );
-        x264_macroblock_cache_mvd( h, (i8&1)*2, (i8>>1)*2, bw>>2, bh>>2, 1, amvd );
+        x264_macroblock_cache_mvd( h, 2*x, 2*y, bw>>2, bh>>2, 1, amvd );
     }
 
     m0->mv[0] = bm0x;
