@@ -379,11 +379,25 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
                 CP32( m[l].mvp, mvc[0] );
             else
                 x264_median_mv( m[l].mvp, mvc[0], mvc[1], mvc[2] );
-            x264_me_search( h, &m[l], mvc, i_mvc );
 
+            /* Fast skip for cases of near-zero residual.  Shortcut: don't bother except in the mv0 case,
+             * since anything else is likely to have enough residual to not trigger the skip. */
+            if( !M32( m[l].mvp ) )
+            {
+                m[l].cost = h->pixf.mbcmp[PIXEL_8x8]( m[l].p_fenc[0], FENC_STRIDE, m[l].p_fref[0], m[l].i_stride[0] );
+                if( m[l].cost < 64 )
+                {
+                    M32( m[l].mv ) = 0;
+                    goto skip_motionest;
+                }
+            }
+
+            x264_me_search( h, &m[l], mvc, i_mvc );
             m[l].cost -= 2; // remove mvcost from skip mbs
             if( M32( m[l].mv ) )
                 m[l].cost += 5;
+
+skip_motionest:
             CP32( fenc_mvs[l], m[l].mv );
             *fenc_costs[l] = m[l].cost;
         }
