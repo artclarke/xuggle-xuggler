@@ -987,6 +987,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
     x264_mc_init( h->param.cpu, &h->mc );
     x264_quant_init( h, h->param.cpu, &h->quantf );
     x264_deblock_init( h->param.cpu, &h->loopf );
+    x264_bitstream_init( h->param.cpu, &h->bsf );
     x264_dct_init_weights();
 
     mbcmp_init( h );
@@ -1273,7 +1274,7 @@ static int x264_encoder_encapsulate_nals( x264_t *h, int start )
     for( int i = start; i < h->out.i_nal; i++ )
     {
         int long_startcode = !i || h->out.nal[i].i_type == NAL_SPS || h->out.nal[i].i_type == NAL_PPS;
-        int size = x264_nal_encode( nal_buffer, &h->out.nal[i], h->param.b_annexb, long_startcode );
+        int size = x264_nal_encode( h, nal_buffer, &h->out.nal[i], long_startcode );
         h->out.nal[i].i_payload = size;
         h->out.nal[i].p_payload = nal_buffer;
         nal_buffer += size;

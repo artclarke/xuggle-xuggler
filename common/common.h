@@ -137,7 +137,7 @@ static const int x264_scan8[16+2*4+3] =
 */
 
 #include "x264.h"
-#include "bs.h"
+#include "bitstream.h"
 #include "set.h"
 #include "predict.h"
 #include "pixel.h"
@@ -165,8 +165,6 @@ int64_t x264_mdate( void );
 /* x264_param2string: return a (malloced) string containing most of
  * the encoding options */
 char *x264_param2string( x264_param_t *p, int b_res );
-
-int x264_nal_encode( uint8_t *dst, x264_nal_t *nal, int b_annexb, int b_long_startcode );
 
 /* log */
 void x264_log( x264_t *h, int i_level, const char *psz_fmt, ... );
@@ -796,6 +794,7 @@ struct x264_t
     x264_zigzag_function_t zigzagf;
     x264_quant_function_t quantf;
     x264_deblock_function_t loopf;
+    x264_bitstream_function_t bsf;
 
 #ifdef HAVE_VISUALIZE
     struct visualize_t *visualize;

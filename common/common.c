@@ -1027,60 +1027,6 @@ void x264_picture_clean( x264_picture_t *pic )
 }
 
 /****************************************************************************
- * x264_nal_encode:
- ****************************************************************************/
-int x264_nal_encode( uint8_t *dst, x264_nal_t *nal, int b_annexb, int b_long_startcode )
-{
-    uint8_t *src = nal->p_payload;
-    uint8_t *end = nal->p_payload + nal->i_payload;
-    uint8_t *orig_dst = dst;
-    int i_count = 0, size;
-
-    if( b_annexb )
-    {
-        if( b_long_startcode )
-            *dst++ = 0x00;
-        *dst++ = 0x00;
-        *dst++ = 0x00;
-        *dst++ = 0x01;
-    }
-    else /* save room for size later */
-        dst += 4;
-
-    /* nal header */
-    *dst++ = ( 0x00 << 7 ) | ( nal->i_ref_idc << 5 ) | nal->i_type;
-
-    while( src < end )
-    {
-        if( i_count == 2 && *src <= 0x03 )
-        {
-            *dst++ = 0x03;
-            i_count = 0;
-        }
-        if( *src == 0 )
-            i_count++;
-        else
-            i_count = 0;
-        *dst++ = *src++;
-    }
-    size = (dst - orig_dst) - 4;
-
-    /* Write the size header for mp4/etc */
-    if( !b_annexb )
-    {
-        /* Size doesn't include the size of the header we're writing now. */
-        orig_dst[0] = size>>24;
-        orig_dst[1] = size>>16;
-        orig_dst[2] = size>> 8;
-        orig_dst[3] = size>> 0;
-    }
-
-    return size+4;
-}
-
-
-
-/****************************************************************************
  * x264_malloc:
  ****************************************************************************/
 void *x264_malloc( int i_size )

@@ -1661,6 +1661,56 @@ static int check_cabac( int cpu_ref, int cpu_new )
     return ret;
 }
 
+static int check_bitstream( int cpu_ref, int cpu_new )
+{
+    x264_bitstream_function_t bs_c;
+    x264_bitstream_function_t bs_ref;
+    x264_bitstream_function_t bs_a;
+
+    int ret = 0, ok = 1, used_asm = 0;
+
+    x264_bitstream_init( 0, &bs_c );
+    x264_bitstream_init( cpu_ref, &bs_ref );
+    x264_bitstream_init( cpu_new, &bs_a );
+    if( bs_a.nal_escape != bs_ref.nal_escape )
+    {
+        int size = 0x4000;
+        uint8_t *input = malloc(size+100);
+        uint8_t *output1 = malloc(size*2);
+        uint8_t *output2 = malloc(size*2);
+        used_asm = 1;
+        set_func_name( "nal_escape" );
+        for( int i = 0; i < 100; i++ )
+        {
+            /* Test corner-case sizes */
+            int test_size = i < 10 ? i+1 : rand() & 0x3fff;
+            /* Test 8 different probability distributions of zeros */
+            for( int j = 0; j < test_size; j++ )
+                input[j] = (rand()&((1 << ((i&7)+1)) - 1)) * rand();
+            uint8_t *end_c = (uint8_t*)call_c1( bs_c.nal_escape, output1, input, input+test_size );
+            uint8_t *end_a = (uint8_t*)call_a1( bs_a.nal_escape, output2, input, input+test_size );
+            int size_c = end_c-output1;
+            int size_a = end_a-output2;
+            if( size_c != size_a || memcmp( output1, output2, size_c ) )
+            {
+                fprintf( stderr, "nal_escape :  [FAILED] %d %d\n", size_c, size_a );
+                ok = 0;
+                break;
+            }
+        }
+        for( int j = 0; j < size; j++ )
+            input[j] = rand();
+        call_c2( bs_c.nal_escape, output1, input, input+size );
+        call_a2( bs_a.nal_escape, output2, input, input+size );
+        free(input);
+        free(output1);
+        free(output2);
+    }
+    report( "nal escape:" );
+
+    return ret;
+}
+
 static int check_all_funcs( int cpu_ref, int cpu_new )
 {
     return check_pixel( cpu_ref, cpu_new )
@@ -1669,7 +1719,8 @@ static int check_all_funcs( int cpu_ref, int cpu_new )
          + check_intra( cpu_ref, cpu_new )
          + check_deblock( cpu_ref, cpu_new )
          + check_quant( cpu_ref, cpu_new )
-         + check_cabac( cpu_ref, cpu_new );
+         + check_cabac( cpu_ref, cpu_new )
+         + check_bitstream( cpu_ref, cpu_new );
 }
 
 static int add_flags( int *cpu_ref, int *cpu_new, int flags, const char *name )

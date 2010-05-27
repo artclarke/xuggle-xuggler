@@ -1,5 +1,5 @@
 /*****************************************************************************
- * bs.h :
+ * bitstream.h: h264 encoder library
  *****************************************************************************
  * Copyright (C) 2003-2008 x264 project
  *
@@ -62,6 +62,14 @@ extern const vlc_t x264_coeff_token[5][16][4];
 extern const vlc_t x264_total_zeros[15][16];
 extern const vlc_t x264_total_zeros_dc[3][4];
 extern const vlc_t x264_run_before[7][16];
+
+typedef struct
+{
+    uint8_t *(*nal_escape) ( uint8_t *dst, uint8_t *src, uint8_t *end );
+} x264_bitstream_function_t;
+
+int x264_nal_encode( x264_t *h, uint8_t *dst, x264_nal_t *nal, int b_long_startcode );
+void x264_bitstream_init( int cpu, x264_bitstream_function_t *pf );
 
 /* A larger level table size theoretically could help a bit at extremely
  * high bitrates, but the cost in cache is usually too high for it to be
