@@ -2250,11 +2250,14 @@ int     x264_encoder_encode( x264_t *h,
 
         if( h->param.rc.b_mb_tree && h->param.rc.b_stat_read )
         {
-            if( x264_macroblock_tree_read( h, fenc ) )
+            if( x264_macroblock_tree_read( h, fenc, pic_in->prop.quant_offsets ) )
                 return -1;
         }
         else
-            x264_adaptive_quant_frame( h, fenc );
+            x264_adaptive_quant_frame( h, fenc, pic_in->prop.quant_offsets );
+
+        if( pic_in->prop.quant_offsets_free )
+            pic_in->prop.quant_offsets_free( pic_in->prop.quant_offsets );
 
         if( h->frames.b_have_lowres )
             x264_frame_init_lowres( h, fenc );

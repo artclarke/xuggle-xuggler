@@ -235,7 +235,7 @@ static NOINLINE uint32_t x264_ac_energy_mb( x264_t *h, int mb_x, int mb_y, x264_
     return var;
 }
 
-void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame )
+void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame, float *quant_offsets )
 {
     /* constants chosen to result in approximately the same overall bitrate as without AQ.
      * FIXME: while they're written in 5 significant digits, they're only tuned to 2. */
@@ -256,11 +256,22 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame )
         /* Need to init it anyways for MB tree */
         if( h->param.rc.f_aq_strength == 0 )
         {
-            memset( frame->f_qp_offset, 0, h->mb.i_mb_count * sizeof(float) );
-            memset( frame->f_qp_offset_aq, 0, h->mb.i_mb_count * sizeof(float) );
-            if( h->frames.b_have_lowres )
+            if( quant_offsets )
+            {
                 for( int mb_xy = 0; mb_xy < h->mb.i_mb_count; mb_xy++ )
-                    frame->i_inv_qscale_factor[mb_xy] = 256;
+                    frame->f_qp_offset[mb_xy] = frame->f_qp_offset_aq[mb_xy] = quant_offsets[mb_xy];
+                if( h->frames.b_have_lowres )
+                    for( int mb_xy = 0; mb_xy < h->mb.i_mb_count; mb_xy++ )
+                        frame->i_inv_qscale_factor[mb_xy] = x264_exp2fix8( frame->f_qp_offset[mb_xy] );
+            }
+            else
+            {
+                memset( frame->f_qp_offset, 0, h->mb.i_mb_count * sizeof(float) );
+                memset( frame->f_qp_offset_aq, 0, h->mb.i_mb_count * sizeof(float) );
+                if( h->frames.b_have_lowres )
+                    for( int mb_xy = 0; mb_xy < h->mb.i_mb_count; mb_xy++ )
+                        frame->i_inv_qscale_factor[mb_xy] = 256;
+            }
         }
         /* Need variance data for weighted prediction */
         if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_FAKE || h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
@@ -299,9 +310,10 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame )
             for( int mb_x = 0; mb_x < width; mb_x++ )
             {
                 float qp_adj;
+                int mb_xy = mb_x + mb_y*h->mb.i_mb_stride;
                 if( h->param.rc.i_aq_mode == X264_AQ_AUTOVARIANCE )
                 {
-                    qp_adj = frame->f_qp_offset[mb_x + mb_y*h->mb.i_mb_stride];
+                    qp_adj = frame->f_qp_offset[mb_xy];
                     qp_adj = strength * (qp_adj - avg_adj);
                 }
                 else
@@ -309,10 +321,12 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame )
                     uint32_t energy = x264_ac_energy_mb( h, mb_x, mb_y, frame );
                     qp_adj = strength * (x264_log2( X264_MAX(energy, 1) ) - 14.427f);
                 }
-                frame->f_qp_offset[mb_x + mb_y*h->mb.i_mb_stride] =
-                frame->f_qp_offset_aq[mb_x + mb_y*h->mb.i_mb_stride] = qp_adj;
+                if( quant_offsets )
+                    qp_adj += quant_offsets[mb_xy];
+                frame->f_qp_offset[mb_xy] =
+                frame->f_qp_offset_aq[mb_xy] = qp_adj;
                 if( h->frames.b_have_lowres )
-                    frame->i_inv_qscale_factor[mb_x + mb_y*h->mb.i_mb_stride] = x264_exp2fix8(qp_adj);
+                    frame->i_inv_qscale_factor[mb_xy] = x264_exp2fix8(qp_adj);
             }
     }
 
@@ -327,7 +341,7 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame )
     }
 }
 
-int x264_macroblock_tree_read( x264_t *h, x264_frame_t *frame )
+int x264_macroblock_tree_read( x264_t *h, x264_frame_t *frame, float *quant_offsets )
 {
     x264_ratecontrol_t *rc = h->rc;
     uint8_t i_type_actual = rc->entry[frame->i_frame].pict_type;
@@ -363,7 +377,7 @@ int x264_macroblock_tree_read( x264_t *h, x264_frame_t *frame )
         rc->qpbuf_pos--;
     }
     else
-        x264_adaptive_quant_frame( h, frame );
+        x264_adaptive_quant_frame( h, frame, quant_offsets );
     return 0;
 fail:
     x264_log(h, X264_LOG_ERROR, "Incomplete MB-tree stats file.\n");
