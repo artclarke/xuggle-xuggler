@@ -299,7 +299,7 @@ static inline void deblock_edge_intra( x264_t *h, uint8_t *pix1, uint8_t *pix2, 
 void x264_frame_deblock_row( x264_t *h, int mb_y )
 {
     int b_interlaced = h->sh.b_mbaff;
-    int qp_thresh = 15 - X264_MIN(h->sh.i_alpha_c0_offset, h->sh.i_beta_offset) - X264_MAX(0, h->param.analyse.i_chroma_qp_offset);
+    int qp_thresh = 15 - X264_MIN( h->sh.i_alpha_c0_offset, h->sh.i_beta_offset ) - X264_MAX( 0, h->param.analyse.i_chroma_qp_offset );
     int stridey   = h->fdec->i_stride[0];
     int stride2y  = stridey << b_interlaced;
     int strideuv  = h->fdec->i_stride[1];
@@ -318,7 +318,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
         uint8_t *pixy = h->fdec->plane[0] + 16*mb_y*stridey  + 16*mb_x;
         uint8_t *pixu = h->fdec->plane[1] +  8*mb_y*strideuv +  8*mb_x;
         uint8_t *pixv = h->fdec->plane[2] +  8*mb_y*strideuv +  8*mb_x;
-        if( b_interlaced && (mb_y&1) )
+        if( mb_y & b_interlaced )
         {
             pixy -= 15*stridey;
             pixu -=  7*strideuv;
@@ -366,12 +366,12 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
             int qp_top = (qp + qpt + 1) >> 1;
             int qpc_top = (h->chroma_qp_table[qp] + h->chroma_qp_table[qpt] + 1) >> 1;
             int intra_top = IS_INTRA( h->mb.type[h->mb.i_mb_top_xy] );
-            if( !b_interlaced && (intra_cur || intra_top) )
+            if( ~b_interlaced & (intra_cur | intra_top) )
                 FILTER( _intra, 1, 0, qp_top, qpc_top );
             else
             {
                 if( intra_top )
-                    memset( bs[1][0], 3, sizeof(bs[1][0]) );
+                    M32( bs[1][0] ) = 0x03030303;
                 FILTER(       , 1, 0, qp_top, qpc_top );
             }
         }

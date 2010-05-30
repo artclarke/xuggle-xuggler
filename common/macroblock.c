@@ -400,8 +400,26 @@ void x264_macroblock_slice_init( x264_t *h )
                 }
         }
     }
-    if( h->sh.i_type == SLICE_TYPE_P )
+    else if( h->sh.i_type == SLICE_TYPE_P )
+    {
         memset( h->mb.cache.skip, 0, sizeof( h->mb.cache.skip ) );
+
+        if( h->sh.i_disable_deblocking_filter_idc != 1 && h->param.analyse.i_weighted_pred )
+        {
+            deblock_ref_table(-2) = -2;
+            deblock_ref_table(-1) = -1;
+            for( int i = 0; i < h->i_ref0 << h->sh.b_mbaff; i++ )
+            {
+                /* Mask off high bits to avoid frame num collisions with -1/-2.
+                 * In current x264 frame num values don't cover a range of more
+                 * than 32, so 6 bits is enough for uniqueness. */
+                if( !h->mb.b_interlaced )
+                    deblock_ref_table(i) = h->fref0[i]->i_frame_num&63;
+                else
+                    deblock_ref_table(i) = ((h->fref0[i>>1]->i_frame_num&63)<<1) + (i&1);
+            }
+        }
+    }
 
     /* init with not available (for top right idx=7,15) */
     memset( h->mb.cache.ref, -2, sizeof( h->mb.cache.ref ) );
@@ -417,19 +435,6 @@ void x264_macroblock_slice_init( x264_t *h )
 
             h->fdec->inv_ref_poc[field] = (256 + delta/2) / delta;
         }
-
-    deblock_ref_table(-2) = -2;
-    deblock_ref_table(-1) = -1;
-    for( int i = 0; i < h->i_ref0 << h->sh.b_mbaff; i++ )
-    {
-        /* Mask off high bits to avoid frame num collisions with -1/-2.
-         * In current x264 frame num values don't cover a range of more
-         * than 32, so 6 bits is enough for uniqueness. */
-        if( !h->mb.b_interlaced )
-            deblock_ref_table(i) = h->fref0[i]->i_frame_num&63;
-        else
-            deblock_ref_table(i) = ((h->fref0[i>>1]->i_frame_num&63)<<1) + (i&1);
-    }
 
     h->mb.i_neighbour4[6] =
     h->mb.i_neighbour4[9] =
@@ -894,7 +899,6 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
 void x264_macroblock_cache_load_neighbours_deblock( x264_t *h, int mb_x, int mb_y )
 {
     int deblock_on_slice_edges = h->sh.i_disable_deblocking_filter_idc != 2;
-    int top = (mb_y - (1 << h->mb.b_interlaced)) * h->mb.i_mb_stride + mb_x;
 
     h->mb.i_neighbour = 0;
     h->mb.i_mb_xy = mb_y * h->mb.i_mb_stride + mb_x;
@@ -906,9 +910,9 @@ void x264_macroblock_cache_load_neighbours_deblock( x264_t *h, int mb_x, int mb_
             h->mb.i_neighbour |= MB_LEFT;
     }
 
-    if( top >= 0 )
+    if( mb_y > h->mb.b_interlaced )
     {
-        h->mb.i_mb_top_xy = top;
+        h->mb.i_mb_top_xy = h->mb.i_mb_xy - (h->mb.i_mb_stride << h->mb.b_interlaced);
         if( deblock_on_slice_edges || h->mb.slice_table[h->mb.i_mb_top_xy] == h->mb.slice_table[h->mb.i_mb_xy] )
             h->mb.i_neighbour |= MB_TOP;
     }
@@ -930,8 +934,6 @@ void x264_macroblock_cache_load_deblock( x264_t *h )
         h->mb.i_neighbour &= ~old_neighbour;
         if( h->mb.i_neighbour )
         {
-            int left = h->mb.i_mb_left_xy;
-            int top  = h->mb.i_mb_top_xy;
             int top_y = mb_y - (1 << h->mb.b_interlaced);
             int top_8x8 = (2*top_y+1) * h->mb.i_b8_stride + 2*mb_x;
             int top_4x4 = (4*top_y+3) * h->mb.i_b4_stride + 4*mb_x;
@@ -941,10 +943,11 @@ void x264_macroblock_cache_load_deblock( x264_t *h )
             uint8_t (*nnz)[24] = h->mb.non_zero_count;
 
             if( h->mb.i_neighbour & MB_TOP )
-                CP32( &h->mb.cache.non_zero_count[x264_scan8[0] - 8], &nnz[top][12] );
+                CP32( &h->mb.cache.non_zero_count[x264_scan8[0] - 8], &nnz[h->mb.i_mb_top_xy][12] );
 
             if( h->mb.i_neighbour & MB_LEFT )
             {
+                int left = h->mb.i_mb_left_xy;
                 h->mb.cache.non_zero_count[x264_scan8[0 ] - 1] = nnz[left][3];
                 h->mb.cache.non_zero_count[x264_scan8[2 ] - 1] = nnz[left][7];
                 h->mb.cache.non_zero_count[x264_scan8[8 ] - 1] = nnz[left][11];
