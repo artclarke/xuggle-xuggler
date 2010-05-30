@@ -183,6 +183,7 @@ static int x264_param_apply_preset( x264_param_t *param, const char *preset )
         param->i_bframe_adaptive = X264_B_ADAPT_NONE;
         param->rc.b_mb_tree = 0;
         param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
+        param->analyse.b_weighted_bipred = 0;
     }
     else if( !strcasecmp( preset, "superfast" ) )
     {
