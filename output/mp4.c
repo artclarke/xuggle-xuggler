@@ -112,6 +112,7 @@ static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest
         if( p_mp4->p_sample->data )
             free( p_mp4->p_sample->data );
 
+        p_mp4->p_sample->dataLength = 0;
         gf_isom_sample_del( &p_mp4->p_sample );
     }
 
@@ -135,7 +136,7 @@ static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest
          * The reason is that an Edit Box maps the presentation time-line to the media time-line.
          * Any demuxers should follow the Edit Box if it exists. */
         GF_ISOSample *sample = gf_isom_get_sample_info( p_mp4->p_file, p_mp4->i_track, 1, NULL, NULL );
-        if( sample->CTS_Offset > 0 )
+        if( sample && sample->CTS_Offset > 0 )
         {
             uint32_t mvhd_timescale = gf_isom_get_timescale( p_mp4->p_file );
             uint64_t tkhd_duration = (uint64_t)( mdhd_duration * ( (double)mvhd_timescale / p_mp4->i_time_res ) );
