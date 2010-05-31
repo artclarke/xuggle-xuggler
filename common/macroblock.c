@@ -344,8 +344,7 @@ int x264_macroblock_thread_allocate( x264_t *h, int b_lookahead )
         int me_range = X264_MIN(h->param.analyse.i_me_range, h->param.analyse.i_mv_range);
         int buf_tesa = (h->param.analyse.i_me_method >= X264_ME_ESA) *
             ((me_range*2+18) * sizeof(int16_t) + (me_range+4) * (me_range+1) * 4 * sizeof(mvsad_t));
-        int buf_nnz = !h->param.b_cabac * h->pps->b_transform_8x8_mode * (h->sps->i_mb_width * 4 * 16 * sizeof(uint8_t));
-        scratch_size = X264_MAX4( buf_hpel, buf_ssim, buf_tesa, buf_nnz );
+        scratch_size = X264_MAX3( buf_hpel, buf_ssim, buf_tesa );
     }
     int buf_mbtree = h->param.rc.b_mb_tree * ((h->sps->i_mb_width+3)&~3) * sizeof(int);
     scratch_size = X264_MAX( scratch_size, buf_mbtree );
@@ -1012,6 +1011,49 @@ void x264_macroblock_cache_load_deblock( x264_t *h )
         M32( &h->mb.cache.ref[0][x264_scan8[0]+8*1] ) = reftop;
         M32( &h->mb.cache.ref[0][x264_scan8[0]+8*2] ) = refbot;
         M32( &h->mb.cache.ref[0][x264_scan8[0]+8*3] ) = refbot;
+    }
+
+    /* Munge NNZ for cavlc + 8x8dct */
+    if( !h->param.b_cabac && h->pps->b_transform_8x8_mode )
+    {
+        uint8_t (*nnz)[24] = h->mb.non_zero_count;
+        int top = h->mb.i_mb_top_xy;
+        int left = h->mb.i_mb_left_xy;
+
+        if( (h->mb.i_neighbour & MB_TOP) && h->mb.mb_transform_size[top] )
+        {
+            int i8 = x264_scan8[0] - 8;
+            int nnz_top0 = M16( &nnz[top][8] ) | M16( &nnz[top][12] );
+            int nnz_top1 = M16( &nnz[top][10] ) | M16( &nnz[top][14] );
+            M16( &h->mb.cache.non_zero_count[i8+0] ) = nnz_top0 ? 0x0101 : 0;
+            M16( &h->mb.cache.non_zero_count[i8+2] ) = nnz_top1 ? 0x0101 : 0;
+        }
+
+        if( (h->mb.i_neighbour & MB_LEFT) && h->mb.mb_transform_size[left] )
+        {
+            int i8 = x264_scan8[0] - 1;
+            int nnz_left0 = M16( &nnz[left][2] ) | M16( &nnz[left][6] );
+            int nnz_left1 = M16( &nnz[left][10] ) | M16( &nnz[left][14] );
+            h->mb.cache.non_zero_count[i8+8*0] = !!nnz_left0;
+            h->mb.cache.non_zero_count[i8+8*1] = !!nnz_left0;
+            h->mb.cache.non_zero_count[i8+8*2] = !!nnz_left1;
+            h->mb.cache.non_zero_count[i8+8*3] = !!nnz_left1;
+        }
+
+        if( h->mb.mb_transform_size[h->mb.i_mb_xy] )
+        {
+            int nnz0 = M16( &h->mb.cache.non_zero_count[x264_scan8[ 0]] ) | M16( &h->mb.cache.non_zero_count[x264_scan8[ 2]] );
+            int nnz1 = M16( &h->mb.cache.non_zero_count[x264_scan8[ 4]] ) | M16( &h->mb.cache.non_zero_count[x264_scan8[ 6]] );
+            int nnz2 = M16( &h->mb.cache.non_zero_count[x264_scan8[ 8]] ) | M16( &h->mb.cache.non_zero_count[x264_scan8[10]] );
+            int nnz3 = M16( &h->mb.cache.non_zero_count[x264_scan8[12]] ) | M16( &h->mb.cache.non_zero_count[x264_scan8[14]] );
+            uint32_t nnztop = pack16to32( !!nnz0, !!nnz1 ) * 0x0101;
+            uint32_t nnzbot = pack16to32( !!nnz2, !!nnz3 ) * 0x0101;
+
+            M32( &h->mb.cache.non_zero_count[x264_scan8[0]+8*0] ) = nnztop;
+            M32( &h->mb.cache.non_zero_count[x264_scan8[0]+8*1] ) = nnztop;
+            M32( &h->mb.cache.non_zero_count[x264_scan8[0]+8*2] ) = nnzbot;
+            M32( &h->mb.cache.non_zero_count[x264_scan8[0]+8*3] ) = nnzbot;
+        }
     }
 }
 

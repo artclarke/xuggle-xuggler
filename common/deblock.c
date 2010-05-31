@@ -24,46 +24,6 @@
 
 #include "common.h"
 
-/* cavlc + 8x8 transform stores nnz per 16 coeffs for the purpose of
- * entropy coding, but per 64 coeffs for the purpose of deblocking */
-static void munge_cavlc_nnz_row( x264_t *h, int mb_y, uint8_t (*buf)[16] )
-{
-    uint32_t (*src)[6] = (uint32_t(*)[6])h->mb.non_zero_count + mb_y * h->sps->i_mb_width;
-    int8_t *transform = h->mb.mb_transform_size + mb_y * h->sps->i_mb_width;
-    for( int x = 0; x<h->sps->i_mb_width; x++ )
-    {
-        memcpy( buf+x, src+x, 16 );
-        if( transform[x] )
-        {
-            int nnz = src[x][0] | src[x][1];
-            src[x][0] = src[x][1] = ((uint16_t)nnz ? 0x0101 : 0) + (nnz>>16 ? 0x01010000 : 0);
-            nnz = src[x][2] | src[x][3];
-            src[x][2] = src[x][3] = ((uint16_t)nnz ? 0x0101 : 0) + (nnz>>16 ? 0x01010000 : 0);
-        }
-    }
-}
-
-static void restore_cavlc_nnz_row( x264_t *h, int mb_y, uint8_t (*buf)[16] )
-{
-    uint8_t (*dst)[24] = h->mb.non_zero_count + mb_y * h->sps->i_mb_width;
-    for( int x = 0; x < h->sps->i_mb_width; x++ )
-        memcpy( dst+x, buf+x, 16 );
-}
-
-static void munge_cavlc_nnz( x264_t *h, int mb_y, uint8_t (*buf)[16], void (*func)(x264_t*, int, uint8_t (*)[16]) )
-{
-    func( h, mb_y, buf );
-    if( mb_y > 0 )
-        func( h, mb_y-1, buf + h->sps->i_mb_width );
-    if( h->sh.b_mbaff )
-    {
-        func( h, mb_y+1, buf + h->sps->i_mb_width * 2 );
-        if( mb_y > 0 )
-            func( h, mb_y-2, buf + h->sps->i_mb_width * 3 );
-    }
-}
-
-
 /* Deblocking filter */
 static const uint8_t i_alpha_table[52+12*2] =
 {
@@ -344,10 +304,6 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
     int stride2y  = stridey << b_interlaced;
     int strideuv  = h->fdec->i_stride[1];
     int stride2uv = strideuv << b_interlaced;
-    uint8_t (*nnz_backup)[16] = h->scratch_buffer;
-
-    if( !h->pps->b_cabac && h->pps->b_transform_8x8_mode )
-        munge_cavlc_nnz( h, mb_y, nnz_backup, munge_cavlc_nnz_row );
 
     for( int mb_x = 0; mb_x < h->sps->i_mb_width; mb_x += (~b_interlaced | mb_y)&1, mb_y ^= b_interlaced )
     {
@@ -427,9 +383,6 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
             if( !transform_8x8 ) FILTER( , 1, 3, qp, qpc );
         }
     }
-
-    if( !h->pps->b_cabac && h->pps->b_transform_8x8_mode )
-        munge_cavlc_nnz( h, mb_y, nnz_backup, restore_cavlc_nnz_row );
 }
 
 #ifdef HAVE_MMX
