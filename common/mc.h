@@ -22,7 +22,7 @@
 #define X264_MC_H
 
 struct x264_weight_t;
-typedef void (* weight_fn_t)( uint8_t *, int, uint8_t *,int, const struct x264_weight_t *, int );
+typedef void (* weight_fn_t)( pixel *, int, pixel *,int, const struct x264_weight_t *, int );
 typedef struct x264_weight_t
 {
     /* aligning the first member is a gcc hack to force the struct to be
@@ -57,49 +57,49 @@ extern const x264_weight_t weight_none[3];
 
 typedef struct
 {
-    void (*mc_luma)(uint8_t *dst, int i_dst, uint8_t **src, int i_src,
+    void (*mc_luma)(pixel *dst, int i_dst, pixel **src, int i_src,
                     int mvx, int mvy,
                     int i_width, int i_height, const x264_weight_t *weight );
 
     /* may round up the dimensions if they're not a power of 2 */
-    uint8_t* (*get_ref)(uint8_t *dst, int *i_dst, uint8_t **src, int i_src,
-                        int mvx, int mvy,
-                        int i_width, int i_height, const x264_weight_t *weight );
+    pixel* (*get_ref)(pixel *dst, int *i_dst, pixel **src, int i_src,
+                      int mvx, int mvy,
+                      int i_width, int i_height, const x264_weight_t *weight );
 
     /* mc_chroma may write up to 2 bytes of garbage to the right of dst,
      * so it must be run from left to right. */
-    void (*mc_chroma)(uint8_t *dst, int i_dst, uint8_t *src, int i_src,
+    void (*mc_chroma)(pixel *dst, int i_dst, pixel *src, int i_src,
                       int mvx, int mvy,
                       int i_width, int i_height );
 
-    void (*avg[10])( uint8_t *dst, int, uint8_t *src1, int, uint8_t *src2, int, int i_weight );
+    void (*avg[10])( pixel *dst, int, pixel *src1, int, pixel *src2, int, int i_weight );
 
     /* only 16x16, 8x8, and 4x4 defined */
-    void (*copy[7])( uint8_t *dst, int, uint8_t *src, int, int i_height );
-    void (*copy_16x16_unaligned)( uint8_t *dst, int, uint8_t *src, int, int i_height );
+    void (*copy[7])( pixel *dst, int, pixel *src, int, int i_height );
+    void (*copy_16x16_unaligned)( pixel *dst, int, pixel *src, int, int i_height );
 
-    void (*plane_copy)( uint8_t *dst, int i_dst,
+    void (*plane_copy)( pixel *dst, int i_dst,
                         uint8_t *src, int i_src, int w, int h);
 
-    void (*hpel_filter)( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
+    void (*hpel_filter)( pixel *dsth, pixel *dstv, pixel *dstc, pixel *src,
                          int i_stride, int i_width, int i_height, int16_t *buf );
 
     /* prefetch the next few macroblocks of fenc or fdec */
-    void (*prefetch_fenc)( uint8_t *pix_y, int stride_y,
-                           uint8_t *pix_uv, int stride_uv, int mb_x );
+    void (*prefetch_fenc)( pixel *pix_y, int stride_y,
+                           pixel *pix_uv, int stride_uv, int mb_x );
     /* prefetch the next few macroblocks of a hpel reference frame */
-    void (*prefetch_ref)( uint8_t *pix, int stride, int parity );
+    void (*prefetch_ref)( pixel *pix, int stride, int parity );
 
     void *(*memcpy_aligned)( void *dst, const void *src, size_t n );
     void (*memzero_aligned)( void *dst, int n );
 
     /* successive elimination prefilter */
-    void (*integral_init4h)( uint16_t *sum, uint8_t *pix, int stride );
-    void (*integral_init8h)( uint16_t *sum, uint8_t *pix, int stride );
+    void (*integral_init4h)( uint16_t *sum, pixel *pix, int stride );
+    void (*integral_init8h)( uint16_t *sum, pixel *pix, int stride );
     void (*integral_init4v)( uint16_t *sum8, uint16_t *sum4, int stride );
     void (*integral_init8v)( uint16_t *sum8, int stride );
 
-    void (*frame_init_lowres_core)( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
+    void (*frame_init_lowres_core)( pixel *src0, pixel *dst0, pixel *dsth, pixel *dstv, pixel *dstc,
                                     int src_stride, int dst_stride, int width, int height );
     weight_fn_t *weight;
     weight_fn_t *offsetadd;

@@ -94,9 +94,9 @@ static NOINLINE void x264_mb_mc_01xywh( x264_t *h, int x, int y, int width, int 
     int mvy1   = x264_clip3( h->mb.cache.mv[1][i8][1], h->mb.mv_min[1], h->mb.mv_max[1] ) + 4*4*y;
     int i_mode = x264_size2pixel[height][width];
     int i_stride0 = 16, i_stride1 = 16;
-    ALIGNED_ARRAY_16( uint8_t, tmp0,[16*16] );
-    ALIGNED_ARRAY_16( uint8_t, tmp1,[16*16] );
-    uint8_t *src0, *src1;
+    ALIGNED_ARRAY_16( pixel, tmp0,[16*16] );
+    ALIGNED_ARRAY_16( pixel, tmp1,[16*16] );
+    pixel *src0, *src1;
 
     src0 = h->mc.get_ref( tmp0, &i_stride0, h->mb.pic.p_fref[0][i_ref0], h->mb.pic.i_stride[0],
                           mvx0, mvy0, 4*width, 4*height, weight_none );
@@ -290,7 +290,7 @@ int x264_macroblock_cache_allocate( x264_t *h )
         }
 
         for( int i = 0; i < numweightbuf; i++ )
-            CHECKED_MALLOC( h->mb.p_weight_buf[i], luma_plane_size );
+            CHECKED_MALLOC( h->mb.p_weight_buf[i], luma_plane_size * sizeof(pixel) );
 #undef ALIGN
     }
 
@@ -329,7 +329,7 @@ int x264_macroblock_thread_allocate( x264_t *h, int b_lookahead )
             for( int j = 0; j < 3; j++ )
             {
                 /* shouldn't really be initialized, just silences a valgrind false-positive in predict_8x8_filter_mmx */
-                CHECKED_MALLOCZERO( h->intra_border_backup[i][j], (h->sps->i_mb_width*16+32)>>!!j );
+                CHECKED_MALLOCZERO( h->intra_border_backup[i][j], ((h->sps->i_mb_width*16+32)>>!!j) * sizeof(pixel) );
                 h->intra_border_backup[i][j] += 8;
             }
             CHECKED_MALLOC( h->deblock_strength[i], sizeof(**h->deblock_strength) * h->sps->i_mb_width );
@@ -488,7 +488,7 @@ void x264_prefetch_fenc( x264_t *h, x264_frame_t *fenc, int i_mb_x, int i_mb_y )
                          fenc->plane[1+(i_mb_x&1)]+off_uv, stride_uv, i_mb_x );
 }
 
-static NOINLINE void copy_column8( uint8_t *dst, uint8_t *src )
+static NOINLINE void copy_column8( pixel *dst, pixel *src )
 {
     // input pointers are offset by 4 rows because that's faster (smaller instruction size on x86)
     for( int i = -4; i < 4; i++ )
@@ -503,8 +503,8 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x
     const int i_pix_offset = h->mb.b_interlaced
                            ? w * (mb_x + (mb_y&~1) * i_stride) + (mb_y&1) * i_stride
                            : w * (mb_x + mb_y * i_stride);
-    const uint8_t *plane_fdec = &h->fdec->plane[i][i_pix_offset];
-    const uint8_t *intra_fdec = &h->intra_border_backup[mb_y & h->sh.b_mbaff][i][mb_x*16>>!!i];
+    const pixel *plane_fdec = &h->fdec->plane[i][i_pix_offset];
+    const pixel *intra_fdec = &h->intra_border_backup[mb_y & h->sh.b_mbaff][i][mb_x*16>>!!i];
     int ref_pix_offset[2] = { i_pix_offset, i_pix_offset };
     x264_frame_t **fref[2] = { h->fref0, h->fref1 };
     if( h->mb.b_interlaced )
@@ -513,7 +513,7 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x
     h->mb.pic.p_fenc_plane[i] = &h->fenc->plane[i][i_pix_offset];
     h->mc.copy[i?PIXEL_8x8:PIXEL_16x16]( h->mb.pic.p_fenc[i], FENC_STRIDE,
         h->mb.pic.p_fenc_plane[i], i_stride2, w );
-    memcpy( &h->mb.pic.p_fdec[i][-1-FDEC_STRIDE], intra_fdec-1, w*3/2+1 );
+    memcpy( &h->mb.pic.p_fdec[i][-1-FDEC_STRIDE], intra_fdec-1, (w*3/2+1) * sizeof(pixel) );
     if( h->mb.b_interlaced )
         for( int j = 0; j < w; j++ )
             h->mb.pic.p_fdec[i][-1+j*FDEC_STRIDE] = plane_fdec[-1+j*i_stride2];

@@ -160,7 +160,7 @@ void x264_visualize_show( x264_t *h )
     static const int zoom = 2;        /* Zoom factor */
 
     static const int pad = 32;
-    uint8_t *const frame = h->fdec->plane[0];
+    pixel *const frame = h->fdec->plane[0];
     const int width = h->param.i_width;
     const int height = h->param.i_height;
     const int stride = h->fdec->i_stride[0];

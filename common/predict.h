@@ -24,9 +24,9 @@
 #ifndef X264_PREDICT_H
 #define X264_PREDICT_H
 
-typedef void (*x264_predict_t)( uint8_t *src );
-typedef void (*x264_predict8x8_t)( uint8_t *src, uint8_t edge[33] );
-typedef void (*x264_predict_8x8_filter_t) ( uint8_t *src, uint8_t edge[33], int i_neighbor, int i_filters );
+typedef void (*x264_predict_t)( pixel *src );
+typedef void (*x264_predict8x8_t)( pixel *src, pixel edge[33] );
+typedef void (*x264_predict_8x8_filter_t) ( pixel *src, pixel edge[33], int i_neighbor, int i_filters );
 
 enum intra_chroma_pred_e
 {

@@ -67,7 +67,7 @@ static void x264_weight_get_h264( unsigned int weight_nonh264, int offset, x264_
     w->i_scale = X264_MIN( w->i_scale, 127 );
 }
 
-static NOINLINE uint8_t *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, uint8_t *dest )
+static NOINLINE pixel *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, pixel *dest )
 {
     int ref0_distance = fenc->i_frame - ref->i_frame - 1;
     /* Note: this will never run during lookahead as weights_analyse is only called if no
@@ -78,7 +78,7 @@ static NOINLINE uint8_t *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fe
         int i_lines = fenc->i_lines_lowres;
         int i_width = fenc->i_width_lowres;
         int i_mb_xy = 0;
-        uint8_t *p = dest;
+        pixel *p = dest;
 
         for( int y = 0; y < i_lines; y += 8, p += i_stride*8 )
             for( int x = 0; x < i_width; x += 8, i_mb_xy++ )
@@ -95,14 +95,14 @@ static NOINLINE uint8_t *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fe
     return ref->lowres[0];
 }
 
-static NOINLINE unsigned int x264_weight_cost( x264_t *h, x264_frame_t *fenc, uint8_t *src, x264_weight_t *w )
+static NOINLINE unsigned int x264_weight_cost( x264_t *h, x264_frame_t *fenc, pixel *src, x264_weight_t *w )
 {
     unsigned int cost = 0;
     int i_stride = fenc->i_stride_lowres;
     int i_lines = fenc->i_lines_lowres;
     int i_width = fenc->i_width_lowres;
-    uint8_t *fenc_plane = fenc->lowres[0];
-    ALIGNED_ARRAY_8( uint8_t, buf,[8*8] );
+    pixel *fenc_plane = fenc->lowres[0];
+    ALIGNED_ARRAY_8( pixel, buf,[8*8] );
     int pixoff = 0;
     int i_mb = 0;
 
@@ -175,7 +175,7 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
         x264_lowres_context_init( h, &a );
         x264_slicetype_frame_cost( h, &a, &fenc, 0, 0, 0, 0 );
     }
-    uint8_t *mcbuf = x264_weight_cost_init_luma( h, fenc, ref, h->mb.p_weight_buf[0] );
+    pixel *mcbuf = x264_weight_cost_init_luma( h, fenc, ref, h->mb.p_weight_buf[0] );
     origscore = minscore = x264_weight_cost( h, fenc, mcbuf, 0 );
 
     if( !minscore )
@@ -211,8 +211,8 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
     if( weights[0].weightfn && b_lookahead )
     {
         //scale lowres in lookahead for slicetype_frame_cost
-        uint8_t *src = ref->buffer_lowres[0];
-        uint8_t *dst = h->mb.p_weight_buf[0];
+        pixel *src = ref->buffer_lowres[0];
+        pixel *dst = h->mb.p_weight_buf[0];
         int width = ref->i_width_lowres + PADH*2;
         int height = ref->i_lines_lowres + PADV*2;
         x264_weight_scale_plane( h, dst, ref->i_stride_lowres, src, ref->i_stride_lowres,
@@ -242,8 +242,8 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
                             i_mb_y > 0 && i_mb_y < h->sps->i_mb_height - 1) ||
                             h->sps->i_mb_width <= 2 || h->sps->i_mb_height <= 2;
 
-    ALIGNED_ARRAY_8( uint8_t, pix1,[9*FDEC_STRIDE] );
-    uint8_t *pix2 = pix1+8;
+    ALIGNED_ARRAY_8( pixel, pix1,[9*FDEC_STRIDE] );
+    pixel *pix2 = pix1+8;
     x264_me_t m[2];
     int i_bcost = COST_MAX;
     int list_used = 0;
@@ -289,14 +289,14 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         { \
             int hpel_idx1 = (((mv0)[0]&2)>>1) + ((mv0)[1]&2); \
             int hpel_idx2 = (((mv1)[0]&2)>>1) + ((mv1)[1]&2); \
-            uint8_t *src1 = m[0].p_fref[hpel_idx1] + ((mv0)[0]>>2) + ((mv0)[1]>>2) * m[0].i_stride[0]; \
-            uint8_t *src2 = m[1].p_fref[hpel_idx2] + ((mv1)[0]>>2) + ((mv1)[1]>>2) * m[1].i_stride[0]; \
+            pixel *src1 = m[0].p_fref[hpel_idx1] + ((mv0)[0]>>2) + ((mv0)[1]>>2) * m[0].i_stride[0]; \
+            pixel *src2 = m[1].p_fref[hpel_idx2] + ((mv1)[0]>>2) + ((mv1)[1]>>2) * m[1].i_stride[0]; \
             h->mc.avg[PIXEL_8x8]( pix1, 16, src1, m[0].i_stride[0], src2, m[1].i_stride[0], i_bipred_weight ); \
         } \
         else \
         { \
             int stride1 = 16, stride2 = 16; \
-            uint8_t *src1, *src2; \
+            pixel *src1, *src2; \
             src1 = h->mc.get_ref( pix1, &stride1, m[0].p_fref, m[0].i_stride[0], \
                                   (mv0)[0], (mv0)[1], 8, 8, w ); \
             src2 = h->mc.get_ref( pix2, &stride2, m[1].p_fref, m[1].i_stride[0], \
@@ -415,13 +415,13 @@ skip_motionest:
 lowres_intra_mb:
     if( !fenc->b_intra_calculated )
     {
-        ALIGNED_ARRAY_16( uint8_t, edge,[33] );
-        uint8_t *pix = &pix1[8+FDEC_STRIDE - 1];
-        uint8_t *src = &fenc->lowres[0][i_pel_offset - 1];
+        ALIGNED_ARRAY_16( pixel, edge,[33] );
+        pixel *pix = &pix1[8+FDEC_STRIDE - 1];
+        pixel *src = &fenc->lowres[0][i_pel_offset - 1];
         const int intra_penalty = 5;
         int satds[3];
 
-        memcpy( pix-FDEC_STRIDE, src-i_stride, 17 );
+        memcpy( pix-FDEC_STRIDE, src-i_stride, 17 * sizeof(pixel) );
         for( int i = 0; i < 8; i++ )
             pix[i*FDEC_STRIDE] = src[i*i_stride];
         pix++;

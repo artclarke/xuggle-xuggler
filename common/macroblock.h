@@ -341,6 +341,9 @@ static ALWAYS_INLINE uint32_t pack16to32_mask( int a, int b )
 #endif
 }
 
+#define pack_pixel_1to2 pack8to16
+#define pack_pixel_2to4 pack16to32
+
 #define array_non_zero(a) array_non_zero_int(a, sizeof(a))
 #define array_non_zero_int array_non_zero_int
 static ALWAYS_INLINE int array_non_zero_int( int16_t *v, int i_count )

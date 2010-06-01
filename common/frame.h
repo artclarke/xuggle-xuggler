@@ -64,18 +64,18 @@ typedef struct x264_frame
     int     i_stride_lowres;
     int     i_width_lowres;
     int     i_lines_lowres;
-    uint8_t *plane[3];
-    uint8_t *filtered[4]; /* plane[0], H, V, HV */
-    uint8_t *lowres[4]; /* half-size copy of input frame: Orig, H, V, HV */
+    pixel *plane[3];
+    pixel *filtered[4]; /* plane[0], H, V, HV */
+    pixel *lowres[4]; /* half-size copy of input frame: Orig, H, V, HV */
     uint16_t *integral;
 
     /* for unrestricted mv we allocate more data than needed
      * allocated data are stored in buffer */
-    uint8_t *buffer[4];
-    uint8_t *buffer_lowres[4];
+    pixel *buffer[4];
+    pixel *buffer_lowres[4];
 
     x264_weight_t weight[16][3]; /* [ref_index][plane] */
-    uint8_t *weighted[16]; /* plane[0] weighted of the reference frames */
+    pixel *weighted[16]; /* plane[0] weighted of the reference frames */
     int b_duplicate;
     struct x264_frame *orig;
 
@@ -156,8 +156,8 @@ typedef struct
    x264_pthread_cond_t      cv_empty; /* event signaling that the list became emptier */
 } x264_synch_frame_list_t;
 
-typedef void (*x264_deblock_inter_t)( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
-typedef void (*x264_deblock_intra_t)( uint8_t *pix, int stride, int alpha, int beta );
+typedef void (*x264_deblock_inter_t)( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 );
+typedef void (*x264_deblock_intra_t)( pixel *pix, int stride, int alpha, int beta );
 typedef struct
 {
     x264_deblock_inter_t deblock_luma[2];
@@ -196,7 +196,7 @@ x264_frame_t *x264_frame_shift( x264_frame_t **list );
 void          x264_frame_push_unused( x264_t *h, x264_frame_t *frame );
 void          x264_frame_push_blank_unused( x264_t *h, x264_frame_t *frame );
 x264_frame_t *x264_frame_pop_blank_unused( x264_t *h );
-void x264_weight_scale_plane( x264_t *h, uint8_t *dst, int i_dst_stride, uint8_t *src, int i_src_stride,
+void x264_weight_scale_plane( x264_t *h, pixel *dst, int i_dst_stride, pixel *src, int i_src_stride,
                               int i_width, int i_height, x264_weight_t *w );
 x264_frame_t *x264_frame_pop_unused( x264_t *h, int b_fdec );
 void          x264_frame_sort( x264_frame_t **list, int b_dts );

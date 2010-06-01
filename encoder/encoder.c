@@ -1418,8 +1418,8 @@ static void x264_weighted_pred_init( x264_t *h )
         //scale full resolution frame
         if( h->sh.weight[j][0].weightfn && h->param.i_threads == 1 )
         {
-            uint8_t *src = h->fref0[j]->filtered[0] - h->fref0[j]->i_stride[0]*i_padv - PADH;
-            uint8_t *dst = h->fenc->weighted[j] - h->fenc->i_stride[0]*i_padv - PADH;
+            pixel *src = h->fref0[j]->filtered[0] - h->fref0[j]->i_stride[0]*i_padv - PADH;
+            pixel *dst = h->fenc->weighted[j] - h->fenc->i_stride[0]*i_padv - PADH;
             int stride = h->fenc->i_stride[0];
             int width = h->fenc->i_width[0] + PADH*2;
             int height = h->fenc->i_lines[0] + i_padv*2;
@@ -1570,7 +1570,7 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
             {
                 memcpy( h->intra_border_backup[j][i],
                         h->fdec->plane[i] + ((mb_y*16 >> !!i) + j - 1 - h->sh.b_mbaff) * h->fdec->i_stride[i],
-                        h->sps->i_mb_width*16 >> !!i );
+                        (h->sps->i_mb_width*16 >> !!i) * sizeof(pixel) );
             }
 
     if( b_deblock )
