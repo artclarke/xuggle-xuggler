@@ -58,6 +58,11 @@ static float x264_psnr( int64_t i_sqe, int64_t i_size )
     return -10.0 * log10( f_mse );
 }
 
+static float x264_ssim( float ssim )
+{
+    return -10.0 * log10( 1 - ssim );
+}
+
 static void x264_frame_dump( x264_t *h )
 {
     FILE *f = fopen( h->param.psz_dump_yuv, "r+b" );
@@ -3069,9 +3074,8 @@ void    x264_encoder_close  ( x264_t *h )
 
         if( h->param.analyse.b_ssim )
         {
-            x264_log( h, X264_LOG_INFO,
-                      "SSIM Mean Y:%.7f\n",
-                      SUM3( h->stat.f_ssim_mean_y ) / i_count );
+            float ssim = SUM3( h->stat.f_ssim_mean_y ) / i_count;
+            x264_log( h, X264_LOG_INFO, "SSIM Mean Y:%.7f (%6.3fdb)\n", ssim, x264_ssim( ssim ) );
         }
         if( h->param.analyse.b_psnr )
         {
