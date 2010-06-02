@@ -172,7 +172,7 @@ int64_t URLProtocolHandler::url_seek(URLContext *, int64_t position,
     int whence)
 {
   JNIEnv *env = JNIHelper::sGetEnv();
-  int retval = -1;
+  int64_t retval = -1;
 
   try
   {
@@ -236,7 +236,7 @@ int URLProtocolHandler::url_read(URLContext *, unsigned char* buf, int size)
   return retval;
 }
 
-int URLProtocolHandler::url_write(URLContext *, unsigned char* buf, int size)
+int URLProtocolHandler::url_write(URLContext *, const unsigned char* buf, int size)
 {
   JNIEnv *env = JNIHelper::sGetEnv();
   int retval = -1;

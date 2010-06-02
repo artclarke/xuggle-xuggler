@@ -43,7 +43,7 @@ private:
   static int url_open(URLContext* h, const char* url, int flags);
   static int url_close(URLContext *h);
   static int url_read(URLContext *h, unsigned char* buf, int size);
-  static int url_write(URLContext *h, unsigned char* buf, int size);
+  static int url_write(URLContext *h, const unsigned char* buf, int size);
   static int64_t url_seek(URLContext *h, int64_t position, int whence);
 
   void cacheJavaMethods(jobject aProtoMgr);

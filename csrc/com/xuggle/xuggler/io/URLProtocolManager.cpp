@@ -210,7 +210,7 @@ int URLProtocolManager::url_read(URLContext *h, unsigned char* buf, int size)
   return retval;
 }
 
-int URLProtocolManager::url_write(URLContext *h, unsigned char* buf,
+int URLProtocolManager::url_write(URLContext *h, const unsigned char* buf,
     int size)
 {
   int retval = -1;
