@@ -254,7 +254,7 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame, float *quant_off
     if( h->param.rc.i_aq_mode == X264_AQ_NONE || h->param.rc.f_aq_strength == 0 )
     {
         /* Need to init it anyways for MB tree */
-        if( h->param.rc.f_aq_strength == 0 )
+        if( h->param.rc.i_aq_mode && h->param.rc.f_aq_strength == 0 )
         {
             if( quant_offsets )
             {
