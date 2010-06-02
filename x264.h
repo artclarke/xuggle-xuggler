@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 97
+#define X264_BUILD 98
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -561,6 +561,11 @@ typedef struct
        not even copy it from input to output frames. */
     void *opaque;
 } x264_picture_t;
+
+/* x264_picture_init:
+ *  initialize an x264_picture_t.  Needs to be done if the calling application
+ *  allocates its own x264_picture_t as opposed to using x264_picture_alloc. */
+void x264_picture_init( x264_picture_t *pic );
 
 /* x264_picture_alloc:
  *  alloc data for a picture. You must call x264_picture_clean on it.

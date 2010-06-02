@@ -994,13 +994,22 @@ static void x264_log_default( void *p_unused, int i_level, const char *psz_fmt, 
 }
 
 /****************************************************************************
- * x264_picture_alloc:
+ * x264_picture_init:
  ****************************************************************************/
-int x264_picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_height )
+void x264_picture_init( x264_picture_t *pic )
 {
     memset( pic, 0, sizeof( x264_picture_t ) );
     pic->i_type = X264_TYPE_AUTO;
     pic->i_qpplus1 = 0;
+    pic->i_pic_struct = PIC_STRUCT_AUTO;
+}
+
+/****************************************************************************
+ * x264_picture_alloc:
+ ****************************************************************************/
+int x264_picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_height )
+{
+    x264_picture_init( pic );
     pic->img.i_csp = i_csp;
     pic->img.i_plane = 3;
     pic->img.plane[0] = x264_malloc( 3 * i_width * i_height / 2 );
@@ -1011,7 +1020,6 @@ int x264_picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_heigh
     pic->img.i_stride[0] = i_width;
     pic->img.i_stride[1] = i_width / 2;
     pic->img.i_stride[2] = i_width / 2;
-    pic->i_pic_struct = PIC_STRUCT_AUTO;
     return 0;
 }
 
