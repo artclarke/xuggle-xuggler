@@ -113,7 +113,7 @@ static inline int block_residual_write_cavlc_escape( x264_t *h, int i_suffix_len
     return i_suffix_length;
 }
 
-static int block_residual_write_cavlc( x264_t *h, int i_ctxBlockCat, int16_t *l, int nC )
+static int block_residual_write_cavlc( x264_t *h, int i_ctxBlockCat, dctcoef *l, int nC )
 {
     bs_t *s = &h->out.bs;
     static const uint8_t ctz_index[8] = {3,0,1,0,2,0,1,0};

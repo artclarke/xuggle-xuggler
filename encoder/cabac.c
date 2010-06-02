@@ -551,7 +551,7 @@ static const uint8_t coeff_abs_level_transition[2][8] = {
 static const uint8_t count_cat_m1[5] = {15, 14, 15, 3, 14};
 
 #if !RDO_SKIP_BS
-static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBlockCat, int16_t *l )
+static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBlockCat, dctcoef *l )
 {
     const int i_ctx_sig = significant_coeff_flag_offset[h->mb.b_interlaced][i_ctxBlockCat];
     const int i_ctx_last = last_coeff_flag_offset[h->mb.b_interlaced][i_ctxBlockCat];
@@ -645,7 +645,7 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
  * this is slightly incorrect because the sigmap is not reversible
  * (contexts are repeated).  However, there is nearly no quality penalty
  * for this (~0.001db) and the speed boost (~30%) is worth it. */
-static void ALWAYS_INLINE block_residual_write_cabac_internal( x264_t *h, x264_cabac_t *cb, int i_ctxBlockCat, int16_t *l, int b_8x8 )
+static void ALWAYS_INLINE block_residual_write_cabac_internal( x264_t *h, x264_cabac_t *cb, int i_ctxBlockCat, dctcoef *l, int b_8x8 )
 {
     const int i_ctx_sig = significant_coeff_flag_offset[h->mb.b_interlaced][i_ctxBlockCat];
     const int i_ctx_last = last_coeff_flag_offset[h->mb.b_interlaced][i_ctxBlockCat];
@@ -726,11 +726,11 @@ static void ALWAYS_INLINE block_residual_write_cabac_internal( x264_t *h, x264_c
     }
 }
 
-static void block_residual_write_cabac_8x8( x264_t *h, x264_cabac_t *cb, int16_t *l )
+static void block_residual_write_cabac_8x8( x264_t *h, x264_cabac_t *cb, dctcoef *l )
 {
     block_residual_write_cabac_internal( h, cb, DCT_LUMA_8x8, l, 1 );
 }
-static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBlockCat, int16_t *l )
+static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBlockCat, dctcoef *l )
 {
     block_residual_write_cabac_internal( h, cb, i_ctxBlockCat, l, 0 );
 }

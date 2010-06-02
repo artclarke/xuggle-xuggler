@@ -515,11 +515,11 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_dct_function_t dct_asm;
     x264_quant_function_t qf;
     int ret = 0, ok, used_asm, interlace;
-    ALIGNED_16( int16_t dct1[16][16] );
-    ALIGNED_16( int16_t dct2[16][16] );
-    ALIGNED_16( int16_t dct4[16][16] );
-    ALIGNED_16( int16_t dct8[4][64] );
-    ALIGNED_8( int16_t dctdc[2][4] );
+    ALIGNED_16( dctcoef dct1[16][16] );
+    ALIGNED_16( dctcoef dct2[16][16] );
+    ALIGNED_16( dctcoef dct4[16][16] );
+    ALIGNED_16( dctcoef dct8[4][64] );
+    ALIGNED_8( dctcoef dctdc[2][4] );
     x264_t h_buf;
     x264_t *h = &h_buf;
 
@@ -645,18 +645,18 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_zigzag_function_t zigzag_ref;
     x264_zigzag_function_t zigzag_asm;
 
-    ALIGNED_16( int16_t level1[64] );
-    ALIGNED_16( int16_t level2[64] );
+    ALIGNED_16( dctcoef level1[64] );
+    ALIGNED_16( dctcoef level2[64] );
 
 #define TEST_ZIGZAG_SCAN( name, t1, t2, dct, size ) \
     if( zigzag_asm.name != zigzag_ref.name ) \
     { \
         set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" ); \
         used_asm = 1; \
-        memcpy(dct, buf1, size*sizeof(int16_t)); \
+        memcpy(dct, buf1, size*sizeof(dctcoef)); \
         call_c( zigzag_c.name, t1, dct ); \
         call_a( zigzag_asm.name, t2, dct ); \
-        if( memcmp( t1, t2, size*sizeof(int16_t) ) ) \
+        if( memcmp( t1, t2, size*sizeof(dctcoef) ) ) \
         { \
             ok = 0; \
             fprintf( stderr, #name " [FAILED]\n" ); \
@@ -673,7 +673,7 @@ static int check_dct( int cpu_ref, int cpu_new )
         memcpy( buf4, buf1, 16*FDEC_STRIDE * sizeof(pixel) ); \
         nz_c = call_c1( zigzag_c.name, t1, pbuf2, pbuf3 ); \
         nz_a = call_a1( zigzag_asm.name, t2, pbuf2, pbuf4 ); \
-        if( memcmp( t1, t2, size*sizeof(int16_t) )|| memcmp( buf3, buf4, 16*FDEC_STRIDE ) || nz_c != nz_a ) \
+        if( memcmp( t1, t2, size*sizeof(dctcoef) )|| memcmp( buf3, buf4, 16*FDEC_STRIDE ) || nz_c != nz_a ) \
         { \
             ok = 0; \
             fprintf( stderr, #name " [FAILED]\n" ); \
@@ -686,7 +686,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     if( zigzag_asm.name != zigzag_ref.name ) \
     { \
         int nz_a, nz_c; \
-        int16_t dc_a, dc_c; \
+        dctcoef dc_a, dc_c; \
         set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" ); \
         used_asm = 1; \
         for( int i = 0; i < 2; i++ ) \
@@ -700,7 +700,7 @@ static int check_dct( int cpu_ref, int cpu_new )
             } \
             nz_c = call_c1( zigzag_c.name, t1, pbuf2, pbuf3, &dc_c ); \
             nz_a = call_a1( zigzag_asm.name, t2, pbuf2, pbuf4, &dc_a ); \
-            if( memcmp( t1+1, t2+1, 15*sizeof(int16_t) ) || memcmp( buf3, buf4, 16*FDEC_STRIDE * sizeof(pixel) ) || nz_c != nz_a || dc_c != dc_a ) \
+            if( memcmp( t1+1, t2+1, 15*sizeof(dctcoef) ) || memcmp( buf3, buf4, 16*FDEC_STRIDE * sizeof(pixel) ) || nz_c != nz_a || dc_c != dc_a ) \
             { \
                 ok = 0; \
                 fprintf( stderr, #name " [FAILED]\n" ); \
@@ -718,13 +718,13 @@ static int check_dct( int cpu_ref, int cpu_new )
         { \
             set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" ); \
             used_asm = 1; \
-            memcpy(dct, buf1, size*sizeof(int16_t)); \
+            memcpy(dct, buf1, size*sizeof(dctcoef)); \
             for( int i = 0; i < size; i++ ) \
                 dct[i] = rand()&0x1F ? 0 : dct[i]; \
             memcpy(buf3, buf4, 10); \
             call_c( zigzag_c.name, t1, dct, buf3 ); \
             call_a( zigzag_asm.name, t2, dct, buf4 ); \
-            if( memcmp( t1, t2, size*sizeof(int16_t) ) || memcmp( buf3, buf4, 10 ) ) \
+            if( memcmp( t1, t2, size*sizeof(dctcoef) ) || memcmp( buf3, buf4, 10 ) ) \
             { \
                 ok = 0; \
             } \
@@ -1200,8 +1200,8 @@ static int check_quant( int cpu_ref, int cpu_new )
     x264_quant_function_t qf_c;
     x264_quant_function_t qf_ref;
     x264_quant_function_t qf_a;
-    ALIGNED_16( int16_t dct1[64] );
-    ALIGNED_16( int16_t dct2[64] );
+    ALIGNED_16( dctcoef dct1[64] );
+    ALIGNED_16( dctcoef dct2[64] );
     ALIGNED_16( uint8_t cqm_buf[64] );
     int ret = 0, ok, used_asm;
     int oks[2] = {1,1}, used_asms[2] = {0,0};

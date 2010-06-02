@@ -91,37 +91,37 @@ typedef struct
     // pix1  stride = FENC_STRIDE
     // pix2  stride = FDEC_STRIDE
     // p_dst stride = FDEC_STRIDE
-    void (*sub4x4_dct)   ( int16_t dct[16], pixel *pix1, pixel *pix2 );
-    void (*add4x4_idct)  ( pixel *p_dst, int16_t dct[16] );
+    void (*sub4x4_dct)   ( dctcoef dct[16], pixel *pix1, pixel *pix2 );
+    void (*add4x4_idct)  ( pixel *p_dst, dctcoef dct[16] );
 
-    void (*sub8x8_dct)   ( int16_t dct[4][16], pixel *pix1, pixel *pix2 );
-    void (*sub8x8_dct_dc)( int16_t dct[4], pixel *pix1, pixel *pix2 );
-    void (*add8x8_idct)  ( pixel *p_dst, int16_t dct[4][16] );
-    void (*add8x8_idct_dc) ( pixel *p_dst, int16_t dct[4] );
+    void (*sub8x8_dct)   ( dctcoef dct[4][16], pixel *pix1, pixel *pix2 );
+    void (*sub8x8_dct_dc)( dctcoef dct[4], pixel *pix1, pixel *pix2 );
+    void (*add8x8_idct)  ( pixel *p_dst, dctcoef dct[4][16] );
+    void (*add8x8_idct_dc) ( pixel *p_dst, dctcoef dct[4] );
 
-    void (*sub16x16_dct) ( int16_t dct[16][16], pixel *pix1, pixel *pix2 );
-    void (*add16x16_idct)( pixel *p_dst, int16_t dct[16][16] );
-    void (*add16x16_idct_dc) ( pixel *p_dst, int16_t dct[16] );
+    void (*sub16x16_dct) ( dctcoef dct[16][16], pixel *pix1, pixel *pix2 );
+    void (*add16x16_idct)( pixel *p_dst, dctcoef dct[16][16] );
+    void (*add16x16_idct_dc) ( pixel *p_dst, dctcoef dct[16] );
 
-    void (*sub8x8_dct8)  ( int16_t dct[64], pixel *pix1, pixel *pix2 );
-    void (*add8x8_idct8) ( pixel *p_dst, int16_t dct[64] );
+    void (*sub8x8_dct8)  ( dctcoef dct[64], pixel *pix1, pixel *pix2 );
+    void (*add8x8_idct8) ( pixel *p_dst, dctcoef dct[64] );
 
-    void (*sub16x16_dct8) ( int16_t dct[4][64], pixel *pix1, pixel *pix2 );
-    void (*add16x16_idct8)( pixel *p_dst, int16_t dct[4][64] );
+    void (*sub16x16_dct8) ( dctcoef dct[4][64], pixel *pix1, pixel *pix2 );
+    void (*add16x16_idct8)( pixel *p_dst, dctcoef dct[4][64] );
 
-    void (*dct4x4dc) ( int16_t d[16] );
-    void (*idct4x4dc)( int16_t d[16] );
+    void (*dct4x4dc) ( dctcoef d[16] );
+    void (*idct4x4dc)( dctcoef d[16] );
 
 } x264_dct_function_t;
 
 typedef struct
 {
-    void (*scan_8x8)( int16_t level[64], int16_t dct[64] );
-    void (*scan_4x4)( int16_t level[16], int16_t dct[16] );
-    int  (*sub_8x8)  ( int16_t level[64], const pixel *p_src, pixel *p_dst );
-    int  (*sub_4x4)  ( int16_t level[16], const pixel *p_src, pixel *p_dst );
-    int  (*sub_4x4ac)( int16_t level[16], const pixel *p_src, pixel *p_dst, int16_t *dc );
-    void (*interleave_8x8_cavlc)( int16_t *dst, int16_t *src, uint8_t *nnz );
+    void (*scan_8x8)( dctcoef level[64], dctcoef dct[64] );
+    void (*scan_4x4)( dctcoef level[16], dctcoef dct[16] );
+    int  (*sub_8x8)  ( dctcoef level[64], const pixel *p_src, pixel *p_dst );
+    int  (*sub_4x4)  ( dctcoef level[16], const pixel *p_src, pixel *p_dst );
+    int  (*sub_4x4ac)( dctcoef level[16], const pixel *p_src, pixel *p_dst, dctcoef *dc );
+    void (*interleave_8x8_cavlc)( dctcoef *dst, dctcoef *src, uint8_t *nnz );
 
 } x264_zigzag_function_t;
 

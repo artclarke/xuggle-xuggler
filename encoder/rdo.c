@@ -407,7 +407,7 @@ typedef struct {
 // comparable to the input. so unquant is the direct inverse of quant,
 // and uses the dct scaling factors, not the idct ones.
 
-static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
+static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, dctcoef *dct,
                                  const uint16_t *quant_mf, const int *unquant_mf,
                                  const int *coef_weight, const uint8_t *zigzag,
                                  int i_ctxBlockCat, int i_lambda2, int b_ac, int dc, int i_coefs, int idx )
@@ -634,8 +634,8 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, int16_t *dct,
 
 const static uint8_t x264_zigzag_scan2[4] = {0,1,2,3};
 
-int x264_quant_dc_trellis( x264_t *h, int16_t *dct, int i_quant_cat,
-                            int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma )
+int x264_quant_dc_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
+                           int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma )
 {
     return quant_trellis_cabac( h, dct,
         h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
@@ -643,8 +643,8 @@ int x264_quant_dc_trellis( x264_t *h, int16_t *dct, int i_quant_cat,
         i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, 1, i_ctxBlockCat==DCT_CHROMA_DC ? 4 : 16, 0 );
 }
 
-int x264_quant_4x4_trellis( x264_t *h, int16_t *dct, int i_quant_cat,
-                             int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma, int idx )
+int x264_quant_4x4_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
+                            int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma, int idx )
 {
     int b_ac = (i_ctxBlockCat == DCT_LUMA_AC || i_ctxBlockCat == DCT_CHROMA_AC);
     return quant_trellis_cabac( h, dct,
@@ -654,8 +654,8 @@ int x264_quant_4x4_trellis( x264_t *h, int16_t *dct, int i_quant_cat,
         i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, 0, 16, idx );
 }
 
-int x264_quant_8x8_trellis( x264_t *h, int16_t *dct, int i_quant_cat,
-                             int i_qp, int b_intra, int idx )
+int x264_quant_8x8_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
+                            int i_qp, int b_intra, int idx )
 {
     return quant_trellis_cabac( h, dct,
         h->quant8_mf[i_quant_cat][i_qp], h->unquant8_mf[i_quant_cat][i_qp],

@@ -42,7 +42,7 @@
     nz |= (coef); \
 }
 
-static int quant_8x8( int16_t dct[64], uint16_t mf[64], uint16_t bias[64] )
+static int quant_8x8( dctcoef dct[64], uint16_t mf[64], uint16_t bias[64] )
 {
     int nz = 0;
     for( int i = 0; i < 64; i++ )
@@ -50,7 +50,7 @@ static int quant_8x8( int16_t dct[64], uint16_t mf[64], uint16_t bias[64] )
     return !!nz;
 }
 
-static int quant_4x4( int16_t dct[16], uint16_t mf[16], uint16_t bias[16] )
+static int quant_4x4( dctcoef dct[16], uint16_t mf[16], uint16_t bias[16] )
 {
     int nz = 0;
     for( int i = 0; i < 16; i++ )
@@ -58,7 +58,7 @@ static int quant_4x4( int16_t dct[16], uint16_t mf[16], uint16_t bias[16] )
     return !!nz;
 }
 
-static int quant_4x4_dc( int16_t dct[16], int mf, int bias )
+static int quant_4x4_dc( dctcoef dct[16], int mf, int bias )
 {
     int nz = 0;
     for( int i = 0; i < 16; i++ )
@@ -66,7 +66,7 @@ static int quant_4x4_dc( int16_t dct[16], int mf, int bias )
     return !!nz;
 }
 
-static int quant_2x2_dc( int16_t dct[4], int mf, int bias )
+static int quant_2x2_dc( dctcoef dct[4], int mf, int bias )
 {
     int nz = 0;
     QUANT_ONE( dct[0], mf, bias );
@@ -82,7 +82,7 @@ static int quant_2x2_dc( int16_t dct[4], int mf, int bias )
 #define DEQUANT_SHR( x ) \
     dct[x] = ( dct[x] * dequant_mf[i_mf][x] + f ) >> (-i_qbits)
 
-static void dequant_4x4( int16_t dct[16], int dequant_mf[6][16], int i_qp )
+static void dequant_4x4( dctcoef dct[16], int dequant_mf[6][16], int i_qp )
 {
     const int i_mf = i_qp%6;
     const int i_qbits = i_qp/6 - 4;
@@ -100,7 +100,7 @@ static void dequant_4x4( int16_t dct[16], int dequant_mf[6][16], int i_qp )
     }
 }
 
-static void dequant_8x8( int16_t dct[64], int dequant_mf[6][64], int i_qp )
+static void dequant_8x8( dctcoef dct[64], int dequant_mf[6][64], int i_qp )
 {
     const int i_mf = i_qp%6;
     const int i_qbits = i_qp/6 - 6;
@@ -118,7 +118,7 @@ static void dequant_8x8( int16_t dct[64], int dequant_mf[6][64], int i_qp )
     }
 }
 
-static void dequant_4x4_dc( int16_t dct[16], int dequant_mf[6][16], int i_qp )
+static void dequant_4x4_dc( dctcoef dct[16], int dequant_mf[6][16], int i_qp )
 {
     const int i_qbits = i_qp/6 - 6;
 
@@ -137,7 +137,7 @@ static void dequant_4x4_dc( int16_t dct[16], int dequant_mf[6][16], int i_qp )
     }
 }
 
-static void x264_denoise_dct( int16_t *dct, uint32_t *sum, uint16_t *offset, int size )
+static void x264_denoise_dct( dctcoef *dct, uint32_t *sum, uint16_t *offset, int size )
 {
     for( int i = 1; i < size; i++ )
     {
@@ -171,14 +171,14 @@ const uint8_t x264_decimate_table8[64] =
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 };
 
-static int ALWAYS_INLINE x264_decimate_score_internal( int16_t *dct, int i_max )
+static int ALWAYS_INLINE x264_decimate_score_internal( dctcoef *dct, int i_max )
 {
     const uint8_t *ds_table = (i_max == 64) ? x264_decimate_table8 : x264_decimate_table4;
     int i_score = 0;
     int idx = i_max - 1;
 
     /* Yes, dct[idx-1] is guaranteed to be 32-bit aligned.  idx>=0 instead of 1 works correctly for the same reason */
-    while( idx >= 0 && M32( &dct[idx-1] ) == 0 )
+    while( idx >= 0 && MDCT_X2( &dct[idx-1] ) == 0 )
         idx -= 2;
     if( idx >= 0 && dct[idx] == 0 )
         idx--;
@@ -201,20 +201,20 @@ static int ALWAYS_INLINE x264_decimate_score_internal( int16_t *dct, int i_max )
     return i_score;
 }
 
-static int x264_decimate_score15( int16_t *dct )
+static int x264_decimate_score15( dctcoef *dct )
 {
     return x264_decimate_score_internal( dct+1, 15 );
 }
-static int x264_decimate_score16( int16_t *dct )
+static int x264_decimate_score16( dctcoef *dct )
 {
     return x264_decimate_score_internal( dct, 16 );
 }
-static int x264_decimate_score64( int16_t *dct )
+static int x264_decimate_score64( dctcoef *dct )
 {
     return x264_decimate_score_internal( dct, 64 );
 }
 
-static int ALWAYS_INLINE x264_coeff_last_internal( int16_t *l, int i_count )
+static int ALWAYS_INLINE x264_coeff_last_internal( dctcoef *l, int i_count )
 {
     int i_last;
     for( i_last = i_count-1; i_last >= 3; i_last -= 4 )
@@ -225,25 +225,25 @@ static int ALWAYS_INLINE x264_coeff_last_internal( int16_t *l, int i_count )
     return i_last;
 }
 
-static int x264_coeff_last4( int16_t *l )
+static int x264_coeff_last4( dctcoef *l )
 {
     return x264_coeff_last_internal( l, 4 );
 }
-static int x264_coeff_last15( int16_t *l )
+static int x264_coeff_last15( dctcoef *l )
 {
     return x264_coeff_last_internal( l, 15 );
 }
-static int x264_coeff_last16( int16_t *l )
+static int x264_coeff_last16( dctcoef *l )
 {
     return x264_coeff_last_internal( l, 16 );
 }
-static int x264_coeff_last64( int16_t *l )
+static int x264_coeff_last64( dctcoef *l )
 {
     return x264_coeff_last_internal( l, 64 );
 }
 
 #define level_run(num)\
-static int x264_coeff_level_run##num( int16_t *dct, x264_run_level_t *runlevel )\
+static int x264_coeff_level_run##num( dctcoef *dct, x264_run_level_t *runlevel )\
 {\
     int i_last = runlevel->last = x264_coeff_last##num(dct);\
     int i_total = 0;\

@@ -25,22 +25,22 @@
 
 typedef struct
 {
-    int (*quant_8x8)( int16_t dct[64], uint16_t mf[64], uint16_t bias[64] );
-    int (*quant_4x4)( int16_t dct[16], uint16_t mf[16], uint16_t bias[16] );
-    int (*quant_4x4_dc)( int16_t dct[16], int mf, int bias );
-    int (*quant_2x2_dc)( int16_t dct[4], int mf, int bias );
+    int (*quant_8x8)( dctcoef dct[64], uint16_t mf[64], uint16_t bias[64] );
+    int (*quant_4x4)( dctcoef dct[16], uint16_t mf[16], uint16_t bias[16] );
+    int (*quant_4x4_dc)( dctcoef dct[16], int mf, int bias );
+    int (*quant_2x2_dc)( dctcoef dct[4], int mf, int bias );
 
-    void (*dequant_8x8)( int16_t dct[64], int dequant_mf[6][64], int i_qp );
-    void (*dequant_4x4)( int16_t dct[16], int dequant_mf[6][16], int i_qp );
-    void (*dequant_4x4_dc)( int16_t dct[16], int dequant_mf[6][16], int i_qp );
+    void (*dequant_8x8)( dctcoef dct[64], int dequant_mf[6][64], int i_qp );
+    void (*dequant_4x4)( dctcoef dct[16], int dequant_mf[6][16], int i_qp );
+    void (*dequant_4x4_dc)( dctcoef dct[16], int dequant_mf[6][16], int i_qp );
 
-    void (*denoise_dct)( int16_t *dct, uint32_t *sum, uint16_t *offset, int size );
+    void (*denoise_dct)( dctcoef *dct, uint32_t *sum, uint16_t *offset, int size );
 
-    int (*decimate_score15)( int16_t *dct );
-    int (*decimate_score16)( int16_t *dct );
-    int (*decimate_score64)( int16_t *dct );
-    int (*coeff_last[6])( int16_t *dct );
-    int (*coeff_level_run[5])( int16_t *dct, x264_run_level_t *runlevel );
+    int (*decimate_score15)( dctcoef *dct );
+    int (*decimate_score16)( dctcoef *dct );
+    int (*decimate_score64)( dctcoef *dct );
+    int (*coeff_last[6])( dctcoef *dct );
+    int (*coeff_level_run[5])( dctcoef *dct, x264_run_level_t *runlevel );
 } x264_quant_function_t;
 
 void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf );

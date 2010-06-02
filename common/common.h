@@ -102,11 +102,15 @@ typedef union { x264_uint128_t i; uint64_t a[2]; uint32_t b[4]; uint16_t c[8]; u
 
 typedef uint8_t pixel;
 typedef uint32_t pixel4;
+typedef int16_t dctcoef;
 
 #define PIXEL_SPLAT_X4(x) ((x)*0x01010101U)
 #define MPIXEL_X4(src) M32(src)
 #define CPPIXEL_X4(dst,src) CP32(dst,src)
 #define CPPIXEL_X8(dst,src) CP64(dst,src)
+#define MDCT_X2(dct) M32(dct)
+#define CPDCT_X2(dst,src) CP32(dst,src)
+#define CPDCT_X4(dst,src) CP64(dst,src)
 
 #define X264_SCAN8_SIZE (6*8)
 #define X264_SCAN8_LUMA_SIZE (5*8)
@@ -502,11 +506,11 @@ struct x264_t
     /* Current MB DCT coeffs */
     struct
     {
-        ALIGNED_16( int16_t luma16x16_dc[16] );
-        ALIGNED_16( int16_t chroma_dc[2][4] );
+        ALIGNED_16( dctcoef luma16x16_dc[16] );
+        ALIGNED_16( dctcoef chroma_dc[2][4] );
         // FIXME share memory?
-        ALIGNED_16( int16_t luma8x8[4][64] );
-        ALIGNED_16( int16_t luma4x4[16+8][16] );
+        ALIGNED_16( dctcoef luma8x8[4][64] );
+        ALIGNED_16( dctcoef luma4x4[16+8][16] );
     } dct;
 
     /* MB table and cache for current frame/mb */
@@ -625,16 +629,16 @@ struct x264_t
             /* i4x4 and i8x8 backup data, for skipping the encode stage when possible */
             ALIGNED_16( pixel i4x4_fdec_buf[16*16] );
             ALIGNED_16( pixel i8x8_fdec_buf[16*16] );
-            ALIGNED_16( int16_t i8x8_dct_buf[3][64] );
-            ALIGNED_16( int16_t i4x4_dct_buf[15][16] );
+            ALIGNED_16( dctcoef i8x8_dct_buf[3][64] );
+            ALIGNED_16( dctcoef i4x4_dct_buf[15][16] );
             uint32_t i4x4_nnz_buf[4];
             uint32_t i8x8_nnz_buf[4];
             int i4x4_cbp;
             int i8x8_cbp;
 
             /* Psy trellis DCT data */
-            ALIGNED_16( int16_t fenc_dct8[4][64] );
-            ALIGNED_16( int16_t fenc_dct4[16][16] );
+            ALIGNED_16( dctcoef fenc_dct8[4][64] );
+            ALIGNED_16( dctcoef fenc_dct4[16][16] );
 
             /* Psy RD SATD/SA8D scores cache */
             ALIGNED_16( uint64_t fenc_hadamard_cache[9] );
