@@ -1156,8 +1156,8 @@ static int check_deblock( int cpu_ref, int cpu_new )
         {
             ALIGNED_ARRAY_16( uint8_t, nnz, [X264_SCAN8_SIZE] );
             ALIGNED_4( int8_t ref[2][X264_SCAN8_LUMA_SIZE] );
-            ALIGNED_ARRAY_16( int16_t, mv, [2][X264_SCAN8_LUMA_SIZE][2] );
-            ALIGNED_ARRAY_16( uint8_t, bs, [2][2][4][4] );
+            ALIGNED_ARRAY_16( int16_t, mv, [2],[X264_SCAN8_LUMA_SIZE][2] );
+            ALIGNED_ARRAY_16( uint8_t, bs, [2],[2][4][4] );
             for( int j = 0; j < X264_SCAN8_SIZE; j++ )
                 nnz[j] = ((rand()&7) == 7) * rand() & 0xf;
             for( int j = 0; j < 2; j++ )
