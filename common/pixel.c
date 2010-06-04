@@ -455,6 +455,39 @@ SATD_X_DECL7( _sse4 )
 SATD_X_DECL7( _neon )
 #endif
 
+#define INTRA_MBCMP_8x8( mbcmp )\
+void x264_intra_##mbcmp##_x3_8x8( pixel *fenc, pixel edge[33], int res[3] )\
+{\
+    pixel pix[8*FDEC_STRIDE];\
+    x264_predict_8x8_v_c( pix, edge );\
+    res[0] = x264_pixel_##mbcmp##_8x8( pix, FDEC_STRIDE, fenc, FENC_STRIDE );\
+    x264_predict_8x8_h_c( pix, edge );\
+    res[1] = x264_pixel_##mbcmp##_8x8( pix, FDEC_STRIDE, fenc, FENC_STRIDE );\
+    x264_predict_8x8_dc_c( pix, edge );\
+    res[2] = x264_pixel_##mbcmp##_8x8( pix, FDEC_STRIDE, fenc, FENC_STRIDE );\
+}
+
+INTRA_MBCMP_8x8(sad)
+INTRA_MBCMP_8x8(sa8d)
+
+#define INTRA_MBCMP( mbcmp, size, pred1, pred2, pred3, chroma )\
+void x264_intra_##mbcmp##_x3_##size##x##size##chroma( pixel *fenc, pixel *fdec, int res[3] )\
+{\
+    x264_predict_##size##x##size##chroma##_##pred1##_c( fdec );\
+    res[0] = x264_pixel_##mbcmp##_##size##x##size( fdec, FDEC_STRIDE, fenc, FENC_STRIDE );\
+    x264_predict_##size##x##size##chroma##_##pred2##_c( fdec );\
+    res[1] = x264_pixel_##mbcmp##_##size##x##size( fdec, FDEC_STRIDE, fenc, FENC_STRIDE );\
+    x264_predict_##size##x##size##chroma##_##pred3##_c( fdec );\
+    res[2] = x264_pixel_##mbcmp##_##size##x##size( fdec, FDEC_STRIDE, fenc, FENC_STRIDE );\
+}
+
+INTRA_MBCMP(sad, 4, v, h, dc, )
+INTRA_MBCMP(satd, 4, v, h, dc, )
+INTRA_MBCMP(sad, 8, dc, h, v, c )
+INTRA_MBCMP(satd, 8, dc, h, v, c )
+INTRA_MBCMP(sad, 16, v, h, dc, )
+INTRA_MBCMP(satd, 16, v, h, dc, )
+
 /****************************************************************************
  * structural similarity metric
  ****************************************************************************/
@@ -635,6 +668,15 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     pixf->ssim_4x4x2_core = ssim_4x4x2_core;
     pixf->ssim_end4 = ssim_end4;
     pixf->var2_8x8 = pixel_var2_8x8;
+
+    pixf->intra_sad_x3_4x4    = x264_intra_sad_x3_4x4;
+    pixf->intra_satd_x3_4x4   = x264_intra_satd_x3_4x4;
+    pixf->intra_sad_x3_8x8    = x264_intra_sad_x3_8x8;
+    pixf->intra_sa8d_x3_8x8   = x264_intra_sa8d_x3_8x8;
+    pixf->intra_sad_x3_8x8c   = x264_intra_sad_x3_8x8c;
+    pixf->intra_satd_x3_8x8c  = x264_intra_satd_x3_8x8c;
+    pixf->intra_sad_x3_16x16  = x264_intra_sad_x3_16x16;
+    pixf->intra_satd_x3_16x16 = x264_intra_satd_x3_16x16;
 
 #ifdef HAVE_MMX
     if( cpu&X264_CPU_MMX )

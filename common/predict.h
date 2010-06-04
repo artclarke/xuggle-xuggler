@@ -106,6 +106,19 @@ enum intra8x8_pred_e
     I_PRED_8x8_DC_128  = 11,
 };
 
+void x264_predict_8x8_dc_c  ( pixel *src, pixel edge[33] );
+void x264_predict_8x8_h_c   ( pixel *src, pixel edge[33] );
+void x264_predict_8x8_v_c   ( pixel *src, pixel edge[33] );
+void x264_predict_4x4_dc_c  ( pixel *src );
+void x264_predict_4x4_h_c   ( pixel *src );
+void x264_predict_4x4_v_c   ( pixel *src );
+void x264_predict_16x16_dc_c( pixel *src );
+void x264_predict_16x16_h_c ( pixel *src );
+void x264_predict_16x16_v_c ( pixel *src );
+void x264_predict_8x8c_dc_c ( pixel *src );
+void x264_predict_8x8c_h_c  ( pixel *src );
+void x264_predict_8x8c_v_c  ( pixel *src );
+
 void x264_predict_16x16_init ( int cpu, x264_predict_t pf[7] );
 void x264_predict_8x8c_init  ( int cpu, x264_predict_t pf[7] );
 void x264_predict_4x4_init   ( int cpu, x264_predict_t pf[12] );

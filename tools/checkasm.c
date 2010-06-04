@@ -238,9 +238,6 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_pixel_function_t pixel_c;
     x264_pixel_function_t pixel_ref;
     x264_pixel_function_t pixel_asm;
-    x264_predict_t predict_16x16[4+3];
-    x264_predict_t predict_8x8c[4+3];
-    x264_predict_t predict_4x4[9+3];
     x264_predict8x8_t predict_8x8[9+3];
     x264_predict_8x8_filter_t predict_8x8_filter;
     ALIGNED_16( pixel edge[33] );
@@ -250,10 +247,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_pixel_init( 0, &pixel_c );
     x264_pixel_init( cpu_ref, &pixel_ref );
     x264_pixel_init( cpu_new, &pixel_asm );
-    x264_predict_16x16_init( 0, predict_16x16 );
-    x264_predict_8x8c_init( 0, predict_8x8c );
     x264_predict_8x8_init( 0, predict_8x8, &predict_8x8_filter );
-    x264_predict_4x4_init( 0, predict_4x4 );
     predict_8x8_filter( pbuf2+40, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
 
     // maximize sum
@@ -421,12 +415,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
         int res_c[3], res_asm[3]; \
         set_func_name( #name ); \
         used_asm = 1; \
-        memcpy( buf3, buf2, 1024 * sizeof(pixel) ); \
-        for( int i = 0; i < 3; i++ ) \
-        { \
-            pred[i]( pbuf3+48, ##__VA_ARGS__ ); \
-            res_c[i] = pixel_c.satd( pbuf1+48, 16, pbuf3+48, 32 ); \
-        } \
+        call_c( pixel_c.name, pbuf1+48, i8x8 ? edge : pbuf3+48, res_c ); \
         call_a( pixel_asm.name, pbuf1+48, i8x8 ? edge : pbuf3+48, res_asm ); \
         if( memcmp(res_c, res_asm, sizeof(res_c)) ) \
         { \
