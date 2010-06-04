@@ -32,7 +32,7 @@
 #include "macroblock.h"
 #include "me.h"
 
-#ifdef HAVE_VISUALIZE
+#if HAVE_VISUALIZE
 #include "common/visualize.h"
 #endif
 
@@ -359,7 +359,7 @@ fail:
 
 static int x264_validate_parameters( x264_t *h )
 {
-#ifdef HAVE_MMX
+#if HAVE_MMX
 #ifdef __SSE__
     if( !(x264_cpu_detect() & X264_CPU_SSE) )
     {
@@ -398,7 +398,7 @@ static int x264_validate_parameters( x264_t *h )
     h->param.i_threads = x264_clip3( h->param.i_threads, 1, X264_THREAD_MAX );
     if( h->param.i_threads > 1 )
     {
-#ifndef HAVE_PTHREAD
+#if !HAVE_PTHREAD
         x264_log( h, X264_LOG_WARNING, "not compiled with pthread support!\n");
         h->param.i_threads = 1;
 #endif
@@ -607,7 +607,7 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.b_mb_tree = 0;
     if( h->param.rc.b_stat_read )
         h->param.rc.i_lookahead = 0;
-#ifdef HAVE_PTHREAD
+#if HAVE_PTHREAD
     if( h->param.i_sync_lookahead < 0 )
         h->param.i_sync_lookahead = h->param.i_bframe + 1;
     h->param.i_sync_lookahead = X264_MIN( h->param.i_sync_lookahead, X264_LOOKAHEAD_MAX );
@@ -1035,7 +1035,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
     if( x264_clz( temp ) != 23 )
     {
         x264_log( h, X264_LOG_ERROR, "CLZ test failed: x264 has been miscompiled!\n" );
-#if defined(ARCH_X86) || defined(ARCH_X86_64)
+#if ARCH_X86 || ARCH_X86_64
         x264_log( h, X264_LOG_ERROR, "Are you attempting to run an SSE4a-targeted build on a CPU that\n" );
         x264_log( h, X264_LOG_ERROR, "doesn't support it?\n" );
 #endif
@@ -1894,7 +1894,7 @@ static int x264_slice_write( x264_t *h )
         else
             h->mb.b_reencode_mb = 0;
 
-#ifdef HAVE_VISUALIZE
+#if HAVE_VISUALIZE
         if( h->param.b_visualize )
             x264_visualize_mb( h );
 #endif
@@ -2045,13 +2045,13 @@ static void *x264_slices_write( x264_t *h )
     if( h->param.i_sync_lookahead )
         x264_lower_thread_priority( 10 );
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
     /* Misalign mask has to be set separately for each thread. */
     if( h->param.cpu&X264_CPU_SSE_MISALIGN )
         x264_cpu_mask_misalign_sse();
 #endif
 
-#ifdef HAVE_VISUALIZE
+#if HAVE_VISUALIZE
     if( h->param.b_visualize )
         if( x264_visualize_init( h ) )
             return (void *)-1;
@@ -2078,7 +2078,7 @@ static void *x264_slices_write( x264_t *h )
         h->sh.i_first_mb = h->sh.i_last_mb + 1;
     }
 
-#ifdef HAVE_VISUALIZE
+#if HAVE_VISUALIZE
     if( h->param.b_visualize )
     {
         x264_visualize_show( h );
@@ -2092,7 +2092,7 @@ static void *x264_slices_write( x264_t *h )
 static int x264_threaded_slices_write( x264_t *h )
 {
     void *ret = NULL;
-#ifdef HAVE_MMX
+#if HAVE_MMX
     if( h->param.cpu&X264_CPU_SSE_MISALIGN )
         x264_cpu_mask_misalign_sse();
 #endif

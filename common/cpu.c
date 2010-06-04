@@ -26,17 +26,17 @@
 #include "common.h"
 #include "cpu.h"
 
-#if defined(HAVE_PTHREAD) && defined(SYS_LINUX)
+#if HAVE_PTHREAD && SYS_LINUX
 #include <sched.h>
 #endif
-#ifdef SYS_BEOS
+#if SYS_BEOS
 #include <kernel/OS.h>
 #endif
-#if defined(SYS_MACOSX) || defined(SYS_FREEBSD)
+#if SYS_MACOSX || SYS_FREEBSD
 #include <sys/types.h>
 #include <sys/sysctl.h>
 #endif
-#ifdef SYS_OPENBSD
+#if SYS_OPENBSD
 #include <sys/param.h>
 #include <sys/sysctl.h>
 #include <machine/cpu.h>
@@ -69,7 +69,7 @@ const x264_cpu_name_t x264_cpu_names[] = {
     {"", 0},
 };
 
-#if (defined(ARCH_PPC) && defined(SYS_LINUX)) || (defined(ARCH_ARM) && !defined(HAVE_NEON))
+#if (ARCH_PPC && SYS_LINUX) || (ARCH_ARM && !HAVE_NEON)
 #include <signal.h>
 #include <setjmp.h>
 static sigjmp_buf jmpbuf;
@@ -88,7 +88,7 @@ static void sigill_handler( int sig )
 }
 #endif
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
 int x264_cpu_cpuid_test( void );
 uint32_t x264_cpu_cpuid( uint32_t op, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx );
 
@@ -100,7 +100,7 @@ uint32_t x264_cpu_detect( void )
     int max_extended_cap;
     int cache;
 
-#ifndef ARCH_X86_64
+#if !ARCH_X86_64
     if( !x264_cpu_cpuid_test() )
         return 0;
 #endif
@@ -225,22 +225,22 @@ uint32_t x264_cpu_detect( void )
             x264_log( NULL, X264_LOG_WARNING, "unable to determine cacheline size\n" );
     }
 
-#ifdef BROKEN_STACK_ALIGNMENT
+#if BROKEN_STACK_ALIGNMENT
     cpu |= X264_CPU_STACK_MOD4;
 #endif
 
     return cpu;
 }
 
-#elif defined( ARCH_PPC )
+#elif ARCH_PPC
 
-#if defined(SYS_MACOSX) || defined(SYS_OPENBSD)
+#if SYS_MACOSX || SYS_OPENBSD
 #include <sys/sysctl.h>
 uint32_t x264_cpu_detect( void )
 {
     /* Thank you VLC */
     uint32_t cpu = 0;
-#ifdef SYS_OPENBSD
+#if SYS_OPENBSD
     int      selectors[2] = { CTL_MACHDEP, CPU_ALTIVEC };
 #else
     int      selectors[2] = { CTL_HW, HW_VECTORUNIT };
@@ -255,7 +255,7 @@ uint32_t x264_cpu_detect( void )
     return cpu;
 }
 
-#elif defined( SYS_LINUX )
+#elif SYS_LINUX
 
 uint32_t x264_cpu_detect( void )
 {
@@ -281,7 +281,7 @@ uint32_t x264_cpu_detect( void )
 }
 #endif
 
-#elif defined( ARCH_ARM )
+#elif ARCH_ARM
 
 void x264_cpu_neon_test();
 int x264_cpu_fast_neon_mrc_test();
@@ -289,11 +289,11 @@ int x264_cpu_fast_neon_mrc_test();
 uint32_t x264_cpu_detect( void )
 {
     int flags = 0;
-#ifdef HAVE_ARMV6
+#if HAVE_ARMV6
     flags |= X264_CPU_ARMV6;
 
     // don't do this hack if compiled with -mfpu=neon
-#ifndef HAVE_NEON
+#if !HAVE_NEON
     static void (* oldsig)( int );
     oldsig = signal( SIGILL, sigill_handler );
     if( sigsetjmp( jmpbuf, 1 ) )
@@ -334,13 +334,13 @@ uint32_t x264_cpu_detect( void )
 
 int x264_cpu_num_processors( void )
 {
-#if !defined(HAVE_PTHREAD)
+#if !HAVE_PTHREAD
     return 1;
 
 #elif defined(_WIN32)
     return pthread_num_processors_np();
 
-#elif defined(SYS_LINUX)
+#elif SYS_LINUX
     unsigned int bit;
     int np;
     cpu_set_t p_aff;
@@ -350,15 +350,15 @@ int x264_cpu_num_processors( void )
         np += (((uint8_t *)&p_aff)[bit / 8] >> (bit % 8)) & 1;
     return np;
 
-#elif defined(SYS_BEOS)
+#elif SYS_BEOS
     system_info info;
     get_system_info( &info );
     return info.cpu_count;
 
-#elif defined(SYS_MACOSX) || defined(SYS_FREEBSD) || defined(SYS_OPENBSD)
+#elif SYS_MACOSX || SYS_FREEBSD || SYS_OPENBSD
     int numberOfCPUs;
     size_t length = sizeof( numberOfCPUs );
-#ifdef SYS_OPENBSD
+#if SYS_OPENBSD
     int mib[2] = { CTL_HW, HW_NCPU };
     if( sysctl(mib, 2, &numberOfCPUs, &length, NULL, 0) )
 #else

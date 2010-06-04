@@ -22,13 +22,13 @@
  *****************************************************************************/
 
 #include "common.h"
-#ifdef HAVE_MMX
+#if HAVE_MMX
 #   include "x86/dct.h"
 #endif
-#ifdef ARCH_PPC
+#if ARCH_PPC
 #   include "ppc/dct.h"
 #endif
-#ifdef ARCH_ARM
+#if ARCH_ARM
 #   include "arm/dct.h"
 #endif
 
@@ -418,7 +418,7 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
     dctf->dct4x4dc  = dct4x4dc;
     dctf->idct4x4dc = idct4x4dc;
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
     if( cpu&X264_CPU_MMX )
     {
         dctf->sub4x4_dct    = x264_sub4x4_dct_mmx;
@@ -429,7 +429,7 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
         dctf->idct4x4dc     = x264_idct4x4dc_mmx;
         dctf->sub8x8_dct_dc = x264_sub8x8_dct_dc_mmxext;
 
-#ifndef ARCH_X86_64
+#if !ARCH_X86_64
         dctf->sub8x8_dct    = x264_sub8x8_dct_mmx;
         dctf->sub16x16_dct  = x264_sub16x16_dct_mmx;
         dctf->add8x8_idct   = x264_add8x8_idct_mmx;
@@ -473,7 +473,7 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
 
 #endif //HAVE_MMX
 
-#ifdef HAVE_ALTIVEC
+#if HAVE_ALTIVEC
     if( cpu&X264_CPU_ALTIVEC )
     {
         dctf->sub4x4_dct    = x264_sub4x4_dct_altivec;
@@ -492,7 +492,7 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
     }
 #endif
 
-#ifdef HAVE_ARMV6
+#if HAVE_ARMV6
     if( cpu&X264_CPU_NEON )
     {
         dctf->sub4x4_dct    = x264_sub4x4_dct_neon;
@@ -709,7 +709,7 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
         pf->sub_8x8    = zigzag_sub_8x8_field;
         pf->sub_4x4    = zigzag_sub_4x4_field;
         pf->sub_4x4ac  = zigzag_sub_4x4ac_field;
-#ifdef HAVE_MMX
+#if HAVE_MMX
         if( cpu&X264_CPU_MMXEXT )
         {
             pf->scan_4x4 = x264_zigzag_scan_4x4_field_mmxext;
@@ -722,7 +722,7 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
         }
 #endif
 
-#ifdef HAVE_ALTIVEC
+#if HAVE_ALTIVEC
         if( cpu&X264_CPU_ALTIVEC )
             pf->scan_4x4   = x264_zigzag_scan_4x4_field_altivec;
 #endif
@@ -734,7 +734,7 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
         pf->sub_8x8    = zigzag_sub_8x8_frame;
         pf->sub_4x4    = zigzag_sub_4x4_frame;
         pf->sub_4x4ac  = zigzag_sub_4x4ac_frame;
-#ifdef HAVE_MMX
+#if HAVE_MMX
         if( cpu&X264_CPU_MMX )
             pf->scan_4x4 = x264_zigzag_scan_4x4_frame_mmx;
         if( cpu&X264_CPU_MMXEXT )
@@ -751,18 +751,18 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
         }
 #endif
 
-#ifdef HAVE_ALTIVEC
+#if HAVE_ALTIVEC
         if( cpu&X264_CPU_ALTIVEC )
             pf->scan_4x4   = x264_zigzag_scan_4x4_frame_altivec;
 #endif
-#ifdef HAVE_ARMV6
+#if HAVE_ARMV6
         if( cpu&X264_CPU_NEON )
             pf->scan_4x4 = x264_zigzag_scan_4x4_frame_neon;
 #endif
     }
 
     pf->interleave_8x8_cavlc = zigzag_interleave_8x8_cavlc;
-#ifdef HAVE_MMX
+#if HAVE_MMX
     if( cpu&X264_CPU_MMX )
         pf->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_mmx;
     if( cpu&X264_CPU_SHUFFLE_IS_FAST )

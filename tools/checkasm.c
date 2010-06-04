@@ -31,7 +31,7 @@
 #include "common/cpu.h"
 
 // GCC doesn't align stack variables on ARM, so use .bss
-#ifdef ARCH_ARM
+#if ARCH_ARM
 #undef ALIGNED_16
 #define ALIGNED_16( var ) DECLARE_ALIGNED( static var, 16 )
 #endif
@@ -85,11 +85,11 @@ static const char **intra_predict_8x8_names = intra_predict_4x4_names;
 static inline uint32_t read_time(void)
 {
     uint32_t a = 0;
-#if defined(__GNUC__) && (defined(ARCH_X86) || defined(ARCH_X86_64))
+#if defined(__GNUC__) && (ARCH_X86 || ARCH_X86_64)
     asm volatile( "rdtsc" :"=a"(a) ::"edx" );
-#elif defined(ARCH_PPC)
+#elif ARCH_PPC
     asm volatile( "mftb %0" : "=r" (a) );
-#elif defined(ARCH_ARM)     // ARMv7 only
+#elif ARCH_ARM     // ARMv7 only
     asm volatile( "mrc p15, 0, %0, c9, c13, 0" : "=r"(a) );
 #endif
     return a;
@@ -182,7 +182,7 @@ static void print_bench(void)
         }
 }
 
-#if defined(ARCH_X86) || defined(ARCH_X86_64)
+#if ARCH_X86 || ARCH_X86_64
 int x264_stack_pagealign( int (*func)(), int align );
 #else
 #define x264_stack_pagealign( func, align ) func()
@@ -190,7 +190,7 @@ int x264_stack_pagealign( int (*func)(), int align );
 
 #define call_c1(func,...) func(__VA_ARGS__)
 
-#if defined(ARCH_X86) || defined(_WIN64)
+#if ARCH_X86 || defined(_WIN64)
 /* detect when callee-saved regs aren't saved.
  * needs an explicit asm check because it only sometimes crashes in normal use. */
 intptr_t x264_checkasm_call( intptr_t (*func)(), int *ok, ... );
@@ -1614,7 +1614,7 @@ static void run_cabac_terminal_##cpu( uint8_t *dst )\
         x264_cabac_encode_terminal_##cpu( &cb );\
 }
 DECL_CABAC(c)
-#ifdef HAVE_MMX
+#if HAVE_MMX
 DECL_CABAC(asm)
 #else
 #define run_cabac_decision_asm run_cabac_decision_c
@@ -1729,13 +1729,13 @@ static int check_all_flags( void )
 {
     int ret = 0;
     int cpu0 = 0, cpu1 = 0;
-#ifdef HAVE_MMX
+#if HAVE_MMX
     if( x264_cpu_detect() & X264_CPU_MMXEXT )
     {
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_MMX | X264_CPU_MMXEXT, "MMX" );
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_64, "MMX Cache64" );
         cpu1 &= ~X264_CPU_CACHELINE_64;
-#ifdef ARCH_X86
+#if ARCH_X86
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_32, "MMX Cache32" );
         cpu1 &= ~X264_CPU_CACHELINE_32;
 #endif
@@ -1790,13 +1790,13 @@ static int check_all_flags( void )
         cpu1 &= ~X264_CPU_CACHELINE_64;
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE4, "SSE4" );
     }
-#elif defined(ARCH_PPC)
+#elif ARCH_PPC
     if( x264_cpu_detect() & X264_CPU_ALTIVEC )
     {
         fprintf( stderr, "x264: ALTIVEC against C\n" );
         ret = check_all_funcs( 0, X264_CPU_ALTIVEC );
     }
-#elif defined(ARCH_ARM)
+#elif ARCH_ARM
     if( x264_cpu_detect() & X264_CPU_ARMV6 )
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_ARMV6, "ARMv6" );
     if( x264_cpu_detect() & X264_CPU_NEON )
@@ -1813,7 +1813,7 @@ int main(int argc, char *argv[])
 
     if( argc > 1 && !strncmp( argv[1], "--bench", 7 ) )
     {
-#if !defined(ARCH_X86) && !defined(ARCH_X86_64) && !defined(ARCH_PPC) && !defined(ARCH_ARM)
+#if !ARCH_X86 && !ARCH_X86_64 && !ARCH_PPC && !ARCH_ARM
         fprintf( stderr, "no --bench for your cpu until you port rdtsc\n" );
         return 1;
 #endif

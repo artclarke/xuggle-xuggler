@@ -62,7 +62,7 @@ void x264_cabac_encode_terminal_asm( x264_cabac_t *cb );
 void x264_cabac_encode_ue_bypass( x264_cabac_t *cb, int exp_bits, int val );
 void x264_cabac_encode_flush( x264_t *h, x264_cabac_t *cb );
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
 #define x264_cabac_encode_decision x264_cabac_encode_decision_asm
 #define x264_cabac_encode_bypass x264_cabac_encode_bypass_asm
 #define x264_cabac_encode_terminal x264_cabac_encode_terminal_asm

@@ -24,7 +24,7 @@
 #include "muxers.h"
 #include <gpac/isomedia.h>
 
-#ifdef HAVE_GF_MALLOC
+#if HAVE_GF_MALLOC
 #undef malloc
 #undef free
 #define malloc gf_malloc

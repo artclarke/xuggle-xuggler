@@ -71,13 +71,13 @@ static const char * const demuxer_names[] =
     "auto",
     "yuv",
     "y4m",
-#ifdef AVS_INPUT
+#if HAVE_AVS
     "avs",
 #endif
-#ifdef LAVF_INPUT
+#if HAVE_LAVF
     "lavf",
 #endif
-#ifdef FFMS_INPUT
+#if HAVE_FFMS
     "ffms",
 #endif
     0
@@ -89,7 +89,7 @@ static const char * const muxer_names[] =
     "raw",
     "mkv",
     "flv",
-#ifdef MP4_OUTPUT
+#if HAVE_GPAC
     "mp4",
 #endif
     0
@@ -150,7 +150,7 @@ int main( int argc, char **argv )
     cli_opt_t opt;
     int ret;
 
-#ifdef PTW32_STATIC_LIB
+#if PTW32_STATIC_LIB
     pthread_win32_process_attach_np();
     pthread_win32_thread_attach_np();
 #endif
@@ -169,7 +169,7 @@ int main( int argc, char **argv )
 
     ret = Encode( &param, &opt );
 
-#ifdef PTW32_STATIC_LIB
+#if PTW32_STATIC_LIB
     pthread_win32_thread_detach_np();
     pthread_win32_process_detach_np();
 #endif
@@ -225,22 +225,22 @@ static void Help( x264_param_t *defaults, int longhelp )
         "      --fullhelp              List all options\n"
         "\n",
         X264_BUILD, X264_VERSION,
-#ifdef AVS_INPUT
+#if HAVE_AVS
         "yes",
 #else
         "no",
 #endif
-#ifdef LAVF_INPUT
+#if HAVE_LAVF
         "yes",
 #else
         "no",
 #endif
-#ifdef FFMS_INPUT
+#if HAVE_FFMS
         "yes",
 #else
         "no",
 #endif
-#ifdef MP4_OUTPUT
+#if HAVE_GPAC
         "yes"
 #else
         "no"
@@ -762,7 +762,7 @@ static int select_output( const char *muxer, char *filename, x264_param_t *param
 
     if( !strcasecmp( ext, "mp4" ) )
     {
-#ifdef MP4_OUTPUT
+#if HAVE_GPAC
         output = mp4_output;
         param->b_annexb = 0;
         param->b_dts_compress = 0;
@@ -817,7 +817,7 @@ static int select_input( const char *demuxer, char *used_demuxer, char *filename
 
     if( !strcasecmp( module, "avs" ) || !strcasecmp( ext, "d2v" ) || !strcasecmp( ext, "dga" ) )
     {
-#ifdef AVS_INPUT
+#if HAVE_AVS
         input = avs_input;
         module = "avs";
 #else
@@ -831,7 +831,7 @@ static int select_input( const char *demuxer, char *used_demuxer, char *filename
         input = yuv_input;
     else
     {
-#ifdef FFMS_INPUT
+#if HAVE_FFMS
         if( b_regular && (b_auto || !strcasecmp( demuxer, "ffms" )) &&
             !ffms_input.open_file( filename, p_handle, info, opt ) )
         {
@@ -840,7 +840,7 @@ static int select_input( const char *demuxer, char *used_demuxer, char *filename
             input = ffms_input;
         }
 #endif
-#ifdef LAVF_INPUT
+#if HAVE_LAVF
         if( (b_auto || !strcasecmp( demuxer, "lavf" )) &&
             !lavf_input.open_file( filename, p_handle, info, opt ) )
         {
@@ -849,7 +849,7 @@ static int select_input( const char *demuxer, char *used_demuxer, char *filename
             input = lavf_input;
         }
 #endif
-#ifdef AVS_INPUT
+#if HAVE_AVS
         if( b_regular && (b_auto || !strcasecmp( demuxer, "avs" )) &&
             !avs_input.open_file( filename, p_handle, info, opt ) )
         {
@@ -1035,7 +1035,7 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
                 opt->b_progress = 0;
                 break;
             case OPT_VISUALIZE:
-#ifdef HAVE_VISUALIZE
+#if HAVE_VISUALIZE
                 param->b_visualize = 1;
                 b_exit_on_ctrl_c = 1;
 #else
@@ -1245,7 +1245,7 @@ generic_option:
         param->vui.i_sar_height = info.sar_height;
     }
 
-#ifdef HAVE_PTHREAD
+#if HAVE_PTHREAD
     if( b_thread_input || param->i_threads > 1
         || (param->i_threads == X264_THREADS_AUTO && x264_cpu_num_processors() > 1) )
     {

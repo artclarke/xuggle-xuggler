@@ -27,13 +27,13 @@
 
 #include "common.h"
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
 #   include "x86/predict.h"
 #endif
-#ifdef ARCH_PPC
+#if ARCH_PPC
 #   include "ppc/predict.h"
 #endif
-#ifdef ARCH_ARM
+#if ARCH_ARM
 #   include "arm/predict.h"
 #endif
 
@@ -716,16 +716,16 @@ void x264_predict_16x16_init( int cpu, x264_predict_t pf[7] )
     pf[I_PRED_16x16_DC_TOP ]= x264_predict_16x16_dc_top_c;
     pf[I_PRED_16x16_DC_128 ]= x264_predict_16x16_dc_128_c;
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
     x264_predict_16x16_init_mmx( cpu, pf );
 #endif
 
-#ifdef HAVE_ALTIVEC
+#if HAVE_ALTIVEC
     if( cpu&X264_CPU_ALTIVEC )
         x264_predict_16x16_init_altivec( pf );
 #endif
 
-#ifdef HAVE_ARMV6
+#if HAVE_ARMV6
     x264_predict_16x16_init_arm( cpu, pf );
 #endif
 }
@@ -740,16 +740,16 @@ void x264_predict_8x8c_init( int cpu, x264_predict_t pf[7] )
     pf[I_PRED_CHROMA_DC_TOP ]= x264_predict_8x8c_dc_top_c;
     pf[I_PRED_CHROMA_DC_128 ]= x264_predict_8x8c_dc_128_c;
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
     x264_predict_8x8c_init_mmx( cpu, pf );
 #endif
 
-#ifdef HAVE_ALTIVEC
+#if HAVE_ALTIVEC
     if( cpu&X264_CPU_ALTIVEC )
         x264_predict_8x8c_init_altivec( pf );
 #endif
 
-#ifdef HAVE_ARMV6
+#if HAVE_ARMV6
     x264_predict_8x8c_init_arm( cpu, pf );
 #endif
 }
@@ -770,11 +770,11 @@ void x264_predict_8x8_init( int cpu, x264_predict8x8_t pf[12], x264_predict_8x8_
     pf[I_PRED_8x8_DC_128] = x264_predict_8x8_dc_128_c;
     *predict_filter       = x264_predict_8x8_filter_c;
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
     x264_predict_8x8_init_mmx( cpu, pf, predict_filter );
 #endif
 
-#ifdef HAVE_ARMV6
+#if HAVE_ARMV6
     x264_predict_8x8_init_arm( cpu, pf, predict_filter );
 #endif
 }
@@ -794,11 +794,11 @@ void x264_predict_4x4_init( int cpu, x264_predict_t pf[12] )
     pf[I_PRED_4x4_DC_TOP] = x264_predict_4x4_dc_top_c;
     pf[I_PRED_4x4_DC_128] = x264_predict_4x4_dc_128_c;
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
     x264_predict_4x4_init_mmx( cpu, pf );
 #endif
 
-#ifdef HAVE_ARMV6
+#if HAVE_ARMV6
     x264_predict_4x4_init_arm( cpu, pf );
 #endif
 }

@@ -25,7 +25,7 @@ uint32_t x264_cpu_detect( void );
 int      x264_cpu_num_processors( void );
 void     x264_cpu_emms( void );
 void     x264_cpu_sfence( void );
-#ifdef HAVE_MMX
+#if HAVE_MMX
 #define x264_emms() x264_cpu_emms()
 #else
 #define x264_emms()
@@ -41,7 +41,7 @@ void     x264_cpu_mask_misalign_sse( void );
  * problem, but I don't want to require such a new version.
  * This applies only to x86_32, since other architectures that need alignment
  * either have ABIs that ensure aligned stack, or don't support it at all. */
-#if defined(ARCH_X86) && defined(HAVE_MMX)
+#if ARCH_X86 && HAVE_MMX
 int x264_stack_align( void (*func)(), ... );
 #define x264_stack_align(func,...) x264_stack_align((void (*)())func, __VA_ARGS__)
 #else

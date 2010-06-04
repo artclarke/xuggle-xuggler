@@ -385,7 +385,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
     }
 }
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
 void x264_deblock_v_chroma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_h_chroma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_v_chroma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta );
@@ -404,7 +404,7 @@ void x264_deblock_strength_sse2  ( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X
 void x264_deblock_strength_ssse3 ( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
                                    int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4],
                                    int mvy_limit, int bframe );
-#ifdef ARCH_X86
+#if ARCH_X86
 void x264_deblock_h_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_v8_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_h_luma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta );
@@ -423,12 +423,12 @@ static void x264_deblock_v_luma_intra_mmxext( uint8_t *pix, int stride, int alph
 #endif
 #endif
 
-#ifdef ARCH_PPC
+#if ARCH_PPC
 void x264_deblock_v_luma_altivec( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_h_luma_altivec( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
 #endif // ARCH_PPC
 
-#ifdef HAVE_ARMV6
+#if HAVE_ARMV6
 void x264_deblock_v_luma_neon( uint8_t *, int, int, int, int8_t * );
 void x264_deblock_h_luma_neon( uint8_t *, int, int, int, int8_t * );
 void x264_deblock_v_chroma_neon( uint8_t *, int, int, int, int8_t * );
@@ -447,14 +447,14 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
     pf->deblock_chroma_intra[0] = deblock_h_chroma_intra_c;
     pf->deblock_strength = deblock_strength_c;
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
     if( cpu&X264_CPU_MMXEXT )
     {
         pf->deblock_chroma[1] = x264_deblock_v_chroma_mmxext;
         pf->deblock_chroma[0] = x264_deblock_h_chroma_mmxext;
         pf->deblock_chroma_intra[1] = x264_deblock_v_chroma_intra_mmxext;
         pf->deblock_chroma_intra[0] = x264_deblock_h_chroma_intra_mmxext;
-#ifdef ARCH_X86
+#if ARCH_X86
         pf->deblock_luma[1] = x264_deblock_v_luma_mmxext;
         pf->deblock_luma[0] = x264_deblock_h_luma_mmxext;
         pf->deblock_luma_intra[1] = x264_deblock_v_luma_intra_mmxext;
@@ -477,7 +477,7 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
     }
 #endif
 
-#ifdef HAVE_ALTIVEC
+#if HAVE_ALTIVEC
     if( cpu&X264_CPU_ALTIVEC )
     {
         pf->deblock_luma[1] = x264_deblock_v_luma_altivec;
@@ -485,7 +485,7 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
    }
 #endif // HAVE_ALTIVEC
 
-#ifdef HAVE_ARMV6
+#if HAVE_ARMV6
    if( cpu&X264_CPU_NEON )
    {
         pf->deblock_luma[1] = x264_deblock_v_luma_neon;

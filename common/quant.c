@@ -23,13 +23,13 @@
 
 #include "common.h"
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
 #include "x86/quant.h"
 #endif
-#ifdef ARCH_PPC
+#if ARCH_PPC
 #   include "ppc/quant.h"
 #endif
-#ifdef ARCH_ARM
+#if ARCH_ARM
 #   include "arm/quant.h"
 #endif
 
@@ -287,10 +287,10 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
     pf->coeff_level_run[  DCT_LUMA_AC] = x264_coeff_level_run15;
     pf->coeff_level_run[ DCT_LUMA_4x4] = x264_coeff_level_run16;
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
     if( cpu&X264_CPU_MMX )
     {
-#ifdef ARCH_X86
+#if ARCH_X86
         pf->quant_4x4 = x264_quant_4x4_mmx;
         pf->quant_8x8 = x264_quant_8x8_mmx;
         pf->dequant_4x4 = x264_dequant_4x4_mmx;
@@ -308,7 +308,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
     if( cpu&X264_CPU_MMXEXT )
     {
         pf->quant_2x2_dc = x264_quant_2x2_dc_mmxext;
-#ifdef ARCH_X86
+#if ARCH_X86
         pf->quant_4x4_dc = x264_quant_4x4_dc_mmxext;
         pf->decimate_score15 = x264_decimate_score15_mmxext;
         pf->decimate_score16 = x264_decimate_score16_mmxext;
@@ -395,7 +395,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
     }
 #endif // HAVE_MMX
 
-#ifdef HAVE_ALTIVEC
+#if HAVE_ALTIVEC
     if( cpu&X264_CPU_ALTIVEC ) {
         pf->quant_2x2_dc = x264_quant_2x2_dc_altivec;
         pf->quant_4x4_dc = x264_quant_4x4_dc_altivec;
@@ -407,7 +407,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
     }
 #endif
 
-#ifdef HAVE_ARMV6
+#if HAVE_ARMV6
     if( cpu&X264_CPU_ARMV6 )
         pf->coeff_last[DCT_CHROMA_DC] = x264_coeff_last4_arm;
 

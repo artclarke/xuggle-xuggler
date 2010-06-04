@@ -26,7 +26,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 
-#ifdef HAVE_MALLOC_H
+#if HAVE_MALLOC_H
 #include <malloc.h>
 #endif
 
@@ -780,7 +780,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     }
     OPT("log")
         p->i_log_level = atoi(value);
-#ifdef HAVE_VISUALIZE
+#if HAVE_VISUALIZE
     OPT("visualize")
         p->b_visualize = atobool(value);
 #endif
@@ -1040,10 +1040,10 @@ void x264_picture_clean( x264_picture_t *pic )
 void *x264_malloc( int i_size )
 {
     uint8_t *align_buf = NULL;
-#ifdef SYS_MACOSX
+#if SYS_MACOSX
     /* Mac OS X always returns 16 bytes aligned memory */
     align_buf = malloc( i_size );
-#elif defined( HAVE_MALLOC_H )
+#elif HAVE_MALLOC_H
     align_buf = memalign( 16, i_size );
 #else
     uint8_t *buf = malloc( i_size + 15 + sizeof(void **) + sizeof(int) );
@@ -1067,7 +1067,7 @@ void x264_free( void *p )
 {
     if( p )
     {
-#if defined( HAVE_MALLOC_H ) || defined( SYS_MACOSX )
+#if HAVE_MALLOC_H || SYS_MACOSX
         free( p );
 #else
         free( *( ( ( void **) p ) - 1 ) );

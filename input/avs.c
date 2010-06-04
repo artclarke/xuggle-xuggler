@@ -30,7 +30,7 @@
 #define __declspec(i)
 #undef EXTERN_C
 
-#ifdef HAVE_AVISYNTH_C_H
+#if HAVE_AVISYNTH_C_H
 #include <avisynth_c.h>
 #else
 #include "extras/avisynth_c.h"

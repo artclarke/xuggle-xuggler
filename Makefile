@@ -23,7 +23,7 @@ SRCSO =
 CONFIG := $(shell cat config.h)
 
 # Optional muxer module sources
-ifneq ($(findstring AVS_INPUT, $(CONFIG)),)
+ifneq ($(findstring HAVE_AVS, $(CONFIG)),)
 SRCCLI += input/avs.c
 endif
 
@@ -31,15 +31,15 @@ ifneq ($(findstring HAVE_PTHREAD, $(CONFIG)),)
 SRCCLI += input/thread.c
 endif
 
-ifneq ($(findstring LAVF_INPUT, $(CONFIG)),)
+ifneq ($(findstring HAVE_LAVF, $(CONFIG)),)
 SRCCLI += input/lavf.c
 endif
 
-ifneq ($(findstring FFMS_INPUT, $(CONFIG)),)
+ifneq ($(findstring HAVE_FFMS, $(CONFIG)),)
 SRCCLI += input/ffms.c
 endif
 
-ifneq ($(findstring MP4_OUTPUT, $(CONFIG)),)
+ifneq ($(findstring HAVE_GPAC, $(CONFIG)),)
 SRCCLI += output/mp4.c
 endif
 

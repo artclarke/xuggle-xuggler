@@ -26,7 +26,7 @@
 /* Callback for our DLL so we can initialize pthread */
 BOOL WINAPI DllMain( HANDLE hinstDLL, DWORD fdwReason, LPVOID lpvReserved )
 {
-#ifdef PTW32_STATIC_LIB
+#if PTW32_STATIC_LIB
     switch( fdwReason )
     {
         case DLL_PROCESS_ATTACH:

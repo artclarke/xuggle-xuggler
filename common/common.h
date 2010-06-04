@@ -809,7 +809,7 @@ struct x264_t
     x264_deblock_function_t loopf;
     x264_bitstream_function_t bsf;
 
-#ifdef HAVE_VISUALIZE
+#if HAVE_VISUALIZE
     struct visualize_t *visualize;
 #endif
     x264_lookahead_t *lookahead;
@@ -819,7 +819,7 @@ struct x264_t
 #include "macroblock.h"
 #include "rectangle.h"
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
 #include "x86/util.h"
 #endif
 

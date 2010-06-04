@@ -153,7 +153,7 @@ void disp_gray( int num, char *data, int width, int height, int stride, const un
     int dpy_depth = DefaultDepth( disp_display, screen );
     XImage *ximage = XCreateImage( disp_display, visual, dpy_depth, ZPixmap, 0, &dummy, width, height, 8, 0 );
     disp_chkerror( !ximage, "no ximage" );
-#ifdef WORDS_BIGENDIAN
+#if WORDS_BIGENDIAN
     ximage->byte_order = MSBFirst;
     ximage->bitmap_bit_order = MSBFirst;
 #else

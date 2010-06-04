@@ -23,13 +23,13 @@
 
 #include "common.h"
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
 #include "x86/mc.h"
 #endif
-#ifdef ARCH_PPC
+#if ARCH_PPC
 #include "ppc/mc.h"
 #endif
-#ifdef ARCH_ARM
+#if ARCH_ARM
 #include "arm/mc.h"
 #endif
 
@@ -404,7 +404,7 @@ static void frame_init_lowres_core( pixel *src0, pixel *dst0, pixel *dsth, pixel
     }
 }
 
-#if defined(__GNUC__) && (defined(ARCH_X86) || defined(ARCH_X86_64))
+#if defined(__GNUC__) && (ARCH_X86 || ARCH_X86_64)
 // gcc isn't smart enough to use the "idiv" instruction
 static ALWAYS_INLINE int32_t div_64_32(int64_t x, int32_t y)
 {
@@ -474,14 +474,14 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 
     pf->mbtree_propagate_cost = mbtree_propagate_cost;
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
     x264_mc_init_mmx( cpu, pf );
 #endif
-#ifdef HAVE_ALTIVEC
+#if HAVE_ALTIVEC
     if( cpu&X264_CPU_ALTIVEC )
         x264_mc_altivec_init( pf );
 #endif
-#ifdef HAVE_ARMV6
+#if HAVE_ARMV6
     x264_mc_init_arm( cpu, pf );
 #endif
 }

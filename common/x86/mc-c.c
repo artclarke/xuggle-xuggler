@@ -142,7 +142,7 @@ static void (* const x264_pixel_avg_wtab_##instr[6])( uint8_t *, int, uint8_t *,
 #define x264_pixel_avg2_w12_sse2         x264_pixel_avg2_w16_sse2
 
 PIXEL_AVG_WTAB(mmxext, mmxext, mmxext, mmxext, mmxext, mmxext)
-#ifdef ARCH_X86
+#if ARCH_X86
 PIXEL_AVG_WTAB(cache32_mmxext, mmxext, cache32_mmxext, cache32_mmxext, cache32_mmxext, cache32_mmxext)
 PIXEL_AVG_WTAB(cache64_mmxext, mmxext, cache64_mmxext, cache64_mmxext, cache64_mmxext, cache64_mmxext)
 #endif
@@ -256,7 +256,7 @@ static void mc_luma_##name( uint8_t *dst,    int i_dst_stride,\
 }
 
 MC_LUMA(mmxext,mmxext,mmx)
-#ifdef ARCH_X86
+#if ARCH_X86
 MC_LUMA(cache32_mmxext,cache32_mmxext,mmx)
 MC_LUMA(cache64_mmxext,cache64_mmxext,mmx)
 #endif
@@ -296,7 +296,7 @@ static uint8_t *get_ref_##name( uint8_t *dst,   int *i_dst_stride,\
 }
 
 GET_REF(mmxext)
-#ifdef ARCH_X86
+#if ARCH_X86
 GET_REF(cache32_mmxext)
 GET_REF(cache64_mmxext)
 #endif
@@ -333,7 +333,7 @@ static void x264_hpel_filter_##cpu( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
 
 HPEL(8, mmxext, mmxext, mmxext, mmxext)
 HPEL(16, sse2_amd, mmxext, mmxext, sse2)
-#ifdef ARCH_X86_64
+#if ARCH_X86_64
 void x264_hpel_filter_sse2( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height, int16_t *buf );
 void x264_hpel_filter_ssse3( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height, int16_t *buf );
 #else
@@ -398,7 +398,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->prefetch_fenc = x264_prefetch_fenc_mmxext;
     pf->prefetch_ref  = x264_prefetch_ref_mmxext;
 
-#ifdef ARCH_X86 // all x86_64 cpus with cacheline split issues use sse2 instead
+#if ARCH_X86 // all x86_64 cpus with cacheline split issues use sse2 instead
     if( cpu&X264_CPU_CACHELINE_32 )
     {
         pf->mc_luma = mc_luma_cache32_mmxext;
