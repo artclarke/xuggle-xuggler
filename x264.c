@@ -993,11 +993,17 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
                 break;
             case OPT_MUXER:
                 if( parse_enum_name( optarg, muxer_names, &muxer ) < 0 )
+                {
+                    fprintf( stderr, "x264 [error]: Unknown muxer `%s'\n", optarg );
                     return -1;
+                }
                 break;
             case OPT_DEMUXER:
                 if( parse_enum_name( optarg, demuxer_names, &demuxer ) < 0 )
+                {
+                    fprintf( stderr, "x264 [error]: Unknown demuxer `%s'\n", optarg );
                     return -1;
+                }
                 break;
             case OPT_INDEX:
                 input_opt.index = optarg;
