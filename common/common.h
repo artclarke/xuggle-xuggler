@@ -36,6 +36,7 @@
 #define XCHG(type,a,b) do{ type t = a; a = b; b = t; } while(0)
 #define IS_DISPOSABLE(type) ( type == X264_TYPE_B )
 #define FIX8(f) ((int)(f*(1<<8)+.5))
+#define ALIGN(x,a) (((x)+((a)-1))&~((a)-1))
 
 #define CHECKED_MALLOC( var, size )\
 do {\

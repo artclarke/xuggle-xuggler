@@ -257,7 +257,6 @@ int x264_macroblock_cache_allocate( x264_t *h )
     if( h->param.analyse.i_weighted_pred )
     {
         int i_padv = PADV << h->param.b_interlaced;
-#define ALIGN(x,a) (((x)+((a)-1))&~((a)-1))
         int align = h->param.cpu&X264_CPU_CACHELINE_64 ? 64 : h->param.cpu&X264_CPU_CACHELINE_32 ? 32 : 16;
         int i_stride, luma_plane_size = 0;
         int numweightbuf;
@@ -291,7 +290,6 @@ int x264_macroblock_cache_allocate( x264_t *h )
 
         for( int i = 0; i < numweightbuf; i++ )
             CHECKED_MALLOC( h->mb.p_weight_buf[i], luma_plane_size * sizeof(pixel) );
-#undef ALIGN
     }
 
     return 0;

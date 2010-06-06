@@ -24,8 +24,6 @@
 
 #include "common.h"
 
-#define ALIGN(x,a) (((x)+((a)-1))&~((a)-1))
-
 x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
 {
     x264_frame_t *frame;
