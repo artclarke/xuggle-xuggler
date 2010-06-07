@@ -636,6 +636,10 @@ elif cc_check "stdio.h" "" "fseeko64(stdin,0,0);" ; then
     define ftell ftello64
 fi
 
+if cc_check '' -Wshadow ; then
+    CFLAGS="-Wshadow $CFLAGS"
+fi
+
 rm -f conftest*
 
 # generate config files

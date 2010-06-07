@@ -1900,9 +1900,9 @@ static const vec_u8_t hadamard_permtab[] =
 
 static uint64_t x264_pixel_hadamard_ac_16x16_altivec( uint8_t *pix, int stride )
 {
-    int index =  ((uintptr_t)pix & 8) >> 3;
-    vec_u8_t permh = hadamard_permtab[index];
-    vec_u8_t perml = hadamard_permtab[!index];
+    int idx =  ((uintptr_t)pix & 8) >> 3;
+    vec_u8_t permh = hadamard_permtab[idx];
+    vec_u8_t perml = hadamard_permtab[!idx];
     uint64_t sum = pixel_hadamard_ac_altivec( pix, stride, permh );
     sum += pixel_hadamard_ac_altivec( pix+8, stride, perml );
     sum += pixel_hadamard_ac_altivec( pix+8*stride, stride, permh );
@@ -1912,9 +1912,9 @@ static uint64_t x264_pixel_hadamard_ac_16x16_altivec( uint8_t *pix, int stride )
 
 static uint64_t x264_pixel_hadamard_ac_16x8_altivec( uint8_t *pix, int stride )
 {
-    int index =  ((uintptr_t)pix & 8) >> 3;
-    vec_u8_t permh = hadamard_permtab[index];
-    vec_u8_t perml = hadamard_permtab[!index];
+    int idx =  ((uintptr_t)pix & 8) >> 3;
+    vec_u8_t permh = hadamard_permtab[idx];
+    vec_u8_t perml = hadamard_permtab[!idx];
     uint64_t sum = pixel_hadamard_ac_altivec( pix, stride, permh );
     sum += pixel_hadamard_ac_altivec( pix+8, stride, perml );
     return ((sum>>34)<<32) + ((uint32_t)sum>>1);

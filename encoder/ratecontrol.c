@@ -241,8 +241,6 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame, float *quant_off
      * FIXME: while they're written in 5 significant digits, they're only tuned to 2. */
     float strength;
     float avg_adj = 0.f;
-    int width = h->mb.i_mb_width;
-    int height = h->mb.i_mb_height;
     /* Initialize frame stats */
     for( int i = 0; i < 3; i++ )
     {
@@ -276,8 +274,8 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame, float *quant_off
         /* Need variance data for weighted prediction */
         if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_FAKE || h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
         {
-            for( int mb_y = 0; mb_y < height; mb_y++ )
-                for( int mb_x = 0; mb_x < width; mb_x++ )
+            for( int mb_y = 0; mb_y < h->mb.i_mb_height; mb_y++ )
+                for( int mb_x = 0; mb_x < h->mb.i_mb_width; mb_x++ )
                     x264_ac_energy_mb( h, mb_x, mb_y, frame );
         }
         else
@@ -289,8 +287,8 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame, float *quant_off
         if( h->param.rc.i_aq_mode == X264_AQ_AUTOVARIANCE )
         {
             float avg_adj_pow2 = 0.f;
-            for( int mb_y = 0; mb_y < height; mb_y++ )
-                for( int mb_x = 0; mb_x < width; mb_x++ )
+            for( int mb_y = 0; mb_y < h->mb.i_mb_height; mb_y++ )
+                for( int mb_x = 0; mb_x < h->mb.i_mb_width; mb_x++ )
                 {
                     uint32_t energy = x264_ac_energy_mb( h, mb_x, mb_y, frame );
                     float qp_adj = powf( energy + 1, 0.125f );
@@ -306,8 +304,8 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame, float *quant_off
         else
             strength = h->param.rc.f_aq_strength * 1.0397f;
 
-        for( int mb_y = 0; mb_y < height; mb_y++ )
-            for( int mb_x = 0; mb_x < width; mb_x++ )
+        for( int mb_y = 0; mb_y < h->mb.i_mb_height; mb_y++ )
+            for( int mb_x = 0; mb_x < h->mb.i_mb_width; mb_x++ )
             {
                 float qp_adj;
                 int mb_xy = mb_x + mb_y*h->mb.i_mb_stride;
@@ -335,9 +333,9 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame, float *quant_off
     {
         uint64_t ssd = frame->i_pixel_ssd[i];
         uint64_t sum = frame->i_pixel_sum[i];
-        int w = width*16>>!!i;
-        int h = height*16>>!!i;
-        frame->i_pixel_ssd[i] = ssd - (sum * sum + w * h / 2) / (w * h);
+        int width = h->mb.i_mb_width*16>>!!i;
+        int height = h->mb.i_mb_height*16>>!!i;
+        frame->i_pixel_ssd[i] = ssd - (sum * sum + width * height / 2) / (width * height);
     }
 }
 
@@ -2568,14 +2566,14 @@ static int init_pass2( x264_t *h )
 
                 for( int j = 0; j < filter_size; j++ )
                 {
-                    int index = i+j-filter_size/2;
-                    double d = index-i;
+                    int idx = i+j-filter_size/2;
+                    double d = idx-i;
                     double coeff = qblur==0 ? 1.0 : exp( -d*d/(qblur*qblur) );
-                    if( index < 0 || index >= rcc->num_entries )
+                    if( idx < 0 || idx >= rcc->num_entries )
                         continue;
-                    if( rce->pict_type != rcc->entry[index].pict_type )
+                    if( rce->pict_type != rcc->entry[idx].pict_type )
                         continue;
-                    q += qscale[index] * coeff;
+                    q += qscale[idx] * coeff;
                     sum += coeff;
                 }
                 blurred_qscale[i] = q/sum;

@@ -177,10 +177,10 @@ int main( int argc, char **argv )
     return ret;
 }
 
-static char const *strtable_lookup( const char * const table[], int index )
+static char const *strtable_lookup( const char * const table[], int idx )
 {
     int i = 0; while( table[i] ) i++;
-    return ( ( index >= 0 && index < i ) ? table[ index ] : "???" );
+    return ( ( idx >= 0 && idx < i ) ? table[ idx ] : "???" );
 }
 
 static char *stringify_names( char *buf, const char * const names[] )
@@ -1006,7 +1006,7 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
                 }
                 break;
             case OPT_INDEX:
-                input_opt.index = optarg;
+                input_opt.index_file = optarg;
                 break;
             case OPT_QPFILE:
                 opt->qpfile = fopen( optarg, "rb" );

@@ -74,35 +74,35 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     e.BufferSize = 0;
     int seekmode = opt->seek ? FFMS_SEEK_NORMAL : FFMS_SEEK_LINEAR_NO_RW;
 
-    FFMS_Index *index = NULL;
-    if( opt->index )
+    FFMS_Index *idx = NULL;
+    if( opt->index_file )
     {
         struct stat index_s, input_s;
-        if( !stat( opt->index, &index_s ) && !stat( psz_filename, &input_s ) &&
+        if( !stat( opt->index_file, &index_s ) && !stat( psz_filename, &input_s ) &&
             input_s.st_mtime < index_s.st_mtime )
-            index = FFMS_ReadIndex( opt->index, &e );
+            idx = FFMS_ReadIndex( opt->index_file, &e );
     }
-    if( !index )
+    if( !idx )
     {
-        index = FFMS_MakeIndex( psz_filename, 0, 0, NULL, NULL, 0, update_progress, NULL, &e );
+        idx = FFMS_MakeIndex( psz_filename, 0, 0, NULL, NULL, 0, update_progress, NULL, &e );
         fprintf( stderr, "                                            \r" );
-        if( !index )
+        if( !idx )
         {
             fprintf( stderr, "ffms [error]: could not create index\n" );
             return -1;
         }
-        if( opt->index && FFMS_WriteIndex( opt->index, index, &e ) )
+        if( opt->index_file && FFMS_WriteIndex( opt->index_file, idx, &e ) )
             fprintf( stderr, "ffms [warning]: could not write index file\n" );
     }
 
-    int trackno = FFMS_GetFirstTrackOfType( index, FFMS_TYPE_VIDEO, &e );
+    int trackno = FFMS_GetFirstTrackOfType( idx, FFMS_TYPE_VIDEO, &e );
     if( trackno < 0 )
     {
         fprintf( stderr, "ffms [error]: could not find video track\n" );
         return -1;
     }
 
-    h->video_source = FFMS_CreateVideoSource( psz_filename, trackno, index, 1, seekmode, &e );
+    h->video_source = FFMS_CreateVideoSource( psz_filename, trackno, idx, 1, seekmode, &e );
     if( !h->video_source )
     {
         fprintf( stderr, "ffms [error]: could not create video source\n" );
@@ -111,7 +111,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
 
     h->track = FFMS_GetTrackFromVideo( h->video_source );
 
-    FFMS_DestroyIndex( index );
+    FFMS_DestroyIndex( idx );
     const FFMS_VideoProperties *videop = FFMS_GetVideoProperties( h->video_source );
     h->total_frames    = videop->NumFrames;
     info->sar_height   = videop->SARDen;

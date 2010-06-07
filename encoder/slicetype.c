@@ -1405,10 +1405,10 @@ void x264_slicetype_decide( x264_t *h )
     int i_coded = h->lookahead->next.list[0]->i_frame;
     if( bframes )
     {
-        int index[] = { brefs+1, 1 };
+        int idx_list[] = { brefs+1, 1 };
         for( int i = 0; i < bframes; i++ )
         {
-            int idx = index[h->lookahead->next.list[i]->i_type == X264_TYPE_BREF]++;
+            int idx = idx_list[h->lookahead->next.list[i]->i_type == X264_TYPE_BREF]++;
             frames[idx] = h->lookahead->next.list[i];
             frames[idx]->i_reordered_pts = h->lookahead->next.list[idx]->i_pts;
         }
