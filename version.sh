@@ -5,7 +5,8 @@ if [ $LOCALVER \> 1 ] ; then
     VER=`git rev-list origin/master | sort | join config.git-hash - | wc -l | awk '{print $1}'`
     if [ $VER != $LOCALVER ] ; then
         VER="$VER+$(($LOCALVER-$VER))"
-    elif git status | grep -q "modified:" ; then
+    fi
+    if git status | grep -q "modified:" ; then
         VER="${VER}M"
     fi
     VER="$VER $(git rev-list HEAD -n 1 | cut -c 1-7)"
