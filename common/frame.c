@@ -38,9 +38,9 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
     CHECKED_MALLOCZERO( frame, sizeof(x264_frame_t) );
 
     /* allocate frame data (+64 for extra data for me) */
-    i_width  = h->sps->i_mb_width*16;
+    i_width  = h->mb.i_mb_width*16;
     i_stride = ALIGN( i_width + 2*PADH, align );
-    i_lines  = h->sps->i_mb_height*16;
+    i_lines  = h->mb.i_mb_height*16;
 
     frame->i_plane = 3;
     for( int i = 0; i < 3; i++ )
@@ -286,8 +286,8 @@ void x264_frame_expand_border( x264_t *h, x264_frame_t *frame, int mb_y, int b_e
     for( int i = 0; i < frame->i_plane; i++ )
     {
         int stride = frame->i_stride[i];
-        int width = 16*h->sps->i_mb_width >> !!i;
-        int height = (b_end ? 16*(h->sps->i_mb_height - mb_y) >> h->sh.b_mbaff : 16) >> !!i;
+        int width = 16*h->mb.i_mb_width >> !!i;
+        int height = (b_end ? 16*(h->mb.i_mb_height - mb_y) >> h->sh.b_mbaff : 16) >> !!i;
         int padh = PADH >> !!i;
         int padv = PADV >> !!i;
         // buffer: 2 chroma, 3 luma (rounded to 4) because deblocking goes beyond the top of the mb
@@ -313,8 +313,8 @@ void x264_frame_expand_border_filtered( x264_t *h, x264_frame_t *frame, int mb_y
        we want to expand border from the last filtered pixel */
     int b_start = !mb_y;
     int stride = frame->i_stride[0];
-    int width = 16*h->sps->i_mb_width + 8;
-    int height = b_end ? (16*(h->sps->i_mb_height - mb_y) >> h->sh.b_mbaff) + 16 : 16;
+    int width = 16*h->mb.i_mb_width + 8;
+    int height = b_end ? (16*(h->mb.i_mb_height - mb_y) >> h->sh.b_mbaff) + 16 : 16;
     int padh = PADH - 4;
     int padv = PADV - 8;
     for( int i = 1; i < 4; i++ )
@@ -344,8 +344,8 @@ void x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame )
         int i_subsample = i ? 1 : 0;
         int i_width = h->param.i_width >> i_subsample;
         int i_height = h->param.i_height >> i_subsample;
-        int i_padx = (h->sps->i_mb_width * 16 - h->param.i_width) >> i_subsample;
-        int i_pady = (h->sps->i_mb_height * 16 - h->param.i_height) >> i_subsample;
+        int i_padx = (h->mb.i_mb_width * 16 - h->param.i_width) >> i_subsample;
+        int i_pady = (h->mb.i_mb_height * 16 - h->param.i_height) >> i_subsample;
 
         if( i_padx )
         {

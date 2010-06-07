@@ -517,6 +517,8 @@ struct x264_t
     /* MB table and cache for current frame/mb */
     struct
     {
+        int     i_mb_width;
+        int     i_mb_height;
         int     i_mb_count;                 /* number of mbs in a frame */
 
         /* Strides */

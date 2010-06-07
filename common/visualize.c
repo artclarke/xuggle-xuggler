@@ -92,7 +92,7 @@ static void mv( int x0, int y0, int16_t dmv[2], int ref, int zoom, char *col )
 
 int x264_visualize_init( x264_t *h )
 {
-    CHECKED_MALLOC( h->visualize, h->sps->i_mb_width * h->sps->i_mb_height * sizeof(visualize_t) );
+    CHECKED_MALLOC( h->visualize, h->mb.i_mb_width * h->mb.i_mb_height * sizeof(visualize_t) );
     return 0;
 fail:
     return -1;
@@ -170,11 +170,11 @@ void x264_visualize_show( x264_t *h )
     else
         disp_gray_zoom( 0, frame, width, height, stride, "fdec", zoom );
 
-    for( int mb_xy = 0; mb_xy < h->sps->i_mb_width * h->sps->i_mb_height; mb_xy++ )
+    for( int mb_xy = 0; mb_xy < h->mb.i_mb_width * h->mb.i_mb_height; mb_xy++ )
     {
         visualize_t *const v = (visualize_t*)h->visualize + mb_xy;
-        const int mb_y = mb_xy / h->sps->i_mb_width;
-        const int mb_x = mb_xy % h->sps->i_mb_width;
+        const int mb_y = mb_xy / h->mb.i_mb_width;
+        const int mb_x = mb_xy % h->mb.i_mb_width;
         char *const col = GET_STRING( mb_types, v->i_type );
         int x = mb_x*16*zoom;
         int y = mb_y*16*zoom;

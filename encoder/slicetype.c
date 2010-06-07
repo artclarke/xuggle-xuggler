@@ -119,7 +119,7 @@ static NOINLINE unsigned int x264_weight_cost( x264_t *h, x264_frame_t *fenc, pi
         if( h->param.i_slice_count )
             numslices = h->param.i_slice_count;
         else if( h->param.i_slice_max_mbs )
-            numslices = (h->sps->i_mb_width * h->sps->i_mb_height + h->param.i_slice_max_mbs-1) / h->param.i_slice_max_mbs;
+            numslices = (h->mb.i_mb_width * h->mb.i_mb_height + h->param.i_slice_max_mbs-1) / h->param.i_slice_max_mbs;
         else
             numslices = 1;
         /* FIXME: find a way to account for --slice-max-size?
@@ -231,16 +231,16 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     const int b_bidir = (b < p1);
     const int i_mb_x = h->mb.i_mb_x;
     const int i_mb_y = h->mb.i_mb_y;
-    const int i_mb_stride = h->sps->i_mb_width;
+    const int i_mb_stride = h->mb.i_mb_width;
     const int i_mb_xy = i_mb_x + i_mb_y * i_mb_stride;
     const int i_stride = fenc->i_stride_lowres;
     const int i_pel_offset = 8 * (i_mb_x + i_mb_y * i_stride);
     const int i_bipred_weight = h->param.analyse.b_weighted_bipred ? 64 - (dist_scale_factor>>2) : 32;
     int16_t (*fenc_mvs[2])[2] = { &frames[b]->lowres_mvs[0][b-p0-1][i_mb_xy], &frames[b]->lowres_mvs[1][p1-b-1][i_mb_xy] };
     int (*fenc_costs[2]) = { &frames[b]->lowres_mv_costs[0][b-p0-1][i_mb_xy], &frames[b]->lowres_mv_costs[1][p1-b-1][i_mb_xy] };
-    int b_frame_score_mb = (i_mb_x > 0 && i_mb_x < h->sps->i_mb_width - 1 &&
-                            i_mb_y > 0 && i_mb_y < h->sps->i_mb_height - 1) ||
-                            h->sps->i_mb_width <= 2 || h->sps->i_mb_height <= 2;
+    int b_frame_score_mb = (i_mb_x > 0 && i_mb_x < h->mb.i_mb_width - 1 &&
+                            i_mb_y > 0 && i_mb_y < h->mb.i_mb_height - 1) ||
+                            h->mb.i_mb_width <= 2 || h->mb.i_mb_height <= 2;
 
     ALIGNED_ARRAY_8( pixel, pix1,[9*FDEC_STRIDE] );
     pixel *pix2 = pix1+8;
@@ -256,13 +256,13 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
 
     // no need for h->mb.mv_min[]
     h->mb.mv_min_fpel[0] = -8*h->mb.i_mb_x - 4;
-    h->mb.mv_max_fpel[0] = 8*( h->sps->i_mb_width - h->mb.i_mb_x - 1 ) + 4;
+    h->mb.mv_max_fpel[0] = 8*( h->mb.i_mb_width - h->mb.i_mb_x - 1 ) + 4;
     h->mb.mv_min_spel[0] = 4*( h->mb.mv_min_fpel[0] - 8 );
     h->mb.mv_max_spel[0] = 4*( h->mb.mv_max_fpel[0] + 8 );
-    if( h->mb.i_mb_x >= h->sps->i_mb_width - 2 )
+    if( h->mb.i_mb_x >= h->mb.i_mb_width - 2 )
     {
         h->mb.mv_min_fpel[1] = -8*h->mb.i_mb_y - 4;
-        h->mb.mv_max_fpel[1] = 8*( h->sps->i_mb_height - h->mb.i_mb_y - 1 ) + 4;
+        h->mb.mv_max_fpel[1] = 8*( h->mb.i_mb_height - h->mb.i_mb_y - 1 ) + 4;
         h->mb.mv_min_spel[1] = 4*( h->mb.mv_min_fpel[1] - 8 );
         h->mb.mv_max_spel[1] = 4*( h->mb.mv_max_fpel[1] + 8 );
     }
@@ -364,14 +364,14 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
             M32( mvc[0] ) = 0;
             M32( mvc[2] ) = 0;
 #define MVC(mv) { CP32( mvc[i_mvc], mv ); i_mvc++; }
-            if( i_mb_x < h->sps->i_mb_width - 1 )
+            if( i_mb_x < h->mb.i_mb_width - 1 )
                 MVC( fenc_mv[1] );
-            if( i_mb_y < h->sps->i_mb_height - 1 )
+            if( i_mb_y < h->mb.i_mb_height - 1 )
             {
                 MVC( fenc_mv[i_mb_stride] );
                 if( i_mb_x > 0 )
                     MVC( fenc_mv[i_mb_stride-1] );
-                if( i_mb_x < h->sps->i_mb_width - 1 )
+                if( i_mb_x < h->mb.i_mb_width - 1 )
                     MVC( fenc_mv[i_mb_stride+1] );
             }
 #undef MVC
@@ -501,9 +501,9 @@ lowres_intra_mb:
 #undef TRY_BIDIR
 
 #define NUM_MBS\
-   (h->sps->i_mb_width > 2 && h->sps->i_mb_height > 2 ?\
-   (h->sps->i_mb_width - 2) * (h->sps->i_mb_height - 2) :\
-    h->sps->i_mb_width * h->sps->i_mb_height)
+   (h->mb.i_mb_width > 2 && h->mb.i_mb_height > 2 ?\
+   (h->mb.i_mb_width - 2) * (h->mb.i_mb_height - 2) :\
+    h->mb.i_mb_width * h->mb.i_mb_height)
 
 static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
                                       x264_frame_t **frames, int p0, int p1, int b,
@@ -559,21 +559,21 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
         /* The edge mbs seem to reduce the predictive quality of the
          * whole frame's score, but are needed for a spatial distribution. */
         if( h->param.rc.b_mb_tree || h->param.rc.i_vbv_buffer_size ||
-            h->sps->i_mb_width <= 2 || h->sps->i_mb_height <= 2 )
+            h->mb.i_mb_width <= 2 || h->mb.i_mb_height <= 2 )
         {
-            for( h->mb.i_mb_y = h->sps->i_mb_height - 1; h->mb.i_mb_y >= 0; h->mb.i_mb_y-- )
+            for( h->mb.i_mb_y = h->mb.i_mb_height - 1; h->mb.i_mb_y >= 0; h->mb.i_mb_y-- )
             {
                 row_satd[h->mb.i_mb_y] = 0;
                 if( !frames[b]->b_intra_calculated )
                     row_satd_intra[h->mb.i_mb_y] = 0;
-                for( h->mb.i_mb_x = h->sps->i_mb_width - 1; h->mb.i_mb_x >= 0; h->mb.i_mb_x-- )
+                for( h->mb.i_mb_x = h->mb.i_mb_width - 1; h->mb.i_mb_x >= 0; h->mb.i_mb_x-- )
                     x264_slicetype_mb_cost( h, a, frames, p0, p1, b, dist_scale_factor, do_search, w );
             }
         }
         else
         {
-            for( h->mb.i_mb_y = h->sps->i_mb_height - 2; h->mb.i_mb_y >= 1; h->mb.i_mb_y-- )
-                for( h->mb.i_mb_x = h->sps->i_mb_width - 2; h->mb.i_mb_x >= 1; h->mb.i_mb_x-- )
+            for( h->mb.i_mb_y = h->mb.i_mb_height - 2; h->mb.i_mb_y >= 1; h->mb.i_mb_y-- )
+                for( h->mb.i_mb_x = h->mb.i_mb_width - 2; h->mb.i_mb_x >= 1; h->mb.i_mb_x-- )
                     x264_slicetype_mb_cost( h, a, frames, p0, p1, b, dist_scale_factor, do_search, w );
         }
 
@@ -604,19 +604,19 @@ static int x264_slicetype_frame_cost_recalculate( x264_t *h, x264_frame_t **fram
     int *row_satd = frames[b]->i_row_satds[b-p0][p1-b];
     float *qp_offset = IS_X264_TYPE_B(frames[b]->i_type) ? frames[b]->f_qp_offset_aq : frames[b]->f_qp_offset;
     x264_emms();
-    for( h->mb.i_mb_y = h->sps->i_mb_height - 1; h->mb.i_mb_y >= 0; h->mb.i_mb_y-- )
+    for( h->mb.i_mb_y = h->mb.i_mb_height - 1; h->mb.i_mb_y >= 0; h->mb.i_mb_y-- )
     {
         row_satd[ h->mb.i_mb_y ] = 0;
-        for( h->mb.i_mb_x = h->sps->i_mb_width - 1; h->mb.i_mb_x >= 0; h->mb.i_mb_x-- )
+        for( h->mb.i_mb_x = h->mb.i_mb_width - 1; h->mb.i_mb_x >= 0; h->mb.i_mb_x-- )
         {
             int i_mb_xy = h->mb.i_mb_x + h->mb.i_mb_y*h->mb.i_mb_stride;
             int i_mb_cost = frames[b]->lowres_costs[b-p0][p1-b][i_mb_xy] & LOWRES_COST_MASK;
             float qp_adj = qp_offset[i_mb_xy];
             i_mb_cost = (i_mb_cost * x264_exp2fix8(qp_adj) + 128) >> 8;
             row_satd[ h->mb.i_mb_y ] += i_mb_cost;
-            if( (h->mb.i_mb_y > 0 && h->mb.i_mb_y < h->sps->i_mb_height - 1 &&
-                 h->mb.i_mb_x > 0 && h->mb.i_mb_x < h->sps->i_mb_width - 1) ||
-                 h->sps->i_mb_width <= 2 || h->sps->i_mb_height <= 2 )
+            if( (h->mb.i_mb_y > 0 && h->mb.i_mb_y < h->mb.i_mb_height - 1 &&
+                 h->mb.i_mb_x > 0 && h->mb.i_mb_x < h->mb.i_mb_width - 1) ||
+                 h->mb.i_mb_width <= 2 || h->mb.i_mb_height <= 2 )
             {
                 i_score += i_mb_cost;
             }
@@ -659,17 +659,17 @@ static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, in
 
     /* For non-reffed frames the source costs are always zero, so just memset one row and re-use it. */
     if( !referenced )
-        memset( frames[b]->i_propagate_cost, 0, h->sps->i_mb_width * sizeof(uint16_t) );
+        memset( frames[b]->i_propagate_cost, 0, h->mb.i_mb_width * sizeof(uint16_t) );
 
-    for( h->mb.i_mb_y = 0; h->mb.i_mb_y < h->sps->i_mb_height; h->mb.i_mb_y++ )
+    for( h->mb.i_mb_y = 0; h->mb.i_mb_y < h->mb.i_mb_height; h->mb.i_mb_y++ )
     {
         int mb_index = h->mb.i_mb_y*h->mb.i_mb_stride;
         h->mc.mbtree_propagate_cost( buf, propagate_cost,
             frames[b]->i_intra_cost+mb_index, frames[b]->lowres_costs[b-p0][p1-b]+mb_index,
-            frames[b]->i_inv_qscale_factor+mb_index, h->sps->i_mb_width );
+            frames[b]->i_inv_qscale_factor+mb_index, h->mb.i_mb_width );
         if( referenced )
-            propagate_cost += h->sps->i_mb_width;
-        for( h->mb.i_mb_x = 0; h->mb.i_mb_x < h->sps->i_mb_width; h->mb.i_mb_x++, mb_index++ )
+            propagate_cost += h->mb.i_mb_width;
+        for( h->mb.i_mb_x = 0; h->mb.i_mb_x < h->mb.i_mb_width; h->mb.i_mb_x++, mb_index++ )
         {
             int propagate_amount = buf[h->mb.i_mb_x];
             /* Don't propagate for an intra block. */
@@ -711,7 +711,7 @@ static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, in
 
                         /* We could just clip the MVs, but pixels that lie outside the frame probably shouldn't
                          * be counted. */
-                        if( mbx < h->sps->i_mb_width-1 && mby < h->sps->i_mb_height-1 && mbx >= 0 && mby >= 0 )
+                        if( mbx < h->mb.i_mb_width-1 && mby < h->mb.i_mb_height-1 && mbx >= 0 && mby >= 0 )
                         {
                             CLIP_ADD( ref_costs[list][idx0], (listamount*idx0weight+512)>>10 );
                             CLIP_ADD( ref_costs[list][idx1], (listamount*idx1weight+512)>>10 );
@@ -720,13 +720,13 @@ static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, in
                         }
                         else /* Check offsets individually */
                         {
-                            if( mbx < h->sps->i_mb_width && mby < h->sps->i_mb_height && mbx >= 0 && mby >= 0 )
+                            if( mbx < h->mb.i_mb_width && mby < h->mb.i_mb_height && mbx >= 0 && mby >= 0 )
                                 CLIP_ADD( ref_costs[list][idx0], (listamount*idx0weight+512)>>10 );
-                            if( mbx+1 < h->sps->i_mb_width && mby < h->sps->i_mb_height && mbx+1 >= 0 && mby >= 0 )
+                            if( mbx+1 < h->mb.i_mb_width && mby < h->mb.i_mb_height && mbx+1 >= 0 && mby >= 0 )
                                 CLIP_ADD( ref_costs[list][idx1], (listamount*idx1weight+512)>>10 );
-                            if( mbx < h->sps->i_mb_width && mby+1 < h->sps->i_mb_height && mbx >= 0 && mby+1 >= 0 )
+                            if( mbx < h->mb.i_mb_width && mby+1 < h->mb.i_mb_height && mbx >= 0 && mby+1 >= 0 )
                                 CLIP_ADD( ref_costs[list][idx2], (listamount*idx2weight+512)>>10 );
-                            if( mbx+1 < h->sps->i_mb_width && mby+1 < h->sps->i_mb_height && mbx+1 >= 0 && mby+1 >= 0 )
+                            if( mbx+1 < h->mb.i_mb_width && mby+1 < h->mb.i_mb_height && mbx+1 >= 0 && mby+1 >= 0 )
                                 CLIP_ADD( ref_costs[list][idx3], (listamount*idx3weight+512)>>10 );
                         }
                     }
@@ -1472,14 +1472,14 @@ int x264_rc_analyse_slice( x264_t *h )
     h->fenc->i_row_satd = h->fenc->i_row_satds[b-p0][p1-b];
     h->fdec->i_row_satd = h->fdec->i_row_satds[b-p0][p1-b];
     h->fdec->i_satd = cost;
-    memcpy( h->fdec->i_row_satd, h->fenc->i_row_satd, h->sps->i_mb_height * sizeof(int) );
+    memcpy( h->fdec->i_row_satd, h->fenc->i_row_satd, h->mb.i_mb_height * sizeof(int) );
     if( !IS_X264_TYPE_I(h->fenc->i_type) )
-        memcpy( h->fdec->i_row_satds[0][0], h->fenc->i_row_satds[0][0], h->sps->i_mb_height * sizeof(int) );
+        memcpy( h->fdec->i_row_satds[0][0], h->fenc->i_row_satds[0][0], h->mb.i_mb_height * sizeof(int) );
 
     if( h->param.b_intra_refresh && h->param.rc.i_vbv_buffer_size && h->fenc->i_type == X264_TYPE_P )
     {
         int ip_factor = 256 * h->param.rc.f_ip_factor; /* fix8 */
-        for( int y = 0; y < h->sps->i_mb_height; y++ )
+        for( int y = 0; y < h->mb.i_mb_height; y++ )
         {
             int mb_xy = y * h->mb.i_mb_stride;
             for( int x = h->fdec->i_pir_start_col; x <= h->fdec->i_pir_end_col; x++, mb_xy++ )

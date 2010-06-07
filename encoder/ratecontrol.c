@@ -241,8 +241,8 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame, float *quant_off
      * FIXME: while they're written in 5 significant digits, they're only tuned to 2. */
     float strength;
     float avg_adj = 0.f;
-    int width = h->sps->i_mb_width;
-    int height = h->sps->i_mb_height;
+    int width = h->mb.i_mb_width;
+    int height = h->mb.i_mb_height;
     /* Initialize frame stats */
     for( int i = 0; i < 3; i++ )
     {
@@ -1146,7 +1146,7 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp, int overhead )
 
     if( rc->b_vbv )
     {
-        memset( h->fdec->i_row_bits, 0, h->sps->i_mb_height * sizeof(int) );
+        memset( h->fdec->i_row_bits, 0, h->mb.i_mb_height * sizeof(int) );
         rc->row_pred = &rc->row_preds[h->sh.i_type];
         rc->buffer_rate = h->fenc->i_cpb_duration * rc->vbv_max_rate * h->sps->vui.i_num_units_in_tick / h->sps->vui.i_time_scale;
         update_vbv_plan( h, overhead );
@@ -1166,7 +1166,7 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp, int overhead )
         {
             //384 * ( Max( PicSizeInMbs, fR * MaxMBPS ) + MaxMBPS * ( tr( 0 ) - tr,n( 0 ) ) ) / MinCR
             double fr = 1. / 172;
-            int pic_size_in_mbs = h->sps->i_mb_width * h->sps->i_mb_height;
+            int pic_size_in_mbs = h->mb.i_mb_width * h->mb.i_mb_height;
             rc->frame_size_maximum = 384 * 8 * X264_MAX( pic_size_in_mbs, fr*l->mbps ) / mincr;
         }
         else
@@ -1283,7 +1283,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     rc->qpa_rc += rc->qpm;
     rc->qpa_aq += h->mb.i_qp;
 
-    if( h->mb.i_mb_x != h->sps->i_mb_width - 1 || !rc->b_vbv )
+    if( h->mb.i_mb_x != h->mb.i_mb_width - 1 || !rc->b_vbv )
         return;
 
     h->fdec->f_row_qp[y] = rc->qpm;
@@ -1320,7 +1320,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
                     size_of_other_slices += h->thread[i]->rc->frame_size_estimated;
         }
         else
-            rc->max_frame_error = X264_MAX( 0.05, 1.0 / (h->sps->i_mb_width) );
+            rc->max_frame_error = X264_MAX( 0.05, 1.0 / (h->mb.i_mb_width) );
 
         /* More threads means we have to be more cautious in letting ratecontrol use up extra bits. */
         float rc_tol = buffer_left_planned / h->param.i_threads * rc->rate_tolerance;
@@ -2258,7 +2258,7 @@ void x264_threads_merge_ratecontrol( x264_t *h )
             for( int row = t->i_threadslice_start; row < t->i_threadslice_end; row++ )
                 size += h->fdec->i_row_satd[row];
             int bits = t->stat.frame.i_mv_bits + t->stat.frame.i_tex_bits + t->stat.frame.i_misc_bits;
-            int mb_count = (t->i_threadslice_end - t->i_threadslice_start) * h->sps->i_mb_width;
+            int mb_count = (t->i_threadslice_end - t->i_threadslice_start) * h->mb.i_mb_width;
             update_predictor( &rc->pred[h->sh.i_type+5*i], qp2qscale( rct->qpa_rc/mb_count ), size, bits );
         }
         if( !i )

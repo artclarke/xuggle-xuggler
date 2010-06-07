@@ -933,7 +933,9 @@ x264_t *x264_encoder_open( x264_param_t *param )
     if( x264_cqm_init( h ) < 0 )
         goto fail;
 
-    h->mb.i_mb_count = h->sps->i_mb_width * h->sps->i_mb_height;
+    h->mb.i_mb_width = h->sps->i_mb_width;
+    h->mb.i_mb_height = h->sps->i_mb_height;
+    h->mb.i_mb_count = h->mb.i_mb_width * h->mb.i_mb_height;
 
     /* Init frames. */
     if( h->param.i_bframe_adaptive == X264_B_ADAPT_TRELLIS && !h->param.rc.b_stat_read )
@@ -1577,7 +1579,7 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
             {
                 memcpy( h->intra_border_backup[j][i],
                         h->fdec->plane[i] + ((mb_y*16 >> !!i) + j - 1 - h->sh.b_mbaff) * h->fdec->i_stride[i],
-                        (h->sps->i_mb_width*16 >> !!i) * sizeof(pixel) );
+                        (h->mb.i_mb_width*16 >> !!i) * sizeof(pixel) );
             }
 
     if( b_deblock )
@@ -1586,7 +1588,7 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
 
     if( b_hpel )
     {
-        int end = mb_y == h->sps->i_mb_height;
+        int end = mb_y == h->mb.i_mb_height;
         x264_frame_expand_border( h, h->fdec, min_y, end );
         if( h->param.analyse.i_subpel_refine )
         {
@@ -1775,7 +1777,7 @@ static int x264_slice_write( x264_t *h )
     /* If this isn't the first slice in the threadslice, set the slice QP
      * equal to the last QP in the previous slice for more accurate
      * CABAC initialization. */
-    if( h->sh.i_first_mb != h->i_threadslice_start * h->sps->i_mb_width )
+    if( h->sh.i_first_mb != h->i_threadslice_start * h->mb.i_mb_width )
     {
         h->sh.i_qp = h->mb.i_last_qp;
         h->sh.i_qp_delta = h->sh.i_qp - h->pps->i_pic_init_qp;
@@ -1794,11 +1796,11 @@ static int x264_slice_write( x264_t *h )
     h->mb.i_last_qp = h->sh.i_qp;
     h->mb.i_last_dqp = 0;
 
-    i_mb_y = h->sh.i_first_mb / h->sps->i_mb_width;
-    i_mb_x = h->sh.i_first_mb % h->sps->i_mb_width;
+    i_mb_y = h->sh.i_first_mb / h->mb.i_mb_width;
+    i_mb_x = h->sh.i_first_mb % h->mb.i_mb_width;
     i_skip = 0;
 
-    while( (mb_xy = i_mb_x + i_mb_y * h->sps->i_mb_width) <= h->sh.i_last_mb )
+    while( (mb_xy = i_mb_x + i_mb_y * h->mb.i_mb_width) <= h->sh.i_last_mb )
     {
         int mb_spos = bs_pos(&h->out.bs) + x264_cabac_pos(&h->cabac);
         if( h->param.i_slice_max_size > 0 )
@@ -1973,11 +1975,11 @@ static int x264_slice_write( x264_t *h )
         if( h->sh.b_mbaff )
         {
             i_mb_x += i_mb_y & 1;
-            i_mb_y ^= i_mb_x < h->sps->i_mb_width;
+            i_mb_y ^= i_mb_x < h->mb.i_mb_width;
         }
         else
             i_mb_x++;
-        if( i_mb_x == h->sps->i_mb_width )
+        if( i_mb_x == h->mb.i_mb_width )
         {
             i_mb_y++;
             i_mb_x = 0;
@@ -2000,7 +2002,7 @@ static int x264_slice_write( x264_t *h )
     if( x264_nal_end( h ) )
         return -1;
 
-    if( h->sh.i_last_mb == (h->i_threadslice_end * h->sps->i_mb_width - 1) )
+    if( h->sh.i_last_mb == (h->i_threadslice_end * h->mb.i_mb_width - 1) )
     {
         h->stat.frame.i_misc_bits = bs_pos( &h->out.bs )
                                   + (h->out.i_nal*NALU_OVERHEAD * 8)
@@ -2067,8 +2069,8 @@ static void *x264_slices_write( x264_t *h )
             h->sh.i_last_mb = h->sh.i_first_mb + h->param.i_slice_max_mbs - 1;
         else if( h->param.i_slice_count && !h->param.b_sliced_threads )
         {
-            int height = h->sps->i_mb_height >> h->param.b_interlaced;
-            int width = h->sps->i_mb_width << h->param.b_interlaced;
+            int height = h->mb.i_mb_height >> h->param.b_interlaced;
+            int width = h->mb.i_mb_width << h->param.b_interlaced;
             i_slice_num++;
             h->sh.i_last_mb = (height * i_slice_num + h->param.i_slice_count/2) / h->param.i_slice_count * width - 1;
         }
@@ -2105,14 +2107,14 @@ static int x264_threaded_slices_write( x264_t *h )
             t->param = h->param;
             memcpy( &t->i_frame, &h->i_frame, offsetof(x264_t, rc) - offsetof(x264_t, i_frame) );
         }
-        int height = h->sps->i_mb_height >> h->param.b_interlaced;
+        int height = h->mb.i_mb_height >> h->param.b_interlaced;
         t->i_threadslice_start = ((height *  i    + h->param.i_slice_count/2) / h->param.i_threads) << h->param.b_interlaced;
         t->i_threadslice_end   = ((height * (i+1) + h->param.i_slice_count/2) / h->param.i_threads) << h->param.b_interlaced;
-        t->sh.i_first_mb = t->i_threadslice_start * h->sps->i_mb_width;
-        t->sh.i_last_mb  =   t->i_threadslice_end * h->sps->i_mb_width - 1;
+        t->sh.i_first_mb = t->i_threadslice_start * h->mb.i_mb_width;
+        t->sh.i_last_mb  =   t->i_threadslice_end * h->mb.i_mb_width - 1;
     }
 
-    x264_stack_align( x264_analyse_weight_frame, h, h->sps->i_mb_height*16 + 16 );
+    x264_stack_align( x264_analyse_weight_frame, h, h->mb.i_mb_height*16 + 16 );
 
     x264_threads_distribute_ratecontrol( h );
 
@@ -2225,8 +2227,8 @@ int     x264_encoder_encode( x264_t *h,
         if( x264_frame_copy_picture( h, fenc, pic_in ) < 0 )
             return -1;
 
-        if( h->param.i_width != 16 * h->sps->i_mb_width ||
-            h->param.i_height != 16 * h->sps->i_mb_height )
+        if( h->param.i_width != 16 * h->mb.i_mb_width ||
+            h->param.i_height != 16 * h->mb.i_mb_height )
             x264_frame_expand_border_mod16( h, fenc );
 
         fenc->i_frame = h->frames.i_input++;
@@ -2418,16 +2420,16 @@ int     x264_encoder_encode( x264_t *h,
             h->b_queued_intra_refresh = 0;
             /* PIR is currently only supported with ref == 1, so any intra frame effectively refreshes
              * the whole frame and counts as an intra refresh. */
-            h->fdec->f_pir_position = h->sps->i_mb_width;
+            h->fdec->f_pir_position = h->mb.i_mb_width;
         }
         else if( h->fenc->i_type == X264_TYPE_P )
         {
             int pocdiff = (h->fdec->i_poc - h->fref0[0]->i_poc)/2;
-            float increment = X264_MAX( ((float)h->sps->i_mb_width-1) / h->param.i_keyint_max, 1 );
+            float increment = X264_MAX( ((float)h->mb.i_mb_width-1) / h->param.i_keyint_max, 1 );
             h->fdec->f_pir_position = h->fref0[0]->f_pir_position;
             h->fdec->i_frames_since_pir = h->fref0[0]->i_frames_since_pir + pocdiff;
             if( h->fdec->i_frames_since_pir >= h->param.i_keyint_max ||
-                (h->b_queued_intra_refresh && h->fdec->f_pir_position + 0.5 >= h->sps->i_mb_width) )
+                (h->b_queued_intra_refresh && h->fdec->f_pir_position + 0.5 >= h->mb.i_mb_width) )
             {
                 h->fdec->f_pir_position = 0;
                 h->fdec->i_frames_since_pir = 0;
@@ -2475,7 +2477,7 @@ int     x264_encoder_encode( x264_t *h,
 
         if( h->fenc->i_type != X264_TYPE_IDR )
         {
-            int time_to_recovery = X264_MIN( h->sps->i_mb_width - 1, h->param.i_keyint_max ) + h->param.i_bframe;
+            int time_to_recovery = X264_MIN( h->mb.i_mb_width - 1, h->param.i_keyint_max ) + h->param.i_bframe;
             x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
             x264_sei_recovery_point_write( h, &h->out.bs, time_to_recovery );
             x264_nal_end( h );
@@ -2524,7 +2526,7 @@ int     x264_encoder_encode( x264_t *h,
 
     /* Write frame */
     h->i_threadslice_start = 0;
-    h->i_threadslice_end = h->sps->i_mb_height;
+    h->i_threadslice_end = h->mb.i_mb_height;
     if( h->i_thread_frames > 1 )
     {
         if( x264_pthread_create( &h->thread_handle, NULL, (void*)x264_slices_write, h ) )
@@ -2766,14 +2768,14 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 {
     static const char mb_chars[] = { 'i', 'i', 'I', 'C', 'P', '8', 'S',
         'D', '<', 'X', 'B', 'X', '>', 'B', 'B', 'B', 'B', '8', 'S' };
-    for( int mb_xy = 0; mb_xy < h->sps->i_mb_width * h->sps->i_mb_height; mb_xy++ )
+    for( int mb_xy = 0; mb_xy < h->mb.i_mb_width * h->mb.i_mb_height; mb_xy++ )
     {
         if( h->mb.type[mb_xy] < X264_MBTYPE_MAX && h->mb.type[mb_xy] >= 0 )
             fprintf( stderr, "%c ", mb_chars[ h->mb.type[mb_xy] ] );
         else
             fprintf( stderr, "? " );
 
-        if( (mb_xy+1) % h->sps->i_mb_width == 0 )
+        if( (mb_xy+1) % h->mb.i_mb_width == 0 )
             fprintf( stderr, "\n" );
     }
 }

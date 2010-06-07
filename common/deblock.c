@@ -305,7 +305,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
     int strideuv  = h->fdec->i_stride[1];
     int stride2uv = strideuv << b_interlaced;
 
-    for( int mb_x = 0; mb_x < h->sps->i_mb_width; mb_x += (~b_interlaced | mb_y)&1, mb_y ^= b_interlaced )
+    for( int mb_x = 0; mb_x < h->mb.i_mb_width; mb_x += (~b_interlaced | mb_y)&1, mb_y ^= b_interlaced )
     {
         x264_prefetch_fenc( h, h->fdec, mb_x, mb_y );
         x264_macroblock_cache_load_neighbours_deblock( h, mb_x, mb_y );

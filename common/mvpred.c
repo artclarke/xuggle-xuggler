@@ -455,9 +455,9 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
         }
 
         SET_TMVP(0,0);
-        if( h->mb.i_mb_x < h->sps->i_mb_width-1 )
+        if( h->mb.i_mb_x < h->mb.i_mb_width-1 )
             SET_TMVP(1,0);
-        if( h->mb.i_mb_y < h->sps->i_mb_height-1 )
+        if( h->mb.i_mb_y < h->mb.i_mb_height-1 )
             SET_TMVP(0,1);
 #undef SET_TMVP
     }
