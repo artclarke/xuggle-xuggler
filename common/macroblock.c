@@ -493,37 +493,37 @@ static NOINLINE void copy_column8( pixel *dst, pixel *src )
         dst[i*FDEC_STRIDE] = src[i*FDEC_STRIDE];
 }
 
-static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x, int mb_y, int i )
+static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x, int mb_y, int i, int b_interlaced )
 {
     const int w = (i == 0 ? 16 : 8);
     const int i_stride = h->fdec->i_stride[!!i];
-    const int i_stride2 = i_stride << h->mb.b_interlaced;
-    const int i_pix_offset = h->mb.b_interlaced
+    const int i_stride2 = i_stride << b_interlaced;
+    const int i_pix_offset = b_interlaced
                            ? w * (mb_x + (mb_y&~1) * i_stride) + (mb_y&1) * i_stride
                            : w * (mb_x + mb_y * i_stride);
     const pixel *plane_fdec = &h->fdec->plane[i][i_pix_offset];
     const pixel *intra_fdec = &h->intra_border_backup[mb_y & h->sh.b_mbaff][i][mb_x*16>>!!i];
     int ref_pix_offset[2] = { i_pix_offset, i_pix_offset };
     x264_frame_t **fref[2] = { h->fref0, h->fref1 };
-    if( h->mb.b_interlaced )
+    if( b_interlaced )
         ref_pix_offset[1] += (1-2*(mb_y&1)) * i_stride;
     h->mb.pic.i_stride[i] = i_stride2;
     h->mb.pic.p_fenc_plane[i] = &h->fenc->plane[i][i_pix_offset];
     h->mc.copy[i?PIXEL_8x8:PIXEL_16x16]( h->mb.pic.p_fenc[i], FENC_STRIDE,
         h->mb.pic.p_fenc_plane[i], i_stride2, w );
     memcpy( &h->mb.pic.p_fdec[i][-1-FDEC_STRIDE], intra_fdec-1, (w*3/2+1) * sizeof(pixel) );
-    if( h->mb.b_interlaced )
+    if( b_interlaced )
         for( int j = 0; j < w; j++ )
             h->mb.pic.p_fdec[i][-1+j*FDEC_STRIDE] = plane_fdec[-1+j*i_stride2];
     for( int j = 0; j < h->mb.pic.i_fref[0]; j++ )
     {
-        h->mb.pic.p_fref[0][j][i==0 ? 0:i+3] = &fref[0][j >> h->mb.b_interlaced]->plane[i][ref_pix_offset[j&1]];
+        h->mb.pic.p_fref[0][j][i==0 ? 0:i+3] = &fref[0][j >> b_interlaced]->plane[i][ref_pix_offset[j&1]];
         if( i == 0 )
         {
             for( int k = 1; k < 4; k++ )
-                h->mb.pic.p_fref[0][j][k] = &fref[0][j >> h->mb.b_interlaced]->filtered[k][ref_pix_offset[j&1]];
+                h->mb.pic.p_fref[0][j][k] = &fref[0][j >> b_interlaced]->filtered[k][ref_pix_offset[j&1]];
             if( h->sh.weight[j][0].weightfn )
-                h->mb.pic.p_fref_w[j] = &h->fenc->weighted[j >> h->mb.b_interlaced][ref_pix_offset[j&1]];
+                h->mb.pic.p_fref_w[j] = &h->fenc->weighted[j >> b_interlaced][ref_pix_offset[j&1]];
             else
                 h->mb.pic.p_fref_w[j] = h->mb.pic.p_fref[0][j][0];
         }
@@ -531,10 +531,10 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x
     if( h->sh.i_type == SLICE_TYPE_B )
         for( int j = 0; j < h->mb.pic.i_fref[1]; j++ )
         {
-            h->mb.pic.p_fref[1][j][i==0 ? 0:i+3] = &fref[1][j >> h->mb.b_interlaced]->plane[i][ref_pix_offset[j&1]];
+            h->mb.pic.p_fref[1][j][i==0 ? 0:i+3] = &fref[1][j >> b_interlaced]->plane[i][ref_pix_offset[j&1]];
             if( i == 0 )
                 for( int k = 1; k < 4; k++ )
-                    h->mb.pic.p_fref[1][j][k] = &fref[1][j >> h->mb.b_interlaced]->filtered[k][ref_pix_offset[j&1]];
+                    h->mb.pic.p_fref[1][j][k] = &fref[1][j >> b_interlaced]->filtered[k][ref_pix_offset[j&1]];
         }
 }
 
@@ -637,8 +637,11 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
     int left = h->mb.i_mb_left_xy;
     int top  = h->mb.i_mb_top_xy;
     int top_y = mb_y - (1 << h->mb.b_interlaced);
-    int top_8x8 = (2*top_y+1) * h->mb.i_b8_stride + 2*mb_x;
-    int top_4x4 = (4*top_y+3) * h->mb.i_b4_stride + 4*mb_x;
+    int s8x8 = h->mb.i_b8_stride;
+    int s4x4 = h->mb.i_b4_stride;
+    int top_8x8 = (2*top_y+1) * s8x8 + 2*mb_x;
+    int top_4x4 = (4*top_y+3) * s4x4 + 4*mb_x;
+    int lists = (1 << h->sh.i_type) & 3;
 
     /* GCC pessimizes direct loads from heap-allocated arrays due to aliasing. */
     /* By only dereferencing them once, we avoid this issue. */
@@ -695,16 +698,15 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
         h->mb.cache.non_zero_count[x264_scan8[16+4+2] - 1] = nnz[left][16+4+3];
 
         /* Finish the prefetching */
-        if( h->sh.i_type != SLICE_TYPE_I )
-            for( int l = 0; l < (h->sh.i_type == SLICE_TYPE_B) + 1; l++ )
-            {
-                x264_prefetch( &h->mb.mv[l][top_4x4-1] );
-                /* Top right being not in the same cacheline as top left will happen
-                 * once every 4 MBs, so one extra prefetch is worthwhile */
-                x264_prefetch( &h->mb.mv[l][top_4x4+4] );
-                x264_prefetch( &h->mb.ref[l][top_8x8-1] );
-                x264_prefetch( &h->mb.mvd[l][top] );
-            }
+        for( int l = 0; l < lists; l++ )
+        {
+            x264_prefetch( &h->mb.mv[l][top_4x4-1] );
+            /* Top right being not in the same cacheline as top left will happen
+             * once every 4 MBs, so one extra prefetch is worthwhile */
+            x264_prefetch( &h->mb.mv[l][top_4x4+4] );
+            x264_prefetch( &h->mb.ref[l][top_8x8-1] );
+            x264_prefetch( &h->mb.mvd[l][top] );
+        }
     }
     else
     {
@@ -748,12 +750,16 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
         copy_column8( h->mb.pic.p_fdec[0]-1+12*FDEC_STRIDE, h->mb.pic.p_fdec[0]+15+12*FDEC_STRIDE );
         copy_column8( h->mb.pic.p_fdec[1]-1+ 4*FDEC_STRIDE, h->mb.pic.p_fdec[1]+ 7+ 4*FDEC_STRIDE );
         copy_column8( h->mb.pic.p_fdec[2]-1+ 4*FDEC_STRIDE, h->mb.pic.p_fdec[2]+ 7+ 4*FDEC_STRIDE );
+        x264_macroblock_load_pic_pointers( h, mb_x, mb_y, 0, 0 );
+        x264_macroblock_load_pic_pointers( h, mb_x, mb_y, 1, 0 );
+        x264_macroblock_load_pic_pointers( h, mb_x, mb_y, 2, 0 );
     }
-
-    /* load picture pointers */
-    x264_macroblock_load_pic_pointers( h, mb_x, mb_y, 0 );
-    x264_macroblock_load_pic_pointers( h, mb_x, mb_y, 1 );
-    x264_macroblock_load_pic_pointers( h, mb_x, mb_y, 2 );
+    else
+    {
+        x264_macroblock_load_pic_pointers( h, mb_x, mb_y, 0, 1 );
+        x264_macroblock_load_pic_pointers( h, mb_x, mb_y, 1, 1 );
+        x264_macroblock_load_pic_pointers( h, mb_x, mb_y, 2, 1 );
+    }
 
     if( h->fdec->integral )
     {
@@ -767,118 +773,112 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
     x264_prefetch_fenc( h, h->fenc, mb_x, mb_y );
 
     /* load ref/mv/mvd */
-    if( h->sh.i_type != SLICE_TYPE_I )
+    for( int l = 0; l < lists; l++ )
     {
-        int s8x8 = h->mb.i_b8_stride;
-        int s4x4 = h->mb.i_b4_stride;
+        int16_t (*mv)[2] = h->mb.mv[l];
+        int8_t *ref = h->mb.ref[l];
 
-        for( int l = 0; l < (h->sh.i_type == SLICE_TYPE_B) + 1; l++ )
+        int i8 = x264_scan8[0] - 1 - 1*8;
+        if( h->mb.i_neighbour & MB_TOPLEFT )
         {
-            int16_t (*mv)[2] = h->mb.mv[l];
-            int8_t *ref = h->mb.ref[l];
+            h->mb.cache.ref[l][i8] = ref[top_8x8 - 1];
+            CP32( h->mb.cache.mv[l][i8], mv[top_4x4 - 1] );
+        }
+        else
+        {
+            h->mb.cache.ref[l][i8] = -2;
+            M32( h->mb.cache.mv[l][i8] ) = 0;
+        }
 
-            int i8 = x264_scan8[0] - 1 - 1*8;
-            if( h->mb.i_neighbour & MB_TOPLEFT )
-            {
-                h->mb.cache.ref[l][i8] = ref[top_8x8 - 1];
-                CP32( h->mb.cache.mv[l][i8], mv[top_4x4 - 1] );
-            }
-            else
-            {
-                h->mb.cache.ref[l][i8] = -2;
-                M32( h->mb.cache.mv[l][i8] ) = 0;
-            }
+        i8 = x264_scan8[0] - 8;
+        if( h->mb.i_neighbour & MB_TOP )
+        {
+            h->mb.cache.ref[l][i8+0] =
+            h->mb.cache.ref[l][i8+1] = ref[top_8x8 + 0];
+            h->mb.cache.ref[l][i8+2] =
+            h->mb.cache.ref[l][i8+3] = ref[top_8x8 + 1];
+            CP128( h->mb.cache.mv[l][i8], mv[top_4x4] );
+        }
+        else
+        {
+            M128( h->mb.cache.mv[l][i8] ) = M128_ZERO;
+            M32( &h->mb.cache.ref[l][i8] ) = (uint8_t)(-2) * 0x01010101U;
+        }
 
-            i8 = x264_scan8[0] - 8;
+        i8 = x264_scan8[0] + 4 - 1*8;
+        if( h->mb.i_neighbour & MB_TOPRIGHT )
+        {
+            h->mb.cache.ref[l][i8] = ref[top_8x8 + 2];
+            CP32( h->mb.cache.mv[l][i8], mv[top_4x4 + 4] );
+        }
+        else
+             h->mb.cache.ref[l][i8] = -2;
+
+        i8 = x264_scan8[0] - 1;
+        if( h->mb.i_neighbour & MB_LEFT )
+        {
+            const int ir = h->mb.i_b8_xy - 1;
+            const int iv = h->mb.i_b4_xy - 1;
+            h->mb.cache.ref[l][i8+0*8] =
+            h->mb.cache.ref[l][i8+1*8] = ref[ir + 0*s8x8];
+            h->mb.cache.ref[l][i8+2*8] =
+            h->mb.cache.ref[l][i8+3*8] = ref[ir + 1*s8x8];
+
+            CP32( h->mb.cache.mv[l][i8+0*8], mv[iv + 0*s4x4] );
+            CP32( h->mb.cache.mv[l][i8+1*8], mv[iv + 1*s4x4] );
+            CP32( h->mb.cache.mv[l][i8+2*8], mv[iv + 2*s4x4] );
+            CP32( h->mb.cache.mv[l][i8+3*8], mv[iv + 3*s4x4] );
+        }
+        else
+        {
+            for( int i = 0; i < 4; i++ )
+            {
+                h->mb.cache.ref[l][i8+i*8] = -2;
+                M32( h->mb.cache.mv[l][i8+i*8] ) = 0;
+            }
+        }
+
+        if( h->param.b_cabac )
+        {
+            uint8_t (*mvd)[8][2] = h->mb.mvd[l];
             if( h->mb.i_neighbour & MB_TOP )
-            {
-                h->mb.cache.ref[l][i8+0] =
-                h->mb.cache.ref[l][i8+1] = ref[top_8x8 + 0];
-                h->mb.cache.ref[l][i8+2] =
-                h->mb.cache.ref[l][i8+3] = ref[top_8x8 + 1];
-                CP128( h->mb.cache.mv[l][i8], mv[top_4x4] );
-            }
+                CP64( h->mb.cache.mvd[l][x264_scan8[0] - 8], mvd[top][0] );
             else
-            {
-                M128( h->mb.cache.mv[l][i8] ) = M128_ZERO;
-                M32( &h->mb.cache.ref[l][i8] ) = (uint8_t)(-2) * 0x01010101U;
-            }
+                M64( h->mb.cache.mvd[l][x264_scan8[0] - 8] ) = 0;
 
-            i8 = x264_scan8[0] + 4 - 1*8;
-            if( h->mb.i_neighbour & MB_TOPRIGHT )
-            {
-                h->mb.cache.ref[l][i8] = ref[top_8x8 + 2];
-                CP32( h->mb.cache.mv[l][i8], mv[top_4x4 + 4] );
-            }
-            else
-                 h->mb.cache.ref[l][i8] = -2;
-
-            i8 = x264_scan8[0] - 1;
             if( h->mb.i_neighbour & MB_LEFT )
             {
-                const int ir = h->mb.i_b8_xy - 1;
-                const int iv = h->mb.i_b4_xy - 1;
-                h->mb.cache.ref[l][i8+0*8] =
-                h->mb.cache.ref[l][i8+1*8] = ref[ir + 0*s8x8];
-                h->mb.cache.ref[l][i8+2*8] =
-                h->mb.cache.ref[l][i8+3*8] = ref[ir + 1*s8x8];
-
-                CP32( h->mb.cache.mv[l][i8+0*8], mv[iv + 0*s4x4] );
-                CP32( h->mb.cache.mv[l][i8+1*8], mv[iv + 1*s4x4] );
-                CP32( h->mb.cache.mv[l][i8+2*8], mv[iv + 2*s4x4] );
-                CP32( h->mb.cache.mv[l][i8+3*8], mv[iv + 3*s4x4] );
+                CP16( h->mb.cache.mvd[l][x264_scan8[0 ] - 1], mvd[left][4] );
+                CP16( h->mb.cache.mvd[l][x264_scan8[2 ] - 1], mvd[left][5] );
+                CP16( h->mb.cache.mvd[l][x264_scan8[8 ] - 1], mvd[left][6] );
+                CP16( h->mb.cache.mvd[l][x264_scan8[10] - 1], mvd[left][3] );
             }
             else
-            {
                 for( int i = 0; i < 4; i++ )
-                {
-                    h->mb.cache.ref[l][i8+i*8] = -2;
-                    M32( h->mb.cache.mv[l][i8+i*8] ) = 0;
-                }
-            }
-
-            if( h->param.b_cabac )
-            {
-                uint8_t (*mvd)[8][2] = h->mb.mvd[l];
-                if( h->mb.i_neighbour & MB_TOP )
-                    CP64( h->mb.cache.mvd[l][x264_scan8[0] - 8], mvd[top][0] );
-                else
-                    M64( h->mb.cache.mvd[l][x264_scan8[0] - 8] ) = 0;
-
-                if( h->mb.i_neighbour & MB_LEFT )
-                {
-                    CP16( h->mb.cache.mvd[l][x264_scan8[0 ] - 1], mvd[left][4] );
-                    CP16( h->mb.cache.mvd[l][x264_scan8[2 ] - 1], mvd[left][5] );
-                    CP16( h->mb.cache.mvd[l][x264_scan8[8 ] - 1], mvd[left][6] );
-                    CP16( h->mb.cache.mvd[l][x264_scan8[10] - 1], mvd[left][3] );
-                }
-                else
-                    for( int i = 0; i < 4; i++ )
-                        M16( h->mb.cache.mvd[l][x264_scan8[0]-1+i*8] ) = 0;
-            }
+                    M16( h->mb.cache.mvd[l][x264_scan8[0]-1+i*8] ) = 0;
         }
-
-        /* load skip */
-        if( h->sh.i_type == SLICE_TYPE_B )
-        {
-            h->mb.bipred_weight = h->mb.bipred_weight_buf[h->mb.b_interlaced&(mb_y&1)];
-            h->mb.dist_scale_factor = h->mb.dist_scale_factor_buf[h->mb.b_interlaced&(mb_y&1)];
-            if( h->param.b_cabac )
-            {
-                uint8_t skipbp;
-                x264_macroblock_cache_skip( h, 0, 0, 4, 4, 0 );
-                skipbp = (h->mb.i_neighbour & MB_LEFT) ? h->mb.skipbp[left] : 0;
-                h->mb.cache.skip[x264_scan8[0] - 1] = skipbp & 0x2;
-                h->mb.cache.skip[x264_scan8[8] - 1] = skipbp & 0x8;
-                skipbp = (h->mb.i_neighbour & MB_TOP) ? h->mb.skipbp[top] : 0;
-                h->mb.cache.skip[x264_scan8[0] - 8] = skipbp & 0x4;
-                h->mb.cache.skip[x264_scan8[4] - 8] = skipbp & 0x8;
-            }
-        }
-
-        if( h->sh.i_type == SLICE_TYPE_P )
-            x264_mb_predict_mv_pskip( h, h->mb.cache.pskip_mv );
     }
+
+    /* load skip */
+    if( h->sh.i_type == SLICE_TYPE_B )
+    {
+        h->mb.bipred_weight = h->mb.bipred_weight_buf[h->mb.b_interlaced&(mb_y&1)];
+        h->mb.dist_scale_factor = h->mb.dist_scale_factor_buf[h->mb.b_interlaced&(mb_y&1)];
+        if( h->param.b_cabac )
+        {
+            uint8_t skipbp;
+            x264_macroblock_cache_skip( h, 0, 0, 4, 4, 0 );
+            skipbp = (h->mb.i_neighbour & MB_LEFT) ? h->mb.skipbp[left] : 0;
+            h->mb.cache.skip[x264_scan8[0] - 1] = skipbp & 0x2;
+            h->mb.cache.skip[x264_scan8[8] - 1] = skipbp & 0x8;
+            skipbp = (h->mb.i_neighbour & MB_TOP) ? h->mb.skipbp[top] : 0;
+            h->mb.cache.skip[x264_scan8[0] - 8] = skipbp & 0x4;
+            h->mb.cache.skip[x264_scan8[4] - 8] = skipbp & 0x8;
+        }
+    }
+
+    if( h->sh.i_type == SLICE_TYPE_P )
+        x264_mb_predict_mv_pskip( h, h->mb.cache.pskip_mv );
 
     h->mb.i_neighbour4[0] =
     h->mb.i_neighbour8[0] = (h->mb.i_neighbour_intra & (MB_TOP|MB_LEFT|MB_TOPLEFT))
@@ -1201,7 +1201,7 @@ void x264_macroblock_cache_save( x264_t *h )
         else
             h->mb.chroma_pred_mode[i_mb_xy] = I_PRED_CHROMA_DC;
 
-        if( !IS_INTRA( i_mb_type ) && !IS_SKIP( i_mb_type ) && !IS_DIRECT( i_mb_type ) )
+        if( (0x3FF30 >> i_mb_type) & 1 ) /* !INTRA && !SKIP && !DIRECT */
         {
             CP64( mvd0[0], h->mb.cache.mvd[0][x264_scan8[10]] );
             CP16( mvd0[4], h->mb.cache.mvd[0][x264_scan8[5 ]] );
