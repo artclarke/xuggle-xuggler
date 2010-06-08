@@ -1280,6 +1280,8 @@ static int x264_encoder_encapsulate_nals( x264_t *h, int start )
         nal_buffer += size;
     }
 
+    x264_emms();
+
     return nal_buffer - (h->nal_buffer + previous_nal_size);
 }
 
