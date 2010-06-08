@@ -45,7 +45,7 @@ static inline void write16x4( uint8_t *dst, int dst_stride,
 {
     ALIGNED_16(unsigned char result[64]);
     uint32_t *src_int = (uint32_t *)result, *dst_int = (uint32_t *)dst;
-    int int_dst_stride = dst_stride/4;
+    int int_dst_stride = dst_stride >> 2;
 
     vec_st(r0, 0, result);
     vec_st(r1, 16, result);

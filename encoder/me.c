@@ -622,7 +622,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
                         continue;
                     bsad -= ycost;
                     xn = h->pixf.ads[i_pixel]( enc_dc, sums_base + min_x + my * stride, delta,
-                                               cost_fpel_mvx+min_x, xs, width, bsad*17/16 );
+                                               cost_fpel_mvx+min_x, xs, width, bsad * 17 >> 4 );
                     for( i = 0; i < xn-2; i += 3 )
                     {
                         pixel *ref = p_fref_w+min_x+my*stride;
@@ -789,14 +789,14 @@ if( b_refine_qpel || (dir^1) != odir ) \
              + p_cost_mvx[ mx ] + p_cost_mvy[ my ]; \
     if( b_chroma_me && cost < bcost ) \
     { \
-        h->mc.mc_chroma( pix, 8, m->p_fref[4], m->i_stride[1], mx, my + mvy_offset, bw/2, bh/2 ); \
+        h->mc.mc_chroma( pix, 8, m->p_fref[4], m->i_stride[1], mx, my + mvy_offset, bw>>1, bh>>1 ); \
         if( m->weight[1].weightfn ) \
             m->weight[1].weightfn[x264_pixel_size[i_pixel].w>>3]( pix, 8, pix, 8, \
                                                                   &m->weight[1], x264_pixel_size[i_pixel].h>>1 ); \
         cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[1], FENC_STRIDE, pix, 8 ); \
         if( cost < bcost ) \
         { \
-            h->mc.mc_chroma( pix, 8, m->p_fref[5], m->i_stride[1], mx, my + mvy_offset, bw/2, bh/2 ); \
+            h->mc.mc_chroma( pix, 8, m->p_fref[5], m->i_stride[1], mx, my + mvy_offset, bw>>1, bh>>1 ); \
             if( m->weight[2].weightfn ) \
                 m->weight[2].weightfn[x264_pixel_size[i_pixel].w>>3]( pix, 8, pix, 8, \
                                                                       &m->weight[2], x264_pixel_size[i_pixel].h>>1 ); \

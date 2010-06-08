@@ -703,7 +703,7 @@ void x264_hpel_filter_altivec( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint
 static void frame_init_lowres_core_altivec( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
                                            int src_stride, int dst_stride, int width, int height )
 {
-    int w = width/16;
+    int w = width >> 4;
     int end = (width & 15);
     vec_u8_t src0v, src1v, src2v;
     vec_u8_t lv, hv, src1p1v;

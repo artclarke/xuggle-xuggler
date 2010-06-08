@@ -547,7 +547,7 @@ float x264_pixel_ssim_wxh( x264_pixel_function_t *pf,
     int z = 0;
     float ssim = 0.0;
     int (*sum0)[4] = buf;
-    int (*sum1)[4] = sum0 + width/4+3;
+    int (*sum1)[4] = sum0 + (width >> 2) + 3;
     width >>= 2;
     height >>= 2;
     for( int y = 1; y < height; y++ )

@@ -97,7 +97,7 @@ static inline int bs_pos( bs_t *s )
 static inline void bs_flush( bs_t *s )
 {
     M32( s->p ) = endian_fix32( s->cur_bits << (s->i_left&31) );
-    s->p += WORD_SIZE - s->i_left / 8;
+    s->p += WORD_SIZE - (s->i_left >> 3);
     s->i_left = WORD_SIZE*8;
 }
 /* The inverse of bs_flush: prepare the bitstream to be written to again. */

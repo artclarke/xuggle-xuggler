@@ -1236,8 +1236,8 @@ static void x264_mb_analyse_inter_p8x8_mixed_ref( x264_t *h, x264_mb_analysis_t 
     for( int i = 0; i < 4; i++ )
     {
         x264_me_t *l0m = &a->l0.me8x8[i];
-        const int x8 = i%2;
-        const int y8 = i/2;
+        int x8 = i&1;
+        int y8 = i>>1;
 
         m.i_pixel = PIXEL_8x8;
 
@@ -1312,8 +1312,8 @@ static void x264_mb_analyse_inter_p8x8( x264_t *h, x264_mb_analysis_t *a )
     for( int i = 0; i < 4; i++ )
     {
         x264_me_t *m = &a->l0.me8x8[i];
-        const int x8 = i%2;
-        const int y8 = i/2;
+        int x8 = i&1;
+        int y8 = i>>1;
 
         m->i_pixel = PIXEL_8x8;
         m->i_ref_cost = i_ref_cost;
@@ -1793,8 +1793,8 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
 
 static inline void x264_mb_cache_mv_p8x8( x264_t *h, x264_mb_analysis_t *a, int i )
 {
-    const int x = 2*(i%2);
-    const int y = 2*(i/2);
+    int x = 2*(i&1);
+    int y = i&2;
 
     switch( h->mb.i_sub_partition[i] )
     {
@@ -1823,8 +1823,8 @@ static inline void x264_mb_cache_mv_p8x8( x264_t *h, x264_mb_analysis_t *a, int 
 
 static void x264_mb_load_mv_direct8x8( x264_t *h, int idx )
 {
-    const int x = 2*(idx&1);
-    const int y = 2*(idx>>1);
+    int x = 2*(idx&1);
+    int y = idx&2;
     x264_macroblock_cache_ref( h, x, y, 2, 2, 0, h->mb.cache.direct_ref[0][idx] );
     x264_macroblock_cache_ref( h, x, y, 2, 2, 1, h->mb.cache.direct_ref[1][idx] );
     x264_macroblock_cache_mv_ptr( h, x, y, 2, 2, 0, h->mb.cache.direct_mv[0][idx] );
@@ -1859,8 +1859,8 @@ static void x264_mb_load_mv_direct8x8( x264_t *h, int idx )
 
 static inline void x264_mb_cache_mv_b8x8( x264_t *h, x264_mb_analysis_t *a, int i, int b_mvd )
 {
-    int x = (i%2)*2;
-    int y = (i/2)*2;
+    int x = 2*(i&1);
+    int y = i&2;
     if( h->mb.i_sub_partition[i] == D_DIRECT_8x8 )
     {
         x264_mb_load_mv_direct8x8( h, i );
@@ -1923,8 +1923,8 @@ static void x264_mb_analyse_inter_b8x8_mixed_ref( x264_t *h, x264_mb_analysis_t 
 
     for( int i = 0; i < 4; i++ )
     {
-        int x8 = i%2;
-        int y8 = i/2;
+        int x8 = i&1;
+        int y8 = i>>1;
         int i_part_cost;
         int i_part_cost_bi;
         int stride[2] = {8,8};
@@ -2005,8 +2005,8 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
 
     for( int i = 0; i < 4; i++ )
     {
-        const int x8 = i%2;
-        const int y8 = i/2;
+        int x8 = i&1;
+        int y8 = i>>1;
         int i_part_cost;
         int i_part_cost_bi = 0;
         int stride[2] = {8,8};

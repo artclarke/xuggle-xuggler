@@ -953,7 +953,7 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
         else
         {
             for( int i = 0; i < 16; i++ )
-                if( h->mb.i_cbp_luma & ( 1 << ( i / 4 ) ) )
+                if( h->mb.i_cbp_luma & ( 1 << ( i >> 2 ) ) )
                     block_residual_write_cabac_cbf( h, cb, DCT_LUMA_4x4, i, h->dct.luma4x4[i], b_intra );
         }
 

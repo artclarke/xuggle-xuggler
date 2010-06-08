@@ -153,7 +153,7 @@ static int pixel_satd_4x4_altivec( uint8_t *pix1, int i_pix1,
     satdv = vec_splat( satdv, 1 );
     vec_ste( satdv, 0, &i_satd );
 
-    return i_satd / 2;
+    return i_satd >> 1;
 }
 
 /***********************************************************************
@@ -207,7 +207,7 @@ static int pixel_satd_4x8_altivec( uint8_t *pix1, int i_pix1,
     satdv = vec_splat( satdv, 1 );
     vec_ste( satdv, 0, &i_satd );
 
-    return i_satd / 2;
+    return i_satd >> 1;
 }
 
 /***********************************************************************
@@ -261,7 +261,7 @@ static int pixel_satd_8x4_altivec( uint8_t *pix1, int i_pix1,
     satdv = vec_splat( satdv, 1 );
     vec_ste( satdv, 0, &i_satd );
 
-    return i_satd / 2;
+    return i_satd >> 1;
 }
 
 /***********************************************************************
@@ -321,7 +321,7 @@ static int pixel_satd_8x8_altivec( uint8_t *pix1, int i_pix1,
     satdv = vec_splat( satdv, 3 );
     vec_ste( satdv, 0, &i_satd );
 
-    return i_satd / 2;
+    return i_satd >> 1;
 }
 
 /***********************************************************************
@@ -405,7 +405,7 @@ static int pixel_satd_8x16_altivec( uint8_t *pix1, int i_pix1,
     satdv = vec_splat( satdv, 3 );
     vec_ste( satdv, 0, &i_satd );
 
-    return i_satd / 2;
+    return i_satd >> 1;
 }
 
 /***********************************************************************
@@ -489,7 +489,7 @@ static int pixel_satd_16x8_altivec( uint8_t *pix1, int i_pix1,
     satdv = vec_splat( satdv, 3 );
     vec_ste( satdv, 0, &i_satd );
 
-    return i_satd / 2;
+    return i_satd >> 1;
 }
 
 /***********************************************************************
@@ -615,7 +615,7 @@ static int pixel_satd_16x16_altivec( uint8_t *pix1, int i_pix1,
     satdv = vec_splat( satdv, 3 );
     vec_ste( satdv, 0, &i_satd );
 
-    return i_satd / 2;
+    return i_satd >> 1;
 }
 
 
