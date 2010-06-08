@@ -40,9 +40,9 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
     CHECKED_MALLOCZERO( frame, sizeof(x264_frame_t) );
 
     /* allocate frame data (+64 for extra data for me) */
-    i_width  = ALIGN( h->param.i_width, 16 );
+    i_width  = h->sps->i_mb_width*16;
     i_stride = ALIGN( i_width + 2*PADH, align );
-    i_lines  = ALIGN( h->param.i_height, 16<<h->param.b_interlaced );
+    i_lines  = h->sps->i_mb_height*16;
 
     frame->i_plane = 3;
     for( int i = 0; i < 3; i++ )
