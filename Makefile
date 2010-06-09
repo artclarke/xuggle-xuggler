@@ -22,13 +22,14 @@ SRCSO =
 
 CONFIG := $(shell cat config.h)
 
-# Optional muxer module sources
+# Optional module sources
 ifneq ($(findstring HAVE_AVS, $(CONFIG)),)
 SRCCLI += input/avs.c
 endif
 
 ifneq ($(findstring HAVE_PTHREAD, $(CONFIG)),)
 SRCCLI += input/thread.c
+SRCS   += common/threadpool.c
 endif
 
 ifneq ($(findstring HAVE_LAVF, $(CONFIG)),)

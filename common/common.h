@@ -160,6 +160,7 @@ static const int x264_scan8[16+2*4+3] =
 #include "cabac.h"
 #include "quant.h"
 #include "cpu.h"
+#include "threadpool.h"
 
 /****************************************************************************
  * General functions
@@ -365,9 +366,10 @@ typedef struct x264_lookahead_t
     int                           i_last_keyframe;
     int                           i_slicetype_length;
     x264_frame_t                  *last_nonb;
-    x264_synch_frame_list_t       ifbuf;
-    x264_synch_frame_list_t       next;
-    x264_synch_frame_list_t       ofbuf;
+    x264_pthread_t                thread_handle;
+    x264_sync_frame_list_t        ifbuf;
+    x264_sync_frame_list_t        next;
+    x264_sync_frame_list_t        ofbuf;
 } x264_lookahead_t;
 
 typedef struct x264_ratecontrol_t   x264_ratecontrol_t;
@@ -378,11 +380,11 @@ struct x264_t
     x264_param_t    param;
 
     x264_t          *thread[X264_THREAD_MAX+1];
-    x264_pthread_t  thread_handle;
     int             b_thread_active;
     int             i_thread_phase; /* which thread to use for the next frame */
     int             i_threadslice_start; /* first row in this thread slice */
     int             i_threadslice_end; /* row after the end of this thread slice */
+    x264_threadpool_t *threadpool;
 
     /* bitstream output */
     struct

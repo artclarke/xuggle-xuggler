@@ -37,7 +37,7 @@
 #include "common/common.h"
 #include "analyse.h"
 
-static void x264_lookahead_shift( x264_synch_frame_list_t *dst, x264_synch_frame_list_t *src, int count )
+static void x264_lookahead_shift( x264_sync_frame_list_t *dst, x264_sync_frame_list_t *src, int count )
 {
     int i = count;
     while( i-- )
@@ -137,9 +137,9 @@ int x264_lookahead_init( x264_t *h, int i_slicetype_length )
     look->i_slicetype_length = i_slicetype_length;
 
     /* init frame lists */
-    if( x264_synch_frame_list_init( &look->ifbuf, h->param.i_sync_lookahead+3 ) ||
-        x264_synch_frame_list_init( &look->next, h->frames.i_delay+3 ) ||
-        x264_synch_frame_list_init( &look->ofbuf, h->frames.i_delay+3 ) )
+    if( x264_sync_frame_list_init( &look->ifbuf, h->param.i_sync_lookahead+3 ) ||
+        x264_sync_frame_list_init( &look->next, h->frames.i_delay+3 ) ||
+        x264_sync_frame_list_init( &look->ofbuf, h->frames.i_delay+3 ) )
         goto fail;
 
     if( !h->param.i_sync_lookahead )
@@ -153,7 +153,7 @@ int x264_lookahead_init( x264_t *h, int i_slicetype_length )
     if( x264_macroblock_thread_allocate( look_h, 1 ) < 0 )
         goto fail;
 
-    if( x264_pthread_create( &look_h->thread_handle, NULL, (void *)x264_lookahead_thread, look_h ) )
+    if( x264_pthread_create( &look->thread_handle, NULL, (void*)x264_lookahead_thread, look_h ) )
         goto fail;
     look->b_thread_active = 1;
 
@@ -171,25 +171,25 @@ void x264_lookahead_delete( x264_t *h )
         h->lookahead->b_exit_thread = 1;
         x264_pthread_cond_broadcast( &h->lookahead->ifbuf.cv_fill );
         x264_pthread_mutex_unlock( &h->lookahead->ifbuf.mutex );
-        x264_pthread_join( h->thread[h->param.i_threads]->thread_handle, NULL );
+        x264_pthread_join( h->lookahead->thread_handle, NULL );
         x264_macroblock_cache_free( h->thread[h->param.i_threads] );
         x264_macroblock_thread_free( h->thread[h->param.i_threads], 1 );
         x264_free( h->thread[h->param.i_threads] );
     }
-    x264_synch_frame_list_delete( &h->lookahead->ifbuf );
-    x264_synch_frame_list_delete( &h->lookahead->next );
+    x264_sync_frame_list_delete( &h->lookahead->ifbuf );
+    x264_sync_frame_list_delete( &h->lookahead->next );
     if( h->lookahead->last_nonb )
         x264_frame_push_unused( h, h->lookahead->last_nonb );
-    x264_synch_frame_list_delete( &h->lookahead->ofbuf );
+    x264_sync_frame_list_delete( &h->lookahead->ofbuf );
     x264_free( h->lookahead );
 }
 
 void x264_lookahead_put_frame( x264_t *h, x264_frame_t *frame )
 {
     if( h->param.i_sync_lookahead )
-        x264_synch_frame_list_push( &h->lookahead->ifbuf, frame );
+        x264_sync_frame_list_push( &h->lookahead->ifbuf, frame );
     else
-        x264_synch_frame_list_push( &h->lookahead->next, frame );
+        x264_sync_frame_list_push( &h->lookahead->next, frame );
 }
 
 int x264_lookahead_is_empty( x264_t *h )

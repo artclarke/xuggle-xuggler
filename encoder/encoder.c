@@ -349,6 +349,20 @@ fail:
     return -1;
 }
 
+#if HAVE_PTHREAD
+static void x264_encoder_thread_init( x264_t *h )
+{
+    if( h->param.i_sync_lookahead )
+        x264_lower_thread_priority( 10 );
+
+#if HAVE_MMX
+    /* Misalign mask has to be set separately for each thread. */
+    if( h->param.cpu&X264_CPU_SSE_MISALIGN )
+        x264_cpu_mask_misalign_sse();
+#endif
+}
+#endif
+
 /****************************************************************************
  *
  ****************************************************************************
@@ -1051,6 +1065,10 @@ x264_t *x264_encoder_open( x264_param_t *param )
 
     CHECKED_MALLOC( h->nal_buffer, h->out.i_bitstream * 3/2 + 4 );
     h->nal_buffer_size = h->out.i_bitstream * 3/2 + 4;
+
+    if( h->param.i_threads > 1 &&
+        x264_threadpool_init( &h->threadpool, h->param.i_threads, (void*)x264_encoder_thread_init, h ) )
+        goto fail;
 
     h->thread[0] = h;
     for( int i = 1; i < h->param.i_threads + !!h->param.i_sync_lookahead; i++ )
@@ -2044,14 +2062,6 @@ static void *x264_slices_write( x264_t *h )
 {
     int i_slice_num = 0;
     int last_thread_mb = h->sh.i_last_mb;
-    if( h->param.i_sync_lookahead )
-        x264_lower_thread_priority( 10 );
-
-#if HAVE_MMX
-    /* Misalign mask has to be set separately for each thread. */
-    if( h->param.cpu&X264_CPU_SSE_MISALIGN )
-        x264_cpu_mask_misalign_sse();
-#endif
 
 #if HAVE_VISUALIZE
     if( h->param.b_visualize )
@@ -2093,11 +2103,6 @@ static void *x264_slices_write( x264_t *h )
 
 static int x264_threaded_slices_write( x264_t *h )
 {
-    void *ret = NULL;
-#if HAVE_MMX
-    if( h->param.cpu&X264_CPU_SSE_MISALIGN )
-        x264_cpu_mask_misalign_sse();
-#endif
     /* set first/last mb and sync contexts */
     for( int i = 0; i < h->param.i_threads; i++ )
     {
@@ -2121,16 +2126,14 @@ static int x264_threaded_slices_write( x264_t *h )
     /* dispatch */
     for( int i = 0; i < h->param.i_threads; i++ )
     {
-        if( x264_pthread_create( &h->thread[i]->thread_handle, NULL, (void*)x264_slices_write, (void*)h->thread[i] ) )
-            return -1;
+        x264_threadpool_run( h->threadpool, (void*)x264_slices_write, h->thread[i] );
         h->thread[i]->b_thread_active = 1;
     }
     for( int i = 0; i < h->param.i_threads; i++ )
     {
-        x264_pthread_join( h->thread[i]->thread_handle, &ret );
         h->thread[i]->b_thread_active = 0;
-        if( (intptr_t)ret )
-            return (intptr_t)ret;
+        if( (intptr_t)x264_threadpool_wait( h->threadpool, h->thread[i] ) )
+            return -1;
     }
 
     /* Go back and fix up the hpel on the borders between slices. */
@@ -2206,6 +2209,10 @@ int     x264_encoder_encode( x264_t *h,
         thread_current =
         thread_oldest  = h;
     }
+#if HAVE_MMX
+    if( h->i_thread_frames == 1 && h->param.cpu&X264_CPU_SSE_MISALIGN )
+        x264_cpu_mask_misalign_sse();
+#endif
 
     // ok to call this before encoding any frames, since the initial values of fdec have b_kept_as_ref=0
     if( x264_reference_update( h ) )
@@ -2529,8 +2536,7 @@ int     x264_encoder_encode( x264_t *h,
     h->i_threadslice_end = h->mb.i_mb_height;
     if( h->i_thread_frames > 1 )
     {
-        if( x264_pthread_create( &h->thread_handle, NULL, (void*)x264_slices_write, h ) )
-            return -1;
+        x264_threadpool_run( h->threadpool, (void*)x264_slices_write, h );
         h->b_thread_active = 1;
     }
     else if( h->param.b_sliced_threads )
@@ -2553,11 +2559,9 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 
     if( h->b_thread_active )
     {
-        void *ret = NULL;
-        x264_pthread_join( h->thread_handle, &ret );
         h->b_thread_active = 0;
-        if( (intptr_t)ret )
-            return (intptr_t)ret;
+        if( (intptr_t)x264_threadpool_wait( h->threadpool, h ) )
+            return -1;
     }
     if( !h->out.i_nal )
     {
@@ -2821,25 +2825,20 @@ void    x264_encoder_close  ( x264_t *h )
     x264_lookahead_delete( h );
 
     if( h->param.i_threads > 1 )
+        x264_threadpool_delete( h->threadpool );
+    if( h->i_thread_frames > 1 )
     {
-        // don't strictly have to wait for the other threads, but it's simpler than canceling them
-        for( int i = 0; i < h->param.i_threads; i++ )
+        for( int i = 0; i < h->i_thread_frames; i++ )
             if( h->thread[i]->b_thread_active )
-                x264_pthread_join( h->thread[i]->thread_handle, NULL );
-        if( h->i_thread_frames > 1 )
-        {
-            for( int i = 0; i < h->i_thread_frames; i++ )
-                if( h->thread[i]->b_thread_active )
-                {
-                    assert( h->thread[i]->fenc->i_reference_count == 1 );
-                    x264_frame_delete( h->thread[i]->fenc );
-                }
+            {
+                assert( h->thread[i]->fenc->i_reference_count == 1 );
+                x264_frame_delete( h->thread[i]->fenc );
+            }
 
-            x264_t *thread_prev = h->thread[h->i_thread_phase];
-            x264_thread_sync_ratecontrol( h, thread_prev, h );
-            x264_thread_sync_ratecontrol( thread_prev, thread_prev, h );
-            h->i_frame = thread_prev->i_frame + 1 - h->i_thread_frames;
-        }
+        x264_t *thread_prev = h->thread[h->i_thread_phase];
+        x264_thread_sync_ratecontrol( h, thread_prev, h );
+        x264_thread_sync_ratecontrol( thread_prev, thread_prev, h );
+        h->i_frame = thread_prev->i_frame + 1 - h->i_thread_frames;
     }
     h->i_frame++;
 

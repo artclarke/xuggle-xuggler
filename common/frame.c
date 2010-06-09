@@ -517,7 +517,7 @@ void x264_frame_delete_list( x264_frame_t **list )
     x264_free( list );
 }
 
-int x264_synch_frame_list_init( x264_synch_frame_list_t *slist, int max_size )
+int x264_sync_frame_list_init( x264_sync_frame_list_t *slist, int max_size )
 {
     if( max_size < 0 )
         return -1;
@@ -533,7 +533,7 @@ fail:
     return -1;
 }
 
-void x264_synch_frame_list_delete( x264_synch_frame_list_t *slist )
+void x264_sync_frame_list_delete( x264_sync_frame_list_t *slist )
 {
     x264_pthread_mutex_destroy( &slist->mutex );
     x264_pthread_cond_destroy( &slist->cv_fill );
@@ -541,7 +541,7 @@ void x264_synch_frame_list_delete( x264_synch_frame_list_t *slist )
     x264_frame_delete_list( slist->list );
 }
 
-void x264_synch_frame_list_push( x264_synch_frame_list_t *slist, x264_frame_t *frame )
+void x264_sync_frame_list_push( x264_sync_frame_list_t *slist, x264_frame_t *frame )
 {
     x264_pthread_mutex_lock( &slist->mutex );
     while( slist->i_size == slist->i_max_size )
@@ -549,4 +549,17 @@ void x264_synch_frame_list_push( x264_synch_frame_list_t *slist, x264_frame_t *f
     slist->list[ slist->i_size++ ] = frame;
     x264_pthread_mutex_unlock( &slist->mutex );
     x264_pthread_cond_broadcast( &slist->cv_fill );
+}
+
+x264_frame_t *x264_sync_frame_list_pop( x264_sync_frame_list_t *slist )
+{
+    x264_frame_t *frame;
+    x264_pthread_mutex_lock( &slist->mutex );
+    while( !slist->i_size )
+        x264_pthread_cond_wait( &slist->cv_fill, &slist->mutex );
+    frame = slist->list[ --slist->i_size ];
+    slist->list[ slist->i_size ] = NULL;
+    x264_pthread_cond_broadcast( &slist->cv_empty );
+    x264_pthread_mutex_unlock( &slist->mutex );
+    return frame;
 }
