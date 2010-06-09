@@ -1073,7 +1073,7 @@ static int check_mc( int cpu_ref, int cpu_new )
         // I don't care about exact rounding, this is just how close the floating-point implementation happens to be
         x264_emms();
         for( int i = 0; i < 400; i++ )
-            ok &= abs( dstc[i]-dsta[i] ) <= (abs( dstc[i])>512 ) || fabs( (double)dstc[i]/dsta[i]-1 ) < 1e-6;
+            ok &= abs( dstc[i]-dsta[i] ) <= 1 || fabs( (double)dstc[i]/dsta[i]-1 ) < 1e-6;
         report( "mbtree propagate :" );
     }
 

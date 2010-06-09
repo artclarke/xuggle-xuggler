@@ -1120,28 +1120,33 @@ cglobal mbtree_propagate_cost_sse2, 6,6,7
     add r4, r5
     neg r5
     pxor      xmm5, xmm5
-    movdqa    xmm4, [pd_128]
     movdqa    xmm6, [pw_3fff]
+    movdqa    xmm4, [pd_128]
 .loop:
     movq      xmm2, [r2+r5] ; intra
     movq      xmm0, [r4+r5] ; invq
+    movq      xmm3, [r3+r5] ; inter
+    movq      xmm1, [r1+r5] ; prop
     punpcklwd xmm2, xmm5
     punpcklwd xmm0, xmm5
     pmaddwd   xmm0, xmm2
-    paddd     xmm0, xmm4
-    psrld     xmm0, 8       ; intra*invq>>8
-    movq      xmm3, [r3+r5] ; inter
-    movq      xmm1, [r1+r5] ; prop
     pand      xmm3, xmm6
     punpcklwd xmm1, xmm5
     punpcklwd xmm3, xmm5
+    paddd     xmm0, xmm4
+    psrld     xmm0, 8       ; intra*invq>>8
     paddd     xmm0, xmm1    ; prop + (intra*invq>>8)
     cvtdq2ps  xmm1, xmm2    ; intra
     psubd     xmm2, xmm3    ; intra - inter
+    rcpps     xmm3, xmm1    ; 1 / intra 1st approximation
     cvtdq2ps  xmm0, xmm0
+    mulps     xmm1, xmm3    ; intra * (1/intra 1st approx)
     cvtdq2ps  xmm2, xmm2
+    mulps     xmm1, xmm3    ; intra * (1/intra 1st approx)^2
     mulps     xmm0, xmm2    ; (prop + (intra*invq>>8)) * (intra - inter)
-    divps     xmm0, xmm1    ; / intra
+    addps     xmm3, xmm3    ; 2 * (1/intra 1st approx)
+    subps     xmm3, xmm1    ; 2nd approximation for 1/intra
+    mulps     xmm0, xmm3    ; / intra
     cvttps2dq xmm0, xmm0    ; truncation isn't really desired, but matches the integer implementation
     movdqa [r0+r5*2], xmm0
     add r5, 8
