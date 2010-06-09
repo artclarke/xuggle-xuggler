@@ -874,7 +874,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     }
 
     /* quarterpel diamond search */
-    if( h->mb.i_subpel_refine > 1 )
+    if( h->mb.i_subpel_refine != 1 )
     {
         bdir = -1;
         for( int i = qpel_iters; i > 0; i-- )
