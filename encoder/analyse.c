@@ -720,7 +720,8 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
                 satd[i_pred_mode] -= 3 * lambda;
                 for( int i = 2; i >= 0; i-- )
                 {
-                    int cost = a->i_satd_i8x8_dir[i][idx] = satd[i];
+                    int cost = satd[i];
+                    a->i_satd_i8x8_dir[i][idx] = cost + 4 * lambda;
                     COPY2_IF_LT( i_best, cost, a->i_predict8x8[idx], i );
                 }
 
@@ -1038,7 +1039,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
         for( int idx = 0; idx < 4; idx++ )
         {
             pixel4 pels_h[2] = {0};
-            pixel pels_v[7];
+            pixel pels_v[7] = {0};
             uint16_t i_nnz[2] = {0}; //shut up gcc
             pixel *p_dst_by;
             int cbp_luma_new = 0;
