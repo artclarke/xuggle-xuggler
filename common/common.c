@@ -281,7 +281,7 @@ static int x264_param_apply_preset( x264_param_t *param, const char *preset )
 
 static int x264_param_apply_tune( x264_param_t *param, const char *tune )
 {
-    char *tmp = x264_malloc( strlen( tune ) );
+    char *tmp = x264_malloc( strlen( tune ) + 1 );
     if( !tmp )
         return -1;
     tmp = strcpy( tmp, tune );
