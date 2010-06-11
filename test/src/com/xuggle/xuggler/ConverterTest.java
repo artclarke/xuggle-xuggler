@@ -207,8 +207,8 @@ public class ConverterTest extends TestCase
     
     converter.run(cmdLine);
   }
-  @Test
-  public void testPresets() throws ParseException
+  //@Test
+  public void ignoreTestPresets() throws ParseException
   {
     String[] args = new String[]{
         "--containerformat",
