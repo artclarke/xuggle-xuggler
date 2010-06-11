@@ -12208,6 +12208,18 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1CAP_1HWACCEL_
 }
 
 
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1CAP_1SUBFRAMES_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::ICodec::Capabilities result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::ICodec::Capabilities)com::xuggle::xuggler::ICodec::CAP_SUBFRAMES;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
 SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1getCapabilities(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
   jint jresult = 0 ;
   com::xuggle::xuggler::ICodec *arg1 = (com::xuggle::xuggler::ICodec *) 0 ;
@@ -16920,6 +16932,54 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1FLAG2_1
   (void)jenv;
   (void)jcls;
   result = (com::xuggle::xuggler::IStreamCoder::Flags)com::xuggle::xuggler::IStreamCoder::FLAG2_BIT_RESERVOIR;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1FLAG2_1MBTREE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IStreamCoder::Flags result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IStreamCoder::Flags)com::xuggle::xuggler::IStreamCoder::FLAG2_MBTREE;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1FLAG2_1PSY_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IStreamCoder::Flags result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IStreamCoder::Flags)com::xuggle::xuggler::IStreamCoder::FLAG2_PSY;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1FLAG2_1SSIM_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IStreamCoder::Flags result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IStreamCoder::Flags)com::xuggle::xuggler::IStreamCoder::FLAG2_SSIM;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1FLAG2_1INTRA_1REFRESH_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IStreamCoder::Flags result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IStreamCoder::Flags)com::xuggle::xuggler::IStreamCoder::FLAG2_INTRA_REFRESH;
   jresult = (jint)result; 
   return jresult;
 }

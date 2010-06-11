@@ -253,6 +253,7 @@ class XugglerJNI {
   public final static native int ICodec_CAP_DELAY_get();
   public final static native int ICodec_CAP_SMALL_LAST_FRAME_get();
   public final static native int ICodec_CAP_HWACCEL_VDPAU_get();
+  public final static native int ICodec_CAP_SUBFRAMES_get();
   public final static native int ICodec_getCapabilities(long jarg1, ICodec jarg1_);
   public final static native boolean ICodec_hasCapability(long jarg1, ICodec jarg1_, int jarg2);
   public final static native int ICodec_getNumInstalledCodecs();
@@ -355,6 +356,10 @@ class XugglerJNI {
   public final static native int IStreamCoder_FLAG2_CHUNKS_get();
   public final static native int IStreamCoder_FLAG2_NON_LINEAR_QUANT_get();
   public final static native int IStreamCoder_FLAG2_BIT_RESERVOIR_get();
+  public final static native int IStreamCoder_FLAG2_MBTREE_get();
+  public final static native int IStreamCoder_FLAG2_PSY_get();
+  public final static native int IStreamCoder_FLAG2_SSIM_get();
+  public final static native int IStreamCoder_FLAG2_INTRA_REFRESH_get();
   public final static native int IStreamCoder_getDirection(long jarg1, IStreamCoder jarg1_);
   public final static native long IStreamCoder_getStream(long jarg1, IStreamCoder jarg1_);
   public final static native long IStreamCoder_getCodec(long jarg1, IStreamCoder jarg1_);

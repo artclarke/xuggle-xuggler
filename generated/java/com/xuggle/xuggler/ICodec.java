@@ -959,7 +959,8 @@ public class ICodec extends RefCounted {
     CAP_HWACCEL(XugglerJNI.ICodec_CAP_HWACCEL_get()),
     CAP_DELAY(XugglerJNI.ICodec_CAP_DELAY_get()),
     CAP_SMALL_LAST_FRAME(XugglerJNI.ICodec_CAP_SMALL_LAST_FRAME_get()),
-    CAP_HWACCEL_VDPAU(XugglerJNI.ICodec_CAP_HWACCEL_VDPAU_get());
+    CAP_HWACCEL_VDPAU(XugglerJNI.ICodec_CAP_HWACCEL_VDPAU_get()),
+    CAP_SUBFRAMES(XugglerJNI.ICodec_CAP_SUBFRAMES_get());
 
     public final int swigValue() {
       return swigValue;

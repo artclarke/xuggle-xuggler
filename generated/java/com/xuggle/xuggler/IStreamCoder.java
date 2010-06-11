@@ -1240,7 +1240,11 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
     FLAG2_SKIP_RD(XugglerJNI.IStreamCoder_FLAG2_SKIP_RD_get()),
     FLAG2_CHUNKS(XugglerJNI.IStreamCoder_FLAG2_CHUNKS_get()),
     FLAG2_NON_LINEAR_QUANT(XugglerJNI.IStreamCoder_FLAG2_NON_LINEAR_QUANT_get()),
-    FLAG2_BIT_RESERVOIR(XugglerJNI.IStreamCoder_FLAG2_BIT_RESERVOIR_get());
+    FLAG2_BIT_RESERVOIR(XugglerJNI.IStreamCoder_FLAG2_BIT_RESERVOIR_get()),
+    FLAG2_MBTREE(XugglerJNI.IStreamCoder_FLAG2_MBTREE_get()),
+    FLAG2_PSY(XugglerJNI.IStreamCoder_FLAG2_PSY_get()),
+    FLAG2_SSIM(XugglerJNI.IStreamCoder_FLAG2_SSIM_get()),
+    FLAG2_INTRA_REFRESH(XugglerJNI.IStreamCoder_FLAG2_INTRA_REFRESH_get());
 
     public final int swigValue() {
       return swigValue;
