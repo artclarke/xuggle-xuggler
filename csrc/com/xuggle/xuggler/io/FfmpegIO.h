@@ -25,6 +25,9 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+JNIEXPORT void JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_init(JNIEnv *env, jclass);
+
 /*
  * Class:     com_xuggle_xuggler_io_FfmpegIO
  * Method:    native_registerProtocolHandler

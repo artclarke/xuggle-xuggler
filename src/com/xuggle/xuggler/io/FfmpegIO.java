@@ -53,37 +53,22 @@ import com.xuggle.xuggler.Version;
 public class FfmpegIO
 {
 
-  static Boolean initialized = false;
-
   static
   {
-    init();
+    com.xuggle.ferry.JNILibraryLoader.loadLibrary(
+        "xuggle-xuggler-io",
+        new Long(Version.MAJOR_VERSION));
+    FfmpegIO.init();
+    // And force the URLProtocolManager global
+    // object to be created.
+    URLProtocolManager.init();
   }
 
   /**
-   * Load the native library we depend on.
+   * Internal Only.  Do not use.
    */
-  static void init()
-  {
-    if (!initialized)
-    {
-      synchronized (initialized)
-      {
-        if (!initialized)
-        {
-          com.xuggle.ferry.JNILibraryLoader.loadLibrary(
-              "xuggle-xuggler-io",
-              new Long(Version.MAJOR_VERSION));
-        }
-        initialized = true;
-        // And force the URLProtocolManager global
-        // object to be created.
-        URLProtocolManager.init();
-      }
-    }
-
-  }
-
+  public native static void init();
+  
   /**
    * This method is called by URLProtocolManager to register itself as a 
    * protocol manager for different FFMPEG protocols.

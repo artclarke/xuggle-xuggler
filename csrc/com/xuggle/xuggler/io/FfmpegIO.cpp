@@ -28,13 +28,22 @@ using namespace com::xuggle::ferry;
 using namespace com::xuggle::xuggler::io;
 
 JNIEXPORT jint JNICALL
-JNI_OnLoad(JavaVM *jvm, void *)
+JNI_OnLoad(JavaVM *, void *)
 {
-  JNIHelper::sSetVM(jvm);
-  // Now, register the FFMPEG codecs
-  av_register_all();
+    /* Because of static initialize in Mac OS, the only safe thing
+     * to do here is return the version */
+    return com::xuggle::ferry::JNIHelper::sGetJNIVersion();
+}
 
-  return JNIHelper::sGetJNIVersion();
+
+JNIEXPORT void JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_init(JNIEnv *env, jclass)
+{
+  JavaVM* vm=0;
+  if (!com::xuggle::ferry::JNIHelper::sGetVM()) {
+    env->GetJavaVM(&vm);
+    com::xuggle::ferry::JNIHelper::sSetVM(vm);
+    av_register_all();
+  }
 }
 
 JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1registerProtocolHandler(
