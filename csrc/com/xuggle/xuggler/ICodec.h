@@ -490,6 +490,7 @@ public:
     CAP_DELAY = 0x0020,
     CAP_SMALL_LAST_FRAME = 0x0040,
     CAP_HWACCEL_VDPAU = 0x0080,
+    CAP_SUBFRAMES =0x0100,
 
   } Capabilities;
 

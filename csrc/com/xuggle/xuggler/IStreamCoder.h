@@ -114,6 +114,10 @@ namespace com { namespace xuggle { namespace xuggler
       FLAG2_CHUNKS        =0x00008000, // Input bitstream might be truncated at a packet boundaries instead of only at frame boundaries.
       FLAG2_NON_LINEAR_QUANT =0x00010000, // Use MPEG-2 nonlinear quantizer.
       FLAG2_BIT_RESERVOIR =0x00020000, // Use a bit reservoir when encoding if possible
+      FLAG2_MBTREE =0x00040000, // Use macroblock tree ratecontrol (x264 only)
+      FLAG2_PSY =0x00080000, // Use psycho visual optimizations.
+      FLAG2_SSIM =0x00100000, // Compute SSIM during encoding, error[] values are undefined.
+      FLAG2_INTRA_REFRESH=0x00200000,
     } Flags;
 
     /** Get the direction.
