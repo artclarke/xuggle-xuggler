@@ -428,7 +428,10 @@ int x264_param_apply_profile( x264_param_t *param, const char *profile )
             return -1;
         }
         if( param->b_fake_interlaced )
-            x264_log( NULL, X264_LOG_WARNING, "baseline profile doesn't support fake interlacing\n" );
+        {
+            x264_log( NULL, X264_LOG_ERROR, "baseline profile doesn't support fake interlacing\n" );
+            return -1;
+        }
     }
     else if( !strcasecmp( profile, "main" ) )
     {
@@ -1176,7 +1179,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
         s += sprintf( s, " slice_max_mbs=%d", p->i_slice_max_mbs );
     s += sprintf( s, " nr=%d", p->analyse.i_noise_reduction );
     s += sprintf( s, " decimate=%d", p->analyse.b_dct_decimate );
-    s += sprintf( s, " interlaced=%s", p->b_interlaced ? p->b_tff ? "tff" : "bff" : "0" );
+    s += sprintf( s, " interlaced=%s", p->b_interlaced ? p->b_tff ? "tff" : "bff" : p->b_fake_interlaced ? "fake" : "0" );
 
     s += sprintf( s, " constrained_intra=%d", p->b_constrained_intra );
 
