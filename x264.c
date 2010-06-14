@@ -585,28 +585,30 @@ static void Help( x264_param_t *defaults, int longhelp )
     H0( "\n" );
 }
 
-#define OPT_FRAMES 256
-#define OPT_SEEK 257
-#define OPT_QPFILE 258
-#define OPT_THREAD_INPUT 259
-#define OPT_QUIET 260
-#define OPT_NOPROGRESS 261
-#define OPT_VISUALIZE 262
-#define OPT_LONGHELP 263
-#define OPT_PROFILE 264
-#define OPT_PRESET 265
-#define OPT_TUNE 266
-#define OPT_SLOWFIRSTPASS 267
-#define OPT_FULLHELP 268
-#define OPT_FPS 269
-#define OPT_MUXER 270
-#define OPT_DEMUXER 271
-#define OPT_INDEX 272
-#define OPT_INTERLACED 273
-#define OPT_TCFILE_IN 274
-#define OPT_TCFILE_OUT 275
-#define OPT_TIMEBASE 276
-#define OPT_PULLDOWN 277
+enum {
+    OPT_FRAMES = 256,
+    OPT_SEEK,
+    OPT_QPFILE,
+    OPT_THREAD_INPUT,
+    OPT_QUIET,
+    OPT_NOPROGRESS,
+    OPT_VISUALIZE,
+    OPT_LONGHELP,
+    OPT_PROFILE,
+    OPT_PRESET,
+    OPT_TUNE,
+    OPT_SLOWFIRSTPASS,
+    OPT_FULLHELP,
+    OPT_FPS,
+    OPT_MUXER,
+    OPT_DEMUXER,
+    OPT_INDEX,
+    OPT_INTERLACED,
+    OPT_TCFILE_IN,
+    OPT_TCFILE_OUT,
+    OPT_TIMEBASE,
+    OPT_PULLDOWN,
+} OptionsOPT;
 
 static char short_options[] = "8A:B:b:f:hI:i:m:o:p:q:r:t:Vvw";
 static struct option long_options[] =
