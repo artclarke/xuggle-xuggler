@@ -245,7 +245,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
         pmv = pack16to32_mask( bmx, bmy );
         if( i_mvc > 0 )
         {
-            ALIGNED_ARRAY_8( int16_t, mvc_fpel,[16][2] );
+            ALIGNED_ARRAY_8( int16_t, mvc_fpel,[16],[2] );
             x264_predictor_roundclip( mvc_fpel, mvc, i_mvc, mv_x_min, mv_x_max, mv_y_min, mv_y_max );
             bcost <<= 4;
             for( int i = 1; i <= i_mvc; i++ )
