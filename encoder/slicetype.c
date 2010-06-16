@@ -1058,7 +1058,7 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
 {
     x264_mb_analysis_t a;
     x264_frame_t *frames[X264_LOOKAHEAD_MAX+3] = { NULL, };
-    int num_frames, orig_num_frames, keyint_limit, idr_frame_type, framecnt;
+    int num_frames, orig_num_frames, keyint_limit, framecnt;
     int i_mb_count = NUM_MBS;
     int cost1p0, cost2p0, cost1b1, cost2p1;
     int i_max_search = X264_MIN( h->lookahead->next.i_size, X264_LOOKAHEAD_MAX );
@@ -1080,7 +1080,6 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
     orig_num_frames = num_frames = h->param.b_intra_refresh ? framecnt : X264_MIN( framecnt, keyint_limit );
 
     x264_lowres_context_init( h, &a );
-    idr_frame_type = frames[1]->i_frame - h->lookahead->i_last_keyframe >= h->param.i_keyint_min ? X264_TYPE_IDR : X264_TYPE_I;
 
     /* This is important psy-wise: if we have a non-scenecut keyframe,
      * there will be significant visual artifacts if the frames just before
@@ -1092,12 +1091,12 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
     {
         frames[1]->i_type = X264_TYPE_P;
         if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, 0, 1, 1, orig_num_frames ) )
-            frames[1]->i_type = idr_frame_type;
+            frames[1]->i_type = X264_TYPE_I;
         return;
     }
     else if( num_frames == 0 )
     {
-        frames[1]->i_type = idr_frame_type;
+        frames[1]->i_type = X264_TYPE_I;
         return;
     }
 
@@ -1106,7 +1105,7 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
     int reset_start;
     if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, 0, 1, 1, orig_num_frames ) )
     {
-        frames[1]->i_type = idr_frame_type;
+        frames[1]->i_type = X264_TYPE_I;
         return;
     }
 
@@ -1210,15 +1209,19 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
 
     /* Enforce keyframe limit. */
     if( !h->param.b_intra_refresh )
-        for( int j = 0; j < num_frames; j++ )
+        for( int i = keyint_limit+1; i <= num_frames; i += h->param.i_keyint_max )
         {
-            if( ((j-keyint_limit) % h->param.i_keyint_max) == 0 )
+            int j = i;
+            if( h->param.i_open_gop == X264_OPEN_GOP_CODED_ORDER )
             {
-                if( j && h->param.i_keyint_max > 1 )
-                    frames[j]->i_type = X264_TYPE_P;
-                frames[j+1]->i_type = X264_TYPE_IDR;
-                reset_start = X264_MIN( reset_start, j+2 );
+                while( IS_X264_TYPE_B( frames[i]->i_type ) )
+                    i++;
+                while( IS_X264_TYPE_B( frames[j-1]->i_type ) )
+                    j--;
             }
+            frames[i]->i_type = X264_TYPE_I;
+            reset_start = X264_MIN( reset_start, i+1 );
+            i = j;
         }
 
     if( h->param.rc.i_vbv_buffer_size )
@@ -1303,13 +1306,39 @@ void x264_slicetype_decide( x264_t *h )
                       frm->i_frame, x264_b_pyramid_names[h->param.i_bframe_pyramid], h->param.i_frame_reference );
         }
 
+        if( frm->i_type == X264_TYPE_KEYFRAME )
+            frm->i_type = h->param.i_open_gop ? X264_TYPE_I : X264_TYPE_IDR;
+
         /* Limit GOP size */
         if( (!h->param.b_intra_refresh || frm->i_frame == 0) && frm->i_frame - h->lookahead->i_last_keyframe >= h->param.i_keyint_max )
         {
-            if( frm->i_type == X264_TYPE_AUTO )
+            if( frm->i_type == X264_TYPE_AUTO || frm->i_type == X264_TYPE_I )
+                frm->i_type = h->param.i_open_gop && h->lookahead->i_last_keyframe >= 0 ? X264_TYPE_I : X264_TYPE_IDR;
+            int warn = frm->i_type != X264_TYPE_IDR;
+            if( warn && h->param.i_open_gop == X264_OPEN_GOP_DISPLAY_ORDER )
+                warn &= frm->i_type != X264_TYPE_I && frm->i_type != X264_TYPE_KEYFRAME;
+            if( warn && h->param.i_open_gop == X264_OPEN_GOP_CODED_ORDER )
+            {
+                /* if this minigop ends with i, it's not a violation */
+                int j = bframes;
+                while( IS_X264_TYPE_B( h->lookahead->next.list[j]->i_type ) )
+                    j++;
+                warn = h->lookahead->next.list[j]->i_type != X264_TYPE_I && h->lookahead->next.list[j]->i_type != X264_TYPE_KEYFRAME;
+            }
+            if( warn )
+                x264_log( h, X264_LOG_WARNING, "specified frame type (%d) at %d is not compatible with keyframe interval\n", frm->i_type, frm->i_frame );
+        }
+        if( frm->i_type == X264_TYPE_I && frm->i_frame - h->lookahead->i_last_keyframe >= h->param.i_keyint_min )
+        {
+            if( h->param.i_open_gop )
+            {
+                h->lookahead->i_last_keyframe = frm->i_frame; // Use display order
+                if( h->param.i_open_gop == X264_OPEN_GOP_CODED_ORDER )
+                    h->lookahead->i_last_keyframe -= bframes; // Use coded order
+                frm->b_keyframe = 1;
+            }
+            else
                 frm->i_type = X264_TYPE_IDR;
-            if( frm->i_type != X264_TYPE_IDR )
-                x264_log( h, X264_LOG_WARNING, "specified frame type (%d) is not compatible with keyframe interval\n", frm->i_type );
         }
         if( frm->i_type == X264_TYPE_IDR )
         {

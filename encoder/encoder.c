@@ -573,12 +573,10 @@ static int x264_validate_parameters( x264_t *h )
         x264_log( h, X264_LOG_WARNING, "subme=0 + direct=temporal is not supported\n" );
         h->param.analyse.i_direct_mv_pred = X264_DIRECT_PRED_SPATIAL;
     }
-    h->param.i_bframe = x264_clip3( h->param.i_bframe, 0, X264_BFRAME_MAX );
+    h->param.i_bframe = x264_clip3( h->param.i_bframe, 0, X264_MIN( X264_BFRAME_MAX, h->param.i_keyint_max-1 ) );
+    h->param.i_open_gop = x264_clip3( h->param.i_open_gop, X264_OPEN_GOP_NONE, X264_OPEN_GOP_CODED_ORDER );
     if( h->param.i_keyint_max == 1 )
-    {
-        h->param.i_bframe = 0;
         h->param.b_intra_refresh = 0;
-    }
     h->param.i_bframe_bias = x264_clip3( h->param.i_bframe_bias, -90, 100 );
     if( h->param.i_bframe <= 1 )
         h->param.i_bframe_pyramid = X264_B_PYRAMID_NONE;
@@ -588,6 +586,7 @@ static int x264_validate_parameters( x264_t *h )
         h->param.i_bframe_adaptive = X264_B_ADAPT_NONE;
         h->param.analyse.i_direct_mv_pred = 0;
         h->param.analyse.b_weighted_bipred = 0;
+        h->param.i_open_gop = X264_OPEN_GOP_NONE;
     }
     if( h->param.b_intra_refresh && h->param.i_bframe_pyramid == X264_B_PYRAMID_NORMAL )
     {
@@ -598,6 +597,11 @@ static int x264_validate_parameters( x264_t *h )
     {
         x264_log( h, X264_LOG_WARNING, "ref > 1 + intra-refresh is not supported\n" );
         h->param.i_frame_reference = 1;
+    }
+    if( h->param.b_intra_refresh && h->param.i_open_gop )
+    {
+        x264_log( h, X264_LOG_WARNING, "intra-refresh is not compatible with open-gop\n" );
+        h->param.i_open_gop = X264_OPEN_GOP_NONE;
     }
     if( h->param.i_keyint_min == X264_KEYINT_MIN_AUTO )
         h->param.i_keyint_min = h->param.i_keyint_max / 10;
@@ -978,9 +982,11 @@ x264_t *x264_encoder_open( x264_param_t *param )
     h->frames.b_have_lowres |= h->param.rc.b_stat_read && h->param.rc.i_vbv_buffer_size > 0;
     h->frames.b_have_sub8x8_esa = !!(h->param.analyse.inter & X264_ANALYSE_PSUB8x8);
 
+    h->frames.i_last_idr =
     h->frames.i_last_keyframe = - h->param.i_keyint_max;
     h->frames.i_input    = 0;
     h->frames.i_largest_pts = h->frames.i_second_largest_pts = -1;
+    h->frames.i_poc_last_open_gop = -1;
 
     CHECKED_MALLOCZERO( h->frames.unused[0], (h->frames.i_delay + 3) * sizeof(x264_frame_t *) );
     /* Allocate room for max refs plus a few extra just in case. */
@@ -1688,35 +1694,37 @@ static inline void x264_reference_hierarchy_reset( x264_t *h )
 {
     int ref;
     int b_hasdelayframe = 0;
-    if( !h->param.i_bframe_pyramid )
-        return;
 
     /* look for delay frames -- chain must only contain frames that are disposable */
     for( int i = 0; h->frames.current[i] && IS_DISPOSABLE( h->frames.current[i]->i_type ); i++ )
         b_hasdelayframe |= h->frames.current[i]->i_coded
                         != h->frames.current[i]->i_frame + h->sps->vui.i_num_reorder_frames;
 
-    if( h->param.i_bframe_pyramid != X264_B_PYRAMID_STRICT && !b_hasdelayframe )
+    /* This function must handle b-pyramid and clear frames for open-gop */
+    if( h->param.i_bframe_pyramid != X264_B_PYRAMID_STRICT && !b_hasdelayframe && h->frames.i_poc_last_open_gop == -1 )
         return;
 
     /* Remove last BREF. There will never be old BREFs in the
      * dpb during a BREF decode when pyramid == STRICT */
     for( ref = 0; h->frames.reference[ref]; ref++ )
     {
-        if( h->param.i_bframe_pyramid == X264_B_PYRAMID_STRICT
+        if( ( h->param.i_bframe_pyramid == X264_B_PYRAMID_STRICT
             && h->frames.reference[ref]->i_type == X264_TYPE_BREF )
+            || ( h->frames.reference[ref]->i_poc < h->frames.i_poc_last_open_gop
+            && h->sh.i_type != SLICE_TYPE_B ) )
         {
             int diff = h->i_frame_num - h->frames.reference[ref]->i_frame_num;
             h->sh.mmco[h->sh.i_mmco_command_count].i_difference_of_pic_nums = diff;
             h->sh.mmco[h->sh.i_mmco_command_count++].i_poc = h->frames.reference[ref]->i_poc;
-            x264_frame_push_unused( h, x264_frame_pop( h->frames.reference ) );
+            x264_frame_push_unused( h, x264_frame_shift( &h->frames.reference[ref] ) );
             h->b_ref_reorder[0] = 1;
-            break;
+            ref--;
         }
     }
 
-    /* Prepare to room in the dpb for the delayed display time of the later b-frame's */
-    h->sh.i_mmco_remove_from_end = X264_MAX( ref + 2 - h->frames.i_max_dpb, 0 );
+    /* Prepare room in the dpb for the delayed display time of the later b-frame's */
+    if( h->param.i_bframe_pyramid )
+        h->sh.i_mmco_remove_from_end = X264_MAX( ref + 2 - h->frames.i_max_dpb, 0 );
 }
 
 static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_global_qp )
@@ -2321,12 +2329,17 @@ int     x264_encoder_encode( x264_t *h,
     {
         h->frames.i_last_keyframe = h->fenc->i_frame;
         if( h->fenc->i_type == X264_TYPE_IDR )
+        {
             h->i_frame_num = 0;
+            h->frames.i_last_idr = h->fenc->i_frame;
+        }
     }
     h->sh.i_mmco_command_count =
     h->sh.i_mmco_remove_from_end = 0;
     h->b_ref_reorder[0] =
     h->b_ref_reorder[1] = 0;
+    h->fdec->i_poc =
+    h->fenc->i_poc = 2 * ( h->fenc->i_frame - X264_MAX( h->frames.i_last_idr, 0 ) );
 
     /* ------------------- Setup frame context ----------------------------- */
     /* 5: Init data dependent of frame type */
@@ -2337,6 +2350,7 @@ int     x264_encoder_encode( x264_t *h,
         i_nal_ref_idc = NAL_PRIORITY_HIGHEST;
         h->sh.i_type = SLICE_TYPE_I;
         x264_reference_reset( h );
+        h->frames.i_poc_last_open_gop = -1;
     }
     else if( h->fenc->i_type == X264_TYPE_I )
     {
@@ -2344,6 +2358,8 @@ int     x264_encoder_encode( x264_t *h,
         i_nal_ref_idc = NAL_PRIORITY_HIGH; /* Not completely true but for now it is (as all I/P are kept as ref)*/
         h->sh.i_type = SLICE_TYPE_I;
         x264_reference_hierarchy_reset( h );
+        if( h->param.i_open_gop )
+            h->frames.i_poc_last_open_gop = h->fenc->b_keyframe ? h->fenc->i_poc : -1;
     }
     else if( h->fenc->i_type == X264_TYPE_P )
     {
@@ -2351,6 +2367,7 @@ int     x264_encoder_encode( x264_t *h,
         i_nal_ref_idc = NAL_PRIORITY_HIGH; /* Not completely true but for now it is (as all I/P are kept as ref)*/
         h->sh.i_type = SLICE_TYPE_P;
         x264_reference_hierarchy_reset( h );
+        h->frames.i_poc_last_open_gop = -1;
     }
     else if( h->fenc->i_type == X264_TYPE_BREF )
     {
@@ -2366,8 +2383,6 @@ int     x264_encoder_encode( x264_t *h,
         h->sh.i_type = SLICE_TYPE_B;
     }
 
-    h->fdec->i_poc =
-    h->fenc->i_poc = 2 * (h->fenc->i_frame - h->frames.i_last_keyframe);
     h->fdec->i_type = h->fenc->i_type;
     h->fdec->i_frame = h->fenc->i_frame;
     h->fenc->b_kept_as_ref =
@@ -2484,7 +2499,7 @@ int     x264_encoder_encode( x264_t *h,
 
         if( h->fenc->i_type != X264_TYPE_IDR )
         {
-            int time_to_recovery = X264_MIN( h->mb.i_mb_width - 1, h->param.i_keyint_max ) + h->param.i_bframe;
+            int time_to_recovery = h->param.i_open_gop ? 0 : X264_MIN( h->mb.i_mb_width - 1, h->param.i_keyint_max ) + h->param.i_bframe;
             x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
             x264_sei_recovery_point_write( h, &h->out.bs, time_to_recovery );
             x264_nal_end( h );

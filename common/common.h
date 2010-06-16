@@ -471,7 +471,11 @@ struct x264_t
         /* frames used for reference + sentinels */
         x264_frame_t *reference[16+2];
 
-        int i_last_keyframe; /* Frame number of the last keyframe */
+        int i_last_keyframe;       /* Frame number of the last keyframe */
+        int i_last_idr;            /* Frame number of the last IDR (not RP)*/
+        int i_poc_last_open_gop;   /* Poc of the I frame of the last open-gop. The value
+                                    * is only assigned during the period between that
+                                    * I frame and the next P or I frame, else -1 */
 
         int i_input;    /* Number of input frames already accepted */
 

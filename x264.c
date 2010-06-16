@@ -380,6 +380,12 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                  - strict: Strictly hierarchical pyramid\n"
         "                                  - normal: Non-strict (not Blu-ray compatible)\n",
         strtable_lookup( x264_b_pyramid_names, defaults->i_bframe_pyramid ) );
+    H1( "      --open-gop <string>     Use recovery points to close GOPs [none]\n"
+        "                                  - none: Use standard closed GOPs\n"
+        "                                  - display: Base GOP length on display order\n"
+        "                                             (not Blu-ray compatible)\n"
+        "                                  - coded: Base GOP length on coded order\n"
+        "                              Only available with b-frames\n" );
     H1( "      --no-cabac              Disable CABAC\n" );
     H1( "  -r, --ref <integer>         Number of reference frames [%d]\n", defaults->i_frame_reference );
     H1( "      --no-deblock            Disable loop filter\n" );
@@ -441,7 +447,8 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                  or  b=<float> (bitrate multiplier)\n" );
     H2( "      --qpfile <string>       Force frametypes and QPs for some or all frames\n"
         "                              Format of each line: framenumber frametype QP\n"
-        "                              QP of -1 lets x264 choose. Frametypes: I,i,P,B,b.\n"
+        "                              QP of -1 lets x264 choose. Frametypes: I,i,K,P,B,b.\n"
+        "                                  K=<I or i> depending on open-gop setting\n"
         "                              QPs are restricted by qpmin/qpmax.\n" );
     H1( "\n" );
     H1( "Analysis:\n" );
@@ -627,6 +634,7 @@ static struct option long_options[] =
     { "no-b-adapt",        no_argument, NULL, 0 },
     { "b-bias",      required_argument, NULL, 0 },
     { "b-pyramid",   required_argument, NULL, 0 },
+    { "open-gop",    required_argument, NULL, 0 },
     { "min-keyint",  required_argument, NULL, 'i' },
     { "keyint",      required_argument, NULL, 'I' },
     { "intra-refresh",     no_argument, NULL, 0 },
@@ -1305,6 +1313,7 @@ static void parse_qpfile( cli_opt_t *opt, x264_picture_t *pic, int i_frame )
         pic->i_qpplus1 = qp+1;
         if     ( type == 'I' ) pic->i_type = X264_TYPE_IDR;
         else if( type == 'i' ) pic->i_type = X264_TYPE_I;
+        else if( type == 'K' ) pic->i_type = X264_TYPE_KEYFRAME;
         else if( type == 'P' ) pic->i_type = X264_TYPE_P;
         else if( type == 'B' ) pic->i_type = X264_TYPE_BREF;
         else if( type == 'b' ) pic->i_type = X264_TYPE_B;

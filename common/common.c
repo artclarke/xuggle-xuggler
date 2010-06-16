@@ -676,6 +676,15 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
             p->i_bframe_pyramid = atoi(value);
         }
     }
+    OPT("open-gop")
+    {
+        b_error |= parse_enum( value, x264_open_gop_names, &p->i_open_gop );
+        if( b_error )
+        {
+            b_error = 0;
+            p->i_open_gop = atoi(value);
+        }
+    }
     OPT("nf")
         p->b_deblocking_filter = !atobool(value);
     OPT2("filter", "deblock")
@@ -1190,9 +1199,9 @@ char *x264_param2string( x264_param_t *p, int b_res )
     s += sprintf( s, " bframes=%d", p->i_bframe );
     if( p->i_bframe )
     {
-        s += sprintf( s, " b_pyramid=%d b_adapt=%d b_bias=%d direct=%d weightb=%d",
+        s += sprintf( s, " b_pyramid=%d b_adapt=%d b_bias=%d direct=%d weightb=%d open_gop=%d",
                       p->i_bframe_pyramid, p->i_bframe_adaptive, p->i_bframe_bias,
-                      p->analyse.i_direct_mv_pred, p->analyse.b_weighted_bipred );
+                      p->analyse.i_direct_mv_pred, p->analyse.b_weighted_bipred, p->i_open_gop );
     }
     s += sprintf( s, " weightp=%d", p->analyse.i_weighted_pred > 0 ? p->analyse.i_weighted_pred : 0 );
 
