@@ -7,18 +7,19 @@ AC_PREREQ(2.63b)
 AC_INIT([librtmp],[MLIB_MAJOR_VERSION.MLIB_MINOR_VERSION],[info@xuggle.com])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.10.2 ])
-AC_PREFIX_DEFAULT([${XUGGLE_HOME:-/usr/local}])
 AC_CONFIG_SRCDIR([librtmp/rtmp.h])
 AC_CONFIG_HEADERS([config.h])
 
 LIB_MAJOR_VERSION=MLIB_MAJOR_VERSION
 LIB_MINOR_VERSION=MLIB_MINOR_VERSION
-VERSION=LIB_MAJOR_VERSION.LIB_MINOR_VERSION.xuggle
+VERSION=${LIB_MAJOR_VERSION}.${LIB_MINOR_VERSION}.xuggle
 AC_SUBST([VERSION])
 AC_SUBST([LIB_MAJOR_VERSION])
 AC_SUBST([LIB_MINOR_VERSION])
 AC_DEFINE(LIB_MAJOR_VERSION, [LIB_MAJOR_VERSION], [Major version of library])
 AC_DEFINE(LIB_MINOR_VERSION, [LIB_MINOR_VERSION], [Minor version of library])
+CRYPTO_REQ=libssl,libcrypto
+AC_SUBST([CRYPTO_REQ])
 
 # Checks for programs.
 AC_PROG_CC
@@ -46,5 +47,7 @@ AC_FUNC_REALLOC
 AC_FUNC_STRTOD
 AC_CHECK_FUNCS([gethostbyname memchr memset socket strcasecmp strchr strdup strerror strncasecmp strrchr strstr strtol])
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile
+librtmp.pc:librtmp/librtmp.pc.in])
+
 AC_OUTPUT

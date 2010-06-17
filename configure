@@ -595,6 +595,8 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+HAVE_LIBFAAC
+HAVE_LIBRTMP
 CAPTIVE_ENABLE_LIBTHEORA
 CAPTIVE_ENABLE_LIBTHEORA_FALSE
 CAPTIVE_ENABLE_LIBTHEORA_TRUE
@@ -604,9 +606,6 @@ CAPTIVE_ENABLE_LIBVORBIS_TRUE
 CAPTIVE_ENABLE_LIBOGG
 CAPTIVE_ENABLE_LIBOGG_FALSE
 CAPTIVE_ENABLE_LIBOGG_TRUE
-CAPTIVE_ENABLE_LIBFAAC
-CAPTIVE_ENABLE_LIBFAAC_FALSE
-CAPTIVE_ENABLE_LIBFAAC_TRUE
 CAPTIVE_ENABLE_LIBOPENCORE_AMR
 CAPTIVE_ENABLE_LIBOPENCORE_AMR_FALSE
 CAPTIVE_ENABLE_LIBOPENCORE_AMR_TRUE
@@ -763,7 +762,6 @@ enable_captive_libx264
 enable_captive_libmp3lame
 enable_captive_libspeex
 enable_captive_libopencore_amr
-enable_captive_libfaac
 enable_captive_libogg
 enable_captive_libvorbis
 enable_captive_libtheora
@@ -1427,9 +1425,6 @@ Optional Features:
   --enable-captive-libopencore-amr
                           use our own captive versions of the libopencore-amr
                           library encoder (default is yes)
-  --enable-captive-libfaac
-                          use our own captive versions of the faac library
-                          encoder (default is yes)
   --enable-captive-libogg use our own captive versions of the ogg library
                           encoder (default is yes)
   --enable-captive-libvorbis
@@ -15047,7 +15042,7 @@ else
   vvvvvvvvvvvvvvvvvvvvv WARNING vvvvvvvvvvvvvvvvvvvvv
 
   FFmpeg in LGPL mode cannot use libx264 (H264 encoding),
-  libfaac (AAC encoding), and several assembly optimizations
+  and several assembly optimizations
 
   ^^^^^^^^^^^^^^^^^^^^^ WARNING ^^^^^^^^^^^^^^^^^^^^^
 
@@ -15057,7 +15052,7 @@ $as_echo "$as_me: WARNING:
   vvvvvvvvvvvvvvvvvvvvv WARNING vvvvvvvvvvvvvvvvvvvvv
 
   FFmpeg in LGPL mode cannot use libx264 (H264 encoding),
-  libfaac (AAC encoding), and several assembly optimizations
+  and several assembly optimizations
 
   ^^^^^^^^^^^^^^^^^^^^^ WARNING ^^^^^^^^^^^^^^^^^^^^^
 
@@ -15338,69 +15333,6 @@ fi
 fi
 
 #
-# Captive libfaac support
-#
-# Check whether --enable-captive-libfaac was given.
-if test "${enable_captive_libfaac+set}" = set; then
-  enableval=$enable_captive_libfaac;
-else
-  enable_captive_libfaac=yes
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to use captive version of libfaac" >&5
-$as_echo_n "checking whether to use captive version of libfaac... " >&6; }
-if test "x$enable_captives" != "xyes"; then
-  enable_captive_libfaac=no
-fi
-if test "x$enable_captive_ffmpeg" != "xyes"; then
-  # no point in making a captive faac if we're not
-  # incarcerating ffmpeg
-  enable_captive_libfaac=no
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $enable_captive_libfaac" >&5
-$as_echo "$enable_captive_libfaac" >&6; }
- if  test "x$enable_captive_libfaac" = "xyes" ; then
-  CAPTIVE_ENABLE_LIBFAAC_TRUE=
-  CAPTIVE_ENABLE_LIBFAAC_FALSE='#'
-else
-  CAPTIVE_ENABLE_LIBFAAC_TRUE='#'
-  CAPTIVE_ENABLE_LIBFAAC_FALSE=
-fi
-
-if test "x$VS_ENABLE_GPL" != "xyes"; then
-  # can't use faac unless you GPL this source
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: cannot use captive libfaac unless gpl is enabled" >&5
-$as_echo "$as_me: WARNING: cannot use captive libfaac unless gpl is enabled" >&2;}
-  enable_captive_libfaac=no
-fi
-
-CAPTIVE_ENABLE_LIBFAAC=$enable_captive_libfaac
-
-# FAAC headers
-if test "x$enable_captive_libfaac" != "xyes"; then
-  # We only check for Lame if we're not building it
-for ac_header in faac.h
-do
-  ac_fn_cxx_check_header_mongrel "$LINENO" "faac.h" "ac_cv_header_faac_h" "$ac_includes_default"
-if test "x$ac_cv_header_faac_h" = x""yes; then
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_FAAC_H 1
-_ACEOF
- HAVE_LIBFAAC=yes
-else
-  HAVE_LIBFAAC=no
-fi
-
-done
-
-if test "x$HAVE_LIBFAAC" = xno; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: cannot find libfaac.  We will likely not be able to encode aac audio" >&5
-$as_echo "$as_me: WARNING: cannot find libfaac.  We will likely not be able to encode aac audio" >&2;}
-fi
-fi
-
-#
 # Captive libogg support
 #
 # Check whether --enable-captive-libogg was given.
@@ -15562,14 +15494,165 @@ fi
 
 done
 
-if test "x$HAVE_LIBTHEORA" = xno; then
+if test "x$HAVE_LIBTHEORA" = "xno"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: cannot find libtheora.  We will likely not be able to encode theora audio" >&5
 $as_echo "$as_me: WARNING: cannot find libtheora.  We will likely not be able to encode theora audio" >&2;}
 fi
 fi
 
+for ac_header in librtmp/rtmp.h
+do
+  ac_fn_cxx_check_header_mongrel "$LINENO" "librtmp/rtmp.h" "ac_cv_header_librtmp_rtmp_h" "$ac_includes_default"
+if test "x$ac_cv_header_librtmp_rtmp_h" = x""yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBRTMP_RTMP_H 1
+_ACEOF
+ HAVE_LIBRTMP=yes
+else
+  HAVE_LIBRTMP=no
+fi
 
-ac_config_files="$ac_config_files Makefile Makefile.global libopencore-amr/Makefile libopencore-amr/incarcerate libogg/Makefile libogg/incarcerate libvorbis/Makefile libvorbis/incarcerate libtheora/Makefile libtheora/incarcerate libspeex/Makefile libspeex/incarcerate libx264/Makefile libx264/incarcerate libmp3lame/Makefile libmp3lame/incarcerate libfaac/Makefile libfaac/incarcerate ffmpeg/Makefile ffmpeg/incarcerate ffmpeg/install.sh ffmpeg/uninstall.sh"
+done
+
+if test "x$HAVE_LIBRTMP" = "xyes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing RTMPPacket_Alloc" >&5
+$as_echo_n "checking for library containing RTMPPacket_Alloc... " >&6; }
+if test "${ac_cv_search_RTMPPacket_Alloc+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char RTMPPacket_Alloc ();
+int
+main ()
+{
+return RTMPPacket_Alloc ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' rtmp; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_cxx_try_link "$LINENO"; then
+  ac_cv_search_RTMPPacket_Alloc=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if test "${ac_cv_search_RTMPPacket_Alloc+set}" = set; then
+  break
+fi
+done
+if test "${ac_cv_search_RTMPPacket_Alloc+set}" = set; then
+  :
+else
+  ac_cv_search_RTMPPacket_Alloc=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_RTMPPacket_Alloc" >&5
+$as_echo "$ac_cv_search_RTMPPacket_Alloc" >&6; }
+ac_res=$ac_cv_search_RTMPPacket_Alloc
+if test "$ac_res" != no; then
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+  HAVE_LIBRTMP=yes
+else
+  HAVE_LIBRTMP=no
+fi
+
+fi
+
+for ac_header in faac.h
+do
+  ac_fn_cxx_check_header_mongrel "$LINENO" "faac.h" "ac_cv_header_faac_h" "$ac_includes_default"
+if test "x$ac_cv_header_faac_h" = x""yes; then
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_FAAC_H 1
+_ACEOF
+ HAVE_LIBFAAC=yes
+else
+  HAVE_LIBFAAC=no
+fi
+
+done
+
+if test "x$HAVE_LIBFAAC" = "xyes"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for library containing faacEncOpen" >&5
+$as_echo_n "checking for library containing faacEncOpen... " >&6; }
+if test "${ac_cv_search_faacEncOpen+set}" = set; then
+  $as_echo_n "(cached) " >&6
+else
+  ac_func_search_save_LIBS=$LIBS
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char faacEncOpen ();
+int
+main ()
+{
+return faacEncOpen ();
+  ;
+  return 0;
+}
+_ACEOF
+for ac_lib in '' faac; do
+  if test -z "$ac_lib"; then
+    ac_res="none required"
+  else
+    ac_res=-l$ac_lib
+    LIBS="-l$ac_lib  $ac_func_search_save_LIBS"
+  fi
+  if ac_fn_cxx_try_link "$LINENO"; then
+  ac_cv_search_faacEncOpen=$ac_res
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext
+  if test "${ac_cv_search_faacEncOpen+set}" = set; then
+  break
+fi
+done
+if test "${ac_cv_search_faacEncOpen+set}" = set; then
+  :
+else
+  ac_cv_search_faacEncOpen=no
+fi
+rm conftest.$ac_ext
+LIBS=$ac_func_search_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_search_faacEncOpen" >&5
+$as_echo "$ac_cv_search_faacEncOpen" >&6; }
+ac_res=$ac_cv_search_faacEncOpen
+if test "$ac_res" != no; then
+  test "$ac_res" = "none required" || LIBS="$ac_res $LIBS"
+  HAVE_LIBFAAC=yes
+else
+  HAVE_LIBFAAC=no
+fi
+
+fi
+
+
+
+ac_config_files="$ac_config_files Makefile Makefile.global libopencore-amr/Makefile libopencore-amr/incarcerate libogg/Makefile libogg/incarcerate libvorbis/Makefile libvorbis/incarcerate libtheora/Makefile libtheora/incarcerate libspeex/Makefile libspeex/incarcerate libx264/Makefile libx264/incarcerate libmp3lame/Makefile libmp3lame/incarcerate ffmpeg/Makefile ffmpeg/incarcerate ffmpeg/install.sh ffmpeg/uninstall.sh"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -15738,10 +15821,6 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${CAPTIVE_ENABLE_LIBOPENCORE_AMR_TRUE}" && test -z "${CAPTIVE_ENABLE_LIBOPENCORE_AMR_FALSE}"; then
   as_fn_error "conditional \"CAPTIVE_ENABLE_LIBOPENCORE_AMR\" was never defined.
-Usually this means the macro was only invoked conditionally." "$LINENO" 5
-fi
-if test -z "${CAPTIVE_ENABLE_LIBFAAC_TRUE}" && test -z "${CAPTIVE_ENABLE_LIBFAAC_FALSE}"; then
-  as_fn_error "conditional \"CAPTIVE_ENABLE_LIBFAAC\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${CAPTIVE_ENABLE_LIBOGG_TRUE}" && test -z "${CAPTIVE_ENABLE_LIBOGG_FALSE}"; then
@@ -16705,8 +16784,6 @@ do
     "libx264/incarcerate") CONFIG_FILES="$CONFIG_FILES libx264/incarcerate" ;;
     "libmp3lame/Makefile") CONFIG_FILES="$CONFIG_FILES libmp3lame/Makefile" ;;
     "libmp3lame/incarcerate") CONFIG_FILES="$CONFIG_FILES libmp3lame/incarcerate" ;;
-    "libfaac/Makefile") CONFIG_FILES="$CONFIG_FILES libfaac/Makefile" ;;
-    "libfaac/incarcerate") CONFIG_FILES="$CONFIG_FILES libfaac/incarcerate" ;;
     "ffmpeg/Makefile") CONFIG_FILES="$CONFIG_FILES ffmpeg/Makefile" ;;
     "ffmpeg/incarcerate") CONFIG_FILES="$CONFIG_FILES ffmpeg/incarcerate" ;;
     "ffmpeg/install.sh") CONFIG_FILES="$CONFIG_FILES ffmpeg/install.sh" ;;

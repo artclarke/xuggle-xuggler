@@ -556,7 +556,6 @@ PACKAGE_STRING='librtmp 2.2'
 PACKAGE_BUGREPORT='info@xuggle.com'
 PACKAGE_URL=''
 
-ac_default_prefix=${XUGGLE_HOME:-/usr/local}
 ac_unique_file="librtmp/rtmp.h"
 # Factoring default headers for most tests.
 ac_includes_default="\
@@ -633,6 +632,7 @@ CPPFLAGS
 LDFLAGS
 CFLAGS
 CC
+CRYPTO_REQ
 LIB_MINOR_VERSION
 LIB_MAJOR_VERSION
 AM_BACKSLASH
@@ -2903,13 +2903,12 @@ $as_echo "$am_cv_prog_tar_pax" >&6; }
 AM_BACKSLASH='\'
 
 
-
 ac_config_headers="$ac_config_headers config.h"
 
 
 LIB_MAJOR_VERSION=2
 LIB_MINOR_VERSION=2
-VERSION=LIB_MAJOR_VERSION.LIB_MINOR_VERSION.xuggle
+VERSION=${LIB_MAJOR_VERSION}.${LIB_MINOR_VERSION}.xuggle
 
 
 
@@ -2918,6 +2917,8 @@ $as_echo "#define LIB_MAJOR_VERSION LIB_MAJOR_VERSION" >>confdefs.h
 
 
 $as_echo "#define LIB_MINOR_VERSION LIB_MINOR_VERSION" >>confdefs.h
+
+CRYPTO_REQ=libssl,libcrypto
 
 
 # Checks for programs.
@@ -11254,7 +11255,8 @@ fi
 done
 
 
-ac_config_files="$ac_config_files Makefile"
+ac_config_files="$ac_config_files Makefile librtmp.pc:librtmp/librtmp.pc.in"
+
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -12204,6 +12206,7 @@ do
     "config.h") CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
+    "librtmp.pc") CONFIG_FILES="$CONFIG_FILES librtmp.pc:librtmp/librtmp.pc.in" ;;
 
   *) as_fn_error "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

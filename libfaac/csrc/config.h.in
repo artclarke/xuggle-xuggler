@@ -20,7 +20,7 @@
 /* Define to 1 if you have the <float.h> header file. */
 #undef HAVE_FLOAT_H
 
-/* Define to 1 if `__pos' is member of `fpos_t'. */
+/* Define to 1 if `fpos_t' is a member of `__pos'. */
 #undef HAVE_FPOS_T___POS
 
 /* Define to 1 if you have the <getopt.h> header file. */
@@ -113,6 +113,9 @@
 
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION

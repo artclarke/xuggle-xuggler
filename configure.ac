@@ -173,7 +173,7 @@ else
   vvvvvvvvvvvvvvvvvvvvv WARNING vvvvvvvvvvvvvvvvvvvvv
 
   FFmpeg in LGPL mode cannot use libx264 (H264 encoding),
-  libfaac (AAC encoding), and several assembly optimizations
+  and several assembly optimizations
 
   ^^^^^^^^^^^^^^^^^^^^^ WARNING ^^^^^^^^^^^^^^^^^^^^^
 
@@ -340,44 +340,6 @@ fi
 fi
 
 #
-# Captive libfaac support
-#
-AC_ARG_ENABLE([captive-libfaac],
-              [AS_HELP_STRING([--enable-captive-libfaac],
-                              [use our own captive versions of the faac library encoder (default is yes)])],
-                              [],
-                              [enable_captive_libfaac=yes])
-AC_MSG_CHECKING([whether to use captive version of libfaac])
-if test "x$enable_captives" != "xyes"; then
-  enable_captive_libfaac=no
-fi
-if test "x$enable_captive_ffmpeg" != "xyes"; then
-  # no point in making a captive faac if we're not
-  # incarcerating ffmpeg
-  enable_captive_libfaac=no
-fi
-
-AC_MSG_RESULT([$enable_captive_libfaac])
-AM_CONDITIONAL(CAPTIVE_ENABLE_LIBFAAC,
-               [ test "x$enable_captive_libfaac" = "xyes" ])
-if test "x$VS_ENABLE_GPL" != "xyes"; then
-  # can't use faac unless you GPL this source
-  AC_MSG_WARN([cannot use captive libfaac unless gpl is enabled])
-  enable_captive_libfaac=no
-fi
-
-CAPTIVE_ENABLE_LIBFAAC=$enable_captive_libfaac
-AC_SUBST([CAPTIVE_ENABLE_LIBFAAC])
-# FAAC headers
-if test "x$enable_captive_libfaac" != "xyes"; then
-  # We only check for Lame if we're not building it
-AC_CHECK_HEADERS([faac.h], [HAVE_LIBFAAC=yes], [HAVE_LIBFAAC=no])
-if test "x$HAVE_LIBFAAC" = xno; then
-  AC_MSG_WARN([cannot find libfaac.  We will likely not be able to encode aac audio])
-fi
-fi
-
-#
 # Captive libogg support
 #
 AC_ARG_ENABLE([captive-libogg],
@@ -468,10 +430,21 @@ AC_SUBST([CAPTIVE_ENABLE_LIBTHEORA])
 if test "x$enable_captive_libtheora" != "xyes"; then
   # We only check for Lame if we're not building it
 AC_CHECK_HEADERS([theora/theora.h], [HAVE_LIBTHEORA=yes], [HAVE_LIBTHEORA=no])
-if test "x$HAVE_LIBTHEORA" = xno; then
+if test "x$HAVE_LIBTHEORA" = "xno"; then
   AC_MSG_WARN([cannot find libtheora.  We will likely not be able to encode theora audio])
 fi
 fi
+
+AC_CHECK_HEADERS([librtmp/rtmp.h], [HAVE_LIBRTMP=yes], [HAVE_LIBRTMP=no])
+if test "x$HAVE_LIBRTMP" = "xyes"; then
+  AC_SEARCH_LIBS(RTMPPacket_Alloc, rtmp, [HAVE_LIBRTMP=yes], [HAVE_LIBRTMP=no])
+fi
+AC_SUBST(HAVE_LIBRTMP)
+AC_CHECK_HEADERS([faac.h], [HAVE_LIBFAAC=yes], [HAVE_LIBFAAC=no])
+if test "x$HAVE_LIBFAAC" = "xyes"; then
+  AC_SEARCH_LIBS(faacEncOpen, faac, [HAVE_LIBFAAC=yes], [HAVE_LIBFAAC=no])
+fi
+AC_SUBST(HAVE_LIBFAAC)
 
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_FILES([Makefile
@@ -490,8 +463,6 @@ AC_CONFIG_FILES([Makefile
                  libx264/incarcerate
                  libmp3lame/Makefile
                  libmp3lame/incarcerate
-                 libfaac/Makefile
-                 libfaac/incarcerate
                  ffmpeg/Makefile
                  ffmpeg/incarcerate
                  ffmpeg/install.sh
