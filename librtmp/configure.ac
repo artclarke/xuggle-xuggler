@@ -45,7 +45,6 @@ AC_CHECK_SIZEOF(long)
 
 AC_OUTPUT([
   Makefile
-  librtmp/librtmp.pc
  ])
 
 echo "Type \"make; make install\" to compile and install $PACKAGE";
