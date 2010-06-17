@@ -1,16 +1,24 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-m4_define([LIB_MAJOR_VERSION], [2])
-m4_define([LIB_MINOR_VERSION], [2])
-VERSION=LIB_MAJOR_VERSION.LIB_MINOR_VERSION.xuggle
+m4_define([MLIB_MAJOR_VERSION], [2])
+m4_define([MLIB_MINOR_VERSION], [2])
 AC_PREREQ(2.63b)
-AC_INIT([librtmp],[LIB_MAJOR_VERSION.LIB_MINOR_VERSION.xuggle],[info@xuggle.com])
+AC_INIT([librtmp],[MLIB_MAJOR_VERSION.MLIB_MINOR_VERSION],[info@xuggle.com])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.10.2 ])
 AC_PREFIX_DEFAULT([${XUGGLE_HOME:-/usr/local}])
 AC_CONFIG_SRCDIR([librtmp/rtmp.h])
 AC_CONFIG_HEADERS([config.h])
+
+LIB_MAJOR_VERSION=MLIB_MAJOR_VERSION
+LIB_MINOR_VERSION=MLIB_MINOR_VERSION
+VERSION=LIB_MAJOR_VERSION.LIB_MINOR_VERSION.xuggle
+AC_SUBST([VERSION])
+AC_SUBST([LIB_MAJOR_VERSION])
+AC_SUBST([LIB_MINOR_VERSION])
+AC_DEFINE(LIB_MAJOR_VERSION, [LIB_MAJOR_VERSION], [Major version of library])
+AC_DEFINE(LIB_MINOR_VERSION, [LIB_MINOR_VERSION], [Minor version of library])
 
 # Checks for programs.
 AC_PROG_CC

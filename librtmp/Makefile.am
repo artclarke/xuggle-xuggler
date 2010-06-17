@@ -4,6 +4,7 @@ lib_LTLIBRARIES = librtmp.la
 
 AM_CFLAGS=-DRTMPDUMP_VERSION=@VERSION@
 AM_CFLAGS+=-DUSE_OPENSSL
+AM_LDFLAGS=-version-number @LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@
 librtmp_la_LIBADD= -lssl -lcrypto -lz
 
 librtmp_la_SOURCES= \

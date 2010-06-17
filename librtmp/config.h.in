@@ -110,6 +110,12 @@
 /* Define to 1 if you have the <zlib.h> header file. */
 #undef HAVE_ZLIB_H
 
+/* Major version of library */
+#undef LIB_MAJOR_VERSION
+
+/* Minor version of library */
+#undef LIB_MINOR_VERSION
+
 /* Define to the sub-directory in which libtool stores uninstalled libraries.
    */
 #undef LT_OBJDIR
