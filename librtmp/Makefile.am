@@ -2,7 +2,9 @@ ACLOCAL_AMFLAGS=-I m4
 
 lib_LTLIBRARIES = librtmp.la
 
-librtmp_la_LIBADD=
+AM_CFLAGS=-DRTMPDUMP_VERSION=@VERSION@
+AM_CFLAGS+=-DUSE_OPENSSL
+librtmp_la_LIBADD= -lssl -lcrypto -lz
 
 librtmp_la_SOURCES= \
   librtmp/amf.c \

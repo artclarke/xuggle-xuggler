@@ -219,7 +219,8 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4
 lib_LTLIBRARIES = librtmp.la
-librtmp_la_LIBADD = 
+AM_CFLAGS = -DRTMPDUMP_VERSION=@VERSION@ -DUSE_OPENSSL
+librtmp_la_LIBADD = -lssl -lcrypto -lz
 librtmp_la_SOURCES = \
   librtmp/amf.c \
   librtmp/log.c \

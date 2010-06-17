@@ -1,8 +1,9 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-m4_define([LIB_MAJOR_VERSION], [1])
-m4_define([LIB_MINOR_VERSION], [0])
+m4_define([LIB_MAJOR_VERSION], [2])
+m4_define([LIB_MINOR_VERSION], [2])
+VERSION=LIB_MAJOR_VERSION.LIB_MINOR_VERSION.xuggle
 AC_PREREQ(2.63b)
 AC_INIT([librtmp],[LIB_MAJOR_VERSION.LIB_MINOR_VERSION.xuggle],[info@xuggle.com])
 AC_CONFIG_MACRO_DIR([m4])
@@ -19,7 +20,7 @@ LT_INIT
 # Checks for libraries.
 
 # Checks for header files.
-AC_CHECK_HEADERS([arpa/inet.h limits.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h sys/param.h sys/socket.h unistd.h])
+AC_CHECK_HEADERS([arpa/inet.h limits.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h sys/param.h sys/socket.h unistd.h openssl/ssl.h crypt.h zlib.h ])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_TYPE_INT16_T
