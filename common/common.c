@@ -184,6 +184,7 @@ static int x264_param_apply_preset( x264_param_t *param, const char *preset )
         param->rc.b_mb_tree = 0;
         param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
         param->analyse.b_weighted_bipred = 0;
+        param->rc.i_lookahead = 0;
     }
     else if( !strcasecmp( preset, "superfast" ) )
     {
@@ -195,6 +196,7 @@ static int x264_param_apply_preset( x264_param_t *param, const char *preset )
         param->analyse.i_trellis = 0;
         param->rc.b_mb_tree = 0;
         param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
+        param->rc.i_lookahead = 0;
     }
     else if( !strcasecmp( preset, "veryfast" ) )
     {
@@ -203,8 +205,8 @@ static int x264_param_apply_preset( x264_param_t *param, const char *preset )
         param->i_frame_reference = 1;
         param->analyse.b_mixed_references = 0;
         param->analyse.i_trellis = 0;
-        param->rc.b_mb_tree = 0;
         param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
+        param->rc.i_lookahead = 10;
     }
     else if( !strcasecmp( preset, "faster" ) )
     {
@@ -355,6 +357,7 @@ static int x264_param_apply_tune( x264_param_t *param, const char *tune )
             param->i_bframe = 0;
             param->b_sliced_threads = 1;
             param->b_vfr_input = 0;
+            param->rc.b_mb_tree = 0;
         }
         else if( !strncasecmp( s, "touhou", 6 ) )
         {

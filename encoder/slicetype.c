@@ -734,7 +734,7 @@ static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, in
         }
     }
 
-    if( h->param.rc.i_vbv_buffer_size && referenced )
+    if( h->param.rc.i_vbv_buffer_size && h->param.rc.i_lookahead && referenced )
         x264_macroblock_tree_finish( h, frames[b], b == p1 ? b - p0 : 0 );
 }
 
@@ -743,7 +743,8 @@ static void x264_macroblock_tree( x264_t *h, x264_mb_analysis_t *a, x264_frame_t
     int idx = !b_intra;
     int last_nonb, cur_nonb = 1;
     int bframes = 0;
-    int i = num_frames - 1;
+    int i = num_frames;
+
     if( b_intra )
         x264_slicetype_frame_cost( h, a, frames, 0, 0, 0, 0 );
 
@@ -751,10 +752,27 @@ static void x264_macroblock_tree( x264_t *h, x264_mb_analysis_t *a, x264_frame_t
         i--;
     last_nonb = i;
 
-    if( last_nonb < idx )
-        return;
+    /* Lookaheadless MB-tree is not a theoretically distinct case; the same extrapolation could
+     * be applied to the end of a lookahead buffer of any size.  However, it's most needed when
+     * lookahead=0, so that's what's currently implemented. */
+    if( !h->param.rc.i_lookahead )
+    {
+        if( b_intra )
+        {
+            memset( frames[0]->i_propagate_cost, 0, h->mb.i_mb_count * sizeof(uint16_t) );
+            memcpy( frames[0]->f_qp_offset, frames[0]->f_qp_offset_aq, h->mb.i_mb_count * sizeof(float) );
+            return;
+        }
+        XCHG( uint16_t*, frames[last_nonb]->i_propagate_cost, frames[0]->i_propagate_cost );
+        memset( frames[0]->i_propagate_cost, 0, h->mb.i_mb_count * sizeof(uint16_t) );
+    }
+    else
+    {
+        if( last_nonb < idx )
+            return;
+        memset( frames[last_nonb]->i_propagate_cost, 0, h->mb.i_mb_count * sizeof(uint16_t) );
+    }
 
-    memset( frames[last_nonb]->i_propagate_cost, 0, h->mb.i_mb_count * sizeof(uint16_t) );
     while( i-- > idx )
     {
         cur_nonb = i;
@@ -794,6 +812,12 @@ static void x264_macroblock_tree( x264_t *h, x264_mb_analysis_t *a, x264_frame_t
         }
         x264_macroblock_tree_propagate( h, frames, cur_nonb, last_nonb, last_nonb, 1 );
         last_nonb = cur_nonb;
+    }
+
+    if( !h->param.rc.i_lookahead )
+    {
+        x264_macroblock_tree_propagate( h, frames, 0, last_nonb, last_nonb, 1 );
+        XCHG( uint16_t*, frames[last_nonb]->i_propagate_cost, frames[0]->i_propagate_cost );
     }
 
     x264_macroblock_tree_finish( h, frames[last_nonb], last_nonb );
@@ -1062,6 +1086,7 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
     int i_mb_count = NUM_MBS;
     int cost1p0, cost2p0, cost1b1, cost2p1;
     int i_max_search = X264_MIN( h->lookahead->next.i_size, X264_LOOKAHEAD_MAX );
+    int vbv_lookahead = h->param.rc.i_vbv_buffer_size && h->param.rc.i_lookahead;
     if( h->param.b_deterministic )
         i_max_search = X264_MIN( i_max_search, h->lookahead->i_slicetype_length + !keyframe );
 
@@ -1074,7 +1099,11 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
         frames[framecnt+1] = h->lookahead->next.list[framecnt];
 
     if( !framecnt )
+    {
+        if( h->param.rc.b_mb_tree )
+            x264_macroblock_tree( h, &a, frames, 0, keyframe );
         return;
+    }
 
     keyint_limit = h->param.i_keyint_max - frames[0]->i_frame + h->lookahead->i_last_keyframe - 1;
     orig_num_frames = num_frames = h->param.b_intra_refresh ? framecnt : X264_MIN( framecnt, keyint_limit );
@@ -1085,15 +1114,8 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
      * there will be significant visual artifacts if the frames just before
      * go down in quality due to being referenced less, despite it being
      * more RD-optimal. */
-    if( (h->param.analyse.b_psy && h->param.rc.b_mb_tree) || h->param.rc.i_vbv_buffer_size )
+    if( (h->param.analyse.b_psy && h->param.rc.b_mb_tree) || vbv_lookahead )
         num_frames = framecnt;
-    else if( num_frames == 1 )
-    {
-        frames[1]->i_type = X264_TYPE_P;
-        if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, 0, 1, 1, orig_num_frames ) )
-            frames[1]->i_type = X264_TYPE_I;
-        return;
-    }
     else if( num_frames == 0 )
     {
         frames[1]->i_type = X264_TYPE_I;
@@ -1224,7 +1246,7 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
             i = j;
         }
 
-    if( h->param.rc.i_vbv_buffer_size )
+    if( vbv_lookahead )
         x264_vbv_lookahead( h, &a, frames, num_frames, keyframe );
 
     /* Restore frametypes for all frames that haven't actually been decided yet. */

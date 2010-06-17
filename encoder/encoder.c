@@ -621,8 +621,13 @@ static int x264_validate_parameters( x264_t *h )
     }
 
     h->param.rc.f_qcompress = x264_clip3f( h->param.rc.f_qcompress, 0.0, 1.0 );
-    if( !h->param.rc.i_lookahead || h->param.i_keyint_max == 1 || h->param.rc.f_qcompress == 1 )
+    if( h->param.i_keyint_max == 1 || h->param.rc.f_qcompress == 1 )
         h->param.rc.b_mb_tree = 0;
+    if( !h->param.rc.i_lookahead && !h->param.b_intra_refresh && h->param.rc.b_mb_tree )
+    {
+        x264_log( h, X264_LOG_WARNING, "lookaheadless mb-tree requires intra refresh\n" );
+        h->param.rc.b_mb_tree = 0;
+    }
     if( h->param.rc.b_stat_read )
         h->param.rc.i_lookahead = 0;
 #if HAVE_PTHREAD
