@@ -1,48 +1,36 @@
-dnl Process this file with autoconf to produce a configure script. -*-m4-*-
+#                                               -*- Autoconf -*-
+# Process this file with autoconf to produce a configure script.
 
-AC_INIT
-AC_CONFIG_SRCDIR([librtmp/rtmp.c])
-
-AC_CONFIG_MACRO_DIR([m4])
-
+AC_PREREQ(2.63b)
+AC_INIT([librtmp],[1.0.0-xuggle],[info@xuggle.com])
+AM_INIT_AUTOMAKE
+AC_CONFIG_SRCDIR([librtmp/rtmp.h])
 AC_CONFIG_HEADERS([config.h])
 
-LIBRTMP_MAJOR_VERSION=0
-LIBRTMP_MINOR_VERSION=0
-LIBRTMP_MICRO_VERSION=9
-LIBRTMP_EXTRA_VERSION=xuggle
-LIBRTMP_VERSION=
-LIBRTMP_VERSION=$LIBRTMP_MAJOR_VERSION.$LIBRTMP_MINOR_VERSION.$LIBRTMP_MICRO_VERSION$LIBRTMP_EXTRA_VERSION
+# Checks for programs.
+AC_PROG_CC
+LT_INIT
 
-# For automake.
-VERSION=$LIBRTMP_VERSION
-PACKAGE=librtmp
+# Checks for libraries.
 
-AC_SUBST(LIBRTMP_VERSION)
+# Checks for header files.
+AC_CHECK_HEADERS([arpa/inet.h limits.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h sys/param.h sys/socket.h unistd.h])
 
-AM_INIT_AUTOMAKE($PACKAGE, $VERSION, no-define)
-LT_PREREQ([2.2.7a])
-LT_INIT([disable-shared disable-fast-install win32-dll])
-AM_MAINTAINER_MODE
+# Checks for typedefs, structures, and compiler characteristics.
+AC_TYPE_INT16_T
+AC_TYPE_INT32_T
+AC_TYPE_INT8_T
+AC_TYPE_OFF_T
+AC_TYPE_SIZE_T
+AC_TYPE_UINT32_T
+AC_TYPE_UINT8_T
 
-AC_CANONICAL_HOST
+# Checks for library functions.
+AC_FUNC_MALLOC
+AC_FUNC_MKTIME
+AC_FUNC_REALLOC
+AC_FUNC_STRTOD
+AC_CHECK_FUNCS([gethostbyname memchr memset socket strcasecmp strchr strdup strerror strncasecmp strrchr strstr strtol])
 
-AC_C_BIGENDIAN
-AC_C_CONST
-AC_C_INLINE
-AC_C_RESTRICT
-
-AC_DEFINE_UNQUOTED(LIBRTMP_VERSION, "${LIBRTMP_VERSION}", [Complete version string])
-AC_DEFINE_UNQUOTED(LIBRTMP_MAJOR_VERSION, ${LIBRTMP_MAJOR_VERSION}, [Version major])
-AC_DEFINE_UNQUOTED(LIBRTMP_MINOR_VERSION, ${LIBRTMP_MINOR_VERSION}, [Version minor])
-AC_DEFINE_UNQUOTED(LIBRTMP_MICRO_VERSION, ${LIBRTMP_MICRO_VERSION}, [Version micro])
-AC_DEFINE_UNQUOTED(LIBRTMP_EXTRA_VERSION, "${LIBRTMP_EXTRA_VERSION}", [Version extra])
-
-AC_CHECK_SIZEOF(short)
-AC_CHECK_SIZEOF(int)
-AC_CHECK_SIZEOF(long)
-
-AC_CONFIG_FILES([
-  Makefile
- ])
+AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
