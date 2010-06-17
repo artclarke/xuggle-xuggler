@@ -3,7 +3,8 @@
 
 AC_PREREQ(2.63b)
 AC_INIT([librtmp],[1.0.0-xuggle],[info@xuggle.com])
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.10.2 ])
+AC_PREFIX_DEFAULT([${XUGGLE_HOME:-/usr/local}])
 AC_CONFIG_SRCDIR([librtmp/rtmp.h])
 AC_CONFIG_HEADERS([config.h])
 
