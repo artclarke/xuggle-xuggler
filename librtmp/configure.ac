@@ -1,10 +1,11 @@
 dnl Process this file with autoconf to produce a configure script. -*-m4-*-
 
-AC_INIT(librtmp/rtmp.c)
+AC_INIT
+AC_CONFIG_SRCDIR([librtmp/rtmp.c])
 
 AC_CONFIG_MACRO_DIR([m4])
 
-AM_CONFIG_HEADER([config.h])
+AC_CONFIG_HEADERS([config.h])
 
 LIBRTMP_MAJOR_VERSION=0
 LIBRTMP_MINOR_VERSION=0
@@ -20,11 +21,11 @@ PACKAGE=librtmp
 AC_SUBST(LIBRTMP_VERSION)
 
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION, no-define)
+LT_PREREQ([2.2.7a])
+LT_INIT([disable-shared disable-fast-install win32-dll])
 AM_MAINTAINER_MODE
 
 AC_CANONICAL_HOST
-AC_LIBTOOL_WIN32_DLL
-AM_PROG_LIBTOOL
 
 AC_C_BIGENDIAN
 AC_C_CONST
@@ -41,6 +42,7 @@ AC_CHECK_SIZEOF(short)
 AC_CHECK_SIZEOF(int)
 AC_CHECK_SIZEOF(long)
 
-AC_OUTPUT([
+AC_CONFIG_FILES([
   Makefile
  ])
+AC_OUTPUT
