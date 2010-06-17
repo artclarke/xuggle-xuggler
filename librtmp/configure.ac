@@ -31,8 +31,6 @@ AC_C_CONST
 AC_C_INLINE
 AC_C_RESTRICT
 
-SAVE_CFLAGS="$CFLAGS"
-
 AC_DEFINE_UNQUOTED(LIBRTMP_VERSION, "${LIBRTMP_VERSION}", [Complete version string])
 AC_DEFINE_UNQUOTED(LIBRTMP_MAJOR_VERSION, ${LIBRTMP_MAJOR_VERSION}, [Version major])
 AC_DEFINE_UNQUOTED(LIBRTMP_MINOR_VERSION, ${LIBRTMP_MINOR_VERSION}, [Version minor])
@@ -46,5 +44,3 @@ AC_CHECK_SIZEOF(long)
 AC_OUTPUT([
   Makefile
  ])
-
-echo "Type \"make; make install\" to compile and install $PACKAGE";
