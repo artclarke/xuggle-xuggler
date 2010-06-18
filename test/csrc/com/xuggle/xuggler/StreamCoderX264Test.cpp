@@ -369,7 +369,7 @@ StreamCoderX264Test :: testDecodingAndEncodingH264VideoWithBFrames()
 
   RefPointer<IPacket> packet = IPacket::make();
 
-  hw->setupWriting("StreamCoderX264Test_testDecodingAndEncodingH264VideoBFrames.mp4", "libx264", "libfaac", "mp4");
+  hw->setupWriting("StreamCoderX264Test_testDecodingAndEncodingH264VideoBFrames.mp4", "libx264", "libmp3lame", "mp4");
 
   RefPointer<IPacket> opacket = IPacket::make();
   VS_TUT_ENSURE("! opacket", opacket);

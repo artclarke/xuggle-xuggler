@@ -184,7 +184,7 @@ public class ConverterExhaustiveTest extends TestCase
         "--containerformat",
         "mov",
         "--acodec",
-        "libfaac",
+        "aac",
         "--asamplerate",
         "22050",
         "--achannels",
