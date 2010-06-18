@@ -3,29 +3,29 @@ ACLOCAL_AMFLAGS=-I m4
 bin_PROGRAMS = rtmpdump rtmpgw rtmpsrv rtmpsuck
 
 rtmpdump_SOURCES = \
-  csrc/rtmpdump.c
+  rtmpdump/rtmpdump.c
 
 rtmpdump_LDADD = librtmp.la
 
 rtmpgw_SOURCES = \
- csrc/rtmpgw.c \
- csrc/thread.c
+ rtmpdump/rtmpgw.c \
+ rtmpdump/thread.c
 
 rtmpgw_LDADD = librtmp.la -lpthread
 
 rtmpsrv_SOURCES =  \
-  csrc/rtmpsrv.c \
-  csrc/thread.c
+  rtmpdump/rtmpsrv.c \
+  rtmpdump/thread.c
 
 rtmpsrv_LDADD = librtmp.la -lpthread
 
 rtmpsuck_SOURCES = \
-  csrc/rtmpsuck.c \
-  csrc/thread.c
+  rtmpdump/rtmpsuck.c \
+  rtmpdump/thread.c
 
 rtmpsuck_LDADD = librtmp.la -lpthread
 
-noinst_HEADERS = csrc/thread.h
+noinst_HEADERS = rtmpdump/thread.h
 
 lib_LTLIBRARIES = librtmp.la
 
@@ -39,21 +39,21 @@ pkgconfig_DATA = librtmp.pc
 librtmp_la_LIBADD= -lssl -lcrypto -lz
 
 librtmp_la_SOURCES= \
-  csrc/librtmp/amf.c \
-  csrc/librtmp/log.c \
-  csrc/librtmp/rtmp.c \
-  csrc/librtmp/hashswf.c \
-  csrc/librtmp/parseurl.c
+  rtmpdump/librtmp/amf.c \
+  rtmpdump/librtmp/log.c \
+  rtmpdump/librtmp/rtmp.c \
+  rtmpdump/librtmp/hashswf.c \
+  rtmpdump/librtmp/parseurl.c
 
 librtmp_ladir=$(includedir)/librtmp
 librtmp_la_HEADERS= \
-  csrc/librtmp/amf.h \
-  csrc/librtmp/dhgroups.h \
-  csrc/librtmp/log.h \
-  csrc/librtmp/bytes.h \
-  csrc/librtmp/handshake.h \
-  csrc/librtmp/rtmp.h \
-  csrc/librtmp/dh.h \
-  csrc/librtmp/http.h \
-  csrc/librtmp/rtmp_sys.h
+  rtmpdump/librtmp/amf.h \
+  rtmpdump/librtmp/dhgroups.h \
+  rtmpdump/librtmp/log.h \
+  rtmpdump/librtmp/bytes.h \
+  rtmpdump/librtmp/handshake.h \
+  rtmpdump/librtmp/rtmp.h \
+  rtmpdump/librtmp/dh.h \
+  rtmpdump/librtmp/http.h \
+  rtmpdump/librtmp/rtmp_sys.h
 
