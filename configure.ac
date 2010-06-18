@@ -452,6 +452,12 @@ if test "x$enable_captive_ffmpeg" != "xyes"; then
   # incarcerating ffmpeg
   enable_captive_librtmp=no
 fi
+if test "x$enable_captive_librtmp" != "xno"; then
+  # If they have decided to do captive RTMP, then make sure all
+  # dependencies are present
+  AC_SEARCH_LIBS(zlibVersion, z, [], [enable_captive_librtmp=no])
+  AC_SEARCH_LIBS(SSL_library_init, ssl, [], [enable_captive_librtmp=no])
+fi
 
 AC_MSG_RESULT([$enable_captive_librtmp])
 AM_CONDITIONAL(CAPTIVE_ENABLE_LIBRTMP,
@@ -460,7 +466,7 @@ CAPTIVE_ENABLE_LIBRTMP=$enable_captive_librtmp
 AC_SUBST([CAPTIVE_ENABLE_LIBRTMP])
 # rtmp headers
 if test "x$enable_captive_librtmp" != "xyes"; then
-  # We only check for Lame if we're not building it
+  # We only check for RTMP if we're not building it
 AC_CHECK_HEADERS([librtmp/rtmp.h], [HAVE_LIBRTMP=yes], [HAVE_LIBRTMP=no])
 if test "x$HAVE_LIBRTMP" = "xno"; then
   AC_MSG_WARN([cannot find librtmp.  We will likely not be able to parse rtmp])

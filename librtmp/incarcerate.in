@@ -60,7 +60,7 @@ case $HOST_TYPE in
   ;;
 esac
 if [ -d @abs_builddir@/patches ]; then
-  cd @abs_builddir@/csrc/rtmpdump
+  cd @abs_builddir@/csrc/src
   for patch in @abs_builddir@/patches/*; do
     if [ -f "$patch" ]; then
       echo "Applying patch: ${patch}"
