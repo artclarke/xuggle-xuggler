@@ -41,13 +41,11 @@ bin_PROGRAMS = rtmpdump$(EXEEXT) rtmpgw$(EXEEXT) rtmpsrv$(EXEEXT) \
 	rtmpsuck$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(librtmp_la_HEADERS) \
-	$(noinst_HEADERS) $(srcdir)/../../config.guess \
-	$(srcdir)/../../config.sub $(srcdir)/../../install-sh \
-	$(srcdir)/../../ltmain.sh $(srcdir)/../../missing \
-	$(srcdir)/Makefile.am $(srcdir)/Makefile.in \
+	$(noinst_HEADERS) $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/config.h.in $(top_srcdir)/configure \
 	$(top_srcdir)/rtmpdump/librtmp/librtmp.pc.in AUTHORS COPYING \
-	ChangeLog INSTALL NEWS ltmain.sh
+	ChangeLog INSTALL NEWS config.guess config.sub install-sh \
+	ltmain.sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
