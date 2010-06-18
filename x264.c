@@ -806,6 +806,7 @@ static int select_input( const char *demuxer, char *used_demuxer, char *filename
     int b_auto = !strcasecmp( demuxer, "auto" );
     if( !b_regular && b_auto )
         ext = "yuv";
+    b_regular = b_regular && x264_is_regular_file_path( filename );
     if( b_regular )
     {
         FILE *f = fopen( filename, "r" );

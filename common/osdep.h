@@ -290,7 +290,15 @@ static inline uint8_t x264_is_regular_file( FILE *filehandle )
 {
     struct stat file_stat;
     if( fstat( fileno( filehandle ), &file_stat ) )
-        return 0;
+        return -1;
+    return S_ISREG( file_stat.st_mode );
+}
+
+static inline uint8_t x264_is_regular_file_path( const char *filename )
+{
+    struct stat file_stat;
+    if( stat( filename, &file_stat ) )
+        return -1;
     return S_ISREG( file_stat.st_mode );
 }
 
