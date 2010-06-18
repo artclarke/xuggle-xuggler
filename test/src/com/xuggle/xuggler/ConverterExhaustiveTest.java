@@ -40,7 +40,7 @@ public class ConverterExhaustiveTest extends TestCase
         "--containerformat",
         "mov",
         "--acodec",
-        "libfaac",
+        "libmp3lame",
         "--asamplerate",
         "22050",
         "--achannels",
