@@ -435,11 +435,40 @@ if test "x$HAVE_LIBTHEORA" = "xno"; then
 fi
 fi
 
-AC_CHECK_HEADERS([librtmp/rtmp.h], [HAVE_LIBRTMP=yes], [HAVE_LIBRTMP=no])
-if test "x$HAVE_LIBRTMP" = "xyes"; then
-  AC_SEARCH_LIBS(RTMPPacket_Alloc, rtmp, [HAVE_LIBRTMP=yes], [HAVE_LIBRTMP=no])
+#
+# Captive librtmp support
+#
+AC_ARG_ENABLE([captive-librtmp],
+              [AS_HELP_STRING([--enable-captive-librtmp],
+                              [use our own captive versions of the rtmp protocol library (default is yes)])],
+                              [],
+                              [enable_captive_librtmp=yes])
+AC_MSG_CHECKING([whether to use captive version of librtmp])
+if test "x$enable_captives" != "xyes"; then
+  enable_captive_librtmp=no
 fi
-AC_SUBST(HAVE_LIBRTMP)
+if test "x$enable_captive_ffmpeg" != "xyes"; then
+  # no point in making a captive rtmp if we're not
+  # incarcerating ffmpeg
+  enable_captive_librtmp=no
+fi
+
+AC_MSG_RESULT([$enable_captive_librtmp])
+AM_CONDITIONAL(CAPTIVE_ENABLE_LIBRTMP,
+               [ test "x$enable_captive_librtmp" = "xyes" ])
+CAPTIVE_ENABLE_LIBRTMP=$enable_captive_librtmp
+AC_SUBST([CAPTIVE_ENABLE_LIBRTMP])
+# rtmp headers
+if test "x$enable_captive_librtmp" != "xyes"; then
+  # We only check for Lame if we're not building it
+AC_CHECK_HEADERS([librtmp/rtmp.h], [HAVE_LIBRTMP=yes], [HAVE_LIBRTMP=no])
+if test "x$HAVE_LIBRTMP" = "xno"; then
+  AC_MSG_WARN([cannot find librtmp.  We will likely not be able to parse rtmp])
+fi
+fi
+
+# We can't distribute FAAC, but if it's installed on this machine we'll
+# link it in.
 AC_CHECK_HEADERS([faac.h], [HAVE_LIBFAAC=yes], [HAVE_LIBFAAC=no])
 if test "x$HAVE_LIBFAAC" = "xyes"; then
   AC_SEARCH_LIBS(faacEncOpen, faac, [HAVE_LIBFAAC=yes], [HAVE_LIBFAAC=no])
@@ -449,6 +478,10 @@ AC_SUBST(HAVE_LIBFAAC)
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_FILES([Makefile
                  Makefile.global
+                 librtmp/Makefile
+                 librtmp/incarcerate
+                 librtmp/install.sh
+                 librtmp/uninstall.sh
                  libopencore-amr/Makefile
                  libopencore-amr/incarcerate
                  libogg/Makefile

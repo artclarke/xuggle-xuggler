@@ -556,7 +556,7 @@ PACKAGE_STRING='librtmp 2.2'
 PACKAGE_BUGREPORT='info@xuggle.com'
 PACKAGE_URL=''
 
-ac_unique_file="rtmpdump/librtmp/rtmp.h"
+ac_unique_file="src/librtmp/rtmp.h"
 # Factoring default headers for most tests.
 ac_includes_default="\
 #include <stdio.h>
@@ -15587,7 +15587,7 @@ fi
 done
 
 
-ac_config_files="$ac_config_files Makefile librtmp.pc:rtmpdump/librtmp/librtmp.pc.in"
+ac_config_files="$ac_config_files Makefile librtmp.pc:src/librtmp/librtmp.pc.in"
 
 
 cat >confcache <<\_ACEOF
@@ -16638,7 +16638,7 @@ do
     "config.h") CONFIG_HEADERS="$CONFIG_HEADERS config.h" ;;
     "libtool") CONFIG_COMMANDS="$CONFIG_COMMANDS libtool" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
-    "librtmp.pc") CONFIG_FILES="$CONFIG_FILES librtmp.pc:rtmpdump/librtmp/librtmp.pc.in" ;;
+    "librtmp.pc") CONFIG_FILES="$CONFIG_FILES librtmp.pc:src/librtmp/librtmp.pc.in" ;;
 
   *) as_fn_error "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

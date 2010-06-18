@@ -7,7 +7,7 @@ AC_PREREQ(2.63b)
 AC_INIT([librtmp],[MLIB_MAJOR_VERSION.MLIB_MINOR_VERSION],[info@xuggle.com])
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.10.2 ])
-AC_CONFIG_SRCDIR([rtmpdump/librtmp/rtmp.h])
+AC_CONFIG_SRCDIR([src/librtmp/rtmp.h])
 AC_CONFIG_HEADERS([config.h])
 
 LIB_MAJOR_VERSION=MLIB_MAJOR_VERSION
@@ -69,6 +69,6 @@ AC_FUNC_STRTOD
 AC_CHECK_FUNCS([gethostbyname inet_ntoa memchr memset select socket strcasecmp strchr strdup strerror strncasecmp strrchr strstr strtol])
 
 AC_CONFIG_FILES([Makefile
-librtmp.pc:rtmpdump/librtmp/librtmp.pc.in])
+librtmp.pc:src/librtmp/librtmp.pc.in])
 
 AC_OUTPUT

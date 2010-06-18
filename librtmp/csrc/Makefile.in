@@ -43,7 +43,7 @@ subdir = .
 DIST_COMMON = README $(am__configure_deps) $(librtmp_la_HEADERS) \
 	$(noinst_HEADERS) $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
 	$(srcdir)/config.h.in $(top_srcdir)/configure \
-	$(top_srcdir)/rtmpdump/librtmp/librtmp.pc.in AUTHORS COPYING \
+	$(top_srcdir)/src/librtmp/librtmp.pc.in AUTHORS COPYING \
 	ChangeLog INSTALL NEWS config.guess config.sub install-sh \
 	ltmain.sh missing
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
@@ -246,25 +246,25 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4
 rtmpdump_SOURCES = \
-  rtmpdump/rtmpdump.c
+  src/rtmpdump.c
 
 rtmpdump_LDADD = librtmp.la
 rtmpgw_SOURCES = \
- rtmpdump/rtmpgw.c \
- rtmpdump/thread.c
+ src/rtmpgw.c \
+ src/thread.c
 
 rtmpgw_LDADD = librtmp.la -lpthread
 rtmpsrv_SOURCES = \
-  rtmpdump/rtmpsrv.c \
-  rtmpdump/thread.c
+  src/rtmpsrv.c \
+  src/thread.c
 
 rtmpsrv_LDADD = librtmp.la -lpthread
 rtmpsuck_SOURCES = \
-  rtmpdump/rtmpsuck.c \
-  rtmpdump/thread.c
+  src/rtmpsuck.c \
+  src/thread.c
 
 rtmpsuck_LDADD = librtmp.la -lpthread
-noinst_HEADERS = rtmpdump/thread.h
+noinst_HEADERS = src/thread.h
 lib_LTLIBRARIES = librtmp.la
 AM_CFLAGS = -DRTMPDUMP_VERSION=\"@VERSION@\" -DUSE_OPENSSL
 AM_LDFLAGS = -version-number @LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@
@@ -272,23 +272,23 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = librtmp.pc
 librtmp_la_LIBADD = -lssl -lcrypto -lz
 librtmp_la_SOURCES = \
-  rtmpdump/librtmp/amf.c \
-  rtmpdump/librtmp/log.c \
-  rtmpdump/librtmp/rtmp.c \
-  rtmpdump/librtmp/hashswf.c \
-  rtmpdump/librtmp/parseurl.c
+  src/librtmp/amf.c \
+  src/librtmp/log.c \
+  src/librtmp/rtmp.c \
+  src/librtmp/hashswf.c \
+  src/librtmp/parseurl.c
 
 librtmp_ladir = $(includedir)/librtmp
 librtmp_la_HEADERS = \
-  rtmpdump/librtmp/amf.h \
-  rtmpdump/librtmp/dhgroups.h \
-  rtmpdump/librtmp/log.h \
-  rtmpdump/librtmp/bytes.h \
-  rtmpdump/librtmp/handshake.h \
-  rtmpdump/librtmp/rtmp.h \
-  rtmpdump/librtmp/dh.h \
-  rtmpdump/librtmp/http.h \
-  rtmpdump/librtmp/rtmp_sys.h
+  src/librtmp/amf.h \
+  src/librtmp/dhgroups.h \
+  src/librtmp/log.h \
+  src/librtmp/bytes.h \
+  src/librtmp/handshake.h \
+  src/librtmp/rtmp.h \
+  src/librtmp/dh.h \
+  src/librtmp/http.h \
+  src/librtmp/rtmp_sys.h
 
 all: config.h
 	$(MAKE) $(AM_MAKEFLAGS) all-am
@@ -346,7 +346,7 @@ $(srcdir)/config.h.in:  $(am__configure_deps)
 
 distclean-hdr:
 	-rm -f config.h stamp-h1
-librtmp.pc: $(top_builddir)/config.status $(top_srcdir)/rtmpdump/librtmp/librtmp.pc.in
+librtmp.pc: $(top_builddir)/config.status $(top_srcdir)/src/librtmp/librtmp.pc.in
 	cd $(top_builddir) && $(SHELL) ./config.status $@
 install-libLTLIBRARIES: $(lib_LTLIBRARIES)
 	@$(NORMAL_INSTALL)
@@ -452,50 +452,50 @@ distclean-compile:
 .c.lo:
 	$(LTCOMPILE) -c -o $@ $<
 
-amf.lo: rtmpdump/librtmp/amf.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o amf.lo `test -f 'rtmpdump/librtmp/amf.c' || echo '$(srcdir)/'`rtmpdump/librtmp/amf.c
+amf.lo: src/librtmp/amf.c
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o amf.lo `test -f 'src/librtmp/amf.c' || echo '$(srcdir)/'`src/librtmp/amf.c
 
-log.lo: rtmpdump/librtmp/log.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o log.lo `test -f 'rtmpdump/librtmp/log.c' || echo '$(srcdir)/'`rtmpdump/librtmp/log.c
+log.lo: src/librtmp/log.c
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o log.lo `test -f 'src/librtmp/log.c' || echo '$(srcdir)/'`src/librtmp/log.c
 
-rtmp.lo: rtmpdump/librtmp/rtmp.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmp.lo `test -f 'rtmpdump/librtmp/rtmp.c' || echo '$(srcdir)/'`rtmpdump/librtmp/rtmp.c
+rtmp.lo: src/librtmp/rtmp.c
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmp.lo `test -f 'src/librtmp/rtmp.c' || echo '$(srcdir)/'`src/librtmp/rtmp.c
 
-hashswf.lo: rtmpdump/librtmp/hashswf.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o hashswf.lo `test -f 'rtmpdump/librtmp/hashswf.c' || echo '$(srcdir)/'`rtmpdump/librtmp/hashswf.c
+hashswf.lo: src/librtmp/hashswf.c
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o hashswf.lo `test -f 'src/librtmp/hashswf.c' || echo '$(srcdir)/'`src/librtmp/hashswf.c
 
-parseurl.lo: rtmpdump/librtmp/parseurl.c
-	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o parseurl.lo `test -f 'rtmpdump/librtmp/parseurl.c' || echo '$(srcdir)/'`rtmpdump/librtmp/parseurl.c
+parseurl.lo: src/librtmp/parseurl.c
+	$(LIBTOOL)  --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o parseurl.lo `test -f 'src/librtmp/parseurl.c' || echo '$(srcdir)/'`src/librtmp/parseurl.c
 
-rtmpdump.o: rtmpdump/rtmpdump.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpdump.o `test -f 'rtmpdump/rtmpdump.c' || echo '$(srcdir)/'`rtmpdump/rtmpdump.c
+rtmpdump.o: src/rtmpdump.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpdump.o `test -f 'src/rtmpdump.c' || echo '$(srcdir)/'`src/rtmpdump.c
 
-rtmpdump.obj: rtmpdump/rtmpdump.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpdump.obj `if test -f 'rtmpdump/rtmpdump.c'; then $(CYGPATH_W) 'rtmpdump/rtmpdump.c'; else $(CYGPATH_W) '$(srcdir)/rtmpdump/rtmpdump.c'; fi`
+rtmpdump.obj: src/rtmpdump.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpdump.obj `if test -f 'src/rtmpdump.c'; then $(CYGPATH_W) 'src/rtmpdump.c'; else $(CYGPATH_W) '$(srcdir)/src/rtmpdump.c'; fi`
 
-rtmpgw.o: rtmpdump/rtmpgw.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpgw.o `test -f 'rtmpdump/rtmpgw.c' || echo '$(srcdir)/'`rtmpdump/rtmpgw.c
+rtmpgw.o: src/rtmpgw.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpgw.o `test -f 'src/rtmpgw.c' || echo '$(srcdir)/'`src/rtmpgw.c
 
-rtmpgw.obj: rtmpdump/rtmpgw.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpgw.obj `if test -f 'rtmpdump/rtmpgw.c'; then $(CYGPATH_W) 'rtmpdump/rtmpgw.c'; else $(CYGPATH_W) '$(srcdir)/rtmpdump/rtmpgw.c'; fi`
+rtmpgw.obj: src/rtmpgw.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpgw.obj `if test -f 'src/rtmpgw.c'; then $(CYGPATH_W) 'src/rtmpgw.c'; else $(CYGPATH_W) '$(srcdir)/src/rtmpgw.c'; fi`
 
-thread.o: rtmpdump/thread.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o thread.o `test -f 'rtmpdump/thread.c' || echo '$(srcdir)/'`rtmpdump/thread.c
+thread.o: src/thread.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o thread.o `test -f 'src/thread.c' || echo '$(srcdir)/'`src/thread.c
 
-thread.obj: rtmpdump/thread.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o thread.obj `if test -f 'rtmpdump/thread.c'; then $(CYGPATH_W) 'rtmpdump/thread.c'; else $(CYGPATH_W) '$(srcdir)/rtmpdump/thread.c'; fi`
+thread.obj: src/thread.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o thread.obj `if test -f 'src/thread.c'; then $(CYGPATH_W) 'src/thread.c'; else $(CYGPATH_W) '$(srcdir)/src/thread.c'; fi`
 
-rtmpsrv.o: rtmpdump/rtmpsrv.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpsrv.o `test -f 'rtmpdump/rtmpsrv.c' || echo '$(srcdir)/'`rtmpdump/rtmpsrv.c
+rtmpsrv.o: src/rtmpsrv.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpsrv.o `test -f 'src/rtmpsrv.c' || echo '$(srcdir)/'`src/rtmpsrv.c
 
-rtmpsrv.obj: rtmpdump/rtmpsrv.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpsrv.obj `if test -f 'rtmpdump/rtmpsrv.c'; then $(CYGPATH_W) 'rtmpdump/rtmpsrv.c'; else $(CYGPATH_W) '$(srcdir)/rtmpdump/rtmpsrv.c'; fi`
+rtmpsrv.obj: src/rtmpsrv.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpsrv.obj `if test -f 'src/rtmpsrv.c'; then $(CYGPATH_W) 'src/rtmpsrv.c'; else $(CYGPATH_W) '$(srcdir)/src/rtmpsrv.c'; fi`
 
-rtmpsuck.o: rtmpdump/rtmpsuck.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpsuck.o `test -f 'rtmpdump/rtmpsuck.c' || echo '$(srcdir)/'`rtmpdump/rtmpsuck.c
+rtmpsuck.o: src/rtmpsuck.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpsuck.o `test -f 'src/rtmpsuck.c' || echo '$(srcdir)/'`src/rtmpsuck.c
 
-rtmpsuck.obj: rtmpdump/rtmpsuck.c
-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpsuck.obj `if test -f 'rtmpdump/rtmpsuck.c'; then $(CYGPATH_W) 'rtmpdump/rtmpsuck.c'; else $(CYGPATH_W) '$(srcdir)/rtmpdump/rtmpsuck.c'; fi`
+rtmpsuck.obj: src/rtmpsuck.c
+	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS) -c -o rtmpsuck.obj `if test -f 'src/rtmpsuck.c'; then $(CYGPATH_W) 'src/rtmpsuck.c'; else $(CYGPATH_W) '$(srcdir)/src/rtmpsuck.c'; fi`
 
 mostlyclean-libtool:
 	-rm -f *.lo
