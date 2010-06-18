@@ -26,6 +26,19 @@
 %include "x86inc.asm"
 %include "x86util.asm"
 
+SECTION_RODATA
+
+h4x4_pred_shuf: db 3,3,3,3,7,7,7,7,11,11,11,11,15,15,15,15
+h4x4_pred_shuf2: db 3,7,11,15,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1
+h8x8_pred_shuf: times 8 db 1
+                times 8 db 0
+                times 8 db 3
+                times 8 db 2
+                times 8 db 5
+                times 8 db 4
+                times 8 db 7
+                times 8 db 6
+
 SECTION .text
 
 cextern pb_3
@@ -303,6 +316,40 @@ cglobal intra_sad_x3_4x4_mmxext, 3,3
     movd   [r2+4], mm1 ;H prediction cost
     RET
 
+cglobal intra_sad_x3_4x4_sse4, 3,3
+    movd       xmm4, [r1+FDEC_STRIDE*0-4]
+    pinsrd     xmm4, [r1+FDEC_STRIDE*1-4], 1
+    pinsrd     xmm4, [r1+FDEC_STRIDE*2-4], 2
+    pinsrd     xmm4, [r1+FDEC_STRIDE*3-4], 3
+    movd       xmm2, [r1-FDEC_STRIDE]
+    pxor       xmm3, xmm3
+    movdqa     xmm5, xmm4
+    pshufb     xmm4, [h4x4_pred_shuf2] ; EFGH
+    pshufb     xmm5, [h4x4_pred_shuf]  ; EEEEFFFFGGGGHHHH
+    pshufd     xmm0, xmm2, 0           ; ABCDABCDABCDABCD
+    punpckldq  xmm2, xmm4              ; ABCDEFGH
+    psadbw     xmm2, xmm3
+    movd       xmm1, [r0+FENC_STRIDE*0]
+    pinsrd     xmm1, [r0+FENC_STRIDE*1], 1
+    pinsrd     xmm1, [r0+FENC_STRIDE*2], 2
+    pinsrd     xmm1, [r0+FENC_STRIDE*3], 3
+    psadbw     xmm0, xmm1
+    psadbw     xmm5, xmm1
+    psraw      xmm2, 2
+    pavgw      xmm2, xmm3
+    pshufb     xmm2, xmm3              ; DC prediction
+    movdqa     xmm3, xmm0
+    punpcklqdq xmm0, xmm5
+    punpckhqdq xmm3, xmm5
+    psadbw     xmm2, xmm1
+    paddw      xmm0, xmm3
+    movhlps    xmm4, xmm2
+    packusdw   xmm0, xmm0
+    paddw      xmm2, xmm4
+    movq       [r2], xmm0              ; V/H prediction costs
+    movd     [r2+8], xmm2              ; DC prediction cost
+    RET
+
 ;-----------------------------------------------------------------------------
 ; void intra_sad_x3_8x8( uint8_t *fenc, uint8_t edge[33], int res[3]);
 ;-----------------------------------------------------------------------------
@@ -368,6 +415,66 @@ cglobal intra_sad_x3_8x8_mmxext, 3,3
     movd  [r2+0], m2
     movd  [r2+4], m3
     movd  [r2+8], m1
+    RET
+
+INIT_XMM
+cglobal intra_sad_x3_8x8_ssse3, 3,4,9
+%ifdef PIC
+    lea        r11, [h8x8_pred_shuf]
+%define shuf r11
+%else
+%define shuf h8x8_pred_shuf
+%endif
+    movq       m0, [r1+7]   ; left pixels
+    movq       m1, [r1+16]  ; top pixels
+    pxor       m2, m2
+    pxor       m3, m3
+    psadbw     m2, m0
+    psadbw     m3, m1
+    paddw      m2, m3
+    pxor       m3, m3       ; V score accumulator
+    psraw      m2, 3
+    pavgw      m2, m3
+    punpcklqdq m1, m1       ; V prediction
+    pshufb     m2, m3       ; DC prediction
+    pxor       m4, m4       ; H score accumulator
+    pxor       m5, m5       ; DC score accumulator
+    mov       r3d, 6
+.loop:
+    movq        m6, [r0+FENC_STRIDE*0]
+    movhps      m6, [r0+FENC_STRIDE*1]
+    movdqa      m7, m0
+    pshufb      m7, [shuf+r3*8] ; H prediction
+%ifdef ARCH_X86_64
+    movdqa      m8, m1
+    psadbw      m7, m6
+    psadbw      m8, m6
+    psadbw      m6, m2
+    paddw       m4, m7
+    paddw       m3, m8
+    paddw       m5, m6
+%else
+    psadbw      m7, m6
+    paddw       m4, m7
+    movdqa      m7, m1
+    psadbw      m7, m6
+    psadbw      m6, m2
+    paddw       m3, m7
+    paddw       m5, m6
+%endif
+    add         r0, FENC_STRIDE*2
+    sub        r3d, 2
+    jge .loop
+
+    movhlps     m0, m3
+    movhlps     m1, m4
+    movhlps     m2, m5
+    paddw       m3, m0
+    paddw       m4, m1
+    paddw       m5, m2
+    movd    [r2+0], m3
+    movd    [r2+4], m4
+    movd    [r2+8], m5
     RET
 
 ;-----------------------------------------------------------------------------

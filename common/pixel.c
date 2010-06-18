@@ -856,6 +856,9 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         }
         pixf->sa8d[PIXEL_16x16]= x264_pixel_sa8d_16x16_sse4;
         pixf->sa8d[PIXEL_8x8]  = x264_pixel_sa8d_8x8_sse4;
+        pixf->intra_sad_x3_4x4 = x264_intra_sad_x3_4x4_sse4;
+        /* Slower on Conroe, so only enable under SSE4 */
+        pixf->intra_sad_x3_8x8  = x264_intra_sad_x3_8x8_ssse3;
     }
 #endif //HAVE_MMX
 
