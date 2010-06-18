@@ -443,7 +443,6 @@ AC_ARG_ENABLE([captive-librtmp],
                               [use our own captive versions of the rtmp protocol library (default is yes)])],
                               [],
                               [enable_captive_librtmp=yes])
-AC_MSG_CHECKING([whether to use captive version of librtmp])
 if test "x$enable_captives" != "xyes"; then
   enable_captive_librtmp=no
 fi
@@ -459,6 +458,7 @@ if test "x$enable_captive_librtmp" != "xno"; then
   AC_SEARCH_LIBS(SSL_library_init, ssl, [], [enable_captive_librtmp=no])
 fi
 
+AC_MSG_CHECKING([whether to use captive version of librtmp])
 AC_MSG_RESULT([$enable_captive_librtmp])
 AM_CONDITIONAL(CAPTIVE_ENABLE_LIBRTMP,
                [ test "x$enable_captive_librtmp" = "xyes" ])

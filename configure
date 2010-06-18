@@ -15516,8 +15516,6 @@ else
   enable_captive_librtmp=yes
 fi
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to use captive version of librtmp" >&5
-$as_echo_n "checking whether to use captive version of librtmp... " >&6; }
 if test "x$enable_captives" != "xyes"; then
   enable_captive_librtmp=no
 fi
@@ -15647,6 +15645,8 @@ fi
 
 fi
 
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to use captive version of librtmp" >&5
+$as_echo_n "checking whether to use captive version of librtmp... " >&6; }
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $enable_captive_librtmp" >&5
 $as_echo "$enable_captive_librtmp" >&6; }
  if  test "x$enable_captive_librtmp" = "xyes" ; then
