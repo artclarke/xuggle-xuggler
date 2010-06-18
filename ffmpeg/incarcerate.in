@@ -16,6 +16,7 @@ CAPTIVE_ENABLE_LIBSPEEX=@CAPTIVE_ENABLE_LIBSPEEX@
 CAPTIVE_ENABLE_LIBX264=@CAPTIVE_ENABLE_LIBX264@
 CAPTIVE_ENABLE_LIBMP3LAME=@CAPTIVE_ENABLE_LIBMP3LAME@
 CAPTIVE_ENABLE_LIBOPENCORE_AMR=@CAPTIVE_ENABLE_LIBOPENCORE_AMR@
+CAPTIVE_ENABLE_LIBRTMP=@CAPTIVE_ENABLE_LIBRTMP@
 CAPTIVE_ENABLE_FFMPEG_GPL=@VS_ENABLE_GPL@
 HAVE_LIBRTMP=@HAVE_LIBRTMP@
 HAVE_LIBFAAC=@HAVE_LIBFAAC@
@@ -29,6 +30,8 @@ FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-version=xuggle-@LIB_MAJOR_VERSION@.@LIB_
 # installed
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=-I@abs_top_builddir@@includedir@"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=-L@abs_top_builddir@@libdir@"
+# Set up a place where pkg-config looks for installed packages
+export PKG_CONFIG_PATH="@abs_top_builddir@@libdir@/pkgconfig"
 
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-shared"
 #FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-runtime-cpudetect"
@@ -46,9 +49,6 @@ if test ! "x$VS_DEBUG" = "x"; then
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-mmx2"
 else
   echo "Creating release version of ffmpeg: $VS_DEBUG"
-fi
-if test "x$HAVE_LIBRTMP" = "xyes"; then
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-librtmp"
 fi
 if test "x$HAVE_LIBFAAC" = "xyes"; then
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libfaac"
@@ -70,6 +70,9 @@ if test "x$CAPTIVE_ENABLE_LIBSPEEX" = "xyes"; then
 fi
 if test "x$CAPTIVE_ENABLE_LIBOPENCORE_AMR" = "xyes"; then
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libopencore-amrnb --enable-libopencore-amrwb"
+fi
+if test "x$CAPTIVE_ENABLE_LIBRTMP" = "xyes"; then
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-librtmp"
 fi
 
 if test "x$VS_ENABLE_64BIT" = "xyes"; then
