@@ -2034,9 +2034,6 @@ static float rate_estimate_qscale( x264_t *h )
             double lmax = rcc->lmax[pict_type];
             int64_t diff;
             int64_t predicted_bits = total_bits;
-            /* Adjust ABR buffer based on distance to the end of the video. */
-            if( rcc->num_entries > h->i_frame )
-                abr_buffer *= 0.5 * sqrt( rcc->num_entries - h->i_frame );
 
             if( rcc->b_vbv )
             {
@@ -2060,6 +2057,15 @@ static float rate_estimate_qscale( x264_t *h )
                     predicted_bits += (int64_t)h->i_frame * rcc->bitrate / rcc->fps;
                 else
                     predicted_bits += (int64_t)(h->i_thread_frames - 1) * rcc->bitrate / rcc->fps;
+            }
+
+            /* Adjust ABR buffer based on distance to the end of the video. */
+            if( rcc->num_entries > h->i_frame )
+            {
+                double final_bits = rcc->entry[rcc->num_entries-1].expected_bits;
+                double video_pos = rce.expected_bits / final_bits;
+                double scale_factor = sqrt( (1 - video_pos) * rcc->num_entries );
+                abr_buffer *= 0.5 * X264_MAX( scale_factor, 0.5 );
             }
 
             diff = predicted_bits - (int64_t)rce.expected_bits;
