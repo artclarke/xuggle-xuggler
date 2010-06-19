@@ -1080,23 +1080,27 @@ void x264_free( void *p )
 /****************************************************************************
  * x264_reduce_fraction:
  ****************************************************************************/
-void x264_reduce_fraction( uint32_t *n, uint32_t *d )
-{
-    uint32_t a = *n;
-    uint32_t b = *d;
-    uint32_t c;
-    if( !a || !b )
-        return;
-    c = a % b;
-    while(c)
-    {
-        a = b;
-        b = c;
-        c = a % b;
-    }
-    *n /= b;
-    *d /= b;
+#define REDUCE_FRACTION( name, type )\
+void name( type *n, type *d )\
+{                   \
+    type a = *n;    \
+    type b = *d;    \
+    type c;         \
+    if( !a || !b )  \
+        return;     \
+    c = a % b;      \
+    while( c )      \
+    {               \
+        a = b;      \
+        b = c;      \
+        c = a % b;  \
+    }               \
+    *n /= b;        \
+    *d /= b;        \
 }
+
+REDUCE_FRACTION( x264_reduce_fraction  , uint32_t )
+REDUCE_FRACTION( x264_reduce_fraction64, uint64_t )
 
 /****************************************************************************
  * x264_slurp_file:

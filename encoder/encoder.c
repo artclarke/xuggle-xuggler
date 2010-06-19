@@ -2569,8 +2569,7 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     /* generate sei buffering period and insert it into place */
     if( h->fenc->b_keyframe && h->sps->vui.b_nal_hrd_parameters_present )
     {
-        h->initial_cpb_removal_delay = x264_hrd_fullness( h );
-
+        x264_hrd_fullness( h );
         x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
         x264_sei_buffering_period_write( h, &h->out.bs );
         if( x264_nal_end( h ) )
