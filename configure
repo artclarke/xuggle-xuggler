@@ -628,6 +628,10 @@ else
     CFLAGS="-O3 -ffast-math $CFLAGS"
 fi
 
+if cc_check '' -fno-tree-vectorize ; then
+    CFLAGS="$CFLAGS -fno-tree-vectorize"
+fi
+
 if cc_check "stdio.h" "" "fseeko(stdin,0,0);" ; then
     define fseek fseeko
     define ftell ftello
