@@ -440,7 +440,7 @@ fi
 #
 AC_ARG_ENABLE([captive-librtmp],
               [AS_HELP_STRING([--enable-captive-librtmp],
-                              [use our own captive versions of the rtmp protocol library (default is yes)])],
+                              [use our own captive versions of the rtmp protocol library (default is no)])],
                               [],
                               [enable_captive_librtmp=no])
 if test "x$enable_captives" != "xyes"; then
@@ -451,11 +451,12 @@ if test "x$enable_captive_ffmpeg" != "xyes"; then
   # incarcerating ffmpeg
   enable_captive_librtmp=no
 fi
+
 if test "x$enable_captive_librtmp" != "xno"; then
   # If they have decided to do captive RTMP, then make sure all
   # dependencies are present
-  AC_CHECK_PROG([PKGCONFIG], [pkg-config])
-  if test "x$PKGCONFIG" = "x"; then
+  AC_CHECK_PROG([PKGCONFIG], [pkg-config], ["yes"], ["no"])
+  if test "x$PKGCONFIG" = "xno"; then
     AC_MSG_FAILURE([Could not find pkg-config which is required for librtmp])
   fi
   AC_SEARCH_LIBS(zlibVersion, z, [], [enable_captive_librtmp=no])
