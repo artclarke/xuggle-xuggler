@@ -57,7 +57,7 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1registerProto
     URLProtocolManager* mgr = new URLProtocolManager(protoName, aProtoMgr);
 
     URLProtocol* proto = mgr->getURLProtocol();
-    retval = av_register_protocol(proto);
+    retval = av_register_protocol2(proto, sizeof(URLProtocolWrapper));
 
     jenv->ReleaseStringUTFChars(aProtoName, protoName);
     protoName = NULL;

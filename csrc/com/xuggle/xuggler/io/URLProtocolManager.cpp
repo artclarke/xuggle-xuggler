@@ -56,8 +56,11 @@ URLProtocolManager::URLProtocolManager(const char * aProtocolName,
   mWrapper->proto.url_seek = URLProtocolManager::url_seek;
   mWrapper->proto.url_close = URLProtocolManager::url_close;
   // Unsupported...
-  mWrapper->proto.url_read_pause = NULL, mWrapper->proto.url_read_seek
-      = NULL,
+  mWrapper->proto.url_read_pause = 0;
+  mWrapper->proto.url_read_seek = 0;
+  mWrapper->proto.url_get_file_handle=0;
+  mWrapper->proto.priv_data_size = 0;
+  mWrapper->proto.priv_data_class = 0;
   // and remember ourselves...
   mWrapper->protocolMgr = this;
 }
