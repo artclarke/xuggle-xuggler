@@ -564,6 +564,7 @@ static int x264_validate_parameters( x264_t *h )
     }
 
     h->param.i_frame_reference = x264_clip3( h->param.i_frame_reference, 1, 16 );
+    h->param.i_dpb_size = x264_clip3( h->param.i_dpb_size, 1, 16 );
     if( h->param.i_keyint_max <= 0 )
         h->param.i_keyint_max = 1;
     if( h->param.i_scenecut_threshold < 0 )
@@ -593,10 +594,11 @@ static int x264_validate_parameters( x264_t *h )
         x264_log( h, X264_LOG_WARNING, "b-pyramid normal + intra-refresh is not supported\n" );
         h->param.i_bframe_pyramid = X264_B_PYRAMID_STRICT;
     }
-    if( h->param.b_intra_refresh && h->param.i_frame_reference > 1 )
+    if( h->param.b_intra_refresh && (h->param.i_frame_reference > 1 || h->param.i_dpb_size > 1) )
     {
         x264_log( h, X264_LOG_WARNING, "ref > 1 + intra-refresh is not supported\n" );
         h->param.i_frame_reference = 1;
+        h->param.i_dpb_size = 1;
     }
     if( h->param.b_intra_refresh && h->param.i_open_gop )
     {
@@ -1481,6 +1483,8 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
 
     for( int i = 0; h->frames.reference[i]; i++ )
     {
+        if( h->frames.reference[i]->b_corrupt )
+            continue;
         if( h->frames.reference[i]->i_poc < i_poc )
             h->fref0[h->i_ref0++] = h->frames.reference[i];
         else if( h->frames.reference[i]->i_poc > i_poc )
@@ -2185,6 +2189,23 @@ void x264_encoder_intra_refresh( x264_t *h )
     h->b_queued_intra_refresh = 1;
 }
 
+int x264_encoder_invalidate_reference( x264_t *h, int64_t pts )
+{
+    if( h->param.i_bframe )
+    {
+        x264_log( h, X264_LOG_ERROR, "x264_encoder_invalidate_reference is not supported with B-frames enabled\n" );
+        return -1;
+    }
+    if( h->param.b_intra_refresh )
+    {
+        x264_log( h, X264_LOG_ERROR, "x264_encoder_invalidate_reference is not supported with intra refresh enabled\n" );
+        return -1;
+    }
+    h = h->thread[h->i_thread_phase];
+    h->i_reference_invalidate_pts = pts;
+    return 0;
+}
+
 /****************************************************************************
  * x264_encoder_encode:
  *  XXX: i_poc   : is the poc of the current given picture
@@ -2330,6 +2351,29 @@ int     x264_encoder_encode( x264_t *h,
             h->fenc->param->param_free( h->fenc->param );
     }
 
+    if( h->i_reference_invalidate_pts )
+    {
+        if( h->i_reference_invalidate_pts >= h->i_last_idr_pts )
+            for( int i = 0; h->frames.reference[i]; i++ )
+                if( h->i_reference_invalidate_pts <= h->frames.reference[i]->i_pts )
+                    h->frames.reference[i]->b_corrupt = 1;
+        h->i_reference_invalidate_pts = 0;
+    }
+
+    if( !IS_X264_TYPE_I( h->fenc->i_type ) )
+    {
+        int valid_refs_left = 0;
+        for( int i = 0; h->frames.reference[i]; i++ )
+            if( !h->frames.reference[i]->b_corrupt )
+                valid_refs_left++;
+        /* No valid reference frames left: force an IDR. */
+        if( !valid_refs_left )
+        {
+            h->fenc->b_keyframe = 1;
+            h->fenc->i_type = X264_TYPE_IDR;
+        }
+    }
+
     if( h->fenc->b_keyframe )
     {
         h->frames.i_last_keyframe = h->fenc->i_frame;
@@ -2393,7 +2437,30 @@ int     x264_encoder_encode( x264_t *h,
     h->fenc->b_kept_as_ref =
     h->fdec->b_kept_as_ref = i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE && h->param.i_keyint_max > 1;
 
-
+    h->fdec->i_pts = h->fenc->i_pts *= h->i_dts_compress_multiplier;
+    if( h->frames.i_bframe_delay )
+    {
+        int64_t *prev_reordered_pts = thread_current->frames.i_prev_reordered_pts;
+        if( h->i_frame <= h->frames.i_bframe_delay )
+        {
+            if( h->i_dts_compress_multiplier == 1 )
+                h->fdec->i_dts = h->fenc->i_reordered_pts - h->frames.i_bframe_delay_time;
+            else
+            {
+                /* DTS compression */
+                if( h->i_frame == 1 )
+                    thread_current->frames.i_init_delta = h->fenc->i_reordered_pts * h->i_dts_compress_multiplier;
+                h->fdec->i_dts = h->i_frame * thread_current->frames.i_init_delta / h->i_dts_compress_multiplier;
+            }
+        }
+        else
+            h->fdec->i_dts = prev_reordered_pts[ (h->i_frame - h->frames.i_bframe_delay) % h->frames.i_bframe_delay ];
+        prev_reordered_pts[ h->i_frame % h->frames.i_bframe_delay ] = h->fenc->i_reordered_pts * h->i_dts_compress_multiplier;
+    }
+    else
+        h->fdec->i_dts = h->fenc->i_reordered_pts;
+    if( h->fenc->i_type == X264_TYPE_IDR )
+        h->i_last_idr_pts = h->fdec->i_pts;
 
     /* ------------------- Init                ----------------------------- */
     /* build ref list 0/1 */
@@ -2616,28 +2683,9 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 
     pic_out->b_keyframe = h->fenc->b_keyframe;
 
-    pic_out->i_pts = h->fenc->i_pts *= h->i_dts_compress_multiplier;
-    if( h->frames.i_bframe_delay )
-    {
-        int64_t *prev_reordered_pts = thread_current->frames.i_prev_reordered_pts;
-        if( h->i_frame <= h->frames.i_bframe_delay )
-        {
-            if( h->i_dts_compress_multiplier == 1 )
-                pic_out->i_dts = h->fenc->i_reordered_pts - h->frames.i_bframe_delay_time;
-            else
-            {
-                /* DTS compression */
-                if( h->i_frame == 1 )
-                    thread_current->frames.i_init_delta = h->fenc->i_reordered_pts * h->i_dts_compress_multiplier;
-                pic_out->i_dts = h->i_frame * thread_current->frames.i_init_delta / h->i_dts_compress_multiplier;
-            }
-        }
-        else
-            pic_out->i_dts = prev_reordered_pts[ (h->i_frame - h->frames.i_bframe_delay) % h->frames.i_bframe_delay ];
-        prev_reordered_pts[ h->i_frame % h->frames.i_bframe_delay ] = h->fenc->i_reordered_pts * h->i_dts_compress_multiplier;
-    }
-    else
-        pic_out->i_dts = h->fenc->i_reordered_pts;
+    pic_out->i_pts = h->fdec->i_pts;
+    pic_out->i_dts = h->fdec->i_dts;
+
     if( pic_out->i_pts < pic_out->i_dts )
         x264_log( h, X264_LOG_WARNING, "invalid DTS: PTS is less than DTS\n" );
 

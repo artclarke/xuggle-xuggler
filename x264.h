@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 99
+#define X264_BUILD 100
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -217,6 +217,8 @@ typedef struct x264_param_t
 
     /* Bitstream parameters */
     int         i_frame_reference;  /* Maximum number of reference frames */
+    int         i_dpb_size;         /* Force a DPB size larger than that implied by B-frames and reference frames.
+                                     * Useful in combination with interactive error resilience. */
     int         i_keyint_max;       /* Force an IDR keyframe at this interval */
     int         i_keyint_min;       /* Scenecuts closer together than this are coded as I, not IDR. */
     int         i_scenecut_threshold; /* how aggressively to insert extra I frames */
@@ -682,9 +684,38 @@ int     x264_encoder_delayed_frames( x264_t * );
  *      If an intra refresh is not in progress, begin one with the next P-frame.
  *      If an intra refresh is in progress, begin one as soon as the current one finishes.
  *      Requires that b_intra_refresh be set.
+ *
  *      Useful for interactive streaming where the client can tell the server that packet loss has
  *      occurred.  In this case, keyint can be set to an extremely high value so that intra refreshes
- *      only occur when calling x264_encoder_intra_refresh. */
+ *      only occur when calling x264_encoder_intra_refresh.
+ *
+ *      In multi-pass encoding, if x264_encoder_intra_refresh is called differently in each pass,
+ *      behavior is undefined.
+ *
+ *      Should not be called during an x264_encoder_encode. */
 void    x264_encoder_intra_refresh( x264_t * );
+/* x264_encoder_invalidate_reference:
+ *      An interactive error resilience tool, designed for use in a low-latency one-encoder-few-clients
+ *      system.  When the client has packet loss or otherwise incorrectly decodes a frame, the encoder
+ *      can be told with this command to "forget" the frame and all frames that depend on it, referencing
+ *      only frames that occurred before the loss.  This will force a keyframe if no frames are left to
+ *      reference after the aforementioned "forgetting".
+ *
+ *      It is strongly recommended to use a large i_dpb_size in this case, which allows the encoder to
+ *      keep around extra, older frames to fall back on in case more recent frames are all invalidated.
+ *      Unlike increasing i_frame_reference, this does not increase the number of frames used for motion
+ *      estimation and thus has no speed impact.  It is also recommended to set a very large keyframe
+ *      interval, so that keyframes are not used except as necessary for error recovery.
+ *
+ *      x264_encoder_invalidate_reference is not currently compatible with the use of B-frames or intra
+ *      refresh.
+ *
+ *      In multi-pass encoding, if x264_encoder_invalidate_reference is called differently in each pass,
+ *      behavior is undefined.
+ *
+ *      Should not be called during an x264_encoder_encode.
+ *
+ *      Returns 0 on success, negative on failure. */
+int x264_encoder_invalidate_reference( x264_t *, int64_t pts );
 
 #endif

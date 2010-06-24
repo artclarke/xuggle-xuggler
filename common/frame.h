@@ -35,6 +35,7 @@ typedef struct x264_frame
     int     i_type;
     int     i_qpplus1;
     int64_t i_pts;
+    int64_t i_dts;
     int64_t i_reordered_pts;
     int     i_duration;  /* in SPS time_scale units (i.e 2 * timebase units) used for vfr */
     int     i_cpb_duration;
@@ -143,6 +144,9 @@ typedef struct x264_frame
     int     i_pir_start_col;
     int     i_pir_end_col;
     int     i_frames_since_pir;
+
+    /* interactive encoder control */
+    int     b_corrupt;
 } x264_frame_t;
 
 /* synchronized frame list */

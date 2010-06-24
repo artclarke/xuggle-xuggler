@@ -223,8 +223,8 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     /* extra slot with pyramid so that we don't have to override the
      * order of forgetting old pictures */
     sps->vui.i_max_dec_frame_buffering =
-    sps->i_num_ref_frames = X264_MIN(16, X264_MAX3(param->i_frame_reference, 1 + sps->vui.i_num_reorder_frames,
-                                                   param->i_bframe_pyramid ? 4 : 1 ));
+    sps->i_num_ref_frames = X264_MIN(16, X264_MAX4(param->i_frame_reference, 1 + sps->vui.i_num_reorder_frames,
+                            param->i_bframe_pyramid ? 4 : 1, param->i_dpb_size));
     sps->i_num_ref_frames -= param->i_bframe_pyramid == X264_B_PYRAMID_STRICT;
 
     sps->vui.b_bitstream_restriction = 1;

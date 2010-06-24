@@ -634,6 +634,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     }
     OPT2("ref", "frameref")
         p->i_frame_reference = atoi(value);
+    OPT("dpb-size")
+        p->i_dpb_size = atoi(value);
     OPT("keyint")
     {
         p->i_keyint_max = atoi(value);
