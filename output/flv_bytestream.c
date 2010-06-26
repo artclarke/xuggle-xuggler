@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#include "muxers.h"
+#include "output.h"
 #include "flv_bytestream.h"
 
 uint64_t dbl2int( double value )

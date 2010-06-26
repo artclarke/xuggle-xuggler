@@ -1,7 +1,7 @@
 /*****************************************************************************
- * muxers.h: h264 file i/o modules
+ * x264cli.h: x264cli common
  *****************************************************************************
- * Copyright (C) 2003-2009 x264 project
+ * Copyright (C) 2003-2010 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -21,11 +21,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#ifndef X264_MUXERS_H
-#define X264_MUXERS_H
+#ifndef X264_CLI_H
+#define X264_CLI_H
 
 #include "common/common.h"
-#include "x264.h"
 
 typedef void *hnd_t;
 
@@ -55,7 +54,14 @@ static inline char *get_filename_extension( char *filename )
     return ext;
 }
 
-#include "input/input.h"
-#include "output/output.h"
+void x264_cli_log( const char *name, int i_level, const char *fmt, ... );
+void x264_cli_printf( int i_level, const char *fmt, ... );
+
+#define FAIL_IF_ERR( cond, name, ... )\
+if( cond )\
+{\
+    x264_cli_log( name, X264_LOG_ERROR, __VA_ARGS__ );\
+    return -1;\
+}
 
 #endif

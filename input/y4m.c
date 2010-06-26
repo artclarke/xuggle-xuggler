@@ -21,7 +21,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#include "muxers.h"
+#include "input.h"
+#define FAIL_IF_ERROR( cond, ... ) FAIL_IF_ERR( cond, "y4m", __VA_ARGS__ )
 
 typedef struct
 {
@@ -162,11 +163,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     if( colorspace == X264_CSP_NONE )
         colorspace = X264_CSP_I420;
 
-    if( colorspace != X264_CSP_I420 )
-    {
-        fprintf( stderr, "y4m [error]: colorspace unhandled\n" );
-        return -1;
-    }
+    FAIL_IF_ERROR( colorspace != X264_CSP_I420, "colorspace unhandled\n" )
 
     *p_handle = h;
     return 0;
@@ -202,21 +199,13 @@ static int read_frame_internal( x264_picture_t *p_pic, y4m_hnd_t *h )
         return -1;
 
     header[slen] = 0;
-    if( strncmp( header, Y4M_FRAME_MAGIC, slen ) )
-    {
-        fprintf( stderr, "y4m [error]: bad header magic (%"PRIx32" <=> %s)\n",
-                 M32(header), header );
-        return -1;
-    }
+    FAIL_IF_ERROR( strncmp( header, Y4M_FRAME_MAGIC, slen ), "bad header magic (%"PRIx32" <=> %s)\n",
+                   M32(header), header )
 
     /* Skip most of it */
     while( i < MAX_FRAME_HEADER && fgetc( h->fh ) != '\n' )
         i++;
-    if( i == MAX_FRAME_HEADER )
-    {
-        fprintf( stderr, "y4m [error]: bad frame header!\n" );
-        return -1;
-    }
+    FAIL_IF_ERROR( i == MAX_FRAME_HEADER, "bad frame header!\n" )
     h->frame_header_len = i+slen+1;
 
     if( fread( p_pic->img.plane[0], h->width * h->height, 1, h->fh ) <= 0

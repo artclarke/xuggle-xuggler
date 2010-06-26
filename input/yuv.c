@@ -21,7 +21,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#include "muxers.h"
+#include "input.h"
 
 typedef struct
 {
@@ -45,11 +45,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     }
     else
         sscanf( opt->resolution, "%ux%u", &info->width, &info->height );
-    if( !info->width || !info->height )
-    {
-        fprintf( stderr, "yuv [error]: rawyuv input requires a resolution.\n" );
-        return -1;
-    }
+    FAIL_IF_ERR( !info->width || !info->height, "yuv", "rawyuv input requires a resolution.\n" )
 
     h->next_frame = 0;
     info->vfr     = 0;

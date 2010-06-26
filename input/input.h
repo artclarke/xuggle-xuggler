@@ -25,6 +25,8 @@
 #ifndef X264_INPUT_H
 #define X264_INPUT_H
 
+#include "x264cli.h"
+
 /* options that are used by only some demuxers */
 typedef struct
 {
