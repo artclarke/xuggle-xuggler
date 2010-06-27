@@ -609,7 +609,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
             if( h->mb.i_me_method == X264_ME_TESA )
             {
                 // ADS threshold, then SAD threshold, then keep the best few SADs, then SATD
-                mvsad_t *mvsads = (mvsad_t *)(xs + ((width+15)&~15));
+                mvsad_t *mvsads = (mvsad_t *)(xs + ((width+15)&~15) + 4);
                 int nmvsad = 0, limit;
                 int sad_thresh = i_me_range <= 16 ? 10 : i_me_range <= 24 ? 11 : 12;
                 int bsad = h->pixf.sad[i_pixel]( p_fenc, FENC_STRIDE, p_fref_w+bmy*stride+bmx, stride )

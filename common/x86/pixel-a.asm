@@ -2142,34 +2142,24 @@ cglobal pixel_ssim_end4_sse2, 3,3,7
 ; Successive Elimination ADS
 ;=============================================================================
 
-%macro ADS_START 1 ; unroll_size
-%ifdef ARCH_X86_64
-    %define t0 r6
+%macro ADS_START 0
 %ifdef WIN64
-    mov     r4,  r4mp
-    movsxd  r5,  dword r5m
+    movsxd  r5,  r5d
 %endif
-    mov     r10, rsp
-%else
-    %define t0 r4
-    mov     rbp, rsp
-%endif
-    mov     r0d, r5m
-    sub     rsp, r0
-    sub     rsp, %1*4-1
-    and     rsp, ~15
-    mov     t0,  rsp
+    mov     r0d, r5d
+    lea     r6,  [r4+r5+15]
+    and     r6,  ~15;
     shl     r2d,  1
 %endmacro
 
-%macro ADS_END 1
+%macro ADS_END 1 ; unroll_size
     add     r1, 8*%1
     add     r3, 8*%1
-    add     t0, 4*%1
+    add     r6, 4*%1
     sub     r0d, 4*%1
     jg .loop
 %ifdef WIN64
-    RESTORE_XMM r10
+    RESTORE_XMM rsp
 %endif
     jmp ads_mvs
 %endmacro
@@ -2180,14 +2170,14 @@ cglobal pixel_ssim_end4_sse2, 3,3,7
 ; int pixel_ads4( int enc_dc[4], uint16_t *sums, int delta,
 ;                 uint16_t *cost_mvx, int16_t *mvs, int width, int thresh )
 ;-----------------------------------------------------------------------------
-cglobal pixel_ads4_mmxext, 4,7
+cglobal pixel_ads4_mmxext, 6,7
     movq    mm6, [r0]
     movq    mm4, [r0+8]
     pshufw  mm7, mm6, 0
     pshufw  mm6, mm6, 0xAA
     pshufw  mm5, mm4, 0
     pshufw  mm4, mm4, 0xAA
-    ADS_START 1
+    ADS_START
 .loop:
     movq    mm0, [r1]
     movq    mm1, [r1+16]
@@ -2204,25 +2194,19 @@ cglobal pixel_ads4_mmxext, 4,7
     ABS1    mm3, mm1
     paddw   mm0, mm2
     paddw   mm0, mm3
-%ifdef WIN64
-    pshufw  mm1, [r10+stack_offset+56], 0
-%elifdef ARCH_X86_64
-    pshufw  mm1, [r10+8], 0
-%else
-    pshufw  mm1, [ebp+stack_offset+28], 0
-%endif
+    pshufw  mm1, r6m, 0
     paddusw mm0, [r3]
     psubusw mm1, mm0
     packsswb mm1, mm1
-    movd    [t0], mm1
+    movd    [r6], mm1
     ADS_END 1
 
-cglobal pixel_ads2_mmxext, 4,7
+cglobal pixel_ads2_mmxext, 6,7
     movq    mm6, [r0]
     pshufw  mm5, r6m, 0
     pshufw  mm7, mm6, 0
     pshufw  mm6, mm6, 0xAA
-    ADS_START 1
+    ADS_START
 .loop:
     movq    mm0, [r1]
     movq    mm1, [r1+r2]
@@ -2235,13 +2219,13 @@ cglobal pixel_ads2_mmxext, 4,7
     movq    mm4, mm5
     psubusw mm4, mm0
     packsswb mm4, mm4
-    movd    [t0], mm4
+    movd    [r6], mm4
     ADS_END 1
 
-cglobal pixel_ads1_mmxext, 4,7
+cglobal pixel_ads1_mmxext, 6,7
     pshufw  mm7, [r0], 0
     pshufw  mm6, r6m, 0
-    ADS_START 2
+    ADS_START
 .loop:
     movq    mm0, [r1]
     movq    mm1, [r1+8]
@@ -2256,11 +2240,11 @@ cglobal pixel_ads1_mmxext, 4,7
     psubusw mm4, mm0
     psubusw mm5, mm1
     packsswb mm4, mm5
-    movq    [t0], mm4
+    movq    [r6], mm4
     ADS_END 2
 
 %macro ADS_SSE2 1
-cglobal pixel_ads4_%1, 4,7,12
+cglobal pixel_ads4_%1, 6,7,12
     movdqa  xmm4, [r0]
     pshuflw xmm7, xmm4, 0
     pshuflw xmm6, xmm4, 0xAA
@@ -2273,7 +2257,7 @@ cglobal pixel_ads4_%1, 4,7,12
 %ifdef ARCH_X86_64
     pshuflw xmm8, r6m, 0
     punpcklqdq xmm8, xmm8
-    ADS_START 2
+    ADS_START
     movdqu  xmm10, [r1]
     movdqu  xmm11, [r1+r2]
 .loop:
@@ -2299,9 +2283,9 @@ cglobal pixel_ads4_%1, 4,7,12
     movdqa  xmm1, xmm8
     psubusw xmm1, xmm0
     packsswb xmm1, xmm1
-    movq    [t0], xmm1
+    movq    [r6], xmm1
 %else
-    ADS_START 2
+    ADS_START
 .loop:
     movdqu  xmm0, [r1]
     movdqu  xmm1, [r1+16]
@@ -2318,18 +2302,18 @@ cglobal pixel_ads4_%1, 4,7,12
     ABS1    xmm3, xmm1
     paddw   xmm0, xmm2
     paddw   xmm0, xmm3
-    movd    xmm1, [ebp+stack_offset+28]
+    movd    xmm1, r6m
     movdqu  xmm2, [r3]
     pshuflw xmm1, xmm1, 0
     punpcklqdq xmm1, xmm1
     paddusw xmm0, xmm2
     psubusw xmm1, xmm0
     packsswb xmm1, xmm1
-    movq    [t0], xmm1
+    movq    [r6], xmm1
 %endif ; ARCH
     ADS_END 2
 
-cglobal pixel_ads2_%1, 4,7,8
+cglobal pixel_ads2_%1, 6,7,8
     movq    xmm6, [r0]
     movd    xmm5, r6m
     pshuflw xmm7, xmm6, 0
@@ -2338,7 +2322,7 @@ cglobal pixel_ads2_%1, 4,7,8
     punpcklqdq xmm7, xmm7
     punpcklqdq xmm6, xmm6
     punpcklqdq xmm5, xmm5
-    ADS_START 2
+    ADS_START
 .loop:
     movdqu  xmm0, [r1]
     movdqu  xmm1, [r1+r2]
@@ -2352,17 +2336,17 @@ cglobal pixel_ads2_%1, 4,7,8
     movdqa  xmm1, xmm5
     psubusw xmm1, xmm0
     packsswb xmm1, xmm1
-    movq    [t0], xmm1
+    movq    [r6], xmm1
     ADS_END 2
 
-cglobal pixel_ads1_%1, 4,7,8
+cglobal pixel_ads1_%1, 6,7,8
     movd    xmm7, [r0]
     movd    xmm6, r6m
     pshuflw xmm7, xmm7, 0
     pshuflw xmm6, xmm6, 0
     punpcklqdq xmm7, xmm7
     punpcklqdq xmm6, xmm6
-    ADS_START 4
+    ADS_START
 .loop:
     movdqu  xmm0, [r1]
     movdqu  xmm1, [r1+16]
@@ -2379,7 +2363,7 @@ cglobal pixel_ads1_%1, 4,7,8
     psubusw xmm4, xmm0
     psubusw xmm5, xmm1
     packsswb xmm4, xmm5
-    movdqa  [t0], xmm4
+    movdqa  [r6], xmm4
     ADS_END 4
 %endmacro
 
@@ -2401,90 +2385,57 @@ ADS_SSE2 ssse3
 ;     }
 ;     return nmv;
 ; }
+
+%macro TEST 1
+    mov     [r4+r0*2], r1w
+    test    r2d, 0xff<<(%1*8)
+    setne   r3b
+    add     r0d, r3d
+    inc     r1d
+%endmacro
+
 cglobal pixel_ads_mvs, 0,7,0
 ads_mvs:
-%ifdef ARCH_X86_64
+    lea     r6,  [r4+r5+15]
+    and     r6,  ~15;
     ; mvs = r4
-    ; masks = rsp
+    ; masks = r6
     ; width = r5
     ; clear last block in case width isn't divisible by 8. (assume divisible by 4, so clearing 4 bytes is enough.)
-%ifdef WIN64
-    mov     r8, r4
-    mov     r9, r5
-%endif
-    xor     eax, eax
-    xor     esi, esi
-    mov     dword [rsp+r9], 0
+    xor     r0d, r0d
+    xor     r1d, r1d
+    mov     [r6+r5], r0d
     jmp .loopi
+ALIGN 16
 .loopi0:
-    add     esi, 8
-    cmp     esi, r9d
+    add     r1d, 8
+    cmp     r1d, r5d
     jge .end
 .loopi:
-    mov     rdi, [rsp+rsi]
-    test    rdi, rdi
-    jz .loopi0
-    xor     ecx, ecx
-%macro TEST 1
-    mov     [r8+rax*2], si
-    test    edi, 0xff<<(%1*8)
-    setne   cl
-    add     eax, ecx
-    inc     esi
-%endmacro
-    TEST 0
-    TEST 1
-    TEST 2
-    TEST 3
-    shr     rdi, 32
-    TEST 0
-    TEST 1
-    TEST 2
-    TEST 3
-    cmp     esi, r9d
-    jl .loopi
-.end:
-    mov     rsp, r10
-    RET
-
+    mov     r2,  [r6+r1]
+%ifdef ARCH_X86_64
+    test    r2,  r2
 %else
-    xor     eax, eax
-    xor     esi, esi
-    mov     ebx, [ebp+stack_offset+20] ; mvs
-    mov     edi, [ebp+stack_offset+24] ; width
-    mov     dword [esp+edi], 0
-    push    ebp
-    jmp .loopi
-.loopi0:
-    add     esi, 8
-    cmp     esi, edi
-    jge .end
-.loopi:
-    mov     ebp, [esp+esi+4]
-    mov     edx, [esp+esi+8]
-    mov     ecx, ebp
-    or      ecx, edx
+    mov     r3,  r2
+    or      r3d, [r6+r1+4]
+%endif
     jz .loopi0
-    xor     ecx, ecx
-%macro TEST 2
-    mov     [ebx+eax*2], si
-    test    %2, 0xff<<(%1*8)
-    setne   cl
-    add     eax, ecx
-    inc     esi
-%endmacro
-    TEST 0, ebp
-    TEST 1, ebp
-    TEST 2, ebp
-    TEST 3, ebp
-    TEST 0, edx
-    TEST 1, edx
-    TEST 2, edx
-    TEST 3, edx
-    cmp     esi, edi
+    xor     r3d, r3d
+    TEST 0
+    TEST 1
+    TEST 2
+    TEST 3
+%ifdef ARCH_X86_64
+    shr     r2,  32
+%else
+    mov     r2d, [r6+r1]
+%endif
+    TEST 0
+    TEST 1
+    TEST 2
+    TEST 3
+    cmp     r1d, r5d
     jl .loopi
 .end:
-    pop     esp
+    movifnidn eax, r0d
     RET
-%endif ; ARCH
-
