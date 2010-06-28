@@ -44,7 +44,7 @@ uint8_t *x264_nal_escape_sse2( uint8_t *dst, uint8_t *src, uint8_t *end );
 /****************************************************************************
  * x264_nal_encode:
  ****************************************************************************/
-int x264_nal_encode( x264_t *h, uint8_t *dst, x264_nal_t *nal, int b_long_startcode )
+void x264_nal_encode( x264_t *h, uint8_t *dst, x264_nal_t *nal )
 {
     uint8_t *src = nal->p_payload;
     uint8_t *end = nal->p_payload + nal->i_payload;
@@ -52,7 +52,7 @@ int x264_nal_encode( x264_t *h, uint8_t *dst, x264_nal_t *nal, int b_long_startc
 
     if( h->param.b_annexb )
     {
-        if( b_long_startcode )
+        if( nal->b_long_startcode )
             *dst++ = 0x00;
         *dst++ = 0x00;
         *dst++ = 0x00;
@@ -77,7 +77,8 @@ int x264_nal_encode( x264_t *h, uint8_t *dst, x264_nal_t *nal, int b_long_startc
         orig_dst[3] = size>> 0;
     }
 
-    return size+4;
+    nal->i_payload = size+4;
+    nal->p_payload = orig_dst;
 }
 
 void x264_bitstream_init( int cpu, x264_bitstream_function_t *pf )

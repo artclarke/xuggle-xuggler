@@ -427,6 +427,8 @@ static int x264_validate_parameters( x264_t *h )
     else
         h->param.b_sliced_threads = 0;
     h->i_thread_frames = h->param.b_sliced_threads ? 1 : h->param.i_threads;
+    if( h->i_thread_frames > 1 )
+        h->param.nalu_process = NULL;
 
     if( h->param.b_interlaced )
     {
@@ -1253,8 +1255,9 @@ static void x264_nal_start( x264_t *h, int i_type, int i_ref_idc )
 {
     x264_nal_t *nal = &h->out.nal[h->out.i_nal];
 
-    nal->i_ref_idc = i_ref_idc;
-    nal->i_type    = i_type;
+    nal->i_ref_idc        = i_ref_idc;
+    nal->i_type           = i_type;
+    nal->b_long_startcode = 1;
 
     nal->i_payload= 0;
     nal->p_payload= &h->out.p_bitstream[bs_pos( &h->out.bs ) / 8];
@@ -1280,6 +1283,8 @@ static int x264_nal_end( x264_t *h )
 {
     x264_nal_t *nal = &h->out.nal[h->out.i_nal];
     nal->i_payload = &h->out.p_bitstream[bs_pos( &h->out.bs ) / 8] - nal->p_payload;
+    if( h->param.nalu_process )
+        h->param.nalu_process( h, nal );
     h->out.i_nal++;
 
     return x264_nal_check_buffer( h );
@@ -1288,6 +1293,13 @@ static int x264_nal_end( x264_t *h )
 static int x264_encoder_encapsulate_nals( x264_t *h, int start )
 {
     int nal_size = 0, previous_nal_size = 0;
+
+    if( h->param.nalu_process )
+    {
+        for( int i = start; i < h->out.i_nal; i++ )
+            nal_size += h->out.nal[i].i_payload;
+        return nal_size;
+    }
 
     for( int i = 0; i < start; i++ )
         previous_nal_size += h->out.nal[i].i_payload;
@@ -1311,11 +1323,9 @@ static int x264_encoder_encapsulate_nals( x264_t *h, int start )
 
     for( int i = start; i < h->out.i_nal; i++ )
     {
-        int long_startcode = !i || h->out.nal[i].i_type == NAL_SPS || h->out.nal[i].i_type == NAL_PPS;
-        int size = x264_nal_encode( h, nal_buffer, &h->out.nal[i], long_startcode );
-        h->out.nal[i].i_payload = size;
-        h->out.nal[i].p_payload = nal_buffer;
-        nal_buffer += size;
+        h->out.nal[i].b_long_startcode = !i || h->out.nal[i].i_type == NAL_SPS || h->out.nal[i].i_type == NAL_PPS;
+        x264_nal_encode( h, nal_buffer, &h->out.nal[i] );
+        nal_buffer += h->out.nal[i].i_payload;
     }
 
     x264_emms();
@@ -1805,6 +1815,7 @@ static int x264_slice_write( x264_t *h )
 
     /* Slice */
     x264_nal_start( h, h->i_nal_type, h->i_nal_ref_idc );
+    h->out.nal[h->out.i_nal].i_first_mb = h->sh.i_first_mb;
 
     /* Slice header */
     x264_macroblock_thread_init( h );
@@ -2020,6 +2031,7 @@ static int x264_slice_write( x264_t *h )
             i_mb_x = 0;
         }
     }
+    h->out.nal[h->out.i_nal].i_last_mb = h->sh.i_last_mb;
 
     if( h->param.b_cabac )
     {
