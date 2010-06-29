@@ -382,10 +382,10 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                  - normal: Non-strict (not Blu-ray compatible)\n",
         strtable_lookup( x264_b_pyramid_names, defaults->i_bframe_pyramid ) );
     H1( "      --open-gop <string>     Use recovery points to close GOPs [none]\n"
-        "                                  - none: Use standard closed GOPs\n"
-        "                                  - display: Base GOP length on display order\n"
-        "                                             (not Blu-ray compatible)\n"
-        "                                  - coded: Base GOP length on coded order\n"
+        "                                  - none: closed GOPs only\n"
+        "                                  - normal: standard open GOPs\n"
+        "                                            (not Blu-ray compatible)\n"
+        "                                  - bluray: Blu-ray-compatible open GOPs\n"
         "                              Only available with b-frames\n" );
     H1( "      --no-cabac              Disable CABAC\n" );
     H1( "  -r, --ref <integer>         Number of reference frames [%d]\n", defaults->i_frame_reference );

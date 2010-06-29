@@ -1233,17 +1233,11 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
     if( !h->param.b_intra_refresh )
         for( int i = keyint_limit+1; i <= num_frames; i += h->param.i_keyint_max )
         {
-            int j = i;
-            if( h->param.i_open_gop == X264_OPEN_GOP_CODED_ORDER )
-            {
-                while( IS_X264_TYPE_B( frames[i]->i_type ) )
-                    i++;
-                while( IS_X264_TYPE_B( frames[j-1]->i_type ) )
-                    j--;
-            }
             frames[i]->i_type = X264_TYPE_I;
             reset_start = X264_MIN( reset_start, i+1 );
-            i = j;
+            if( h->param.i_open_gop == X264_OPEN_GOP_BLURAY )
+                while( IS_X264_TYPE_B( frames[i-1]->i_type ) )
+                    i--;
         }
 
     if( vbv_lookahead )
@@ -1337,16 +1331,8 @@ void x264_slicetype_decide( x264_t *h )
             if( frm->i_type == X264_TYPE_AUTO || frm->i_type == X264_TYPE_I )
                 frm->i_type = h->param.i_open_gop && h->lookahead->i_last_keyframe >= 0 ? X264_TYPE_I : X264_TYPE_IDR;
             int warn = frm->i_type != X264_TYPE_IDR;
-            if( warn && h->param.i_open_gop == X264_OPEN_GOP_DISPLAY_ORDER )
-                warn &= frm->i_type != X264_TYPE_I && frm->i_type != X264_TYPE_KEYFRAME;
-            if( warn && h->param.i_open_gop == X264_OPEN_GOP_CODED_ORDER )
-            {
-                /* if this minigop ends with i, it's not a violation */
-                int j = bframes;
-                while( IS_X264_TYPE_B( h->lookahead->next.list[j]->i_type ) )
-                    j++;
-                warn = h->lookahead->next.list[j]->i_type != X264_TYPE_I && h->lookahead->next.list[j]->i_type != X264_TYPE_KEYFRAME;
-            }
+            if( warn && h->param.i_open_gop )
+                warn &= frm->i_type != X264_TYPE_I;
             if( warn )
                 x264_log( h, X264_LOG_WARNING, "specified frame type (%d) at %d is not compatible with keyframe interval\n", frm->i_type, frm->i_frame );
         }
@@ -1355,8 +1341,8 @@ void x264_slicetype_decide( x264_t *h )
             if( h->param.i_open_gop )
             {
                 h->lookahead->i_last_keyframe = frm->i_frame; // Use display order
-                if( h->param.i_open_gop == X264_OPEN_GOP_CODED_ORDER )
-                    h->lookahead->i_last_keyframe -= bframes; // Use coded order
+                if( h->param.i_open_gop == X264_OPEN_GOP_BLURAY )
+                    h->lookahead->i_last_keyframe -= bframes; // Use bluray order
                 frm->b_keyframe = 1;
             }
             else
