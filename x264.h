@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 101
+#define X264_BUILD 102
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -152,6 +152,7 @@ typedef struct
 #define X264_B_PYRAMID_STRICT        1
 #define X264_B_PYRAMID_NORMAL        2
 #define X264_KEYINT_MIN_AUTO         0
+#define X264_KEYINT_MAX_INFINITE     (1<<30)
 #define X264_OPEN_GOP_NONE           0
 #define X264_OPEN_GOP_NORMAL         1
 #define X264_OPEN_GOP_BLURAY         2

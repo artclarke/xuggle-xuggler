@@ -1009,7 +1009,7 @@ static int scenecut_internal( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **f
     float f_thresh_max = h->param.i_scenecut_threshold / 100.0;
     /* magic numbers pulled out of thin air */
     float f_thresh_min = f_thresh_max * h->param.i_keyint_min
-                         / ( h->param.i_keyint_max * 4 );
+                         / ( h->param.i_keyint_max * 4. );
     int res;
 
     if( h->param.i_keyint_min == h->param.i_keyint_max )

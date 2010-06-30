@@ -99,6 +99,7 @@ static void x264_sei_write( bs_t *s, uint8_t *p_start )
 void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 {
     sps->i_id = i_id;
+    int max_frame_num;
 
     sps->b_qpprime_y_zero_transform_bypass = param->rc.i_rc_method == X264_RC_CQP && param->rc.i_qp_constant == 0;
     if( sps->b_qpprime_y_zero_transform_bypass )
@@ -118,15 +119,27 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     /* Never set constraint_set2, it is not necessary and not used in real world. */
     sps->b_constraint_set2  = 0;
 
-    sps->i_log2_max_frame_num = 4;  /* at least 4 */
-    while( (1 << sps->i_log2_max_frame_num) <= param->i_keyint_max && sps->i_log2_max_frame_num < 10 )
+    sps->vui.i_num_reorder_frames = param->i_bframe_pyramid ? 2 : param->i_bframe ? 1 : 0;
+    /* extra slot with pyramid so that we don't have to override the
+     * order of forgetting old pictures */
+    sps->vui.i_max_dec_frame_buffering =
+    sps->i_num_ref_frames = X264_MIN(16, X264_MAX4(param->i_frame_reference, 1 + sps->vui.i_num_reorder_frames,
+                            param->i_bframe_pyramid ? 4 : 1, param->i_dpb_size));
+    sps->i_num_ref_frames -= param->i_bframe_pyramid == X264_B_PYRAMID_STRICT;
+
+    /* number of refs + current frame */
+    max_frame_num = sps->vui.i_max_dec_frame_buffering * (!!param->i_bframe_pyramid+1) + 1;
+    sps->i_log2_max_frame_num = 4;
+    while( (1 << sps->i_log2_max_frame_num) <= max_frame_num )
         sps->i_log2_max_frame_num++;
-    sps->i_log2_max_frame_num++;
 
     sps->i_poc_type = 0;
     if( sps->i_poc_type == 0 )
     {
-        sps->i_log2_max_poc_lsb = sps->i_log2_max_frame_num + 1;    /* max poc = 2*frame_num */
+        int max_delta_poc = (param->i_bframe + 2) * (!!param->i_bframe_pyramid + 1) * 2;
+        sps->i_log2_max_poc_lsb = 4;
+        while( (1 << sps->i_log2_max_poc_lsb) <= max_delta_poc * 2 )
+            sps->i_log2_max_poc_lsb++;
     }
     else if( sps->i_poc_type == 1 )
     {
@@ -218,14 +231,6 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     sps->vui.b_pic_struct_present = param->b_pic_struct;
 
     // NOTE: HRD related parts of the SPS are initialised in x264_ratecontrol_init_reconfigurable
-
-    sps->vui.i_num_reorder_frames = param->i_bframe_pyramid ? 2 : param->i_bframe ? 1 : 0;
-    /* extra slot with pyramid so that we don't have to override the
-     * order of forgetting old pictures */
-    sps->vui.i_max_dec_frame_buffering =
-    sps->i_num_ref_frames = X264_MIN(16, X264_MAX4(param->i_frame_reference, 1 + sps->vui.i_num_reorder_frames,
-                            param->i_bframe_pyramid ? 4 : 1, param->i_dpb_size));
-    sps->i_num_ref_frames -= param->i_bframe_pyramid == X264_B_PYRAMID_STRICT;
 
     sps->vui.b_bitstream_restriction = 1;
     if( sps->vui.b_bitstream_restriction )

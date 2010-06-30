@@ -567,8 +567,7 @@ static int x264_validate_parameters( x264_t *h )
 
     h->param.i_frame_reference = x264_clip3( h->param.i_frame_reference, 1, 16 );
     h->param.i_dpb_size = x264_clip3( h->param.i_dpb_size, 1, 16 );
-    if( h->param.i_keyint_max <= 0 )
-        h->param.i_keyint_max = 1;
+    h->param.i_keyint_max = x264_clip3( h->param.i_keyint_max, 1, X264_KEYINT_MAX_INFINITE );
     if( h->param.i_scenecut_threshold < 0 )
         h->param.i_scenecut_threshold = 0;
     if( !h->param.analyse.i_subpel_refine && h->param.analyse.i_direct_mv_pred > X264_DIRECT_PRED_SPATIAL )
@@ -627,9 +626,10 @@ static int x264_validate_parameters( x264_t *h )
     h->param.rc.f_qcompress = x264_clip3f( h->param.rc.f_qcompress, 0.0, 1.0 );
     if( h->param.i_keyint_max == 1 || h->param.rc.f_qcompress == 1 )
         h->param.rc.b_mb_tree = 0;
-    if( !h->param.rc.i_lookahead && !h->param.b_intra_refresh && h->param.rc.b_mb_tree )
+    if( (!h->param.b_intra_refresh && h->param.i_keyint_max != X264_KEYINT_MAX_INFINITE) &&
+        !h->param.rc.i_lookahead && h->param.rc.b_mb_tree )
     {
-        x264_log( h, X264_LOG_WARNING, "lookaheadless mb-tree requires intra refresh\n" );
+        x264_log( h, X264_LOG_WARNING, "lookaheadless mb-tree requires intra refresh or infinite keyint\n" );
         h->param.rc.b_mb_tree = 0;
     }
     if( h->param.rc.b_stat_read )

@@ -638,9 +638,10 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->i_dpb_size = atoi(value);
     OPT("keyint")
     {
-        p->i_keyint_max = atoi(value);
-        if( p->i_keyint_min > p->i_keyint_max )
-            p->i_keyint_min = p->i_keyint_max;
+        if( strstr( value, "infinite" ) )
+            p->i_keyint_max = X264_KEYINT_MAX_INFINITE;
+        else
+            p->i_keyint_max = atoi(value);
     }
     OPT2("min-keyint", "keyint-min")
     {
