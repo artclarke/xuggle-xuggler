@@ -177,7 +177,7 @@ static int pixel_var2_8x8( pixel *pix1, int i_stride1, pixel *pix2, int i_stride
         pix2 += i_stride2;
     }
     sum = abs(sum);
-    var = sqr - (sum * sum >> 6);
+    var = sqr - ((uint64_t)sum * sum >> 6);
     *ssd = sqr;
     return var;
 }
@@ -406,12 +406,14 @@ SAD_X( 8x4 )
 SAD_X( 4x8 )
 SAD_X( 4x4 )
 
+#if !X264_HIGH_BIT_DEPTH
 #if ARCH_UltraSparc
 SAD_X( 16x16_vis )
 SAD_X( 16x8_vis )
 SAD_X( 8x16_vis )
 SAD_X( 8x8_vis )
 #endif
+#endif // !X264_HIGH_BIT_DEPTH
 
 /****************************************************************************
  * pixel_satd_x4
@@ -444,6 +446,7 @@ SATD_X_DECL6( cpu )\
 SATD_X( 4x4, cpu )
 
 SATD_X_DECL7()
+#if !X264_HIGH_BIT_DEPTH
 #if HAVE_MMX
 SATD_X_DECL7( _mmxext )
 SATD_X_DECL6( _sse2 )
@@ -454,6 +457,7 @@ SATD_X_DECL7( _sse4 )
 #if HAVE_ARMV6
 SATD_X_DECL7( _neon )
 #endif
+#endif // !X264_HIGH_BIT_DEPTH
 
 #define INTRA_MBCMP_8x8( mbcmp )\
 void x264_intra_##mbcmp##_x3_8x8( pixel *fenc, pixel edge[33], int res[3] )\
@@ -520,8 +524,8 @@ static void ssim_4x4x2_core( const pixel *pix1, int stride1,
 
 static float ssim_end1( int s1, int s2, int ss, int s12 )
 {
-    static const int ssim_c1 = (int)(.01*.01*255*255*64 + .5);
-    static const int ssim_c2 = (int)(.03*.03*255*255*64*63 + .5);
+    static const int ssim_c1 = (int)(.01*.01*PIXEL_MAX*PIXEL_MAX*64 + .5);
+    static const int ssim_c2 = (int)(.03*.03*PIXEL_MAX*PIXEL_MAX*64*63 + .5);
     int vars = ss*64 - s1*s1 - s2*s2;
     int covar = s12*64 - s1*s2;
     return (float)(2*s1*s2 + ssim_c1) * (float)(2*covar + ssim_c2)
@@ -678,6 +682,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     pixf->intra_sad_x3_16x16  = x264_intra_sad_x3_16x16;
     pixf->intra_satd_x3_16x16 = x264_intra_satd_x3_16x16;
 
+#if !X264_HIGH_BIT_DEPTH
 #if HAVE_MMX
     if( cpu&X264_CPU_MMX )
     {
@@ -903,17 +908,20 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         }
     }
 #endif
+#endif // !X264_HIGH_BIT_DEPTH
 #if HAVE_ALTIVEC
     if( cpu&X264_CPU_ALTIVEC )
     {
         x264_pixel_altivec_init( pixf );
     }
 #endif
+#if !X264_HIGH_BIT_DEPTH
 #if ARCH_UltraSparc
     INIT4( sad, _vis );
     INIT4( sad_x3, _vis );
     INIT4( sad_x4, _vis );
 #endif
+#endif // !X264_HIGH_BIT_DEPTH
 
     pixf->ads[PIXEL_8x16] =
     pixf->ads[PIXEL_8x4] =

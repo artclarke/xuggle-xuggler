@@ -53,7 +53,7 @@ typedef struct bs_s
 typedef struct
 {
     int     last;
-    int16_t level[16];
+    dctcoef level[16];
     uint8_t run[16];
 } x264_run_level_t;
 

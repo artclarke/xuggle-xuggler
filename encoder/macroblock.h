@@ -26,8 +26,8 @@
 
 #include "common/macroblock.h"
 
-extern const int x264_lambda2_tab[52];
-extern const uint8_t x264_lambda_tab[52];
+extern const int x264_lambda2_tab[QP_MAX_MAX+1];
+extern const uint16_t x264_lambda_tab[QP_MAX_MAX+1];
 
 void x264_rdo_init( void );
 

@@ -51,7 +51,7 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
  ****************************************************************************/
 static float x264_psnr( int64_t i_sqe, int64_t i_size )
 {
-    double f_mse = (double)i_sqe / ((double)65025.0 * (double)i_size);
+    double f_mse = (double)i_sqe / (PIXEL_MAX*PIXEL_MAX * (double)i_size);
     if( f_mse <= 0.0000000001 ) /* Max 100dB */
         return 100;
 
@@ -68,11 +68,13 @@ static void x264_frame_dump( x264_t *h )
     FILE *f = fopen( h->param.psz_dump_yuv, "r+b" );
     if( !f )
         return;
+    int bytes_per_pixel = (BIT_DEPTH+7)/8;
     /* Write the frame in display order */
-    fseek( f, (uint64_t)h->fdec->i_frame * h->param.i_height * h->param.i_width * 3/2, SEEK_SET );
+    fseek( f, (uint64_t)h->fdec->i_frame * h->param.i_height * h->param.i_width * 3/2 * bytes_per_pixel, SEEK_SET );
     for( int i = 0; i < h->fdec->i_plane; i++ )
         for( int y = 0; y < h->param.i_height >> !!i; y++ )
-            fwrite( &h->fdec->plane[i][y*h->fdec->i_stride[i]], 1, h->param.i_width >> !!i, f );
+            for( int j = 0; j < h->param.i_width >> !!i; j++ )
+                fwrite( &h->fdec->plane[i][y*h->fdec->i_stride[i]]+j, bytes_per_pixel, 1, f );
     fclose( f );
 }
 
@@ -469,8 +471,8 @@ static int x264_validate_parameters( x264_t *h )
         x264_log( h, X264_LOG_ERROR, "no ratecontrol method specified\n" );
         return -1;
     }
-    h->param.rc.f_rf_constant = x264_clip3f( h->param.rc.f_rf_constant, 0, 51 );
-    h->param.rc.i_qp_constant = x264_clip3( h->param.rc.i_qp_constant, 0, 51 );
+    h->param.rc.f_rf_constant = x264_clip3f( h->param.rc.f_rf_constant, 0, QP_MAX );
+    h->param.rc.i_qp_constant = x264_clip3( h->param.rc.i_qp_constant, 0, QP_MAX );
     if( h->param.rc.i_rc_method == X264_RC_CRF )
     {
         h->param.rc.i_qp_constant = h->param.rc.f_rf_constant;
@@ -502,12 +504,12 @@ static int x264_validate_parameters( x264_t *h )
         float qp_p = h->param.rc.i_qp_constant;
         float qp_i = qp_p - 6*log2f( h->param.rc.f_ip_factor );
         float qp_b = qp_p + 6*log2f( h->param.rc.f_pb_factor );
-        h->param.rc.i_qp_min = x264_clip3( (int)(X264_MIN3( qp_p, qp_i, qp_b )), 0, 51 );
-        h->param.rc.i_qp_max = x264_clip3( (int)(X264_MAX3( qp_p, qp_i, qp_b ) + .999), 0, 51 );
+        h->param.rc.i_qp_min = x264_clip3( (int)(X264_MIN3( qp_p, qp_i, qp_b )), 0, QP_MAX );
+        h->param.rc.i_qp_max = x264_clip3( (int)(X264_MAX3( qp_p, qp_i, qp_b ) + .999), 0, QP_MAX );
         h->param.rc.i_aq_mode = 0;
         h->param.rc.b_mb_tree = 0;
     }
-    h->param.rc.i_qp_max = x264_clip3( h->param.rc.i_qp_max, 0, 51 );
+    h->param.rc.i_qp_max = x264_clip3( h->param.rc.i_qp_max, 0, QP_MAX );
     h->param.rc.i_qp_min = x264_clip3( h->param.rc.i_qp_min, 0, h->param.rc.i_qp_max );
     if( h->param.rc.i_vbv_buffer_size )
     {
@@ -1054,8 +1056,9 @@ x264_t *x264_encoder_open( x264_param_t *param )
     if( x264_analyse_init_costs( h, X264_LOOKAHEAD_QP ) )
         goto fail;
 
+    static const uint16_t cost_mv_correct[7] = { 24, 47, 95, 189, 379, 757, 1515 };
     /* Checks for known miscompilation issues. */
-    if( h->cost_mv[1][2013] != 24 )
+    if( h->cost_mv[x264_lambda_tab[X264_LOOKAHEAD_QP]][2013] != cost_mv_correct[BIT_DEPTH-8] )
     {
         x264_log( h, X264_LOG_ERROR, "MV cost test failed: x264 has been miscompiled!\n" );
         goto fail;
@@ -1147,11 +1150,22 @@ x264_t *x264_encoder_open( x264_param_t *param )
         fclose( f );
     }
 
-    x264_log( h, X264_LOG_INFO, "profile %s, level %d.%d\n",
-        h->sps->i_profile_idc == PROFILE_BASELINE ? "Baseline" :
-        h->sps->i_profile_idc == PROFILE_MAIN ? "Main" :
-        h->sps->i_profile_idc == PROFILE_HIGH ? "High" :
-        "High 4:4:4 Predictive", h->sps->i_level_idc/10, h->sps->i_level_idc%10 );
+    const char *profile = h->sps->i_profile_idc == PROFILE_BASELINE ? "Baseline" :
+                          h->sps->i_profile_idc == PROFILE_MAIN ? "Main" :
+                          h->sps->i_profile_idc == PROFILE_HIGH ? "High" :
+                          h->sps->i_profile_idc == PROFILE_HIGH10 ? "High 10" :
+                          "High 4:4:4 Predictive";
+
+    if( h->sps->i_profile_idc < PROFILE_HIGH10 )
+    {
+        x264_log( h, X264_LOG_INFO, "profile %s, level %d.%d\n",
+            profile, h->sps->i_level_idc/10, h->sps->i_level_idc%10 );
+    }
+    else
+    {
+        x264_log( h, X264_LOG_INFO, "profile %s, level %d.%d, bit depth %d\n",
+            profile, h->sps->i_level_idc/10, h->sps->i_level_idc%10, BIT_DEPTH );
+    }
 
     return h;
 fail:
@@ -1836,7 +1850,7 @@ static int x264_slice_write( x264_t *h )
         bs_align_1( &h->out.bs );
 
         /* init cabac */
-        x264_cabac_context_init( &h->cabac, h->sh.i_type, h->sh.i_qp, h->sh.i_cabac_init_idc );
+        x264_cabac_context_init( &h->cabac, h->sh.i_type, x264_clip3( h->sh.i_qp-QP_BD_OFFSET, 0, 51 ), h->sh.i_cabac_init_idc );
         x264_cabac_encode_init ( &h->cabac, h->out.bs.p, h->out.bs.p_end );
     }
     h->mb.i_last_qp = h->sh.i_qp;
@@ -2705,6 +2719,7 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     for( int i = 0; i < 3; i++ )
     {
         pic_out->img.i_stride[i] = h->fdec->i_stride[i];
+        // FIXME This breaks the API when pixel != uint8_t.
         pic_out->img.plane[i] = h->fdec->plane[i];
     }
 

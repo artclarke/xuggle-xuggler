@@ -117,11 +117,14 @@ static void x264_weight_cache( x264_t *h, x264_weight_t *w )
 {
     w->weightfn = h->mc.weight;
 }
-#define opscale(x) dst[x] = x264_clip_pixel( ((src[x] * weight->i_scale + (1<<(weight->i_denom - 1))) >> weight->i_denom) + weight->i_offset )
-#define opscale_noden(x) dst[x] = x264_clip_pixel( src[x] * weight->i_scale + weight->i_offset )
-static inline void mc_weight( pixel *dst, int i_dst_stride, pixel *src, int i_src_stride, const x264_weight_t *weight, int i_width, int i_height )
+#define opscale(x) dst[x] = x264_clip_pixel( ((src[x] * scale + (1<<(denom - 1))) >> denom) + offset )
+#define opscale_noden(x) dst[x] = x264_clip_pixel( src[x] * scale + offset )
+static void mc_weight( pixel *dst, int i_dst_stride, pixel *src, int i_src_stride, const x264_weight_t *weight, int i_width, int i_height )
 {
-    if( weight->i_denom >= 1 )
+    int offset = weight->i_offset << (BIT_DEPTH-8);
+    int scale = weight->i_scale;
+    int denom = weight->i_denom;
+    if( denom >= 1 )
     {
         for( int y = 0; y < i_height; y++, dst += i_dst_stride, src += i_src_stride )
             for( int x = 0; x < i_width; x++ )
@@ -135,21 +138,10 @@ static inline void mc_weight( pixel *dst, int i_dst_stride, pixel *src, int i_sr
     }
 }
 
-#define MC_WEIGHT_C( name, lx ) \
+#define MC_WEIGHT_C( name, width ) \
     static void name( pixel *dst, int i_dst_stride, pixel *src, int i_src_stride, const x264_weight_t *weight, int height ) \
 { \
-    if( weight->i_denom >= 1 ) \
-    { \
-        for( int y = 0; y < height; y++, dst += i_dst_stride, src += i_src_stride ) \
-            for( int x = 0; x < lx; x++ ) \
-                opscale( x ); \
-    } \
-    else \
-    { \
-        for( int y = 0; y < height; y++, dst += i_dst_stride, src += i_src_stride ) \
-            for( int x = 0; x < lx; x++ ) \
-                opscale_noden( x ); \
-    } \
+    mc_weight( dst, i_dst_stride, src, i_src_stride, weight, width, height );\
 }
 
 MC_WEIGHT_C( mc_weight_w20, 20 )
@@ -182,7 +174,7 @@ static void mc_copy( pixel *src, int i_src_stride, pixel *dst, int i_dst_stride,
 
 #define TAPFILTER(pix, d) ((pix)[x-2*d] + (pix)[x+3*d] - 5*((pix)[x-d] + (pix)[x+2*d]) + 20*((pix)[x] + (pix)[x+d]))
 static void hpel_filter( pixel *dsth, pixel *dstv, pixel *dstc, pixel *src,
-                         int stride, int width, int height, int16_t *buf )
+                         int stride, int width, int height, dctcoef *buf )
 {
     for( int y = 0; y < height; y++ )
     {
@@ -301,7 +293,12 @@ void x264_plane_copy_c( pixel *dst, int i_dst,
 {
     while( h-- )
     {
+#if X264_HIGH_BIT_DEPTH
+        for( int i = 0; i < w; i++ )
+            dst[i] = src[i] << (BIT_DEPTH-8);
+#else
         memcpy( dst, src, w );
+#endif
         dst += i_dst;
         src += i_src;
     }

@@ -262,6 +262,7 @@ static void Help( x264_param_t *defaults, int longhelp )
         " .mkv -> Matroska\n"
         " .flv -> Flash Video\n"
         " .mp4 -> MP4 if compiled with GPAC support (%s)\n"
+        "Output bit depth: %d (configured at compile time)\n"
         "\n"
         "Options:\n"
         "\n"
@@ -286,10 +287,11 @@ static void Help( x264_param_t *defaults, int longhelp )
         "no",
 #endif
 #if HAVE_GPAC
-        "yes"
+        "yes",
 #else
-        "no"
+        "no",
 #endif
+        BIT_DEPTH
       );
     H0( "Example usage:\n" );
     H0( "\n" );
@@ -311,7 +313,7 @@ static void Help( x264_param_t *defaults, int longhelp )
     H0( "\n" );
     H0( "Presets:\n" );
     H0( "\n" );
-    H0( "      --profile               Force the limits of an H.264 profile [high]\n"
+    H0( "      --profile               Force the limits of an H.264 profile\n"
         "                                  Overrides all settings.\n" );
     H2( "                                  - baseline:\n"
         "                                    --no-8x8dct --bframes 0 --no-cabac\n"
@@ -322,8 +324,11 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                    --no-8x8dct --cqm flat\n"
         "                                    No lossless.\n"
         "                                  - high:\n"
-        "                                    No lossless.\n" );
-        else H0( "                                  - baseline,main,high\n" );
+        "                                    No lossless.\n"
+        "                                  - high10:\n"
+        "                                    No lossless.\n"
+        "                                    Support for bit depth 8-10.\n" );
+        else H0( "                                  - baseline,main,high,high10\n" );
     H0( "      --preset                Use a preset to select encoding settings [medium]\n"
         "                                  Overridden by user settings.\n" );
     H2( "                                  - ultrafast:\n"
@@ -453,9 +458,9 @@ static void Help( x264_param_t *defaults, int longhelp )
     H0( "\n" );
     H0( "Ratecontrol:\n" );
     H0( "\n" );
-    H1( "  -q, --qp <integer>          Force constant QP (0-51, 0=lossless)\n" );
+    H1( "  -q, --qp <integer>          Force constant QP (0-%d, 0=lossless)\n", QP_MAX );
     H0( "  -B, --bitrate <integer>     Set bitrate (kbit/s)\n" );
-    H0( "      --crf <float>           Quality-based VBR (0-51, 0=lossless) [%.1f]\n", defaults->rc.f_rf_constant );
+    H0( "      --crf <float>           Quality-based VBR (0-%d, 0=lossless) [%.1f]\n", QP_MAX, defaults->rc.f_rf_constant );
     H1( "      --rc-lookahead <integer> Number of frames for frametype lookahead [%d]\n", defaults->rc.i_lookahead );
     H0( "      --vbv-maxrate <integer> Max local bitrate (kbit/s) [%d]\n", defaults->rc.i_vbv_max_bitrate );
     H0( "      --vbv-bufsize <integer> Set size of the VBV buffer (kbit) [%d]\n", defaults->rc.i_vbv_buffer_size );
@@ -1040,6 +1045,7 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
 #else
                 printf( "using a non-gcc compiler\n" );
 #endif
+                printf( "configuration: --bit-depth=%d\n", BIT_DEPTH );
                 exit(0);
             case OPT_FRAMES:
                 param->i_frame_total = X264_MAX( atoi( optarg ), 0 );
@@ -1318,7 +1324,7 @@ static void parse_qpfile( cli_opt_t *opt, x264_picture_t *pic, int i_frame )
         else if( type == 'B' ) pic->i_type = X264_TYPE_BREF;
         else if( type == 'b' ) pic->i_type = X264_TYPE_B;
         else ret = 0;
-        if( ret != 3 || qp < -1 || qp > 51 )
+        if( ret != 3 || qp < -1 || qp > QP_MAX )
         {
             x264_cli_log( "x264", X264_LOG_ERROR, "can't parse qpfile for frame %d\n", i_frame );
             fclose( opt->qpfile );

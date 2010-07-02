@@ -104,6 +104,8 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     sps->b_qpprime_y_zero_transform_bypass = param->rc.i_rc_method == X264_RC_CQP && param->rc.i_qp_constant == 0;
     if( sps->b_qpprime_y_zero_transform_bypass )
         sps->i_profile_idc  = PROFILE_HIGH444_PREDICTIVE;
+    else if( BIT_DEPTH > 8 )
+        sps->i_profile_idc  = PROFILE_HIGH10;
     else if( param->analyse.b_transform_8x8 || param->i_cqm_preset != X264_CQM_FLAT )
         sps->i_profile_idc  = PROFILE_HIGH;
     else if( param->b_cabac || param->i_bframe > 0 || param->b_interlaced || param->b_fake_interlaced || param->analyse.i_weighted_pred > 0 )
@@ -260,8 +262,8 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
     if( sps->i_profile_idc >= PROFILE_HIGH )
     {
         bs_write_ue( s, 1 ); // chroma_format_idc = 4:2:0
-        bs_write_ue( s, 0 ); // bit_depth_luma_minus8
-        bs_write_ue( s, 0 ); // bit_depth_chroma_minus8
+        bs_write_ue( s, BIT_DEPTH-8 ); // bit_depth_luma_minus8
+        bs_write_ue( s, BIT_DEPTH-8 ); // bit_depth_chroma_minus8
         bs_write( s, 1, sps->b_qpprime_y_zero_transform_bypass );
         bs_write( s, 1, 0 ); // seq_scaling_matrix_present_flag
     }
@@ -488,7 +490,7 @@ void x264_pps_write( bs_t *s, x264_pps_t *pps )
     bs_write( s, 1, pps->b_weighted_pred );
     bs_write( s, 2, pps->b_weighted_bipred );
 
-    bs_write_se( s, pps->i_pic_init_qp - 26 );
+    bs_write_se( s, pps->i_pic_init_qp - 26 - QP_BD_OFFSET );
     bs_write_se( s, pps->i_pic_init_qs - 26 );
     bs_write_se( s, pps->i_chroma_qp_index_offset );
 
@@ -668,7 +670,8 @@ int x264_validate_levels( x264_t *h, int verbose )
     int ret = 0;
     int mbs = h->sps->i_mb_width * h->sps->i_mb_height;
     int dpb = mbs * 384 * h->sps->vui.i_max_dec_frame_buffering;
-    int cbp_factor = h->sps->i_profile_idc==PROFILE_HIGH ? 5 : 4;
+    int cbp_factor = h->sps->i_profile_idc==PROFILE_HIGH10 ? 12 :
+                     h->sps->i_profile_idc==PROFILE_HIGH ? 5 : 4;
 
     const x264_level_t *l = x264_levels;
     while( l->level_idc != 0 && l->level_idc != h->param.i_level_idc )

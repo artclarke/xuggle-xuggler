@@ -303,7 +303,7 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
                                   (mv1)[0], (mv1)[1], 8, 8, w ); \
             h->mc.avg[PIXEL_8x8]( pix1, 16, src1, stride1, src2, stride2, i_bipred_weight ); \
         } \
-        i_cost = penalty + h->pixf.mbcmp[PIXEL_8x8]( \
+        i_cost = penalty * a->i_lambda + h->pixf.mbcmp[PIXEL_8x8]( \
                            m[0].p_fenc[0], FENC_STRIDE, pix1, 16 ); \
         COPY2_IF_LT( i_bcost, i_cost, list_used, 3 ); \
     }
@@ -393,9 +393,9 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
             }
 
             x264_me_search( h, &m[l], mvc, i_mvc );
-            m[l].cost -= 2; // remove mvcost from skip mbs
+            m[l].cost -= 2 * a->i_lambda; // remove mvcost from skip mbs
             if( M32( m[l].mv ) )
-                m[l].cost += 5;
+                m[l].cost += 5 * a->i_lambda;
 
 skip_motionest:
             CP32( fenc_mvs[l], m[l].mv );
@@ -418,7 +418,7 @@ lowres_intra_mb:
         ALIGNED_ARRAY_16( pixel, edge,[33] );
         pixel *pix = &pix1[8+FDEC_STRIDE - 1];
         pixel *src = &fenc->lowres[0][i_pel_offset - 1];
-        const int intra_penalty = 5;
+        const int intra_penalty = 5 * a->i_lambda;
         int satds[3];
 
         memcpy( pix-FDEC_STRIDE, src-i_stride, 17 * sizeof(pixel) );
@@ -496,7 +496,7 @@ lowres_intra_mb:
         }
     }
 
-    fenc->lowres_costs[b-p0][p1-b][i_mb_xy] = i_bcost + (list_used << LOWRES_COST_SHIFT);
+    fenc->lowres_costs[b-p0][p1-b][i_mb_xy] = X264_MIN( i_bcost, LOWRES_COST_MASK ) + (list_used << LOWRES_COST_SHIFT);
 }
 #undef TRY_BIDIR
 

@@ -344,7 +344,7 @@ typedef struct x264_param_t
     {
         int         i_rc_method;    /* X264_RC_* */
 
-        int         i_qp_constant;  /* 0-51 */
+        int         i_qp_constant;  /* 0 to (51 + 6*(BIT_DEPTH-8)) */
         int         i_qp_min;       /* min allowed QP value */
         int         i_qp_max;       /* max allowed QP value */
         int         i_qp_step;      /* max QP step between frames */
@@ -550,7 +550,7 @@ void    x264_param_apply_fastfirstpass( x264_param_t * );
 /* x264_param_apply_profile:
  *      Applies the restrictions of the given profile.
  *      Currently available profiles are, from most to least restrictive: */
-static const char * const x264_profile_names[] = { "baseline", "main", "high", 0 };
+static const char * const x264_profile_names[] = { "baseline", "main", "high", "high10", 0 };
 
 /*      (can be NULL, in which case the function will do nothing)
  *

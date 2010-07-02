@@ -443,10 +443,7 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, dctcoef *dct,
         /* We only need to zero an empty 4x4 block. 8x8 can be
            implicitly emptied via zero nnz, as can dc. */
         if( i_coefs == 16 && !dc )
-        {
-            M128( &dct[0] ) = M128_ZERO;
-            M128( &dct[8] ) = M128_ZERO;
-        }
+            memset( dct, 0, 16 * sizeof(dctcoef) );
         return 0;
     }
 
@@ -613,10 +610,7 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, dctcoef *dct,
     if( bnode == &nodes_cur[0] )
     {
         if( i_coefs == 16 && !dc )
-        {
-            M128( &dct[0] ) = M128_ZERO;
-            M128( &dct[8] ) = M128_ZERO;
-        }
+            memset( dct, 0, 16 * sizeof(dctcoef) );
         return 0;
     }
 
