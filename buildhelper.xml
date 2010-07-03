@@ -126,6 +126,9 @@
   <condition property="build.configure.debug" value="true">
     <isset property="env.XUGGLE_DEBUG"/>
   </condition>
+  <condition property="build.configure" value="${env.XUGGLE_NATIVE_CONFIGURE}">
+    <isset property="env.XUGGLE_NATIVE_CONFIGURE"/>
+  </condition>
 
   <condition property="build.headless.setting"
       value="-Djava.awt.headless=true"
