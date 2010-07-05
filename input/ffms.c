@@ -39,19 +39,8 @@ typedef struct
 {
     FFMS_VideoSource *video_source;
     FFMS_Track *track;
-    int total_frames;
-    struct SwsContext *scaler;
-    int pts_offset_flag;
-    int64_t pts_offset;
     int reduce_pts;
     int vfr_input;
-
-    int init_width;
-    int init_height;
-
-    int cur_width;
-    int cur_height;
-    int cur_pix_fmt;
 } ffms_hnd_t;
 
 static int FFMS_CC update_progress( int64_t current, int64_t total, void *private )
@@ -103,25 +92,23 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
 
     FFMS_DestroyIndex( idx );
     const FFMS_VideoProperties *videop = FFMS_GetVideoProperties( h->video_source );
-    h->total_frames    = videop->NumFrames;
+    info->num_frames   = videop->NumFrames;
     info->sar_height   = videop->SARDen;
     info->sar_width    = videop->SARNum;
     info->fps_den      = videop->FPSDenominator;
     info->fps_num      = videop->FPSNumerator;
     h->vfr_input       = info->vfr;
+    /* ffms is thread unsafe as it uses a single frame buffer for all frame requests */
+    info->thread_safe  = 0;
 
     const FFMS_Frame *frame = FFMS_GetFrame( h->video_source, 0, &e );
     FAIL_IF_ERROR( !frame, "could not read frame 0\n" )
 
-    h->init_width  = h->cur_width  = info->width  = frame->EncodedWidth;
-    h->init_height = h->cur_height = info->height = frame->EncodedHeight;
-    h->cur_pix_fmt = frame->EncodedPixelFormat;
+    info->width      = frame->EncodedWidth;
+    info->height     = frame->EncodedHeight;
+    info->csp        = frame->EncodedPixelFormat | X264_CSP_OTHER;
     info->interlaced = frame->InterlacedFrame;
     info->tff        = frame->TopFieldFirst;
-
-    if( h->cur_pix_fmt != PIX_FMT_YUV420P )
-        x264_cli_log( "ffms", X264_LOG_WARNING, "converting from %s to YV12\n",
-                       avcodec_get_pix_fmt_name( h->cur_pix_fmt ) );
 
     /* ffms timestamps are in milliseconds. ffms also uses int64_ts for timebase,
      * so we need to reduce large timebases to prevent overflow */
@@ -146,32 +133,15 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     return 0;
 }
 
-static int get_frame_total( hnd_t handle )
+static int picture_alloc( cli_pic_t *pic, int csp, int width, int height )
 {
-    return ((ffms_hnd_t*)handle)->total_frames;
-}
-
-static int check_swscale( ffms_hnd_t *h, const FFMS_Frame *frame, int i_frame )
-{
-    if( h->scaler && h->cur_width == frame->EncodedWidth && h->cur_height == frame->EncodedHeight &&
-        h->cur_pix_fmt == frame->EncodedPixelFormat )
-        return 0;
-    if( h->scaler )
-    {
-        sws_freeContext( h->scaler );
-        x264_cli_log( "ffms", X264_LOG_WARNING, "stream properties changed to %dx%d, %s at frame %d  \n", frame->EncodedWidth,
-                      frame->EncodedHeight, avcodec_get_pix_fmt_name( frame->EncodedPixelFormat ), i_frame );
-        h->cur_width   = frame->EncodedWidth;
-        h->cur_height  = frame->EncodedHeight;
-        h->cur_pix_fmt = frame->EncodedPixelFormat;
-    }
-    h->scaler = sws_getContext( h->cur_width, h->cur_height, h->cur_pix_fmt, h->init_width, h->init_height,
-                                PIX_FMT_YUV420P, SWS_BICUBIC, NULL, NULL, NULL );
-    FAIL_IF_ERROR( !h->scaler, "could not open swscale context\n" )
+    if( x264_cli_pic_alloc( pic, csp, width, height ) )
+        return -1;
+    pic->img.planes = 4;
     return 0;
 }
 
-static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
+static int read_frame( cli_pic_t *pic, hnd_t handle, int i_frame )
 {
     ffms_hnd_t *h = handle;
     FFMS_ErrorInfo e;
@@ -179,40 +149,32 @@ static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
     const FFMS_Frame *frame = FFMS_GetFrame( h->video_source, i_frame, &e );
     FAIL_IF_ERROR( !frame, "could not read frame %d\n", i_frame )
 
-    if( check_swscale( h, frame, i_frame ) )
-        return -1;
-    /* FFMS_VideoSource has a single FFMS_Frame buffer for all calls to GetFrame.
-     * With threaded input, copying the pointers would result in the data changing during encoding.
-     * FIXME: don't do redundant sws_scales for singlethreaded input, or fix FFMS to allow
-     * multiple FFMS_Frame buffers. */
-    sws_scale( h->scaler, (uint8_t**)frame->Data, (int*)frame->Linesize, 0,
-               frame->EncodedHeight, p_pic->img.plane, p_pic->img.i_stride );
-
-    const FFMS_FrameInfo *info = FFMS_GetFrameInfo( h->track, i_frame );
+    memcpy( pic->img.stride, frame->Linesize, sizeof(pic->img.stride) );
+    memcpy( pic->img.plane, frame->Data, sizeof(pic->img.plane) );
 
     if( h->vfr_input )
     {
+        const FFMS_FrameInfo *info = FFMS_GetFrameInfo( h->track, i_frame );
         FAIL_IF_ERROR( info->PTS == AV_NOPTS_VALUE, "invalid timestamp. "
                        "Use --force-cfr and specify a framerate with --fps\n" )
 
-        if( !h->pts_offset_flag )
-        {
-            h->pts_offset = info->PTS;
-            h->pts_offset_flag = 1;
-        }
-
-        p_pic->i_pts = (info->PTS - h->pts_offset) >> h->reduce_pts;
+        pic->pts = info->PTS >> h->reduce_pts;
+        pic->duration = 0;
     }
     return 0;
+}
+
+static void picture_clean( cli_pic_t *pic )
+{
+    memset( pic, 0, sizeof(cli_pic_t) );
 }
 
 static int close_file( hnd_t handle )
 {
     ffms_hnd_t *h = handle;
-    sws_freeContext( h->scaler );
     FFMS_DestroyVideoSource( h->video_source );
     free( h );
     return 0;
 }
 
-const cli_input_t ffms_input = { open_file, get_frame_total, x264_picture_alloc, read_frame, NULL, x264_picture_clean, close_file };
+const cli_input_t ffms_input = { open_file, picture_alloc, read_frame, NULL, picture_clean, close_file };

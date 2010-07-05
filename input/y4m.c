@@ -27,16 +27,29 @@
 typedef struct
 {
     FILE *fh;
-    int width, height;
     int next_frame;
-    int seq_header_len, frame_header_len;
-    int frame_size;
+    int seq_header_len;
+    int frame_header_len;
+    uint64_t frame_size;
+    uint64_t plane_size[3];
 } y4m_hnd_t;
 
 #define Y4M_MAGIC "YUV4MPEG2"
 #define MAX_YUV4_HEADER 80
 #define Y4M_FRAME_MAGIC "FRAME"
 #define MAX_FRAME_HEADER 80
+
+static int csp_string_to_int( char *csp_name )
+{
+    int csp = X264_CSP_MAX;
+    if( !strncmp( "420", csp_name, 3 ) )
+        csp = X264_CSP_I420;
+    else if( !strncmp( "422", csp_name, 3 ) )
+        csp = X264_CSP_I422;
+    else if( !strncmp( "444", csp_name, 3 ) && strncmp( "444alpha", csp_name, 8 ) ) // only accept alphaless 4:4:4
+        csp = X264_CSP_I444;
+    return csp;
+}
 
 static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, cli_input_opt_t *opt )
 {
@@ -88,18 +101,15 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         switch( *tokstart++ )
         {
             case 'W': /* Width. Required. */
-                h->width = info->width = strtol( tokstart, &tokend, 10 );
+                info->width = strtol( tokstart, &tokend, 10 );
                 tokstart=tokend;
                 break;
             case 'H': /* Height. Required. */
-                h->height = info->height = strtol( tokstart, &tokend, 10 );
+                info->height = strtol( tokstart, &tokend, 10 );
                 tokstart=tokend;
                 break;
             case 'C': /* Color space */
-                if( !strncmp( "420", tokstart, 3 ) )
-                    colorspace = X264_CSP_I420;
-                else
-                    colorspace = X264_CSP_MAX;      ///< anything other than 420 since we don't handle it
+                colorspace = csp_string_to_int( tokstart );
                 tokstart = strchr( tokstart, 0x20 );
                 break;
             case 'I': /* Interlace type */
@@ -146,10 +156,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
                 {
                     /* Older nonstandard pixel format representation */
                     tokstart += 6;
-                    if( !strncmp( "420",tokstart, 3 ) )
-                        alt_colorspace = X264_CSP_I420;
-                    else
-                        alt_colorspace = X264_CSP_MAX;
+                    alt_colorspace = csp_string_to_int( tokstart );
                 }
                 tokstart = strchr( tokstart, 0x20 );
                 break;
@@ -163,32 +170,33 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     if( colorspace == X264_CSP_NONE )
         colorspace = X264_CSP_I420;
 
-    FAIL_IF_ERROR( colorspace != X264_CSP_I420, "colorspace unhandled\n" )
+    FAIL_IF_ERROR( colorspace <= X264_CSP_NONE && colorspace >= X264_CSP_MAX, "colorspace unhandled\n" )
 
-    *p_handle = h;
-    return 0;
-}
+    info->thread_safe = 1;
+    info->num_frames  = 0;
+    info->csp         = colorspace;
+    h->frame_size     = h->frame_header_len;
+    for( i = 0; i < x264_cli_csps[info->csp].planes; i++ )
+    {
+        h->plane_size[i] = x264_cli_pic_plane_size( info->csp, info->width, info->height, i );
+        h->frame_size += h->plane_size[i];
+    }
 
-/* Most common case: frame_header = "FRAME" */
-static int get_frame_total( hnd_t handle )
-{
-    y4m_hnd_t *h = handle;
-    int i_frame_total = 0;
-
+    /* Most common case: frame_header = "FRAME" */
     if( x264_is_regular_file( h->fh ) )
     {
         uint64_t init_pos = ftell( h->fh );
         fseek( h->fh, 0, SEEK_END );
         uint64_t i_size = ftell( h->fh );
         fseek( h->fh, init_pos, SEEK_SET );
-        i_frame_total = (int)((i_size - h->seq_header_len) /
-                              (3*(h->width*h->height)/2+h->frame_header_len));
+        info->num_frames = (i_size - h->seq_header_len) / h->frame_size;
     }
 
-    return i_frame_total;
+    *p_handle = h;
+    return 0;
 }
 
-static int read_frame_internal( x264_picture_t *p_pic, y4m_hnd_t *h )
+static int read_frame_internal( cli_pic_t *pic, y4m_hnd_t *h )
 {
     int slen = strlen( Y4M_FRAME_MAGIC );
     int i = 0;
@@ -206,35 +214,33 @@ static int read_frame_internal( x264_picture_t *p_pic, y4m_hnd_t *h )
     while( i < MAX_FRAME_HEADER && fgetc( h->fh ) != '\n' )
         i++;
     FAIL_IF_ERROR( i == MAX_FRAME_HEADER, "bad frame header!\n" )
+    h->frame_size = h->frame_size - h->frame_header_len + i+slen+1;
     h->frame_header_len = i+slen+1;
 
-    if( fread( p_pic->img.plane[0], h->width * h->height, 1, h->fh ) <= 0
-     || fread( p_pic->img.plane[1], h->width * h->height / 4, 1, h->fh ) <= 0
-     || fread( p_pic->img.plane[2], h->width * h->height / 4, 1, h->fh ) <= 0 )
-        return -1;
-
-    return 0;
+    int error = 0;
+    for( i = 0; i < pic->img.planes && !error; i++ )
+        error |= fread( pic->img.plane[i], h->plane_size[i], 1, h->fh ) <= 0;
+    return error;
 }
 
-static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
+static int read_frame( cli_pic_t *pic, hnd_t handle, int i_frame )
 {
     y4m_hnd_t *h = handle;
 
     if( i_frame > h->next_frame )
     {
         if( x264_is_regular_file( h->fh ) )
-            fseek( h->fh, (uint64_t)i_frame*(3*(h->width*h->height)/2+h->frame_header_len)
-                 + h->seq_header_len, SEEK_SET );
+            fseek( h->fh, h->frame_size * i_frame + h->seq_header_len, SEEK_SET );
         else
             while( i_frame > h->next_frame )
             {
-                if( read_frame_internal( p_pic, h ) )
+                if( read_frame_internal( pic, h ) )
                     return -1;
                 h->next_frame++;
             }
     }
 
-    if( read_frame_internal( p_pic, h ) )
+    if( read_frame_internal( pic, h ) )
         return -1;
 
     h->next_frame = i_frame+1;
@@ -251,4 +257,4 @@ static int close_file( hnd_t handle )
     return 0;
 }
 
-const cli_input_t y4m_input = { open_file, get_frame_total, x264_picture_alloc, read_frame, NULL, x264_picture_clean, close_file };
+const cli_input_t y4m_input = { open_file, x264_cli_pic_alloc, read_frame, NULL, x264_cli_pic_clean, close_file };

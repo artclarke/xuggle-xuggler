@@ -43,6 +43,10 @@
 /* when AVS supports other planar colorspaces, a workaround is required */
 #define AVS_INTERFACE_OTHER_PLANAR 5
 
+#if HAVE_SWSCALE
+#include <libavutil/pixfmt.h>
+#endif
+
 /* maximum size of the sequence of filters to try on non script files */
 #define AVS_MAX_SEQUENCE 5
 
@@ -205,15 +209,21 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         info->interlaced = 1;
         info->tff = avs_is_tff( vi );
     }
-    FAIL_IF_ERROR( vi->width&1 || vi->height&1, "input clip width or height not divisible by 2 (%dx%d)\n", vi->width, vi->height )
+    /* if swscale is available, convert CSPs with it rather than with avisynth. */
+#if HAVE_SWSCALE
+    int convert_to_yv12 = 0;
+#else
+    int convert_to_yv12 = !avs_is_yv12( vi );
+#endif
     /* always call ConvertToYV12 to convert non YV12 planar colorspaces to YV12 when user's AVS supports them,
        as all planar colorspaces are flagged as YV12. If it is already YV12 in this case, the call does nothing */
-    if( !avs_is_yv12( vi ) || avs_version >= AVS_INTERFACE_OTHER_PLANAR )
+    if( convert_to_yv12 || (avs_version >= AVS_INTERFACE_OTHER_PLANAR && avs_is_yv12( vi )) )
     {
-        if( !avs_is_yv12( vi ) )
+        if( convert_to_yv12 )
             x264_cli_log( "avs", X264_LOG_WARNING, "converting input clip to YV12" );
         else
             x264_cli_log( "avs", X264_LOG_INFO, "avisynth 2.6+ detected, forcing conversion to YV12" );
+        FAIL_IF_ERROR( vi->width&1 || vi->height&1, "input clip width or height not divisible by 2 (%dx%d)\n", vi->width, vi->height )
         const char *arg_name[2] = { NULL, "interlaced" };
         AVS_Value arg_arr[2] = { res, avs_new_value_bool( info->interlaced ) };
         AVS_Value res2 = h->func.avs_invoke( h->env, "ConvertToYV12", avs_new_value_array( arg_arr, 2 ), arg_name );
@@ -222,60 +232,68 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     }
     h->func.avs_release_value( res );
 
-    info->width = vi->width;
-    info->height = vi->height;
+    info->width   = vi->width;
+    info->height  = vi->height;
     info->fps_num = vi->fps_numerator;
     info->fps_den = vi->fps_denominator;
-    h->num_frames = vi->num_frames;
-    info->csp = X264_CSP_YV12;
+    h->num_frames = info->num_frames = vi->num_frames;
+    info->thread_safe = 1;
+#if HAVE_SWSCALE
+    if( avs_is_rgb32( vi ) )
+        info->csp = X264_CSP_BGRA | X264_CSP_VFLIP;
+    else if( avs_is_rgb24( vi ) )
+        info->csp = X264_CSP_BGR | X264_CSP_VFLIP;
+    else if( avs_is_yuy2( vi ) )
+        info->csp = PIX_FMT_YUYV422 | X264_CSP_OTHER;
+    else /* yv12 */
+        info->csp = X264_CSP_I420;
+#else
+    info->csp = X264_CSP_I420;
+#endif
     info->vfr = 0;
 
     *p_handle = h;
     return 0;
 }
 
-static int get_frame_total( hnd_t handle )
+static int picture_alloc( cli_pic_t *pic, int csp, int width, int height )
 {
-    avs_hnd_t *h = handle;
-    return h->num_frames;
-}
-
-static int picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_height )
-{
-    x264_picture_init( pic );
-    pic->img.i_csp = i_csp;
-    pic->img.i_plane = 3;
+    if( x264_cli_pic_alloc( pic, X264_CSP_NONE, width, height ) )
+        return -1;
+    pic->img.csp = csp;
+    const x264_cli_csp_t *cli_csp = x264_cli_get_csp( csp );
+    pic->img.planes = cli_csp ? cli_csp->planes : 1;
     return 0;
 }
 
-static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
+static int read_frame( cli_pic_t *pic, hnd_t handle, int i_frame )
 {
-    static int plane[3] = { AVS_PLANAR_Y, AVS_PLANAR_V, AVS_PLANAR_U };
+    static const int plane[3] = { AVS_PLANAR_Y, AVS_PLANAR_U, AVS_PLANAR_V };
     avs_hnd_t *h = handle;
     if( i_frame >= h->num_frames )
         return -1;
-    AVS_VideoFrame *frm = p_pic->opaque = h->func.avs_get_frame( h->clip, i_frame );
+    AVS_VideoFrame *frm = pic->opaque = h->func.avs_get_frame( h->clip, i_frame );
     const char *err = h->func.avs_clip_get_error( h->clip );
     FAIL_IF_ERROR( err, "%s occurred while reading frame %d\n", err, i_frame )
-    for( int i = 0; i < 3; i++ )
+    for( int i = 0; i < pic->img.planes; i++ )
     {
         /* explicitly cast away the const attribute to avoid a warning */
-        p_pic->img.plane[i] = (uint8_t*)avs_get_read_ptr_p( frm, plane[i] );
-        p_pic->img.i_stride[i] = avs_get_pitch_p( frm, plane[i] );
+        pic->img.plane[i] = (uint8_t*)avs_get_read_ptr_p( frm, plane[i] );
+        pic->img.stride[i] = avs_get_pitch_p( frm, plane[i] );
     }
     return 0;
 }
 
-static int release_frame( x264_picture_t *pic, hnd_t handle )
+static int release_frame( cli_pic_t *pic, hnd_t handle )
 {
     avs_hnd_t *h = handle;
     h->func.avs_release_video_frame( pic->opaque );
     return 0;
 }
 
-static void picture_clean( x264_picture_t *pic )
+static void picture_clean( cli_pic_t *pic )
 {
-    memset( pic, 0, sizeof(x264_picture_t) );
+    memset( pic, 0, sizeof(cli_pic_t) );
 }
 
 static int close_file( hnd_t handle )
@@ -289,4 +307,4 @@ static int close_file( hnd_t handle )
     return 0;
 }
 
-const cli_input_t avs_input = { open_file, get_frame_total, picture_alloc, read_frame, release_frame, picture_clean, close_file };
+const cli_input_t avs_input = { open_file, picture_alloc, read_frame, release_frame, picture_clean, close_file };

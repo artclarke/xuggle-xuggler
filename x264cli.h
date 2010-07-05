@@ -57,11 +57,13 @@ static inline char *get_filename_extension( char *filename )
 void x264_cli_log( const char *name, int i_level, const char *fmt, ... );
 void x264_cli_printf( int i_level, const char *fmt, ... );
 
-#define FAIL_IF_ERR( cond, name, ... )\
+#define RETURN_IF_ERR( cond, name, ret, ... )\
 if( cond )\
 {\
     x264_cli_log( name, X264_LOG_ERROR, __VA_ARGS__ );\
-    return -1;\
+    return ret;\
 }
+
+#define FAIL_IF_ERR( cond, name, ... ) RETURN_IF_ERR( cond, name, -1, __VA_ARGS__ )
 
 #endif

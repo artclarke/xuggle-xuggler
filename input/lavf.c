@@ -25,7 +25,7 @@
 #define FAIL_IF_ERROR( cond, ... ) FAIL_IF_ERR( cond, "lavf", __VA_ARGS__ )
 #undef DECLARE_ALIGNED
 #include <libavformat/avformat.h>
-#include <libswscale/swscale.h>
+#include <libavutil/pixdesc.h>
 
 typedef struct
 {
@@ -33,46 +33,10 @@ typedef struct
     int stream_id;
     int next_frame;
     int vfr_input;
-    int vertical_flip;
-    struct SwsContext *scaler;
-    int pts_offset_flag;
-    int64_t pts_offset;
-    x264_picture_t *first_pic;
-
-    int init_width;
-    int init_height;
-
-    int cur_width;
-    int cur_height;
-    enum PixelFormat cur_pix_fmt;
+    cli_pic_t *first_pic;
 } lavf_hnd_t;
 
-typedef struct
-{
-    AVFrame frame;
-    AVPacket packet;
-} lavf_pic_t;
-
-static int check_swscale( lavf_hnd_t *h, AVCodecContext *c, int i_frame )
-{
-    if( h->scaler && (h->cur_width == c->width) && (h->cur_height == c->height) && (h->cur_pix_fmt == c->pix_fmt) )
-        return 0;
-    if( h->scaler )
-    {
-        sws_freeContext( h->scaler );
-        x264_cli_log( "lavf", X264_LOG_WARNING, "stream properties changed to %dx%d, %s at frame %d  \n",
-                      c->width, c->height, avcodec_get_pix_fmt_name( c->pix_fmt ), i_frame );
-        h->cur_width   = c->width;
-        h->cur_height  = c->height;
-        h->cur_pix_fmt = c->pix_fmt;
-    }
-    h->scaler = sws_getContext( h->cur_width, h->cur_height, h->cur_pix_fmt, h->init_width, h->init_height,
-                                PIX_FMT_YUV420P, SWS_BICUBIC, NULL, NULL, NULL );
-    FAIL_IF_ERROR( !h->scaler, "could not open swscale context\n" )
-    return 0;
-}
-
-static int read_frame_internal( x264_picture_t *p_pic, lavf_hnd_t *h, int i_frame, video_info_t *info )
+static int read_frame_internal( cli_pic_t *p_pic, lavf_hnd_t *h, int i_frame, video_info_t *info )
 {
     if( h->first_pic && !info )
     {
@@ -80,9 +44,11 @@ static int read_frame_internal( x264_picture_t *p_pic, lavf_hnd_t *h, int i_fram
          * if so, retrieve the pts and image data before freeing it. */
         if( !i_frame )
         {
-            XCHG( x264_image_t, p_pic->img, h->first_pic->img );
-            p_pic->i_pts = h->first_pic->i_pts;
+            XCHG( cli_image_t, p_pic->img, h->first_pic->img );
+            p_pic->pts = h->first_pic->pts;
+            XCHG( void*, p_pic->opaque, h->first_pic->opaque );
         }
+        lavf_input.release_frame( h->first_pic, NULL );
         lavf_input.picture_clean( h->first_pic );
         free( h->first_pic );
         h->first_pic = NULL;
@@ -91,9 +57,9 @@ static int read_frame_internal( x264_picture_t *p_pic, lavf_hnd_t *h, int i_fram
     }
 
     AVCodecContext *c = h->lavf->streams[h->stream_id]->codec;
-    lavf_pic_t *pic_h = p_pic->opaque;
-    AVPacket *pkt = &pic_h->packet;
-    AVFrame *frame = &pic_h->frame;
+    AVPacket *pkt = p_pic->opaque;
+    AVFrame frame;
+    avcodec_get_frame_defaults( &frame );
 
     while( i_frame >= h->next_frame )
     {
@@ -102,12 +68,12 @@ static int read_frame_internal( x264_picture_t *p_pic, lavf_hnd_t *h, int i_fram
             if( pkt->stream_index == h->stream_id )
             {
                 c->reordered_opaque = pkt->pts;
-                if( avcodec_decode_video2( c, frame, &finished, pkt ) < 0 )
+                if( avcodec_decode_video2( c, &frame, &finished, pkt ) < 0 )
                     x264_cli_log( "lavf", X264_LOG_WARNING, "video decoding failed on frame %d\n", h->next_frame );
             }
         if( !finished )
         {
-            if( avcodec_decode_video2( c, frame, &finished, pkt ) < 0 )
+            if( avcodec_decode_video2( c, &frame, &finished, pkt ) < 0 )
                 x264_cli_log( "lavf", X264_LOG_WARNING, "video decoding failed on frame %d\n", h->next_frame );
             if( !finished )
                 return -1;
@@ -115,55 +81,58 @@ static int read_frame_internal( x264_picture_t *p_pic, lavf_hnd_t *h, int i_fram
         h->next_frame++;
     }
 
-    if( check_swscale( h, c, i_frame ) )
-        return -1;
-    /* FIXME: avoid sws_scale where possible (no colorspace conversion). */
-    sws_scale( h->scaler, frame->data, frame->linesize, 0, c->height, p_pic->img.plane, p_pic->img.i_stride );
+    memcpy( p_pic->img.stride, frame.linesize, sizeof(p_pic->img.stride) );
+    memcpy( p_pic->img.plane, frame.data, sizeof(p_pic->img.plane) );
+    p_pic->img.height  = c->height;
+    p_pic->img.csp     = c->pix_fmt | X264_CSP_OTHER;
+    p_pic->img.width   = c->width;
 
     if( info )
     {
-        info->interlaced = frame->interlaced_frame;
-        info->tff = frame->top_field_first;
+        info->interlaced = frame.interlaced_frame;
+        info->tff = frame.top_field_first;
     }
 
     if( h->vfr_input )
     {
-        p_pic->i_pts = 0;
-        if( frame->reordered_opaque != AV_NOPTS_VALUE )
-            p_pic->i_pts = frame->reordered_opaque;
+        p_pic->pts = p_pic->duration = 0;
+        if( frame.reordered_opaque != AV_NOPTS_VALUE )
+            p_pic->pts = frame.reordered_opaque;
         else if( pkt->dts != AV_NOPTS_VALUE )
-            p_pic->i_pts = pkt->dts; // for AVI files
+            p_pic->pts = pkt->dts; // for AVI files
         else if( info )
         {
             h->vfr_input = info->vfr = 0;
-            goto exit;
+            return 0;
         }
-        if( !h->pts_offset_flag )
-        {
-            h->pts_offset = p_pic->i_pts;
-            h->pts_offset_flag = 1;
-        }
-        p_pic->i_pts -= h->pts_offset;
     }
 
-exit:
-    if( pkt->destruct )
-        pkt->destruct( pkt );
-    avcodec_get_frame_defaults( frame );
     return 0;
 }
 
 static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, cli_input_opt_t *opt )
 {
-    lavf_hnd_t *h = malloc( sizeof(lavf_hnd_t) );
+    lavf_hnd_t *h = calloc( 1, sizeof(lavf_hnd_t) );
     if( !h )
         return -1;
     av_register_all();
-    h->scaler = NULL;
     if( !strcmp( psz_filename, "-" ) )
         psz_filename = "pipe:";
 
-    FAIL_IF_ERROR( av_open_input_file( &h->lavf, psz_filename, NULL, 0, NULL ), "could not open input file\n" )
+    /* if resolution was passed in, parse it and colorspace into parameters. this allows raw video support */
+    AVFormatParameters *param = NULL;
+    if( opt->resolution )
+    {
+        param = calloc( 1, sizeof(AVFormatParameters) );
+        if( !param )
+            return -1;
+        sscanf( opt->resolution, "%dx%d", &param->width, &param->height );
+        param->pix_fmt = opt->colorspace ? av_get_pix_fmt( opt->colorspace ) : PIX_FMT_YUV420P;
+    }
+
+    FAIL_IF_ERROR( av_open_input_file( &h->lavf, psz_filename, NULL, 0, param ), "could not open input file\n" )
+    if( param )
+        free( param );
     FAIL_IF_ERROR( av_find_stream_info( h->lavf ) < 0, "could not find input stream info\n" )
 
     int i = 0;
@@ -172,81 +141,78 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     FAIL_IF_ERROR( i == h->lavf->nb_streams, "could not find video stream\n" )
     h->stream_id       = i;
     h->next_frame      = 0;
-    h->pts_offset_flag = 0;
-    h->pts_offset      = 0;
     AVCodecContext *c  = h->lavf->streams[i]->codec;
-    h->init_width      = h->cur_width  = info->width  = c->width;
-    h->init_height     = h->cur_height = info->height = c->height;
-    h->cur_pix_fmt     = c->pix_fmt;
     info->fps_num      = h->lavf->streams[i]->r_frame_rate.num;
     info->fps_den      = h->lavf->streams[i]->r_frame_rate.den;
     info->timebase_num = h->lavf->streams[i]->time_base.num;
     info->timebase_den = h->lavf->streams[i]->time_base.den;
+    /* lavf is thread unsafe as calling av_read_frame invalidates previously read AVPackets */
+    info->thread_safe  = 0;
     h->vfr_input       = info->vfr;
-    h->vertical_flip   = 0;
-
-    /* avisynth stores rgb data vertically flipped. */
-    if( !strcasecmp( get_filename_extension( psz_filename ), "avs" ) &&
-        (h->cur_pix_fmt == PIX_FMT_BGRA || h->cur_pix_fmt == PIX_FMT_BGR24) )
-        info->csp |= X264_CSP_VFLIP;
-
-    if( h->cur_pix_fmt != PIX_FMT_YUV420P )
-        x264_cli_log( "lavf", X264_LOG_WARNING, "converting from %s to YV12\n",
-                      avcodec_get_pix_fmt_name( h->cur_pix_fmt ) );
     FAIL_IF_ERROR( avcodec_open( c, avcodec_find_decoder( c->codec_id ) ),
                    "could not find decoder for video stream\n" )
 
     /* prefetch the first frame and set/confirm flags */
-    h->first_pic = malloc( sizeof(x264_picture_t) );
-    FAIL_IF_ERROR( !h->first_pic || lavf_input.picture_alloc( h->first_pic, info->csp, info->width, info->height ),
+    h->first_pic = malloc( sizeof(cli_pic_t) );
+    FAIL_IF_ERROR( !h->first_pic || lavf_input.picture_alloc( h->first_pic, X264_CSP_OTHER, info->width, info->height ),
                    "malloc failed\n" )
     else if( read_frame_internal( h->first_pic, h, 0, info ) )
         return -1;
 
+    info->width      = c->width;
+    info->height     = c->height;
+    info->csp        = h->first_pic->img.csp;
+    info->num_frames = 0; /* FIXME */
     info->sar_height = c->sample_aspect_ratio.den;
     info->sar_width  = c->sample_aspect_ratio.num;
+
+    /* avisynth stores rgb data vertically flipped. */
+    if( !strcasecmp( get_filename_extension( psz_filename ), "avs" ) &&
+        (c->pix_fmt == PIX_FMT_BGRA || c->pix_fmt == PIX_FMT_BGR24) )
+        info->csp |= X264_CSP_VFLIP;
+
     *p_handle = h;
 
     return 0;
 }
 
-static int picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_height )
+static int picture_alloc( cli_pic_t *pic, int csp, int width, int height )
 {
-    if( x264_picture_alloc( pic, i_csp, i_width, i_height ) )
+    if( x264_cli_pic_alloc( pic, csp, width, height ) )
         return -1;
-    lavf_pic_t *pic_h = pic->opaque = malloc( sizeof(lavf_pic_t) );
-    if( !pic_h )
+    pic->img.planes = 4;
+    pic->opaque = malloc( sizeof(AVPacket) );
+    if( !pic->opaque )
         return -1;
-    avcodec_get_frame_defaults( &pic_h->frame );
-    av_init_packet( &pic_h->packet );
+    av_init_packet( pic->opaque );
     return 0;
 }
 
-/* FIXME */
-static int get_frame_total( hnd_t handle )
+static int read_frame( cli_pic_t *pic, hnd_t handle, int i_frame )
 {
+    return read_frame_internal( pic, handle, i_frame, NULL );
+}
+
+static int release_frame( cli_pic_t *pic, hnd_t handle )
+{
+    av_free_packet( pic->opaque );
+    av_init_packet( pic->opaque );
     return 0;
 }
 
-static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
-{
-    return read_frame_internal( p_pic, handle, i_frame, NULL );
-}
-
-static void picture_clean( x264_picture_t *pic )
+static void picture_clean( cli_pic_t *pic )
 {
     free( pic->opaque );
-    x264_picture_clean( pic );
+    memset( pic, 0, sizeof(cli_pic_t) );
 }
 
 static int close_file( hnd_t handle )
 {
     lavf_hnd_t *h = handle;
-    sws_freeContext( h->scaler );
     avcodec_close( h->lavf->streams[h->stream_id]->codec );
     av_close_input_file( h->lavf );
     free( h );
     return 0;
 }
 
-const cli_input_t lavf_input = { open_file, get_frame_total, picture_alloc, read_frame, NULL, picture_clean, close_file };
+const cli_input_t lavf_input = { open_file, picture_alloc, read_frame, release_frame, picture_clean, close_file };

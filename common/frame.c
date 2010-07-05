@@ -220,7 +220,7 @@ void x264_frame_delete( x264_frame_t *frame )
 int x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
 {
     int i_csp = src->img.i_csp & X264_CSP_MASK;
-    if( i_csp != X264_CSP_I420 && i_csp != X264_CSP_YV12 )
+    if( i_csp <= X264_CSP_NONE || i_csp >= X264_CSP_MAX )
     {
         x264_log( h, X264_LOG_ERROR, "Invalid input colorspace\n" );
         return -1;

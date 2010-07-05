@@ -1,10 +1,11 @@
 /*****************************************************************************
- * yuv.c: x264 yuv input module
+ * raw.c: x264 raw input module
  *****************************************************************************
- * Copyright (C) 2003-2009 x264 project
+ * Copyright (C) 2003-2010 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
+ *          Steven Walters <kemuri9@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -22,17 +23,19 @@
  *****************************************************************************/
 
 #include "input.h"
+#define FAIL_IF_ERROR( cond, ... ) FAIL_IF_ERR( cond, "raw", __VA_ARGS__ )
 
 typedef struct
 {
     FILE *fh;
-    int width, height;
     int next_frame;
-} yuv_hnd_t;
+    uint64_t plane_size[4];
+    uint64_t frame_size;
+} raw_hnd_t;
 
 static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, cli_input_opt_t *opt )
 {
-    yuv_hnd_t *h = malloc( sizeof(yuv_hnd_t) );
+    raw_hnd_t *h = malloc( sizeof(raw_hnd_t) );
     if( !h )
         return -1;
 
@@ -45,12 +48,18 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     }
     else
         sscanf( opt->resolution, "%ux%u", &info->width, &info->height );
-    FAIL_IF_ERR( !info->width || !info->height, "yuv", "rawyuv input requires a resolution.\n" )
+    FAIL_IF_ERROR( !info->width || !info->height, "raw input requires a resolution.\n" )
+    if( opt->colorspace )
+    {
+        for( info->csp = X264_CSP_CLI_MAX-1; x264_cli_csps[info->csp].name && strcasecmp( x264_cli_csps[info->csp].name, opt->colorspace ); )
+            info->csp--;
+        FAIL_IF_ERROR( info->csp == X264_CSP_NONE, "unsupported colorspace `%s'\n", opt->colorspace );
+    }
+    else /* default */
+        info->csp = X264_CSP_I420;
 
     h->next_frame = 0;
     info->vfr     = 0;
-    h->width      = info->width;
-    h->height     = info->height;
 
     if( !strcmp( psz_filename, "-" ) )
         h->fh = stdin;
@@ -59,51 +68,53 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     if( h->fh == NULL )
         return -1;
 
-    *p_handle = h;
-    return 0;
-}
-
-static int get_frame_total( hnd_t handle )
-{
-    yuv_hnd_t *h = handle;
-    int i_frame_total = 0;
+    info->thread_safe = 1;
+    info->num_frames  = 0;
+    h->frame_size = 0;
+    for( int i = 0; i < x264_cli_csps[info->csp].planes; i++ )
+    {
+        h->plane_size[i] = x264_cli_pic_plane_size( info->csp, info->width, info->height, i );
+        h->frame_size += h->plane_size[i];
+    }
 
     if( x264_is_regular_file( h->fh ) )
     {
         fseek( h->fh, 0, SEEK_END );
-        uint64_t i_size = ftell( h->fh );
+        uint64_t size = ftell( h->fh );
         fseek( h->fh, 0, SEEK_SET );
-        i_frame_total = (int)(i_size / ( h->width * h->height * 3 / 2 ));
+        info->num_frames = size / h->frame_size;
     }
 
-    return i_frame_total;
+    *p_handle = h;
+    return 0;
 }
 
-static int read_frame_internal( x264_picture_t *p_pic, yuv_hnd_t *h )
+static int read_frame_internal( cli_pic_t *pic, raw_hnd_t *h )
 {
-    return fread( p_pic->img.plane[0], h->width * h->height, 1, h->fh ) <= 0
-        || fread( p_pic->img.plane[1], h->width * h->height / 4, 1, h->fh ) <= 0
-        || fread( p_pic->img.plane[2], h->width * h->height / 4, 1, h->fh ) <= 0;
+    int error = 0;
+    for( int i = 0; i < pic->img.planes && !error; i++ )
+        error |= fread( pic->img.plane[i], h->plane_size[i], 1, h->fh ) <= 0;
+    return error;
 }
 
-static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
+static int read_frame( cli_pic_t *pic, hnd_t handle, int i_frame )
 {
-    yuv_hnd_t *h = handle;
+    raw_hnd_t *h = handle;
 
     if( i_frame > h->next_frame )
     {
         if( x264_is_regular_file( h->fh ) )
-            fseek( h->fh, (uint64_t)i_frame * h->width * h->height * 3 / 2, SEEK_SET );
+            fseek( h->fh, i_frame * h->frame_size, SEEK_SET );
         else
             while( i_frame > h->next_frame )
             {
-                if( read_frame_internal( p_pic, h ) )
+                if( read_frame_internal( pic, h ) )
                     return -1;
                 h->next_frame++;
             }
     }
 
-    if( read_frame_internal( p_pic, h ) )
+    if( read_frame_internal( pic, h ) )
         return -1;
 
     h->next_frame = i_frame+1;
@@ -112,7 +123,7 @@ static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
 
 static int close_file( hnd_t handle )
 {
-    yuv_hnd_t *h = handle;
+    raw_hnd_t *h = handle;
     if( !h || !h->fh )
         return 0;
     fclose( h->fh );
@@ -120,4 +131,4 @@ static int close_file( hnd_t handle )
     return 0;
 }
 
-const cli_input_t yuv_input = { open_file, get_frame_total, x264_picture_alloc, read_frame, NULL, x264_picture_clean, close_file };
+const cli_input_t raw_input = { open_file, x264_cli_pic_alloc, read_frame, NULL, x264_cli_pic_clean, close_file };

@@ -403,9 +403,9 @@ static int x264_validate_parameters( x264_t *h )
         return -1;
     }
     int i_csp = h->param.i_csp & X264_CSP_MASK;
-    if( i_csp != X264_CSP_I420 && i_csp != X264_CSP_YV12 )
+    if( i_csp <= X264_CSP_NONE || i_csp >= X264_CSP_MAX )
     {
-        x264_log( h, X264_LOG_ERROR, "invalid CSP (only I420/YV12 supported)\n" );
+        x264_log( h, X264_LOG_ERROR, "invalid CSP\n" );
         return -1;
     }
 

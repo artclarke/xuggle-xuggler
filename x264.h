@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 102
+#define X264_BUILD 103
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -174,14 +174,8 @@ static const char * const x264_open_gop_names[] = { "none", "normal", "bluray", 
 #define X264_CSP_MASK           0x00ff  /* */
 #define X264_CSP_NONE           0x0000  /* Invalid mode     */
 #define X264_CSP_I420           0x0001  /* yuv 4:2:0 planar */
-#define X264_CSP_I422           0x0002  /* yuv 4:2:2 planar */
-#define X264_CSP_I444           0x0003  /* yuv 4:4:4 planar */
-#define X264_CSP_YV12           0x0004  /* yuv 4:2:0 planar */
-#define X264_CSP_YUYV           0x0005  /* yuv 4:2:2 packed */
-#define X264_CSP_RGB            0x0006  /* rgb 24bits       */
-#define X264_CSP_BGR            0x0007  /* bgr 24bits       */
-#define X264_CSP_BGRA           0x0008  /* bgr 32bits       */
-#define X264_CSP_MAX            0x0009  /* end of list */
+#define X264_CSP_YV12           0x0002  /* yvu 4:2:0 planar */
+#define X264_CSP_MAX            0x0003  /* end of list */
 #define X264_CSP_VFLIP          0x1000  /* */
 
 /* Slice type */
