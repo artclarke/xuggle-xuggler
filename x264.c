@@ -1090,6 +1090,7 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
                 else
                     cli_log_level = atoi( optarg );
                 param->i_log_level = cli_log_level;
+                break;
             case OPT_NOPROGRESS:
                 opt->b_progress = 0;
                 break;
