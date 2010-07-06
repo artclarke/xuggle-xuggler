@@ -1956,7 +1956,7 @@ static void x264_mb_analyse_inter_b8x8_mixed_ref( x264_t *h, x264_mb_analysis_t 
             lX->me8x8[i].cost = INT_MAX;
             for( int i_ref = 0; i_ref <= i_maxref[l]; i_ref++ )
             {
-                m.i_ref_cost = REF_COST( l, i_ref );;
+                m.i_ref_cost = REF_COST( l, i_ref );
 
                 LOAD_HPELS( &m, h->mb.pic.p_fref[l][i_ref], l, i_ref, 8*x8, 8*y8 );
 
@@ -2104,7 +2104,7 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a, int i
             for( int j = 0; j < i_ref8s; j++ )
             {
                 int i_ref = ref8[j];
-                m.i_ref_cost = REF_COST( l, i_ref );;
+                m.i_ref_cost = REF_COST( l, i_ref );
 
                 LOAD_HPELS( &m, h->mb.pic.p_fref[l][i_ref], l, i_ref, 0, 8*i );
 

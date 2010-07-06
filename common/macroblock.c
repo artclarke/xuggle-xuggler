@@ -251,7 +251,11 @@ int x264_macroblock_cache_allocate( x264_t *h )
             i_refs = X264_MIN(16, i_refs + 1); //blind weights add one duplicate frame
 
         for( int j = !i; j < i_refs; j++ )
-            CHECKED_MALLOC( h->mb.mvr[i][j], 2 * i_mb_count * sizeof(int16_t) );
+        {
+            CHECKED_MALLOC( h->mb.mvr[i][j], 2 * (i_mb_count + 1) * sizeof(int16_t) );
+            M32( h->mb.mvr[i][j][0] ) = 0;
+            h->mb.mvr[i][j]++;
+        }
     }
 
     if( h->param.analyse.i_weighted_pred )
@@ -300,7 +304,8 @@ void x264_macroblock_cache_free( x264_t *h )
 {
     for( int i = 0; i < 2; i++ )
         for( int j = !i; j < 32; j++ )
-            x264_free( h->mb.mvr[i][j] );
+            if( h->mb.mvr[i][j] )
+                x264_free( h->mb.mvr[i][j]-1 );
     for( int i = 0; i < 16; i++ )
         x264_free( h->mb.p_weight_buf[i] );
 
