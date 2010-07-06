@@ -1,0 +1,36 @@
+Index: libavcodec/options.c
+===================================================================
+--- libavcodec/options.c	(revision 24030)
++++ libavcodec/options.c	(working copy)
+@@ -417,6 +417,7 @@
+ {"intra_refresh", "use periodic insertion of intra blocks instead of keyframes", 0, FF_OPT_TYPE_CONST, CODEC_FLAG2_INTRA_REFRESH, INT_MIN, INT_MAX, V|E, "flags2"},
+ {"crf_max", "in crf mode, prevents vbv from lowering quality beyond this point", OFFSET(crf_max), FF_OPT_TYPE_FLOAT, DEFAULT, 0, 51, V|E},
+ {"log_level_offset", "set the log level offset", OFFSET(log_level_offset), FF_OPT_TYPE_INT, 0, INT_MIN, INT_MAX },
++{"slice_multi_threading", "use slice-based multi-threading instead of frame-based multi-threading", 0, FF_OPT_TYPE_CONST, CODEC_FLAG2_SLICE_MULTI_THREADING, INT_MIN, INT_MAX, V|E, "flags2"},
+ {NULL},
+ };
+ 
+Index: libavcodec/avcodec.h
+===================================================================
+--- libavcodec/avcodec.h	(revision 24030)
++++ libavcodec/avcodec.h	(working copy)
+@@ -600,6 +600,7 @@
+ #define CODEC_FLAG2_PSY           0x00080000 ///< Use psycho visual optimizations.
+ #define CODEC_FLAG2_SSIM          0x00100000 ///< Compute SSIM during encoding, error[] values are undefined.
+ #define CODEC_FLAG2_INTRA_REFRESH 0x00200000 ///< Use periodic insertion of intra blocks instead of keyframes.
++#define CODEC_FLAG2_SLICE_MULTI_THREADING 0x00400000 ///< Use slice-based multi-threading if available rather than frame-based multi-threading.
+ 
+ /* Unsupported options :
+  *              Syntax Arithmetic coding (SAC)
+Index: libavcodec/libx264.c
+===================================================================
+--- libavcodec/libx264.c	(revision 24030)
++++ libavcodec/libx264.c	(working copy)
+@@ -160,6 +160,7 @@
+ 
+     x4->params.i_keyint_max         = avctx->gop_size;
+     x4->params.b_intra_refresh      = avctx->flags2 & CODEC_FLAG2_INTRA_REFRESH;
++    x4->params.b_sliced_threads     = avctx->flags2 & CODEC_FLAG2_SLICE_MULTI_THREADING;
+     x4->params.rc.i_bitrate         = avctx->bit_rate       / 1000;
+     x4->params.rc.i_vbv_buffer_size = avctx->rc_buffer_size / 1000;
+     x4->params.rc.i_vbv_max_bitrate = avctx->rc_max_rate    / 1000;
