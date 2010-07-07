@@ -262,9 +262,9 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
     if( i_dqp != 0 )
     {
         int val = i_dqp <= 0 ? (-2*i_dqp) : (2*i_dqp - 1);
-        /* dqp is interpreted modulo 52 */
-        if( val >= 51 && val != 52 )
-            val = 103 - val;
+        /* dqp is interpreted modulo (QP_MAX+1) */
+        if( val >= QP_MAX && val != QP_MAX+1 )
+            val = 2*QP_MAX+1 - val;
         do
         {
             x264_cabac_encode_decision( cb, 60 + ctx, 1 );
@@ -767,15 +767,18 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
         i_mb_pos_tex = x264_cabac_pos( cb );
         h->stat.frame.i_mv_bits += i_mb_pos_tex - i_mb_pos_start;
 
-        memcpy( cb->p, h->mb.pic.p_fenc[0], 256 );
-        cb->p += 256;
-        for( int i = 0; i < 8; i++ )
-            memcpy( cb->p + i*8, h->mb.pic.p_fenc[1] + i*FENC_STRIDE, 8 );
-        cb->p += 64;
-        for( int i = 0; i < 8; i++ )
-            memcpy( cb->p + i*8, h->mb.pic.p_fenc[2] + i*FENC_STRIDE, 8 );
-        cb->p += 64;
+        bs_t s;
+        bs_init( &s, cb->p, cb->p_end - cb->p );
 
+        for( int i = 0; i < 256; i++ )
+            bs_write( &s, BIT_DEPTH, h->mb.pic.p_fenc[0][i] );
+        for( int ch = 0; ch < 2; ch++ )
+            for( int i = 0; i < 8; i++ )
+                for( int j = 0; j < 8; j++ )
+                    bs_write( &s, BIT_DEPTH, h->mb.pic.p_fenc[ch][i*FENC_STRIDE+j] );
+
+        bs_flush( &s );
+        cb->p = s.p;
         x264_cabac_encode_init_core( cb );
 
         h->stat.frame.i_tex_bits += x264_cabac_pos( cb ) - i_mb_pos_tex;

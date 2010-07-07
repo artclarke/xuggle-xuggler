@@ -21,7 +21,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#include "muxers.h"
+#include "output.h"
 
 static int open_file( char *psz_filename, hnd_t *p_handle )
 {

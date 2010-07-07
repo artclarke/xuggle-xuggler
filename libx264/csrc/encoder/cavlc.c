@@ -66,7 +66,7 @@ static inline int block_residual_write_cavlc_escape( x264_t *h, int i_suffix_len
     bs_t *s = &h->out.bs;
     static const uint16_t next_suffix[7] = { 0, 3, 6, 12, 24, 48, 0xffff };
     int i_level_prefix = 15;
-    int mask = level >> 15;
+    int mask = level >> 31;
     int abs_level = (level^mask)-mask;
     int i_level_code = abs_level*2-mask-2;
     if( ( i_level_code >> i_suffix_length ) < 15 )
@@ -219,10 +219,10 @@ static void cavlc_qp_delta( x264_t *h )
 
     if( i_dqp )
     {
-        if( i_dqp < -26 )
-            i_dqp += 52;
-        else if( i_dqp > 25 )
-            i_dqp -= 52;
+        if( i_dqp < -(QP_MAX+1)/2 )
+            i_dqp += QP_MAX+1;
+        else if( i_dqp > QP_MAX/2 )
+            i_dqp -= QP_MAX+1;
     }
     bs_write_se( s, i_dqp );
 }
@@ -309,14 +309,12 @@ void x264_macroblock_write_cavlc( x264_t *h )
 
         bs_align_0( s );
 
-        memcpy( s->p, h->mb.pic.p_fenc[0], 256 );
-        s->p += 256;
-        for( int i = 0; i < 8; i++ )
-            memcpy( s->p + i*8, h->mb.pic.p_fenc[1] + i*FENC_STRIDE, 8 );
-        s->p += 64;
-        for( int i = 0; i < 8; i++ )
-            memcpy( s->p + i*8, h->mb.pic.p_fenc[2] + i*FENC_STRIDE, 8 );
-        s->p += 64;
+        for( int i = 0; i < 256; i++ )
+            bs_write( s, BIT_DEPTH, h->mb.pic.p_fenc[0][i] );
+        for( int ch = 0; ch < 2; ch++ )
+            for( int i = 0; i < 8; i++ )
+                for( int j = 0; j < 8; j++ )
+                    bs_write( s, BIT_DEPTH, h->mb.pic.p_fenc[ch][i*FENC_STRIDE+j] );
 
         bs_init( s, s->p, s->p_end - s->p );
         s->p_start = p_start;

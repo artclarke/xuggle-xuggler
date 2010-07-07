@@ -91,10 +91,10 @@ void x264_param_default( x264_param_t *param )
     param->rc.i_vbv_max_bitrate = 0;
     param->rc.i_vbv_buffer_size = 0;
     param->rc.f_vbv_buffer_init = 0.9;
-    param->rc.i_qp_constant = 23;
-    param->rc.f_rf_constant = 23;
+    param->rc.i_qp_constant = 23 + QP_BD_OFFSET;
+    param->rc.f_rf_constant = 23 + QP_BD_OFFSET;
     param->rc.i_qp_min = 10;
-    param->rc.i_qp_max = 51;
+    param->rc.i_qp_max = QP_MAX;
     param->rc.i_qp_step = 4;
     param->rc.f_ip_factor = 1.4;
     param->rc.f_pb_factor = 1.3;
@@ -418,6 +418,15 @@ int x264_param_apply_profile( x264_param_t *param, const char *profile )
     if( !profile )
         return 0;
 
+#if BIT_DEPTH > 8
+    if( !strcasecmp( profile, "baseline" ) || !strcasecmp( profile, "main" ) ||
+        !strcasecmp( profile, "high" ) )
+    {
+        x264_log( NULL, X264_LOG_ERROR, "%s profile doesn't support a bit depth of %d.\n", profile, BIT_DEPTH );
+        return -1;
+    }
+#endif
+
     if( !strcasecmp( profile, "baseline" ) )
     {
         param->analyse.b_transform_8x8 = 0;
@@ -441,7 +450,7 @@ int x264_param_apply_profile( x264_param_t *param, const char *profile )
         param->analyse.b_transform_8x8 = 0;
         param->i_cqm_preset = X264_CQM_FLAT;
     }
-    else if( !strcasecmp( profile, "high" ) )
+    else if( !strcasecmp( profile, "high" ) || !strcasecmp( profile, "high10" ) )
     {
         /* Default */
     }
@@ -638,9 +647,10 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->i_dpb_size = atoi(value);
     OPT("keyint")
     {
-        p->i_keyint_max = atoi(value);
-        if( p->i_keyint_min > p->i_keyint_max )
-            p->i_keyint_min = p->i_keyint_max;
+        if( strstr( value, "infinite" ) )
+            p->i_keyint_max = X264_KEYINT_MAX_INFINITE;
+        else
+            p->i_keyint_max = atoi(value);
     }
     OPT2("min-keyint", "keyint-min")
     {

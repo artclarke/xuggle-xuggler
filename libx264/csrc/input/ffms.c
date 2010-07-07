@@ -21,8 +21,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#include "muxers.h"
+#include "input.h"
 #include <ffms.h>
+#define FAIL_IF_ERROR( cond, ... ) FAIL_IF_ERR( cond, "ffms", __VA_ARGS__ )
+
 #undef DECLARE_ALIGNED
 #include <libavcodec/avcodec.h>
 #include <libswscale/swscale.h>
@@ -86,28 +88,16 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     {
         idx = FFMS_MakeIndex( psz_filename, 0, 0, NULL, NULL, 0, update_progress, NULL, &e );
         fprintf( stderr, "                                            \r" );
-        if( !idx )
-        {
-            fprintf( stderr, "ffms [error]: could not create index\n" );
-            return -1;
-        }
+        FAIL_IF_ERROR( !idx, "could not create index\n" )
         if( opt->index_file && FFMS_WriteIndex( opt->index_file, idx, &e ) )
-            fprintf( stderr, "ffms [warning]: could not write index file\n" );
+            x264_cli_log( "ffms", X264_LOG_WARNING, "could not write index file\n" );
     }
 
     int trackno = FFMS_GetFirstTrackOfType( idx, FFMS_TYPE_VIDEO, &e );
-    if( trackno < 0 )
-    {
-        fprintf( stderr, "ffms [error]: could not find video track\n" );
-        return -1;
-    }
+    FAIL_IF_ERROR( trackno < 0, "could not find video track\n" )
 
     h->video_source = FFMS_CreateVideoSource( psz_filename, trackno, idx, 1, seekmode, &e );
-    if( !h->video_source )
-    {
-        fprintf( stderr, "ffms [error]: could not create video source\n" );
-        return -1;
-    }
+    FAIL_IF_ERROR( !h->video_source, "could not create video source\n" )
 
     h->track = FFMS_GetTrackFromVideo( h->video_source );
 
@@ -121,11 +111,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     h->vfr_input       = info->vfr;
 
     const FFMS_Frame *frame = FFMS_GetFrame( h->video_source, 0, &e );
-    if( !frame )
-    {
-        fprintf( stderr, "ffms [error]: could not read frame 0\n" );
-        return -1;
-    }
+    FAIL_IF_ERROR( !frame, "could not read frame 0\n" )
 
     h->init_width  = h->cur_width  = info->width  = frame->EncodedWidth;
     h->init_height = h->cur_height = info->height = frame->EncodedHeight;
@@ -134,8 +120,8 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     info->tff        = frame->TopFieldFirst;
 
     if( h->cur_pix_fmt != PIX_FMT_YUV420P )
-        fprintf( stderr, "ffms [warning]: converting from %s to YV12\n",
-                 avcodec_get_pix_fmt_name( h->cur_pix_fmt ) );
+        x264_cli_log( "ffms", X264_LOG_WARNING, "converting from %s to YV12\n",
+                       avcodec_get_pix_fmt_name( h->cur_pix_fmt ) );
 
     /* ffms timestamps are in milliseconds. ffms also uses int64_ts for timebase,
      * so we need to reduce large timebases to prevent overflow */
@@ -173,19 +159,15 @@ static int check_swscale( ffms_hnd_t *h, const FFMS_Frame *frame, int i_frame )
     if( h->scaler )
     {
         sws_freeContext( h->scaler );
-        fprintf( stderr, "ffms [warning]: stream properties changed to %dx%d, %s at frame %d  \n", frame->EncodedWidth,
-                 frame->EncodedHeight, avcodec_get_pix_fmt_name( frame->EncodedPixelFormat ), i_frame );
+        x264_cli_log( "ffms", X264_LOG_WARNING, "stream properties changed to %dx%d, %s at frame %d  \n", frame->EncodedWidth,
+                      frame->EncodedHeight, avcodec_get_pix_fmt_name( frame->EncodedPixelFormat ), i_frame );
         h->cur_width   = frame->EncodedWidth;
         h->cur_height  = frame->EncodedHeight;
         h->cur_pix_fmt = frame->EncodedPixelFormat;
     }
     h->scaler = sws_getContext( h->cur_width, h->cur_height, h->cur_pix_fmt, h->init_width, h->init_height,
                                 PIX_FMT_YUV420P, SWS_BICUBIC, NULL, NULL, NULL );
-    if( !h->scaler )
-    {
-        fprintf( stderr, "ffms [error]: could not open swscale context\n" );
-        return -1;
-    }
+    FAIL_IF_ERROR( !h->scaler, "could not open swscale context\n" )
     return 0;
 }
 
@@ -195,11 +177,7 @@ static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
     FFMS_ErrorInfo e;
     e.BufferSize = 0;
     const FFMS_Frame *frame = FFMS_GetFrame( h->video_source, i_frame, &e );
-    if( !frame )
-    {
-        fprintf( stderr, "ffms [error]: could not read frame %d\n", i_frame );
-        return -1;
-    }
+    FAIL_IF_ERROR( !frame, "could not read frame %d\n", i_frame )
 
     if( check_swscale( h, frame, i_frame ) )
         return -1;
@@ -214,12 +192,8 @@ static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
 
     if( h->vfr_input )
     {
-        if( info->PTS == AV_NOPTS_VALUE )
-        {
-            fprintf( stderr, "ffms [error]: invalid timestamp. "
-                     "Use --force-cfr and specify a framerate with --fps\n" );
-            return -1;
-        }
+        FAIL_IF_ERROR( info->PTS == AV_NOPTS_VALUE, "invalid timestamp. "
+                       "Use --force-cfr and specify a framerate with --fps\n" )
 
         if( !h->pts_offset_flag )
         {

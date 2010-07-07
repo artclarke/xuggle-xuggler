@@ -22,6 +22,7 @@
 #include "ppccommon.h"
 #include "quant.h"
 
+#if !X264_HIGH_BIT_DEPTH
 // quant of a whole 4x4 block, unrolled 2x and "pre-scheduled"
 #define QUANT_16_U( idx0, idx1 )                                    \
 {                                                                   \
@@ -360,4 +361,5 @@ void x264_dequant_8x8_altivec( int16_t dct[8][8], int dequant_mf[6][8][8], int i
             DEQUANT_SHR();
     }
 }
+#endif // !X264_HIGH_BIT_DEPTH
 

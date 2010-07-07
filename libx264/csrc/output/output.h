@@ -24,6 +24,8 @@
 #ifndef X264_OUTPUT_H
 #define X264_OUTPUT_H
 
+#include "x264cli.h"
+
 typedef struct
 {
     int (*open_file)( char *psz_filename, hnd_t *p_handle );

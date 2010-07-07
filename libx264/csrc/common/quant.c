@@ -142,7 +142,7 @@ static void x264_denoise_dct( dctcoef *dct, uint32_t *sum, uint16_t *offset, int
     for( int i = 1; i < size; i++ )
     {
         int level = dct[i];
-        int sign = level>>15;
+        int sign = level>>31;
         level = (level+sign)^sign;
         sum[i] += level;
         level -= offset[i];
@@ -177,10 +177,7 @@ static int ALWAYS_INLINE x264_decimate_score_internal( dctcoef *dct, int i_max )
     int i_score = 0;
     int idx = i_max - 1;
 
-    /* Yes, dct[idx-1] is guaranteed to be 32-bit aligned.  idx>=0 instead of 1 works correctly for the same reason */
-    while( idx >= 0 && MDCT_X2( &dct[idx-1] ) == 0 )
-        idx -= 2;
-    if( idx >= 0 && dct[idx] == 0 )
+    while( idx >= 0 && dct[idx] == 0 )
         idx--;
     while( idx >= 0 )
     {
@@ -216,10 +213,7 @@ static int x264_decimate_score64( dctcoef *dct )
 
 static int ALWAYS_INLINE x264_coeff_last_internal( dctcoef *l, int i_count )
 {
-    int i_last;
-    for( i_last = i_count-1; i_last >= 3; i_last -= 4 )
-        if( M64( l+i_last-3 ) )
-            break;
+    int i_last = i_count-1;
     while( i_last >= 0 && l[i_last] == 0 )
         i_last--;
     return i_last;
@@ -287,6 +281,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
     pf->coeff_level_run[  DCT_LUMA_AC] = x264_coeff_level_run15;
     pf->coeff_level_run[ DCT_LUMA_4x4] = x264_coeff_level_run16;
 
+#if !X264_HIGH_BIT_DEPTH
 #if HAVE_MMX
     if( cpu&X264_CPU_MMX )
     {
@@ -425,6 +420,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->coeff_last[DCT_LUMA_8x8] = x264_coeff_last64_neon;
     }
 #endif
+#endif // !X264_HIGH_BIT_DEPTH
     pf->coeff_last[  DCT_LUMA_DC] = pf->coeff_last[DCT_LUMA_4x4];
     pf->coeff_last[DCT_CHROMA_AC] = pf->coeff_last[ DCT_LUMA_AC];
     pf->coeff_level_run[  DCT_LUMA_DC] = pf->coeff_level_run[DCT_LUMA_4x4];

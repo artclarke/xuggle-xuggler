@@ -20,7 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#include "muxers.h"
+#include "input.h"
+#define FAIL_IF_ERROR( cond, ... ) FAIL_IF_ERR( cond, "timecode", __VA_ARGS__ )
 #include <math.h>
 
 extern cli_input_t input;
@@ -61,12 +62,8 @@ static double correct_fps( double fps, timecode_hnd_t *h )
     {
         fps_den = i * h->timebase_num;
         fps_num = round( fps_den * fps_sig ) * exponent;
-        if( fps_num > UINT32_MAX )
-        {
-            fprintf( stderr, "timecode [error]: tcfile fps correction failed.\n"
-                             "                  Specify an appropriate timebase manually or remake tcfile.\n" );
-            return -1;
-        }
+        FAIL_IF_ERROR( fps_num > UINT32_MAX, "tcfile fps correction failed.\n"
+                       "                  Specify an appropriate timebase manually or remake tcfile.\n" )
         if( fabs( ((double)fps_num / fps_den) / exponent - fps_sig ) < DOUBLE_EPSILON )
             break;
         ++i;
@@ -91,12 +88,8 @@ static int try_mkv_timebase_den( double *fpss, timecode_hnd_t *h, int loop_num )
         double fps_sig = sigexp10( fpss[num], &exponent );
         fps_den = round( MKV_TIMEBASE_DEN / fps_sig ) / exponent;
         h->timebase_num = fps_den && h->timebase_num ? gcd( h->timebase_num, fps_den ) : fps_den;
-        if( h->timebase_num > UINT32_MAX || !h->timebase_num )
-        {
-            fprintf( stderr, "timecode [error]: automatic timebase generation failed.\n"
-                             "                  Specify timebase manually.\n" );
-            return -1;
-        }
+        FAIL_IF_ERROR( h->timebase_num > UINT32_MAX || !h->timebase_num, "automatic timebase generation failed.\n"
+                       "                  Specify timebase manually.\n" )
     }
     return 0;
 }
@@ -110,11 +103,7 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
     double *fpss = NULL;
 
     ret = fscanf( tcfile_in, "# timecode format v%d", &tcfv );
-    if( ret != 1 || (tcfv != 1 && tcfv != 2) )
-    {
-        fprintf( stderr, "timecode [error]: unsupported timecode format\n" );
-        return -1;
-    }
+    FAIL_IF_ERROR( ret != 1 || (tcfv != 1 && tcfv != 2), "unsupported timecode format\n" )
 
     if( tcfv == 1 )
     {
@@ -128,18 +117,11 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
         {
             if( buff[0] == '#' || buff[0] == '\n' || buff[0] == '\r' )
                 continue;
-            if( sscanf( buff, "assume %lf", &h->assume_fps ) != 1 && sscanf( buff, "Assume %lf", &h->assume_fps ) != 1 )
-            {
-                fprintf( stderr, "timecode [error]: tcfile parsing error: assumed fps not found\n" );
-                return -1;
-            }
+            FAIL_IF_ERROR( sscanf( buff, "assume %lf", &h->assume_fps ) != 1 && sscanf( buff, "Assume %lf", &h->assume_fps ) != 1,
+                           "tcfile parsing error: assumed fps not found\n" )
             break;
         }
-        if( h->assume_fps <= 0 )
-        {
-            fprintf( stderr, "timecode [error]: invalid assumed fps %.6f\n", h->assume_fps );
-            return -1;
-        }
+        FAIL_IF_ERROR( h->assume_fps <= 0, "invalid assumed fps %.6f\n", h->assume_fps )
 
         file_pos = ftell( tcfile_in );
         h->stored_pts_num = 0;
@@ -152,16 +134,9 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
                 continue;
             }
             ret = sscanf( buff, "%d,%d,%lf", &start, &end, &seq_fps );
-            if( ret != 3 && ret != EOF )
-            {
-                fprintf( stderr, "timecode [error]: invalid input tcfile\n" );
-                return -1;
-            }
-            if( start > end || start <= prev_start || end <= prev_end || seq_fps <= 0 )
-            {
-                fprintf( stderr, "timecode [error]: invalid input tcfile at line %d: %s\n", num, buff );
-                return -1;
-            }
+            FAIL_IF_ERROR( ret != 3 && ret != EOF, "invalid input tcfile\n" )
+            FAIL_IF_ERROR( start > end || start <= prev_start || end <= prev_end || seq_fps <= 0,
+                           "invalid input tcfile at line %d: %s\n", num, buff )
             prev_start = start;
             prev_end = end;
             if( h->auto_timebase_den || h->auto_timebase_num )
@@ -259,11 +234,7 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
             ++num;
         }
         timecodes_num = h->stored_pts_num + h->seek;
-        if( !timecodes_num )
-        {
-            fprintf( stderr, "timecode [error]: input tcfile doesn't have any timecodes!\n" );
-            return -1;
-        }
+        FAIL_IF_ERROR( !timecodes_num, "input tcfile doesn't have any timecodes!\n" )
         fseek( tcfile_in, file_pos, SEEK_SET );
 
         timecodes = malloc( timecodes_num * sizeof(double) );
@@ -272,11 +243,7 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
 
         fgets( buff, sizeof(buff), tcfile_in );
         ret = sscanf( buff, "%lf", &timecodes[0] );
-        if( ret != 1 )
-        {
-            fprintf( stderr, "timecode [error]: invalid input tcfile for frame 0\n" );
-            goto fail;
-        }
+        FAIL_IF_ERROR( ret != 1, "invalid input tcfile for frame 0\n" )
         for( num = 1; num < timecodes_num; )
         {
             fgets( buff, sizeof(buff), tcfile_in );
@@ -284,11 +251,8 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
                 continue;
             ret = sscanf( buff, "%lf", &timecodes[num] );
             timecodes[num] *= 1e-3;         /* Timecode format v2 is expressed in milliseconds. */
-            if( ret != 1 || timecodes[num] <= timecodes[num - 1] )
-            {
-                fprintf( stderr, "timecode [error]: invalid input tcfile for frame %d\n", num );
-                goto fail;
-            }
+            FAIL_IF_ERROR( ret != 1 || timecodes[num] <= timecodes[num - 1],
+                           "invalid input tcfile for frame %d\n", num )
             ++num;
         }
 
@@ -342,14 +306,10 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
         uint64_t i = gcd( h->timebase_num, h->timebase_den );
         h->timebase_num /= i;
         h->timebase_den /= i;
-        fprintf( stderr, "timecode [info]: automatic timebase generation %"PRIu64"/%"PRIu64"\n", h->timebase_num, h->timebase_den );
+        x264_cli_log( "timecode", X264_LOG_INFO, "automatic timebase generation %"PRIu64"/%"PRIu64"\n", h->timebase_num, h->timebase_den );
     }
-    else if( h->timebase_den > UINT32_MAX || !h->timebase_den )
-    {
-        fprintf( stderr, "timecode [error]: automatic timebase generation failed.\n"
-                         "                  Specify an appropriate timebase manually.\n" );
-        goto fail;
-    }
+    else FAIL_IF_ERROR( h->timebase_den > UINT32_MAX || !h->timebase_den, "automatic timebase generation failed.\n"
+                        "                  Specify an appropriate timebase manually.\n" )
 
     h->pts = malloc( h->stored_pts_num * sizeof(int64_t) );
     if( !h->pts )
@@ -360,11 +320,7 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
     {
         h->pts[num] = (int64_t)( timecodes[h->seek + num] * ((double)h->timebase_den / h->timebase_num) + 0.5 );
         h->pts[num] -= pts_seek_offset;
-        if( h->pts[num] <= h->pts[num - 1] )
-        {
-            fprintf( stderr, "timecode [error]: invalid timebase or timecode for frame %d\n", num );
-            goto fail;
-        }
+        FAIL_IF_ERROR( h->pts[num] <= h->pts[num - 1], "invalid timebase or timecode for frame %d\n", num )
     }
 
     free( timecodes );
@@ -386,11 +342,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     int ret = 0;
     FILE *tcfile_in;
     timecode_hnd_t *h = malloc( sizeof(timecode_hnd_t) );
-    if( !h )
-    {
-        fprintf( stderr, "timecode [error]: malloc failed\n" );
-        return -1;
-    }
+    FAIL_IF_ERROR( !h, "malloc failed\n" )
     h->input = input;
     h->p_handle = *p_handle;
     h->frame_total = input.get_frame_total( h->p_handle );
@@ -400,11 +352,8 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         ret = sscanf( opt->timebase, "%"SCNu64"/%"SCNu64, &h->timebase_num, &h->timebase_den );
         if( ret == 1 )
             h->timebase_num = strtoul( opt->timebase, NULL, 10 );
-        if( h->timebase_num > UINT32_MAX || h->timebase_den > UINT32_MAX )
-        {
-            fprintf( stderr, "timecode [error]: timebase you specified exceeds H.264 maximum\n" );
-            return -1;
-        }
+        FAIL_IF_ERROR( h->timebase_num > UINT32_MAX || h->timebase_den > UINT32_MAX,
+                       "timebase you specified exceeds H.264 maximum\n" )
     }
     h->auto_timebase_num = !ret;
     h->auto_timebase_den = ret < 2;
@@ -418,14 +367,10 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     *p_handle = h;
 
     tcfile_in = fopen( psz_filename, "rb" );
-    if( !tcfile_in )
-    {
-        fprintf( stderr, "timecode [error]: can't open `%s'\n", psz_filename );
-        return -1;
-    }
+    FAIL_IF_ERROR( !tcfile_in, "can't open `%s'\n", psz_filename )
     else if( !x264_is_regular_file( tcfile_in ) )
     {
-        fprintf( stderr, "timecode [error]: tcfile input incompatible with non-regular file `%s'\n", psz_filename );
+        x264_cli_log( "timecode", X264_LOG_ERROR, "tcfile input incompatible with non-regular file `%s'\n", psz_filename );
         fclose( tcfile_in );
         return -1;
     }
@@ -466,8 +411,8 @@ static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
     {
         if( h->pts )
         {
-            fprintf( stderr, "timecode [info]: input timecode file missing data for frame %d and later\n"
-                             "                 assuming constant fps %.6f\n", i_frame, h->assume_fps );
+            x264_cli_log( "timecode", X264_LOG_INFO, "input timecode file missing data for frame %d and later\n"
+                          "                 assuming constant fps %.6f\n", i_frame, h->assume_fps );
             free( h->pts );
             h->pts = NULL;
         }

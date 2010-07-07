@@ -20,8 +20,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#include "muxers.h"
+#include "input.h"
 #include <windows.h>
+#define FAIL_IF_ERROR( cond, ... ) FAIL_IF_ERR( cond, "avs", __VA_ARGS__ )
 
 /* the AVS interface currently uses __declspec to link function declarations to their definitions in the dll.
    this has a side effect of preventing program execution if the avisynth dll is not found,
@@ -131,27 +132,15 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     FILE *fh = fopen( psz_filename, "r" );
     if( !fh )
         return -1;
-    else if( !x264_is_regular_file( fh ) )
-    {
-        fprintf( stderr, "avs [error]: AVS input is incompatible with non-regular file `%s'\n", psz_filename );
-        return -1;
-    }
+    FAIL_IF_ERROR( !x264_is_regular_file( fh ), "AVS input is incompatible with non-regular file `%s'\n", psz_filename );
     fclose( fh );
 
     avs_hnd_t *h = malloc( sizeof(avs_hnd_t) );
     if( !h )
         return -1;
-    if( avs_load_library( h ) )
-    {
-        fprintf( stderr, "avs [error]: failed to load avisynth\n" );
-        return -1;
-    }
+    FAIL_IF_ERROR( avs_load_library( h ), "failed to load avisynth\n" )
     h->env = h->func.avs_create_script_environment( AVS_INTERFACE_YV12 );
-    if( !h->env )
-    {
-        fprintf( stderr, "avs [error]: failed to initiate avisynth\n" );
-        return -1;
-    }
+    FAIL_IF_ERROR( !h->env, "failed to initiate avisynth\n" )
     AVS_Value arg = avs_new_value_string( psz_filename );
     AVS_Value res;
     char *filename_ext = get_filename_extension( psz_filename );
@@ -159,11 +148,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     if( !strcasecmp( filename_ext, "avs" ) )
     {
         res = h->func.avs_invoke( h->env, "Import", arg, NULL );
-        if( avs_is_error( res ) )
-        {
-            fprintf( stderr, "avs [error]: %s\n", avs_as_string( res ) );
-            return -1;
-        }
+        FAIL_IF_ERROR( avs_is_error( res ), "%s\n", avs_as_string( res ) )
         /* check if the user is using a multi-threaded script and apply distributor if necessary.
            adapted from avisynth's vfw interface */
         AVS_Value mt_test = h->func.avs_invoke( h->env, "GetMTMode", avs_new_value_bool( 0 ), NULL );
@@ -184,78 +169,55 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         int i;
         for( i = 0; filter[i]; i++ )
         {
-            fprintf( stderr, "avs [info]: trying %s... ", filter[i] );
+            x264_cli_log( "avs", X264_LOG_INFO, "trying %s... ", filter[i] );
             if( !h->func.avs_function_exists( h->env, filter[i] ) )
             {
-                fprintf( stderr, "not found\n" );
+                x264_cli_printf( X264_LOG_INFO, "not found\n" );
                 continue;
             }
             if( !strncasecmp( filter[i], "FFmpegSource", 12 ) )
             {
-                fprintf( stderr, "indexing... " );
+                x264_cli_printf( X264_LOG_INFO, "indexing... " );
                 fflush( stderr );
             }
             res = h->func.avs_invoke( h->env, filter[i], arg, NULL );
             if( !avs_is_error( res ) )
             {
-                fprintf( stderr, "succeeded\n" );
+                x264_cli_printf( X264_LOG_INFO, "succeeded\n" );
                 break;
             }
-            fprintf( stderr, "failed\n" );
+            x264_cli_printf( X264_LOG_INFO, "failed\n" );
         }
-        if( !filter[i] )
-        {
-            fprintf( stderr, "avs [error]: unable to find source filter to open `%s'\n", psz_filename );
-            return -1;
-        }
+        FAIL_IF_ERROR( !filter[i], "unable to find source filter to open `%s'\n", psz_filename )
     }
-    if( !avs_is_clip( res ) )
-    {
-        fprintf( stderr, "avs [error]: `%s' didn't return a video clip\n", psz_filename );
-        return -1;
-    }
+    FAIL_IF_ERROR( !avs_is_clip( res ), "`%s' didn't return a video clip\n", psz_filename )
     h->clip = h->func.avs_take_clip( res, h->env );
     int avs_version = h->func.avs_get_version( h->clip );
     const AVS_VideoInfo *vi = h->func.avs_get_video_info( h->clip );
-    if( !avs_has_video( vi ) )
-    {
-        fprintf( stderr, "avs [error]: `%s' has no video data\n", psz_filename );
-        return -1;
-    }
+    FAIL_IF_ERROR( !avs_has_video( vi ), "`%s' has no video data\n", psz_filename )
     /* if the clip is made of fields instead of frames, call weave to make them frames */
     if( avs_is_field_based( vi ) )
     {
-        fprintf( stderr, "avs [warning]: detected fieldbased (separated) input, weaving to frames\n" );
+        x264_cli_log( "avs", X264_LOG_WARNING, "detected fieldbased (separated) input, weaving to frames\n" );
         AVS_Value tmp = h->func.avs_invoke( h->env, "Weave", res, NULL );
-        if( avs_is_error( tmp ) )
-        {
-            fprintf( stderr, "avs [error]: couldn't weave fields into frames\n" );
-            return -1;
-        }
+        FAIL_IF_ERROR( avs_is_error( tmp ), "couldn't weave fields into frames\n" )
         res = update_clip( h, &vi, tmp, res );
         info->interlaced = 1;
         info->tff = avs_is_tff( vi );
     }
-    if( vi->width&1 || vi->height&1 )
-    {
-        fprintf( stderr, "avs [error]: input clip width or height not divisible by 2 (%dx%d)\n",
-                 vi->width, vi->height );
-        return -1;
-    }
+    FAIL_IF_ERROR( vi->width&1 || vi->height&1, "input clip width or height not divisible by 2 (%dx%d)\n", vi->width, vi->height )
     /* always call ConvertToYV12 to convert non YV12 planar colorspaces to YV12 when user's AVS supports them,
        as all planar colorspaces are flagged as YV12. If it is already YV12 in this case, the call does nothing */
     if( !avs_is_yv12( vi ) || avs_version >= AVS_INTERFACE_OTHER_PLANAR )
     {
-        fprintf( stderr, "avs %s\n", !avs_is_yv12( vi ) ? "[warning]: converting input clip to YV12"
-               : "[info]: avisynth 2.6+ detected, forcing conversion to YV12" );
+        if( !avs_is_yv12( vi ) )
+            x264_cli_log( "avs", X264_LOG_WARNING, "converting input clip to YV12" );
+        else
+            x264_cli_log( "avs", X264_LOG_INFO, "avisynth 2.6+ detected, forcing conversion to YV12" );
         const char *arg_name[2] = { NULL, "interlaced" };
         AVS_Value arg_arr[2] = { res, avs_new_value_bool( info->interlaced ) };
         AVS_Value res2 = h->func.avs_invoke( h->env, "ConvertToYV12", avs_new_value_array( arg_arr, 2 ), arg_name );
-        if( avs_is_error( res2 ) )
-        {
-            fprintf( stderr, "avs [error]: couldn't convert input clip to YV12\n" );
-            return -1;
-        }
+        FAIL_IF_ERROR( avs_is_error( res2 ), "couldn't convert input clip to YV12\n" )
         res = update_clip( h, &vi, res2, res );
     }
     h->func.avs_release_value( res );
@@ -294,11 +256,7 @@ static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
         return -1;
     AVS_VideoFrame *frm = p_pic->opaque = h->func.avs_get_frame( h->clip, i_frame );
     const char *err = h->func.avs_clip_get_error( h->clip );
-    if( err )
-    {
-        fprintf( stderr, "avs [error]: %s occurred while reading frame %d\n", err, i_frame );
-        return -1;
-    }
+    FAIL_IF_ERROR( err, "%s occurred while reading frame %d\n", err, i_frame )
     for( int i = 0; i < 3; i++ )
     {
         /* explicitly cast away the const attribute to avoid a warning */

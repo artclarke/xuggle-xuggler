@@ -99,10 +99,13 @@ static void x264_sei_write( bs_t *s, uint8_t *p_start )
 void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 {
     sps->i_id = i_id;
+    int max_frame_num;
 
     sps->b_qpprime_y_zero_transform_bypass = param->rc.i_rc_method == X264_RC_CQP && param->rc.i_qp_constant == 0;
     if( sps->b_qpprime_y_zero_transform_bypass )
         sps->i_profile_idc  = PROFILE_HIGH444_PREDICTIVE;
+    else if( BIT_DEPTH > 8 )
+        sps->i_profile_idc  = PROFILE_HIGH10;
     else if( param->analyse.b_transform_8x8 || param->i_cqm_preset != X264_CQM_FLAT )
         sps->i_profile_idc  = PROFILE_HIGH;
     else if( param->b_cabac || param->i_bframe > 0 || param->b_interlaced || param->b_fake_interlaced || param->analyse.i_weighted_pred > 0 )
@@ -118,15 +121,27 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     /* Never set constraint_set2, it is not necessary and not used in real world. */
     sps->b_constraint_set2  = 0;
 
-    sps->i_log2_max_frame_num = 4;  /* at least 4 */
-    while( (1 << sps->i_log2_max_frame_num) <= param->i_keyint_max && sps->i_log2_max_frame_num < 10 )
+    sps->vui.i_num_reorder_frames = param->i_bframe_pyramid ? 2 : param->i_bframe ? 1 : 0;
+    /* extra slot with pyramid so that we don't have to override the
+     * order of forgetting old pictures */
+    sps->vui.i_max_dec_frame_buffering =
+    sps->i_num_ref_frames = X264_MIN(16, X264_MAX4(param->i_frame_reference, 1 + sps->vui.i_num_reorder_frames,
+                            param->i_bframe_pyramid ? 4 : 1, param->i_dpb_size));
+    sps->i_num_ref_frames -= param->i_bframe_pyramid == X264_B_PYRAMID_STRICT;
+
+    /* number of refs + current frame */
+    max_frame_num = sps->vui.i_max_dec_frame_buffering * (!!param->i_bframe_pyramid+1) + 1;
+    sps->i_log2_max_frame_num = 4;
+    while( (1 << sps->i_log2_max_frame_num) <= max_frame_num )
         sps->i_log2_max_frame_num++;
-    sps->i_log2_max_frame_num++;
 
     sps->i_poc_type = 0;
     if( sps->i_poc_type == 0 )
     {
-        sps->i_log2_max_poc_lsb = sps->i_log2_max_frame_num + 1;    /* max poc = 2*frame_num */
+        int max_delta_poc = (param->i_bframe + 2) * (!!param->i_bframe_pyramid + 1) * 2;
+        sps->i_log2_max_poc_lsb = 4;
+        while( (1 << sps->i_log2_max_poc_lsb) <= max_delta_poc * 2 )
+            sps->i_log2_max_poc_lsb++;
     }
     else if( sps->i_poc_type == 1 )
     {
@@ -219,14 +234,6 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 
     // NOTE: HRD related parts of the SPS are initialised in x264_ratecontrol_init_reconfigurable
 
-    sps->vui.i_num_reorder_frames = param->i_bframe_pyramid ? 2 : param->i_bframe ? 1 : 0;
-    /* extra slot with pyramid so that we don't have to override the
-     * order of forgetting old pictures */
-    sps->vui.i_max_dec_frame_buffering =
-    sps->i_num_ref_frames = X264_MIN(16, X264_MAX4(param->i_frame_reference, 1 + sps->vui.i_num_reorder_frames,
-                            param->i_bframe_pyramid ? 4 : 1, param->i_dpb_size));
-    sps->i_num_ref_frames -= param->i_bframe_pyramid == X264_B_PYRAMID_STRICT;
-
     sps->vui.b_bitstream_restriction = 1;
     if( sps->vui.b_bitstream_restriction )
     {
@@ -255,8 +262,8 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
     if( sps->i_profile_idc >= PROFILE_HIGH )
     {
         bs_write_ue( s, 1 ); // chroma_format_idc = 4:2:0
-        bs_write_ue( s, 0 ); // bit_depth_luma_minus8
-        bs_write_ue( s, 0 ); // bit_depth_chroma_minus8
+        bs_write_ue( s, BIT_DEPTH-8 ); // bit_depth_luma_minus8
+        bs_write_ue( s, BIT_DEPTH-8 ); // bit_depth_chroma_minus8
         bs_write( s, 1, sps->b_qpprime_y_zero_transform_bypass );
         bs_write( s, 1, 0 ); // seq_scaling_matrix_present_flag
     }
@@ -483,7 +490,7 @@ void x264_pps_write( bs_t *s, x264_pps_t *pps )
     bs_write( s, 1, pps->b_weighted_pred );
     bs_write( s, 2, pps->b_weighted_bipred );
 
-    bs_write_se( s, pps->i_pic_init_qp - 26 );
+    bs_write_se( s, pps->i_pic_init_qp - 26 - QP_BD_OFFSET );
     bs_write_se( s, pps->i_pic_init_qs - 26 );
     bs_write_se( s, pps->i_chroma_qp_index_offset );
 
@@ -534,7 +541,8 @@ int x264_sei_version_write( x264_t *h, bs_t *s )
 {
     int i;
     // random ID number generated according to ISO-11578
-    const uint8_t uuid[16] = {
+    static const uint8_t uuid[16] =
+    {
         0xdc, 0x45, 0xe9, 0xbd, 0xe6, 0xd9, 0x48, 0xb7,
         0x96, 0x2c, 0xd8, 0x20, 0xd9, 0x23, 0xee, 0xef
     };
@@ -662,7 +670,8 @@ int x264_validate_levels( x264_t *h, int verbose )
     int ret = 0;
     int mbs = h->sps->i_mb_width * h->sps->i_mb_height;
     int dpb = mbs * 384 * h->sps->vui.i_max_dec_frame_buffering;
-    int cbp_factor = h->sps->i_profile_idc==PROFILE_HIGH ? 5 : 4;
+    int cbp_factor = h->sps->i_profile_idc==PROFILE_HIGH10 ? 12 :
+                     h->sps->i_profile_idc==PROFILE_HIGH ? 5 : 4;
 
     const x264_level_t *l = x264_levels;
     while( l->level_idc != 0 && l->level_idc != h->param.i_level_idc )

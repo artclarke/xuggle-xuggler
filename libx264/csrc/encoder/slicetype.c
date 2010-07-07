@@ -303,7 +303,7 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
                                   (mv1)[0], (mv1)[1], 8, 8, w ); \
             h->mc.avg[PIXEL_8x8]( pix1, 16, src1, stride1, src2, stride2, i_bipred_weight ); \
         } \
-        i_cost = penalty + h->pixf.mbcmp[PIXEL_8x8]( \
+        i_cost = penalty * a->i_lambda + h->pixf.mbcmp[PIXEL_8x8]( \
                            m[0].p_fenc[0], FENC_STRIDE, pix1, 16 ); \
         COPY2_IF_LT( i_bcost, i_cost, list_used, 3 ); \
     }
@@ -393,9 +393,9 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
             }
 
             x264_me_search( h, &m[l], mvc, i_mvc );
-            m[l].cost -= 2; // remove mvcost from skip mbs
+            m[l].cost -= 2 * a->i_lambda; // remove mvcost from skip mbs
             if( M32( m[l].mv ) )
-                m[l].cost += 5;
+                m[l].cost += 5 * a->i_lambda;
 
 skip_motionest:
             CP32( fenc_mvs[l], m[l].mv );
@@ -418,7 +418,7 @@ lowres_intra_mb:
         ALIGNED_ARRAY_16( pixel, edge,[33] );
         pixel *pix = &pix1[8+FDEC_STRIDE - 1];
         pixel *src = &fenc->lowres[0][i_pel_offset - 1];
-        const int intra_penalty = 5;
+        const int intra_penalty = 5 * a->i_lambda;
         int satds[3];
 
         memcpy( pix-FDEC_STRIDE, src-i_stride, 17 * sizeof(pixel) );
@@ -496,7 +496,7 @@ lowres_intra_mb:
         }
     }
 
-    fenc->lowres_costs[b-p0][p1-b][i_mb_xy] = i_bcost + (list_used << LOWRES_COST_SHIFT);
+    fenc->lowres_costs[b-p0][p1-b][i_mb_xy] = X264_MIN( i_bcost, LOWRES_COST_MASK ) + (list_used << LOWRES_COST_SHIFT);
 }
 #undef TRY_BIDIR
 
@@ -1009,7 +1009,7 @@ static int scenecut_internal( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **f
     float f_thresh_max = h->param.i_scenecut_threshold / 100.0;
     /* magic numbers pulled out of thin air */
     float f_thresh_min = f_thresh_max * h->param.i_keyint_min
-                         / ( h->param.i_keyint_max * 4 );
+                         / ( h->param.i_keyint_max * 4. );
     int res;
 
     if( h->param.i_keyint_min == h->param.i_keyint_max )
@@ -1233,17 +1233,11 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
     if( !h->param.b_intra_refresh )
         for( int i = keyint_limit+1; i <= num_frames; i += h->param.i_keyint_max )
         {
-            int j = i;
-            if( h->param.i_open_gop == X264_OPEN_GOP_CODED_ORDER )
-            {
-                while( IS_X264_TYPE_B( frames[i]->i_type ) )
-                    i++;
-                while( IS_X264_TYPE_B( frames[j-1]->i_type ) )
-                    j--;
-            }
             frames[i]->i_type = X264_TYPE_I;
             reset_start = X264_MIN( reset_start, i+1 );
-            i = j;
+            if( h->param.i_open_gop == X264_OPEN_GOP_BLURAY )
+                while( IS_X264_TYPE_B( frames[i-1]->i_type ) )
+                    i--;
         }
 
     if( vbv_lookahead )
@@ -1337,16 +1331,8 @@ void x264_slicetype_decide( x264_t *h )
             if( frm->i_type == X264_TYPE_AUTO || frm->i_type == X264_TYPE_I )
                 frm->i_type = h->param.i_open_gop && h->lookahead->i_last_keyframe >= 0 ? X264_TYPE_I : X264_TYPE_IDR;
             int warn = frm->i_type != X264_TYPE_IDR;
-            if( warn && h->param.i_open_gop == X264_OPEN_GOP_DISPLAY_ORDER )
-                warn &= frm->i_type != X264_TYPE_I && frm->i_type != X264_TYPE_KEYFRAME;
-            if( warn && h->param.i_open_gop == X264_OPEN_GOP_CODED_ORDER )
-            {
-                /* if this minigop ends with i, it's not a violation */
-                int j = bframes;
-                while( IS_X264_TYPE_B( h->lookahead->next.list[j]->i_type ) )
-                    j++;
-                warn = h->lookahead->next.list[j]->i_type != X264_TYPE_I && h->lookahead->next.list[j]->i_type != X264_TYPE_KEYFRAME;
-            }
+            if( warn && h->param.i_open_gop )
+                warn &= frm->i_type != X264_TYPE_I;
             if( warn )
                 x264_log( h, X264_LOG_WARNING, "specified frame type (%d) at %d is not compatible with keyframe interval\n", frm->i_type, frm->i_frame );
         }
@@ -1355,8 +1341,8 @@ void x264_slicetype_decide( x264_t *h )
             if( h->param.i_open_gop )
             {
                 h->lookahead->i_last_keyframe = frm->i_frame; // Use display order
-                if( h->param.i_open_gop == X264_OPEN_GOP_CODED_ORDER )
-                    h->lookahead->i_last_keyframe -= bframes; // Use coded order
+                if( h->param.i_open_gop == X264_OPEN_GOP_BLURAY )
+                    h->lookahead->i_last_keyframe -= bframes; // Use bluray order
                 frm->b_keyframe = 1;
             }
             else

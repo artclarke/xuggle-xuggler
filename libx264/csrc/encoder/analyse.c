@@ -134,25 +134,27 @@ typedef struct
 } x264_mb_analysis_t;
 
 /* lambda = pow(2,qp/6-2) */
-const uint8_t x264_lambda_tab[52] = {
-   1, 1, 1, 1, 1, 1, 1, 1,  /*  0-7 */
-   1, 1, 1, 1,              /*  8-11 */
-   1, 1, 1, 1, 2, 2, 2, 2,  /* 12-19 */
-   3, 3, 3, 4, 4, 4, 5, 6,  /* 20-27 */
-   6, 7, 8, 9,10,11,13,14,  /* 28-35 */
-  16,18,20,23,25,29,32,36,  /* 36-43 */
-  40,45,51,57,64,72,81,91   /* 44-51 */
+const uint16_t x264_lambda_tab[QP_MAX_MAX+1] = {
+   1,   1,   1,   1,   1,   1,   1,   1, /*  0- 7 */
+   1,   1,   1,   1,   1,   1,   1,   1, /*  8-15 */
+   2,   2,   2,   2,   3,   3,   3,   4, /* 16-23 */
+   4,   4,   5,   6,   6,   7,   8,   9, /* 24-31 */
+  10,  11,  13,  14,  16,  18,  20,  23, /* 32-39 */
+  25,  29,  32,  36,  40,  45,  51,  57, /* 40-47 */
+  64,  72,  81,  91, 102, 114, 128, 144, /* 48-55 */
+ 161, 181, 203, 228, 256, 287, 323, 362, /* 56-63 */
 };
 
 /* lambda2 = pow(lambda,2) * .9 * 256 */
-const int x264_lambda2_tab[52] = {
-    14,      18,      22,      28,     36,     45,     57,     72, /*  0 -  7 */
-    91,     115,     145,     182,    230,    290,    365,    460, /*  8 - 15 */
-   580,     731,     921,    1161,   1462,   1843,   2322,   2925, /* 16 - 23 */
-  3686,    4644,    5851,    7372,   9289,  11703,  14745,  18578, /* 24 - 31 */
- 23407,   29491,   37156,   46814,  58982,  74313,  93628, 117964, /* 32 - 39 */
-148626,  187257,  235929,  297252, 374514, 471859, 594505, 749029, /* 40 - 47 */
-943718, 1189010, 1498059, 1887436                                  /* 48 - 51 */
+const int x264_lambda2_tab[QP_MAX_MAX+1] = {
+     14,     18,     22,      28,      36,      45,      57,      72, /*  0- 7 */
+     91,    115,    145,     182,     230,     290,     365,     460, /*  8-15 */
+    580,    731,    921,    1161,    1462,    1843,    2322,    2925, /* 16-23 */
+   3686,   4644,   5851,    7372,    9289,   11703,   14745,   18578, /* 24-31 */
+  23407,  29491,  37156,   46814,   58982,   74313,   93628,  117964, /* 32-39 */
+ 148626, 187257, 235929,  297252,  374514,  471859,  594505,  749029, /* 40-47 */
+ 943718,1189010,1498059, 1887436, 2378021, 2996119, 3774873, 4756042, /* 48-55 */
+5992238,7549747,9512085,11984476,15099494,19024170,23968953,30198988, /* 56-63 */
 };
 
 const uint8_t x264_exp2_lut[64] = {
@@ -188,27 +190,31 @@ const float x264_log2_lz_lut[32] = {
 
 // should the intra and inter lambdas be different?
 // I'm just matching the behaviour of deadzone quant.
-static const int x264_trellis_lambda2_tab[2][52] = {
+static const int x264_trellis_lambda2_tab[2][QP_MAX_MAX+1] = {
     // inter lambda = .85 * .85 * 2**(qp/3. + 10 - LAMBDA_BITS)
-    {    46,      58,      73,      92,     117,     147,
-        185,     233,     294,     370,     466,     587,
-        740,     932,    1174,    1480,    1864,    2349,
-       2959,    3728,    4697,    5918,    7457,    9395,
-      11837,   14914,   18790,   23674,   29828,   37581,
-      47349,   59656,   75163,   94699,  119313,  150326,
-     189399,  238627,  300652,  378798,  477255,  601304,
-     757596,  954511, 1202608, 1515192, 1909022, 2405217,
-    3030384, 3818045, 4810435, 6060769 },
+    {      46,      58,      73,      92,     117,     147,
+          185,     233,     294,     370,     466,     587,
+          740,     932,    1174,    1480,    1864,    2349,
+         2959,    3728,    4697,    5918,    7457,    9395,
+        11837,   14914,   18790,   23674,   29828,   37581,
+        47349,   59656,   75163,   94699,  119313,  150326,
+       189399,  238627,  300652,  378798,  477255,  601304,
+       757596,  954511, 1202608, 1515192, 1909022, 2405217,
+      3030384, 3818045, 4810435, 6060769, 7636091, 9620872,
+     12121539,15272182,19241743,24243077,30544363,38483486,
+     48486154,61088726,76966972,96972308 },
     // intra lambda = .65 * .65 * 2**(qp/3. + 10 - LAMBDA_BITS)
-    {    27,      34,      43,      54,      68,      86,
-        108,     136,     172,     216,     273,     343,
-        433,     545,     687,     865,    1090,    1374,
-       1731,    2180,    2747,    3461,    4361,    5494,
-       6922,    8721,   10988,   13844,   17442,   21976,
-      27688,   34885,   43953,   55377,   69771,   87906,
-     110755,  139543,  175813,  221511,  279087,  351627,
-     443023,  558174,  703255,  886046, 1116348, 1406511,
-    1772093, 2232697, 2813022, 3544186 }
+    {      27,      34,      43,      54,      68,      86,
+          108,     136,     172,     216,     273,     343,
+          433,     545,     687,     865,    1090,    1374,
+         1731,    2180,    2747,    3461,    4361,    5494,
+         6922,    8721,   10988,   13844,   17442,   21976,
+        27688,   34885,   43953,   55377,   69771,   87906,
+       110755,  139543,  175813,  221511,  279087,  351627,
+       443023,  558174,  703255,  886046, 1116348, 1406511,
+      1772093, 2232697, 2813022, 3544186, 4465396, 5626046,
+      7088374, 8930791,11252092,14176748,17861583,22504184,
+     28353495,35723165,45008368,56706990 }
 };
 
 static const uint16_t x264_chroma_lambda2_offset_tab[] = {
@@ -237,7 +243,7 @@ static const uint8_t i_sub_mb_p_cost_table[4] = {
 
 static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a );
 
-static uint16_t x264_cost_ref[92][3][33];
+static uint16_t x264_cost_ref[LAMBDA_MAX+1][3][33];
 static UNUSED x264_pthread_mutex_t cost_ref_mutex = X264_PTHREAD_MUTEX_INITIALIZER;
 
 int x264_analyse_init_costs( x264_t *h, int qp )
@@ -275,7 +281,7 @@ fail:
 
 void x264_analyse_free_costs( x264_t *h )
 {
-    for( int i = 0; i < 92; i++ )
+    for( int i = 0; i < LAMBDA_MAX+1; i++ )
     {
         if( h->cost_mv[i] )
             x264_free( h->cost_mv[i] - 2*4*2048 );
@@ -646,16 +652,27 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     /* 16x16 prediction selection */
     const int8_t *predict_mode = predict_16x16_mode_available( h->mb.i_neighbour_intra );
 
+    /* Not heavily tuned */
+    static const uint8_t i16x16_thresh_lut[11] = { 2, 2, 2, 3, 3, 4, 4, 4, 4, 4, 4 };
+    int i16x16_thresh = a->b_fast_intra ? (i16x16_thresh_lut[h->mb.i_subpel_refine]*i_satd_inter)>>1 : COST_MAX;
+
     if( !h->mb.b_lossless && predict_mode[3] >= 0 )
     {
         h->pixf.intra_mbcmp_x3_16x16( p_src, p_dst, a->i_satd_i16x16_dir );
-        h->predict_16x16[I_PRED_16x16_P]( p_dst );
-        a->i_satd_i16x16_dir[I_PRED_16x16_P] =
-            h->pixf.mbcmp[PIXEL_16x16]( p_dst, FDEC_STRIDE, p_src, FENC_STRIDE );
-        for( int i = 0; i < 4; i++ )
+        a->i_satd_i16x16_dir[0] += lambda * bs_size_ue(0);
+        a->i_satd_i16x16_dir[1] += lambda * bs_size_ue(1);
+        a->i_satd_i16x16_dir[2] += lambda * bs_size_ue(2);
+        COPY2_IF_LT( a->i_satd_i16x16, a->i_satd_i16x16_dir[0], a->i_predict16x16, 0 );
+        COPY2_IF_LT( a->i_satd_i16x16, a->i_satd_i16x16_dir[1], a->i_predict16x16, 1 );
+        COPY2_IF_LT( a->i_satd_i16x16, a->i_satd_i16x16_dir[2], a->i_predict16x16, 2 );
+
+        /* Plane is expensive, so don't check it unless one of the previous modes was useful. */
+        if( a->i_satd_i16x16 <= i16x16_thresh )
         {
-            int cost = a->i_satd_i16x16_dir[i] += lambda * bs_size_ue(i);
-            COPY2_IF_LT( a->i_satd_i16x16, cost, a->i_predict16x16, i );
+            h->predict_16x16[I_PRED_16x16_P]( p_dst );
+            a->i_satd_i16x16_dir[I_PRED_16x16_P] = h->pixf.mbcmp[PIXEL_16x16]( p_dst, FDEC_STRIDE, p_src, FENC_STRIDE );
+            a->i_satd_i16x16_dir[I_PRED_16x16_P] += lambda * bs_size_ue(3);
+            COPY2_IF_LT( a->i_satd_i16x16, a->i_satd_i16x16_dir[I_PRED_16x16_P], a->i_predict16x16, 3 );
         }
     }
     else
@@ -681,9 +698,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
         /* cavlc mb type prefix */
         a->i_satd_i16x16 += lambda * i_mb_b_cost_table[I_16x16];
 
-    /* Not heavily tuned */
-    const uint8_t i16x16_thresh[11] = { 2, 2, 2, 3, 3, 4, 4, 4, 4, 4, 4 };
-    if( a->b_fast_intra && a->i_satd_i16x16 > (i16x16_thresh[h->mb.i_subpel_refine]*i_satd_inter)>>1 )
+    if( a->i_satd_i16x16 > i16x16_thresh )
         return;
 
     /* 8x8 prediction selection */
@@ -784,7 +799,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
             i_cost = (i_cost * cost_div_fix8[idx]) >> 8;
         }
         /* Not heavily tuned */
-        const uint8_t i8x8_thresh[11] = { 4, 4, 4, 5, 5, 5, 6, 6, 6, 6, 6 };
+        static const uint8_t i8x8_thresh[11] = { 4, 4, 4, 5, 5, 5, 6, 6, 6, 6, 6 };
         if( X264_MIN(i_cost, a->i_satd_i16x16) > (i_satd_inter*i8x8_thresh[h->mb.i_subpel_refine])>>2 )
             return;
     }

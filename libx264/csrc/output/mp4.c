@@ -21,7 +21,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#include "muxers.h"
+#include "output.h"
 #include <gpac/isomedia.h>
 
 #if HAVE_GF_MALLOC
@@ -61,12 +61,12 @@ static void recompute_bitrate_mp4( GF_ISOFile *p_file, int i_track )
 
     timescale = gf_isom_get_media_timescale( p_file, i_track );
     count = gf_isom_get_sample_count( p_file, i_track );
-    for( int i = 0; i < count; i++ )
+    for( u32 i = 0; i < count; i++ )
     {
         GF_ISOSample *samp = gf_isom_get_sample_info( p_file, i_track, i+1, &di, &offset );
         if( !samp )
         {
-            fprintf( stderr, "mp4 [error]: failure reading back frame %u\n", i );
+            x264_cli_log( "mp4", X264_LOG_ERROR, "failure reading back frame %u\n", i );
             break;
         }
 
@@ -163,11 +163,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle )
     FILE *fh = fopen( psz_filename, "w" );
     if( !fh )
         return -1;
-    else if( !x264_is_regular_file( fh ) )
-    {
-        fprintf( stderr, "mp4 [error]: MP4 output is incompatible with non-regular file `%s'\n", psz_filename );
-        return -1;
-    }
+    FAIL_IF_ERR( !x264_is_regular_file( fh ), "mp4", "MP4 output is incompatible with non-regular file `%s'\n", psz_filename )
     fclose( fh );
 
     if( !(p_mp4 = malloc( sizeof(mp4_hnd_t) )) )

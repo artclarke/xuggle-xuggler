@@ -35,11 +35,59 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 100
+#define X264_BUILD 102
 
 /* x264_t:
  *      opaque handler for encoder */
 typedef struct x264_t x264_t;
+
+/****************************************************************************
+ * NAL structure and functions
+ ****************************************************************************/
+
+enum nal_unit_type_e
+{
+    NAL_UNKNOWN     = 0,
+    NAL_SLICE       = 1,
+    NAL_SLICE_DPA   = 2,
+    NAL_SLICE_DPB   = 3,
+    NAL_SLICE_DPC   = 4,
+    NAL_SLICE_IDR   = 5,    /* ref_idc != 0 */
+    NAL_SEI         = 6,    /* ref_idc == 0 */
+    NAL_SPS         = 7,
+    NAL_PPS         = 8,
+    NAL_AUD         = 9,
+    NAL_FILLER      = 12,
+    /* ref_idc == 0 for 6,9,10,11,12 */
+};
+enum nal_priority_e
+{
+    NAL_PRIORITY_DISPOSABLE = 0,
+    NAL_PRIORITY_LOW        = 1,
+    NAL_PRIORITY_HIGH       = 2,
+    NAL_PRIORITY_HIGHEST    = 3,
+};
+
+/* The data within the payload is already NAL-encapsulated; the ref_idc and type
+ * are merely in the struct for easy access by the calling application.
+ * All data returned in an x264_nal_t, including the data in p_payload, is no longer
+ * valid after the next call to x264_encoder_encode.  Thus it must be used or copied
+ * before calling x264_encoder_encode or x264_encoder_headers again. */
+typedef struct
+{
+    int i_ref_idc;  /* nal_priority_e */
+    int i_type;     /* nal_unit_type_e */
+    int b_long_startcode;
+    int i_first_mb; /* If this NAL is a slice, the index of the first MB in the slice. */
+    int i_last_mb;  /* If this NAL is a slice, the index of the last MB in the slice. */
+
+    /* Size of payload in bytes. */
+    int     i_payload;
+    /* If param->b_annexb is set, Annex-B bytestream with startcode.
+     * Otherwise, startcode is replaced with a 4-byte size.
+     * This size is the size used in mp4/similar muxing; it is equal to i_payload-4 */
+    uint8_t *p_payload;
+} x264_nal_t;
 
 /****************************************************************************
  * Encoder parameters
@@ -104,9 +152,10 @@ typedef struct x264_t x264_t;
 #define X264_B_PYRAMID_STRICT        1
 #define X264_B_PYRAMID_NORMAL        2
 #define X264_KEYINT_MIN_AUTO         0
+#define X264_KEYINT_MAX_INFINITE     (1<<30)
 #define X264_OPEN_GOP_NONE           0
-#define X264_OPEN_GOP_DISPLAY_ORDER  1
-#define X264_OPEN_GOP_CODED_ORDER    2
+#define X264_OPEN_GOP_NORMAL         1
+#define X264_OPEN_GOP_BLURAY         2
 
 static const char * const x264_direct_pred_names[] = { "none", "spatial", "temporal", "auto", 0 };
 static const char * const x264_motion_est_names[] = { "dia", "hex", "umh", "esa", "tesa", 0 };
@@ -118,7 +167,7 @@ static const char * const x264_colorprim_names[] = { "", "bt709", "undef", "", "
 static const char * const x264_transfer_names[] = { "", "bt709", "undef", "", "bt470m", "bt470bg", "smpte170m", "smpte240m", "linear", "log100", "log316", 0 };
 static const char * const x264_colmatrix_names[] = { "GBR", "bt709", "undef", "", "fcc", "bt470bg", "smpte170m", "smpte240m", "YCgCo", 0 };
 static const char * const x264_nal_hrd_names[] = { "none", "vbr", "cbr", 0 };
-static const char * const x264_open_gop_names[] = { "none", "display", "coded", 0 };
+static const char * const x264_open_gop_names[] = { "none", "normal", "bluray", 0 };
 
 /* Colorspace type
  * legacy only; nothing other than I420 is really supported. */
@@ -228,7 +277,7 @@ typedef struct x264_param_t
     int         i_bframe_adaptive;
     int         i_bframe_bias;
     int         i_bframe_pyramid;   /* Keep some B-frames as references: 0=off, 1=strict hierarchical, 2=normal */
-    int         i_open_gop;         /* Open gop: 1=display order, 2=coded order to determine gop size */
+    int         i_open_gop;         /* Open gop: 1=display order, 2=bluray compatibility braindamage mode */
 
     int         b_deblocking_filter;
     int         i_deblocking_filter_alphac0;    /* [-6, 6] -6 light filter, 6 strong */
@@ -295,7 +344,7 @@ typedef struct x264_param_t
     {
         int         i_rc_method;    /* X264_RC_* */
 
-        int         i_qp_constant;  /* 0-51 */
+        int         i_qp_constant;  /* 0 to (51 + 6*(BIT_DEPTH-8)) */
         int         i_qp_min;       /* min allowed QP value */
         int         i_qp_max;       /* max allowed QP value */
         int         i_qp_step;      /* max QP step between frames */
@@ -377,7 +426,40 @@ typedef struct x264_param_t
      * i.e. when an x264_param_t is passed to x264_t in an x264_picture_t or in zones.
      * Not used when x264_encoder_reconfig is called directly. */
     void (*param_free)( void* );
+
+    /* Optional low-level callback for low-latency encoding.  Called for each output NAL unit
+     * immediately after the NAL unit is finished encoding.  This allows the calling application
+     * to begin processing video data (e.g. by sending packets over a network) before the frame
+     * is done encoding.
+     *
+     * This callback MUST do the following in order to work correctly:
+     * 1) Have available an output buffer of at least size nal->i_payload*3/2 + 5 + 16.
+     * 2) Call x264_nal_encode( h, dst, nal ), where dst is the output buffer.
+     * After these steps, the content of nal is valid and can be used in the same way as if
+     * the NAL unit were output by x264_encoder_encode.
+     *
+     * This does not need to be synchronous with the encoding process: the data pointed to
+     * by nal (both before and after x264_nal_encode) will remain valid until the next
+     * x264_encoder_encode call.  The callback must be re-entrant.
+     *
+     * This callback does not work with frame-based threads; threads must be disabled
+     * or sliced-threads enabled.  This callback also does not work as one would expect
+     * with HRD -- since the buffering period SEI cannot be calculated until the frame
+     * is finished encoding, it will not be sent via this callback.
+     *
+     * Note also that the NALs are not necessarily returned in order when sliced threads is
+     * enabled.  Accordingly, the variable i_first_mb and i_last_mb are available in
+     * x264_nal_t to help the calling application reorder the slices if necessary.
+     *
+     * When this callback is enabled, x264_encoder_encode does not return valid NALs;
+     * the calling application is expected to acquire all output NALs through the callback.
+     *
+     * It is generally sensible to combine this callback with a use of slice-max-mbs or
+     * slice-max-size. */
+    void (*nalu_process) ( x264_t *h, x264_nal_t *nal );
 } x264_param_t;
+
+void x264_nal_encode( x264_t *h, uint8_t *dst, x264_nal_t *nal );
 
 /****************************************************************************
  * H.264 level restriction information
@@ -468,7 +550,7 @@ void    x264_param_apply_fastfirstpass( x264_param_t * );
 /* x264_param_apply_profile:
  *      Applies the restrictions of the given profile.
  *      Currently available profiles are, from most to least restrictive: */
-static const char * const x264_profile_names[] = { "baseline", "main", "high", 0 };
+static const char * const x264_profile_names[] = { "baseline", "main", "high", "high10", 0 };
 
 /*      (can be NULL, in which case the function will do nothing)
  *
@@ -584,51 +666,6 @@ int x264_picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_heigh
  *  free associated resource for a x264_picture_t allocated with
  *  x264_picture_alloc ONLY */
 void x264_picture_clean( x264_picture_t *pic );
-
-/****************************************************************************
- * NAL structure and functions
- ****************************************************************************/
-
-enum nal_unit_type_e
-{
-    NAL_UNKNOWN     = 0,
-    NAL_SLICE       = 1,
-    NAL_SLICE_DPA   = 2,
-    NAL_SLICE_DPB   = 3,
-    NAL_SLICE_DPC   = 4,
-    NAL_SLICE_IDR   = 5,    /* ref_idc != 0 */
-    NAL_SEI         = 6,    /* ref_idc == 0 */
-    NAL_SPS         = 7,
-    NAL_PPS         = 8,
-    NAL_AUD         = 9,
-    NAL_FILLER      = 12,
-    /* ref_idc == 0 for 6,9,10,11,12 */
-};
-enum nal_priority_e
-{
-    NAL_PRIORITY_DISPOSABLE = 0,
-    NAL_PRIORITY_LOW        = 1,
-    NAL_PRIORITY_HIGH       = 2,
-    NAL_PRIORITY_HIGHEST    = 3,
-};
-
-/* The data within the payload is already NAL-encapsulated; the ref_idc and type
- * are merely in the struct for easy access by the calling application.
- * All data returned in an x264_nal_t, including the data in p_payload, is no longer
- * valid after the next call to x264_encoder_encode.  Thus it must be used or copied
- * before calling x264_encoder_encode or x264_encoder_headers again. */
-typedef struct
-{
-    int i_ref_idc;  /* nal_priority_e */
-    int i_type;     /* nal_unit_type_e */
-
-    /* Size of payload in bytes. */
-    int     i_payload;
-    /* If param->b_annexb is set, Annex-B bytestream with 4-byte startcode.
-     * Otherwise, startcode is replaced with a 4-byte size.
-     * This size is the size used in mp4/similar muxing; it is equal to i_payload-4 */
-    uint8_t *p_payload;
-} x264_nal_t;
 
 /****************************************************************************
  * Encoder functions

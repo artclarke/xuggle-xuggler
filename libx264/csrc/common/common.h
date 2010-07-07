@@ -52,10 +52,15 @@ do {\
 
 #define X264_BFRAME_MAX 16
 #define X264_THREAD_MAX 128
-#define X264_PCM_COST (386*8)
+#define X264_PCM_COST (384*BIT_DEPTH+16)
 #define X264_LOOKAHEAD_MAX 250
+#define QP_BD_OFFSET (6*(BIT_DEPTH-8))
+#define QP_MAX (51+QP_BD_OFFSET)
+#define QP_MAX_MAX (51+2*6)
+#define LAMBDA_MAX (91 << (BIT_DEPTH-8))
+#define PIXEL_MAX ((1 << BIT_DEPTH)-1)
 // arbitrary, but low because SATD scores are 1/4 normal
-#define X264_LOOKAHEAD_QP 12
+#define X264_LOOKAHEAD_QP (12+QP_BD_OFFSET)
 
 // number of pixels (per thread) in progress at any given time.
 // 16 for the macroblock in progress + 3 for deblocking + 3 for motion compensation filter + 2 for extra safety
@@ -101,17 +106,23 @@ typedef union { x264_uint128_t i; uint64_t a[2]; uint32_t b[4]; uint16_t c[8]; u
 #define CP64(dst,src) M64(dst) = M64(src)
 #define CP128(dst,src) M128(dst) = M128(src)
 
-typedef uint8_t pixel;
-typedef uint32_t pixel4;
-typedef int16_t dctcoef;
+#if X264_HIGH_BIT_DEPTH
+    typedef uint16_t pixel;
+    typedef uint64_t pixel4;
+    typedef int32_t  dctcoef;
 
-#define PIXEL_SPLAT_X4(x) ((x)*0x01010101U)
-#define MPIXEL_X4(src) M32(src)
-#define CPPIXEL_X4(dst,src) CP32(dst,src)
-#define CPPIXEL_X8(dst,src) CP64(dst,src)
-#define MDCT_X2(dct) M32(dct)
-#define CPDCT_X2(dst,src) CP32(dst,src)
-#define CPDCT_X4(dst,src) CP64(dst,src)
+#   define PIXEL_SPLAT_X4(x) ((x)*0x0001000100010001ULL)
+#   define MPIXEL_X4(src) M64(src)
+#else
+    typedef uint8_t  pixel;
+    typedef uint32_t pixel4;
+    typedef int16_t  dctcoef;
+
+#   define PIXEL_SPLAT_X4(x) ((x)*0x01010101U)
+#   define MPIXEL_X4(src) M32(src)
+#endif
+
+#define CPPIXEL_X4(dst,src) MPIXEL_X4(dst) = MPIXEL_X4(src)
 
 #define X264_SCAN8_SIZE (6*8)
 #define X264_SCAN8_LUMA_SIZE (5*8)
@@ -189,7 +200,7 @@ void x264_init_vlc_tables();
 
 static ALWAYS_INLINE pixel x264_clip_pixel( int x )
 {
-    return x&(~255) ? (-x)>>31 : x;
+    return ( (x & ~PIXEL_MAX) ? (-x)>>31 & PIXEL_MAX : x );
 }
 
 static ALWAYS_INLINE int x264_clip3( int v, int i_min, int i_max )
@@ -449,8 +460,8 @@ struct x264_t
     /* mv/ref cost arrays.  Indexed by lambda instead of
      * qp because, due to rounding, some quantizers share
      * lambdas.  This saves memory. */
-    uint16_t *cost_mv[92];
-    uint16_t *cost_mv_fpel[92][4];
+    uint16_t *cost_mv[LAMBDA_MAX+1];
+    uint16_t *cost_mv_fpel[LAMBDA_MAX+1][4];
 
     const uint8_t   *chroma_qp_table; /* includes both the nonlinear luma->chroma mapping and chroma_qp_offset */
 

@@ -53,7 +53,7 @@ typedef struct bs_s
 typedef struct
 {
     int     last;
-    int16_t level[16];
+    dctcoef level[16];
     uint8_t run[16];
 } x264_run_level_t;
 
@@ -68,7 +68,6 @@ typedef struct
     uint8_t *(*nal_escape) ( uint8_t *dst, uint8_t *src, uint8_t *end );
 } x264_bitstream_function_t;
 
-int x264_nal_encode( x264_t *h, uint8_t *dst, x264_nal_t *nal, int b_long_startcode );
 void x264_bitstream_init( int cpu, x264_bitstream_function_t *pf );
 
 /* A larger level table size theoretically could help a bit at extremely

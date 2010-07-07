@@ -238,17 +238,30 @@ static const uint16_t block_idx_xy_fdec[16] =
     2*4 + 3*4*FDEC_STRIDE, 3*4 + 3*4*FDEC_STRIDE
 };
 
-static const uint8_t i_chroma_qp_table[52+12*2] =
+#define QP(qP) ( (qP)+QP_BD_OFFSET )
+static const uint8_t i_chroma_qp_table[QP_MAX+1+12*2] =
 {
-     0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-     0,  1,  2,  3,  4,  5,  6,  7,  8,  9,
-    10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
-    20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
-    29, 30, 31, 32, 32, 33, 34, 34, 35, 35,
-    36, 36, 37, 37, 37, 38, 38, 38, 39, 39,
-    39, 39,
-    39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39,
+         0,      0,      0,      0,      0,      0,
+         0,      0,      0,      0,      0,      0,
+#if BIT_DEPTH > 9
+   QP(-12),QP(-11),QP(-10), QP(-9), QP(-8), QP(-7),
+#endif
+#if BIT_DEPTH > 8
+    QP(-6), QP(-5), QP(-4), QP(-3), QP(-2), QP(-1),
+#endif
+     QP(0),  QP(1),  QP(2),  QP(3),  QP(4),  QP(5),
+     QP(6),  QP(7),  QP(8),  QP(9), QP(10), QP(11),
+    QP(12), QP(13), QP(14), QP(15), QP(16), QP(17),
+    QP(18), QP(19), QP(20), QP(21), QP(22), QP(23),
+    QP(24), QP(25), QP(26), QP(27), QP(28), QP(29),
+    QP(29), QP(30), QP(31), QP(32), QP(32), QP(33),
+    QP(34), QP(34), QP(35), QP(35), QP(36), QP(36),
+    QP(37), QP(37), QP(37), QP(38), QP(38), QP(38),
+    QP(39), QP(39), QP(39), QP(39),
+    QP(39), QP(39), QP(39), QP(39), QP(39), QP(39),
+    QP(39), QP(39), QP(39), QP(39), QP(39), QP(39),
 };
+#undef QP
 
 enum cabac_ctx_block_cat_e
 {
@@ -340,26 +353,31 @@ static ALWAYS_INLINE uint32_t pack16to32_mask( int a, int b )
    return (a&0xFFFF) + (b<<16);
 #endif
 }
+static ALWAYS_INLINE uint64_t pack32to64( uint32_t a, uint32_t b )
+{
+#ifdef WORDS_BIGENDIAN
+   return b + ((uint64_t)a<<32);
+#else
+   return a + ((uint64_t)b<<32);
+#endif
+}
 
-#define pack_pixel_1to2 pack8to16
-#define pack_pixel_2to4 pack16to32
+#if X264_HIGH_BIT_DEPTH
+#   define pack_pixel_1to2 pack16to32
+#   define pack_pixel_2to4 pack32to64
+#else
+#   define pack_pixel_1to2 pack8to16
+#   define pack_pixel_2to4 pack16to32
+#endif
 
-#define array_non_zero(a) array_non_zero_int(a, sizeof(a))
+#define array_non_zero(a) array_non_zero_int(a, sizeof(a)/sizeof(dctcoef))
 #define array_non_zero_int array_non_zero_int
 static ALWAYS_INLINE int array_non_zero_int( dctcoef *v, int i_count )
 {
-    if(i_count == 8)
-        return !!M64( &v[0] );
-    else if(i_count == 16)
-        return !!(M64( &v[0] ) | M64( &v[4] ));
-    else if(i_count == 32)
-        return !!(M64( &v[0] ) | M64( &v[4] ) | M64( &v[8] ) | M64( &v[12] ));
-    else
-    {
-        for( int i = 0; i < i_count; i+=4 )
-            if( M64( &v[i] ) ) return 1;
-        return 0;
-    }
+    for( int i = 0; i < i_count; i++ )
+        if( v[i] )
+            return 1;
+    return 0;
 }
 static ALWAYS_INLINE int x264_mb_predict_intra4x4_mode( x264_t *h, int idx )
 {

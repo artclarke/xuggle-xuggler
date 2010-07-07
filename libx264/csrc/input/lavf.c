@@ -21,7 +21,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
  *****************************************************************************/
 
-#include "muxers.h"
+#include "input.h"
+#define FAIL_IF_ERROR( cond, ... ) FAIL_IF_ERR( cond, "lavf", __VA_ARGS__ )
 #undef DECLARE_ALIGNED
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
@@ -59,19 +60,15 @@ static int check_swscale( lavf_hnd_t *h, AVCodecContext *c, int i_frame )
     if( h->scaler )
     {
         sws_freeContext( h->scaler );
-        fprintf( stderr, "lavf [warning]: stream properties changed to %dx%d, %s at frame %d  \n",
-                 c->width, c->height, avcodec_get_pix_fmt_name( c->pix_fmt ), i_frame );
+        x264_cli_log( "lavf", X264_LOG_WARNING, "stream properties changed to %dx%d, %s at frame %d  \n",
+                      c->width, c->height, avcodec_get_pix_fmt_name( c->pix_fmt ), i_frame );
         h->cur_width   = c->width;
         h->cur_height  = c->height;
         h->cur_pix_fmt = c->pix_fmt;
     }
     h->scaler = sws_getContext( h->cur_width, h->cur_height, h->cur_pix_fmt, h->init_width, h->init_height,
                                 PIX_FMT_YUV420P, SWS_BICUBIC, NULL, NULL, NULL );
-    if( !h->scaler )
-    {
-        fprintf( stderr, "lavf [error]: could not open swscale context\n" );
-        return -1;
-    }
+    FAIL_IF_ERROR( !h->scaler, "could not open swscale context\n" )
     return 0;
 }
 
@@ -106,12 +103,12 @@ static int read_frame_internal( x264_picture_t *p_pic, lavf_hnd_t *h, int i_fram
             {
                 c->reordered_opaque = pkt->pts;
                 if( avcodec_decode_video2( c, frame, &finished, pkt ) < 0 )
-                    fprintf( stderr, "lavf [warning]: video decoding failed on frame %d\n", h->next_frame );
+                    x264_cli_log( "lavf", X264_LOG_WARNING, "video decoding failed on frame %d\n", h->next_frame );
             }
         if( !finished )
         {
             if( avcodec_decode_video2( c, frame, &finished, pkt ) < 0 )
-                fprintf( stderr, "lavf [warning]: video decoding failed on frame %d\n", h->next_frame );
+                x264_cli_log( "lavf", X264_LOG_WARNING, "video decoding failed on frame %d\n", h->next_frame );
             if( !finished )
                 return -1;
         }
@@ -166,26 +163,13 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     if( !strcmp( psz_filename, "-" ) )
         psz_filename = "pipe:";
 
-    if( av_open_input_file( &h->lavf, psz_filename, NULL, 0, NULL ) )
-    {
-        fprintf( stderr, "lavf [error]: could not open input file\n" );
-        return -1;
-    }
-
-    if( av_find_stream_info( h->lavf ) < 0 )
-    {
-        fprintf( stderr, "lavf [error]: could not find input stream info\n" );
-        return -1;
-    }
+    FAIL_IF_ERROR( av_open_input_file( &h->lavf, psz_filename, NULL, 0, NULL ), "could not open input file\n" )
+    FAIL_IF_ERROR( av_find_stream_info( h->lavf ) < 0, "could not find input stream info\n" )
 
     int i = 0;
     while( i < h->lavf->nb_streams && h->lavf->streams[i]->codec->codec_type != CODEC_TYPE_VIDEO )
         i++;
-    if( i == h->lavf->nb_streams )
-    {
-        fprintf( stderr, "lavf [error]: could not find video stream\n" );
-        return -1;
-    }
+    FAIL_IF_ERROR( i == h->lavf->nb_streams, "could not find video stream\n" )
     h->stream_id       = i;
     h->next_frame      = 0;
     h->pts_offset_flag = 0;
@@ -207,22 +191,15 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         info->csp |= X264_CSP_VFLIP;
 
     if( h->cur_pix_fmt != PIX_FMT_YUV420P )
-        fprintf( stderr, "lavf [warning]: converting from %s to YV12\n",
-                 avcodec_get_pix_fmt_name( h->cur_pix_fmt ) );
-
-    if( avcodec_open( c, avcodec_find_decoder( c->codec_id ) ) )
-    {
-        fprintf( stderr, "lavf [error]: could not find decoder for video stream\n" );
-        return -1;
-    }
+        x264_cli_log( "lavf", X264_LOG_WARNING, "converting from %s to YV12\n",
+                      avcodec_get_pix_fmt_name( h->cur_pix_fmt ) );
+    FAIL_IF_ERROR( avcodec_open( c, avcodec_find_decoder( c->codec_id ) ),
+                   "could not find decoder for video stream\n" )
 
     /* prefetch the first frame and set/confirm flags */
     h->first_pic = malloc( sizeof(x264_picture_t) );
-    if( !h->first_pic || lavf_input.picture_alloc( h->first_pic, info->csp, info->width, info->height ) )
-    {
-        fprintf( stderr, "lavf [error]: malloc failed\n" );
-        return -1;
-    }
+    FAIL_IF_ERROR( !h->first_pic || lavf_input.picture_alloc( h->first_pic, info->csp, info->width, info->height ),
+                   "malloc failed\n" )
     else if( read_frame_internal( h->first_pic, h, 0, info ) )
         return -1;
 
