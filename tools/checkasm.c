@@ -444,6 +444,25 @@ static int check_pixel( int cpu_ref, int cpu_new )
     TEST_INTRA_MBCMP( intra_sad_x3_4x4   , predict_4x4  , sad [PIXEL_4x4]  , 0 );
     report( "intra sad_x3 :" );
 
+    ok = 1; used_asm = 0;
+    if( pixel_asm.ssd_nv12_core != pixel_ref.ssd_nv12_core )
+    {
+        used_asm = 1;
+        set_func_name( "ssd_nv12" );
+        uint64_t res_c = pixel_c.ssd_nv12_core(   pbuf1, 368, pbuf2, 368, 360, 8 );
+        uint64_t res_a = pixel_asm.ssd_nv12_core( pbuf1, 368, pbuf2, 368, 360, 8 );
+        if( res_c != res_a )
+        {
+            ok = 0;
+            fprintf( stderr, "ssd_nv12: %u,%u != %u,%u\n",
+                     (uint32_t)res_c, (uint32_t)(res_c>>32),
+                     (uint32_t)res_a, (uint32_t)(res_a>>32) );
+        }
+        call_c( pixel_c.ssd_nv12_core,   pbuf1, 368, pbuf2, 368, 360, 8 );
+        call_a( pixel_asm.ssd_nv12_core, pbuf1, 368, pbuf2, 368, 360, 8 );
+    }
+    report( "ssd_nv12 :" );
+
     if( pixel_asm.ssim_4x4x2_core != pixel_ref.ssim_4x4x2_core ||
         pixel_asm.ssim_end4 != pixel_ref.ssim_end4 )
     {
@@ -822,12 +841,15 @@ static int check_mc( int cpu_ref, int cpu_new )
             used_asm = 1; \
             for( int i = 0; i < 1024; i++ ) \
                 pbuf3[i] = pbuf4[i] = 0xCD; \
-            call_c( mc_c.mc_chroma, dst1, 16, src, 64, dx, dy, w, h ); \
-            call_a( mc_a.mc_chroma, dst2, 16, src, 64, dx, dy, w, h ); \
+            call_c( mc_c.mc_chroma, dst1, dst1+8, 16, src, 64, dx, dy, w, h ); \
+            call_a( mc_a.mc_chroma, dst2, dst2+8, 16, src, 64, dx, dy, w, h ); \
             /* mc_chroma width=2 may write garbage to the right of dst. ignore that. */ \
             for( int j = 0; j < h; j++ ) \
-                for( int i = w; i < 4; i++ ) \
+                for( int i = w; i < 8; i++ ) \
+                { \
+                    dst2[i+j*16+8] = dst1[i+j*16+8]; \
                     dst2[i+j*16] = dst1[i+j*16]; \
+                } \
             if( memcmp( pbuf3, pbuf4, 1024 * sizeof(pixel) ) ) \
             { \
                 fprintf( stderr, "mc_chroma[mv(%d,%d) %2dx%-2d]     [FAILED]\n", dx, dy, w, h ); \
@@ -968,6 +990,121 @@ static int check_mc( int cpu_ref, int cpu_new )
         MC_TEST_WEIGHT( offsetsub, weight, (align_cnt++ % 4) );
     }
     report( "mc offsetsub :" );
+
+    ok = 1; used_asm = 0;
+    if( mc_a.store_interleave_8x8x2 != mc_ref.store_interleave_8x8x2 )
+    {
+        set_func_name( "store_interleave_8x8x2" );
+        used_asm = 1;
+        memset( pbuf3, 0, 64*8 );
+        memset( pbuf4, 0, 64*8 );
+        call_c( mc_c.store_interleave_8x8x2, pbuf3, 64, pbuf1, pbuf1+16 );
+        call_a( mc_a.store_interleave_8x8x2, pbuf4, 64, pbuf1, pbuf1+16 );
+        if( memcmp( pbuf3, pbuf4, 64*8 ) )
+            ok = 0;
+    }
+    if( mc_a.load_deinterleave_8x8x2_fenc != mc_ref.load_deinterleave_8x8x2_fenc )
+    {
+        set_func_name( "load_deinterleave_8x8x2_fenc" );
+        used_asm = 1;
+        call_c( mc_c.load_deinterleave_8x8x2_fenc, pbuf3, pbuf1, 64 );
+        call_a( mc_a.load_deinterleave_8x8x2_fenc, pbuf4, pbuf1, 64 );
+        if( memcmp( pbuf3, pbuf4, FENC_STRIDE*8 ) )
+            ok = 0;
+    }
+    if( mc_a.load_deinterleave_8x8x2_fdec != mc_ref.load_deinterleave_8x8x2_fdec )
+    {
+        set_func_name( "load_deinterleave_8x8x2_fdec" );
+        used_asm = 1;
+        call_c( mc_c.load_deinterleave_8x8x2_fdec, pbuf3, pbuf1, 64 );
+        call_a( mc_a.load_deinterleave_8x8x2_fdec, pbuf4, pbuf1, 64 );
+        if( memcmp( pbuf3, pbuf4, FDEC_STRIDE*8 ) )
+            ok = 0;
+    }
+    report( "store_interleave :" );
+
+    struct plane_spec {
+        int w, h, src_stride;
+    } plane_specs[] = { {2,2,2}, {8,6,8}, {20,31,24}, {32,8,40}, {256,10,272}, {504,7,505}, {528,6,528}, {256,10,-256}, {263,9,-264}, {1904,1,0} };
+    ok = 1; used_asm = 0;
+    if( mc_a.plane_copy != mc_ref.plane_copy )
+    {
+        set_func_name( "plane_copy" );
+        used_asm = 1;
+        for( int i = 0; i < sizeof(plane_specs)/sizeof(*plane_specs); i++ )
+        {
+            int w = plane_specs[i].w;
+            int h = plane_specs[i].h;
+            int src_stride = plane_specs[i].src_stride;
+            int dst_stride = (w + 127) & ~63;
+            assert( dst_stride * h <= 0x1000 );
+            uint8_t *src1 = buf1 + X264_MAX(0, -src_stride) * (h-1);
+            memset( pbuf3, 0, 0x1000*sizeof(pixel) );
+            memset( pbuf4, 0, 0x1000*sizeof(pixel) );
+            call_c( mc_c.plane_copy, pbuf3, dst_stride, src1, src_stride, w, h );
+            call_a( mc_a.plane_copy, pbuf4, dst_stride, src1, src_stride, w, h );
+            for( int y = 0; y < h; y++ )
+                if( memcmp( pbuf3+y*dst_stride, pbuf4+y*dst_stride, w*sizeof(pixel) ) )
+                {
+                    ok = 0;
+                    fprintf( stderr, "plane_copy FAILED: w=%d h=%d stride=%d\n", w, h, src_stride );
+                    break;
+                }
+        }
+    }
+
+    if( mc_a.plane_copy_interleave != mc_ref.plane_copy_interleave )
+    {
+        set_func_name( "plane_copy_interleave" );
+        used_asm = 1;
+        for( int i = 0; i < sizeof(plane_specs)/sizeof(*plane_specs); i++ )
+        {
+            int w = (plane_specs[i].w + 1) >> 1;
+            int h = plane_specs[i].h;
+            int src_stride = (plane_specs[i].src_stride + 1) >> 1;
+            int dst_stride = (2*w + 127) & ~63;
+            assert( dst_stride * h <= 0x1000 );
+            uint8_t *src1 = buf1 + X264_MAX(0, -src_stride) * (h-1);
+            memset( pbuf3, 0, 0x1000*sizeof(pixel) );
+            memset( pbuf4, 0, 0x1000*sizeof(pixel) );
+            call_c( mc_c.plane_copy_interleave, pbuf3, dst_stride, src1, src_stride, src1+1024, src_stride+16, w, h );
+            call_a( mc_a.plane_copy_interleave, pbuf4, dst_stride, src1, src_stride, src1+1024, src_stride+16, w, h );
+            for( int y = 0; y < h; y++ )
+                if( memcmp( pbuf3+y*dst_stride, pbuf4+y*dst_stride, 2*w*sizeof(pixel) ) )
+                {
+                    ok = 0;
+                    fprintf( stderr, "plane_copy_interleave FAILED: w=%d h=%d stride=%d\n", w, h, src_stride );
+                    break;
+                }
+        }
+    }
+
+    if( mc_a.plane_copy_deinterleave != mc_ref.plane_copy_deinterleave )
+    {
+        set_func_name( "plane_copy_deinterleave" );
+        used_asm = 1;
+        for( int i = 0; i < sizeof(plane_specs)/sizeof(*plane_specs); i++ )
+        {
+            int w = (plane_specs[i].w + 1) >> 1;
+            int h = plane_specs[i].h;
+            int dst_stride = w;
+            int src_stride = (2*w + 127) & ~63;
+            int offv = (dst_stride*h + 31) & ~15;
+            memset( pbuf3, 0, 0x1000 );
+            memset( pbuf4, 0, 0x1000 );
+            call_c( mc_c.plane_copy_deinterleave, pbuf3, dst_stride, pbuf3+offv, dst_stride, pbuf1, src_stride, w, h );
+            call_a( mc_a.plane_copy_deinterleave, pbuf4, dst_stride, pbuf4+offv, dst_stride, pbuf1, src_stride, w, h );
+            for( int y = 0; y < h; y++ )
+                if( memcmp( pbuf3+y*dst_stride,      pbuf4+y*dst_stride, w ) ||
+                    memcmp( pbuf3+y*dst_stride+offv, pbuf4+y*dst_stride+offv, w ) )
+                {
+                    ok = 0;
+                    fprintf( stderr, "plane_copy_deinterleave FAILED: w=%d h=%d stride=%d\n", w, h, src_stride );
+                    break;
+                }
+        }
+    }
+    report( "plane_copy :" );
 
     if( mc_a.hpel_filter != mc_ref.hpel_filter )
     {

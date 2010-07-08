@@ -668,16 +668,16 @@ struct x264_t
             ALIGNED_16( uint32_t fenc_satd_cache[32] );
 
             /* pointer over mb of the frame to be compressed */
-            pixel *p_fenc[3];
+            pixel *p_fenc[3]; /* y,u,v */
             /* pointer to the actual source frame, not a block copy */
-            pixel *p_fenc_plane[3];
+            pixel *p_fenc_plane[2]; /* y,uv */
 
             /* pointer over mb of the frame to be reconstructed  */
             pixel *p_fdec[3];
 
             /* pointer over mb of the references */
             int i_fref[2];
-            pixel *p_fref[2][32][4+2]; /* last: lN, lH, lV, lHV, cU, cV */
+            pixel *p_fref[2][32][4+1]; /* last: yN, yH, yV, yHV, uv */
             pixel *p_fref_w[32];  /* weighted fullpel luma */
             uint16_t *p_integral[2][16];
 
@@ -813,7 +813,7 @@ struct x264_t
 
     /* Buffers that are allocated per-thread even in sliced threads. */
     void *scratch_buffer; /* for any temporary storage that doesn't want repeated malloc */
-    pixel *intra_border_backup[2][3]; /* bottom pixels of the previous mb row, used for intra prediction after the framebuffer has been deblocked */
+    pixel *intra_border_backup[2][2]; /* bottom pixels of the previous mb row, used for intra prediction after the framebuffer has been deblocked */
     uint8_t (*deblock_strength[2])[2][4][4];
 
     /* CPU functions dependents */

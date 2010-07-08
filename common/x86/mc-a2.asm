@@ -31,15 +31,17 @@ SECTION_RODATA
 filt_mul20: times 16 db 20
 filt_mul15: times 8 db 1, -5
 filt_mul51: times 8 db -5, 1
-hpel_shuf: db 0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15
+hpel_shuf: db 0,8,1,9,2,10,3,11,4,12,5,13,6,14,7,15
+deinterleave_shuf: db 0,2,4,6,8,10,12,14,1,3,5,7,9,11,13,15
 
 SECTION .text
 
 cextern pw_1
 cextern pw_16
 cextern pw_32
-cextern pd_128
+cextern pw_00ff
 cextern pw_3fff
+cextern pd_128
 
 %macro LOAD_ADD 4
     movh       %4, %3
@@ -171,7 +173,7 @@ cglobal hpel_filter_v_%1, 5,6,%2
     mova      [r2+r4*2], m1
     mova      [r2+r4*2+mmsize], m4
     FILT_PACK m1, m4, 5, m7
-    movnt     [r0+r4], m1
+    movnta    [r0+r4], m1
     add r1, mmsize
     add r5, mmsize
     add r4, mmsize
@@ -688,6 +690,213 @@ cglobal plane_copy_core_mmxext, 6,7
     emms
     RET
 
+
+%macro INTERLEAVE 4-5 ; dst, srcu, srcv, is_aligned, nt_hint
+    movq   m0, [%2]
+%if mmsize==16
+%if %4
+    punpcklbw m0, [%3]
+%else
+    movq   m1, [%3]
+    punpcklbw m0, m1
+%endif
+    mov%5a [%1], m0
+%else
+    movq   m1, [%3]
+    mova   m2, m0
+    punpcklbw m0, m1
+    punpckhbw m2, m1
+    mov%5a [%1], m0
+    mov%5a [%1+8], m2
+%endif
+%endmacro
+
+%macro DEINTERLEAVE 6 ; dstu, dstv, src, dstv==dstu+8, cpu, shuffle constant
+%if mmsize==16
+    mova   m0, [%3]
+%ifidn %5, ssse3
+    pshufb m0, %6
+%else
+    mova   m1, m0
+    pand   m0, %6
+    psrlw  m1, 8
+    packuswb m0, m1
+%endif
+%if %4
+    mova   [%1], m0
+%else
+    movq   [%1], m0
+    movhps [%2], m0
+%endif
+%else
+    mova   m0, [%3]
+    mova   m1, [%3+8]
+    mova   m2, m0
+    mova   m3, m1
+    pand   m0, %6
+    pand   m1, %6
+    psrlw  m2, 8
+    psrlw  m3, 8
+    packuswb m0, m1
+    packuswb m2, m3
+    mova   [%1], m0
+    mova   [%2], m2
+%endif
+%endmacro
+
+%macro PLANE_INTERLEAVE 1
+;-----------------------------------------------------------------------------
+; void plane_copy_interleave_core( uint8_t *dst, int i_dst,
+;                                  uint8_t *srcu, int i_srcu,
+;                                  uint8_t *srcv, int i_srcv, int w, int h )
+;-----------------------------------------------------------------------------
+; assumes i_dst and w are multiples of 16, and i_dst>2*w
+cglobal plane_copy_interleave_core_%1, 6,7
+    mov    r6d, r6m
+    movsxdifnidn r1, r1d
+    movsxdifnidn r3, r3d
+    movsxdifnidn r5, r5d
+    lea    r0, [r0+r6*2]
+    add    r2,  r6
+    add    r4,  r6
+%ifdef ARCH_X86_64
+    DECLARE_REG_TMP 10,11
+%else
+    DECLARE_REG_TMP 1,3
+%endif
+    mov  t0d, r7m
+    mov  t1d, r1d
+    shr  t1d, 1
+    sub  t1d, r6d
+.loopy:
+    mov    r6d, r6m
+    neg    r6
+.prefetch:
+    prefetchnta [r2+r6]
+    prefetchnta [r4+r6]
+    add    r6, 64
+    jl .prefetch
+    mov    r6d, r6m
+    neg    r6
+.loopx:
+    INTERLEAVE r0+r6*2,    r2+r6,   r4+r6,   0, nt
+    INTERLEAVE r0+r6*2+16, r2+r6+8, r4+r6+8, 0, nt
+    add    r6, 16
+    jl .loopx
+.pad:
+%if mmsize==8
+    movntq [r0+r6*2], m0
+    movntq [r0+r6*2+8], m0
+    movntq [r0+r6*2+16], m0
+    movntq [r0+r6*2+24], m0
+%else
+    movntdq [r0+r6*2], m0
+    movntdq [r0+r6*2+16], m0
+%endif
+    add    r6, 16
+    cmp    r6, t1
+    jl .pad
+    add    r0, r1mp
+    add    r2, r3mp
+    add    r4, r5
+    dec    t0d
+    jg .loopy
+    sfence
+    emms
+    RET
+
+;-----------------------------------------------------------------------------
+; void store_interleave_8x8x2( uint8_t *dst, int i_dst, uint8_t *srcu, uint8_t *srcv )
+;-----------------------------------------------------------------------------
+cglobal store_interleave_8x8x2_%1, 4,5
+    mov    r4d, 4
+.loop:
+    INTERLEAVE r0, r2, r3, 1
+    INTERLEAVE r0+r1, r2+FDEC_STRIDE, r3+FDEC_STRIDE, 1
+    add    r2, FDEC_STRIDE*2
+    add    r3, FDEC_STRIDE*2
+    lea    r0, [r0+r1*2]
+    dec    r4d
+    jg .loop
+    REP_RET
+%endmacro ; PLANE_INTERLEAVE
+
+%macro DEINTERLEAVE_START 1
+%ifidn %1, ssse3
+    mova   m4, [deinterleave_shuf]
+%else
+    mova   m4, [pw_00ff]
+%endif
+%endmacro
+
+%macro PLANE_DEINTERLEAVE 1
+;-----------------------------------------------------------------------------
+; void plane_copy_deinterleave( uint8_t *dstu, int i_dstu,
+;                               uint8_t *dstv, int i_dstv,
+;                               uint8_t *src, int i_src, int w, int h )
+;-----------------------------------------------------------------------------
+cglobal plane_copy_deinterleave_%1, 6,7
+    DEINTERLEAVE_START %1
+    mov    r6d, r6m
+    movsxdifnidn r1, r1d
+    movsxdifnidn r3, r3d
+    movsxdifnidn r5, r5d
+    add    r0,  r6
+    add    r2,  r6
+    lea    r4, [r4+r6*2]
+.loopy:
+    mov    r6d, r6m
+    neg    r6
+.loopx:
+    DEINTERLEAVE r0+r6,   r2+r6,   r4+r6*2,    0, %1, m4
+    DEINTERLEAVE r0+r6+8, r2+r6+8, r4+r6*2+16, 0, %1, m4
+    add    r6, 16
+    jl .loopx
+    add    r0, r1
+    add    r2, r3
+    add    r4, r5
+    dec dword r7m
+    jg .loopy
+    REP_RET
+
+;-----------------------------------------------------------------------------
+; void load_deinterleave_8x8x2_fenc( uint8_t *dst, uint8_t *src, int i_src )
+;-----------------------------------------------------------------------------
+cglobal load_deinterleave_8x8x2_fenc_%1, 3,4
+    DEINTERLEAVE_START %1
+    mov    r3d, 4
+.loop:
+    DEINTERLEAVE r0, r0+FENC_STRIDE/2, r1, 1, %1, m4
+    DEINTERLEAVE r0+FENC_STRIDE, r0+FENC_STRIDE*3/2, r1+r2, 1, %1, m4
+    add    r0, FENC_STRIDE*2
+    lea    r1, [r1+r2*2]
+    dec    r3d
+    jg .loop
+    REP_RET
+
+;-----------------------------------------------------------------------------
+; void load_deinterleave_8x8x2_fdec( uint8_t *dst, uint8_t *src, int i_src )
+;-----------------------------------------------------------------------------
+cglobal load_deinterleave_8x8x2_fdec_%1, 3,4
+    DEINTERLEAVE_START %1
+    mov    r3d, 4
+.loop:
+    DEINTERLEAVE r0, r0+FDEC_STRIDE/2, r1, 0, %1, m4
+    DEINTERLEAVE r0+FDEC_STRIDE, r0+FDEC_STRIDE*3/2, r1+r2, 0, %1, m4
+    add    r0, FDEC_STRIDE*2
+    lea    r1, [r1+r2*2]
+    dec    r3d
+    jg .loop
+    REP_RET
+%endmacro ; PLANE_DEINTERLEAVE
+
+INIT_MMX
+PLANE_INTERLEAVE mmxext
+PLANE_DEINTERLEAVE mmx
+INIT_XMM
+PLANE_INTERLEAVE sse2
+PLANE_DEINTERLEAVE sse2
+PLANE_DEINTERLEAVE ssse3
 
 
 ; These functions are not general-use; not only do the SSE ones require aligned input,

@@ -59,13 +59,13 @@ typedef struct x264_frame
 
     /* YUV buffer */
     int     i_plane;
-    int     i_stride[3];
-    int     i_width[3];
-    int     i_lines[3];
+    int     i_stride[2];
+    int     i_width[2];
+    int     i_lines[2];
     int     i_stride_lowres;
     int     i_width_lowres;
     int     i_lines_lowres;
-    pixel *plane[3];
+    pixel *plane[2];
     pixel *filtered[4]; /* plane[0], H, V, HV */
     pixel *lowres[4]; /* half-size copy of input frame: Orig, H, V, HV */
     uint16_t *integral;

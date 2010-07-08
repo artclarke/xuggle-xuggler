@@ -1124,8 +1124,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
     (m)->p_fref[1] = &(src)[1][(xoff)+(yoff)*(m)->i_stride[0]]; \
     (m)->p_fref[2] = &(src)[2][(xoff)+(yoff)*(m)->i_stride[0]]; \
     (m)->p_fref[3] = &(src)[3][(xoff)+(yoff)*(m)->i_stride[0]]; \
-    (m)->p_fref[4] = &(src)[4][((xoff)>>1)+((yoff)>>1)*(m)->i_stride[1]]; \
-    (m)->p_fref[5] = &(src)[5][((xoff)>>1)+((yoff)>>1)*(m)->i_stride[1]]; \
+    (m)->p_fref[4] = &(src)[4][(xoff)+((yoff)>>1)*(m)->i_stride[1]]; \
     (m)->integral = &h->mb.pic.p_integral[list][ref][(xoff)+(yoff)*(m)->i_stride[0]]; \
     (m)->weight = weight_none; \
     (m)->i_ref = ref;
@@ -1500,17 +1499,17 @@ static int x264_mb_analyse_inter_p4x4_chroma( x264_t *h, x264_mb_analysis_t *a, 
     ALIGNED_ARRAY_8( pixel, pix1,[16*8] );
     pixel *pix2 = pix1+8;
     const int i_stride = h->mb.pic.i_stride[1];
-    const int or = 4*(i8x8&1) + 2*(i8x8&2)*i_stride;
+    const int or = 8*(i8x8&1) + 2*(i8x8&2)*i_stride;
     const int oe = 4*(i8x8&1) + 2*(i8x8&2)*FENC_STRIDE;
     const int i_ref = a->l0.me8x8[i8x8].i_ref;
     const int mvy_offset = h->mb.b_interlaced & i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
     x264_weight_t *weight = h->sh.weight[i_ref];
 
+    // FIXME weight can be done on 4x4 blocks even if mc is smaller
 #define CHROMA4x4MC( width, height, me, x, y ) \
-    h->mc.mc_chroma( &pix1[x+y*16], 16, &p_fref[4][or+x+y*i_stride], i_stride, (me).mv[0], (me).mv[1]+mvy_offset, width, height ); \
+    h->mc.mc_chroma( &pix1[x+y*16], &pix2[x+y*16], 16, &p_fref[4][or+x*2+y*i_stride], i_stride, (me).mv[0], (me).mv[1]+mvy_offset, width, height ); \
     if( weight[1].weightfn ) \
         weight[1].weightfn[width>>2]( &pix1[x+y*16], 16, &pix1[x+y*16], 16, &weight[1], height ); \
-    h->mc.mc_chroma( &pix2[x+y*16], 16, &p_fref[5][or+x+y*i_stride], i_stride, (me).mv[0], (me).mv[1]+mvy_offset, width, height ); \
     if( weight[2].weightfn ) \
         weight[2].weightfn[width>>2]( &pix2[x+y*16], 16, &pix2[x+y*16], 16, &weight[2], height );
 

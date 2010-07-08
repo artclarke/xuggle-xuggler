@@ -68,7 +68,7 @@ typedef struct
 
     /* mc_chroma may write up to 2 bytes of garbage to the right of dst,
      * so it must be run from left to right. */
-    void (*mc_chroma)(pixel *dst, int i_dst, pixel *src, int i_src,
+    void (*mc_chroma)(pixel *dstu, pixel *dstv, int i_dst, pixel *src, int i_src,
                       int mvx, int mvy,
                       int i_width, int i_height );
 
@@ -78,8 +78,18 @@ typedef struct
     void (*copy[7])( pixel *dst, int, pixel *src, int, int i_height );
     void (*copy_16x16_unaligned)( pixel *dst, int, pixel *src, int, int i_height );
 
+    void (*store_interleave_8x8x2)( pixel *dst, int i_dst, pixel *srcu, pixel *srcv );
+    void (*load_deinterleave_8x8x2_fenc)( pixel *dst, pixel *src, int i_src );
+    void (*load_deinterleave_8x8x2_fdec)( pixel *dst, pixel *src, int i_src );
+
     void (*plane_copy)( pixel *dst, int i_dst,
-                        uint8_t *src, int i_src, int w, int h);
+                        uint8_t *src, int i_src, int w, int h );
+    void (*plane_copy_interleave)( pixel *dst, int i_dst,
+                                   uint8_t *srcu, int i_srcu,
+                                   uint8_t *srcv, int i_srcv, int w, int h );
+    void (*plane_copy_deinterleave)( pixel *dstu, int i_dstu,
+                                     pixel *dstv, int i_dstv,
+                                     pixel *src, int i_src, int w, int h );
 
     void (*hpel_filter)( pixel *dsth, pixel *dstv, pixel *dstc, pixel *src,
                          int i_stride, int i_width, int i_height, dctcoef *buf );

@@ -1036,17 +1036,26 @@ void x264_picture_init( x264_picture_t *pic )
  ****************************************************************************/
 int x264_picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_height )
 {
+    int csp = i_csp & X264_CSP_MASK;
+    if( csp <= X264_CSP_NONE || csp >= X264_CSP_MAX )
+        return -1;
     x264_picture_init( pic );
     pic->img.i_csp = i_csp;
-    pic->img.i_plane = 3;
+    pic->img.i_plane = csp == X264_CSP_NV12 ? 2 : 3;
     pic->img.plane[0] = x264_malloc( 3 * i_width * i_height / 2 );
     if( !pic->img.plane[0] )
         return -1;
     pic->img.plane[1] = pic->img.plane[0] + i_width * i_height;
-    pic->img.plane[2] = pic->img.plane[1] + i_width * i_height / 4;
+    if( csp != X264_CSP_NV12 )
+        pic->img.plane[2] = pic->img.plane[1] + i_width * i_height / 4;
     pic->img.i_stride[0] = i_width;
-    pic->img.i_stride[1] = i_width / 2;
-    pic->img.i_stride[2] = i_width / 2;
+    if( csp == X264_CSP_NV12 )
+        pic->img.i_stride[1] = i_width;
+    else
+    {
+        pic->img.i_stride[1] = i_width / 2;
+        pic->img.i_stride[2] = i_width / 2;
+    }
     return 0;
 }
 

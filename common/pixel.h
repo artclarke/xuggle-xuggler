@@ -78,6 +78,8 @@ typedef struct
     uint64_t (*var[4])( pixel *pix, int stride );
     uint64_t (*hadamard_ac[4])( pixel *pix, int stride );
 
+    uint64_t (*ssd_nv12_core)( pixel *pixuv1, int stride1,
+                               pixel *pixuv2, int stride2, int width, int height );
     void (*ssim_4x4x2_core)( const pixel *pix1, int stride1,
                              const pixel *pix2, int stride2, int sums[2][4] );
     float (*ssim_end4)( int sum0[5][4], int sum1[5][4], int width );
@@ -110,7 +112,8 @@ typedef struct
 } x264_pixel_function_t;
 
 void x264_pixel_init( int cpu, x264_pixel_function_t *pixf );
-int64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height );
+uint64_t x264_pixel_ssd_nv12( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height );
+uint64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height );
 float x264_pixel_ssim_wxh( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height, void *buf );
 
 #endif

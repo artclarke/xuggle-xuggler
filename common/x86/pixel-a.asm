@@ -40,6 +40,7 @@ hmul_8p:   times 8 db 1
            times 4 db 1, -1
 mask_10:   times 4 dw 0, -1
 mask_1100: times 2 dd 0, -1
+deinterleave_shuf: db 0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15
 
 SECTION .text
 
@@ -303,6 +304,55 @@ INIT_MMX
 SSD  4,  4, ssse3
 SSD  4,  8, ssse3
 %assign function_align 16
+
+;-----------------------------------------------------------------------------
+; uint64_t pixel_ssd_nv12_core( uint8_t *pixuv1, int stride1, uint8_t *pixuv2, int stride2, int width, int height )
+;-----------------------------------------------------------------------------
+%macro SSD_NV12 1-2 0
+cglobal pixel_ssd_nv12_core_%1, 6,7
+    shl    r4d, 1
+    add     r0, r4
+    add     r2, r4
+    pxor    m3, m3
+    pxor    m4, m4
+    mova    m5, [pw_00ff]
+.loopy:
+    mov     r6, r4
+    neg     r6
+.loopx:
+    mova    m0, [r0+r6]
+    mova    m1, [r2+r6]
+    psubusb m0, m1
+    psubusb m1, [r0+r6]
+    por     m0, m1
+    mova    m2, m0
+    pand    m0, m5
+    psrlw   m2, 8
+    pmaddwd m0, m0
+    pmaddwd m2, m2
+    paddd   m3, m0
+    paddd   m4, m2
+    add     r6, mmsize
+    jl .loopx
+    add     r0, r1
+    add     r2, r3
+    dec    r5d
+    jg .loopy
+    HADDD   m3, m0
+    HADDD   m4, m0
+    movd   eax, m3
+    movd   edx, m4
+%ifdef ARCH_X86_64
+    shl    rdx, 32
+    add    rax, rdx
+%endif
+    RET
+%endmacro ; SSD_NV12
+
+INIT_MMX
+SSD_NV12 mmxext
+INIT_XMM
+SSD_NV12 sse2
 
 ;=============================================================================
 ; variance
@@ -2158,9 +2208,7 @@ cglobal pixel_ssim_end4_sse2, 3,3,7
     add     r6, 4*%1
     sub     r0d, 4*%1
     jg .loop
-%ifdef WIN64
-    RESTORE_XMM rsp
-%endif
+    WIN64_RESTORE_XMM rsp
     jmp ads_mvs
 %endmacro
 

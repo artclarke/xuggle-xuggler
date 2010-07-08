@@ -204,22 +204,32 @@ static inline double qscale2bits( ratecontrol_entry_t *rce, double qscale )
            + rce->misc_bits;
 }
 
-static ALWAYS_INLINE uint32_t ac_energy_plane( x264_t *h, int mb_x, int mb_y, x264_frame_t *frame, int i )
+static ALWAYS_INLINE uint32_t ac_energy_var( uint64_t sum_ssd, int shift, x264_frame_t *frame, int i )
 {
-    int w = i ? 8 : 16;
-    int shift = i ? 6 : 8;
-    int stride = frame->i_stride[i];
-    int offset = h->mb.b_interlaced
-        ? w * (mb_x + (mb_y&~1) * stride) + (mb_y&1) * stride
-        : w * (mb_x + mb_y * stride);
-    int pix = i ? PIXEL_8x8 : PIXEL_16x16;
-    stride <<= h->mb.b_interlaced;
-    uint64_t res = h->pixf.var[pix]( frame->plane[i] + offset, stride );
-    uint32_t sum = (uint32_t)res;
-    uint32_t ssd = res >> 32;
+    uint32_t sum = sum_ssd;
+    uint32_t ssd = sum_ssd >> 32;
     frame->i_pixel_sum[i] += sum;
     frame->i_pixel_ssd[i] += ssd;
     return ssd - ((uint64_t)sum * sum >> shift);
+}
+
+static ALWAYS_INLINE uint32_t ac_energy_plane( x264_t *h, int mb_x, int mb_y, x264_frame_t *frame, int i )
+{
+    int w = i ? 8 : 16;
+    int stride = frame->i_stride[i];
+    int offset = h->mb.b_interlaced
+        ? 16 * mb_x + w * (mb_y&~1) * stride + (mb_y&1) * stride
+        : 16 * mb_x + w * mb_y * stride;
+    stride <<= h->mb.b_interlaced;
+    if( i )
+    {
+        ALIGNED_ARRAY_16( pixel, pix,[FENC_STRIDE*8] );
+        h->mc.load_deinterleave_8x8x2_fenc( pix, frame->plane[1] + offset, stride );
+        return ac_energy_var( h->pixf.var[PIXEL_8x8]( pix, FENC_STRIDE ), 6, frame, i )
+             + ac_energy_var( h->pixf.var[PIXEL_8x8]( pix+FENC_STRIDE/2, FENC_STRIDE ), 6, frame, i );
+    }
+    else
+        return ac_energy_var( h->pixf.var[PIXEL_16x16]( frame->plane[0] + offset, stride ), 8, frame, i );
 }
 
 // Find the total AC energy of the block in all planes.
@@ -231,7 +241,6 @@ static NOINLINE uint32_t x264_ac_energy_mb( x264_t *h, int mb_x, int mb_y, x264_
      * sure no reordering goes on. */
     uint32_t var = ac_energy_plane( h, mb_x, mb_y, frame, 0 );
     var         += ac_energy_plane( h, mb_x, mb_y, frame, 1 );
-    var         += ac_energy_plane( h, mb_x, mb_y, frame, 2 );
     x264_emms();
     return var;
 }

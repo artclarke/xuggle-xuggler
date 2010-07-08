@@ -252,7 +252,7 @@ static pixel *get_ref( pixel *dst,   int *i_dst_stride,
 }
 
 /* full chroma mc (ie until 1/8 pixel)*/
-static void mc_chroma( pixel *dst, int i_dst_stride,
+static void mc_chroma( pixel *dstu, pixel *dstv, int i_dst_stride,
                        pixel *src, int i_src_stride,
                        int mvx, int mvy,
                        int i_width, int i_height )
@@ -266,14 +266,20 @@ static void mc_chroma( pixel *dst, int i_dst_stride,
     int cC = (8-d8x)*d8y;
     int cD = d8x    *d8y;
 
-    src += (mvy >> 3) * i_src_stride + (mvx >> 3);
+    src += (mvy >> 3) * i_src_stride + (mvx >> 3)*2;
     srcp = &src[i_src_stride];
 
     for( int y = 0; y < i_height; y++ )
     {
         for( int x = 0; x < i_width; x++ )
-            dst[x] = ( cA*src[x]  + cB*src[x+1] + cC*srcp[x] + cD*srcp[x+1] + 32 ) >> 6;
-        dst  += i_dst_stride;
+        {
+            dstu[x] = ( cA*src[2*x]  + cB*src[2*x+2] +
+                        cC*srcp[2*x] + cD*srcp[2*x+2] + 32 ) >> 6;
+            dstv[x] = ( cA*src[2*x+1]  + cB*src[2*x+3] +
+                        cC*srcp[2*x+1] + cD*srcp[2*x+3] + 32 ) >> 6;
+        }
+        dstu += i_dst_stride;
+        dstv += i_dst_stride;
         src   = srcp;
         srcp += i_src_stride;
     }
@@ -289,7 +295,7 @@ MC_COPY( 8 )
 MC_COPY( 4 )
 
 void x264_plane_copy_c( pixel *dst, int i_dst,
-                        uint8_t *src, int i_src, int w, int h)
+                        uint8_t *src, int i_src, int w, int h )
 {
     while( h-- )
     {
@@ -302,6 +308,50 @@ void x264_plane_copy_c( pixel *dst, int i_dst,
         dst += i_dst;
         src += i_src;
     }
+}
+
+void x264_plane_copy_interleave_c( pixel *dst, int i_dst,
+                                   uint8_t *srcu, int i_srcu,
+                                   uint8_t *srcv, int i_srcv, int w, int h )
+{
+    for( int y=0; y<h; y++, dst+=i_dst, srcu+=i_srcu, srcv+=i_srcv )
+        for( int x=0; x<w; x++ )
+        {
+            dst[2*x]   = srcu[x] << (BIT_DEPTH-8);
+            dst[2*x+1] = srcv[x] << (BIT_DEPTH-8);
+        }
+}
+
+void x264_plane_copy_deinterleave_c( pixel *dstu, int i_dstu,
+                                     pixel *dstv, int i_dstv,
+                                     pixel *src, int i_src, int w, int h )
+{
+    for( int y=0; y<h; y++, dstu+=i_dstu, dstv+=i_dstv, src+=i_src )
+        for( int x=0; x<w; x++ )
+        {
+            dstu[x] = src[2*x];
+            dstv[x] = src[2*x+1];
+        }
+}
+
+static void store_interleave_8x8x2( pixel *dst, int i_dst, pixel *srcu, pixel *srcv )
+{
+    for( int y=0; y<8; y++, dst+=i_dst, srcu+=FDEC_STRIDE, srcv+=FDEC_STRIDE )
+        for( int x=0; x<8; x++ )
+        {
+            dst[2*x]   = srcu[x];
+            dst[2*x+1] = srcv[x];
+        }
+}
+
+static void load_deinterleave_8x8x2_fenc( pixel *dst, pixel *src, int i_src )
+{
+    x264_plane_copy_deinterleave_c( dst, FENC_STRIDE, dst+FENC_STRIDE/2, FENC_STRIDE, src, i_src, 8, 8 );
+}
+
+static void load_deinterleave_8x8x2_fdec( pixel *dst, pixel *src, int i_src )
+{
+    x264_plane_copy_deinterleave_c( dst, FDEC_STRIDE, dst+FDEC_STRIDE/2, FDEC_STRIDE, src, i_src, 8, 8 );
 }
 
 static void prefetch_fenc_null( pixel *pix_y, int stride_y,
@@ -455,7 +505,14 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     pf->copy[PIXEL_8x8]   = mc_copy_w8;
     pf->copy[PIXEL_4x4]   = mc_copy_w4;
 
+    pf->store_interleave_8x8x2  = store_interleave_8x8x2;
+    pf->load_deinterleave_8x8x2_fenc = load_deinterleave_8x8x2_fenc;
+    pf->load_deinterleave_8x8x2_fdec = load_deinterleave_8x8x2_fdec;
+
     pf->plane_copy = x264_plane_copy_c;
+    pf->plane_copy_interleave = x264_plane_copy_interleave_c;
+    pf->plane_copy_deinterleave = x264_plane_copy_deinterleave_c;
+
     pf->hpel_filter = hpel_filter;
 
     pf->prefetch_fenc = prefetch_fenc_null;

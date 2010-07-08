@@ -40,71 +40,120 @@ cextern pb_a1
     [base], [base+stride], [base+stride*2], [base3], \
     [base3+stride], [base3+stride*2], [base3+stride3], [base3+stride*4]
 
-; in: 8 rows of 4 bytes in %1..%8
+%define PASS8ROWS(base, base3, stride, stride3, offset) \
+    PASS8ROWS(base+offset, base3+offset, stride, stride3)
+
+; in: 8 rows of 4 bytes in %4..%11
 ; out: 4 rows of 8 bytes in m0..m3
-%macro TRANSPOSE4x8_LOAD 8
-    movd       m0, %1
-    movd       m2, %2
-    movd       m1, %3
-    movd       m3, %4
-    punpcklbw  m0, m2
-    punpcklbw  m1, m3
-    movq       m2, m0
-    punpcklwd  m0, m1
-    punpckhwd  m2, m1
+%macro TRANSPOSE4x8_LOAD 11
+    movh       m0, %4
+    movh       m2, %5
+    movh       m1, %6
+    movh       m3, %7
+    punpckl%1  m0, m2
+    punpckl%1  m1, m3
+    mova       m2, m0
+    punpckl%2  m0, m1
+    punpckh%2  m2, m1
 
-    movd       m4, %5
-    movd       m6, %6
-    movd       m5, %7
-    movd       m7, %8
-    punpcklbw  m4, m6
-    punpcklbw  m5, m7
-    movq       m6, m4
-    punpcklwd  m4, m5
-    punpckhwd  m6, m5
+    movh       m4, %8
+    movh       m6, %9
+    movh       m5, %10
+    movh       m7, %11
+    punpckl%1  m4, m6
+    punpckl%1  m5, m7
+    mova       m6, m4
+    punpckl%2  m4, m5
+    punpckh%2  m6, m5
 
-    movq       m1, m0
-    movq       m3, m2
-    punpckldq  m0, m4
-    punpckhdq  m1, m4
-    punpckldq  m2, m6
-    punpckhdq  m3, m6
+    mova       m1, m0
+    mova       m3, m2
+    punpckl%3  m0, m4
+    punpckh%3  m1, m4
+    punpckl%3  m2, m6
+    punpckh%3  m3, m6
 %endmacro
 
 ; in: 4 rows of 8 bytes in m0..m3
 ; out: 8 rows of 4 bytes in %1..%8
-%macro TRANSPOSE8x4_STORE 8
-    movq       m4, m0
-    movq       m5, m1
-    movq       m6, m2
+%macro TRANSPOSE8x4B_STORE 8
+    mova       m4, m0
+    mova       m5, m1
+    mova       m6, m2
     punpckhdq  m4, m4
     punpckhdq  m5, m5
     punpckhdq  m6, m6
 
     punpcklbw  m0, m1
     punpcklbw  m2, m3
-    movq       m1, m0
+    mova       m1, m0
     punpcklwd  m0, m2
     punpckhwd  m1, m2
-    movd       %1, m0
+    movh       %1, m0
     punpckhdq  m0, m0
-    movd       %2, m0
-    movd       %3, m1
+    movh       %2, m0
+    movh       %3, m1
     punpckhdq  m1, m1
-    movd       %4, m1
+    movh       %4, m1
 
     punpckhdq  m3, m3
     punpcklbw  m4, m5
     punpcklbw  m6, m3
-    movq       m5, m4
+    mova       m5, m4
     punpcklwd  m4, m6
     punpckhwd  m5, m6
-    movd       %5, m4
+    movh       %5, m4
     punpckhdq  m4, m4
-    movd       %6, m4
-    movd       %7, m5
+    movh       %6, m4
+    movh       %7, m5
     punpckhdq  m5, m5
-    movd       %8, m5
+    movh       %8, m5
+%endmacro
+
+%macro TRANSPOSE4x8B_LOAD 8
+    TRANSPOSE4x8_LOAD bw, wd, dq, %1, %2, %3, %4, %5, %6, %7, %8
+%endmacro
+
+%macro TRANSPOSE4x8W_LOAD 8
+%if mmsize==16
+    TRANSPOSE4x8_LOAD wd, dq, qdq, %1, %2, %3, %4, %5, %6, %7, %8
+%else
+    SWAP  1, 4, 2, 3
+    mova  m0, [t5]
+    mova  m1, [t5+r1]
+    mova  m2, [t5+r1*2]
+    mova  m3, [t5+t6]
+    TRANSPOSE4x4W 0, 1, 2, 3, 4
+%endif
+%endmacro
+
+%macro TRANSPOSE8x2W_STORE 8
+    mova       m0, m1
+    punpcklwd  m1, m2
+    punpckhwd  m0, m2
+%if mmsize==8
+    movd       %1, m1
+    movd       %3, m0
+    psrlq      m1, 32
+    psrlq      m0, 32
+    movd       %2, m1
+    movd       %4, m0
+%else
+    movd       %1, m1
+    movd       %5, m0
+    psrldq     m1, 4
+    psrldq     m0, 4
+    movd       %2, m1
+    movd       %6, m0
+    psrldq     m1, 4
+    psrldq     m0, 4
+    movd       %3, m1
+    movd       %7, m0
+    psrldq     m1, 4
+    psrldq     m0, 4
+    movd       %4, m1
+    movd       %8, m0
+%endif
 %endmacro
 
 %macro SBUTTERFLY3 4
@@ -116,6 +165,7 @@ cextern pb_a1
 ; in: 8 rows of 8 (only the middle 6 pels are used) in %1..%8
 ; out: 6 rows of 8 in [%9+0*16] .. [%9+5*16]
 %macro TRANSPOSE6x8_MEM 9
+    RESET_MM_PERMUTATION
     movq  m0, %1
     movq  m1, %2
     movq  m2, %3
@@ -123,30 +173,32 @@ cextern pb_a1
     movq  m4, %5
     movq  m5, %6
     movq  m6, %7
-    SBUTTERFLY3 bw, m0, m1, m7
-    SBUTTERFLY3 bw, m2, m3, m1
-    SBUTTERFLY3 bw, m4, m5, m3
-    movq  [%9+0x10], m1
-    SBUTTERFLY3 bw, m6, %8, m5
-    SBUTTERFLY3 wd, m0, m2, m1
-    SBUTTERFLY3 wd, m4, m6, m2
+    SBUTTERFLY bw, 0, 1, 7
+    SBUTTERFLY bw, 2, 3, 7
+    SBUTTERFLY bw, 4, 5, 7
+    movq  [%9+0x10], m3
+    SBUTTERFLY3 bw, m6, %8, m7
+    SBUTTERFLY wd, 0, 2, 3
+    SBUTTERFLY wd, 4, 6, 3
     punpckhdq m0, m4
     movq  [%9+0x00], m0
-    SBUTTERFLY3 wd, m7, [%9+0x10], m6
-    SBUTTERFLY3 wd, m3, m5, m4
-    SBUTTERFLY3 dq, m7, m3, m0
-    SBUTTERFLY3 dq, m1, m2, m5
-    punpckldq m6, m4
-    movq  [%9+0x10], m1
-    movq  [%9+0x20], m5
-    movq  [%9+0x30], m7
-    movq  [%9+0x40], m0
-    movq  [%9+0x50], m6
+    SBUTTERFLY3 wd, m1, [%9+0x10], m3
+    SBUTTERFLY wd, 5, 7, 0
+    SBUTTERFLY dq, 1, 5, 0
+    SBUTTERFLY dq, 2, 6, 0
+    punpckldq m3, m7
+    movq  [%9+0x10], m2
+    movq  [%9+0x20], m6
+    movq  [%9+0x30], m1
+    movq  [%9+0x40], m5
+    movq  [%9+0x50], m3
+    RESET_MM_PERMUTATION
 %endmacro
 
 ; in: 8 rows of 8 in %1..%8
 ; out: 8 rows of 8 in %9..%16
 %macro TRANSPOSE8x8_MEM 16
+    RESET_MM_PERMUTATION
     movq  m0, %1
     movq  m1, %2
     movq  m2, %3
@@ -154,29 +206,30 @@ cextern pb_a1
     movq  m4, %5
     movq  m5, %6
     movq  m6, %7
-    SBUTTERFLY3 bw, m0, m1, m7
-    SBUTTERFLY3 bw, m2, m3, m1
-    SBUTTERFLY3 bw, m4, m5, m3
-    SBUTTERFLY3 bw, m6, %8, m5
-    movq  %9,  m3
-    SBUTTERFLY3 wd, m0, m2, m3
-    SBUTTERFLY3 wd, m4, m6, m2
-    SBUTTERFLY3 wd, m7, m1, m6
-    movq  %11, m2
-    movq  m2,  %9
-    SBUTTERFLY3 wd, m2, m5, m1
-    SBUTTERFLY3 dq, m0, m4, m5
-    SBUTTERFLY3 dq, m7, m2, m4
+    SBUTTERFLY bw, 0, 1, 7
+    SBUTTERFLY bw, 2, 3, 7
+    SBUTTERFLY bw, 4, 5, 7
+    SBUTTERFLY3 bw, m6, %8, m7
+    movq  %9,  m5
+    SBUTTERFLY wd, 0, 2, 5
+    SBUTTERFLY wd, 4, 6, 5
+    SBUTTERFLY wd, 1, 3, 5
+    movq  %11, m6
+    movq  m6,  %9
+    SBUTTERFLY wd, 6, 7, 5
+    SBUTTERFLY dq, 0, 4, 5
+    SBUTTERFLY dq, 1, 6, 5
     movq  %9,  m0
-    movq  %10, m5
-    movq  %13, m7
-    movq  %14, m4
-    SBUTTERFLY3 dq, m3, %11, m0
-    SBUTTERFLY3 dq, m6, m1, m5
-    movq  %11, m3
+    movq  %10, m4
+    movq  %13, m1
+    movq  %14, m6
+    SBUTTERFLY3 dq, m2, %11, m0
+    SBUTTERFLY dq, 3, 7, 4
+    movq  %11, m2
     movq  %12, m0
-    movq  %15, m6
-    movq  %16, m5
+    movq  %15, m3
+    movq  %16, m7
+    RESET_MM_PERMUTATION
 %endmacro
 
 ; out: %4 = |%1-%2|>%3
@@ -365,7 +418,7 @@ cglobal deblock_h_luma_sse2, 5,7
     movq   m1, [pix_tmp+0x28]
     movq   m2, [pix_tmp+0x38]
     movq   m3, [pix_tmp+0x48]
-    TRANSPOSE8x4_STORE  PASS8ROWS(r6, r5, r10, r11)
+    TRANSPOSE8x4B_STORE  PASS8ROWS(r6, r5, r10, r11)
 
     shl    r10, 3
     sub    r6,  r10
@@ -375,7 +428,7 @@ cglobal deblock_h_luma_sse2, 5,7
     movq   m1, [pix_tmp+0x20]
     movq   m2, [pix_tmp+0x30]
     movq   m3, [pix_tmp+0x40]
-    TRANSPOSE8x4_STORE  PASS8ROWS(r6, r5, r10, r11)
+    TRANSPOSE8x4B_STORE  PASS8ROWS(r6, r5, r10, r11)
 
 %ifdef WIN64
     add    rsp, 0x98
@@ -484,7 +537,7 @@ cglobal deblock_h_luma_%1, 0,5
     movq   m1, [pix_tmp+0x20]
     movq   m2, [pix_tmp+0x30]
     movq   m3, [pix_tmp+0x40]
-    TRANSPOSE8x4_STORE  PASS8ROWS(r0, r1, r3, r4)
+    TRANSPOSE8x4B_STORE  PASS8ROWS(r0, r1, r3, r4)
 
     lea    r0, [r0+r3*8]
     lea    r1, [r1+r3*8]
@@ -492,7 +545,7 @@ cglobal deblock_h_luma_%1, 0,5
     movq   m1, [pix_tmp+0x28]
     movq   m2, [pix_tmp+0x38]
     movq   m3, [pix_tmp+0x48]
-    TRANSPOSE8x4_STORE  PASS8ROWS(r0, r1, r3, r4)
+    TRANSPOSE8x4B_STORE  PASS8ROWS(r0, r1, r3, r4)
 
     ADD    esp, pad
     RET
@@ -767,117 +820,152 @@ DEBLOCK_LUMA_INTRA mmxext, v8
 
 
 
-INIT_MMX
-
 %macro CHROMA_V_START 0
     dec    r2d      ; alpha-1
     dec    r3d      ; beta-1
     mov    t5, r0
     sub    t5, r1
     sub    t5, r1
+%if mmsize==8
+    mov   dword r0m, 2
+.skip_prologue:
+%endif
 %endmacro
 
 %macro CHROMA_H_START 0
     dec    r2d
     dec    r3d
-    sub    r0, 2
+    sub    r0, 4
     lea    t6, [r1*3]
     mov    t5, r0
     add    r0, t6
+%if mmsize==8
+    mov   dword r0m, 2
+.skip_prologue:
+%endif
+%endmacro
+
+%macro CHROMA_V_LOOP 1
+%if mmsize==8
+    add   r0, 8
+    add   t5, 8
+%if %1
+    add   r4, 2
+%endif
+    dec   dword r0m
+    jg .skip_prologue
+%endif
+%endmacro
+
+%macro CHROMA_H_LOOP 1
+%if mmsize==8
+    lea   r0, [r0+r1*4]
+    lea   t5, [t5+r1*4]
+%if %1
+    add   r4, 2
+%endif
+    dec   dword r0m
+    jg .skip_prologue
+%endif
 %endmacro
 
 %define t5 r5
 %define t6 r6
 
+%macro DEBLOCK_CHROMA 1
 ;-----------------------------------------------------------------------------
 ; void deblock_v_chroma( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
-cglobal deblock_v_chroma_mmxext, 5,6
+cglobal deblock_v_chroma_%1, 5,6,8
     CHROMA_V_START
-    movq  m0, [t5]
-    movq  m1, [t5+r1]
-    movq  m2, [r0]
-    movq  m3, [r0+r1]
-    call chroma_inter_body_mmxext
-    movq  [t5+r1], m1
-    movq  [r0], m2
+    mova  m0, [t5]
+    mova  m1, [t5+r1]
+    mova  m2, [r0]
+    mova  m3, [r0+r1]
+    call chroma_inter_body_%1
+    mova  [t5+r1], m1
+    mova  [r0], m2
+    CHROMA_V_LOOP 1
     RET
 
 ;-----------------------------------------------------------------------------
 ; void deblock_h_chroma( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
-cglobal deblock_h_chroma_mmxext, 5,7
-%ifdef ARCH_X86_64
-    %define buf0 [rsp-24]
-    %define buf1 [rsp-16]
-%else
-    %define buf0 r0m
-    %define buf1 r2m
-%endif
+cglobal deblock_h_chroma_%1, 5,7,8
     CHROMA_H_START
-    TRANSPOSE4x8_LOAD  PASS8ROWS(t5, r0, r1, t6)
-    movq  buf0, m0
-    movq  buf1, m3
-    call chroma_inter_body_mmxext
-    movq  m0, buf0
-    movq  m3, buf1
-    TRANSPOSE8x4_STORE PASS8ROWS(t5, r0, r1, t6)
+    TRANSPOSE4x8W_LOAD PASS8ROWS(t5, r0, r1, t6)
+    call chroma_inter_body_%1
+    TRANSPOSE8x2W_STORE PASS8ROWS(t5, r0, r1, t6, 2)
+    CHROMA_H_LOOP 1
     RET
 
 ALIGN 16
-chroma_inter_body_mmxext:
+RESET_MM_PERMUTATION
+chroma_inter_body_%1:
     LOAD_MASK  r2d, r3d
     movd       m6, [r4] ; tc0
+    punpcklbw  m6, m6
     punpcklbw  m6, m6
     pand       m7, m6
     DEBLOCK_P0_Q0
     ret
+%endmacro ; DEBLOCK_CHROMA
 
+INIT_XMM
+DEBLOCK_CHROMA sse2
+%ifndef ARCH_X86_64
+INIT_MMX
+DEBLOCK_CHROMA mmxext
+%endif
 
 
 ; in: %1=p0 %2=p1 %3=q1
 ; out: p0 = (p0 + q1 + 2*p1 + 2) >> 2
 %macro CHROMA_INTRA_P0 3
-    movq    m4, %1
+    mova    m4, %1
     pxor    m4, %3
     pand    m4, [pb_1] ; m4 = (p0^q1)&1
     pavgb   %1, %3
     psubusb %1, m4
-    pavgb   %1, %2             ; dst = avg(p1, avg(p0,q1) - ((p0^q1)&1))
+    pavgb   %1, %2      ; dst = avg(p1, avg(p0,q1) - ((p0^q1)&1))
 %endmacro
 
 %define t5 r4
 %define t6 r5
 
+%macro DEBLOCK_CHROMA_INTRA 1
 ;-----------------------------------------------------------------------------
 ; void deblock_v_chroma_intra( uint8_t *pix, int stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
-cglobal deblock_v_chroma_intra_mmxext, 4,5
+cglobal deblock_v_chroma_intra_%1, 4,5,8
     CHROMA_V_START
-    movq  m0, [t5]
-    movq  m1, [t5+r1]
-    movq  m2, [r0]
-    movq  m3, [r0+r1]
-    call chroma_intra_body_mmxext
-    movq  [t5+r1], m1
-    movq  [r0], m2
+    mova  m0, [t5]
+    mova  m1, [t5+r1]
+    mova  m2, [r0]
+    mova  m3, [r0+r1]
+    call chroma_intra_body_%1
+    mova  [t5+r1], m1
+    mova  [r0], m2
+    CHROMA_V_LOOP 0
     RET
 
 ;-----------------------------------------------------------------------------
 ; void deblock_h_chroma_intra( uint8_t *pix, int stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
-cglobal deblock_h_chroma_intra_mmxext, 4,6
+cglobal deblock_h_chroma_intra_%1, 4,6,8
     CHROMA_H_START
-    TRANSPOSE4x8_LOAD  PASS8ROWS(t5, r0, r1, t6)
-    call chroma_intra_body_mmxext
-    TRANSPOSE8x4_STORE PASS8ROWS(t5, r0, r1, t6)
+    TRANSPOSE4x8W_LOAD  PASS8ROWS(t5, r0, r1, t6)
+    call chroma_intra_body_%1
+    TRANSPOSE8x2W_STORE PASS8ROWS(t5, r0, r1, t6, 2)
+    CHROMA_H_LOOP 0
     RET
 
 ALIGN 16
-chroma_intra_body_mmxext:
+RESET_MM_PERMUTATION
+chroma_intra_body_%1:
     LOAD_MASK r2d, r3d
-    movq   m5, m1
-    movq   m6, m2
+    mova   m5, m1
+    mova   m6, m2
     CHROMA_INTRA_P0  m1, m0, m3
     CHROMA_INTRA_P0  m2, m3, m0
     psubb  m1, m5
@@ -887,6 +975,16 @@ chroma_intra_body_mmxext:
     paddb  m1, m5
     paddb  m2, m6
     ret
+%endmacro ; DEBLOCK_CHROMA_INTRA
+
+INIT_XMM
+DEBLOCK_CHROMA_INTRA sse2
+%ifndef ARCH_X86_64
+INIT_MMX
+DEBLOCK_CHROMA_INTRA mmxext
+%endif
+
+
 
 ;-----------------------------------------------------------------------------
 ; static void deblock_strength( uint8_t nnz[48], int8_t ref[2][40], int16_t mv[2][40][2],

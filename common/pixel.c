@@ -96,9 +96,9 @@ PIXEL_SSD_C( x264_pixel_ssd_8x4,    8,  4 )
 PIXEL_SSD_C( x264_pixel_ssd_4x8,    4,  8 )
 PIXEL_SSD_C( x264_pixel_ssd_4x4,    4,  4 )
 
-int64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height )
+uint64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height )
 {
-    int64_t i_ssd = 0;
+    uint64_t i_ssd = 0;
     int y;
     int align = !(((intptr_t)pix1 | (intptr_t)pix2 | i_pix1 | i_pix2) & 15);
 
@@ -136,6 +136,31 @@ int64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, 
     return i_ssd;
 }
 
+static uint64_t pixel_ssd_nv12_core( pixel *pixuv1, int stride1, pixel *pixuv2, int stride2, int width, int height )
+{
+    uint32_t ssd_u=0, ssd_v=0;
+    for( int y = 0; y < height; y++, pixuv1+=stride1, pixuv2+=stride2 )
+        for( int x = 0; x < width; x++ )
+        {
+            int du = pixuv1[2*x]   - pixuv2[2*x];
+            int dv = pixuv1[2*x+1] - pixuv2[2*x+1];
+            ssd_u += du*du;
+            ssd_v += dv*dv;
+        }
+    return ssd_u + ((uint64_t)ssd_v<<32);
+}
+
+// SSD in uint32 (i.e. packing two into uint64) can potentially overflow on
+// image widths >= 11008 (or 6604 if interlaced), since this is called on blocks
+// of height up to 12 (resp 20). Though it will probably take significantly more
+// than that at sane distortion levels.
+uint64_t x264_pixel_ssd_nv12( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height )
+{
+    uint64_t ssd = pf->ssd_nv12_core( pix1, i_pix1, pix2, i_pix2, i_width&~7, i_height );
+    if( i_width&7 )
+        ssd += pixel_ssd_nv12_core( pix1+(i_width&~7), i_pix1, pix2+(i_width&~7), i_pix2, i_width&7, i_height );
+    return ssd;
+}
 
 /****************************************************************************
  * pixel_var_wxh
@@ -669,6 +694,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     pixf->var[PIXEL_16x16] = x264_pixel_var_16x16;
     pixf->var[PIXEL_8x8]   = x264_pixel_var_8x8;
 
+    pixf->ssd_nv12_core = pixel_ssd_nv12_core;
     pixf->ssim_4x4x2_core = ssim_4x4x2_core;
     pixf->ssim_end4 = ssim_end4;
     pixf->var2_8x8 = pixel_var2_8x8;
@@ -702,6 +728,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         INIT_ADS( _mmxext );
         pixf->var[PIXEL_16x16] = x264_pixel_var_16x16_mmxext;
         pixf->var[PIXEL_8x8]   = x264_pixel_var_8x8_mmxext;
+        pixf->ssd_nv12_core    = x264_pixel_ssd_nv12_core_mmxext;
 #if ARCH_X86
         pixf->sa8d[PIXEL_16x16] = x264_pixel_sa8d_16x16_mmxext;
         pixf->sa8d[PIXEL_8x8]   = x264_pixel_sa8d_8x8_mmxext;
@@ -747,6 +774,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         INIT5( ssd, _sse2slow );
         INIT2_NAME( sad_aligned, sad, _sse2_aligned );
         pixf->var[PIXEL_16x16] = x264_pixel_var_16x16_sse2;
+        pixf->ssd_nv12_core    = x264_pixel_ssd_nv12_core_sse2;
         pixf->ssim_4x4x2_core  = x264_pixel_ssim_4x4x2_core_sse2;
         pixf->ssim_end4        = x264_pixel_ssim_end4_sse2;
         pixf->sa8d[PIXEL_16x16] = x264_pixel_sa8d_16x16_sse2;

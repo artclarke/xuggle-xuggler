@@ -129,6 +129,7 @@ static int convert_csp_to_pix_fmt( int csp )
         case X264_CSP_I420: return PIX_FMT_YUV420P;
         case X264_CSP_I422: return PIX_FMT_YUV422P;
         case X264_CSP_I444: return PIX_FMT_YUV444P;
+        case X264_CSP_NV12: return PIX_FMT_NV12;
         case X264_CSP_YV12: return PIX_FMT_YUV420P; /* specially handled via swapping chroma */
         case X264_CSP_BGR:  return PIX_FMT_BGR24;
         case X264_CSP_BGRA: return PIX_FMT_BGRA;
@@ -169,6 +170,9 @@ static int pick_closest_supported_csp( int csp )
         case PIX_FMT_ABGR:
         case PIX_FMT_BGRA:
             return X264_CSP_BGRA;
+        case PIX_FMT_NV12:
+        case PIX_FMT_NV21:
+             return X264_CSP_NV12;
         default:
             return X264_CSP_I420;
     }

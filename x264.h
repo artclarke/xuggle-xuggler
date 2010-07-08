@@ -35,7 +35,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 103
+#define X264_BUILD 104
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -169,13 +169,13 @@ static const char * const x264_colmatrix_names[] = { "GBR", "bt709", "undef", ""
 static const char * const x264_nal_hrd_names[] = { "none", "vbr", "cbr", 0 };
 static const char * const x264_open_gop_names[] = { "none", "normal", "bluray", 0 };
 
-/* Colorspace type
- * legacy only; nothing other than I420 is really supported. */
+/* Colorspace type */
 #define X264_CSP_MASK           0x00ff  /* */
 #define X264_CSP_NONE           0x0000  /* Invalid mode     */
 #define X264_CSP_I420           0x0001  /* yuv 4:2:0 planar */
 #define X264_CSP_YV12           0x0002  /* yvu 4:2:0 planar */
-#define X264_CSP_MAX            0x0003  /* end of list */
+#define X264_CSP_NV12           0x0003  /* yuv 4:2:0, with one y plane and one packed u+v */
+#define X264_CSP_MAX            0x0004  /* end of list */
 #define X264_CSP_VFLIP          0x1000  /* */
 
 /* Slice type */
@@ -653,7 +653,7 @@ void x264_picture_init( x264_picture_t *pic );
 
 /* x264_picture_alloc:
  *  alloc data for a picture. You must call x264_picture_clean on it.
- *  returns 0 on success, or -1 on malloc failure. */
+ *  returns 0 on success, or -1 on malloc failure or invalid colorspace. */
 int x264_picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_height );
 
 /* x264_picture_clean:

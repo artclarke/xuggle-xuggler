@@ -68,13 +68,17 @@ static void x264_frame_dump( x264_t *h )
     FILE *f = fopen( h->param.psz_dump_yuv, "r+b" );
     if( !f )
         return;
-    int bytes_per_pixel = (BIT_DEPTH+7)/8;
     /* Write the frame in display order */
-    fseek( f, (uint64_t)h->fdec->i_frame * h->param.i_height * h->param.i_width * 3/2 * bytes_per_pixel, SEEK_SET );
-    for( int i = 0; i < h->fdec->i_plane; i++ )
-        for( int y = 0; y < h->param.i_height >> !!i; y++ )
-            for( int j = 0; j < h->param.i_width >> !!i; j++ )
-                fwrite( &h->fdec->plane[i][y*h->fdec->i_stride[i]]+j, bytes_per_pixel, 1, f );
+    fseek( f, (uint64_t)h->fdec->i_frame * h->param.i_height * h->param.i_width * 3/2 * sizeof(pixel), SEEK_SET );
+    for( int y = 0; y < h->param.i_height; y++ )
+        fwrite( &h->fdec->plane[0][y*h->fdec->i_stride[0]], sizeof(pixel), h->param.i_width, f );
+    int cw = h->param.i_width>>1;
+    int ch = h->param.i_height>>1;
+    pixel *planeu = x264_malloc( cw*ch*2*sizeof(pixel) );
+    pixel *planev = planeu + cw*ch;
+    h->mc.plane_copy_deinterleave( planeu, cw, planev, cw, h->fdec->plane[1], h->fdec->i_stride[1], cw, ch );
+    fwrite( planeu, 1, cw*ch*2*sizeof(pixel), f );
+    x264_free( planeu );
     fclose( f );
 }
 
@@ -405,7 +409,7 @@ static int x264_validate_parameters( x264_t *h )
     int i_csp = h->param.i_csp & X264_CSP_MASK;
     if( i_csp <= X264_CSP_NONE || i_csp >= X264_CSP_MAX )
     {
-        x264_log( h, X264_LOG_ERROR, "invalid CSP\n" );
+        x264_log( h, X264_LOG_ERROR, "invalid CSP (only I420/YV12/NV12 supported)\n" );
         return -1;
     }
 
@@ -1630,15 +1634,6 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
     if( min_y < h->i_threadslice_start )
         return;
 
-    if( !b_end && b_inloop )
-        for( int j = 0; j <= h->sh.b_mbaff; j++ )
-            for( int i = 0; i < 3; i++ )
-            {
-                memcpy( h->intra_border_backup[j][i],
-                        h->fdec->plane[i] + ((mb_y*16 >> !!i) + j - 1 - h->sh.b_mbaff) * h->fdec->i_stride[i],
-                        (h->mb.i_mb_width*16 >> !!i) * sizeof(pixel) );
-            }
-
     if( b_deblock )
         for( int y = min_y; y < max_y; y += (1 << h->sh.b_mbaff) )
             x264_frame_deblock_row( h, y );
@@ -1663,12 +1658,19 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
     if( b_measure_quality )
     {
         if( h->param.analyse.b_psnr )
-            for( int i = 0; i < 3; i++ )
-                h->stat.frame.i_ssd[i] +=
-                    x264_pixel_ssd_wxh( &h->pixf,
-                        h->fdec->plane[i] + (min_y>>!!i) * h->fdec->i_stride[i], h->fdec->i_stride[i],
-                        h->fenc->plane[i] + (min_y>>!!i) * h->fenc->i_stride[i], h->fenc->i_stride[i],
-                        h->param.i_width >> !!i, (max_y-min_y) >> !!i );
+        {
+            uint64_t ssd_y = x264_pixel_ssd_wxh( &h->pixf,
+                h->fdec->plane[0] + min_y * h->fdec->i_stride[0], h->fdec->i_stride[0],
+                h->fenc->plane[0] + min_y * h->fenc->i_stride[0], h->fenc->i_stride[0],
+                h->param.i_width, max_y-min_y );
+            uint64_t ssd_uv = x264_pixel_ssd_nv12( &h->pixf,
+                h->fdec->plane[1] + (min_y>>1) * h->fdec->i_stride[1], h->fdec->i_stride[1],
+                h->fenc->plane[1] + (min_y>>1) * h->fenc->i_stride[1], h->fenc->i_stride[1],
+                h->param.i_width>>1, (max_y-min_y)>>1 );
+            h->stat.frame.i_ssd[0] += ssd_y;
+            h->stat.frame.i_ssd[1] += (uint32_t)ssd_uv;
+            h->stat.frame.i_ssd[2] += ssd_uv>>32;
+        }
 
         if( h->param.analyse.b_ssim )
         {
@@ -2715,8 +2717,9 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     if( pic_out->i_pts < pic_out->i_dts )
         x264_log( h, X264_LOG_WARNING, "invalid DTS: PTS is less than DTS\n" );
 
+    pic_out->img.i_csp = X264_CSP_NV12;
     pic_out->img.i_plane = h->fdec->i_plane;
-    for( int i = 0; i < 3; i++ )
+    for( int i = 0; i < 2; i++ )
     {
         pic_out->img.i_stride[i] = h->fdec->i_stride[i];
         // FIXME This breaks the API when pixel != uint8_t.

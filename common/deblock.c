@@ -134,7 +134,8 @@ static inline void deblock_chroma_c( pixel *pix, int xstride, int ystride, int a
             pix += 2*ystride;
             continue;
         }
-        for( int d = 0; d < 2; d++ )
+        for( int d = 0; d < 2; d++, pix += ystride-2 )
+        for( int e = 0; e < 2; e++, pix++ )
         {
             int p1 = pix[-2*xstride];
             int p0 = pix[-1*xstride];
@@ -147,17 +148,16 @@ static inline void deblock_chroma_c( pixel *pix, int xstride, int ystride, int a
                 pix[-1*xstride] = x264_clip_pixel( p0 + delta );    /* p0' */
                 pix[ 0*xstride] = x264_clip_pixel( q0 - delta );    /* q0' */
             }
-            pix += ystride;
         }
     }
 }
 static void deblock_v_chroma_c( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 )
 {
-    deblock_chroma_c( pix, stride, 1, alpha, beta, tc0 );
+    deblock_chroma_c( pix, stride, 2, alpha, beta, tc0 );
 }
 static void deblock_h_chroma_c( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 )
 {
-    deblock_chroma_c( pix, 1, stride, alpha, beta, tc0 );
+    deblock_chroma_c( pix, 2, stride, alpha, beta, tc0 );
 }
 
 static inline void deblock_luma_intra_c( pixel *pix, int xstride, int ystride, int alpha, int beta )
@@ -212,9 +212,10 @@ static void deblock_h_luma_intra_c( pixel *pix, int stride, int alpha, int beta 
     deblock_luma_intra_c( pix, 1, stride, alpha, beta );
 }
 
-static inline void deblock_chroma_intra_c( pixel *pix, int xstride, int ystride, int alpha, int beta )
+static inline void deblock_chroma_intra_c( pixel *pix, int xstride, int ystride, int alpha, int beta, int dir )
 {
-    for( int d = 0; d < 8; d++ )
+    for( int d = 0; d < (dir?16:8); d++, pix += ystride-2 )
+    for( int e = 0; e < (dir?1:2); e++, pix++ )
     {
         int p1 = pix[-2*xstride];
         int p0 = pix[-1*xstride];
@@ -226,16 +227,15 @@ static inline void deblock_chroma_intra_c( pixel *pix, int xstride, int ystride,
             pix[-1*xstride] = (2*p1 + p0 + q1 + 2) >> 2;   /* p0' */
             pix[ 0*xstride] = (2*q1 + q0 + p1 + 2) >> 2;   /* q0' */
         }
-        pix += ystride;
     }
 }
 static void deblock_v_chroma_intra_c( pixel *pix, int stride, int alpha, int beta )
 {
-    deblock_chroma_intra_c( pix, stride, 1, alpha, beta );
+    deblock_chroma_intra_c( pix, stride, 2, alpha, beta, 1 );
 }
 static void deblock_h_chroma_intra_c( pixel *pix, int stride, int alpha, int beta )
 {
-    deblock_chroma_intra_c( pix, 1, stride, alpha, beta );
+    deblock_chroma_intra_c( pix, 2, stride, alpha, beta, 0 );
 }
 
 static void deblock_strength_c( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
@@ -267,7 +267,7 @@ static void deblock_strength_c( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264
     }
 }
 
-static inline void deblock_edge( x264_t *h, pixel *pix1, pixel *pix2, int i_stride, uint8_t bS[4], int i_qp, int b_chroma, x264_deblock_inter_t pf_inter )
+static inline void deblock_edge( x264_t *h, pixel *pix, int i_stride, uint8_t bS[4], int i_qp, int b_chroma, x264_deblock_inter_t pf_inter )
 {
     int index_a = i_qp-QP_BD_OFFSET + h->sh.i_alpha_c0_offset;
     int index_b = i_qp-QP_BD_OFFSET + h->sh.i_beta_offset;
@@ -283,12 +283,10 @@ static inline void deblock_edge( x264_t *h, pixel *pix1, pixel *pix2, int i_stri
     tc[2] = (tc0_table(index_a)[bS[2]] << (BIT_DEPTH-8)) + b_chroma;
     tc[3] = (tc0_table(index_a)[bS[3]] << (BIT_DEPTH-8)) + b_chroma;
 
-    pf_inter( pix1, i_stride, alpha, beta, tc );
-    if( b_chroma )
-        pf_inter( pix2, i_stride, alpha, beta, tc );
+    pf_inter( pix, i_stride, alpha, beta, tc );
 }
 
-static inline void deblock_edge_intra( x264_t *h, pixel *pix1, pixel *pix2, int i_stride, uint8_t bS[4], int i_qp, int b_chroma, x264_deblock_intra_t pf_intra )
+static inline void deblock_edge_intra( x264_t *h, pixel *pix, int i_stride, uint8_t bS[4], int i_qp, int b_chroma, x264_deblock_intra_t pf_intra )
 {
     int index_a = i_qp-QP_BD_OFFSET + h->sh.i_alpha_c0_offset;
     int index_b = i_qp-QP_BD_OFFSET + h->sh.i_beta_offset;
@@ -298,9 +296,7 @@ static inline void deblock_edge_intra( x264_t *h, pixel *pix1, pixel *pix2, int 
     if( !alpha || !beta )
         return;
 
-    pf_intra( pix1, i_stride, alpha, beta );
-    if( b_chroma )
-        pf_intra( pix2, i_stride, alpha, beta );
+    pf_intra( pix, i_stride, alpha, beta );
 }
 
 void x264_frame_deblock_row( x264_t *h, int mb_y )
@@ -323,13 +319,11 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
         uint8_t (*bs)[4][4] = h->deblock_strength[mb_y&b_interlaced][mb_x];
 
         pixel *pixy = h->fdec->plane[0] + 16*mb_y*stridey  + 16*mb_x;
-        pixel *pixu = h->fdec->plane[1] +  8*mb_y*strideuv +  8*mb_x;
-        pixel *pixv = h->fdec->plane[2] +  8*mb_y*strideuv +  8*mb_x;
+        pixel *pixuv = h->fdec->plane[1] + 8*mb_y*strideuv + 16*mb_x;
         if( mb_y & b_interlaced )
         {
             pixy -= 15*stridey;
-            pixu -=  7*strideuv;
-            pixv -=  7*strideuv;
+            pixuv -= 7*strideuv;
         }
 
         int qp = h->mb.qp[mb_xy];
@@ -339,11 +333,11 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
         #define FILTER( intra, dir, edge, qp, chroma_qp )\
         do\
         {\
-            deblock_edge##intra( h, pixy + 4*edge*(dir?stride2y:1), NULL,\
+            deblock_edge##intra( h, pixy + 4*edge*(dir?stride2y:1),\
                                  stride2y, bs[dir][edge], qp, 0,\
                                  h->loopf.deblock_luma##intra[dir] );\
             if( !(edge & 1) )\
-                deblock_edge##intra( h, pixu + 2*edge*(dir?stride2uv:1), pixv + 2*edge*(dir?stride2uv:1),\
+                deblock_edge##intra( h, pixuv + 2*edge*(dir?stride2uv:2),\
                                      stride2uv, bs[dir][edge], chroma_qp, 1,\
                                      h->loopf.deblock_chroma##intra[dir] );\
         } while(0)
@@ -393,15 +387,14 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
 }
 
 #if HAVE_MMX
-void x264_deblock_v_chroma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
-void x264_deblock_h_chroma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
-void x264_deblock_v_chroma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta );
-void x264_deblock_h_chroma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta );
-
 void x264_deblock_v_luma_sse2( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_h_luma_sse2( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
+void x264_deblock_v_chroma_sse2( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
+void x264_deblock_h_chroma_sse2( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_v_luma_intra_sse2( uint8_t *pix, int stride, int alpha, int beta );
 void x264_deblock_h_luma_intra_sse2( uint8_t *pix, int stride, int alpha, int beta );
+void x264_deblock_v_chroma_intra_sse2( uint8_t *pix, int stride, int alpha, int beta );
+void x264_deblock_h_chroma_intra_sse2( uint8_t *pix, int stride, int alpha, int beta );
 void x264_deblock_strength_mmxext( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
                                    int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4],
                                    int mvy_limit, int bframe );
@@ -414,9 +407,14 @@ void x264_deblock_strength_ssse3 ( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X
 #if ARCH_X86
 void x264_deblock_h_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_v8_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
+void x264_deblock_v_chroma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
+void x264_deblock_h_chroma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_h_luma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta );
 void x264_deblock_v8_luma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta );
+void x264_deblock_v_chroma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta );
+void x264_deblock_h_chroma_intra_mmxext( uint8_t *pix, int stride, int alpha, int beta );
 
+// FIXME this wrapper has a significant cpu cost
 static void x264_deblock_v_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
 {
     x264_deblock_v8_luma_mmxext( pix,   stride, alpha, beta, tc0   );
@@ -458,15 +456,15 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
     if( cpu&X264_CPU_MMXEXT )
     {
 #if !X264_HIGH_BIT_DEPTH
-        pf->deblock_chroma[1] = x264_deblock_v_chroma_mmxext;
-        pf->deblock_chroma[0] = x264_deblock_h_chroma_mmxext;
-        pf->deblock_chroma_intra[1] = x264_deblock_v_chroma_intra_mmxext;
-        pf->deblock_chroma_intra[0] = x264_deblock_h_chroma_intra_mmxext;
 #if ARCH_X86
         pf->deblock_luma[1] = x264_deblock_v_luma_mmxext;
         pf->deblock_luma[0] = x264_deblock_h_luma_mmxext;
+        pf->deblock_chroma[1] = x264_deblock_v_chroma_mmxext;
+        pf->deblock_chroma[0] = x264_deblock_h_chroma_mmxext;
         pf->deblock_luma_intra[1] = x264_deblock_v_luma_intra_mmxext;
         pf->deblock_luma_intra[0] = x264_deblock_h_luma_intra_mmxext;
+        pf->deblock_chroma_intra[1] = x264_deblock_v_chroma_intra_mmxext;
+        pf->deblock_chroma_intra[0] = x264_deblock_h_chroma_intra_mmxext;
 #endif
 #endif // !X264_HIGH_BIT_DEPTH
         pf->deblock_strength = x264_deblock_strength_mmxext;
@@ -478,8 +476,12 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
             {
                 pf->deblock_luma[1] = x264_deblock_v_luma_sse2;
                 pf->deblock_luma[0] = x264_deblock_h_luma_sse2;
+                pf->deblock_chroma[1] = x264_deblock_v_chroma_sse2;
+                pf->deblock_chroma[0] = x264_deblock_h_chroma_sse2;
                 pf->deblock_luma_intra[1] = x264_deblock_v_luma_intra_sse2;
                 pf->deblock_luma_intra[0] = x264_deblock_h_luma_intra_sse2;
+                pf->deblock_chroma_intra[1] = x264_deblock_v_chroma_intra_sse2;
+                pf->deblock_chroma_intra[0] = x264_deblock_h_chroma_intra_sse2;
             }
 #endif // !X264_HIGH_BIT_DEPTH
         }
@@ -502,8 +504,8 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
    {
         pf->deblock_luma[1] = x264_deblock_v_luma_neon;
         pf->deblock_luma[0] = x264_deblock_h_luma_neon;
-        pf->deblock_chroma[1] = x264_deblock_v_chroma_neon;
-        pf->deblock_chroma[0] = x264_deblock_h_chroma_neon;
+//      pf->deblock_chroma[1] = x264_deblock_v_chroma_neon;
+//      pf->deblock_chroma[0] = x264_deblock_h_chroma_neon;
    }
 #endif
 #endif // !X264_HIGH_BIT_DEPTH

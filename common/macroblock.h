@@ -292,6 +292,8 @@ void x264_macroblock_bipred_init( x264_t *h );
 
 void x264_prefetch_fenc( x264_t *h, x264_frame_t *fenc, int i_mb_x, int i_mb_y );
 
+void x264_copy_column8( pixel *dst, pixel *src );
+
 /* x264_mb_predict_mv_16x16:
  *      set mvp with predicted mv for D_16x16 block
  *      h->mb. need only valid values from other blocks */

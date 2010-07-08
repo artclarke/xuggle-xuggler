@@ -234,7 +234,7 @@ void x264_mc_init_arm( int cpu, x264_mc_functions_t *pf )
     pf->offsetsub = x264_mc_offsetsub_wtab_neon;
     pf->weight_cache = x264_weight_cache_neon;
 
-    pf->mc_chroma = x264_mc_chroma_neon;
+//  pf->mc_chroma = x264_mc_chroma_neon;
     pf->mc_luma = mc_luma_neon;
     pf->get_ref = get_ref_neon;
     pf->hpel_filter = hpel_filter_neon;
