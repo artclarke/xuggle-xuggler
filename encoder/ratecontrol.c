@@ -2292,7 +2292,7 @@ void x264_threads_merge_ratecontrol( x264_t *h )
                 size += h->fdec->i_row_satd[row];
             int bits = t->stat.frame.i_mv_bits + t->stat.frame.i_tex_bits + t->stat.frame.i_misc_bits;
             int mb_count = (t->i_threadslice_end - t->i_threadslice_start) * h->mb.i_mb_width;
-            update_predictor( &rc->pred[h->sh.i_type+5*i], qp2qscale( rct->qpa_rc/mb_count ), size, bits );
+            update_predictor( &rc->pred[h->sh.i_type+(i+1)*5], qp2qscale( rct->qpa_rc/mb_count ), size, bits );
         }
         if( !i )
             continue;
