@@ -1008,13 +1008,12 @@ static int scenecut_internal( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **f
     int i_gop_size = frame->i_frame - h->lookahead->i_last_keyframe;
     float f_thresh_max = h->param.i_scenecut_threshold / 100.0;
     /* magic numbers pulled out of thin air */
-    float f_thresh_min = f_thresh_max * h->param.i_keyint_min
-                         / ( h->param.i_keyint_max * 4. );
+    float f_thresh_min = f_thresh_max * 0.25;
     int res;
 
     if( h->param.i_keyint_min == h->param.i_keyint_max )
-        f_thresh_min= f_thresh_max;
-    if( i_gop_size < h->param.i_keyint_min / 4 || h->param.b_intra_refresh )
+        f_thresh_min = f_thresh_max;
+    if( i_gop_size <= h->param.i_keyint_min / 4 || h->param.b_intra_refresh )
         f_bias = f_thresh_min / 4;
     else if( i_gop_size <= h->param.i_keyint_min )
         f_bias = f_thresh_min * i_gop_size / h->param.i_keyint_min;
@@ -1022,8 +1021,8 @@ static int scenecut_internal( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **f
     {
         f_bias = f_thresh_min
                  + ( f_thresh_max - f_thresh_min )
-                    * ( i_gop_size - h->param.i_keyint_min )
-                   / ( h->param.i_keyint_max - h->param.i_keyint_min ) ;
+                 * ( i_gop_size - h->param.i_keyint_min )
+                 / ( h->param.i_keyint_max - h->param.i_keyint_min );
     }
 
     res = pcost >= (1.0 - f_bias) * icost;

@@ -1220,8 +1220,12 @@ char *x264_param2string( x264_param_t *p, int b_res )
     }
     s += sprintf( s, " weightp=%d", p->analyse.i_weighted_pred > 0 ? p->analyse.i_weighted_pred : 0 );
 
-    s += sprintf( s, " keyint=%d keyint_min=%d scenecut=%d intra_refresh=%d",
-                  p->i_keyint_max, p->i_keyint_min, p->i_scenecut_threshold, p->b_intra_refresh );
+    if( p->i_keyint_max == X264_KEYINT_MAX_INFINITE )
+        s += sprintf( s, " keyint=infinite" );
+    else
+        s += sprintf( s, " keyint=%d", p->i_keyint_max );
+    s += sprintf( s, " keyint_min=%d scenecut=%d intra_refresh=%d",
+                  p->i_keyint_min, p->i_scenecut_threshold, p->b_intra_refresh );
 
     if( p->rc.b_mb_tree || p->rc.i_vbv_buffer_size )
         s += sprintf( s, " rc_lookahead=%d", p->rc.i_lookahead );
