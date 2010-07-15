@@ -311,7 +311,7 @@ void x264_macroblock_write_cavlc( x264_t *h )
 
         for( int i = 0; i < 256; i++ )
             bs_write( s, BIT_DEPTH, h->mb.pic.p_fenc[0][i] );
-        for( int ch = 0; ch < 2; ch++ )
+        for( int ch = 1; ch < 3; ch++ )
             for( int i = 0; i < 8; i++ )
                 for( int j = 0; j < 8; j++ )
                     bs_write( s, BIT_DEPTH, h->mb.pic.p_fenc[ch][i*FENC_STRIDE+j] );
