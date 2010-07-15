@@ -1160,28 +1160,27 @@ void x264_macroblock_cache_save( x264_t *h )
         h->mb.i_cbp_luma = 0xf;
         h->mb.cbp[i_mb_xy] = 0x72f;   /* all set */
         h->mb.b_transform_8x8 = 0;
-        memset( nnz, 16, sizeof( *h->mb.non_zero_count ) );
         for( int i = 0; i < 24; i++ )
-            h->mb.cache.non_zero_count[x264_scan8[i]] = 16;
+            h->mb.cache.non_zero_count[x264_scan8[i]] = h->param.b_cabac ? 1 : 16;
     }
     else
     {
-        /* save non zero count */
-        CP32( &nnz[0*4], &h->mb.cache.non_zero_count[x264_scan8[0]+0*8] );
-        CP32( &nnz[1*4], &h->mb.cache.non_zero_count[x264_scan8[0]+1*8] );
-        CP32( &nnz[2*4], &h->mb.cache.non_zero_count[x264_scan8[0]+2*8] );
-        CP32( &nnz[3*4], &h->mb.cache.non_zero_count[x264_scan8[0]+3*8] );
-        M16( &nnz[16+0*2] ) = M32( &h->mb.cache.non_zero_count[x264_scan8[16+0*2]-1] ) >> 8;
-        M16( &nnz[16+1*2] ) = M32( &h->mb.cache.non_zero_count[x264_scan8[16+1*2]-1] ) >> 8;
-        M16( &nnz[16+2*2] ) = M32( &h->mb.cache.non_zero_count[x264_scan8[16+2*2]-1] ) >> 8;
-        M16( &nnz[16+3*2] ) = M32( &h->mb.cache.non_zero_count[x264_scan8[16+3*2]-1] ) >> 8;
-
         if( h->mb.i_type != I_16x16 && h->mb.i_cbp_luma == 0 && h->mb.i_cbp_chroma == 0 )
             h->mb.i_qp = h->mb.i_last_qp;
         h->mb.qp[i_mb_xy] = h->mb.i_qp;
         h->mb.i_last_dqp = h->mb.i_qp - h->mb.i_last_qp;
         h->mb.i_last_qp = h->mb.i_qp;
     }
+
+    /* save non zero count */
+    CP32( &nnz[0*4], &h->mb.cache.non_zero_count[x264_scan8[0]+0*8] );
+    CP32( &nnz[1*4], &h->mb.cache.non_zero_count[x264_scan8[0]+1*8] );
+    CP32( &nnz[2*4], &h->mb.cache.non_zero_count[x264_scan8[0]+2*8] );
+    CP32( &nnz[3*4], &h->mb.cache.non_zero_count[x264_scan8[0]+3*8] );
+    M16( &nnz[16+0*2] ) = M32( &h->mb.cache.non_zero_count[x264_scan8[16+0*2]-1] ) >> 8;
+    M16( &nnz[16+1*2] ) = M32( &h->mb.cache.non_zero_count[x264_scan8[16+1*2]-1] ) >> 8;
+    M16( &nnz[16+2*2] ) = M32( &h->mb.cache.non_zero_count[x264_scan8[16+2*2]-1] ) >> 8;
+    M16( &nnz[16+3*2] ) = M32( &h->mb.cache.non_zero_count[x264_scan8[16+3*2]-1] ) >> 8;
 
     if( h->mb.i_cbp_luma == 0 && h->mb.i_type != I_8x8 )
         h->mb.b_transform_8x8 = 0;
