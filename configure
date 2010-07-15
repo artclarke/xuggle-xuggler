@@ -560,8 +560,8 @@ fi
 if [ "$lavf" = "auto" ] ; then
     lavf="no"
     if ${cross_prefix}pkg-config --exists libavformat libavcodec libswscale 2>$DEVNULL; then
-        LAVF_LIBS="$LAVF_LIBS $(${cross_prefix}pkg-config --libs libavformat libavcodec libswscale)"
-        LAVF_CFLAGS="$LAVF_CFLAGS $(${cross_prefix}pkg-config --cflags libavformat libavcodec libswscale)"
+        LAVF_LIBS="$LAVF_LIBS $(${cross_prefix}pkg-config --libs libavformat libavcodec libavutil libswscale)"
+        LAVF_CFLAGS="$LAVF_CFLAGS $(${cross_prefix}pkg-config --cflags libavformat libavcodec libavutil libswscale)"
     fi
     if [ -z "$LAVF_LIBS" -a -z "$LAVF_CFLAGS" ]; then
         LAVF_LIBS="-lavformat"
