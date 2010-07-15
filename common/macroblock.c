@@ -929,6 +929,7 @@ void x264_macroblock_cache_load_deblock( x264_t *h )
         int mb_x = h->mb.i_mb_x;
         int mb_y = h->mb.i_mb_y;
         x264_macroblock_cache_load_neighbours_deblock( h, mb_x, mb_y );
+        int new_neighbour = h->mb.i_neighbour;
         h->mb.i_neighbour &= ~old_neighbour;
         if( h->mb.i_neighbour )
         {
@@ -984,6 +985,7 @@ void x264_macroblock_cache_load_deblock( x264_t *h )
                 }
             }
         }
+        h->mb.i_neighbour = new_neighbour;
     }
 
     if( h->param.analyse.i_weighted_pred && h->sh.i_type == SLICE_TYPE_P )
