@@ -250,8 +250,7 @@ int x264_macroblock_cache_allocate( x264_t *h )
     if( h->param.analyse.i_weighted_pred )
     {
         int i_padv = PADV << h->param.b_interlaced;
-        int align = h->param.cpu&X264_CPU_CACHELINE_64 ? 64 : h->param.cpu&X264_CPU_CACHELINE_32 ? 32 : 16;
-        int i_stride, luma_plane_size = 0;
+        int luma_plane_size = 0;
         int numweightbuf;
 
         if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_FAKE )
@@ -260,8 +259,7 @@ int x264_macroblock_cache_allocate( x264_t *h )
             if( !h->param.i_sync_lookahead || h == h->thread[h->param.i_threads] )
             {
                 // Fake analysis only works on lowres
-                i_stride = ALIGN( h->mb.i_mb_width*8 + 2*PADH, align );
-                luma_plane_size = i_stride * (h->mb.i_mb_height*8+2*i_padv);
+                luma_plane_size = h->fdec->i_stride_lowres * (h->mb.i_mb_height*8+2*i_padv);
                 // Only need 1 buffer for analysis
                 numweightbuf = 1;
             }
@@ -270,8 +268,7 @@ int x264_macroblock_cache_allocate( x264_t *h )
         }
         else
         {
-            i_stride = ALIGN( h->mb.i_mb_width*16 + 2*PADH, align );
-            luma_plane_size = i_stride * (h->mb.i_mb_height*16+2*i_padv);
+            luma_plane_size = h->fdec->i_stride[0] * (h->mb.i_mb_height*16+2*i_padv);
 
             if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
                 //SMART can weight one ref and one offset -1

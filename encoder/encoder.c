@@ -1096,9 +1096,6 @@ x264_t *x264_encoder_open( x264_param_t *param )
     for( int i = 1; i < h->param.i_threads + !!h->param.i_sync_lookahead; i++ )
         CHECKED_MALLOC( h->thread[i], sizeof(x264_t) );
 
-    if( x264_lookahead_init( h, i_slicetype_length ) )
-        goto fail;
-
     for( int i = 0; i < h->param.i_threads; i++ )
     {
         int init_nal_count = h->param.i_slice_count + 3;
@@ -1123,6 +1120,9 @@ x264_t *x264_encoder_open( x264_param_t *param )
         if( allocate_threadlocal_data && x264_macroblock_cache_allocate( h->thread[i] ) < 0 )
             goto fail;
     }
+
+    if( x264_lookahead_init( h, i_slicetype_length ) )
+        goto fail;
 
     for( int i = 0; i < h->param.i_threads; i++ )
         if( x264_macroblock_thread_allocate( h->thread[i], 0 ) < 0 )

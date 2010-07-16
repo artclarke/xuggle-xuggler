@@ -24,6 +24,21 @@
 
 #include "common.h"
 
+static int align_stride( int x, int align, int disalign )
+{
+    x = ALIGN( x, align );
+    if( !(x&(disalign-1)) )
+        x += align;
+    return x;
+}
+
+static int align_plane_size( int x, int disalign )
+{
+    if( !(x&(disalign-1)) )
+        x += 128;
+    return x;
+}
+
 x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
 {
     x264_frame_t *frame;
@@ -31,24 +46,28 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
     int i_mb_count = h->mb.i_mb_count;
     int i_stride, i_width, i_lines;
     int i_padv = PADV << h->param.b_interlaced;
-    int luma_plane_size;
-    int chroma_plane_size;
+    int luma_plane_size, chroma_plane_size;
     int align = h->param.cpu&X264_CPU_CACHELINE_64 ? 64 : h->param.cpu&X264_CPU_CACHELINE_32 ? 32 : 16;
+    int disalign = h->param.cpu&X264_CPU_ALTIVEC ? 1<<9 : 1<<10;
 
     CHECKED_MALLOCZERO( frame, sizeof(x264_frame_t) );
 
     /* allocate frame data (+64 for extra data for me) */
     i_width  = h->mb.i_mb_width*16;
-    i_stride = ALIGN( i_width + 2*PADH, align );
     i_lines  = h->mb.i_mb_height*16;
+    i_stride = align_stride( i_width + 2*PADH, align, disalign );
 
     frame->i_plane = 2;
     for( int i = 0; i < 2; i++ )
     {
-        frame->i_stride[i] = ALIGN( i_stride, align );
         frame->i_width[i] = i_width >> i;
         frame->i_lines[i] = i_lines >> i;
+        frame->i_stride[i] = i_stride;
     }
+
+    frame->i_width_lowres = frame->i_width[0]/2;
+    frame->i_lines_lowres = frame->i_lines[0]/2;
+    frame->i_stride_lowres = align_stride( frame->i_width_lowres + 2*PADH, align, disalign<<1 );
 
     for( int i = 0; i < h->param.i_bframe + 2; i++ )
         for( int j = 0; j < h->param.i_bframe + 2; j++ )
@@ -73,7 +92,7 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
 
     frame->orig = frame;
 
-    luma_plane_size = (frame->i_stride[0] * (frame->i_lines[0] + 2*i_padv));
+    luma_plane_size = align_plane_size( frame->i_stride[0] * (frame->i_lines[0] + 2*i_padv), disalign );
     chroma_plane_size = (frame->i_stride[1] * (frame->i_lines[1] + i_padv));
 
     CHECKED_MALLOC( frame->buffer[1], chroma_plane_size * sizeof(pixel) );
@@ -128,11 +147,7 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
     {
         if( h->frames.b_have_lowres )
         {
-            frame->i_width_lowres = frame->i_width[0]/2;
-            frame->i_stride_lowres = ALIGN( frame->i_width_lowres + 2*PADH, align );
-            frame->i_lines_lowres = frame->i_lines[0]/2;
-
-            luma_plane_size = frame->i_stride_lowres * (frame->i_lines[0]/2 + 2*PADV);
+            luma_plane_size = align_plane_size( frame->i_stride_lowres * (frame->i_lines[0]/2 + 2*PADV), disalign );
 
             CHECKED_MALLOC( frame->buffer_lowres[0], 4 * luma_plane_size * sizeof(pixel) );
             for( int i = 0; i < 4; i++ )
