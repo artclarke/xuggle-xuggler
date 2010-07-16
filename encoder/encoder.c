@@ -2332,7 +2332,7 @@ int     x264_encoder_encode( x264_t *h,
                 return -1;
         }
         else
-            x264_adaptive_quant_frame( h, fenc, pic_in->prop.quant_offsets );
+            x264_stack_align( x264_adaptive_quant_frame, h, fenc, pic_in->prop.quant_offsets );
 
         if( pic_in->prop.quant_offsets_free )
             pic_in->prop.quant_offsets_free( pic_in->prop.quant_offsets );

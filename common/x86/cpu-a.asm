@@ -96,13 +96,15 @@ cglobal cpu_cpuid, 0,6
 cglobal stack_align
     push ebp
     mov  ebp, esp
-    sub  esp, 8
+    sub  esp, 12
     and  esp, ~15
     mov  ecx, [ebp+8]
     mov  edx, [ebp+12]
     mov  [esp], edx
     mov  edx, [ebp+16]
     mov  [esp+4], edx
+    mov  edx, [ebp+20]
+    mov  [esp+8], edx
     call ecx
     leave
     ret
