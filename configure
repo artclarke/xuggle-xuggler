@@ -648,12 +648,8 @@ if [ "$gpac" = "yes" ] ; then
 fi
 
 if [ "$avs" = "auto" ] ; then
-    avs=no
-    if [ $SYS = MINGW ] && cc_check avisynth_c.h ; then
-        avs="yes"
-        define HAVE_AVS
-        define HAVE_AVISYNTH_C_H
-    elif [ $SYS = MINGW ] && cc_check extras/avisynth_c.h ; then
+    avs="no"
+    if [ $SYS = MINGW ] && cc_check extras/avisynth_c.h ; then
         avs="yes"
         define HAVE_AVS
     fi
