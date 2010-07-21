@@ -386,7 +386,7 @@ int x264_macroblock_tree_read( x264_t *h, x264_frame_t *frame, float *quant_offs
         rc->qpbuf_pos--;
     }
     else
-        x264_adaptive_quant_frame( h, frame, quant_offsets );
+        x264_stack_align( x264_adaptive_quant_frame, h, frame, quant_offsets );
     return 0;
 fail:
     x264_log(h, X264_LOG_ERROR, "Incomplete MB-tree stats file.\n");
