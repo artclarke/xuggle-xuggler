@@ -288,11 +288,9 @@ enum slice_type_e
     SLICE_TYPE_P  = 0,
     SLICE_TYPE_B  = 1,
     SLICE_TYPE_I  = 2,
-    SLICE_TYPE_SP = 3,
-    SLICE_TYPE_SI = 4
 };
 
-static const char slice_type_to_char[] = { 'P', 'B', 'I', 'S', 'S' };
+static const char slice_type_to_char[] = { 'P', 'B', 'I' };
 
 enum sei_payload_type_e
 {

@@ -78,7 +78,7 @@ struct x264_ratecontrol_t
     double rate_tolerance;
     double qcompress;
     int nmb;                    /* number of macroblocks in a frame */
-    int qp_constant[5];
+    int qp_constant[3];
 
     /* current frame */
     ratecontrol_entry_t *rce;
@@ -123,13 +123,13 @@ struct x264_ratecontrol_t
     int num_entries;            /* number of ratecontrol_entry_ts */
     ratecontrol_entry_t *entry; /* FIXME: copy needed data and free this once init is done */
     double last_qscale;
-    double last_qscale_for[5];  /* last qscale for a specific pict type, used for max_diff & ipb factor stuff  */
+    double last_qscale_for[3];  /* last qscale for a specific pict type, used for max_diff & ipb factor stuff */
     int last_non_b_pict_type;
     double accum_p_qp;          /* for determining I-frame quant */
     double accum_p_norm;
     double last_accum_p_norm;
-    double lmin[5];             /* min qscale by frame type */
-    double lmax[5];
+    double lmin[3];             /* min qscale by frame type */
+    double lmax[3];
     double lstep;               /* max change (multiply) in qscale per frame */
     uint16_t *qp_buffer[2];     /* Global buffers for converting MB-tree quantizer data. */
     int qpbuf_pos;              /* In order to handle pyramid reordering, QP buffer acts as a stack.
@@ -143,7 +143,7 @@ struct x264_ratecontrol_t
     double slice_size_planned;
     double max_frame_error;
     predictor_t (*row_pred)[2];
-    predictor_t row_preds[5][2];
+    predictor_t row_preds[3][2];
     predictor_t *pred_b_from_p; /* predict B-frame size from P-frame satd */
     int bframes;                /* # consecutive B-frames before this P-frame */
     int bframe_bits;            /* total cost of those frames */
@@ -639,7 +639,7 @@ int x264_ratecontrol_new( x264_t *h )
     int num_preds = h->param.b_sliced_threads * h->param.i_threads + 1;
     CHECKED_MALLOC( rc->pred, 5 * sizeof(predictor_t) * num_preds );
     CHECKED_MALLOC( rc->pred_b_from_p, sizeof(predictor_t) );
-    for( int i = 0; i < 5; i++ )
+    for( int i = 0; i < 3; i++ )
     {
         rc->last_qscale_for[i] = qp2qscale( ABR_INIT_QP );
         rc->lmin[i] = qp2qscale( h->param.rc.i_qp_min );
