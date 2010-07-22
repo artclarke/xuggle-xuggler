@@ -430,7 +430,6 @@ struct x264_t
     int             i_cpb_delay_lookahead;
 
     int             b_queued_intra_refresh;
-    int64_t         i_reference_invalidate_pts;
     int64_t         i_last_idr_pts;
 
     /* We use only one SPS and one PPS */

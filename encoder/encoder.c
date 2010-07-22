@@ -2230,7 +2230,10 @@ int x264_encoder_invalidate_reference( x264_t *h, int64_t pts )
         return -1;
     }
     h = h->thread[h->i_thread_phase];
-    h->i_reference_invalidate_pts = pts;
+    if( pts >= h->i_last_idr_pts )
+        for( int i = 0; h->frames.reference[i]; i++ )
+            if( pts <= h->frames.reference[i]->i_pts )
+                h->frames.reference[i]->b_corrupt = 1;
     return 0;
 }
 
@@ -2377,15 +2380,6 @@ int     x264_encoder_encode( x264_t *h,
         x264_encoder_reconfig( h, h->fenc->param );
         if( h->fenc->param->param_free )
             h->fenc->param->param_free( h->fenc->param );
-    }
-
-    if( h->i_reference_invalidate_pts )
-    {
-        if( h->i_reference_invalidate_pts >= h->i_last_idr_pts )
-            for( int i = 0; h->frames.reference[i]; i++ )
-                if( h->i_reference_invalidate_pts <= h->frames.reference[i]->i_pts )
-                    h->frames.reference[i]->b_corrupt = 1;
-        h->i_reference_invalidate_pts = 0;
     }
 
     if( !IS_X264_TYPE_I( h->fenc->i_type ) )

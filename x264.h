@@ -744,7 +744,7 @@ void    x264_encoder_intra_refresh( x264_t * );
  *      In multi-pass encoding, if x264_encoder_invalidate_reference is called differently in each pass,
  *      behavior is undefined.
  *
- *      Should not be called during an x264_encoder_encode.
+ *      Should not be called during an x264_encoder_encode, but multiple calls can be made simultaneously.
  *
  *      Returns 0 on success, negative on failure. */
 int x264_encoder_invalidate_reference( x264_t *, int64_t pts );
