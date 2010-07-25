@@ -178,10 +178,10 @@ static int pick_closest_supported_csp( int csp )
     }
 }
 
-static int round_dbl( double val, int precision, int truncate )
+static int round_dbl( double val, int precision, int b_truncate )
 {
     int ret = (int)(val / precision) * precision;
-    if( !truncate && (val - ret) >= (precision/2) ) // use the remainder if we're not truncating it
+    if( !b_truncate && (val - ret) >= (precision/2) ) // use the remainder if we're not truncating it
         ret += precision;
     return ret;
 }

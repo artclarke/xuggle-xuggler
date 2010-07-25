@@ -41,6 +41,7 @@ typedef struct
     FFMS_Track *track;
     int reduce_pts;
     int vfr_input;
+    int num_frames;
 } ffms_hnd_t;
 
 static int FFMS_CC update_progress( int64_t current, int64_t total, void *private )
@@ -92,7 +93,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
 
     FFMS_DestroyIndex( idx );
     const FFMS_VideoProperties *videop = FFMS_GetVideoProperties( h->video_source );
-    info->num_frames   = videop->NumFrames;
+    info->num_frames   = h->num_frames = videop->NumFrames;
     info->sar_height   = videop->SARDen;
     info->sar_width    = videop->SARNum;
     info->fps_den      = videop->FPSDenominator;
@@ -144,10 +145,12 @@ static int picture_alloc( cli_pic_t *pic, int csp, int width, int height )
 static int read_frame( cli_pic_t *pic, hnd_t handle, int i_frame )
 {
     ffms_hnd_t *h = handle;
+    if( i_frame >= h->num_frames )
+        return -1;
     FFMS_ErrorInfo e;
     e.BufferSize = 0;
     const FFMS_Frame *frame = FFMS_GetFrame( h->video_source, i_frame, &e );
-    FAIL_IF_ERROR( !frame, "could not read frame %d\n", i_frame )
+    FAIL_IF_ERROR( !frame, "could not read frame %d \n", i_frame )
 
     memcpy( pic->img.stride, frame->Linesize, sizeof(pic->img.stride) );
     memcpy( pic->img.plane, frame->Data, sizeof(pic->img.plane) );
