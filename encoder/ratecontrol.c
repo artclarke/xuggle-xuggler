@@ -141,7 +141,6 @@ struct x264_ratecontrol_t
     double frame_size_maximum;  /* Maximum frame size due to MinCR */
     double frame_size_planned;
     double slice_size_planned;
-    double max_frame_error;
     predictor_t (*row_pred)[2];
     predictor_t row_preds[3][2];
     predictor_t *pred_b_from_p; /* predict B-frame size from P-frame satd */
@@ -1360,15 +1359,20 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
 
         float buffer_left_planned = rc->buffer_fill - rc->frame_size_planned;
         float slice_size_planned = h->param.b_sliced_threads ? rc->slice_size_planned : rc->frame_size_planned;
+        float max_frame_error = X264_MAX( 0.05, 1.0 / (h->mb.i_mb_height) );
         float size_of_other_slices = 0;
         if( h->param.b_sliced_threads )
         {
+            float size_of_other_slices_planned = 0;
             for( int i = 0; i < h->param.i_threads; i++ )
                 if( h != h->thread[i] )
+                {
                     size_of_other_slices += h->thread[i]->rc->frame_size_estimated;
+                    size_of_other_slices_planned += h->thread[i]->rc->slice_size_planned;
+                }
+            float weight = rc->slice_size_planned / rc->frame_size_planned;
+            size_of_other_slices = (size_of_other_slices - size_of_other_slices_planned) * weight + size_of_other_slices_planned;
         }
-        else
-            rc->max_frame_error = X264_MAX( 0.05, 1.0 / (h->mb.i_mb_width) );
 
         /* More threads means we have to be more cautious in letting ratecontrol use up extra bits. */
         float rc_tol = buffer_left_planned / h->param.i_threads * rc->rate_tolerance;
@@ -1405,8 +1409,8 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
 
         /* avoid VBV underflow or MinCR violation */
         while( (rc->qpm < qp_absolute_max)
-               && ((rc->buffer_fill - b1 < rc->buffer_rate * rc->max_frame_error) ||
-                   (rc->frame_size_maximum - b1 < rc->frame_size_maximum * rc->max_frame_error)))
+               && ((rc->buffer_fill - b1 < rc->buffer_rate * max_frame_error) ||
+                   (rc->frame_size_maximum - b1 < rc->frame_size_maximum * max_frame_error)))
         {
             rc->qpm += step_size;
             b1 = predict_row_size_sum( h, y, rc->qpm ) + size_of_other_slices;
@@ -2287,8 +2291,8 @@ void x264_threads_distribute_ratecontrol( x264_t *h )
             for( int i = 0; i < h->param.i_threads; i++ )
             {
                 x264_t *t = h->thread[i];
-                t->rc->max_frame_error = X264_MAX( 0.05, 1.0 / (t->i_threadslice_end - t->i_threadslice_start) );
-                t->rc->slice_size_planned += 2 * t->rc->max_frame_error * rc->frame_size_planned;
+                float max_frame_error = X264_MAX( 0.05, 1.0 / (t->i_threadslice_end - t->i_threadslice_start) );
+                t->rc->slice_size_planned += 2 * max_frame_error * rc->frame_size_planned;
             }
             x264_threads_normalize_predictors( h );
         }
