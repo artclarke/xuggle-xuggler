@@ -1727,7 +1727,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     }
 
     filter.free( opt->hin );
-    output.close_file( opt->hout, largest_pts, second_largest_pts );
+    output.close_file( opt->hout, largest_pts * dts_compress_multiplier, second_largest_pts * dts_compress_multiplier );
 
     if( i_frame_output > 0 )
     {
