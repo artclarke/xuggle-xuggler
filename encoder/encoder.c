@@ -1396,13 +1396,21 @@ int x264_encoder_headers( x264_t *h, x264_nal_t **pp_nal, int *pi_nal )
  * from the standard's default. */
 static inline void x264_reference_check_reorder( x264_t *h )
 {
+    /* The reorder check doesn't check for missing frames, so just
+     * force a reorder if one of the reference list is corrupt. */
+    for( int i = 0; h->frames.reference[i]; i++ )
+        if( h->frames.reference[i]->b_corrupt )
+        {
+            h->b_ref_reorder[0] = 1;
+            return;
+        }
     for( int i = 0; i < h->i_ref0 - 1; i++ )
         /* P and B-frames use different default orders. */
         if( h->sh.i_type == SLICE_TYPE_P ? h->fref0[i]->i_frame_num < h->fref0[i+1]->i_frame_num
                                          : h->fref0[i]->i_poc < h->fref0[i+1]->i_poc )
         {
             h->b_ref_reorder[0] = 1;
-            break;
+            return;
         }
 }
 
@@ -2231,9 +2239,13 @@ int x264_encoder_invalidate_reference( x264_t *h, int64_t pts )
     }
     h = h->thread[h->i_thread_phase];
     if( pts >= h->i_last_idr_pts )
+    {
         for( int i = 0; h->frames.reference[i]; i++ )
             if( pts <= h->frames.reference[i]->i_pts )
                 h->frames.reference[i]->b_corrupt = 1;
+        if( pts <= h->fdec->i_pts )
+            h->fdec->b_corrupt = 1;
+    }
     return 0;
 }
 
