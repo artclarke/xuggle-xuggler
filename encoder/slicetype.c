@@ -426,16 +426,7 @@ lowres_intra_mb:
             pix[i*FDEC_STRIDE] = src[i*i_stride];
         pix++;
 
-        if( h->pixf.intra_mbcmp_x3_8x8c )
-            h->pixf.intra_mbcmp_x3_8x8c( h->mb.pic.p_fenc[0], pix, satds );
-        else
-        {
-            for( int i = 0; i < 3; i++ )
-            {
-                h->predict_8x8c[i]( pix );
-                satds[i] = h->pixf.mbcmp[PIXEL_8x8]( pix, FDEC_STRIDE, h->mb.pic.p_fenc[0], FENC_STRIDE );
-            }
-        }
+        h->pixf.intra_mbcmp_x3_8x8c( h->mb.pic.p_fenc[0], pix, satds );
         int i_icost = X264_MIN3( satds[0], satds[1], satds[2] );
 
         if( h->param.analyse.i_subpel_refine > 1 )
