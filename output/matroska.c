@@ -27,6 +27,8 @@ typedef struct
 
     int width, height, d_width, d_height;
 
+    int display_size_units;
+
     int64_t frame_duration;
 
     char b_writing_frame;
@@ -74,29 +76,25 @@ static int set_param( hnd_t handle, x264_param_t *p_param )
         p_mkv->frame_duration = 0;
     }
 
-    p_mkv->width = p_param->i_width;
-    p_mkv->height = p_param->i_height;
+    p_mkv->width = p_mkv->d_width = p_param->i_width;
+    p_mkv->height = p_mkv->d_height = p_param->i_height;
+    p_mkv->display_size_units = DS_PIXELS;
 
-    if( p_param->vui.i_sar_width && p_param->vui.i_sar_height )
+    if( p_param->vui.i_sar_width && p_param->vui.i_sar_height
+        && p_param->vui.i_sar_width != p_param->vui.i_sar_height )
     {
-        dw = (int64_t)p_param->i_width  * p_param->vui.i_sar_width;
-        dh = (int64_t)p_param->i_height * p_param->vui.i_sar_height;
-    }
-    else
-    {
-        dw = p_param->i_width;
-        dh = p_param->i_height;
-    }
+        if ( p_param->vui.i_sar_width > p_param->vui.i_sar_height ) {
+            dw = (int64_t)p_param->i_width * p_param->vui.i_sar_width / p_param->vui.i_sar_height;
+            dh = p_param->i_height;
+        } else {
+            dw = p_param->i_width;
+            dh = (int64_t)p_param->i_height * p_param->vui.i_sar_height / p_param->vui.i_sar_width;
+        }
 
-    if( dw > 0 && dh > 0 )
-    {
-        int64_t x = gcd( dw, dh );
-        dw /= x;
-        dh /= x;
+        p_mkv->d_width = (int)dw;
+        p_mkv->d_height = (int)dh;
     }
 
-    p_mkv->d_width = (int)dw;
-    p_mkv->d_height = (int)dh;
     p_mkv->i_timebase_num = p_param->i_timebase_num;
     p_mkv->i_timebase_den = p_param->i_timebase_den;
 
@@ -149,7 +147,7 @@ static int write_headers( hnd_t handle, x264_nal_t *p_nal )
     ret = mk_writeHeader( p_mkv->w, "x264" X264_VERSION, "V_MPEG4/ISO/AVC",
                           avcC, avcC_len, p_mkv->frame_duration, 50000,
                           p_mkv->width, p_mkv->height,
-                          p_mkv->d_width, p_mkv->d_height );
+                          p_mkv->d_width, p_mkv->d_height, p_mkv->display_size_units );
     if( ret < 0 )
         return ret;
 

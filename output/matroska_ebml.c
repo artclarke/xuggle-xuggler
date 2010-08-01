@@ -321,7 +321,7 @@ int mk_writeHeader( mk_writer *w, const char *writing_app,
                     int64_t default_frame_duration,
                     int64_t timescale,
                     unsigned width, unsigned height,
-                    unsigned d_width, unsigned d_height )
+                    unsigned d_width, unsigned d_height, int display_size_units )
 {
     mk_context  *c, *ti, *v;
 
@@ -374,6 +374,7 @@ int mk_writeHeader( mk_writer *w, const char *writing_app,
         return -1;
     CHECK( mk_write_uint( v, 0xb0, width ) );
     CHECK( mk_write_uint( v, 0xba, height ) );
+    CHECK( mk_write_uint( v, 0x54b2, display_size_units ) );
     CHECK( mk_write_uint( v, 0x54b0, d_width ) );
     CHECK( mk_write_uint( v, 0x54ba, d_height ) );
     CHECK( mk_close_context( v, 0 ) );
