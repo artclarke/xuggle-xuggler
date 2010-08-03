@@ -162,7 +162,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     info->width      = c->width;
     info->height     = c->height;
     info->csp        = h->first_pic->img.csp;
-    info->num_frames = 0; /* FIXME */
+    info->num_frames = h->lavf->streams[i]->nb_frames;
     info->sar_height = c->sample_aspect_ratio.den;
     info->sar_width  = c->sample_aspect_ratio.num;
 
