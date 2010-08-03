@@ -96,7 +96,7 @@ static int read_frame_internal( cli_pic_t *p_pic, lavf_hnd_t *h, int i_frame, vi
     if( h->vfr_input )
     {
         p_pic->pts = p_pic->duration = 0;
-        if( frame.reordered_opaque != AV_NOPTS_VALUE )
+        if( c->has_b_frames && frame.reordered_opaque != AV_NOPTS_VALUE )
             p_pic->pts = frame.reordered_opaque;
         else if( pkt->dts != AV_NOPTS_VALUE )
             p_pic->pts = pkt->dts; // for AVI files
