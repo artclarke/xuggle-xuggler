@@ -697,8 +697,10 @@ static void Help( x264_param_t *defaults, int longhelp )
     H0( "\n" );
     H0( "Filtering:\n" );
     H0( "\n" );
-    H0( "      Filter options may be specified in the name=value format\n" );
-    H0( "--vf, --video-filter <filter0>/<filter1>/... Apply video filtering to the input file\n" );
+    H0( "      --vf, --video-filter <filter0>/<filter1>/... Apply video filtering to the input file\n" );
+    H0( "\n" );
+    H0( "      Filter options may be specified in <filter>:<option>=<value> format.\n" );
+    H0( "\n" );
     H0( "      Available filters:\n" );
     x264_register_vid_filters();
     x264_vid_filter_help( longhelp );
