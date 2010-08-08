@@ -293,7 +293,6 @@ case $host_os in
     ;;
   openbsd*)
     SYS="OPENBSD"
-    CFLAGS="$CFLAGS -I/usr/X11R6/include"
     LDFLAGS="$LDFLAGS -lm"
     ;;
   *linux*)
@@ -531,11 +530,16 @@ if cc_check "math.h" "-Werror" "return log2f(2);" ; then
     define HAVE_LOG2F
 fi
 
-if [ "$vis" = "yes" ] && cc_check "X11/Xlib.h" "-L/usr/X11R6/lib -lX11" "XOpenDisplay( 0 );" ; then
-    LDFLAGS="-L/usr/X11R6/lib -lX11 $LDFLAGS"
-    define HAVE_VISUALIZE
-else
-    vis="no"
+if [ "$vis" = "yes" ] ; then
+    save_CFLAGS="$CFLAGS"
+    CFLAGS="$CFLAGS -I/usr/X11R6/include"
+    if cc_check "X11/Xlib.h" "-L/usr/X11R6/lib -lX11" "XOpenDisplay(0);" ; then
+        LDFLAGS="-L/usr/X11R6/lib -lX11 $LDFLAGS"
+        define HAVE_VISUALIZE
+    else
+        vis="no"
+        CFLAGS="$save_CFLAGS"
+   fi
 fi
 
 if [ "$swscale" = "auto" ] ; then
