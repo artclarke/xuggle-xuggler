@@ -64,20 +64,25 @@ static int read_frame_internal( cli_pic_t *p_pic, lavf_hnd_t *h, int i_frame, vi
     while( i_frame >= h->next_frame )
     {
         int finished = 0;
-        while( !finished && av_read_frame( h->lavf, pkt ) >= 0 )
+        int ret = 0;
+        do
+        {
+            ret = av_read_frame( h->lavf, pkt );
+
             if( pkt->stream_index == h->stream_id )
             {
+                if( ret < 0 )
+                    pkt->size = 0;
+
                 c->reordered_opaque = pkt->pts;
                 if( avcodec_decode_video2( c, &frame, &finished, pkt ) < 0 )
                     x264_cli_log( "lavf", X264_LOG_WARNING, "video decoding failed on frame %d\n", h->next_frame );
             }
+        } while( !finished && ret >= 0 );
+
         if( !finished )
-        {
-            if( avcodec_decode_video2( c, &frame, &finished, pkt ) < 0 )
-                x264_cli_log( "lavf", X264_LOG_WARNING, "video decoding failed on frame %d\n", h->next_frame );
-            if( !finished )
-                return -1;
-        }
+            return -1;
+
         h->next_frame++;
     }
 
