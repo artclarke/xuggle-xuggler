@@ -938,7 +938,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
         if( h->i_dts_compress_multiplier != 1 )
         {
             new_timebase_den = h->param.i_timebase_den * h->i_dts_compress_multiplier;
-            x264_log( h, X264_LOG_DEBUG, "DTS compresion changed timebase: %u/%u -> %u/%"PRIu64"\n",
+            x264_log( h, X264_LOG_DEBUG, "DTS compression changed timebase: %u/%u -> %u/%"PRIu64"\n",
                       h->param.i_timebase_num, h->param.i_timebase_den,
                       h->param.i_timebase_num, new_timebase_den );
         }
