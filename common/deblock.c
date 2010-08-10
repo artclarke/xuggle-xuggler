@@ -383,7 +383,53 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                                  FILTER( , 1, 2, qp, qpc );
             if( !transform_8x8 ) FILTER( , 1, 3, qp, qpc );
         }
+
+        #undef FILTER
     }
+}
+
+/* For deblock-aware RD.
+ * TODO:
+ *  deblock macroblock edges
+ *  support analysis partitions smaller than 16x16
+ *  deblock chroma
+ *  handle duplicate refs correctly
+ *  handle cavlc+8x8dct correctly
+ */
+void x264_macroblock_deblock( x264_t *h )
+{
+    int qp_thresh = 15 - X264_MIN( h->sh.i_alpha_c0_offset, h->sh.i_beta_offset ) - X264_MAX( 0, h->param.analyse.i_chroma_qp_offset );
+    int qp = h->mb.i_qp;
+    if( qp <= qp_thresh || h->mb.i_type == P_SKIP )
+        return;
+
+    uint8_t (*bs)[4][4] = h->deblock_strength[h->mb.i_mb_y&h->sh.b_mbaff][h->mb.i_mb_x];
+    if( IS_INTRA( h->mb.i_type ) )
+        memset( bs, 3, 2*4*4*sizeof(uint8_t) );
+    else
+        h->loopf.deblock_strength( h->mb.cache.non_zero_count, h->mb.cache.ref, h->mb.cache.mv,
+                                   bs, 4 >> h->sh.b_mbaff, h->sh.i_type == SLICE_TYPE_B );
+
+    int transform_8x8 = h->mb.b_transform_8x8;
+    pixel *fdec = h->mb.pic.p_fdec[0];
+
+    #define FILTER( dir, edge )\
+    do\
+    {\
+        deblock_edge( h, fdec + 4*edge*(dir?FDEC_STRIDE:1),\
+                      FDEC_STRIDE, bs[dir][edge], qp, 0,\
+                      h->loopf.deblock_luma[dir] );\
+    } while(0)
+
+    if( !transform_8x8 ) FILTER( 0, 1 );
+                         FILTER( 0, 2 );
+    if( !transform_8x8 ) FILTER( 0, 3 );
+
+    if( !transform_8x8 ) FILTER( 1, 1 );
+                         FILTER( 1, 2 );
+    if( !transform_8x8 ) FILTER( 1, 3 );
+
+    #undef FILTER
 }
 
 #if HAVE_MMX

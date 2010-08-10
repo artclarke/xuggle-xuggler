@@ -157,6 +157,9 @@ static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
 
     x264_macroblock_encode( h );
 
+    if( h->mb.b_deblock_rdo )
+        x264_macroblock_deblock( h );
+
     i_ssd = ssd_mb( h );
 
     if( IS_SKIP( h->mb.i_type ) )

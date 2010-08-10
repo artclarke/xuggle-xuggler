@@ -637,6 +637,7 @@ struct x264_t
         /* set to true if we are re-encoding a macroblock. */
         int b_reencode_mb;
         int ip_offset; /* Used by PIR to offset the quantizer of intra-refresh blocks. */
+        int b_deblock_rdo;
 
         struct
         {

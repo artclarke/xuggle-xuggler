@@ -184,6 +184,7 @@ void          x264_frame_expand_border_lowres( x264_frame_t *frame );
 void          x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame );
 
 void          x264_frame_deblock_row( x264_t *h, int mb_y );
+void          x264_macroblock_deblock( x264_t *h );
 
 void          x264_frame_filter( x264_t *h, x264_frame_t *frame, int mb_y, int b_end );
 void          x264_frame_init_lowres( x264_t *h, x264_frame_t *frame );
