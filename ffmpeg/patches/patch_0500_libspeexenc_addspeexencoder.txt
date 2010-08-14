@@ -24,6 +24,7 @@ Index: libavcodec/libspeexenc.c
 +#include <libavcodec/avcodec.h>
 +#include <speex/speex.h>
 +#include <speex/speex_header.h>
++#include <speex/speex_stereo.h>
 +
 +typedef struct {
 +    SpeexBits bits;
