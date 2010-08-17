@@ -2038,7 +2038,7 @@ static int x264_slice_write( x264_t *h )
         if( b_deblock )
         {
             int mvy_limit = 4 >> h->sh.b_mbaff;
-            uint8_t (*bs)[4][4] = h->deblock_strength[h->mb.i_mb_y&h->sh.b_mbaff][h->mb.i_mb_x];
+            uint8_t (*bs)[4][4] = h->deblock_strength[h->mb.i_mb_y&1][h->mb.i_mb_x];
             x264_macroblock_cache_load_deblock( h );
             if( IS_INTRA( h->mb.type[h->mb.i_mb_xy] ) )
                 memset( bs, 3, 2*4*4*sizeof(uint8_t) );

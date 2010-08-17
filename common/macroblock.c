@@ -320,8 +320,10 @@ int x264_macroblock_thread_allocate( x264_t *h, int b_lookahead )
                 /* shouldn't really be initialized, just silences a valgrind false-positive in predict_8x8_filter_mmx */
                 CHECKED_MALLOCZERO( h->intra_border_backup[i][j], (h->sps->i_mb_width*16+32) * sizeof(pixel) );
                 h->intra_border_backup[i][j] += 16;
+                h->intra_border_backup[1][j] = h->intra_border_backup[i][j];
             }
             CHECKED_MALLOC( h->deblock_strength[i], sizeof(**h->deblock_strength) * h->mb.i_mb_width );
+            h->deblock_strength[1] = h->deblock_strength[i];
         }
 
     /* Allocate scratch buffer */
@@ -493,7 +495,7 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x
                      ? 16 * mb_x + w * (mb_y&~1) * i_stride + (mb_y&1) * i_stride
                      : 16 * mb_x + w * mb_y * i_stride;
     pixel *plane_fdec = &h->fdec->plane[i][i_pix_offset];
-    pixel *intra_fdec = &h->intra_border_backup[mb_y & h->sh.b_mbaff][i][mb_x*16];
+    pixel *intra_fdec = &h->intra_border_backup[mb_y&1][i][mb_x*16];
     int ref_pix_offset[2] = { i_pix_offset, i_pix_offset };
     x264_frame_t **fref[2] = { h->fref0, h->fref1 };
     if( b_interlaced )
@@ -1086,7 +1088,7 @@ static void ALWAYS_INLINE x264_macroblock_store_pic( x264_t *h, int mb_x, int mb
     int i_pix_offset = b_interlaced
                      ? 16 * mb_x + w * (mb_y&~1) * i_stride + (mb_y&1) * i_stride
                      : 16 * mb_x + w * mb_y * i_stride;
-    pixel *intra_fdec = &h->intra_border_backup[mb_y & h->sh.b_mbaff][i][mb_x*16];
+    pixel *intra_fdec = &h->intra_border_backup[mb_y&1][i][mb_x*16];
     if( i )
     {
         h->mc.store_interleave_8x8x2( &h->fdec->plane[1][i_pix_offset], i_stride2, h->mb.pic.p_fdec[1], h->mb.pic.p_fdec[2] );

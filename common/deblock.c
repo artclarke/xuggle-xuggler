@@ -316,7 +316,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
         int mb_xy = h->mb.i_mb_xy;
         int transform_8x8 = h->mb.mb_transform_size[h->mb.i_mb_xy];
         int intra_cur = IS_INTRA( h->mb.type[mb_xy] );
-        uint8_t (*bs)[4][4] = h->deblock_strength[mb_y&b_interlaced][mb_x];
+        uint8_t (*bs)[4][4] = h->deblock_strength[mb_y&1][mb_x];
 
         pixel *pixy = h->fdec->plane[0] + 16*mb_y*stridey  + 16*mb_x;
         pixel *pixuv = h->fdec->plane[1] + 8*mb_y*strideuv + 16*mb_x;
@@ -403,7 +403,7 @@ void x264_macroblock_deblock( x264_t *h )
     if( qp <= qp_thresh || h->mb.i_type == P_SKIP )
         return;
 
-    uint8_t (*bs)[4][4] = h->deblock_strength[h->mb.i_mb_y&h->sh.b_mbaff][h->mb.i_mb_x];
+    uint8_t (*bs)[4][4] = h->deblock_strength[h->mb.i_mb_y&1][h->mb.i_mb_x];
     if( IS_INTRA( h->mb.i_type ) )
         memset( bs, 3, 2*4*4*sizeof(uint8_t) );
     else
