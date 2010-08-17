@@ -1827,6 +1827,8 @@ static int x264_slice_write( x264_t *h )
     bs_t bs_bak;
     x264_cabac_t cabac_bak;
     uint8_t cabac_prevbyte_bak = 0; /* Shut up GCC. */
+    int mv_bits_bak = 0;
+    int tex_bits_bak = 0;
     /* Assume no more than 3 bytes of NALU escaping.
      * NALUs other than the first use a 3-byte startcode. */
     int overhead_guess = (NALU_OVERHEAD - (h->param.b_annexb && h->out.i_nal)) + 3;
@@ -1873,8 +1875,14 @@ static int x264_slice_write( x264_t *h )
     while( (mb_xy = i_mb_x + i_mb_y * h->mb.i_mb_width) <= h->sh.i_last_mb )
     {
         int mb_spos = bs_pos(&h->out.bs) + x264_cabac_pos(&h->cabac);
+
+        if( x264_bitstream_check_buffer( h ) )
+            return -1;
+
         if( h->param.i_slice_max_size > 0 )
         {
+            mv_bits_bak = h->stat.frame.i_mv_bits;
+            tex_bits_bak = h->stat.frame.i_tex_bits;
             /* We don't need the contexts because flushing the CABAC encoder has no context
              * dependency and macroblocks are only re-encoded in the case where a slice is
              * ended (and thus the content of all contexts are thrown away). */
@@ -1902,9 +1910,6 @@ static int x264_slice_write( x264_t *h )
 
         /* encode this macroblock -> be careful it can change the mb type to P_SKIP if needed */
         x264_macroblock_encode( h );
-
-        if( x264_bitstream_check_buffer( h ) )
-            return -1;
 
         if( h->param.b_cabac )
         {
@@ -1943,6 +1948,8 @@ static int x264_slice_write( x264_t *h )
         {
             if( mb_xy != h->sh.i_first_mb )
             {
+                h->stat.frame.i_mv_bits = mv_bits_bak;
+                h->stat.frame.i_tex_bits = tex_bits_bak;
                 if( h->param.b_cabac )
                 {
                     memcpy( &h->cabac, &cabac_bak, offsetof(x264_cabac_t, f8_bits_encoded) );
