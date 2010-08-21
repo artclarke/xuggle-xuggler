@@ -233,11 +233,11 @@ int x264_macroblock_cache_allocate( x264_t *h )
 
     for( int i = 0; i < 2; i++ )
     {
-        int i_refs = X264_MIN(16, (i ? 1 + !!h->param.i_bframe_pyramid : h->param.i_frame_reference) ) << h->param.b_interlaced;
+        int i_refs = X264_MIN(X264_REF_MAX, (i ? 1 + !!h->param.i_bframe_pyramid : h->param.i_frame_reference) ) << h->param.b_interlaced;
         if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
-            i_refs = X264_MIN(16, i_refs + 2); //smart weights add two duplicate frames
+            i_refs = X264_MIN(X264_REF_MAX, i_refs + 2); //smart weights add two duplicate frames
         else if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_BLIND )
-            i_refs = X264_MIN(16, i_refs + 1); //blind weights add one duplicate frame
+            i_refs = X264_MIN(X264_REF_MAX, i_refs + 1); //blind weights add one duplicate frame
 
         for( int j = !i; j < i_refs; j++ )
         {
@@ -289,10 +289,10 @@ fail:
 void x264_macroblock_cache_free( x264_t *h )
 {
     for( int i = 0; i < 2; i++ )
-        for( int j = !i; j < 32; j++ )
+        for( int j = !i; j < X264_REF_MAX*2; j++ )
             if( h->mb.mvr[i][j] )
                 x264_free( h->mb.mvr[i][j]-1 );
-    for( int i = 0; i < 16; i++ )
+    for( int i = 0; i < X264_REF_MAX; i++ )
         x264_free( h->mb.p_weight_buf[i] );
 
     if( h->param.b_cabac )

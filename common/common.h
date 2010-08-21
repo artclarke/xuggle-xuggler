@@ -51,6 +51,7 @@ do {\
 } while( 0 )
 
 #define X264_BFRAME_MAX 16
+#define X264_REF_MAX 16
 #define X264_THREAD_MAX 128
 #define X264_PCM_COST (384*BIT_DEPTH+16)
 #define X264_LOOKAHEAD_MAX 250
@@ -340,10 +341,10 @@ typedef struct
     {
         int idc;
         int arg;
-    } ref_pic_list_order[2][16];
+    } ref_pic_list_order[2][X264_REF_MAX];
 
     /* P-frame weighting */
-    x264_weight_t weight[32][3];
+    x264_weight_t weight[X264_REF_MAX*2][3];
 
     int i_mmco_remove_from_end;
     int i_mmco_command_count;
@@ -351,7 +352,7 @@ typedef struct
     {
         int i_difference_of_pic_nums;
         int i_poc;
-    } mmco[16];
+    } mmco[X264_REF_MAX];
 
     int i_cabac_init_idc;
 
@@ -479,7 +480,7 @@ struct x264_t
         x264_frame_t **blank_unused;
 
         /* frames used for reference + sentinels */
-        x264_frame_t *reference[16+2];
+        x264_frame_t *reference[X264_REF_MAX+2];
 
         int i_last_keyframe;       /* Frame number of the last keyframe */
         int i_last_idr;            /* Frame number of the last IDR (not RP)*/
@@ -511,9 +512,9 @@ struct x264_t
 
     /* references lists */
     int             i_ref0;
-    x264_frame_t    *fref0[16+3];     /* ref list 0 */
+    x264_frame_t    *fref0[X264_REF_MAX+3];     /* ref list 0 */
     int             i_ref1;
-    x264_frame_t    *fref1[16+3];     /* ref list 1 */
+    x264_frame_t    *fref1[X264_REF_MAX+3];     /* ref list 1 */
     int             b_ref_reorder[2];
 
     /* hrd */
@@ -605,14 +606,14 @@ struct x264_t
         int16_t (*mv[2])[2];                /* mb mv. set to 0 for intra mb */
         uint8_t (*mvd[2])[8][2];            /* absolute value of mb mv difference with predict, clipped to [0,33]. set to 0 if intra. cabac only */
         int8_t   *ref[2];                   /* mb ref. set to -1 if non used (intra or Lx only) */
-        int16_t (*mvr[2][32])[2];           /* 16x16 mv for each possible ref */
+        int16_t (*mvr[2][X264_REF_MAX*2])[2];/* 16x16 mv for each possible ref */
         int8_t  *skipbp;                    /* block pattern for SKIP or DIRECT (sub)mbs. B-frames + cabac only */
         int8_t  *mb_transform_size;         /* transform_size_8x8_flag of each mb */
         uint16_t *slice_table;              /* sh->first_mb of the slice that the indexed mb is part of
                                              * NOTE: this will fail on resolutions above 2^16 MBs... */
 
          /* buffer for weighted versions of the reference frames */
-        pixel *p_weight_buf[16];
+        pixel *p_weight_buf[X264_REF_MAX];
 
         /* current value */
         int     i_type;
@@ -675,9 +676,9 @@ struct x264_t
 
             /* pointer over mb of the references */
             int i_fref[2];
-            pixel *p_fref[2][32][4+1]; /* last: yN, yH, yV, yHV, uv */
-            pixel *p_fref_w[32];  /* weighted fullpel luma */
-            uint16_t *p_integral[2][16];
+            pixel *p_fref[2][X264_REF_MAX*2][4+1]; /* last: yN, yH, yV, yHV, uv */
+            pixel *p_fref_w[X264_REF_MAX*2];  /* weighted fullpel luma */
+            uint16_t *p_integral[2][X264_REF_MAX];
 
             /* fref stride */
             int     i_stride[3];
@@ -732,15 +733,15 @@ struct x264_t
         int     i_chroma_lambda2_offset;
 
         /* B_direct and weighted prediction */
-        int16_t dist_scale_factor_buf[2][32][4];
+        int16_t dist_scale_factor_buf[2][X264_REF_MAX*2][4];
         int16_t (*dist_scale_factor)[4];
-        int8_t bipred_weight_buf[2][32][4];
+        int8_t bipred_weight_buf[2][X264_REF_MAX*2][4];
         int8_t (*bipred_weight)[4];
         /* maps fref1[0]'s ref indices into the current list0 */
 #define map_col_to_list0(col) h->mb.map_col_to_list0[(col)+2]
-        int8_t  map_col_to_list0[18];
+        int8_t  map_col_to_list0[X264_REF_MAX+2];
         int ref_blind_dupe; /* The index of the blind reference frame duplicate. */
-        int8_t deblock_ref_table[32+2];
+        int8_t deblock_ref_table[X264_REF_MAX*2+2];
 #define deblock_ref_table(x) h->mb.deblock_ref_table[(x)+2]
     } mb;
 
@@ -765,7 +766,7 @@ struct x264_t
             int i_mb_count_p;
             int i_mb_count_skip;
             int i_mb_count_8x8dct[2];
-            int i_mb_count_ref[2][32];
+            int i_mb_count_ref[2][X264_REF_MAX*2];
             int i_mb_partition[17];
             int i_mb_cbp[6];
             int i_mb_pred_mode[4][13];
@@ -794,7 +795,7 @@ struct x264_t
         int64_t i_mb_count[5][19];
         int64_t i_mb_partition[2][17];
         int64_t i_mb_count_8x8dct[2];
-        int64_t i_mb_count_ref[2][2][32];
+        int64_t i_mb_count_ref[2][2][X264_REF_MAX*2];
         int64_t i_mb_cbp[6];
         int64_t i_mb_pred_mode[4][13];
         /* */

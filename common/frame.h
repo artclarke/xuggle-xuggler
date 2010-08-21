@@ -75,8 +75,8 @@ typedef struct x264_frame
     pixel *buffer[4];
     pixel *buffer_lowres[4];
 
-    x264_weight_t weight[16][3]; /* [ref_index][plane] */
-    pixel *weighted[16]; /* plane[0] weighted of the reference frames */
+    x264_weight_t weight[X264_REF_MAX][3]; /* [ref_index][plane] */
+    pixel *weighted[X264_REF_MAX]; /* plane[0] weighted of the reference frames */
     int b_duplicate;
     struct x264_frame *orig;
 
@@ -97,7 +97,7 @@ typedef struct x264_frame
     int     *lowres_mv_costs[2][X264_BFRAME_MAX+1];
     int8_t  *ref[2];
     int     i_ref[2];
-    int     ref_poc[2][16];
+    int     ref_poc[2][X264_REF_MAX];
     int16_t inv_ref_poc[2]; // inverse values of ref0 poc to avoid divisions in temporal MV prediction
 
     /* for adaptive B-frame decision.

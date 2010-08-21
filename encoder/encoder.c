@@ -571,8 +571,8 @@ static int x264_validate_parameters( x264_t *h )
             h->param.i_slice_count = 0;
     }
 
-    h->param.i_frame_reference = x264_clip3( h->param.i_frame_reference, 1, 16 );
-    h->param.i_dpb_size = x264_clip3( h->param.i_dpb_size, 1, 16 );
+    h->param.i_frame_reference = x264_clip3( h->param.i_frame_reference, 1, X264_REF_MAX );
+    h->param.i_dpb_size = x264_clip3( h->param.i_dpb_size, 1, X264_REF_MAX );
     h->param.i_keyint_max = x264_clip3( h->param.i_keyint_max, 1, X264_KEYINT_MAX_INFINITE );
     if( h->param.i_scenecut_threshold < 0 )
         h->param.i_scenecut_threshold = 0;
@@ -1005,7 +1005,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
 
     CHECKED_MALLOCZERO( h->frames.unused[0], (h->frames.i_delay + 3) * sizeof(x264_frame_t *) );
     /* Allocate room for max refs plus a few extra just in case. */
-    CHECKED_MALLOCZERO( h->frames.unused[1], (h->i_thread_frames + 20) * sizeof(x264_frame_t *) );
+    CHECKED_MALLOCZERO( h->frames.unused[1], (h->i_thread_frames + X264_REF_MAX + 4) * sizeof(x264_frame_t *) );
     CHECKED_MALLOCZERO( h->frames.current, (h->param.i_sync_lookahead + h->param.i_bframe
                         + h->i_thread_frames + 3) * sizeof(x264_frame_t *) );
     if( h->param.analyse.i_weighted_pred > 0 )
@@ -1434,9 +1434,9 @@ int x264_weighted_reference_duplicate( x264_t *h, int i_ref, const x264_weight_t
 
     /* shift the frames to make space for the dupe. */
     h->b_ref_reorder[0] = 1;
-    if( h->i_ref0 < 16 )
+    if( h->i_ref0 < X264_REF_MAX )
         ++h->i_ref0;
-    h->fref0[15] = NULL;
+    h->fref0[X264_REF_MAX-1] = NULL;
     x264_frame_unshift( &h->fref0[j], newframe );
 
     return j;
@@ -1616,7 +1616,7 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
         h->mb.ref_blind_dupe = idx;
     }
 
-    assert( h->i_ref0 + h->i_ref1 <= 16 );
+    assert( h->i_ref0 + h->i_ref1 <= X264_REF_MAX );
     h->mb.pic.i_fref[0] = h->i_ref0;
     h->mb.pic.i_fref[1] = h->i_ref1;
 }
@@ -2801,7 +2801,7 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
             h->stat.i_mb_pred_mode[i][j] += h->stat.frame.i_mb_pred_mode[i][j];
     if( h->sh.i_type != SLICE_TYPE_I )
         for( int i_list = 0; i_list < 2; i_list++ )
-            for( int i = 0; i < 32; i++ )
+            for( int i = 0; i < X264_REF_MAX*2; i++ )
                 h->stat.i_mb_count_ref[h->sh.i_type][i_list][i] += h->stat.frame.i_mb_count_ref[i_list][i];
     if( h->sh.i_type == SLICE_TYPE_P )
     {
@@ -3169,7 +3169,7 @@ void    x264_encoder_close  ( x264_t *h )
                 char *p = buf;
                 int64_t i_den = 0;
                 int i_max = 0;
-                for( int i = 0; i < 32; i++ )
+                for( int i = 0; i < X264_REF_MAX*2; i++ )
                     if( h->stat.i_mb_count_ref[i_slice][i_list][i] )
                     {
                         i_den += h->stat.i_mb_count_ref[i_slice][i_list][i];
