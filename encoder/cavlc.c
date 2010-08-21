@@ -95,7 +95,7 @@ static inline int block_residual_write_cavlc_escape( x264_t *h, int i_suffix_len
             {
 #if RDO_SKIP_BS
                 /* Weight highly against overflows. */
-                s->i_bits_encoded += 1000000;
+                s->i_bits_encoded += 2000;
 #else
                 x264_log(h, X264_LOG_WARNING, "OVERFLOW levelcode=%d is only allowed in High Profile\n", i_level_code );
                 /* clip level, preserving sign */
@@ -113,7 +113,7 @@ static inline int block_residual_write_cavlc_escape( x264_t *h, int i_suffix_len
     return i_suffix_length;
 }
 
-static int block_residual_write_cavlc( x264_t *h, int i_ctxBlockCat, dctcoef *l, int nC )
+static int block_residual_write_cavlc_internal( x264_t *h, int i_ctxBlockCat, dctcoef *l, int nC )
 {
     bs_t *s = &h->out.bs;
     static const uint8_t ctz_index[8] = {3,0,1,0,2,0,1,0};
@@ -199,7 +199,7 @@ static const uint8_t ct_index[17] = {0,0,1,1,2,2,2,2,3,3,3,3,3,3,3,3,3};
     if( !*nnz )\
         bs_write_vlc( &h->out.bs, x264_coeff0_token[nC] );\
     else\
-        *nnz = block_residual_write_cavlc(h,cat,l,nC);\
+        *nnz = block_residual_write_cavlc_internal(h,cat,l,nC);\
 }
 
 static void cavlc_qp_delta( x264_t *h )

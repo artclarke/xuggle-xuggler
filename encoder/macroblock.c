@@ -739,7 +739,7 @@ void x264_macroblock_encode( x264_t *h )
         else if( h->mb.b_transform_8x8 )
         {
             ALIGNED_ARRAY_16( dctcoef, dct8x8,[4],[64] );
-            b_decimate &= !h->mb.b_trellis; // 8x8 trellis is inherently optimal decimation
+            b_decimate &= !h->mb.b_trellis || !h->param.b_cabac; // 8x8 trellis is inherently optimal decimation for CABAC
             h->dctf.sub16x16_dct8( dct8x8, h->mb.pic.p_fenc[0], h->mb.pic.p_fdec[0] );
             h->nr_count[1] += h->mb.b_noise_reduction * 4;
 

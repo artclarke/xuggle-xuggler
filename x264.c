@@ -595,7 +595,7 @@ static void Help( x264_param_t *defaults, int longhelp )
     H2( "      --no-mixed-refs         Don't decide references on a per partition basis\n" );
     H2( "      --no-chroma-me          Ignore chroma in motion estimation\n" );
     H1( "      --no-8x8dct             Disable adaptive spatial transform size\n" );
-    H1( "  -t, --trellis <integer>     Trellis RD quantization. Requires CABAC. [%d]\n"
+    H1( "  -t, --trellis <integer>     Trellis RD quantization. [%d]\n"
         "                                  - 0: disabled\n"
         "                                  - 1: enabled only on the final encode of a MB\n"
         "                                  - 2: enabled on all mode decisions\n", defaults->analyse.i_trellis );

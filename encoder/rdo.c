@@ -410,10 +410,12 @@ typedef struct {
 // comparable to the input. so unquant is the direct inverse of quant,
 // and uses the dct scaling factors, not the idct ones.
 
-static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, dctcoef *dct,
-                                 const uint16_t *quant_mf, const int *unquant_mf,
-                                 const int *coef_weight, const uint8_t *zigzag,
-                                 int i_ctxBlockCat, int i_lambda2, int b_ac, int dc, int i_coefs, int idx )
+static ALWAYS_INLINE
+int quant_trellis_cabac( x264_t *h, dctcoef *dct,
+                         const uint16_t *quant_mf, const int *unquant_mf,
+                         const int *coef_weight, const uint8_t *zigzag,
+                         int i_ctxBlockCat, int i_lambda2, int b_ac,
+                         int dc, int i_coefs, int idx )
 {
     int abs_coefs[64], signs[64];
     trellis_node_t nodes[2][8];
@@ -629,35 +631,262 @@ static ALWAYS_INLINE int quant_trellis_cabac( x264_t *h, dctcoef *dct,
     return 1;
 }
 
+/* FIXME: This is a gigantic hack.  See below.
+ *
+ * CAVLC is much more difficult to trellis than CABAC.
+ *
+ * CABAC has only three states to track: significance map, last, and the
+ * level state machine.
+ * CAVLC, by comparison, has five: coeff_token (trailing + total),
+ * total_zeroes, zero_run, and the level state machine.
+ *
+ * I know of no paper that has managed to design a close-to-optimal trellis
+ * that covers all five of these and isn't exponential-time.  As a result, this
+ * "trellis" isn't: it's just a QNS search.  Patches welcome for something better.
+ * It's actually surprisingly fast, albeit not quite optimal.  It's pretty close
+ * though; since CAVLC only has 2^16 possible rounding modes (assuming only two
+ * roundings as options), a bruteforce search is feasible.  Testing shows
+ * that this QNS is reasonably close to optimal in terms of compression.
+ *
+ * TODO:
+ *  Don't bother changing large coefficients when it wouldn't affect bit cost
+ *  (e.g. only affecting bypassed suffix bits).
+ *  Don't re-run all parts of CAVLC bit cost calculation when not necessary.
+ *  e.g. when changing a coefficient from one non-zero value to another in
+ *  such a way that trailing ones and suffix length isn't affected. */
+static ALWAYS_INLINE
+int quant_trellis_cavlc( x264_t *h, dctcoef *dct,
+                         const uint16_t *quant_mf, const int *unquant_mf,
+                         const int *coef_weight, const uint8_t *zigzag,
+                         int i_ctxBlockCat, int i_lambda2, int b_ac,
+                         int dc, int i_coefs, int idx, int b_8x8 )
+{
+    ALIGNED_16( dctcoef quant_coefs[2][16] );
+    ALIGNED_16( dctcoef coefs[16] ) = {0};
+    int delta_distortion[16];
+    int64_t score = 1ULL<<62;
+    int i, j;
+    const int f = 1<<15;
+    int nC = i_ctxBlockCat == DCT_CHROMA_DC ? 4 : ct_index[x264_mb_predict_non_zero_code( h, i_ctxBlockCat == DCT_LUMA_DC ? 0 : idx )];
+
+    /* Code for handling 8x8dct -> 4x4dct CAVLC munging.  Input/output use a different
+     * step/start/end than internal processing. */
+    int step = 1;
+    int start = b_ac;
+    int end = i_coefs - 1;
+    if( b_8x8 )
+    {
+        start = idx&3;
+        end = 60 + start;
+        step = 4;
+    }
+
+    i_lambda2 <<= LAMBDA_BITS;
+
+    /* Find last non-zero coefficient. */
+    for( i = end; i >= start; i -= step )
+        if( (unsigned)(dct[zigzag[i]] * (dc?quant_mf[0]>>1:quant_mf[zigzag[i]]) + f-1) >= 2*f )
+            break;
+
+    if( i < start )
+        goto zeroblock;
+
+    /* Prepare for QNS search: calculate distortion caused by each DCT coefficient
+     * rounding to be searched.
+     *
+     * We only search two roundings (nearest and nearest-1) like in CABAC trellis,
+     * so we just store the difference in distortion between them. */
+    int i_last_nnz = b_8x8 ? i >> 2 : i;
+    int coef_mask = 0;
+    int round_mask = 0;
+    for( i = b_ac, j = start; i <= i_last_nnz; i++, j += step )
+    {
+        int coef = dct[zigzag[j]];
+        int abs_coef = abs(coef);
+        int sign = coef < 0 ? -1 : 1;
+        int nearest_quant = ( f + abs_coef * (dc?quant_mf[0]>>1:quant_mf[zigzag[j]]) ) >> 16;
+        quant_coefs[1][i] = quant_coefs[0][i] = sign * nearest_quant;
+        coefs[i] = quant_coefs[1][i];
+        if( nearest_quant )
+        {
+            /* We initialize the trellis with a deadzone halfway between nearest rounding
+             * and always-round-down.  This gives much better results than initializing to either
+             * extreme.
+             * FIXME: should we initialize to the deadzones used by deadzone quant? */
+            int deadzone_quant = ( f/2 + abs_coef * (dc?quant_mf[0]>>1:quant_mf[zigzag[j]]) ) >> 16;
+            int unquant1 = (((dc?unquant_mf[0]<<1:unquant_mf[zigzag[j]]) * (nearest_quant-0) + 128) >> 8);
+            int unquant0 = (((dc?unquant_mf[0]<<1:unquant_mf[zigzag[j]]) * (nearest_quant-1) + 128) >> 8);
+            int d1 = abs_coef - unquant1;
+            int d0 = abs_coef - unquant0;
+            delta_distortion[i] = (d0*d0 - d1*d1) * (dc?256:coef_weight[j]);
+
+            /* Psy trellis: bias in favor of higher AC coefficients in the reconstructed frame. */
+            if( h->mb.i_psy_trellis && j && !dc && i_ctxBlockCat != DCT_CHROMA_AC )
+            {
+                int orig_coef = b_8x8 ? h->mb.pic.fenc_dct8[idx>>2][zigzag[j]] : h->mb.pic.fenc_dct4[idx][zigzag[j]];
+                int predicted_coef = orig_coef - coef;
+                int psy_weight = b_8x8 ? x264_dct8_weight_tab[zigzag[j]] : x264_dct4_weight_tab[zigzag[j]];
+                int psy_value0 = h->mb.i_psy_trellis * abs(predicted_coef + unquant0 * sign);
+                int psy_value1 = h->mb.i_psy_trellis * abs(predicted_coef + unquant1 * sign);
+                delta_distortion[i] += (psy_value0 - psy_value1) * psy_weight;
+            }
+
+            quant_coefs[0][i] = sign * (nearest_quant-1);
+            if( deadzone_quant != nearest_quant )
+                coefs[i] = quant_coefs[0][i];
+            else
+                round_mask |= 1 << i;
+        }
+        else
+            delta_distortion[i] = 0;
+        coef_mask |= (!!coefs[i]) << i;
+    }
+
+    /* Calculate the cost of the starting state. */
+    h->out.bs.i_bits_encoded = 0;
+    if( !coef_mask )
+        bs_write_vlc( &h->out.bs, x264_coeff0_token[nC] );
+    else
+        block_residual_write_cavlc_internal( h, i_ctxBlockCat, coefs + b_ac, nC );
+    score = (int64_t)h->out.bs.i_bits_encoded * i_lambda2;
+
+    /* QNS loop: pick the change that improves RD the most, apply it, repeat.
+     * coef_mask and round_mask are used to simplify tracking of nonzeroness
+     * and rounding modes chosen. */
+    while( 1 )
+    {
+        int64_t iter_score = score;
+        int iter_distortion_delta = 0;
+        int iter_coef = -1;
+        int iter_mask = coef_mask;
+        int iter_round = round_mask;
+        for( i = b_ac; i <= i_last_nnz; i++ )
+        {
+            if( !delta_distortion[i] )
+                continue;
+
+            /* Set up all the variables for this iteration. */
+            int cur_round = round_mask ^ (1 << i);
+            int round_change = (cur_round >> i)&1;
+            int old_coef = coefs[i];
+            int new_coef = quant_coefs[round_change][i];
+            int cur_mask = (coef_mask&~(1 << i))|(!!new_coef << i);
+            int cur_distortion_delta = delta_distortion[i] * (round_change ? -1 : 1);
+            int64_t cur_score = cur_distortion_delta;
+            coefs[i] = new_coef;
+
+            /* Count up bits. */
+            h->out.bs.i_bits_encoded = 0;
+            if( !cur_mask )
+                bs_write_vlc( &h->out.bs, x264_coeff0_token[nC] );
+            else
+                block_residual_write_cavlc_internal( h, i_ctxBlockCat, coefs + b_ac, nC );
+            cur_score += (int64_t)h->out.bs.i_bits_encoded * i_lambda2;
+
+            coefs[i] = old_coef;
+            if( cur_score < iter_score )
+            {
+                iter_score = cur_score;
+                iter_coef = i;
+                iter_mask = cur_mask;
+                iter_round = cur_round;
+                iter_distortion_delta = cur_distortion_delta;
+            }
+        }
+        if( iter_coef >= 0 )
+        {
+            score = iter_score - iter_distortion_delta;
+            coef_mask = iter_mask;
+            round_mask = iter_round;
+            coefs[iter_coef] = quant_coefs[((round_mask >> iter_coef)&1)][iter_coef];
+            /* Don't try adjusting coefficients we've already adjusted.
+             * Testing suggests this doesn't hurt results -- and sometimes actually helps. */
+            delta_distortion[iter_coef] = 0;
+        }
+        else
+            break;
+    }
+
+    if( coef_mask )
+    {
+        for( i = b_ac, j = start; i <= i_last_nnz; i++, j += step )
+            dct[zigzag[j]] = coefs[i];
+        for( ; j <= end; j += step )
+            dct[zigzag[j]] = 0;
+        return 1;
+    }
+
+zeroblock:
+    if( !dc )
+    {
+        if( b_8x8 )
+            for( i = start; i <= end; i+=step )
+                dct[zigzag[i]] = 0;
+        else
+            memset( dct, 0, 16*sizeof(dctcoef) );
+    }
+    return 0;
+}
+
 const static uint8_t x264_zigzag_scan2[4] = {0,1,2,3};
 
 int x264_quant_dc_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
                            int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma )
 {
-    return quant_trellis_cabac( h, dct,
+    if( h->param.b_cabac )
+        return quant_trellis_cabac( h, dct,
+            h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
+            NULL, i_ctxBlockCat==DCT_CHROMA_DC ? x264_zigzag_scan2 : x264_zigzag_scan4[h->mb.b_interlaced],
+            i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, 1, i_ctxBlockCat==DCT_CHROMA_DC ? 4 : 16, 0 );
+
+    return quant_trellis_cavlc( h, dct,
         h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
         NULL, i_ctxBlockCat==DCT_CHROMA_DC ? x264_zigzag_scan2 : x264_zigzag_scan4[h->mb.b_interlaced],
-        i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, 1, i_ctxBlockCat==DCT_CHROMA_DC ? 4 : 16, 0 );
+        i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, 1, i_ctxBlockCat==DCT_CHROMA_DC ? 4 : 16, 0, 0 );
 }
 
 int x264_quant_4x4_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
                             int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma, int idx )
 {
     int b_ac = (i_ctxBlockCat == DCT_LUMA_AC || i_ctxBlockCat == DCT_CHROMA_AC);
-    return quant_trellis_cabac( h, dct,
-        h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
-        x264_dct4_weight2_zigzag[h->mb.b_interlaced],
-        x264_zigzag_scan4[h->mb.b_interlaced],
-        i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, 0, 16, idx );
+    if( h->param.b_cabac )
+        return quant_trellis_cabac( h, dct,
+            h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
+            x264_dct4_weight2_zigzag[h->mb.b_interlaced],
+            x264_zigzag_scan4[h->mb.b_interlaced],
+            i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, 0, 16, idx );
+
+    return quant_trellis_cavlc( h, dct,
+            h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
+            x264_dct4_weight2_zigzag[h->mb.b_interlaced],
+            x264_zigzag_scan4[h->mb.b_interlaced],
+            i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, 0, 16, idx, 0 );
 }
 
 int x264_quant_8x8_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
                             int i_qp, int b_intra, int idx )
 {
-    return quant_trellis_cabac( h, dct,
-        h->quant8_mf[i_quant_cat][i_qp], h->unquant8_mf[i_quant_cat][i_qp],
-        x264_dct8_weight2_zigzag[h->mb.b_interlaced],
-        x264_zigzag_scan8[h->mb.b_interlaced],
-        DCT_LUMA_8x8, h->mb.i_trellis_lambda2[0][b_intra], 0, 0, 64, idx );
-}
+    if( h->param.b_cabac )
+    {
+        return quant_trellis_cabac( h, dct,
+            h->quant8_mf[i_quant_cat][i_qp], h->unquant8_mf[i_quant_cat][i_qp],
+            x264_dct8_weight2_zigzag[h->mb.b_interlaced],
+            x264_zigzag_scan8[h->mb.b_interlaced],
+            DCT_LUMA_8x8, h->mb.i_trellis_lambda2[0][b_intra], 0, 0, 64, idx );
+    }
 
+    /* 8x8 CAVLC is split into 4 4x4 blocks */
+    int nzaccum = 0;
+    for( int i = 0; i < 4; i++ )
+    {
+        int nz = quant_trellis_cavlc( h, dct,
+            h->quant8_mf[i_quant_cat][i_qp], h->unquant8_mf[i_quant_cat][i_qp],
+            x264_dct8_weight2_zigzag[h->mb.b_interlaced],
+            x264_zigzag_scan8[h->mb.b_interlaced],
+            DCT_LUMA_4x4, h->mb.i_trellis_lambda2[0][b_intra], 0, 0, 16, idx*4+i, 1 );
+        /* Set up nonzero count for future calls */
+        h->mb.cache.non_zero_count[x264_scan8[idx*4+i]] = nz;
+        nzaccum |= nz;
+    }
+    return nzaccum;
+}
