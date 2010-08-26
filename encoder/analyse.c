@@ -357,7 +357,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     /* mbrd == 2 -> RD refinement */
     /* mbrd == 3 -> QPRD */
     a->i_mbrd = (subme>=6) + (subme>=8) + (h->param.analyse.i_subpel_refine>=10);
-    h->mb.b_deblock_rdo = h->param.analyse.i_subpel_refine >= 9;
+    h->mb.b_deblock_rdo = h->param.analyse.i_subpel_refine >= 9 && h->sh.i_disable_deblocking_filter_idc != 1;
 
     x264_mb_analyse_init_qp( h, a, i_qp );
 
