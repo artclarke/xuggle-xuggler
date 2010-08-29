@@ -2518,6 +2518,7 @@ static int init_pass2( x264_t *h )
     const int filter_size = (int)(qblur*4) | 1;
     double expected_bits;
     double *qscale, *blurred_qscale;
+    double base_cplx = h->mb.i_mb_count * (h->param.i_bframe ? 120 : 80);
 
     /* find total/average complexity & const_bits */
     for( int i = 0; i < rcc->num_entries; i++ )
@@ -2601,6 +2602,10 @@ static int init_pass2( x264_t *h )
         rcc->last_non_b_pict_type = -1;
         rcc->last_accum_p_norm = 1;
         rcc->accum_p_norm = 0;
+
+        rcc->last_qscale_for[0] =
+        rcc->last_qscale_for[1] =
+        rcc->last_qscale_for[2] = pow( base_cplx, 1 - rcc->qcompress ) / rate_factor;
 
         /* find qscale */
         for( int i = 0; i < rcc->num_entries; i++ )
