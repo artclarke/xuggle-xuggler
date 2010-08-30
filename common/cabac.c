@@ -850,14 +850,19 @@ void x264_cabac_encode_bypass_c( x264_cabac_t *cb, int b )
     x264_cabac_putbyte( cb );
 }
 
+static const int bypass_lut[16] =
+{
+    -1,      0x2,     0x14,     0x68,     0x1d0,     0x7a0,     0x1f40,     0x7e80,
+    0x1fd00, 0x7fa00, 0x1ff400, 0x7fe800, 0x1ffd000, 0x7ffa000, 0x1fff4000, 0x7ffe8000
+};
+
 void x264_cabac_encode_ue_bypass( x264_cabac_t *cb, int exp_bits, int val )
 {
-    int k, i;
-    for( k = exp_bits; val >= (1<<k); k++ )
-        val -= 1<<k;
-    uint32_t x = (((1<<(k-exp_bits))-1)<<(k+1))+val;
+    uint32_t v = val + (1<<exp_bits);
+    int k = 31 - x264_clz( v );
+    uint32_t x = (bypass_lut[k-exp_bits]<<exp_bits) + v;
     k = 2*k+1-exp_bits;
-    i = ((k-1)&7)+1;
+    int i = ((k-1)&7)+1;
     do {
         k -= i;
         cb->i_low <<= i;
