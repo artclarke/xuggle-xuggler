@@ -59,6 +59,7 @@ typedef struct
     int b_constraint_set0;
     int b_constraint_set1;
     int b_constraint_set2;
+    int b_constraint_set3;
 
     int i_log2_max_frame_num;
 

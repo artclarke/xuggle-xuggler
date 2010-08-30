@@ -1157,16 +1157,20 @@ x264_t *x264_encoder_open( x264_param_t *param )
                           h->sps->i_profile_idc == PROFILE_HIGH ? "High" :
                           h->sps->i_profile_idc == PROFILE_HIGH10 ? "High 10" :
                           "High 4:4:4 Predictive";
+    char level[4];
+    snprintf( level, sizeof(level), "%d.%d", h->sps->i_level_idc/10, h->sps->i_level_idc%10 );
+    if( h->sps->i_level_idc == 9 || ( h->sps->i_level_idc == 11 && h->sps->b_constraint_set3 ) )
+        strcpy( level, "1b" );
 
     if( h->sps->i_profile_idc < PROFILE_HIGH10 )
     {
-        x264_log( h, X264_LOG_INFO, "profile %s, level %d.%d\n",
-            profile, h->sps->i_level_idc/10, h->sps->i_level_idc%10 );
+        x264_log( h, X264_LOG_INFO, "profile %s, level %s\n",
+            profile, level );
     }
     else
     {
-        x264_log( h, X264_LOG_INFO, "profile %s, level %d.%d, bit depth %d\n",
-            profile, h->sps->i_level_idc/10, h->sps->i_level_idc%10, BIT_DEPTH );
+        x264_log( h, X264_LOG_INFO, "profile %s, level %s, bit depth %d\n",
+            profile, level, BIT_DEPTH );
     }
 
     return h;

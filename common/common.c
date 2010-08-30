@@ -603,7 +603,9 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->b_deterministic = atobool(value);
     OPT2("level", "level-idc")
     {
-        if( atof(value) < 6 )
+        if( !strcmp(value, "1b") )
+            p->i_level_idc = 9;
+        else if( atof(value) < 6 )
             p->i_level_idc = (int)(10*atof(value)+.5);
         else
             p->i_level_idc = atoi(value);

@@ -112,7 +112,6 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         sps->i_profile_idc  = PROFILE_MAIN;
     else
         sps->i_profile_idc  = PROFILE_BASELINE;
-    sps->i_level_idc = param->i_level_idc;
 
     sps->b_constraint_set0  = sps->i_profile_idc == PROFILE_BASELINE;
     /* x264 doesn't support the features that are in Baseline and not in Main,
@@ -120,6 +119,17 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     sps->b_constraint_set1  = sps->i_profile_idc <= PROFILE_MAIN;
     /* Never set constraint_set2, it is not necessary and not used in real world. */
     sps->b_constraint_set2  = 0;
+
+    if( param->i_level_idc == 9 && ( sps->i_profile_idc >= PROFILE_BASELINE && sps->i_profile_idc <= PROFILE_EXTENDED ) )
+    {
+        sps->b_constraint_set3 = 1; /* level 1b with Baseline, Main or Extended profile is signalled via constraint_set3 */
+        sps->i_level_idc      = 11;
+    }
+    else
+    {
+        sps->b_constraint_set3 = 0;
+        sps->i_level_idc = param->i_level_idc;
+    }
 
     sps->vui.i_num_reorder_frames = param->i_bframe_pyramid ? 2 : param->i_bframe ? 1 : 0;
     /* extra slot with pyramid so that we don't have to override the
@@ -252,8 +262,9 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
     bs_write( s, 1, sps->b_constraint_set0 );
     bs_write( s, 1, sps->b_constraint_set1 );
     bs_write( s, 1, sps->b_constraint_set2 );
+    bs_write( s, 1, sps->b_constraint_set3 );
 
-    bs_write( s, 5, 0 );    /* reserved */
+    bs_write( s, 4, 0 );    /* reserved */
 
     bs_write( s, 8, sps->i_level_idc );
 
@@ -640,7 +651,7 @@ void x264_filler_write( x264_t *h, bs_t *s, int filler )
 const x264_level_t x264_levels[] =
 {
     { 10,   1485,    99,   152064,     64,    175,  64, 64,  0, 2, 0, 0, 1 },
-//  {"1b",  1485,    99,   152064,    128,    350,  64, 64,  0, 2, 0, 0, 1 },
+    {  9,   1485,    99,   152064,    128,    350,  64, 64,  0, 2, 0, 0, 1 }, /* "1b" */
     { 11,   3000,   396,   345600,    192,    500, 128, 64,  0, 2, 0, 0, 1 },
     { 12,   6000,   396,   912384,    384,   1000, 128, 64,  0, 2, 0, 0, 1 },
     { 13,  11880,   396,   912384,    768,   2000, 128, 64,  0, 2, 0, 0, 1 },
