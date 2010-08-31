@@ -30,74 +30,89 @@ SECTION .text
 ;-----------------------------------------------------------------------------
 
 %macro NAL_LOOP 2
+%1_escape:
+    ; Detect false positive to avoid unneccessary escape loop
+    xor      r3d, r3d
+    cmp byte [r0+r1-1], 0
+    setnz    r3b
+    xor      r3d, r4d
+    jnz .escape
+    jmp %1_continue
 ALIGN 16
 %1:
-    mova      m0, [r1+r2]
-    mova      m1, m0
-%if mmsize == 8
-    psllq     m0, 8
-%else
-    pslldq    m0, 1
-%endif
-    %2   [r0+r1], m1
-    por       m1, m0
-    pcmpeqb   m1, m2
+    mova      m3, m1
+    mova      m2, m0
+    pcmpeqb   m1, m4
+    pcmpeqb   m0, m4
     pmovmskb r3d, m1
-    test     r3d, r3d
-    jnz .escape
-    add       r1, mmsize
+    %2   [r0+r1], m2
+    pmovmskb r4d, m0
+    shl      r3d, mmsize
+    mova      m0, [r1+r2+2*mmsize]
+    or       r4d, r3d
+    mova      m1, [r1+r2+3*mmsize]
+    lea      r3d, [r4+r4+1]
+    %2 [r0+r1+mmsize], m3
+    and      r4d, r3d
+    jnz %1_escape
+%1_continue:
+    add       r1, 2*mmsize
     jl %1
 %endmacro
 
 %macro NAL_ESCAPE 1
 
 cglobal nal_escape_%1, 3,5
-    pxor      m2, m2
+    mov      r3w, [r1]
     sub       r1, r2 ; r1 = offset of current src pointer from end of src
+    pxor      m4, m4
     sub       r0, r1 ; r0 = projected end of dst, assuming no more escapes
-
-    mov      r3b, [r1+r2]
-    mov  [r0+r1], r3b
-    inc       r1
+    mov  [r0+r1], r3w
+    add       r1, 2
     jge .ret
 
     ; Start off by jumping into the escape loop in
     ; case there's an escape at the start.
     ; And do a few more in scalar until src is aligned again.
-    lea      r4d, [r1+r2]
-    or       r4d, -mmsize
-    neg      r4d
     jmp .first_escape
 
     NAL_LOOP .loop_aligned, mova
 %if mmsize==16
+    jmp .ret
     NAL_LOOP .loop_unaligned, movu
 %endif
-
 .ret:
     movifnidn rax, r0
     RET
+
 ALIGN 16
 .escape:
-    mov      r4d, mmsize
-.first_escape:
-    mov      r3b, [r1+r2]
+    ; Skip bytes that are known to be valid
+    and      r4d, r3d
+    bsf      r3d, r4d
+    add       r1, r3
 .escape_loop:
-    mov  [r0+r1], r3b
-    inc      r1
+    inc       r1
     jge .ret
-    mov      r3b, [r1+r2]
-    cmp      r3b, 3
+.first_escape:
+    movzx    r3d, byte [r1+r2]
+    lea       r4, [r1+r2]
+    cmp      r3d, 3
     jna .escape_check
 .no_escape:
-    dec      r4d
-    jg .escape_loop
+    mov  [r0+r1], r3b
+    test     r4d, mmsize-1 ; Do SIMD when src is aligned
+    jnz .escape_loop
+    mova      m0, [r4]
+    mova      m1, [r4+mmsize]
 %if mmsize==16
     lea      r4d, [r0+r1]
     test     r4d, mmsize-1
     jnz .loop_unaligned
 %endif
     jmp .loop_aligned
+
+ALIGN 16
 .escape_check:
     cmp word [r0+r1-2], 0
     jnz .no_escape
