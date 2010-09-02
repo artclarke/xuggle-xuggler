@@ -1775,8 +1775,8 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_global_qp )
     {
         x264_slice_header_init( h, &h->sh, h->sps, h->pps, h->i_idr_pic_id, h->i_frame_num, i_global_qp );
 
-        /* increment id */
-        h->i_idr_pic_id = ( h->i_idr_pic_id + 1 ) % 65536;
+        /* alternate id */
+        h->i_idr_pic_id ^= 1;
     }
     else
     {
