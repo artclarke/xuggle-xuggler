@@ -3073,7 +3073,7 @@ void    x264_encoder_close  ( x264_t *h )
         const int i_count = h->stat.i_frame_count[SLICE_TYPE_I] +
                             h->stat.i_frame_count[SLICE_TYPE_P] +
                             h->stat.i_frame_count[SLICE_TYPE_B];
-        int64_t i_mb_count = i_count * h->mb.i_mb_count;
+        int64_t i_mb_count = (int64_t)i_count * h->mb.i_mb_count;
         float fps = (float) h->param.i_fps_num / h->param.i_fps_den;
         float f_bitrate;
         /* duration algorithm fails with one frame */
