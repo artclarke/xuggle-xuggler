@@ -26,8 +26,8 @@
 // quant of a whole 4x4 block, unrolled 2x and "pre-scheduled"
 #define QUANT_16_U( idx0, idx1 )                                    \
 {                                                                   \
-    temp1v = vec_ld((idx0), *dct);                                  \
-    temp2v = vec_ld((idx1), *dct);                                  \
+    temp1v = vec_ld((idx0), dct);                                   \
+    temp2v = vec_ld((idx1), dct);                                   \
     mfvA = vec_ld((idx0), mf);                                      \
     mfvB = vec_ld((idx1), mf);                                      \
     biasvA = vec_ld((idx0), bias);                                  \
@@ -51,13 +51,13 @@
     temp1v = vec_xor(temp1v, mskA);                                 \
     temp2v = vec_xor(temp2v, mskB);                                 \
     temp1v = vec_adds(temp1v, vec_and(mskA, one));                  \
-    vec_st(temp1v, (idx0), (int16_t*)dct);                          \
+    vec_st(temp1v, (idx0), dct);                                    \
     temp2v = vec_adds(temp2v, vec_and(mskB, one));                  \
     nz = vec_or(nz, vec_or(temp1v, temp2v));                        \
-    vec_st(temp2v, (idx1), (int16_t*)dct);                          \
+    vec_st(temp2v, (idx1), dct);                                    \
 }
 
-int x264_quant_4x4_altivec( int16_t dct[4][4], uint16_t mf[16], uint16_t bias[16] )
+int x264_quant_4x4_altivec( int16_t dct[16], uint16_t mf[16], uint16_t bias[16] )
 {
     LOAD_ZERO;
     vector bool short mskA;
@@ -88,8 +88,8 @@ int x264_quant_4x4_altivec( int16_t dct[4][4], uint16_t mf[16], uint16_t bias[16
 // DC quant of a whole 4x4 block, unrolled 2x and "pre-scheduled"
 #define QUANT_16_U_DC( idx0, idx1 )                                 \
 {                                                                   \
-    temp1v = vec_ld((idx0), *dct);                                  \
-    temp2v = vec_ld((idx1), *dct);                                  \
+    temp1v = vec_ld((idx0), dct);                                   \
+    temp2v = vec_ld((idx1), dct);                                   \
     mskA = vec_cmplt(temp1v, zero_s16v);                            \
     mskB = vec_cmplt(temp2v, zero_s16v);                            \
     coefvA = (vec_u16_t)vec_max(vec_sub(zero_s16v, temp1v), temp1v);\
@@ -109,13 +109,13 @@ int x264_quant_4x4_altivec( int16_t dct[4][4], uint16_t mf[16], uint16_t bias[16
     temp1v = vec_xor(temp1v, mskA);                                 \
     temp2v = vec_xor(temp2v, mskB);                                 \
     temp1v = vec_add(temp1v, vec_and(mskA, one));                   \
-    vec_st(temp1v, (idx0), (int16_t*)dct);                          \
+    vec_st(temp1v, (idx0), dct);                                    \
     temp2v = vec_add(temp2v, vec_and(mskB, one));                   \
     nz = vec_or(nz, vec_or(temp1v, temp2v));                        \
-    vec_st(temp2v, (idx1), (int16_t*)dct);                          \
+    vec_st(temp2v, (idx1), dct);                                    \
 }
 
-int x264_quant_4x4_dc_altivec( int16_t dct[4][4], int mf, int bias )
+int x264_quant_4x4_dc_altivec( int16_t dct[16], int mf, int bias )
 {
     LOAD_ZERO;
     vector bool short mskA;
@@ -154,7 +154,7 @@ int x264_quant_4x4_dc_altivec( int16_t dct[4][4], int mf, int bias )
 #define QUANT_4_U_DC( idx0 )                                        \
 {                                                                   \
     const vec_u16_t sel = (vec_u16_t) CV(-1,-1,-1,-1,0,0,0,0);      \
-    temp1v = vec_ld((idx0), *dct);                                  \
+    temp1v = vec_ld((idx0), dct);                                   \
     mskA = vec_cmplt(temp1v, zero_s16v);                            \
     coefvA = (vec_u16_t)vec_max(vec_sub(zero_s16v, temp1v), temp1v);\
     coefvA = vec_add(coefvA, biasv);                                \
@@ -167,10 +167,10 @@ int x264_quant_4x4_dc_altivec( int16_t dct[4][4], int mf, int bias )
     temp2v = vec_add(temp2v, vec_and(mskA, one));                   \
     temp1v = vec_sel(temp1v, temp2v, sel);                          \
     nz = vec_or(nz, temp1v);                                        \
-    vec_st(temp1v, (idx0), (int16_t*)dct);                          \
+    vec_st(temp1v, (idx0), dct);                                    \
 }
 
-int x264_quant_2x2_dc_altivec( int16_t dct[2][2], int mf, int bias )
+int x264_quant_2x2_dc_altivec( int16_t dct[4], int mf, int bias )
 {
     LOAD_ZERO;
     vector bool short mskA;
@@ -202,7 +202,7 @@ int x264_quant_2x2_dc_altivec( int16_t dct[2][2], int mf, int bias )
     return vec_any_ne(vec_and(nz, mask2), zero_s16v);
 }
 
-int x264_quant_8x8_altivec( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[64] )
+int x264_quant_8x8_altivec( int16_t dct[64], uint16_t mf[64], uint16_t bias[64] )
 {
     LOAD_ZERO;
     vector bool short mskA;
@@ -233,9 +233,9 @@ int x264_quant_8x8_altivec( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[64
 
 #define DEQUANT_SHL()                                                \
 {                                                                    \
-    dctv = vec_ld(0, dct[y]);                                        \
-    mf1v = vec_ld(0, dequant_mf[i_mf][y]);                           \
-    mf2v = vec_ld(16, dequant_mf[i_mf][y]);                          \
+    dctv = vec_ld(8*y, dct);                                         \
+    mf1v = vec_ld(16*y, dequant_mf[i_mf]);                           \
+    mf2v = vec_ld(16+16*y, dequant_mf[i_mf]);                        \
     mfv  = vec_packs(mf1v, mf2v);                                    \
                                                                      \
     multEvenvA = vec_mule(dctv, mfv);                                \
@@ -243,16 +243,16 @@ int x264_quant_8x8_altivec( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[64
     dctv = (vec_s16_t) vec_packs(vec_mergeh(multEvenvA, multOddvA),  \
                                  vec_mergel(multEvenvA, multOddvA)); \
     dctv = vec_sl(dctv, i_qbitsv);                                   \
-    vec_st(dctv, 0, dct[y]);                                         \
+    vec_st(dctv, 8*y, dct);                                          \
 }
 
 #define DEQUANT_SHR()                                          \
 {                                                              \
-    dctv = vec_ld(0, dct[y]);                                  \
+    dctv = vec_ld(8*y, dct);                                   \
     dct1v = vec_mergeh(dctv, dctv);                            \
     dct2v = vec_mergel(dctv, dctv);                            \
-    mf1v = vec_ld(0, dequant_mf[i_mf][y]);                     \
-    mf2v = vec_ld(16, dequant_mf[i_mf][y]);                    \
+    mf1v = vec_ld(16*y, dequant_mf[i_mf]);                     \
+    mf2v = vec_ld(16+16*y, dequant_mf[i_mf]);                  \
                                                                \
     multEvenvA = vec_mule(dct1v, (vec_s16_t)mf1v);             \
     multOddvA = vec_mulo(dct1v, (vec_s16_t)mf1v);              \
@@ -267,10 +267,10 @@ int x264_quant_8x8_altivec( int16_t dct[8][8], uint16_t mf[64], uint16_t bias[64
     temp2v = vec_sra(temp2v, i_qbitsv);                        \
                                                                \
     dctv = (vec_s16_t)vec_packs(temp1v, temp2v);               \
-    vec_st(dctv, 0, dct[y]);                                   \
+    vec_st(dctv, y*8, dct);                                    \
 }
 
-void x264_dequant_4x4_altivec( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
+void x264_dequant_4x4_altivec( int16_t dct[16], int dequant_mf[6][16], int i_qp )
 {
     int i_mf = i_qp%6;
     int i_qbits = i_qp/6 - 4;
@@ -316,7 +316,7 @@ void x264_dequant_4x4_altivec( int16_t dct[4][4], int dequant_mf[6][4][4], int i
     }
 }
 
-void x264_dequant_8x8_altivec( int16_t dct[8][8], int dequant_mf[6][8][8], int i_qp )
+void x264_dequant_8x8_altivec( int16_t dct[64], int dequant_mf[6][64], int i_qp )
 {
     int i_mf = i_qp%6;
     int i_qbits = i_qp/6 - 6;
@@ -335,7 +335,7 @@ void x264_dequant_8x8_altivec( int16_t dct[8][8], int dequant_mf[6][8][8], int i
         qbits_u.s[0]=i_qbits;
         i_qbitsv = vec_splat(qbits_u.v, 0);
 
-        for( int y = 0; y < 8; y++ )
+        for( int y = 0; y < 16; y+=2 )
             DEQUANT_SHL();
     }
     else
@@ -357,7 +357,7 @@ void x264_dequant_8x8_altivec( int16_t dct[8][8], int dequant_mf[6][8][8], int i
         sixteen_u.s[0]=16;
         sixteenv = vec_splat(sixteen_u.v, 0);
 
-        for( int y = 0; y < 8; y++ )
+        for( int y = 0; y < 16; y+=2 )
             DEQUANT_SHR();
     }
 }
