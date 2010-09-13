@@ -151,6 +151,9 @@ typedef struct x264_frame
 
     /* interactive encoder control */
     int     b_corrupt;
+
+    /* user sei */
+    x264_sei_t extra_sei;
 } x264_frame_t;
 
 /* synchronized frame list */

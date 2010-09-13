@@ -39,7 +39,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 104
+#define X264_BUILD 105
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -586,6 +586,30 @@ typedef struct
     double dpb_output_time;
 } x264_hrd_t;
 
+/* Arbitrary user SEI:
+ * Payload size is in bytes and the payload pointer must be valid.
+ * Payload types and syntax can be found in Annex D of the H.264 Specification.
+ * SEI payload alignment bits as described in Annex D must be included at the
+ * end of the payload if needed.
+ * The payload should not be NAL-encapsulated.
+ * Payloads are written first in order of input, apart from in the case when HRD
+ * is enabled where payloads are written after the Buffering Period SEI. */
+
+typedef struct
+{
+    int payload_size;
+    int payload_type;
+    uint8_t *payload;
+} x264_sei_payload_t;
+
+typedef struct
+{
+    int num_payloads;
+    x264_sei_payload_t *payloads;
+    /* In: optional callback to free each payload AND x264_sei_payload_t when used. */
+    void (*sei_free)( void* );
+} x264_sei_t;
+
 typedef struct
 {
     int     i_csp;       /* Colorspace */
@@ -645,6 +669,8 @@ typedef struct
     x264_image_properties_t prop;
     /* Out: HRD timing information. Output only when i_nal_hrd is set. */
     x264_hrd_t hrd_timing;
+    /* In: arbitrary user SEI (e.g subtitles, AFDs) */
+    x264_sei_t extra_sei;
     /* private user data. libx264 doesn't touch this,
        not even copy it from input to output frames. */
     void *opaque;

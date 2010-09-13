@@ -76,27 +76,25 @@ static void scaling_list_write( bs_t *s, x264_pps_t *pps, int idx )
     }
 }
 
-static uint8_t *x264_sei_write_header( bs_t *s, int payload_type )
+void x264_sei_write( bs_t *s, uint8_t *payload, int payload_size, int payload_type )
 {
-    bs_write( s, 8, payload_type );
+    int i;
 
-    bs_flush( s );
-    uint8_t *p_start = s->p;
     bs_realign( s );
 
-    bs_write( s, 8, 0 );
-    return p_start;
-}
+    for( i = 0; i <= payload_type-255; i += 255 )
+        bs_write( s, 8, 255 );
+    bs_write( s, 8, payload_type-i );
 
-static void x264_sei_write( bs_t *s, uint8_t *p_start )
-{
-    bs_align_10( s );
-    bs_flush( s );
+    for( i = 0; i <= payload_size-255; i += 255 )
+        bs_write( s, 8, 255 );
+    bs_write( s, 8, payload_size-i );
 
-    p_start[0] = s->p - p_start - 1; // -1 for the length byte
-    bs_realign( s );
+    for( i = 0; i < payload_size; i++ )
+        bs_write(s, 8, payload[i] );
 
     bs_rbsp_trailing( s );
+    bs_flush( s );
 }
 
 void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
@@ -545,21 +543,26 @@ void x264_pps_write( bs_t *s, x264_pps_t *pps )
 
 void x264_sei_recovery_point_write( x264_t *h, bs_t *s, int recovery_frame_cnt )
 {
-    bs_realign( s );
-    uint8_t *p_start = x264_sei_write_header( s, SEI_RECOVERY_POINT );
+    bs_t q;
+    uint8_t tmp_buf[100];
+    bs_init( &q, tmp_buf, 100 );
 
-    bs_write_ue( s, recovery_frame_cnt ); // recovery_frame_cnt
-    bs_write( s, 1, 1 ); //exact_match_flag 1
-    bs_write( s, 1, 0 ); //broken_link_flag 0
-    bs_write( s, 2, 0 ); //changing_slice_group 0
+    bs_realign( &q );
 
-    x264_sei_write( s, p_start );
-    bs_flush( s );
+    bs_write_ue( &q, recovery_frame_cnt ); // recovery_frame_cnt
+    bs_write( &q, 1, 1 ); //exact_match_flag 1
+    bs_write( &q, 1, 0 ); //broken_link_flag 0
+    bs_write( &q, 2, 0 ); //changing_slice_group 0
+
+    bs_align_10( &q );
+    bs_flush( &q );
+
+    x264_sei_write( s, tmp_buf, bs_pos( &q ) / 8, SEI_RECOVERY_POINT );
+
 }
 
 int x264_sei_version_write( x264_t *h, bs_t *s )
 {
-    int i;
     // random ID number generated according to ISO-11578
     static const uint8_t uuid[16] =
     {
@@ -567,35 +570,23 @@ int x264_sei_version_write( x264_t *h, bs_t *s )
         0x96, 0x2c, 0xd8, 0x20, 0xd9, 0x23, 0xee, 0xef
     };
     char *opts = x264_param2string( &h->param, 0 );
-    char *version;
+    char *payload;
     int length;
 
     if( !opts )
         return -1;
-    CHECKED_MALLOC( version, 200 + strlen( opts ) );
+    CHECKED_MALLOC( payload, 200 + strlen( opts ) );
 
-    sprintf( version, "x264 - core %d%s - H.264/MPEG-4 AVC codec - "
+    memcpy( payload, uuid, 16 );
+    sprintf( payload+16, "x264 - core %d%s - H.264/MPEG-4 AVC codec - "
              "Copyleft 2003-2010 - http://www.videolan.org/x264.html - options: %s",
              X264_BUILD, X264_VERSION, opts );
-    length = strlen(version)+1+16;
+    length = strlen(payload)+1;
 
-    bs_realign( s );
-    bs_write( s, 8, SEI_USER_DATA_UNREGISTERED );
-    // payload_size
-    for( i = 0; i <= length-255; i += 255 )
-        bs_write( s, 8, 255 );
-    bs_write( s, 8, length-i );
-
-    for( int j = 0; j < 16; j++ )
-        bs_write( s, 8, uuid[j] );
-    for( int j = 0; j < length-16; j++ )
-        bs_write( s, 8, version[j] );
-
-    bs_rbsp_trailing( s );
-    bs_flush( s );
+    x264_sei_write( s, (uint8_t *)payload, length, SEI_USER_DATA_UNREGISTERED );
 
     x264_free( opts );
-    x264_free( version );
+    x264_free( payload );
     return 0;
 fail:
     x264_free( opts );
@@ -605,45 +596,54 @@ fail:
 void x264_sei_buffering_period_write( x264_t *h, bs_t *s )
 {
     x264_sps_t *sps = h->sps;
-    bs_realign( s );
-    uint8_t *p_start = x264_sei_write_header( s, SEI_BUFFERING_PERIOD );
+    bs_t q;
+    uint8_t tmp_buf[100];
+    bs_init( &q, tmp_buf, 100 );
 
-    bs_write_ue( s, sps->i_id );
+    bs_realign( &q );
+    bs_write_ue( &q, sps->i_id );
 
     if( sps->vui.b_nal_hrd_parameters_present )
     {
-        bs_write( s, sps->vui.hrd.i_initial_cpb_removal_delay_length, h->initial_cpb_removal_delay );
-        bs_write( s, sps->vui.hrd.i_initial_cpb_removal_delay_length, h->initial_cpb_removal_delay_offset );
+        bs_write( &q, sps->vui.hrd.i_initial_cpb_removal_delay_length, h->initial_cpb_removal_delay );
+        bs_write( &q, sps->vui.hrd.i_initial_cpb_removal_delay_length, h->initial_cpb_removal_delay_offset );
     }
 
-    x264_sei_write( s, p_start );
-    bs_flush( s );
+    bs_align_10( &q );
+    bs_flush( &q );
+
+    x264_sei_write( s, tmp_buf, bs_pos( &q ) / 8, SEI_BUFFERING_PERIOD );
 }
 
 void x264_sei_pic_timing_write( x264_t *h, bs_t *s )
 {
     x264_sps_t *sps = h->sps;
-    bs_realign( s );
-    uint8_t *p_start = x264_sei_write_header( s, SEI_PIC_TIMING );
+    bs_t q;
+    uint8_t tmp_buf[100];
+    bs_init( &q, tmp_buf, 100 );
+
+    bs_realign( &q );
 
     if( sps->vui.b_nal_hrd_parameters_present || sps->vui.b_vcl_hrd_parameters_present )
     {
-        bs_write( s, sps->vui.hrd.i_cpb_removal_delay_length, h->fenc->i_cpb_delay );
-        bs_write( s, sps->vui.hrd.i_dpb_output_delay_length, h->fenc->i_dpb_output_delay );
+        bs_write( &q, sps->vui.hrd.i_cpb_removal_delay_length, h->fenc->i_cpb_delay );
+        bs_write( &q, sps->vui.hrd.i_dpb_output_delay_length, h->fenc->i_dpb_output_delay );
     }
 
     if( sps->vui.b_pic_struct_present )
     {
-        bs_write( s, 4, h->fenc->i_pic_struct-1 ); // We use index 0 for "Auto"
+        bs_write( &q, 4, h->fenc->i_pic_struct-1 ); // We use index 0 for "Auto"
 
         // These clock timestamps are not standardised so we don't set them
         // They could be time of origin, capture or alternative ideal display
         for( int i = 0; i < num_clock_ts[h->fenc->i_pic_struct]; i++ )
-            bs_write1( s, 0 ); // clock_timestamp_flag
+            bs_write1( &q, 0 ); // clock_timestamp_flag
     }
 
-    x264_sei_write( s, p_start );
-    bs_flush( s );
+    bs_align_10( &q );
+    bs_flush( &q );
+
+    x264_sei_write( s, tmp_buf, bs_pos( &q ) / 8, SEI_PIC_TIMING );
 }
 
 void x264_filler_write( x264_t *h, bs_t *s, int filler )
