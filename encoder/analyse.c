@@ -83,6 +83,7 @@ typedef struct
     /* Take some shortcuts in intra search if intra is deemed unlikely */
     int b_fast_intra;
     int b_force_intra; /* For Periodic Intra Refresh.  Only supported in P-frames. */
+    int b_avoid_topright; /* For Periodic Intra Refresh: don't predict from top-right pixels. */
     int b_try_skip;
 
     /* Luma part */
@@ -500,9 +501,13 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
         {
             a->b_force_intra = 1;
             a->b_fast_intra = 0;
+            a->b_avoid_topright = h->mb.i_mb_x == h->fdec->i_pir_end_col;
         }
         else
+        {
             a->b_force_intra = 0;
+            a->b_avoid_topright = 0;
+        }
     }
 }
 
@@ -527,15 +532,23 @@ static const int8_t i8x8chroma_mode_available[5][5] =
     {I_PRED_CHROMA_V, I_PRED_CHROMA_H, I_PRED_CHROMA_DC, I_PRED_CHROMA_P, -1},
 };
 
-static const int8_t i4x4_mode_available[5][10] =
+static const int8_t i4x4_mode_available[2][5][10] =
 {
-    {I_PRED_4x4_DC_128, -1, -1, -1, -1, -1, -1, -1, -1, -1},
-    {I_PRED_4x4_DC_LEFT, I_PRED_4x4_H, I_PRED_4x4_HU, -1, -1, -1, -1, -1, -1, -1},
-    {I_PRED_4x4_DC_TOP, I_PRED_4x4_V, I_PRED_4x4_DDL, I_PRED_4x4_VL, -1, -1, -1, -1, -1, -1},
-    {I_PRED_4x4_DC, I_PRED_4x4_H, I_PRED_4x4_V, I_PRED_4x4_DDL, I_PRED_4x4_VL, I_PRED_4x4_HU, -1, -1, -1, -1},
-    {I_PRED_4x4_DC, I_PRED_4x4_H, I_PRED_4x4_V, I_PRED_4x4_DDL, I_PRED_4x4_DDR, I_PRED_4x4_VR, I_PRED_4x4_HD, I_PRED_4x4_VL, I_PRED_4x4_HU, -1},
+    {
+        {I_PRED_4x4_DC_128, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {I_PRED_4x4_DC_LEFT, I_PRED_4x4_H, I_PRED_4x4_HU, -1, -1, -1, -1, -1, -1, -1},
+        {I_PRED_4x4_DC_TOP, I_PRED_4x4_V, I_PRED_4x4_DDL, I_PRED_4x4_VL, -1, -1, -1, -1, -1, -1},
+        {I_PRED_4x4_DC, I_PRED_4x4_H, I_PRED_4x4_V, I_PRED_4x4_DDL, I_PRED_4x4_VL, I_PRED_4x4_HU, -1, -1, -1, -1},
+        {I_PRED_4x4_DC, I_PRED_4x4_H, I_PRED_4x4_V, I_PRED_4x4_DDL, I_PRED_4x4_DDR, I_PRED_4x4_VR, I_PRED_4x4_HD, I_PRED_4x4_VL, I_PRED_4x4_HU, -1},
+    },
+    {
+        {I_PRED_4x4_DC_128, -1, -1, -1, -1, -1, -1, -1, -1, -1},
+        {I_PRED_4x4_DC_LEFT, I_PRED_4x4_H, I_PRED_4x4_HU, -1, -1, -1, -1, -1, -1, -1},
+        {I_PRED_4x4_DC_TOP, I_PRED_4x4_V, -1, -1, -1, -1, -1, -1, -1, -1},
+        {I_PRED_4x4_DC, I_PRED_4x4_H, I_PRED_4x4_V, I_PRED_4x4_HU, -1, -1, -1, -1, -1, -1},
+        {I_PRED_4x4_DC, I_PRED_4x4_H, I_PRED_4x4_V, I_PRED_4x4_DDR, I_PRED_4x4_VR, I_PRED_4x4_HD, I_PRED_4x4_HU, -1},
+    }
 };
-
 static ALWAYS_INLINE const int8_t *predict_16x16_mode_available( int i_neighbour )
 {
     int idx = i_neighbour & (MB_TOP|MB_LEFT|MB_TOPLEFT);
@@ -548,10 +561,18 @@ static ALWAYS_INLINE const int8_t *predict_8x8chroma_mode_available( int i_neigh
     return i8x8chroma_mode_available[(idx&MB_TOPLEFT)?4:idx];
 }
 
-static ALWAYS_INLINE const int8_t *predict_4x4_mode_available( int i_neighbour )
+static ALWAYS_INLINE const int8_t *predict_8x8_mode_available( int force_intra, int i_neighbour, int i )
 {
+    int avoid_topright = force_intra && (i&4);
     int idx = i_neighbour & (MB_TOP|MB_LEFT|MB_TOPLEFT);
-    return i4x4_mode_available[(idx&MB_TOPLEFT)?4:idx];
+    return i4x4_mode_available[avoid_topright][(idx&MB_TOPLEFT)?4:idx];
+}
+
+static ALWAYS_INLINE const int8_t *predict_4x4_mode_available( int force_intra, int i_neighbour, int i )
+{
+    int avoid_topright = force_intra && ((i&5) == 5);
+    int idx = i_neighbour & (MB_TOP|MB_LEFT|MB_TOPLEFT);
+    return i4x4_mode_available[avoid_topright][(idx&MB_TOPLEFT)?4:idx];
 }
 
 /* For trellis=2, we need to do this for both sizes of DCT, for trellis=1 we only need to use it on the chosen mode. */
@@ -639,11 +660,17 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     const unsigned int flags = h->sh.i_type == SLICE_TYPE_I ? h->param.analyse.intra : h->param.analyse.inter;
     pixel *p_src = h->mb.pic.p_fenc[0];
     pixel *p_dst = h->mb.pic.p_fdec[0];
-    static const int8_t intra_analysis_shortcut[2][2][5] =
-    {{{I_PRED_4x4_HU, -1},
-      {I_PRED_4x4_DDL, I_PRED_4x4_VL, -1}},
-     {{I_PRED_4x4_DDR, I_PRED_4x4_HD, I_PRED_4x4_HU, -1},
-      {I_PRED_4x4_DDL, I_PRED_4x4_DDR, I_PRED_4x4_VR, I_PRED_4x4_VL, -1}}};
+    static const int8_t intra_analysis_shortcut[2][2][2][5] =
+    {
+        {{{I_PRED_4x4_HU, -1, -1, -1, -1},
+          {I_PRED_4x4_DDL, I_PRED_4x4_VL, -1, -1, -1}},
+         {{I_PRED_4x4_DDR, I_PRED_4x4_HD, I_PRED_4x4_HU, -1, -1},
+          {I_PRED_4x4_DDL, I_PRED_4x4_DDR, I_PRED_4x4_VR, I_PRED_4x4_VL, -1}}},
+         {{{I_PRED_4x4_HU, -1, -1, -1, -1},
+          {-1, -1, -1, -1, -1}},
+         {{I_PRED_4x4_DDR, I_PRED_4x4_HD, I_PRED_4x4_HU, -1, -1},
+          {I_PRED_4x4_DDR, I_PRED_4x4_VR, -1, -1, -1}}},
+    };
 
     int idx;
     int lambda = a->i_lambda;
@@ -725,7 +752,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
             int i_best = COST_MAX;
             int i_pred_mode = x264_mb_predict_intra4x4_mode( h, 4*idx );
 
-            predict_mode = predict_4x4_mode_available( h->mb.i_neighbour8[idx] );
+            predict_mode = predict_8x8_mode_available( a->b_avoid_topright, h->mb.i_neighbour8[idx], idx );
             h->predict_8x8_filter( p_dst_by, edge, h->mb.i_neighbour8[idx], ALL_NEIGHBORS );
 
             if( !h->mb.b_lossless && predict_mode[5] >= 0 )
@@ -744,7 +771,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
                 /* Take analysis shortcuts: don't analyse modes that are too
                  * far away direction-wise from the favored mode. */
                 if( a->i_mbrd < 1 + a->b_fast_intra )
-                    predict_mode = intra_analysis_shortcut[predict_mode[8] >= 0][favor_vertical];
+                    predict_mode = intra_analysis_shortcut[a->b_avoid_topright][predict_mode[8] >= 0][favor_vertical];
                 else
                     predict_mode += 3;
             }
@@ -825,7 +852,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
             int i_best = COST_MAX;
             int i_pred_mode = x264_mb_predict_intra4x4_mode( h, idx );
 
-            predict_mode = predict_4x4_mode_available( h->mb.i_neighbour4[idx] );
+            predict_mode = predict_4x4_mode_available( a->b_avoid_topright, h->mb.i_neighbour4[idx], idx );
 
             if( (h->mb.i_neighbour4[idx] & (MB_TOPRIGHT|MB_TOP)) == MB_TOP )
                 /* emulate missing topright samples */
@@ -843,7 +870,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
                 /* Take analysis shortcuts: don't analyse modes that are too
                  * far away direction-wise from the favored mode. */
                 if( a->i_mbrd < 1 + a->b_fast_intra )
-                    predict_mode = intra_analysis_shortcut[predict_mode[8] >= 0][favor_vertical];
+                    predict_mode = intra_analysis_shortcut[a->b_avoid_topright][predict_mode[8] >= 0][favor_vertical];
                 else
                     predict_mode += 3;
             }
@@ -1013,7 +1040,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
             pixel *p_dst_by = p_dst + block_idx_xy_fdec[idx];
             i_best = COST_MAX64;
 
-            predict_mode = predict_4x4_mode_available( h->mb.i_neighbour4[idx] );
+            predict_mode = predict_4x4_mode_available( a->b_avoid_topright, h->mb.i_neighbour4[idx], idx );
 
             if( (h->mb.i_neighbour4[idx] & (MB_TOPRIGHT|MB_TOP)) == MB_TOP )
                 /* emulate missing topright samples */
@@ -1067,7 +1094,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
             int s8 = X264_SCAN8_0 + 2*x + 16*y;
 
             p_dst_by = p_dst + 8*x + 8*y*FDEC_STRIDE;
-            predict_mode = predict_4x4_mode_available( h->mb.i_neighbour8[idx] );
+            predict_mode = predict_8x8_mode_available( a->b_avoid_topright, h->mb.i_neighbour8[idx], idx );
             h->predict_8x8_filter( p_dst_by, edge, h->mb.i_neighbour8[idx], ALL_NEIGHBORS );
 
             for( ; *predict_mode >= 0; predict_mode++ )
