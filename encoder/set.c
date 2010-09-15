@@ -99,7 +99,8 @@ static void x264_sei_write( bs_t *s, uint8_t *p_start )
 void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 {
     sps->i_id = i_id;
-    int max_frame_num;
+    sps->i_mb_width = ( param->i_width + 15 ) / 16;
+    sps->i_mb_height= ( param->i_height + 15 ) / 16;
 
     sps->b_qpprime_y_zero_transform_bypass = param->rc.i_rc_method == X264_RC_CQP && param->rc.i_qp_constant == 0;
     if( sps->b_qpprime_y_zero_transform_bypass )
@@ -140,7 +141,14 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     sps->i_num_ref_frames -= param->i_bframe_pyramid == X264_B_PYRAMID_STRICT;
 
     /* number of refs + current frame */
-    max_frame_num = sps->vui.i_max_dec_frame_buffering * (!!param->i_bframe_pyramid+1) + 1;
+    int max_frame_num = sps->vui.i_max_dec_frame_buffering * (!!param->i_bframe_pyramid+1) + 1;
+    /* Intra refresh cannot write a recovery time greater than max frame num-1 */
+    if( param->b_intra_refresh )
+    {
+        int time_to_recovery = X264_MIN( sps->i_mb_width - 1, param->i_keyint_max ) + param->i_bframe - 1;
+        max_frame_num = X264_MAX( max_frame_num, time_to_recovery+1 );
+    }
+
     sps->i_log2_max_frame_num = 4;
     while( (1 << sps->i_log2_max_frame_num) <= max_frame_num )
         sps->i_log2_max_frame_num++;
@@ -172,8 +180,6 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     sps->b_vui = 1;
 
     sps->b_gaps_in_frame_num_value_allowed = 0;
-    sps->i_mb_width = ( param->i_width + 15 ) / 16;
-    sps->i_mb_height= ( param->i_height + 15 ) / 16;
     sps->b_frame_mbs_only = !(param->b_interlaced || param->b_fake_interlaced);
     if( !sps->b_frame_mbs_only )
         sps->i_mb_height = ( sps->i_mb_height + 1 ) & ~1;
