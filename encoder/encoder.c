@@ -2576,6 +2576,9 @@ int     x264_encoder_encode( x264_t *h,
             h->fdec->i_pir_start_col = h->fdec->f_pir_position+0.5;
             h->fdec->f_pir_position += increment * pocdiff;
             h->fdec->i_pir_end_col = h->fdec->f_pir_position+0.5;
+            /* If our intra refresh has reached the right side of the frame, we're done. */
+            if( h->fdec->i_pir_end_col >= h->mb.i_mb_width - 1 )
+                h->fdec->f_pir_position = h->mb.i_mb_width;
         }
     }
 
