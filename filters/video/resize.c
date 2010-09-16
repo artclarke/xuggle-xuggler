@@ -359,7 +359,7 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
 
     h->ctx_flags = convert_cpu_to_flag( param->cpu ) | method;
     if( method != SWS_FAST_BILINEAR )
-        h->ctx_flags |= SWS_FULL_CHR_H_INT | SWS_ACCURATE_RND;
+        h->ctx_flags |= SWS_FULL_CHR_H_INT | SWS_FULL_CHR_H_INP | SWS_ACCURATE_RND;
     h->dst.pix_fmt = convert_csp_to_pix_fmt( h->dst_csp );
     h->scale = h->dst;
     /* swap chroma planes for yv12 to have it become i420 */
