@@ -11,6 +11,7 @@ echo "  --disable-avs            disables avisynth support (windows only)"
 echo "  --disable-lavf           disables libavformat support"
 echo "  --disable-ffms           disables ffmpegsource support"
 echo "  --disable-gpac           disables gpac support"
+echo "  --disable-gpl            disables GPL-only features"
 echo "  --disable-pthread        disables multithreaded encoding"
 echo "  --disable-swscale        disables swscale support"
 echo "  --disable-asm            disables platform-specific assembly optimizations"
@@ -138,6 +139,7 @@ avs="auto"
 lavf="auto"
 ffms="auto"
 gpac="auto"
+gpl="yes"
 pthread="auto"
 swscale="auto"
 asm="auto"
@@ -191,6 +193,9 @@ for opt do
             ;;
         --disable-gpac)
             gpac="no"
+            ;;
+        --disable-gpl)
+            gpl="no"
             ;;
         --extra-asflags=*)
             ASFLAGS="$ASFLAGS ${opt#--extra-asflags=}"
@@ -709,6 +714,12 @@ fi
 
 define BIT_DEPTH $bit_depth
 
+if [ $gpl = yes ]; then
+    define HAVE_GPL 1
+else
+    define HAVE_GPL 0
+fi
+
 rm -f conftest*
 
 # generate config files
@@ -734,6 +745,7 @@ EXE=$EXE
 VIS=$vis
 HAVE_GETOPT_LONG=$HAVE_GETOPT_LONG
 DEVNULL=$DEVNULL
+GPL=$gpl
 EOF
 
 if [ "$shared" = "yes" ]; then
@@ -776,7 +788,9 @@ Cflags: -I$includedir
 EOF
 
 filters="crop select_every"
+gpl_filters=""
 [ $swscale = yes ] && filters="resize $filters"
+[ $gpl = yes ] && filters="$filters $gpl_filters"
 
 cat > conftest.log <<EOF
 Platform:   $ARCH
@@ -786,6 +800,7 @@ avs:        $avs
 lavf:       $lavf
 ffms:       $ffms
 gpac:       $gpac
+gpl:        $gpl
 pthread:    $pthread
 filters:    $filters
 debug:      $debug

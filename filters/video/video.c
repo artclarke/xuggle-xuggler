@@ -51,6 +51,8 @@ void x264_register_vid_filters()
     REGISTER_VFILTER( fix_vfr_pts );
     REGISTER_VFILTER( resize );
     REGISTER_VFILTER( select_every );
+#if HAVE_GPL
+#endif
 }
 
 int x264_init_vid_filter( const char *name, hnd_t *handle, cli_vid_filter_t *filter,

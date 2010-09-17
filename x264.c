@@ -49,6 +49,8 @@
 #endif
 
 #if HAVE_LAVF
+#undef DECLARE_ALIGNED
+#include <libavformat/avformat.h>
 #include <libavutil/pixfmt.h>
 #include <libavutil/pixdesc.h>
 #endif
@@ -197,6 +199,36 @@ void x264_cli_printf( int i_level, const char *fmt, ... )
     va_start( arg, fmt );
     vfprintf( stderr, fmt, arg );
     va_end( arg );
+}
+
+static void print_version_info()
+{
+#ifdef X264_POINTVER
+    printf( "x264 "X264_POINTVER"\n" );
+#else
+    printf( "x264 0.%d.X\n", X264_BUILD );
+#endif
+    printf( "built on " __DATE__ ", " );
+#ifdef __GNUC__
+    printf( "gcc: " __VERSION__ "\n" );
+#else
+    printf( "using a non-gcc compiler\n" );
+#endif
+    printf( "configuration: --bit-depth=%d\n", BIT_DEPTH );
+    printf( "x264 license: " );
+#if HAVE_GPL
+    printf( "GPL version 2 or later\n" );
+#else
+    printf( "Non-GPL commercial\n" );
+#endif
+#if HAVE_LAVF
+    const char *license = avformat_license();
+    printf( "libavformat license: %s\n", license );
+    if( !strcmp( license, "nonfree and unredistributable" ) ||
+       (!HAVE_GPL && (!strcmp( license, "GPL version 2 or later" )
+                  ||  !strcmp( license, "GPL version 3 or later" ))))
+        printf( "WARNING: This binary is unredistributable!\n" );
+#endif
 }
 
 /****************************************************************************
@@ -1153,18 +1185,7 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
                 Help( &defaults, 2 );
                 exit(0);
             case 'V':
-#ifdef X264_POINTVER
-                printf( "x264 "X264_POINTVER"\n" );
-#else
-                printf( "x264 0.%d.X\n", X264_BUILD );
-#endif
-                printf( "built on " __DATE__ ", " );
-#ifdef __GNUC__
-                printf( "gcc: " __VERSION__ "\n" );
-#else
-                printf( "using a non-gcc compiler\n" );
-#endif
-                printf( "configuration: --bit-depth=%d\n", BIT_DEPTH );
+                print_version_info();
                 exit(0);
             case OPT_FRAMES:
                 param->i_frame_total = X264_MAX( atoi( optarg ), 0 );
