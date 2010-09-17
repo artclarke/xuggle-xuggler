@@ -1,7 +1,9 @@
 /*****************************************************************************
- * dct.h: h264 encoder library
+ * dct.h: transform and zigzag
  *****************************************************************************
- * Copyright (C) 2004-2008 Loren Merritt <lorenm@u.washington.edu>
+ * Copyright (C) 2004-2010 x264 project
+ *
+ * Authors: Loren Merritt <lorenm@u.washington.edu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +18,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #ifndef X264_DCT_H

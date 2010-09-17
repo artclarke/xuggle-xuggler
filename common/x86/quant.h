@@ -1,10 +1,11 @@
 /*****************************************************************************
- * quant.h: h264 encoder library
+ * quant.h: x86 quantization and level-run
  *****************************************************************************
- * Copyright (C) 2005-2008 x264 project
+ * Copyright (C) 2005-2010 x264 project
  *
- * Authors: Christian Heine <sennindemokrit@gmx.net>
- *          Loren Merritt <lorenm@u.washington.edu>
+ * Authors: Loren Merritt <lorenm@u.washington.edu>
+ *          Jason Garrett-Glaser <darkshikari@gmail.com>
+ *          Christian Heine <sennindemokrit@gmx.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +20,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #ifndef X264_I386_QUANT_H

@@ -1,8 +1,7 @@
 /*****************************************************************************
- * lookahead.c: Lookahead slicetype decisions for x264
+ * lookahead.c: high-level lookahead functions
  *****************************************************************************
- * Lookahead.c and associated modifications:
- *     Copyright (C) 2008 Avail Media
+ * Copyright (C) 2010 Avail Media and x264 project
  *
  * Authors: Michael Kazmier <mkazmier@availmedia.com>
  *          Alex Giladi <agiladi@availmedia.com>
@@ -20,7 +19,10 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 /* LOOKAHEAD (threaded and non-threaded mode)

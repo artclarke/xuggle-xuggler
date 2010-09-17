@@ -1,10 +1,11 @@
 ;*****************************************************************************
-;* x86inc.asm
+;* x86inc.asm: x264asm abstraction layer
 ;*****************************************************************************
-;* Copyright (C) 2005-2008 x264 project
+;* Copyright (C) 2005-2010 x264 project
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
 ;*          Anton Mitrofanov <BugMaster@narod.ru>
+;*          Jason Garrett-Glaser <darkshikari@gmail.com>
 ;*
 ;* Permission to use, copy, modify, and/or distribute this software for any
 ;* purpose with or without fee is hereby granted, provided that the above
