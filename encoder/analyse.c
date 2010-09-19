@@ -378,6 +378,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
     a->i_satd_pcm = !h->mb.i_psy_rd && a->i_mbrd ? ((uint64_t)X264_PCM_COST*a->i_lambda2 + 128) >> 8 : COST_MAX;
 
     a->b_fast_intra = 0;
+    a->b_avoid_topright = 0;
     h->mb.i_skip_intra =
         h->mb.b_lossless ? 0 :
         a->i_mbrd ? 2 :
@@ -507,10 +508,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int i_qp )
             a->b_avoid_topright = h->mb.i_mb_x == h->fdec->i_pir_end_col;
         }
         else
-        {
             a->b_force_intra = 0;
-            a->b_avoid_topright = 0;
-        }
     }
 }
 
@@ -669,7 +667,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
           {I_PRED_4x4_DDL, I_PRED_4x4_VL, -1, -1, -1}},
          {{I_PRED_4x4_DDR, I_PRED_4x4_HD, I_PRED_4x4_HU, -1, -1},
           {I_PRED_4x4_DDL, I_PRED_4x4_DDR, I_PRED_4x4_VR, I_PRED_4x4_VL, -1}}},
-         {{{I_PRED_4x4_HU, -1, -1, -1, -1},
+        {{{I_PRED_4x4_HU, -1, -1, -1, -1},
           {-1, -1, -1, -1, -1}},
          {{I_PRED_4x4_DDR, I_PRED_4x4_HD, I_PRED_4x4_HU, -1, -1},
           {I_PRED_4x4_DDR, I_PRED_4x4_VR, -1, -1, -1}}},
