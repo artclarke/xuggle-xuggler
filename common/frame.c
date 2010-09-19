@@ -295,15 +295,18 @@ int x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
 static void ALWAYS_INLINE pixel_memset( pixel *dst, pixel *src, int len, int size )
 {
     uint8_t *dstp = (uint8_t*)dst;
-    if(size == 1) {
+    if( size == 1 )
         memset(dst, *src, len);
-    } else if(size == 2) {
+    else if( size == 2 )
+    {
         int v = M16( src );
-        for(int i=0; i<len; i++)
+        for( int i = 0; i < len; i++ )
             M16( dstp+i*2 ) = v;
-    } else if(size == 4) {
+    }
+    else if( size == 4 )
+    {
         int v = M32( src );
-        for(int i=0; i<len; i++)
+        for( int i = 0; i < len; i++ )
             M32( dstp+i*4 ) = v;
     }
 }
