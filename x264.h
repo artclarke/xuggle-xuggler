@@ -653,7 +653,7 @@ typedef struct
     int     b_keyframe;
     /* In: user pts, Out: pts of encoded picture (user)*/
     int64_t i_pts;
-    /* Out: frame dts. Since the pts of the first frame is always zero,
+    /* Out: frame dts. When the pts of the first frame is close to zero,
      *      initial frames may have a negative dts which must be dealt with by any muxer */
     int64_t i_dts;
     /* In: custom encoding parameters to be set from this frame forwards

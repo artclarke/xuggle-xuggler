@@ -1584,7 +1584,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     int64_t second_largest_pts = -1;
     int64_t ticks_per_frame;
     double  duration;
-    int     prev_timebase_den = param->i_timebase_den / gcd( param->i_timebase_num, param->i_timebase_den );
+    int     prev_timebase_den;
     int     dts_compress_multiplier;
     double  pulldown_pts = 0;
 
@@ -1602,6 +1602,8 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
                        "unsupported framerate for chosen pulldown\n" )
         param->i_timebase_den = param->i_fps_num * pulldown->fps_factor;
     }
+
+    prev_timebase_den = param->i_timebase_den / gcd( param->i_timebase_num, param->i_timebase_den );
 
     if( ( h = x264_encoder_open( param ) ) == NULL )
     {
@@ -1727,6 +1729,8 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     if( pts_warning_cnt >= MAX_PTS_WARNING && cli_log_level < X264_LOG_DEBUG )
         x264_cli_log( "x264", X264_LOG_WARNING, "%d suppressed nonmonotonic pts warnings\n", pts_warning_cnt-MAX_PTS_WARNING );
 
+    largest_pts *= dts_compress_multiplier;
+    second_largest_pts *= dts_compress_multiplier;
     /* duration algorithm fails when only 1 frame is output */
     if( i_frame_output == 1 )
         duration = (double)param->i_fps_den / param->i_fps_num;
@@ -1734,8 +1738,6 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         duration = (double)(2 * last_dts - prev_dts - first_dts) * param->i_timebase_num / param->i_timebase_den;
     else
         duration = (double)(2 * largest_pts - second_largest_pts) * param->i_timebase_num / param->i_timebase_den;
-    if( !(opt->i_pulldown && !param->b_vfr_input) )
-        duration *= dts_compress_multiplier;
 
     i_end = x264_mdate();
     /* Erase progress indicator before printing encoding stats. */
@@ -1754,7 +1756,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     }
 
     filter.free( opt->hin );
-    output.close_file( opt->hout, largest_pts * dts_compress_multiplier, second_largest_pts * dts_compress_multiplier );
+    output.close_file( opt->hout, largest_pts, second_largest_pts );
 
     if( i_frame_output > 0 )
     {

@@ -2329,8 +2329,10 @@ int     x264_encoder_encode( x264_t *h,
 
         fenc->i_frame = h->frames.i_input++;
 
+        if( fenc->i_frame == 0 )
+            h->frames.i_first_pts = fenc->i_pts;
         if( h->frames.i_bframe_delay && fenc->i_frame == h->frames.i_bframe_delay )
-            h->frames.i_bframe_delay_time = fenc->i_pts;
+            h->frames.i_bframe_delay_time = fenc->i_pts - h->frames.i_first_pts;
 
         if( h->param.b_vfr_input && fenc->i_pts <= h->frames.i_largest_pts )
             x264_log( h, X264_LOG_WARNING, "non-strictly-monotonic PTS\n" );
@@ -2495,8 +2497,8 @@ int     x264_encoder_encode( x264_t *h,
             {
                 /* DTS compression */
                 if( h->i_frame == 1 )
-                    thread_current->frames.i_init_delta = h->fenc->i_reordered_pts * h->i_dts_compress_multiplier;
-                h->fdec->i_dts = h->i_frame * thread_current->frames.i_init_delta / h->i_dts_compress_multiplier;
+                    thread_current->frames.i_init_delta = (h->fenc->i_reordered_pts - h->frames.i_first_pts) * h->i_dts_compress_multiplier;
+                h->fdec->i_dts = h->i_frame * thread_current->frames.i_init_delta / h->i_dts_compress_multiplier + h->frames.i_first_pts * h->i_dts_compress_multiplier;
             }
         }
         else
@@ -3110,7 +3112,8 @@ void    x264_encoder_close  ( x264_t *h )
             f_bitrate = fps * SUM3(h->stat.i_frame_size) / i_count / 125;
         else
         {
-            float duration = (float)(2 * h->frames.i_largest_pts - h->frames.i_second_largest_pts) * h->param.i_timebase_num / h->param.i_timebase_den;
+            float duration = (float)(2 * h->frames.i_largest_pts - h->frames.i_second_largest_pts - h->frames.i_first_pts)
+                           * h->i_dts_compress_multiplier * h->param.i_timebase_num / h->param.i_timebase_den;
             f_bitrate = SUM3(h->stat.i_frame_size) / duration / 125;
         }
 

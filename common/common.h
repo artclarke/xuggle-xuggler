@@ -499,6 +499,7 @@ struct x264_t
         int i_delay;    /* Number of frames buffered for B reordering */
         int     i_bframe_delay;
         int64_t i_bframe_delay_time;
+        int64_t i_first_pts;
         int64_t i_init_delta;
         int64_t i_prev_reordered_pts[2];
         int64_t i_largest_pts;
