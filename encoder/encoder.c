@@ -1834,10 +1834,12 @@ static int x264_slice_write( x264_t *h )
     uint8_t cabac_prevbyte_bak = 0; /* Shut up GCC. */
     int mv_bits_bak = 0;
     int tex_bits_bak = 0;
-    /* Assume no more than 3 bytes of NALU escaping.
-     * NALUs other than the first use a 3-byte startcode. */
-    int overhead_guess = (NALU_OVERHEAD - (h->param.b_annexb && h->out.i_nal)) + 3;
-    int slice_max_size = h->param.i_slice_max_size > 0 ? (h->param.i_slice_max_size-overhead_guess)*8 : INT_MAX;
+    /* NALUs other than the first use a 3-byte startcode.
+     * Add one extra byte for the rbsp, and one more for the final CABAC putbyte.
+     * Then add an extra 5 bytes just in case, to account for random NAL escapes and
+     * other inaccuracies. */
+    int overhead_guess = (NALU_OVERHEAD - (h->param.b_annexb && h->out.i_nal)) + 1 + h->param.b_cabac + 5;
+    int slice_max_size = h->param.i_slice_max_size > 0 ? (h->param.i_slice_max_size-overhead_guess)*8 : 0;
     int starting_bits = bs_pos(&h->out.bs);
     int b_deblock = h->sh.i_disable_deblocking_filter_idc != 1;
     int b_hpel = h->fdec->b_kept_as_ref;
@@ -1884,7 +1886,7 @@ static int x264_slice_write( x264_t *h )
         if( x264_bitstream_check_buffer( h ) )
             return -1;
 
-        if( h->param.i_slice_max_size > 0 )
+        if( slice_max_size )
         {
             mv_bits_bak = h->stat.frame.i_mv_bits;
             tex_bits_bak = h->stat.frame.i_tex_bits;
@@ -1948,35 +1950,50 @@ static int x264_slice_write( x264_t *h )
         int total_bits = bs_pos(&h->out.bs) + x264_cabac_pos(&h->cabac);
         int mb_size = total_bits - mb_spos;
 
-        /* We'll just re-encode this last macroblock if we go over the max slice size. */
-        if( total_bits - starting_bits > slice_max_size && !h->mb.b_reencode_mb )
+        if( slice_max_size )
         {
-            if( mb_xy != h->sh.i_first_mb )
+            /* Count the skip run, just in case. */
+            if( !h->param.b_cabac )
+                total_bits += bs_size_ue_big( i_skip );
+            /* HACK: we assume no more than 3 bytes of NALU escaping, but
+             * this can fail in CABAC streams with an extremely large number of identical
+             * blocks in sequence (e.g. all-black intra blocks).
+             * Thus, every 64 blocks, pretend we've used a byte.
+             * For reference, a seqeuence of identical empty-CBP i16x16 blocks will use
+             * one byte after 26 macroblocks, assuming a perfectly adapted CABAC.
+             * That's 78 macroblocks to generate the 3-byte sequence to trigger an escape. */
+            else if( ((mb_xy - h->sh.i_first_mb) & 63) == 63 )
+                slice_max_size -= 8;
+            /* We'll just re-encode this last macroblock if we go over the max slice size. */
+            if( total_bits - starting_bits > slice_max_size && !h->mb.b_reencode_mb )
             {
-                h->stat.frame.i_mv_bits = mv_bits_bak;
-                h->stat.frame.i_tex_bits = tex_bits_bak;
-                if( h->param.b_cabac )
+                if( mb_xy != h->sh.i_first_mb )
                 {
-                    memcpy( &h->cabac, &cabac_bak, offsetof(x264_cabac_t, f8_bits_encoded) );
-                    h->cabac.p[-1] = cabac_prevbyte_bak;
+                    h->stat.frame.i_mv_bits = mv_bits_bak;
+                    h->stat.frame.i_tex_bits = tex_bits_bak;
+                    if( h->param.b_cabac )
+                    {
+                        memcpy( &h->cabac, &cabac_bak, offsetof(x264_cabac_t, f8_bits_encoded) );
+                        h->cabac.p[-1] = cabac_prevbyte_bak;
+                    }
+                    else
+                    {
+                        h->out.bs = bs_bak;
+                        i_skip = i_skip_bak;
+                    }
+                    h->mb.b_reencode_mb = 1;
+                    h->sh.i_last_mb = mb_xy-1;
+                    break;
                 }
                 else
                 {
-                    h->out.bs = bs_bak;
-                    i_skip = i_skip_bak;
+                    h->sh.i_last_mb = mb_xy;
+                    h->mb.b_reencode_mb = 0;
                 }
-                h->mb.b_reencode_mb = 1;
-                h->sh.i_last_mb = mb_xy-1;
-                break;
             }
             else
-            {
-                h->sh.i_last_mb = mb_xy;
                 h->mb.b_reencode_mb = 0;
-            }
         }
-        else
-            h->mb.b_reencode_mb = 0;
 
 #if HAVE_VISUALIZE
         if( h->param.b_visualize )
