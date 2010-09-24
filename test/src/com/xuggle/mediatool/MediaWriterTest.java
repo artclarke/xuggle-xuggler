@@ -145,7 +145,7 @@ public class MediaWriterTest
     while (mReader.readPacket() == null)
       ;
     assert(file.exists());
-    assertEquals(1062946, file.length(), 300);
+    assertEquals(1062564, file.length(), 300);
 
     log.debug("manually check: " + file);
   }
@@ -311,7 +311,7 @@ public class MediaWriterTest
     writer.close();
 
     assert(file.exists());
-    assertEquals(file.length(), 40365, 100);
+    assertEquals(file.length(), 40157, 100);
     log.debug("manually check: " + file);
   }
 
@@ -369,7 +369,7 @@ public class MediaWriterTest
     writer.close();
 
     assert (file.exists());
-    assertEquals(file.length(), 40365, 100);
+    assertEquals(file.length(), 40157, 100);
     log.debug("manually check: " + file);
   }
 

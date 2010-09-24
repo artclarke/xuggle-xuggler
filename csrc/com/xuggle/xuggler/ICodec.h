@@ -44,7 +44,7 @@ class VS_API_XUGGLER ICodec : public com::xuggle::ferry::RefCounted
 public:
   /**
    * These are the codecs this library currently supports.
-   * These are based on FFMPEG r23596 or later
+   * These are based on FFMPEG r25168 or later
    */
   typedef enum
   {

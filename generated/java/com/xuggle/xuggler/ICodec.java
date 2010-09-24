@@ -587,7 +587,7 @@ public class ICodec extends RefCounted {
   public enum ID {
   /**
    * These are the codecs this library currently supports.
-   * These are based on FFMPEG r23596 or later
+   * These are based on FFMPEG r25168 or later
    */
     CODEC_ID_NONE,
     CODEC_ID_MPEG1VIDEO,
