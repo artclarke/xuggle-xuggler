@@ -626,7 +626,7 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.i_lookahead = X264_MIN( h->param.rc.i_lookahead, X264_MAX( h->param.i_keyint_max, bufsize*fps ) );
     }
 
-    if( !h->param.i_timebase_num || !h->param.i_timebase_den )
+    if( !h->param.i_timebase_num || !h->param.i_timebase_den || !(h->param.b_vfr_input || h->param.b_pulldown) )
     {
         h->param.i_timebase_num = h->param.i_fps_den;
         h->param.i_timebase_den = h->param.i_fps_num;

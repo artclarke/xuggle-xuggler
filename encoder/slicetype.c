@@ -1260,12 +1260,12 @@ void x264_slicetype_decide( x264_t *h )
             if( h->param.b_vfr_input )
             {
                 if( lookahead_size-- > 1 )
-                    h->lookahead->next.list[i]->i_duration = 2 * (h->lookahead->next.list[i+1]->i_pts - h->lookahead->next.list[i]->i_pts);
+                    h->lookahead->next.list[i]->i_duration = 2 * (h->lookahead->next.list[i+1]->i_pts - h->lookahead->next.list[i]->i_pts) * h->i_dts_compress_multiplier;
                 else
                     h->lookahead->next.list[i]->i_duration = h->i_prev_duration;
             }
             else
-                h->lookahead->next.list[i]->i_duration = delta_tfi_divisor[h->lookahead->next.list[i]->i_pic_struct];
+                h->lookahead->next.list[i]->i_duration = delta_tfi_divisor[h->lookahead->next.list[i]->i_pic_struct] * h->i_dts_compress_multiplier;
             h->i_prev_duration = h->lookahead->next.list[i]->i_duration;
 
             if( h->lookahead->next.list[i]->i_frame > h->i_disp_fields_last_frame && lookahead_size > 0 )
