@@ -2935,6 +2935,7 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 
     if( h->param.psz_dump_yuv )
         x264_frame_dump( h );
+    x264_emms();
 
     return frame_size;
 }
