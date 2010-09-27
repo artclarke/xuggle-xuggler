@@ -214,7 +214,7 @@ static void print_version_info()
 #else
     printf( "using a non-gcc compiler\n" );
 #endif
-    printf( "configuration: --bit-depth=%d\n", BIT_DEPTH );
+    printf( "configuration: --bit-depth=%d\n", x264_bit_depth );
     printf( "x264 license: " );
 #if HAVE_GPL
     printf( "GPL version 2 or later\n" );
@@ -375,7 +375,7 @@ static void Help( x264_param_t *defaults, int longhelp )
 #else
         "no",
 #endif
-        BIT_DEPTH
+        x264_bit_depth
       );
     H0( "Example usage:\n" );
     H0( "\n" );
@@ -697,6 +697,7 @@ static void Help( x264_param_t *defaults, int longhelp )
         "                                  - %s\n", demuxer_names[0], stringify_names( buf, demuxer_names ) );
     H1( "      --input-csp <string>    Specify input colorspace format for raw input\n" );
     print_csp_names( longhelp );
+    H1( "      --input-depth <integer> Specify input bit depth for raw input\n" );
     H1( "      --input-res <intxint>   Specify input resolution (width x height)\n" );
     H1( "      --index <string>        Filename for input index file\n" );
     H0( "      --sar width:height      Specify Sample Aspect Ratio\n" );
@@ -769,7 +770,8 @@ enum {
     OPT_LOG_LEVEL,
     OPT_VIDEO_FILTER,
     OPT_INPUT_RES,
-    OPT_INPUT_CSP
+    OPT_INPUT_CSP,
+    OPT_INPUT_DEPTH
 } OptionsOPT;
 
 static char short_options[] = "8A:B:b:f:hI:i:m:o:p:q:r:t:Vvw";
@@ -921,6 +923,7 @@ static struct option long_options[] =
     { "video-filter", required_argument, NULL, OPT_VIDEO_FILTER },
     { "input-res",   required_argument, NULL, OPT_INPUT_RES },
     { "input-csp",   required_argument, NULL, OPT_INPUT_CSP },
+    { "input-depth", required_argument, NULL, OPT_INPUT_DEPTH },
     {0, 0, 0, 0}
 };
 
@@ -1082,8 +1085,14 @@ static int init_vid_filters( char *sequence, hnd_t *handle, video_info_t *info, 
     if( csp > X264_CSP_NONE && csp < X264_CSP_MAX )
         param->i_csp = info->csp;
     else
-        param->i_csp = X264_CSP_I420;
+        param->i_csp = X264_CSP_I420 | ( info->csp & X264_CSP_HIGH_DEPTH );
     if( x264_init_vid_filter( "resize", handle, &filter, info, param, NULL ) )
+        return -1;
+
+    char args[20];
+    sprintf( args, "bit_depth=%d", x264_bit_depth );
+
+    if( x264_init_vid_filter( "depth", handle, &filter, info, param, args ) )
         return -1;
 
     return 0;
@@ -1138,6 +1147,7 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
 
     memset( opt, 0, sizeof(cli_opt_t) );
     memset( &input_opt, 0, sizeof(cli_input_opt_t) );
+    input_opt.bit_depth = 8;
     opt->b_progress = 1;
 
     /* Presets are applied before all other options. */
@@ -1282,6 +1292,9 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
                 break;
             case OPT_INPUT_CSP:
                 input_opt.colorspace = optarg;
+                break;
+            case OPT_INPUT_DEPTH:
+                input_opt.bit_depth = atoi( optarg );
                 break;
             default:
 generic_option:

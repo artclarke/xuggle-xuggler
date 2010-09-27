@@ -79,10 +79,21 @@ static void help( int longhelp )
             "            - fittobox: resizes the video based on the desired contraints\n"
             "               - width, height, both\n"
             "            - fittobox and sar: same as above except with specified sar\n"
-            "            simultaneously converting to the given colorspace\n"
-            "            using resizer method [\"bicubic\"]\n"
-            "             - fastbilinear, bilinear, bicubic, experimental, point,\n"
-            "             - area, bicublin, gauss, sinc, lanczos, spline\n" );
+            "            - csp: convert to the given csp. syntax: [name][:depth]\n"
+            "               - valid csp names [keep current]: " );
+
+    for( int i = X264_CSP_NONE+1; i < X264_CSP_CLI_MAX; i++ )
+    {
+        printf( "%s", x264_cli_csps[i].name );
+        if( i+1 < X264_CSP_CLI_MAX )
+            printf( ", " );
+    }
+    printf( "\n"
+            "               - depth: 8 or 16 bits per pixel [keep current]\n"
+            "            note: not all depths are supported by all csps.\n"
+            "            - method: use resizer method [\"bicubic\"]\n"
+            "               - fastbilinear, bilinear, bicubic, experimental, point,\n"
+            "               - area, bicublin, gauss, sinc, lanczos, spline\n" );
 }
 
 static uint32_t convert_cpu_to_flag( uint32_t cpu )
@@ -131,13 +142,15 @@ static int convert_csp_to_pix_fmt( int csp )
         return csp&X264_CSP_MASK;
     switch( csp&X264_CSP_MASK )
     {
-        case X264_CSP_I420: return PIX_FMT_YUV420P;
-        case X264_CSP_I422: return PIX_FMT_YUV422P;
-        case X264_CSP_I444: return PIX_FMT_YUV444P;
-        case X264_CSP_NV12: return PIX_FMT_NV12;
-        case X264_CSP_YV12: return PIX_FMT_YUV420P; /* specially handled via swapping chroma */
-        case X264_CSP_BGR:  return PIX_FMT_BGR24;
-        case X264_CSP_BGRA: return PIX_FMT_BGRA;
+        case X264_CSP_YV12: /* specially handled via swapping chroma */
+        case X264_CSP_I420: return csp&X264_CSP_HIGH_DEPTH ? PIX_FMT_YUV420P16 : PIX_FMT_YUV420P;
+        case X264_CSP_I422: return csp&X264_CSP_HIGH_DEPTH ? PIX_FMT_YUV422P16 : PIX_FMT_YUV422P;
+        case X264_CSP_I444: return csp&X264_CSP_HIGH_DEPTH ? PIX_FMT_YUV444P16 : PIX_FMT_YUV444P;
+        case X264_CSP_RGB:  return csp&X264_CSP_HIGH_DEPTH ? PIX_FMT_RGB48     : PIX_FMT_RGB24;
+        /* the next 3 csps have no equivalent 16bit depth in swscale */
+        case X264_CSP_NV12: return csp&X264_CSP_HIGH_DEPTH ? PIX_FMT_NONE      : PIX_FMT_NV12;
+        case X264_CSP_BGR:  return csp&X264_CSP_HIGH_DEPTH ? PIX_FMT_NONE      : PIX_FMT_BGR24;
+        case X264_CSP_BGRA: return csp&X264_CSP_HIGH_DEPTH ? PIX_FMT_NONE      : PIX_FMT_BGRA;
         default:            return PIX_FMT_NONE;
     }
 }
@@ -147,23 +160,30 @@ static int pick_closest_supported_csp( int csp )
     int pix_fmt = convert_csp_to_pix_fmt( csp );
     switch( pix_fmt )
     {
+        case PIX_FMT_YUV420P16LE:
+        case PIX_FMT_YUV420P16BE:
+            return X264_CSP_I420 | X264_CSP_HIGH_DEPTH;
         case PIX_FMT_YUV422P:
-        case PIX_FMT_YUV422P16LE:
-        case PIX_FMT_YUV422P16BE:
         case PIX_FMT_YUYV422:
         case PIX_FMT_UYVY422:
             return X264_CSP_I422;
+        case PIX_FMT_YUV422P16LE:
+        case PIX_FMT_YUV422P16BE:
+            return X264_CSP_I422 | X264_CSP_HIGH_DEPTH;
         case PIX_FMT_YUV444P:
+            return X264_CSP_I444;
         case PIX_FMT_YUV444P16LE:
         case PIX_FMT_YUV444P16BE:
-            return X264_CSP_I444;
-        case PIX_FMT_RGB24:    // convert rgb to bgr
-        case PIX_FMT_RGB48BE:
-        case PIX_FMT_RGB48LE:
+            return X264_CSP_I444 | X264_CSP_HIGH_DEPTH;
+        case PIX_FMT_RGB24:
         case PIX_FMT_RGB565BE:
         case PIX_FMT_RGB565LE:
         case PIX_FMT_RGB555BE:
         case PIX_FMT_RGB555LE:
+            return X264_CSP_RGB;
+        case PIX_FMT_RGB48BE:
+        case PIX_FMT_RGB48LE:
+            return X264_CSP_RGB | X264_CSP_HIGH_DEPTH;
         case PIX_FMT_BGR24:
         case PIX_FMT_BGR565BE:
         case PIX_FMT_BGR565LE:
@@ -209,12 +229,27 @@ static int handle_opts( const char **optlist, char **opts, video_info_t *info, r
 
     if( str_csp )
     {
-        /* output csp was specified, lookup against valid values */
+        /* output csp was specified, first check if optional depth was provided */
+        char *str_depth = strchr( str_csp, ':' );
+        int depth = x264_cli_csp_depth_factor( info->csp ) * 8;
+        if( str_depth )
+        {
+            /* csp bit depth was specified */
+            *str_depth++ = '\0';
+            depth = x264_otoi( str_depth, -1 );
+            FAIL_IF_ERROR( depth != 8 && depth != 16, "unsupported bit depth %d\n", depth );
+        }
+        /* now lookup against the list of valid csps */
         int csp;
-        for( csp = X264_CSP_CLI_MAX-1; x264_cli_csps[csp].name && strcasecmp( x264_cli_csps[csp].name, str_csp ); )
-            csp--;
+        if( strlen( str_csp ) == 0 )
+            csp = info->csp & X264_CSP_MASK;
+        else
+            for( csp = X264_CSP_CLI_MAX-1; x264_cli_csps[csp].name && strcasecmp( x264_cli_csps[csp].name, str_csp ); )
+                csp--;
         FAIL_IF_ERROR( csp == X264_CSP_NONE, "unsupported colorspace `%s'\n", str_csp );
         h->dst_csp = csp;
+        if( depth == 16 )
+            h->dst_csp |= X264_CSP_HIGH_DEPTH;
     }
 
     /* if the input sar is currently invalid, set it to 1:1 so it can be used in math */
@@ -366,8 +401,17 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
     h->swap_chroma = (info->csp & X264_CSP_MASK) == X264_CSP_YV12;
     int src_pix_fmt = convert_csp_to_pix_fmt( info->csp );
 
+    int src_pix_fmt_inv = convert_csp_to_pix_fmt( info->csp ^ X264_CSP_HIGH_DEPTH );
+    int dst_pix_fmt_inv = convert_csp_to_pix_fmt( h->dst_csp ^ X264_CSP_HIGH_DEPTH );
+
     /* confirm swscale can support this conversion */
+    FAIL_IF_ERROR( src_pix_fmt == PIX_FMT_NONE && src_pix_fmt_inv != PIX_FMT_NONE,
+                   "input colorspace %s with bit depth %d is not supported\n", sws_format_name( src_pix_fmt_inv ),
+                   info->csp & X264_CSP_HIGH_DEPTH ? 16 : 8 );
     FAIL_IF_ERROR( !sws_isSupportedInput( src_pix_fmt ), "input colorspace %s is not supported\n", sws_format_name( src_pix_fmt ) )
+    FAIL_IF_ERROR( h->dst.pix_fmt == PIX_FMT_NONE && dst_pix_fmt_inv != PIX_FMT_NONE,
+                   "input colorspace %s with bit depth %d is not supported\n", sws_format_name( dst_pix_fmt_inv ),
+                   h->dst_csp & X264_CSP_HIGH_DEPTH ? 16 : 8 );
     FAIL_IF_ERROR( !sws_isSupportedOutput( h->dst.pix_fmt ), "output colorspace %s is not supported\n", sws_format_name( h->dst.pix_fmt ) )
     FAIL_IF_ERROR( h->dst.height != info->height && info->interlaced,
                    "swscale is not compatible with interlaced vertical resizing\n" )

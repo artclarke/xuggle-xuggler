@@ -18,7 +18,7 @@ SRCCLI = x264.c input/input.c input/timecode.c input/raw.c input/y4m.c \
          output/flv.c output/flv_bytestream.c filters/filters.c \
          filters/video/video.c filters/video/source.c filters/video/internal.c \
          filters/video/resize.c filters/video/cache.c filters/video/fix_vfr_pts.c \
-         filters/video/select_every.c filters/video/crop.c
+         filters/video/select_every.c filters/video/crop.c filters/video/depth.c
 
 SRCSO =
 

@@ -51,6 +51,7 @@ void x264_register_vid_filters()
     REGISTER_VFILTER( fix_vfr_pts );
     REGISTER_VFILTER( resize );
     REGISTER_VFILTER( select_every );
+    REGISTER_VFILTER( depth );
 #if HAVE_GPL
 #endif
 }

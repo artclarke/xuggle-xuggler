@@ -302,12 +302,7 @@ void x264_plane_copy_c( pixel *dst, int i_dst,
 {
     while( h-- )
     {
-#if X264_HIGH_BIT_DEPTH
-        for( int i = 0; i < w; i++ )
-            dst[i] = src[i] << (BIT_DEPTH-8);
-#else
-        memcpy( dst, src, w );
-#endif
+        memcpy( dst, src, w * sizeof(pixel) );
         dst += i_dst;
         src += i_src;
     }
@@ -320,8 +315,8 @@ void x264_plane_copy_interleave_c( pixel *dst, int i_dst,
     for( int y=0; y<h; y++, dst+=i_dst, srcu+=i_srcu, srcv+=i_srcv )
         for( int x=0; x<w; x++ )
         {
-            dst[2*x]   = srcu[x] << (BIT_DEPTH-8);
-            dst[2*x+1] = srcv[x] << (BIT_DEPTH-8);
+            dst[2*x]   = ((pixel*)srcu)[x];
+            dst[2*x+1] = ((pixel*)srcv)[x];
         }
 }
 

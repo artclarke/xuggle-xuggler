@@ -103,8 +103,12 @@ static int get_frame( hnd_t handle, cli_pic_t *output, int frame )
     output->img.height = h->dims[3];
     /* shift the plane pointers down 'top' rows and right 'left' columns. */
     for( int i = 0; i < output->img.planes; i++ )
-        output->img.plane[i] += (int)(output->img.stride[i] * h->dims[1] * h->csp->height[i]
-                                    + h->dims[0] * h->csp->width[i]);
+    {
+        intptr_t offset = output->img.stride[i] * h->dims[1] * h->csp->height[i];
+        offset += h->dims[0] * h->csp->width[i];
+        offset *= x264_cli_csp_depth_factor( output->img.csp );
+        output->img.plane[i] += offset;
+    }
     return 0;
 }
 

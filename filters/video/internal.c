@@ -51,6 +51,7 @@ int x264_cli_pic_copy( cli_pic_t *out, cli_pic_t *in )
     {
         int height = in->img.height * x264_cli_csps[csp].height[i];
         int width =  in->img.width  * x264_cli_csps[csp].width[i];
+        width *= x264_cli_csp_depth_factor( in->img.csp );
         x264_cli_plane_copy( out->img.plane[i], out->img.stride[i], in->img.plane[i],
                              in->img.stride[i], width, height );
     }
