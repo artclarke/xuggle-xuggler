@@ -439,6 +439,13 @@ static int x264_validate_parameters( x264_t *h )
     if( h->i_thread_frames > 1 )
         h->param.nalu_process = NULL;
 
+    h->param.i_keyint_max = x264_clip3( h->param.i_keyint_max, 1, X264_KEYINT_MAX_INFINITE );
+    if( h->param.i_keyint_max == 1 )
+    {
+        h->param.b_intra_refresh = 0;
+        h->param.analyse.i_weighted_pred = 0;
+    }
+
     if( h->param.b_interlaced )
     {
         if( h->param.analyse.i_me_method >= X264_ME_ESA )
@@ -576,7 +583,6 @@ static int x264_validate_parameters( x264_t *h )
 
     h->param.i_frame_reference = x264_clip3( h->param.i_frame_reference, 1, X264_REF_MAX );
     h->param.i_dpb_size = x264_clip3( h->param.i_dpb_size, 1, X264_REF_MAX );
-    h->param.i_keyint_max = x264_clip3( h->param.i_keyint_max, 1, X264_KEYINT_MAX_INFINITE );
     if( h->param.i_scenecut_threshold < 0 )
         h->param.i_scenecut_threshold = 0;
     if( !h->param.analyse.i_subpel_refine && h->param.analyse.i_direct_mv_pred > X264_DIRECT_PRED_SPATIAL )
@@ -586,8 +592,6 @@ static int x264_validate_parameters( x264_t *h )
     }
     h->param.i_bframe = x264_clip3( h->param.i_bframe, 0, X264_MIN( X264_BFRAME_MAX, h->param.i_keyint_max-1 ) );
     h->param.i_open_gop = x264_clip3( h->param.i_open_gop, X264_OPEN_GOP_NONE, X264_OPEN_GOP_BLURAY );
-    if( h->param.i_keyint_max == 1 )
-        h->param.b_intra_refresh = 0;
     h->param.i_bframe_bias = x264_clip3( h->param.i_bframe_bias, -90, 100 );
     if( h->param.i_bframe <= 1 )
         h->param.i_bframe_pyramid = X264_B_PYRAMID_NONE;
@@ -1155,10 +1159,10 @@ x264_t *x264_encoder_open( x264_param_t *param )
         fclose( f );
     }
 
-    const char *profile = h->sps->i_profile_idc == PROFILE_BASELINE ? "Baseline" :
+    const char *profile = h->sps->i_profile_idc == PROFILE_BASELINE ? "Constrained Baseline" :
                           h->sps->i_profile_idc == PROFILE_MAIN ? "Main" :
                           h->sps->i_profile_idc == PROFILE_HIGH ? "High" :
-                          h->sps->i_profile_idc == PROFILE_HIGH10 ? "High 10" :
+                          h->sps->i_profile_idc == PROFILE_HIGH10 ? (h->sps->b_constraint_set3 == 1 ? "High 10 Intra" : "High 10") :
                           "High 4:4:4 Predictive";
     char level[4];
     snprintf( level, sizeof(level), "%d.%d", h->sps->i_level_idc/10, h->sps->i_level_idc%10 );
