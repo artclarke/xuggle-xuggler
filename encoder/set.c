@@ -294,34 +294,21 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
     }
     else if( sps->i_poc_type == 1 )
     {
-        int i;
-
         bs_write( s, 1, sps->b_delta_pic_order_always_zero );
         bs_write_se( s, sps->i_offset_for_non_ref_pic );
         bs_write_se( s, sps->i_offset_for_top_to_bottom_field );
         bs_write_ue( s, sps->i_num_ref_frames_in_poc_cycle );
 
-        for( i = 0; i < sps->i_num_ref_frames_in_poc_cycle; i++ )
-        {
+        for( int i = 0; i < sps->i_num_ref_frames_in_poc_cycle; i++ )
             bs_write_se( s, sps->i_offset_for_ref_frame[i] );
-        }
     }
     bs_write_ue( s, sps->i_num_ref_frames );
     bs_write( s, 1, sps->b_gaps_in_frame_num_value_allowed );
     bs_write_ue( s, sps->i_mb_width - 1 );
-    if (sps->b_frame_mbs_only)
-    {
-        bs_write_ue( s, sps->i_mb_height - 1);
-    }
-    else // interlaced
-    {
-        bs_write_ue( s, sps->i_mb_height/2 - 1);
-    }
+    bs_write_ue( s, (sps->i_mb_height >> !sps->b_frame_mbs_only) - 1);
     bs_write( s, 1, sps->b_frame_mbs_only );
     if( !sps->b_frame_mbs_only )
-    {
         bs_write( s, 1, sps->b_mb_adaptive_frame_field );
-    }
     bs_write( s, 1, sps->b_direct8x8_inference );
 
     bs_write( s, 1, sps->b_crop );

@@ -2943,12 +2943,12 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 
     /* Remove duplicates, must be done near the end as breaks h->fref0 array
      * by freeing some of its pointers. */
-     for( int i = 0; i < h->i_ref0; i++ )
-         if( h->fref0[i] && h->fref0[i]->b_duplicate )
-         {
-             x264_frame_push_blank_unused( h, h->fref0[i] );
-             h->fref0[i] = 0;
-         }
+    for( int i = 0; i < h->i_ref0; i++ )
+        if( h->fref0[i] && h->fref0[i]->b_duplicate )
+        {
+            x264_frame_push_blank_unused( h, h->fref0[i] );
+            h->fref0[i] = 0;
+        }
 
     if( h->param.psz_dump_yuv )
         x264_frame_dump( h );
