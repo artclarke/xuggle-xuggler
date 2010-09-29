@@ -58,7 +58,7 @@
 /* Ctrl-C handler */
 static volatile int b_ctrl_c = 0;
 static int          b_exit_on_ctrl_c = 0;
-static void SigIntHandler( int a )
+static void sigint_handler( int a )
 {
     if( b_exit_on_ctrl_c )
         exit(0);
@@ -155,9 +155,9 @@ static const cli_pulldown_t pulldown_values[] =
 // indexed by pic_struct enum
 static const float pulldown_frame_duration[10] = { 0.0, 1, 0.5, 0.5, 1, 1, 1.5, 1.5, 2, 3 };
 
-static void Help( x264_param_t *defaults, int longhelp );
-static int  Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt );
-static int  Encode( x264_param_t *param, cli_opt_t *opt );
+static void help( x264_param_t *defaults, int longhelp );
+static int  parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt );
+static int  encode( x264_param_t *param, cli_opt_t *opt );
 
 /* logging and printing for within the cli system */
 static int cli_log_level;
@@ -231,9 +231,6 @@ static void print_version_info()
 #endif
 }
 
-/****************************************************************************
- * main:
- ****************************************************************************/
 int main( int argc, char **argv )
 {
     x264_param_t param;
@@ -251,13 +248,13 @@ int main( int argc, char **argv )
 #endif
 
     /* Parse command line */
-    if( Parse( argc, argv, &param, &opt ) < 0 )
+    if( parse( argc, argv, &param, &opt ) < 0 )
         return -1;
 
     /* Control-C handler */
-    signal( SIGINT, SigIntHandler );
+    signal( SIGINT, sigint_handler );
 
-    ret = Encode( &param, &opt );
+    ret = encode( &param, &opt );
 
 #if PTW32_STATIC_LIB
     pthread_win32_thread_detach_np();
@@ -325,10 +322,7 @@ static void print_csp_names( int longhelp )
     printf( "\n" );
 }
 
-/*****************************************************************************
- * Help:
- *****************************************************************************/
-static void Help( x264_param_t *defaults, int longhelp )
+static void help( x264_param_t *defaults, int longhelp )
 {
     char buf[50];
 #define H0 printf
@@ -744,7 +738,8 @@ static void Help( x264_param_t *defaults, int longhelp )
     H0( "\n" );
 }
 
-enum {
+enum
+{
     OPT_FRAMES = 256,
     OPT_SEEK,
     OPT_QPFILE,
@@ -1120,10 +1115,7 @@ static int parse_enum_value( const char *arg, const char * const *names, int *ds
     return -1;
 }
 
-/*****************************************************************************
- * Parse:
- *****************************************************************************/
-static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
+static int parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
 {
     char *input_filename = NULL;
     const char *demuxer = demuxer_names[0];
@@ -1186,13 +1178,13 @@ static int Parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
         switch( c )
         {
             case 'h':
-                Help( &defaults, 0 );
+                help( &defaults, 0 );
                 exit(0);
             case OPT_LONGHELP:
-                Help( &defaults, 1 );
+                help( &defaults, 1 );
                 exit(0);
             case OPT_FULLHELP:
-                Help( &defaults, 2 );
+                help( &defaults, 2 );
                 exit(0);
             case 'V':
                 print_version_info();
@@ -1517,11 +1509,7 @@ static void parse_qpfile( cli_opt_t *opt, x264_picture_t *pic, int i_frame )
     }
 }
 
-/*****************************************************************************
- * Encode:
- *****************************************************************************/
-
-static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic, int64_t *last_dts )
+static int encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic, int64_t *last_dts )
 {
     x264_picture_t pic_out;
     x264_nal_t *nal;
@@ -1541,9 +1529,9 @@ static int  Encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic, int64_t *l
     return i_frame_size;
 }
 
-static void Print_status( int64_t i_start, int i_frame, int i_frame_total, int64_t i_file, x264_param_t *param, int64_t last_ts )
+static void print_status( int64_t i_start, int i_frame, int i_frame_total, int64_t i_file, x264_param_t *param, int64_t last_ts )
 {
-    char    buf[200];
+    char buf[200];
     int64_t i_elapsed = x264_mdate() - i_start;
     double fps = i_elapsed > 0 ? i_frame * 1000000. / i_elapsed : 0;
     double bitrate;
@@ -1567,7 +1555,7 @@ static void Print_status( int64_t i_start, int i_frame, int i_frame_total, int64
     fflush( stderr ); // needed in windows
 }
 
-static void Convert_cli_to_lib_pic( x264_picture_t *lib, cli_pic_t *cli )
+static void convert_cli_to_lib_pic( x264_picture_t *lib, cli_pic_t *cli )
 {
     memcpy( lib->img.i_stride, cli->img.stride, sizeof(cli->img.stride) );
     memcpy( lib->img.plane, cli->img.plane, sizeof(cli->img.plane) );
@@ -1576,7 +1564,7 @@ static void Convert_cli_to_lib_pic( x264_picture_t *lib, cli_pic_t *cli )
     lib->i_pts = cli->pts;
 }
 
-static int  Encode( x264_param_t *param, cli_opt_t *opt )
+static int encode( x264_param_t *param, cli_opt_t *opt )
 {
     x264_t *h;
     x264_picture_t pic;
@@ -1662,7 +1650,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
     {
         if( filter.get_frame( opt->hin, &cli_pic, i_frame + opt->i_seek ) )
             break;
-        Convert_cli_to_lib_pic( &pic, &cli_pic );
+        convert_cli_to_lib_pic( &pic, &cli_pic );
 
         if( !param->b_vfr_input )
             pic.i_pts = i_frame;
@@ -1705,7 +1693,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
         }
 
         prev_dts = last_dts;
-        i_frame_size = Encode_frame( h, opt->hout, &pic, &last_dts );
+        i_frame_size = encode_frame( h, opt->hout, &pic, &last_dts );
         if( i_frame_size < 0 )
             return -1;
         i_file += i_frame_size;
@@ -1721,13 +1709,13 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
 
         /* update status line (up to 1000 times per input file) */
         if( opt->b_progress && i_frame_output % i_update_interval == 0 && i_frame_output )
-            Print_status( i_start, i_frame_output, param->i_frame_total, i_file, param, 2 * last_dts - prev_dts - first_dts );
+            print_status( i_start, i_frame_output, param->i_frame_total, i_file, param, 2 * last_dts - prev_dts - first_dts );
     }
     /* Flush delayed frames */
     while( !b_ctrl_c && x264_encoder_delayed_frames( h ) )
     {
         prev_dts = last_dts;
-        i_frame_size = Encode_frame( h, opt->hout, NULL, &last_dts );
+        i_frame_size = encode_frame( h, opt->hout, NULL, &last_dts );
         if( i_frame_size < 0 )
             return -1;
         i_file += i_frame_size;
@@ -1738,7 +1726,7 @@ static int  Encode( x264_param_t *param, cli_opt_t *opt )
                 first_dts = prev_dts = last_dts;
         }
         if( opt->b_progress && i_frame_output % i_update_interval == 0 && i_frame_output )
-            Print_status( i_start, i_frame_output, param->i_frame_total, i_file, param, 2 * last_dts - prev_dts - first_dts );
+            print_status( i_start, i_frame_output, param->i_frame_total, i_file, param, 2 * last_dts - prev_dts - first_dts );
     }
     if( pts_warning_cnt >= MAX_PTS_WARNING && cli_log_level < X264_LOG_DEBUG )
         x264_cli_log( "x264", X264_LOG_WARNING, "%d suppressed nonmonotonic pts warnings\n", pts_warning_cnt-MAX_PTS_WARNING );

@@ -320,13 +320,13 @@ mk_writer *mk_create_writer( const char *filename )
     return w;
 }
 
-int mk_writeHeader( mk_writer *w, const char *writing_app,
-                    const char *codec_id,
-                    const void *codec_private, unsigned codec_private_size,
-                    int64_t default_frame_duration,
-                    int64_t timescale,
-                    unsigned width, unsigned height,
-                    unsigned d_width, unsigned d_height, int display_size_units )
+int mk_write_header( mk_writer *w, const char *writing_app,
+                     const char *codec_id,
+                     const void *codec_private, unsigned codec_private_size,
+                     int64_t default_frame_duration,
+                     int64_t timescale,
+                     unsigned width, unsigned height,
+                     unsigned d_width, unsigned d_height, int display_size_units )
 {
     mk_context  *c, *ti, *v;
 

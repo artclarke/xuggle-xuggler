@@ -149,10 +149,10 @@ static int write_headers( hnd_t handle, x264_nal_t *p_nal )
 
     memcpy( avcC+11+sps_size, pps, pps_size );
 
-    ret = mk_writeHeader( p_mkv->w, "x264" X264_VERSION, "V_MPEG4/ISO/AVC",
-                          avcC, avcC_len, p_mkv->frame_duration, 50000,
-                          p_mkv->width, p_mkv->height,
-                          p_mkv->d_width, p_mkv->d_height, p_mkv->display_size_units );
+    ret = mk_write_header( p_mkv->w, "x264" X264_VERSION, "V_MPEG4/ISO/AVC",
+                           avcC, avcC_len, p_mkv->frame_duration, 50000,
+                           p_mkv->width, p_mkv->height,
+                           p_mkv->d_width, p_mkv->d_height, p_mkv->display_size_units );
     if( ret < 0 )
         return ret;
 

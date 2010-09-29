@@ -417,7 +417,7 @@ static ALWAYS_INLINE
 int quant_trellis_cabac( x264_t *h, dctcoef *dct,
                          const uint16_t *quant_mf, const int *unquant_mf,
                          const int *coef_weight, const uint8_t *zigzag,
-                         int i_ctxBlockCat, int i_lambda2, int b_ac,
+                         int ctx_block_cat, int i_lambda2, int b_ac,
                          int dc, int i_coefs, int idx )
 {
     int abs_coefs[64], signs[64];
@@ -426,8 +426,8 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
     trellis_node_t *nodes_prev = nodes[1];
     trellis_node_t *bnode;
     const int b_interlaced = h->mb.b_interlaced;
-    uint8_t *cabac_state_sig = &h->cabac.state[ significant_coeff_flag_offset[b_interlaced][i_ctxBlockCat] ];
-    uint8_t *cabac_state_last = &h->cabac.state[ last_coeff_flag_offset[b_interlaced][i_ctxBlockCat] ];
+    uint8_t *cabac_state_sig = &h->cabac.state[ significant_coeff_flag_offset[b_interlaced][ctx_block_cat] ];
+    uint8_t *cabac_state_last = &h->cabac.state[ last_coeff_flag_offset[b_interlaced][ctx_block_cat] ];
     const int f = 1 << 15; // no deadzone
     int i_last_nnz;
     int i;
@@ -480,7 +480,7 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
     // in 8x8 blocks, some positions share contexts, so we'll just have to hope that
     // cabac isn't too sensitive.
 
-    memcpy( nodes_cur[0].cabac_state, &h->cabac.state[ coeff_abs_level_m1_offset[i_ctxBlockCat] ], 10 );
+    memcpy( nodes_cur[0].cabac_state, &h->cabac.state[ coeff_abs_level_m1_offset[ctx_block_cat] ], 10 );
 
     for( i = i_last_nnz; i >= b_ac; i-- )
     {
@@ -544,7 +544,7 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
             int d = i_coef - unquant_abs_level;
             int64_t ssd;
             /* Psy trellis: bias in favor of higher AC coefficients in the reconstructed frame. */
-            if( h->mb.i_psy_trellis && i && !dc && i_ctxBlockCat != DCT_CHROMA_AC )
+            if( h->mb.i_psy_trellis && i && !dc && ctx_block_cat != DCT_CHROMA_AC )
             {
                 int orig_coef = (i_coefs == 64) ? h->mb.pic.fenc_dct8[idx][zigzag[i]] : h->mb.pic.fenc_dct4[idx][zigzag[i]];
                 int predicted_coef = orig_coef - i_coef * signs[i];
@@ -661,7 +661,7 @@ static ALWAYS_INLINE
 int quant_trellis_cavlc( x264_t *h, dctcoef *dct,
                          const uint16_t *quant_mf, const int *unquant_mf,
                          const int *coef_weight, const uint8_t *zigzag,
-                         int i_ctxBlockCat, int i_lambda2, int b_ac,
+                         int ctx_block_cat, int i_lambda2, int b_ac,
                          int dc, int i_coefs, int idx, int b_8x8 )
 {
     ALIGNED_16( dctcoef quant_coefs[2][16] );
@@ -670,7 +670,7 @@ int quant_trellis_cavlc( x264_t *h, dctcoef *dct,
     int64_t score = 1ULL<<62;
     int i, j;
     const int f = 1<<15;
-    int nC = i_ctxBlockCat == DCT_CHROMA_DC ? 4 : ct_index[x264_mb_predict_non_zero_code( h, i_ctxBlockCat == DCT_LUMA_DC ? 0 : idx )];
+    int nC = ctx_block_cat == DCT_CHROMA_DC ? 4 : ct_index[x264_mb_predict_non_zero_code( h, ctx_block_cat == DCT_LUMA_DC ? 0 : idx )];
 
     /* Code for handling 8x8dct -> 4x4dct CAVLC munging.  Input/output use a different
      * step/start/end than internal processing. */
@@ -724,7 +724,7 @@ int quant_trellis_cavlc( x264_t *h, dctcoef *dct,
             delta_distortion[i] = (d0*d0 - d1*d1) * (dc?256:coef_weight[j]);
 
             /* Psy trellis: bias in favor of higher AC coefficients in the reconstructed frame. */
-            if( h->mb.i_psy_trellis && j && !dc && i_ctxBlockCat != DCT_CHROMA_AC )
+            if( h->mb.i_psy_trellis && j && !dc && ctx_block_cat != DCT_CHROMA_AC )
             {
                 int orig_coef = b_8x8 ? h->mb.pic.fenc_dct8[idx>>2][zigzag[j]] : h->mb.pic.fenc_dct4[idx][zigzag[j]];
                 int predicted_coef = orig_coef - coef;
@@ -750,7 +750,7 @@ int quant_trellis_cavlc( x264_t *h, dctcoef *dct,
     if( !coef_mask )
         bs_write_vlc( &h->out.bs, x264_coeff0_token[nC] );
     else
-        block_residual_write_cavlc_internal( h, i_ctxBlockCat, coefs + b_ac, nC );
+        block_residual_write_cavlc_internal( h, ctx_block_cat, coefs + b_ac, nC );
     score = (int64_t)h->out.bs.i_bits_encoded * i_lambda2;
 
     /* QNS loop: pick the change that improves RD the most, apply it, repeat.
@@ -783,7 +783,7 @@ int quant_trellis_cavlc( x264_t *h, dctcoef *dct,
             if( !cur_mask )
                 bs_write_vlc( &h->out.bs, x264_coeff0_token[nC] );
             else
-                block_residual_write_cavlc_internal( h, i_ctxBlockCat, coefs + b_ac, nC );
+                block_residual_write_cavlc_internal( h, ctx_block_cat, coefs + b_ac, nC );
             cur_score += (int64_t)h->out.bs.i_bits_encoded * i_lambda2;
 
             coefs[i] = old_coef;
@@ -834,36 +834,36 @@ zeroblock:
 const static uint8_t x264_zigzag_scan2[4] = {0,1,2,3};
 
 int x264_quant_dc_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
-                           int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma )
+                           int i_qp, int ctx_block_cat, int b_intra, int b_chroma )
 {
     if( h->param.b_cabac )
         return quant_trellis_cabac( h, dct,
             h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
-            NULL, i_ctxBlockCat==DCT_CHROMA_DC ? x264_zigzag_scan2 : x264_zigzag_scan4[h->mb.b_interlaced],
-            i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, 1, i_ctxBlockCat==DCT_CHROMA_DC ? 4 : 16, 0 );
+            NULL, ctx_block_cat==DCT_CHROMA_DC ? x264_zigzag_scan2 : x264_zigzag_scan4[h->mb.b_interlaced],
+            ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, 1, ctx_block_cat==DCT_CHROMA_DC ? 4 : 16, 0 );
 
     return quant_trellis_cavlc( h, dct,
         h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
-        NULL, i_ctxBlockCat==DCT_CHROMA_DC ? x264_zigzag_scan2 : x264_zigzag_scan4[h->mb.b_interlaced],
-        i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, 1, i_ctxBlockCat==DCT_CHROMA_DC ? 4 : 16, 0, 0 );
+        NULL, ctx_block_cat==DCT_CHROMA_DC ? x264_zigzag_scan2 : x264_zigzag_scan4[h->mb.b_interlaced],
+        ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, 1, ctx_block_cat==DCT_CHROMA_DC ? 4 : 16, 0, 0 );
 }
 
 int x264_quant_4x4_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
-                            int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma, int idx )
+                            int i_qp, int ctx_block_cat, int b_intra, int b_chroma, int idx )
 {
-    int b_ac = (i_ctxBlockCat == DCT_LUMA_AC || i_ctxBlockCat == DCT_CHROMA_AC);
+    int b_ac = (ctx_block_cat == DCT_LUMA_AC || ctx_block_cat == DCT_CHROMA_AC);
     if( h->param.b_cabac )
         return quant_trellis_cabac( h, dct,
             h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
             x264_dct4_weight2_zigzag[h->mb.b_interlaced],
             x264_zigzag_scan4[h->mb.b_interlaced],
-            i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, 0, 16, idx );
+            ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, 0, 16, idx );
 
     return quant_trellis_cavlc( h, dct,
             h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
             x264_dct4_weight2_zigzag[h->mb.b_interlaced],
             x264_zigzag_scan4[h->mb.b_interlaced],
-            i_ctxBlockCat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, 0, 16, idx, 0 );
+            ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, 0, 16, idx, 0 );
 }
 
 int x264_quant_8x8_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,

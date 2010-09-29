@@ -81,11 +81,11 @@ static inline void dct2x2dc( dctcoef d[4], dctcoef dct4x4[4][16] )
     dct4x4[3][0] = 0;
 }
 
-static ALWAYS_INLINE int x264_quant_4x4( x264_t *h, dctcoef dct[16], int i_qp, int i_ctxBlockCat, int b_intra, int idx )
+static ALWAYS_INLINE int x264_quant_4x4( x264_t *h, dctcoef dct[16], int i_qp, int ctx_block_cat, int b_intra, int idx )
 {
     int i_quant_cat = b_intra ? CQM_4IY : CQM_4PY;
     if( h->mb.b_trellis )
-        return x264_quant_4x4_trellis( h, dct, i_quant_cat, i_qp, i_ctxBlockCat, b_intra, 0, idx );
+        return x264_quant_4x4_trellis( h, dct, i_quant_cat, i_qp, ctx_block_cat, b_intra, 0, idx );
     else
         return h->quantf.quant_4x4( dct, h->quant4_mf[i_quant_cat][i_qp], h->quant4_bias[i_quant_cat][i_qp] );
 }

@@ -359,18 +359,18 @@ int x264_cpu_num_processors( void )
     return info.cpu_count;
 
 #elif SYS_MACOSX || SYS_FREEBSD || SYS_OPENBSD
-    int numberOfCPUs;
-    size_t length = sizeof( numberOfCPUs );
+    int ncpu;
+    size_t length = sizeof( ncpu );
 #if SYS_OPENBSD
     int mib[2] = { CTL_HW, HW_NCPU };
-    if( sysctl(mib, 2, &numberOfCPUs, &length, NULL, 0) )
+    if( sysctl(mib, 2, &ncpu, &length, NULL, 0) )
 #else
-    if( sysctlbyname("hw.ncpu", &numberOfCPUs, &length, NULL, 0) )
+    if( sysctlbyname("hw.ncpu", &ncpu, &length, NULL, 0) )
 #endif
     {
-        numberOfCPUs = 1;
+        ncpu = 1;
     }
-    return numberOfCPUs;
+    return ncpu;
 
 #else
     return 1;

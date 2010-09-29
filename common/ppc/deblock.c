@@ -77,7 +77,7 @@ static inline void write16x4( uint8_t *dst, int dst_stride,
 }
 
 /** \brief performs a 6x16 transpose of data in src, and stores it to dst */
-#define readAndTranspose16x6(src, src_stride, r8, r9, r10, r11, r12, r13)\
+#define read_and_transpose16x6(src, src_stride, r8, r9, r10, r11, r12, r13)\
 {\
     register vec_u8_t r0, r1, r2, r3, r4, r5, r6, r7, r14, r15;\
     VEC_LOAD(src,                  r0, 16, vec_u8_t, pix );    \
@@ -293,7 +293,7 @@ void x264_deblock_h_luma_altivec( uint8_t *pix, int stride, int alpha, int beta,
         return;
     PREP_LOAD;
     vec_u8_t _pix_ = vec_lvsl(0, pix-3);
-    readAndTranspose16x6(pix-3, stride, line0, line1, line2, line3, line4, line5);
+    read_and_transpose16x6(pix-3, stride, line0, line1, line2, line3, line4, line5);
     h264_loop_filter_luma_altivec(line0, line1, line2, line3, line4, line5, alpha, beta, tc0);
     transpose4x16(line1, line2, line3, line4);
     write16x4(pix-2, stride, line1, line2, line3, line4);

@@ -59,9 +59,9 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp );
 void x264_cabac_mb_skip( x264_t *h, int b_skip );
 
 int x264_quant_dc_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
-                             int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma );
+                             int i_qp, int ctx_block_cat, int b_intra, int b_chroma );
 int x264_quant_4x4_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
-                             int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma, int idx );
+                             int i_qp, int ctx_block_cat, int b_intra, int b_chroma, int idx );
 int x264_quant_8x8_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
                              int i_qp, int b_intra, int idx );
 

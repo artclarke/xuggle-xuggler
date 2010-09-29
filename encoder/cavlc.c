@@ -116,7 +116,7 @@ static inline int block_residual_write_cavlc_escape( x264_t *h, int i_suffix_len
     return i_suffix_length;
 }
 
-static int block_residual_write_cavlc_internal( x264_t *h, int i_ctxBlockCat, dctcoef *l, int nC )
+static int block_residual_write_cavlc_internal( x264_t *h, int ctx_block_cat, dctcoef *l, int nC )
 {
     bs_t *s = &h->out.bs;
     static const uint8_t ctz_index[8] = {3,0,1,0,2,0,1,0};
@@ -130,7 +130,7 @@ static int block_residual_write_cavlc_internal( x264_t *h, int i_ctxBlockCat, dc
     /* set these to 2 to allow branchless i_trailing calculation */
     runlevel.level[1] = 2;
     runlevel.level[2] = 2;
-    i_total = h->quantf.coeff_level_run[i_ctxBlockCat]( l, &runlevel );
+    i_total = h->quantf.coeff_level_run[ctx_block_cat]( l, &runlevel );
     i_total_zero = runlevel.last + 1 - i_total;
 
     i_trailing = ((((runlevel.level[0]+1) | (1-runlevel.level[0])) >> 31) & 1) // abs(runlevel.level[0])>1
@@ -175,9 +175,9 @@ static int block_residual_write_cavlc_internal( x264_t *h, int i_ctxBlockCat, dc
         }
     }
 
-    if( (uint8_t)i_total < count_cat[i_ctxBlockCat] )
+    if( (uint8_t)i_total < count_cat[ctx_block_cat] )
     {
-        if( i_ctxBlockCat == DCT_CHROMA_DC )
+        if( ctx_block_cat == DCT_CHROMA_DC )
             bs_write_vlc( s, x264_total_zeros_dc[i_total-1][i_total_zero] );
         else
             bs_write_vlc( s, x264_total_zeros[i_total-1][i_total_zero] );
