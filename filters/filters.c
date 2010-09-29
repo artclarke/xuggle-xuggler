@@ -68,7 +68,10 @@ char **x264_split_string( char *string, char *sep, uint32_t limit )
             esc = NULL;
         }
         else
-            assert( ( split[i++] = strdup( tok ) ) );
+        {
+            split[i++] = strdup( tok );
+            assert( split[i-1] );
+        }
         tok = nexttok;
     } while ( tok );
     free( str );
