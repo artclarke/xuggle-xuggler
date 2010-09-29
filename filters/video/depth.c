@@ -1,7 +1,9 @@
 /*****************************************************************************
- * depth.c: x264 video depth filter
+ * depth.c: bit-depth conversion video filter
  *****************************************************************************
- * Copyright (C) 2010 Oskar Arvidsson <oskar@irock.se>
+ * Copyright (C) 2010 x264 project
+ *
+ * Authors: Oskar Arvidsson <oskar@irock.se>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +18,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #include "video.h"
