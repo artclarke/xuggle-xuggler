@@ -56,9 +56,9 @@
 #endif
 
 /* Ctrl-C handler */
-static int     b_ctrl_c = 0;
-static int     b_exit_on_ctrl_c = 0;
-static void    SigIntHandler( int a )
+static volatile int b_ctrl_c = 0;
+static int          b_exit_on_ctrl_c = 0;
+static void SigIntHandler( int a )
 {
     if( b_exit_on_ctrl_c )
         exit(0);
