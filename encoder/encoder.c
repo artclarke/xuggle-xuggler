@@ -935,28 +935,12 @@ x264_t *x264_encoder_open( x264_param_t *param )
     h->i_frame = -1;
     h->i_frame_num = 0;
     h->i_idr_pic_id = 0;
-    uint64_t new_timebase_den = h->param.i_timebase_den;
-    if( h->param.b_dts_compress )
-    {
-        /* h->i_dts_compress_multiplier == h->frames.i_bframe_delay + 1 */
-        h->i_dts_compress_multiplier = h->param.i_bframe ? (h->param.i_bframe_pyramid ? 3 : 2) : 1;
-        if( h->i_dts_compress_multiplier != 1 )
-        {
-            new_timebase_den = h->param.i_timebase_den * h->i_dts_compress_multiplier;
-            x264_log( h, X264_LOG_DEBUG, "DTS compression changed timebase: %u/%u -> %u/%"PRIu64"\n",
-                      h->param.i_timebase_num, h->param.i_timebase_den,
-                      h->param.i_timebase_num, new_timebase_den );
-        }
-    }
-    else
-        h->i_dts_compress_multiplier = 1;
 
-    if( new_timebase_den * 2 > UINT32_MAX )
+    if( (uint64_t)h->param.i_timebase_den * 2 > UINT32_MAX )
     {
-        x264_log( h, X264_LOG_ERROR, "Effective timebase denominator %"PRIu64" exceeds H.264 maximum\n", new_timebase_den );
+        x264_log( h, X264_LOG_ERROR, "Effective timebase denominator %u exceeds H.264 maximum\n", h->param.i_timebase_den );
         goto fail;
     }
-    h->param.i_timebase_den = new_timebase_den;
 
     h->sps = &h->sps_array[0];
     x264_sps_init( h->sps, h->param.i_sps_id, &h->param );
@@ -2506,25 +2490,14 @@ int     x264_encoder_encode( x264_t *h,
     h->fenc->b_kept_as_ref =
     h->fdec->b_kept_as_ref = i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE && h->param.i_keyint_max > 1;
 
-    h->fdec->i_pts = h->fenc->i_pts *= h->i_dts_compress_multiplier;
+    h->fdec->i_pts = h->fenc->i_pts;
     if( h->frames.i_bframe_delay )
     {
         int64_t *prev_reordered_pts = thread_current->frames.i_prev_reordered_pts;
-        if( h->i_frame <= h->frames.i_bframe_delay )
-        {
-            if( h->i_dts_compress_multiplier == 1 )
-                h->fdec->i_dts = h->fenc->i_reordered_pts - h->frames.i_bframe_delay_time;
-            else
-            {
-                /* DTS compression */
-                if( h->i_frame == 1 )
-                    thread_current->frames.i_init_delta = (h->fenc->i_reordered_pts - h->frames.i_first_pts) * h->i_dts_compress_multiplier;
-                h->fdec->i_dts = h->i_frame * thread_current->frames.i_init_delta / h->i_dts_compress_multiplier + h->frames.i_first_pts * h->i_dts_compress_multiplier;
-            }
-        }
-        else
-            h->fdec->i_dts = prev_reordered_pts[ (h->i_frame - h->frames.i_bframe_delay) % h->frames.i_bframe_delay ];
-        prev_reordered_pts[ h->i_frame % h->frames.i_bframe_delay ] = h->fenc->i_reordered_pts * h->i_dts_compress_multiplier;
+        h->fdec->i_dts = h->i_frame > h->frames.i_bframe_delay
+                       ? prev_reordered_pts[ (h->i_frame - h->frames.i_bframe_delay) % h->frames.i_bframe_delay ]
+                       : h->fenc->i_reordered_pts - h->frames.i_bframe_delay_time;
+        prev_reordered_pts[ h->i_frame % h->frames.i_bframe_delay ] = h->fenc->i_reordered_pts;
     }
     else
         h->fdec->i_dts = h->fenc->i_reordered_pts;
@@ -3137,7 +3110,7 @@ void    x264_encoder_close  ( x264_t *h )
         else
         {
             float duration = (float)(2 * h->frames.i_largest_pts - h->frames.i_second_largest_pts - h->frames.i_first_pts)
-                           * h->i_dts_compress_multiplier * h->param.i_timebase_num / h->param.i_timebase_den;
+                           * h->param.i_timebase_num / h->param.i_timebase_den;
             f_bitrate = SUM3(h->stat.i_frame_size) / duration / 125;
         }
 

@@ -725,6 +725,7 @@ static void help( x264_param_t *defaults, int longhelp )
     H2( "      --timebase <int/int>    Specify timebase numerator and denominator\n"
         "                 <integer>    Specify timebase numerator for input timecode file\n"
         "                              or specify timebase denominator for other input\n" );
+    H2( "      --dts-compress          Eliminate initial delay with container DTS hack\n" );
     H0( "\n" );
     H0( "Filtering:\n" );
     H0( "\n" );
@@ -766,7 +767,8 @@ enum
     OPT_VIDEO_FILTER,
     OPT_INPUT_RES,
     OPT_INPUT_CSP,
-    OPT_INPUT_DEPTH
+    OPT_INPUT_DEPTH,
+    OPT_DTS_COMPRESSION
 } OptionsOPT;
 
 static char short_options[] = "8A:B:b:f:hI:i:m:o:p:q:r:t:Vvw";
@@ -919,6 +921,7 @@ static struct option long_options[] =
     { "input-res",   required_argument, NULL, OPT_INPUT_RES },
     { "input-csp",   required_argument, NULL, OPT_INPUT_CSP },
     { "input-depth", required_argument, NULL, OPT_INPUT_DEPTH },
+    { "dts-compress",      no_argument, NULL, OPT_DTS_COMPRESSION },
     {0, 0, 0, 0}
 };
 
@@ -933,7 +936,6 @@ static int select_output( const char *muxer, char *filename, x264_param_t *param
 #if HAVE_GPAC
         output = mp4_output;
         param->b_annexb = 0;
-        param->b_dts_compress = 0;
         param->b_repeat_headers = 0;
         if( param->i_nal_hrd == X264_NAL_HRD_CBR )
         {
@@ -949,14 +951,12 @@ static int select_output( const char *muxer, char *filename, x264_param_t *param
     {
         output = mkv_output;
         param->b_annexb = 0;
-        param->b_dts_compress = 0;
         param->b_repeat_headers = 0;
     }
     else if( !strcasecmp( ext, "flv" ) )
     {
         output = flv_output;
         param->b_annexb = 0;
-        param->b_dts_compress = 1;
         param->b_repeat_headers = 0;
     }
     else
@@ -1131,6 +1131,7 @@ static int parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
     int b_user_fps = 0;
     int b_user_interlaced = 0;
     cli_input_opt_t input_opt;
+    cli_output_opt_t output_opt;
     char *preset = NULL;
     char *tune = NULL;
 
@@ -1139,6 +1140,7 @@ static int parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
 
     memset( opt, 0, sizeof(cli_opt_t) );
     memset( &input_opt, 0, sizeof(cli_input_opt_t) );
+    memset( &output_opt, 0, sizeof(cli_output_opt_t) );
     input_opt.bit_depth = 8;
     opt->b_progress = 1;
 
@@ -1288,6 +1290,9 @@ static int parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
             case OPT_INPUT_DEPTH:
                 input_opt.bit_depth = atoi( optarg );
                 break;
+            case OPT_DTS_COMPRESSION:
+                output_opt.use_dts_compress = 1;
+                break;
             default:
 generic_option:
             {
@@ -1332,7 +1337,7 @@ generic_option:
 
     if( select_output( muxer, output_filename, param ) )
         return -1;
-    FAIL_IF_ERROR( output.open_file( output_filename, &opt->hout ), "could not open output file `%s'\n", output_filename )
+    FAIL_IF_ERROR( output.open_file( output_filename, &opt->hout, &output_opt ), "could not open output file `%s'\n", output_filename )
 
     input_filename = argv[optind++];
     video_info_t info = {0};
@@ -1585,8 +1590,6 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
     int64_t second_largest_pts = -1;
     int64_t ticks_per_frame;
     double  duration;
-    int     prev_timebase_den;
-    int     dts_compress_multiplier;
     double  pulldown_pts = 0;
 
     opt->b_progress &= param->i_log_level < X264_LOG_DEBUG;
@@ -1605,8 +1608,6 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
         param->i_timebase_den = param->i_fps_num * pulldown->fps_factor;
     }
 
-    prev_timebase_den = param->i_timebase_den / gcd( param->i_timebase_num, param->i_timebase_den );
-
     if( ( h = x264_encoder_open( param ) ) == NULL )
     {
         x264_cli_log( "x264", X264_LOG_ERROR, "x264_encoder_open failed\n" );
@@ -1615,8 +1616,6 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
     }
 
     x264_encoder_parameters( h, param );
-
-    dts_compress_multiplier = param->i_timebase_den / prev_timebase_den;
 
     if( output.set_param( opt->hout, param ) )
     {
@@ -1664,24 +1663,21 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
         else if( opt->timebase_convert_multiplier )
             pic.i_pts = (int64_t)( pic.i_pts * opt->timebase_convert_multiplier + 0.5 );
 
-        int64_t output_pts = pic.i_pts * dts_compress_multiplier;   /* pts libx264 returns */
-
         if( pic.i_pts <= largest_pts )
         {
             if( cli_log_level >= X264_LOG_DEBUG || pts_warning_cnt < MAX_PTS_WARNING )
                 x264_cli_log( "x264", X264_LOG_WARNING, "non-strictly-monotonic pts at frame %d (%"PRId64" <= %"PRId64")\n",
-                             i_frame, output_pts, largest_pts * dts_compress_multiplier );
+                             i_frame, pic.i_pts, largest_pts );
             else if( pts_warning_cnt == MAX_PTS_WARNING )
                 x264_cli_log( "x264", X264_LOG_WARNING, "too many nonmonotonic pts warnings, suppressing further ones\n" );
             pts_warning_cnt++;
             pic.i_pts = largest_pts + ticks_per_frame;
-            output_pts = pic.i_pts * dts_compress_multiplier;
         }
 
         second_largest_pts = largest_pts;
         largest_pts = pic.i_pts;
         if( opt->tcfile_out )
-            fprintf( opt->tcfile_out, "%.6f\n", output_pts * ((double)param->i_timebase_num / param->i_timebase_den) * 1e3 );
+            fprintf( opt->tcfile_out, "%.6f\n", pic.i_pts * ((double)param->i_timebase_num / param->i_timebase_den) * 1e3 );
 
         if( opt->qpfile )
             parse_qpfile( opt, &pic, i_frame + opt->i_seek );
@@ -1731,8 +1727,6 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
     if( pts_warning_cnt >= MAX_PTS_WARNING && cli_log_level < X264_LOG_DEBUG )
         x264_cli_log( "x264", X264_LOG_WARNING, "%d suppressed nonmonotonic pts warnings\n", pts_warning_cnt-MAX_PTS_WARNING );
 
-    largest_pts *= dts_compress_multiplier;
-    second_largest_pts *= dts_compress_multiplier;
     /* duration algorithm fails when only 1 frame is output */
     if( i_frame_output == 1 )
         duration = (double)param->i_fps_den / param->i_fps_num;

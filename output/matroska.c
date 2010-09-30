@@ -42,7 +42,7 @@ typedef struct
 
 } mkv_hnd_t;
 
-static int open_file( char *psz_filename, hnd_t *p_handle )
+static int open_file( char *psz_filename, hnd_t *p_handle, cli_output_opt_t *opt )
 {
     mkv_hnd_t *p_mkv;
 

@@ -161,7 +161,6 @@ void x264_param_default( x264_param_t *param )
     param->b_annexb = 1;
     param->b_aud = 0;
     param->b_vfr_input = 1;
-    param->b_dts_compress = 0;
     param->i_nal_hrd = X264_NAL_HRD_NONE;
     param->b_tff = 1;
     param->b_pic_struct = 0;
