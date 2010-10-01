@@ -442,8 +442,8 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
     pps->b_weighted_pred = param->analyse.i_weighted_pred > 0;
     pps->b_weighted_bipred = param->analyse.b_weighted_bipred ? 2 : 0;
 
-    pps->i_pic_init_qp = param->rc.i_rc_method == X264_RC_ABR ? 26 : param->rc.i_qp_constant;
-    pps->i_pic_init_qs = 26;
+    pps->i_pic_init_qp = param->rc.i_rc_method == X264_RC_ABR ? 26 + QP_BD_OFFSET : param->rc.i_qp_constant;
+    pps->i_pic_init_qs = 26 + QP_BD_OFFSET;
 
     pps->i_chroma_qp_index_offset = param->analyse.i_chroma_qp_offset;
     pps->b_deblocking_filter_control = 1;
@@ -501,7 +501,7 @@ void x264_pps_write( bs_t *s, x264_pps_t *pps )
     bs_write( s, 2, pps->b_weighted_bipred );
 
     bs_write_se( s, pps->i_pic_init_qp - 26 - QP_BD_OFFSET );
-    bs_write_se( s, pps->i_pic_init_qs - 26 );
+    bs_write_se( s, pps->i_pic_init_qs - 26 - QP_BD_OFFSET );
     bs_write_se( s, pps->i_chroma_qp_index_offset );
 
     bs_write( s, 1, pps->b_deblocking_filter_control );
