@@ -1,0 +1,12 @@
+Index: libavutil/Makefile
+===================================================================
+--- libavutil/Makefile	(revision 25305)
++++ libavutil/Makefile	(working copy)
+@@ -23,6 +23,7 @@
+           mathematics.h                                                 \
+           md5.h                                                         \
+           mem.h                                                         \
++          opt.h                                                         \
+           pixdesc.h                                                     \
+           pixfmt.h                                                      \
+           random_seed.h                                                 \
