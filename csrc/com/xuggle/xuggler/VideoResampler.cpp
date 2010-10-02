@@ -169,6 +169,58 @@ namespace com { namespace xuggle { namespace xuggler
     return retval;
   }
   
+/*
+ * The next two methods are to work around a break in backwards compatibility introduced
+ * in FFmpeg in September 2010
+ */
+static int handle_jpeg(enum PixelFormat *format)
+{
+    switch (*format) {
+    case PIX_FMT_YUVJ420P: *format = PIX_FMT_YUV420P; return 1;
+    case PIX_FMT_YUVJ422P: *format = PIX_FMT_YUV422P; return 1;
+    case PIX_FMT_YUVJ444P: *format = PIX_FMT_YUV444P; return 1;
+    case PIX_FMT_YUVJ440P: *format = PIX_FMT_YUV440P; return 1;
+    default:                                          return 0;
+    }
+}
+
+static SwsContext *xuggleSws_getContext(int srcW, int srcH, enum PixelFormat srcFormat,
+                           int dstW, int dstH, enum PixelFormat dstFormat, int flags,
+                           SwsFilter *srcFilter, SwsFilter *dstFilter, const double *param)
+{
+    SwsContext *c;
+    const int *coeff;
+    int srcRange=handle_jpeg(&srcFormat);
+    int dstRange=handle_jpeg(&dstFormat);
+
+    if(!(c=sws_alloc_context()))
+        return NULL;
+
+    av_set_int(c, "sws_flags", flags);
+    av_set_int(c, "srcw", srcW);
+    av_set_int(c, "srch", srcH);
+    av_set_int(c, "dstw", dstW);
+    av_set_int(c, "dsth", dstH);
+    av_set_int(c, "src_range", srcRange);
+    av_set_int(c, "dst_range", dstRange);
+    av_set_int(c, "src_format", srcFormat);
+    av_set_int(c, "dst_format", dstFormat);
+
+    if (param) {
+        av_set_int(c, "param0", param[0]);
+        av_set_int(c, "param1", param[1]);
+    }
+
+    coeff = sws_getCoefficients(SWS_CS_DEFAULT);
+    sws_setColorspaceDetails(c, coeff, srcRange, coeff /* FIXME*/, dstRange, 0, 1<<16, 1<<16);
+
+    if(sws_init_context(c, srcFilter, dstFilter) < 0){
+        sws_freeContext(c);
+        return NULL;
+    }
+
+    return c;
+}
   VideoResampler*
   VideoResampler :: make(
           int32_t outputWidth, int32_t outputHeight,
@@ -211,7 +263,7 @@ namespace com { namespace xuggle { namespace xuggler
           // We're downscaling
           flags = SWS_AREA;
         
-        retval->mContext = sws_getContext(
+        retval->mContext = xuggleSws_getContext(
             retval->mIWidth, // src width
             retval->mIHeight, // src height
             (PixelFormat)retval->mIPixelFmt, // src pixel type
