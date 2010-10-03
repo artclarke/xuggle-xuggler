@@ -166,6 +166,7 @@ static void (* const x264_pixel_avg_wtab_##instr[6])( uint8_t *, int, uint8_t *,
 };
 
 /* w16 sse2 is faster than w12 mmx as long as the cacheline issue is resolved */
+#define x264_pixel_avg2_w12_cache64_ssse3 x264_pixel_avg2_w16_cache64_ssse3
 #define x264_pixel_avg2_w12_cache64_sse2 x264_pixel_avg2_w16_cache64_sse2
 #define x264_pixel_avg2_w12_sse3         x264_pixel_avg2_w16_sse3
 #define x264_pixel_avg2_w12_sse2         x264_pixel_avg2_w16_sse2
@@ -178,7 +179,7 @@ PIXEL_AVG_WTAB(cache64_mmxext, mmxext, cache64_mmxext, cache64_mmxext, cache64_m
 PIXEL_AVG_WTAB(sse2, mmxext, mmxext, sse2, sse2, sse2)
 PIXEL_AVG_WTAB(sse2_misalign, mmxext, mmxext, sse2, sse2, sse2_misalign)
 PIXEL_AVG_WTAB(cache64_sse2, mmxext, cache64_mmxext, cache64_sse2, cache64_sse2, cache64_sse2)
-PIXEL_AVG_WTAB(cache64_ssse3, mmxext, cache64_mmxext, cache64_sse2, cache64_ssse3, cache64_sse2)
+PIXEL_AVG_WTAB(cache64_ssse3, mmxext, cache64_mmxext, cache64_ssse3, cache64_ssse3, cache64_sse2)
 
 #define MC_COPY_WTAB(instr, name1, name2, name3)\
 static void (* const x264_mc_copy_wtab_##instr[5])( uint8_t *, int, uint8_t *, int, int ) =\

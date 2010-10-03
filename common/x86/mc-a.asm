@@ -7,6 +7,7 @@
 ;*          Jason Garrett-Glaser <darkshikari@gmail.com>
 ;*          Laurent Aimar <fenrir@via.ecp.fr>
 ;*          Dylan Yudaken <dyudaken@gmail.com>
+;*          Holger Lubitz <holger@lubitz.org>
 ;*          Min Chen <chenm001.163.com>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
@@ -522,11 +523,11 @@ cglobal pixel_avg2_w%1_mmxext, 6,7
     %2     mm1, [r2+r3]
     pavgb  mm0, [r2+r4]
     pavgb  mm1, [r2+r6]
+    lea    r2, [r2+r3*2]
     %2     [r0], mm0
     %2     [r0+r1], mm1
-    sub    r5d, 2
-    lea    r2, [r2+r3*2]
     lea    r0, [r0+r1*2]
+    sub    r5d, 2
     jg     .height_loop
     REP_RET
 %endmacro
@@ -536,22 +537,22 @@ AVG2_W8 8, movq
 
 %macro AVG2_W16 2
 cglobal pixel_avg2_w%1_mmxext, 6,7
-    sub    r4, r2
-    lea    r6, [r4+r3]
+    sub    r2, r4
+    lea    r6, [r2+r3]
 .height_loop:
-    movq   mm0, [r2]
-    %2     mm1, [r2+8]
-    movq   mm2, [r2+r3]
-    %2     mm3, [r2+r3+8]
-    pavgb  mm0, [r2+r4]
-    pavgb  mm1, [r2+r4+8]
-    pavgb  mm2, [r2+r6]
-    pavgb  mm3, [r2+r6+8]
+    movq   mm0, [r4]
+    %2     mm1, [r4+8]
+    movq   mm2, [r4+r3]
+    %2     mm3, [r4+r3+8]
+    pavgb  mm0, [r4+r2]
+    pavgb  mm1, [r4+r2+8]
+    pavgb  mm2, [r4+r6]
+    pavgb  mm3, [r4+r6+8]
+    lea    r4, [r4+r3*2]
     movq   [r0], mm0
     %2     [r0+8], mm1
     movq   [r0+r1], mm2
     %2     [r0+r1+8], mm3
-    lea    r2, [r2+r3*2]
     lea    r0, [r0+r1*2]
     sub    r5d, 2
     jg     .height_loop
@@ -562,28 +563,28 @@ AVG2_W16 12, movd
 AVG2_W16 16, movq
 
 cglobal pixel_avg2_w20_mmxext, 6,7
-    sub    r4, r2
-    lea    r6, [r4+r3]
+    sub    r2, r4
+    lea    r6, [r2+r3]
 .height_loop:
-    movq   mm0, [r2]
-    movq   mm1, [r2+8]
-    movd   mm2, [r2+16]
-    movq   mm3, [r2+r3]
-    movq   mm4, [r2+r3+8]
-    movd   mm5, [r2+r3+16]
-    pavgb  mm0, [r2+r4]
-    pavgb  mm1, [r2+r4+8]
-    pavgb  mm2, [r2+r4+16]
-    pavgb  mm3, [r2+r6]
-    pavgb  mm4, [r2+r6+8]
-    pavgb  mm5, [r2+r6+16]
+    movq   mm0, [r4]
+    movq   mm1, [r4+8]
+    movd   mm2, [r4+16]
+    movq   mm3, [r4+r3]
+    movq   mm4, [r4+r3+8]
+    movd   mm5, [r4+r3+16]
+    pavgb  mm0, [r4+r2]
+    pavgb  mm1, [r4+r2+8]
+    pavgb  mm2, [r4+r2+16]
+    pavgb  mm3, [r4+r6]
+    pavgb  mm4, [r4+r6+8]
+    pavgb  mm5, [r4+r6+16]
+    lea    r4, [r4+r3*2]
     movq   [r0], mm0
     movq   [r0+8], mm1
     movd   [r0+16], mm2
     movq   [r0+r1], mm3
     movq   [r0+r1+8], mm4
     movd   [r0+r1+16], mm5
-    lea    r2, [r2+r3*2]
     lea    r0, [r0+r1*2]
     sub    r5d, 2
     jg     .height_loop
@@ -597,11 +598,11 @@ cglobal pixel_avg2_w16_sse2, 6,7
     movdqu xmm2, [r2+r3]
     movdqu xmm1, [r2+r4]
     movdqu xmm3, [r2+r6]
+    lea    r2, [r2+r3*2]
     pavgb  xmm0, xmm1
     pavgb  xmm2, xmm3
     movdqa [r0], xmm0
     movdqa [r0+r1], xmm2
-    lea    r2, [r2+r3*2]
     lea    r0, [r0+r1*2]
     sub    r5d, 2
     jg     .height_loop
@@ -609,29 +610,31 @@ cglobal pixel_avg2_w16_sse2, 6,7
 
 %macro AVG2_W20 1
 cglobal pixel_avg2_w20_%1, 6,7
-    sub    r4, r2
-    lea    r6, [r4+r3]
+    sub    r2, r4
+    lea    r6, [r2+r3]
 .height_loop:
-    movdqu xmm0, [r2]
-    movdqu xmm2, [r2+r3]
-    movd   mm4,  [r2+16]
-    movd   mm5,  [r2+r3+16]
+    movdqu xmm0, [r4]
+    movdqu xmm2, [r4+r3]
 %ifidn %1, sse2_misalign
-    pavgb  xmm0, [r2+r4]
-    pavgb  xmm2, [r2+r6]
+    movd   mm4,  [r4+16]
+    movd   mm5,  [r4+r3+16]
+    pavgb  xmm0, [r4+r2]
+    pavgb  xmm2, [r4+r6]
 %else
-    movdqu xmm1, [r2+r4]
-    movdqu xmm3, [r2+r6]
+    movdqu xmm1, [r4+r2]
+    movdqu xmm3, [r4+r6]
+    movd   mm4,  [r4+16]
+    movd   mm5,  [r4+r3+16]
     pavgb  xmm0, xmm1
     pavgb  xmm2, xmm3
 %endif
-    pavgb  mm4,  [r2+r4+16]
-    pavgb  mm5,  [r2+r6+16]
+    pavgb  mm4,  [r4+r2+16]
+    pavgb  mm5,  [r4+r6+16]
+    lea    r4, [r4+r3*2]
     movdqa [r0], xmm0
     movd   [r0+16], mm4
     movdqa [r0+r1], xmm2
     movd   [r0+r1+16], mm5
-    lea    r2, [r2+r3*2]
     lea    r0, [r0+r1*2]
     sub    r5d, 2
     jg     .height_loop
@@ -657,20 +660,6 @@ AVG2_W20 sse2_misalign
     psubw  %1, %2
 %endmacro
 
-%macro AVG_CACHELINE_CHECK 3 ; width, cacheline, instruction set
-cglobal pixel_avg2_w%1_cache%2_%3
-    mov    eax, r2m
-    and    eax, 0x1f|(%2>>1)
-    cmp    eax, (32-%1)|(%2>>1)
-    jle pixel_avg2_w%1_%3
-;w12 isn't needed because w16 is just as fast if there's no cacheline split
-%if %1 == 12
-    jmp pixel_avg2_w16_cache_mmxext
-%else
-    jmp pixel_avg2_w%1_cache_mmxext
-%endif
-%endmacro
-
 %macro AVG_CACHELINE_START 0
     %assign stack_offset 0
     INIT_SHIFT mm6, mm7
@@ -684,61 +673,86 @@ cglobal pixel_avg2_w%1_cache%2_%3
 %endmacro
 
 %macro AVG_CACHELINE_LOOP 2
-    movq   mm0, [r2+8+%1]
     movq   mm1, [r2+%1]
-    movq   mm2, [r2+r4+8+%1]
+    movq   mm0, [r2+8+%1]
     movq   mm3, [r2+r4+%1]
-    psllq  mm0, mm6
+    movq   mm2, [r2+r4+8+%1]
     psrlq  mm1, mm7
-    psllq  mm2, mm4
+    psllq  mm0, mm6
     psrlq  mm3, mm5
+    psllq  mm2, mm4
     por    mm0, mm1
     por    mm2, mm3
-    pavgb  mm0, mm2
-    %2 [r0+%1], mm0
+    pavgb  mm2, mm0
+    %2 [r0+%1], mm2
 %endmacro
 
-pixel_avg2_w8_cache_mmxext:
+%macro AVG_CACHELINE_FUNC 2
+pixel_avg2_w%1_cache_mmxext:
     AVG_CACHELINE_START
     AVG_CACHELINE_LOOP 0, movq
-    add    r2, r3
-    add    r0, r1
-    dec    r5d
-    jg     .height_loop
-    REP_RET
-
-pixel_avg2_w16_cache_mmxext:
-    AVG_CACHELINE_START
-    AVG_CACHELINE_LOOP 0, movq
+%if %1>8
     AVG_CACHELINE_LOOP 8, movq
-    add    r2, r3
-    add    r0, r1
-    dec    r5d
-    jg .height_loop
-    REP_RET
-
-pixel_avg2_w20_cache_mmxext:
-    AVG_CACHELINE_START
-    AVG_CACHELINE_LOOP 0, movq
-    AVG_CACHELINE_LOOP 8, movq
+%if %1>16
     AVG_CACHELINE_LOOP 16, movd
+%endif
+%endif
     add    r2, r3
     add    r0, r1
     dec    r5d
     jg .height_loop
-    REP_RET
+    RET
+%endmacro
 
+%macro AVG_CACHELINE_CHECK 3 ; width, cacheline, instruction set
+%if %1 == 12
+;w12 isn't needed because w16 is just as fast if there's no cacheline split
+%define cachesplit pixel_avg2_w16_cache_mmxext
+%else
+%define cachesplit pixel_avg2_w%1_cache_mmxext
+%endif
+cglobal pixel_avg2_w%1_cache%2_%3
+    mov    eax, r2m
+    and    eax, 0x1f|(%2>>1)
+    cmp    eax, (32-%1-(%1 % 8))|(%2>>1)
+%if %1==12||%1==20
+    jbe pixel_avg2_w%1_%3
+%else
+    jb pixel_avg2_w%1_%3
+%endif
+%if 0 ; or %1==8 - but the extra branch seems too expensive
+    ja cachesplit
+%ifdef ARCH_X86_64
+    test      r4b, 1
+%else
+    test byte r4m, 1
+%endif
+    jz pixel_avg2_w%1_%3
+%else
+    or     eax, r4m
+    and    eax, 7
+    jz pixel_avg2_w%1_%3
+    mov    eax, r2m
+%endif
+%ifidn %3, sse2
+    AVG_CACHELINE_FUNC %1, %2
+%elif %1==8 && %2==64
+    AVG_CACHELINE_FUNC %1, %2
+%else
+    jmp cachesplit
+%endif
+%endmacro
+
+AVG_CACHELINE_CHECK  8, 64, mmxext
+AVG_CACHELINE_CHECK 12, 64, mmxext
 %ifndef ARCH_X86_64
+AVG_CACHELINE_CHECK 16, 64, mmxext
+AVG_CACHELINE_CHECK 20, 64, mmxext
 AVG_CACHELINE_CHECK  8, 32, mmxext
 AVG_CACHELINE_CHECK 12, 32, mmxext
 AVG_CACHELINE_CHECK 16, 32, mmxext
 AVG_CACHELINE_CHECK 20, 32, mmxext
-AVG_CACHELINE_CHECK 16, 64, mmxext
-AVG_CACHELINE_CHECK 20, 64, mmxext
 %endif
-
-AVG_CACHELINE_CHECK  8, 64, mmxext
-AVG_CACHELINE_CHECK 12, 64, mmxext
 AVG_CACHELINE_CHECK 16, 64, sse2
 AVG_CACHELINE_CHECK 20, 64, sse2
 
@@ -746,31 +760,49 @@ AVG_CACHELINE_CHECK 20, 64, sse2
 %macro AVG16_CACHELINE_LOOP_SSSE3 2 ; alignment
 ALIGN 16
 avg_w16_align%1_%2_ssse3:
-%if %2&15==0
+%if %1==0 && %2==0
+    movdqa  xmm1, [r2]
+    pavgb   xmm1, [r2+r4]
+    add    r2, r3
+%elif %1==0
+    movdqa  xmm1, [r2+r4+16]
+    palignr xmm1, [r2+r4], %2
+    pavgb   xmm1, [r2]
+    add    r2, r3
+%elif %2&15==0
     movdqa  xmm1, [r2+16]
     palignr xmm1, [r2], %1
     pavgb   xmm1, [r2+r4]
+    add    r2, r3
 %else
     movdqa  xmm1, [r2+16]
     movdqa  xmm2, [r2+r4+16]
     palignr xmm1, [r2], %1
-    palignr xmm2, [r2+r4], %2
+    palignr xmm2, [r2+r4], %2&15
+    add    r2, r3
     pavgb   xmm1, xmm2
 %endif
     movdqa  [r0], xmm1
-    add    r2, r3
     add    r0, r1
     dec    r5d
     jg     avg_w16_align%1_%2_ssse3
-    rep ret
+    ret
+%if %1==0
+    times 13 db 0x90 ; make sure the first ones don't end up short
+%endif
 %endmacro
 
 cglobal pixel_avg2_w16_cache64_ssse3
-    mov    eax, r2m
-    and    eax, 0x3f
-    cmp    eax, 0x30
-    jle pixel_avg2_w16_sse2
-    PROLOGUE 6,7
+%if 0 ; seems both tests aren't worth it if src1%16==0 is optimized
+    mov   eax, r2m
+    and   eax, 0x3f
+    cmp   eax, 0x30
+    jb x264_pixel_avg2_w16_sse2
+    or    eax, r4m
+    and   eax, 7
+    jz x264_pixel_avg2_w16_sse2
+%endif
+    PROLOGUE 6, 7
     lea    r6, [r4+r2]
     and    r4, ~0xf
     and    r6, 0x1f
@@ -792,9 +824,9 @@ cglobal pixel_avg2_w16_cache64_ssse3
     RET
 %endif
 
-%assign j 1
-%assign k 2
-%rep 15
+%assign j 0
+%assign k 1
+%rep 16
 AVG16_CACHELINE_LOOP_SSSE3 j, j
 AVG16_CACHELINE_LOOP_SSSE3 j, k
 %assign j j+1
