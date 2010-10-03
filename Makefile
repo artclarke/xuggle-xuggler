@@ -228,20 +228,3 @@ etags: TAGS
 
 TAGS:
 	etags $(SRCS)
-
-dox:
-	doxygen Doxyfile
-
-ifeq (,$(VIDS))
-test:
-	@echo 'usage: make test VIDS="infile1 infile2 ..."'
-	@echo 'where infiles are anything that x264 understands,'
-	@echo 'i.e. YUV with resolution in the filename, y4m, or avisynth.'
-else
-test:
-	perl tools/regression-test.pl --version=head,current --options='$(OPT0)' --options='$(OPT1)' --options='$(OPT2)' $(VIDS:%=--input=%)
-endif
-
-testclean:
-	rm -f test/*.log test/*.264
-	$(foreach DIR, $(wildcard test/x264-r*/), cd $(DIR) ; make clean ; cd ../.. ;)
