@@ -564,7 +564,7 @@ static ALWAYS_INLINE const int8_t *predict_8x8chroma_mode_available( int i_neigh
 
 static ALWAYS_INLINE const int8_t *predict_8x8_mode_available( int force_intra, int i_neighbour, int i )
 {
-    int avoid_topright = force_intra && (i&4);
+    int avoid_topright = force_intra && (i&1);
     int idx = i_neighbour & (MB_TOP|MB_LEFT|MB_TOPLEFT);
     return i4x4_mode_available[avoid_topright][(idx&MB_TOPLEFT)?4:idx];
 }
