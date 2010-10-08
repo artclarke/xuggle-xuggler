@@ -107,6 +107,7 @@ struct x264_ratecontrol_t
     double last_rceq;
     double cplxr_sum;           /* sum of bits*qscale/rceq */
     double expected_bits_sum;   /* sum of qscale2bits after rceq, ratefactor, and overflow, only includes finished frames */
+    int64_t filler_bits_sum;    /* sum in bits of finished frames' filler data */
     double wanted_bits_window;  /* target bitrate * window */
     double cbr_decay;
     double short_term_cplxsum;
@@ -1602,6 +1603,7 @@ int x264_ratecontrol_end( x264_t *h, int bits, int *filler )
     }
 
     *filler = update_vbv( h, bits );
+    rc->filler_bits_sum += *filler * 8;
 
     if( h->sps->vui.b_nal_hrd_parameters_present )
     {
@@ -2006,7 +2008,8 @@ static float rate_estimate_qscale( x264_t *h )
     int pict_type = h->sh.i_type;
     int64_t total_bits = 8*(h->stat.i_frame_size[SLICE_TYPE_I]
                           + h->stat.i_frame_size[SLICE_TYPE_P]
-                          + h->stat.i_frame_size[SLICE_TYPE_B]);
+                          + h->stat.i_frame_size[SLICE_TYPE_B])
+                       - rcc->filler_bits_sum;
 
     if( rcc->b_2pass )
     {
@@ -2367,6 +2370,7 @@ void x264_thread_sync_ratecontrol( x264_t *cur, x264_t *prev, x264_t *next )
          * to the context that's about to end (next) */
         COPY(cplxr_sum);
         COPY(expected_bits_sum);
+        COPY(filler_bits_sum);
         COPY(wanted_bits_window);
         COPY(bframe_bits);
         COPY(initial_cpb_removal_delay);
