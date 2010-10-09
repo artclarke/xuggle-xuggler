@@ -73,6 +73,10 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int64_t getStartTime();
     virtual int64_t getFileSize();
     virtual int32_t getBitRate();
+    virtual int32_t setPreload(int32_t preload);
+    virtual int32_t getPreload();
+    virtual int32_t setMaxDelay(int32_t maxdelay);
+    virtual int32_t getMaxDelay();
 
     /*
      * Added for 1.19

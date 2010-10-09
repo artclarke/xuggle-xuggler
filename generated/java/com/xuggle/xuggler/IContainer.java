@@ -1361,6 +1361,46 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
     return XugglerJNI.IContainer_seekKeyFrame__SWIG_1(swigCPtr, this, streamIndex, minTimeStamp, targetTimeStamp, maxTimeStamp, flags);
   }
 
+/**
+ * If the container has not already been opened, sets the AVFormatContext.preload 
+ * property  
+ * which can be useful in some circumstances such as when dealing with 
+ * mpeg formats.  
+ * @param	preload amount to preload  
+ * @return	>= 0 on success, error code otherwise  
+ * @since	4.0  
+ */
+  public int setPreload(int preload) {
+    return XugglerJNI.IContainer_setPreload(swigCPtr, this, preload);
+  }
+
+/**
+ * The amount container will attemtp to preload.  
+ * @return	The amount to preload, error code otherwise.  
+ */
+  public int getPreload() {
+    return XugglerJNI.IContainer_getPreload(swigCPtr, this);
+  }
+
+/**
+ * Sets the max delay for the AVFormatContext.max_delay property.  
+ * @param	maxdelay maximum delay for container  
+ * @return	>= 0 on success, error code otherwise  
+ * @since	4.0  
+ */
+  public int setMaxDelay(int maxdelay) {
+    return XugglerJNI.IContainer_setMaxDelay(swigCPtr, this, maxdelay);
+  }
+
+/**
+ * Gets the AVFormatContext.max_delay property if possible.  
+ * @return	The max delay, error code otherwise.  
+ * @since	4.0  
+ */
+  public int getMaxDelay() {
+    return XugglerJNI.IContainer_getMaxDelay(swigCPtr, this);
+  }
+
   public enum Type {
   /**
    *

@@ -382,7 +382,7 @@ namespace com { namespace xuggle { namespace xuggler
      */
     
     virtual int32_t writePacket(IPacket *packet)=0;
-    
+
     /**
      * Create a new container object.
      *
@@ -886,7 +886,38 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int32_t seekKeyFrame(int32_t streamIndex, int64_t minTimeStamp,
         int64_t targetTimeStamp, int64_t maxTimeStamp, int32_t flags)=0;
 
+   /**
+    * If the container has not already been opened, sets the AVFormatContext.preload property
+    * which can be useful in some circumstances such as when dealing with mpeg formats.
+    *
+    * @param preload amount to preload
+    * @return >= 0 on success, error code otherwise
+    * @since 4.0
+    */
+    virtual int32_t setPreload(int32_t preload)=0;
 
+   /**
+    * The amount container will attemtp to preload.
+    *
+    * @return The amount to preload, error code otherwise.
+    */
+    virtual int32_t getPreload()=0;
+
+   /**
+    * Sets the max delay for the AVFormatContext.max_delay property.
+    *
+    * @param maxdelay maximum delay for container
+    * @return >= 0 on success, error code otherwise
+    * @since 4.0
+    */
+    virtual int32_t setMaxDelay(int32_t maxdelay)=0;
+
+   /**
+    * Gets the AVFormatContext.max_delay property if possible.
+    * @return The max delay, error code otherwise.
+    * @since 4.0
+    */
+    virtual int32_t getMaxDelay()=0;
   };
 }}}
 #endif /*ICONTAINER_H_*/

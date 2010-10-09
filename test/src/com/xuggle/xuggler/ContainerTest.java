@@ -19,17 +19,14 @@
 
 package com.xuggle.xuggler;
 
-import org.junit.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.xuggle.ferry.IBuffer;
 import com.xuggle.test_utils.TestUtils;
-import com.xuggle.xuggler.IContainer;
-import com.xuggle.xuggler.IContainerFormat;
 import com.xuggle.xuggler.io.IURLProtocolHandler;
-
 import junit.framework.TestCase;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ContainerTest extends TestCase
 {
@@ -676,5 +673,38 @@ public class ContainerTest extends TestCase
     
     String otherSdp = container.createSDPData();
     assertEquals(sdp, otherSdp);
+  }
+
+  @Test
+  public void testPreloadAndMaxDelay()
+  {
+    IContainer container = IContainer.make();
+
+    int retval;
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+
+    retval = container.getPreload();
+    assertEquals("container should have 0 preload value: " + retval, retval, 0);
+
+    retval = container.getMaxDelay();
+    assertEquals("container should have 0 maxdelay value: " + retval, retval, 0);
+
+    retval = container.setPreload(10);
+    assertEquals("container should ignore setting preload: " + retval, retval, -1);
+
+    container.close();
+    container = IContainer.make();
+
+    retval = container.setPreload(10);
+    assertEquals("container should have allowed setting preload: " + retval, 10, container.getPreload());
+
+    retval = container.setMaxDelay(20);
+    assertEquals("container should have allowed setting maxdelay: " + retval, 20, container.getMaxDelay());
+
+    retval = container.open(mSampleFile, IContainer.Type.READ, null);
+    assertTrue("could not open file", retval >= 0);
+
+    container.close();
   }
 }

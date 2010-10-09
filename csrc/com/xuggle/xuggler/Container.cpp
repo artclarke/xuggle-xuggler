@@ -865,6 +865,56 @@ namespace com { namespace xuggle { namespace xuggler
   }
 
   int32_t
+  Container :: setPreload(int32_t preload)
+  {
+    int32_t retval = -1;
+    if (mIsOpened || !mFormatContext)
+    {
+      VS_LOG_WARN("Attempting to set preload while file is opened; ignoring");
+    }
+    else
+    {
+      mFormatContext->preload = preload;
+      retval = preload;
+    }
+    return retval;
+  }
+
+  int32_t
+  Container :: getPreload()
+  {
+    int32_t retval = -1;
+    if (mFormatContext)
+      retval = mFormatContext->preload;
+    return retval;
+  }
+
+  int32_t
+  Container :: setMaxDelay(int32_t maxdelay)
+  {
+    int32_t retval = -1;
+    if (mIsOpened || !mFormatContext)
+    {
+      VS_LOG_WARN("Attempting to set max delay while file is opened; ignoring");
+    }
+    else
+    {
+      mFormatContext->max_delay = maxdelay;
+      retval = maxdelay;
+    }
+    return retval;
+  }
+
+  int32_t
+  Container :: getMaxDelay()
+  {
+    int32_t retval = -1;
+    if (mFormatContext)
+      retval = mFormatContext->max_delay;
+    return retval;
+  }
+
+  int32_t
   Container :: getNumProperties()
   {
     return Property::getNumProperties(mFormatContext);

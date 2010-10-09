@@ -593,6 +593,10 @@ class XugglerJNI {
   public final static native int IContainer_SEEK_FLAG_ANY_get();
   public final static native int IContainer_SEEK_FLAG_FRAME_get();
   public final static native int IContainer_seekKeyFrame__SWIG_1(long jarg1, IContainer jarg1_, int jarg2, long jarg3, long jarg4, long jarg5, int jarg6);
+  public final static native int IContainer_setPreload(long jarg1, IContainer jarg1_, int jarg2);
+  public final static native int IContainer_getPreload(long jarg1, IContainer jarg1_);
+  public final static native int IContainer_setMaxDelay(long jarg1, IContainer jarg1_, int jarg2);
+  public final static native int IContainer_getMaxDelay(long jarg1, IContainer jarg1_);
   public final static native void IMediaDataWrapper_wrap(long jarg1, IMediaDataWrapper jarg1_, long jarg2, IMediaData jarg2_);
   public final static native void IMediaDataWrapper_setKey(long jarg1, IMediaDataWrapper jarg1_, boolean jarg2);
   public final static native long IMediaDataWrapper_make(long jarg1, IMediaData jarg1_);
