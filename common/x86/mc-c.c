@@ -528,7 +528,8 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
         if( cpu&X264_CPU_SSE_MISALIGN )
         {
             pf->get_ref = get_ref_sse2_misalign;
-            pf->mc_chroma = x264_mc_chroma_sse2_misalign;
+            if( !(cpu&X264_CPU_STACK_MOD4) )
+                pf->mc_chroma = x264_mc_chroma_sse2_misalign;
         }
     }
 
