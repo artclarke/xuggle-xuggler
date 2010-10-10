@@ -369,7 +369,14 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
         h->dst.width  = info->width;
         h->dst.height = info->height;
         if( !strcmp( opt_string, "normcsp" ) )
+        {
             h->dst_csp = pick_closest_supported_csp( info->csp );
+            /* now fix the catch-all i420 choice if it does not allow for the current input resolution dimensions. */
+            if( h->dst_csp == X264_CSP_I420 && info->width&1 )
+                h->dst_csp = X264_CSP_I444;
+            if( h->dst_csp == X264_CSP_I420 && info->height&1 )
+                h->dst_csp = X264_CSP_I422;
+        }
         else if( handle_opts( optlist, opts, info, h ) )
             return -1;
     }
