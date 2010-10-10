@@ -36,7 +36,7 @@
 #if ARCH_ARM
 #   include "arm/pixel.h"
 #endif
-#if ARCH_UltraSparc
+#if ARCH_UltraSPARC
 #   include "sparc/pixel.h"
 #endif
 
@@ -443,7 +443,7 @@ SAD_X( 4x8 )
 SAD_X( 4x4 )
 
 #if !HIGH_BIT_DEPTH
-#if ARCH_UltraSparc
+#if ARCH_UltraSPARC
 SAD_X( 16x16_vis )
 SAD_X( 16x8_vis )
 SAD_X( 8x16_vis )
@@ -1063,7 +1063,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     }
 #endif
 #if !HIGH_BIT_DEPTH
-#if ARCH_UltraSparc
+#if ARCH_UltraSPARC
     INIT4( sad, _vis );
     INIT4( sad_x3, _vis );
     INIT4( sad_x4, _vis );

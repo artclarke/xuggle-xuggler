@@ -392,15 +392,20 @@ case $host_cpu in
     fi
     ;;
   sparc)
-    if [ $asm = auto ] && test "$(uname -m)" = "sun4u"; then
-      ARCH="UltraSparc"
-      CFLAGS="$CFLAGS -mcpu=ultrasparc"
-      LDFLAGS="$LDFLAGS -mcpu=ultrasparc"
-      AS="${AS-${cross_prefix}as}"
-      ASFLAGS="$ASFLAGS -xarch=v8plusa"
-    else
-      ARCH="Sparc"
-    fi
+    ARCH="SPARC"
+    case $(uname -m) in
+      sun4u|sun4v)
+        if [ $asm = auto ]; then
+          ARCH="UltraSPARC"
+          if ! echo $CFLAGS | grep -Eq '\-mcpu' ; then
+            CFLAGS="$CFLAGS -mcpu=ultrasparc"
+            LDFLAGS="$LDFLAGS -mcpu=ultrasparc"
+          fi
+          AS="${AS-${cross_prefix}as}"
+          ASFLAGS="$ASFLAGS -xarch=v8plusa"
+        fi
+        ;;
+    esac
     ;;
   mips|mipsel|mips64|mips64el)
     ARCH="MIPS"
@@ -497,11 +502,11 @@ fi
 define ARCH_$ARCH
 define SYS_$SYS
 
-echo "int i = 0x42494745; double f = 0x1.0656e6469616ep+102;" > conftest.c
+echo "int i[2] = {0x42494745,0}; double f[2] = {0x1.0656e6469616ep+102,0};" > conftest.c
 $CC $CFLAGS conftest.c -c -o conftest.o 2>$DEVNULL || die "endian test failed"
-if grep -q BIGE conftest.o && grep -q FPendian conftest.o ; then
+if (strings -a conftest.o | grep -q BIGE) && (strings -a conftest.o | grep -q FPendian) ; then
     define WORDS_BIGENDIAN
-elif !(grep -q EGIB conftest.o && grep -q naidnePF conftest.o) ; then
+elif !(strings -a conftest.o | grep -q EGIB && strings -a conftest.o | grep -q naidnePF) ; then
     die "endian test failed"
 fi
 
