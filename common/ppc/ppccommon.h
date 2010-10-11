@@ -269,6 +269,16 @@ typedef union {
     p1   += i1;                                     \
     p2   += i2
 
+#define VEC_DIFF_H_OFFSET(p1,i1,p2,i2,n,d,g1,g2)    \
+    pix1v = (vec_s16_t)vec_perm( vec_ld( 0, p1 ), zero_u8v, _##g1##_ );\
+    pix1v = vec_u8_to_s16( pix1v );                 \
+    VEC_LOAD( p2, pix2v, n, vec_s16_t, g2);         \
+    pix2v = vec_u8_to_s16( pix2v );                 \
+    d     = vec_sub( pix1v, pix2v );                \
+    p1   += i1;                                     \
+    p2   += i2
+
+
 /***********************************************************************
  * VEC_DIFF_HL
  ***********************************************************************

@@ -283,19 +283,19 @@ static int pixel_satd_8x8_altivec( uint8_t *pix1, int i_pix1,
               temp4v, temp5v, temp6v, temp7v;
     vec_s32_t satdv;
 
-    PREP_LOAD_SRC( pix1 );
-    vec_u8_t _offset1v_ = vec_lvsl(0, pix2);
-    vec_u8_t _offset2v_ = vec_lvsl(0, pix2 + i_pix2);
+    vec_u8_t _offset1_1v_ = vec_lvsl(0, pix1);
+    vec_u8_t _offset1_2v_ = vec_lvsl(0, pix1 + i_pix1);
+    vec_u8_t _offset2_1v_ = vec_lvsl(0, pix2);
+    vec_u8_t _offset2_2v_ = vec_lvsl(0, pix2 + i_pix2);
 
-
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff0v, offset1v );
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff1v, offset2v );
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff2v, offset1v );
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff3v, offset2v );
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff4v, offset1v );
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff5v, offset2v );
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff6v, offset1v );
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff7v, offset2v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff0v, offset1_1v, offset2_1v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff1v, offset1_2v, offset2_2v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff2v, offset1_1v, offset2_1v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff3v, offset1_2v, offset2_2v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff4v, offset1_1v, offset2_1v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff5v, offset1_2v, offset2_2v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff6v, offset1_1v, offset2_1v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff7v, offset1_2v, offset2_2v );
 
     VEC_HADAMAR( diff0v, diff1v, diff2v, diff3v,
                  temp0v, temp1v, temp2v, temp3v );
