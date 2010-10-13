@@ -42,45 +42,54 @@ To allow encoding of multiple frames in parallel, we have to ensure that any giv
 We have to commit to one frame type before starting on the frame. Thus scenecut detection must run during the lowres pre-motion-estimation along with B-adapt, which makes it faster but less accurate than re-encoding the whole frame.
 Ratecontrol gets delayed feedback, since it has to plan frame N before frame N-1 finishes.
 
-NOTE: these benchmarks are from the original implementation of frame-based threads.  They are likely not entirely accurate today, nor do the commandlines match up with modern x264.  However, they still give a good idea of the relative performance of frame and slice-based threads.
-
 Benchmarks:
-cpu: 4x woodcrest 3GHz
-content: 480p
+cpu: 8core Nehalem (2x E5520) 2.27GHz, hyperthreading disabled
+kernel: linux 2.6.34.7, 64-bit
+x264: r1732 b20059aa
+input: http://media.xiph.org/video/derf/y4m/1080p/park_joy_1080p.y4m
 
-x264 -B1000 -b2 -m1 -Anone
-threads  speed           psnr
-       old   new      old    new
-1:   1.000x 1.000x   0.000  0.000
-2:   1.168x 1.413x  -0.038 -0.007
-3:   1.208x 1.814x  -0.064 -0.005
-4:   1.293x 2.329x  -0.095 -0.006
-5:          2.526x         -0.007
-6:          2.658x         -0.001
-7:          2.723x         -0.018
-8:          2.712x         -0.019
+NOTE: the "thread count" listed below does not count the lookahead thread, only encoding threads.  This is why for "veryfast", the speedup for 2 and 3 threads exceeds the logical limit.
 
-x264 -B1000 -b2 -m5
-threads  speed           psnr   
-       old   new      old    new
-1:   1.000x 1.000x   0.000  0.000
-2:   1.319x 1.517x  -0.036 -0.006
-3:   1.466x 2.013x  -0.068 -0.005
-4:   1.578x 2.741x  -0.101 -0.004
-5:          3.022x         -0.015
-6:          3.221x         -0.014
-7:          3.331x         -0.020
-8:          3.425x         -0.025
+threads  speedup       psnr
+      slice frame   slice  frame
+x264 --preset veryfast --tune psnr --crf 30
+ 1:   1.00x 1.00x  +0.000 +0.000
+ 2:   1.41x 2.29x  -0.005 -0.002
+ 3:   1.70x 3.65x  -0.035 +0.000
+ 4:   1.96x 3.97x  -0.029 -0.001
+ 5:   2.10x 3.98x  -0.047 -0.002
+ 6:   2.29x 3.97x  -0.060 +0.001
+ 7:   2.36x 3.98x  -0.057 -0.001
+ 8:   2.43x 3.98x  -0.067 -0.001
+ 9:         3.96x         +0.000
+10:         3.99x         +0.000
+11:         4.00x         +0.001
+12:         4.00x         +0.001
 
-x264 -B1000 -b2 -m6 -r3 -8 --b-rdo
-threads  speed           psnr   
-       old   new      old    new
-1:   1.000x 1.000x   0.000  0.000
-2:   1.531x 1.707x  -0.032 -0.006
-3:   1.866x 2.277x  -0.061 -0.005
-4:   2.097x 3.204x  -0.088 -0.006
-5:          3.468x         -0.013
-6:          3.629x         -0.010
-7:          3.716x         -0.014
-8:          3.745x         -0.018
+x264 --preset medium --tune psnr --crf 30
+ 1:   1.00x 1.00x  +0.000 +0.000
+ 2:   1.54x 1.59x  -0.002 -0.003
+ 3:   2.01x 2.81x  -0.005 +0.000
+ 4:   2.51x 3.11x  -0.009 +0.000
+ 5:   2.89x 4.20x  -0.012 -0.000
+ 6:   3.27x 4.50x  -0.016 -0.000
+ 7:   3.58x 5.45x  -0.019 -0.002
+ 8:   3.79x 5.76x  -0.015 -0.002
+ 9:         6.49x         -0.000
+10:         6.64x         -0.000
+11:         6.94x         +0.000
+12:         6.96x         +0.000
 
+x264 --preset slower --tune psnr --crf 30
+ 1:   1.00x 1.00x  +0.000 +0.000
+ 2:   1.54x 1.83x  +0.000 +0.002
+ 3:   1.98x 2.21x  -0.006 +0.002
+ 4:   2.50x 2.61x  -0.011 +0.002
+ 5:   2.93x 3.94x  -0.018 +0.003
+ 6:   3.45x 4.19x  -0.024 +0.001
+ 7:   3.84x 4.52x  -0.028 -0.001
+ 8:   4.13x 5.04x  -0.026 -0.001
+ 9:         6.15x         +0.001
+10:         6.24x         +0.001
+11:         6.55x         -0.001
+12:         6.89x         -0.001
