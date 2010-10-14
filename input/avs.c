@@ -61,6 +61,7 @@ typedef struct
         AVSC_DECLARE_FUNC( avs_clip_get_error );
         AVSC_DECLARE_FUNC( avs_create_script_environment );
         AVSC_DECLARE_FUNC( avs_delete_script_environment );
+        AVSC_DECLARE_FUNC( avs_get_error );
         AVSC_DECLARE_FUNC( avs_get_frame );
         AVSC_DECLARE_FUNC( avs_get_video_info );
         AVSC_DECLARE_FUNC( avs_function_exists );
@@ -81,6 +82,7 @@ static int x264_avs_load_library( avs_hnd_t *h )
     LOAD_AVS_FUNC( avs_clip_get_error, 0 );
     LOAD_AVS_FUNC( avs_create_script_environment, 0 );
     LOAD_AVS_FUNC( avs_delete_script_environment, 1 );
+    LOAD_AVS_FUNC( avs_get_error, 1 );
     LOAD_AVS_FUNC( avs_get_frame, 0 );
     LOAD_AVS_FUNC( avs_get_video_info, 0 );
     LOAD_AVS_FUNC( avs_function_exists, 0 );
@@ -132,7 +134,11 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         return -1;
     FAIL_IF_ERROR( x264_avs_load_library( h ), "failed to load avisynth\n" )
     h->env = h->func.avs_create_script_environment( AVS_INTERFACE_25 );
-    FAIL_IF_ERROR( !h->env, "failed to initiate avisynth\n" )
+    if( h->func.avs_get_error )
+    {
+        const char *error = h->func.avs_get_error( h->env );
+        FAIL_IF_ERROR( error, "%s\n", error );
+    }
     AVS_Value arg = avs_new_value_string( psz_filename );
     AVS_Value res;
     char *filename_ext = get_filename_extension( psz_filename );
