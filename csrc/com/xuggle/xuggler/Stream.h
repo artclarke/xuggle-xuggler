@@ -100,12 +100,6 @@ namespace com { namespace xuggle { namespace xuggler
     Direction mDirection;
     StreamCoder* mCoder;
     Container* mContainer;
-    /**
-     * We mirror the language setting that FFMPEG
-     * has, but add one character so we can insert
-     * a null if needed.
-     */
-    char mLanguage[5];
     com::xuggle::ferry::RefPointer<IMetaData> mMetaData;
     
     int64_t mLastDts;

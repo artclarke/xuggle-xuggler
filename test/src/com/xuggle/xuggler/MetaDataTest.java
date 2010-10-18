@@ -29,11 +29,11 @@ import com.xuggle.ferry.IBuffer;
 
 public class MetaDataTest
 {
-  public static final String AUTHOR_KEY = "TPE1";
-  public static final String GENRE_KEY = "TCON";
-  public static final String TITLE_KEY = "TIT2";
+  public static final String AUTHOR_KEY = "artist";
+  public static final String GENRE_KEY = "genre";
+  public static final String TITLE_KEY = "title";
   public static final String YEAR_KEY = "TYER";
-  public static final String ALBUM_KEY = "TALB";
+  public static final String ALBUM_KEY = "album";
   public static final String COMMENT_KEY = "comment";
   
   @Test

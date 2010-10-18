@@ -21,6 +21,7 @@
 #include <stdexcept>
 
 #include <com/xuggle/ferry/Logger.h>
+#include <com/xuggle/ferry/RefPointer.h>
 
 #include <com/xuggle/xuggler/Global.h>
 #include <com/xuggle/xuggler/Stream.h>
@@ -45,7 +46,6 @@ namespace com { namespace xuggle { namespace xuggler
     mCoder = 0;
     mContainer = 0;
     mLastDts = Global::NO_PTS;
-    memset(mLanguage, 0, sizeof(mLanguage));
   }
 
   Stream :: ~Stream()
@@ -252,41 +252,19 @@ namespace com { namespace xuggle { namespace xuggler
   Stream :: getLanguage()
   {
     const char*retval = 0;
-
-    if (mStream && mStream->language && *mStream->language)
-    {
-      int i = 0;
-      for(; i < 4; i++)
-      {
-        if (!mStream->language[i])
-          break;
-        mLanguage[i]=mStream->language[i];
-      }
-      mLanguage[i]=0;
-      retval = mLanguage;
+    com::xuggle::ferry::RefPointer<IMetaData> metaData = getMetaData();
+    if (metaData) {
+      retval = metaData->getValue("language", IMetaData::METADATA_NONE);
     }
-
     return retval;
   }
 
   void
   Stream :: setLanguage(const char* aNewValue)
   {
-    if (mStream)
-    {
-      if (aNewValue)
-      {
-        for(int i = 0; i < 4; i++)
-        {
-          mStream->language[i]=aNewValue[i];
-          if(!aNewValue[i])
-            break;
-        }
-      }
-      else
-      {
-        mStream->language[0] = 0;
-      }
+    com::xuggle::ferry::RefPointer<IMetaData> metaData = getMetaData();
+    if (metaData) {
+      metaData->setValue("language", aNewValue);
     }
     return;
   }

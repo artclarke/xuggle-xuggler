@@ -177,7 +177,7 @@ public class StreamTest extends TestCase
     assertEquals("jpn", mStream.getLanguage());
 
     mStream.setLanguage("");
-    assertNull(mStream.getLanguage());
+    assertNotNull(mStream.getLanguage());
   }
   
   public void testSetLanguageFourCharacterString()
@@ -190,9 +190,9 @@ public class StreamTest extends TestCase
   public void testSetLanguageFiveCharacterString()
   {
     helperGetStream(0);
-    // should truncate to 4
+    // should no longer truncate to 4
     mStream.setLanguage("12345");
-    assertEquals("1234", mStream.getLanguage());
+    assertEquals("12345", mStream.getLanguage());
   }
 
 
