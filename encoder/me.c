@@ -583,7 +583,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
 #if 0
             /* plain old exhaustive search */
             for( int my = min_y; my <= max_y; my++ )
-                for( int mx = min_x; mx <= max_x; mx++ )
+                for( int mx = min_x; mx < min_x + width; mx++ )
                     COST_MV( mx, my );
 #else
             /* successive elimination by comparing DC before a full SAD,
