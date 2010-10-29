@@ -1176,14 +1176,14 @@ static int check_mc( int cpu_ref, int cpu_new )
         int stride = 80;\
         set_func_name( #name );\
         used_asm = 1;\
-        memcpy( pbuf3, pbuf1, size*2*stride * sizeof(pixel) );\
-        memcpy( pbuf4, pbuf1, size*2*stride * sizeof(pixel) );\
-        uint16_t *sum = (uint16_t*)pbuf3;\
+        memcpy( buf3, buf1, size*2*stride );\
+        memcpy( buf4, buf1, size*2*stride );\
+        uint16_t *sum = (uint16_t*)buf3;\
         call_c1( mc_c.name, __VA_ARGS__ );\
-        sum = (uint16_t*)pbuf4;\
+        sum = (uint16_t*)buf4;\
         call_a1( mc_a.name, __VA_ARGS__ );\
-        if( memcmp( pbuf3, pbuf4, (stride-8)*2 * sizeof(pixel) )\
-            || (size>9 && memcmp( pbuf3+18*stride, pbuf4+18*stride, (stride-8)*2 * sizeof(pixel) )))\
+        if( memcmp( buf3, buf4, (stride-8)*2 ) \
+            || (size>9 && memcmp( buf3+18*stride, buf4+18*stride, (stride-8)*2 )))\
             ok = 0;\
         call_c2( mc_c.name, __VA_ARGS__ );\
         call_a2( mc_a.name, __VA_ARGS__ );\
