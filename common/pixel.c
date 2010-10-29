@@ -210,12 +210,20 @@ static int pixel_var2_8x8( pixel *pix1, int i_stride1, pixel *pix2, int i_stride
     return var;
 }
 
+#if BIT_DEPTH > 8
+    typedef uint32_t sum_t;
+    typedef uint64_t sum2_t;
+#else
+    typedef uint16_t sum_t;
+    typedef uint32_t sum2_t;
+#endif
+#define BITS_PER_SUM (8 * sizeof(sum_t))
 
 #define HADAMARD4(d0, d1, d2, d3, s0, s1, s2, s3) {\
-    int t0 = s0 + s1;\
-    int t1 = s0 - s1;\
-    int t2 = s2 + s3;\
-    int t3 = s2 - s3;\
+    sum2_t t0 = s0 + s1;\
+    sum2_t t1 = s0 - s1;\
+    sum2_t t2 = s2 + s3;\
+    sum2_t t3 = s2 - s3;\
     d0 = t0 + t2;\
     d2 = t0 - t2;\
     d1 = t1 + t3;\
@@ -224,9 +232,9 @@ static int pixel_var2_8x8( pixel *pix1, int i_stride1, pixel *pix2, int i_stride
 
 // in: a pseudo-simd number of the form x+(y<<16)
 // return: abs(x)+(abs(y)<<16)
-static ALWAYS_INLINE uint32_t abs2( uint32_t a )
+static ALWAYS_INLINE sum2_t abs2( sum2_t a )
 {
-    uint32_t s = ((a>>15)&0x10001)*0xffff;
+    sum2_t s = ((a>>(BITS_PER_SUM-1))&(((sum2_t)1<<BITS_PER_SUM)+1))*((sum_t)-1);
     return (a+s)^s;
 }
 
@@ -236,17 +244,17 @@ static ALWAYS_INLINE uint32_t abs2( uint32_t a )
 
 static NOINLINE int x264_pixel_satd_4x4( pixel *pix1, int i_pix1, pixel *pix2, int i_pix2 )
 {
-    uint32_t tmp[4][2];
-    uint32_t a0, a1, a2, a3, b0, b1;
-    int sum = 0;
+    sum2_t tmp[4][2];
+    sum2_t a0, a1, a2, a3, b0, b1;
+    sum2_t sum = 0;
     for( int i = 0; i < 4; i++, pix1 += i_pix1, pix2 += i_pix2 )
     {
         a0 = pix1[0] - pix2[0];
         a1 = pix1[1] - pix2[1];
-        b0 = (a0+a1) + ((a0-a1)<<16);
+        b0 = (a0+a1) + ((a0-a1)<<BITS_PER_SUM);
         a2 = pix1[2] - pix2[2];
         a3 = pix1[3] - pix2[3];
-        b1 = (a2+a3) + ((a2-a3)<<16);
+        b1 = (a2+a3) + ((a2-a3)<<BITS_PER_SUM);
         tmp[i][0] = b0 + b1;
         tmp[i][1] = b0 - b1;
     }
@@ -254,22 +262,22 @@ static NOINLINE int x264_pixel_satd_4x4( pixel *pix1, int i_pix1, pixel *pix2, i
     {
         HADAMARD4( a0, a1, a2, a3, tmp[0][i], tmp[1][i], tmp[2][i], tmp[3][i] );
         a0 = abs2(a0) + abs2(a1) + abs2(a2) + abs2(a3);
-        sum += ((uint16_t)a0) + (a0>>16);
+        sum += ((sum_t)a0) + (a0>>BITS_PER_SUM);
     }
     return sum >> 1;
 }
 
 static NOINLINE int x264_pixel_satd_8x4( pixel *pix1, int i_pix1, pixel *pix2, int i_pix2 )
 {
-    uint32_t tmp[4][4];
-    uint32_t a0, a1, a2, a3;
-    int sum = 0;
+    sum2_t tmp[4][4];
+    sum2_t a0, a1, a2, a3;
+    sum2_t sum = 0;
     for( int i = 0; i < 4; i++, pix1 += i_pix1, pix2 += i_pix2 )
     {
-        a0 = (pix1[0] - pix2[0]) + ((pix1[4] - pix2[4]) << 16);
-        a1 = (pix1[1] - pix2[1]) + ((pix1[5] - pix2[5]) << 16);
-        a2 = (pix1[2] - pix2[2]) + ((pix1[6] - pix2[6]) << 16);
-        a3 = (pix1[3] - pix2[3]) + ((pix1[7] - pix2[7]) << 16);
+        a0 = (pix1[0] - pix2[0]) + ((sum2_t)(pix1[4] - pix2[4]) << BITS_PER_SUM);
+        a1 = (pix1[1] - pix2[1]) + ((sum2_t)(pix1[5] - pix2[5]) << BITS_PER_SUM);
+        a2 = (pix1[2] - pix2[2]) + ((sum2_t)(pix1[6] - pix2[6]) << BITS_PER_SUM);
+        a3 = (pix1[3] - pix2[3]) + ((sum2_t)(pix1[7] - pix2[7]) << BITS_PER_SUM);
         HADAMARD4( tmp[i][0], tmp[i][1], tmp[i][2], tmp[i][3], a0,a1,a2,a3 );
     }
     for( int i = 0; i < 4; i++ )
@@ -277,7 +285,7 @@ static NOINLINE int x264_pixel_satd_8x4( pixel *pix1, int i_pix1, pixel *pix2, i
         HADAMARD4( a0, a1, a2, a3, tmp[0][i], tmp[1][i], tmp[2][i], tmp[3][i] );
         sum += abs2(a0) + abs2(a1) + abs2(a2) + abs2(a3);
     }
-    return (((uint16_t)sum) + ((uint32_t)sum>>16)) >> 1;
+    return (((sum_t)sum) + (sum>>BITS_PER_SUM)) >> 1;
 }
 
 #define PIXEL_SATD_C( w, h, sub )\
@@ -305,23 +313,23 @@ PIXEL_SATD_C( 4,  8,  x264_pixel_satd_4x4 )
 
 static NOINLINE int sa8d_8x8( pixel *pix1, int i_pix1, pixel *pix2, int i_pix2 )
 {
-    uint32_t tmp[8][4];
-    uint32_t a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3;
-    int sum = 0;
+    sum2_t tmp[8][4];
+    sum2_t a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3;
+    sum2_t sum = 0;
     for( int i = 0; i < 8; i++, pix1 += i_pix1, pix2 += i_pix2 )
     {
         a0 = pix1[0] - pix2[0];
         a1 = pix1[1] - pix2[1];
-        b0 = (a0+a1) + ((a0-a1)<<16);
+        b0 = (a0+a1) + ((a0-a1)<<BITS_PER_SUM);
         a2 = pix1[2] - pix2[2];
         a3 = pix1[3] - pix2[3];
-        b1 = (a2+a3) + ((a2-a3)<<16);
+        b1 = (a2+a3) + ((a2-a3)<<BITS_PER_SUM);
         a4 = pix1[4] - pix2[4];
         a5 = pix1[5] - pix2[5];
-        b2 = (a4+a5) + ((a4-a5)<<16);
+        b2 = (a4+a5) + ((a4-a5)<<BITS_PER_SUM);
         a6 = pix1[6] - pix2[6];
         a7 = pix1[7] - pix2[7];
-        b3 = (a6+a7) + ((a6-a7)<<16);
+        b3 = (a6+a7) + ((a6-a7)<<BITS_PER_SUM);
         HADAMARD4( tmp[i][0], tmp[i][1], tmp[i][2], tmp[i][3], b0,b1,b2,b3 );
     }
     for( int i = 0; i < 4; i++ )
@@ -332,7 +340,7 @@ static NOINLINE int sa8d_8x8( pixel *pix1, int i_pix1, pixel *pix2, int i_pix2 )
         b0 += abs2(a1+a5) + abs2(a1-a5);
         b0 += abs2(a2+a6) + abs2(a2-a6);
         b0 += abs2(a3+a7) + abs2(a3-a7);
-        sum += (uint16_t)b0 + (b0>>16);
+        sum += (sum_t)b0 + (b0>>BITS_PER_SUM);
     }
     return sum;
 }
@@ -355,18 +363,18 @@ static int x264_pixel_sa8d_16x16( pixel *pix1, int i_pix1, pixel *pix2, int i_pi
 
 static NOINLINE uint64_t pixel_hadamard_ac( pixel *pix, int stride )
 {
-    uint32_t tmp[32];
-    uint32_t a0, a1, a2, a3, dc;
-    int sum4 = 0, sum8 = 0;
+    sum2_t tmp[32];
+    sum2_t a0, a1, a2, a3, dc;
+    sum2_t sum4 = 0, sum8 = 0;
     for( int i = 0; i < 8; i++, pix+=stride )
     {
-        uint32_t *t = tmp + (i&3) + (i&4)*4;
-        a0 = (pix[0]+pix[1]) + ((pix[0]-pix[1])<<16);
-        a1 = (pix[2]+pix[3]) + ((pix[2]-pix[3])<<16);
+        sum2_t *t = tmp + (i&3) + (i&4)*4;
+        a0 = (pix[0]+pix[1]) + ((sum2_t)(pix[0]-pix[1])<<BITS_PER_SUM);
+        a1 = (pix[2]+pix[3]) + ((sum2_t)(pix[2]-pix[3])<<BITS_PER_SUM);
         t[0] = a0 + a1;
         t[4] = a0 - a1;
-        a2 = (pix[4]+pix[5]) + ((pix[4]-pix[5])<<16);
-        a3 = (pix[6]+pix[7]) + ((pix[6]-pix[7])<<16);
+        a2 = (pix[4]+pix[5]) + ((sum2_t)(pix[4]-pix[5])<<BITS_PER_SUM);
+        a3 = (pix[6]+pix[7]) + ((sum2_t)(pix[6]-pix[7])<<BITS_PER_SUM);
         t[8] = a2 + a3;
         t[12] = a2 - a3;
     }
@@ -384,9 +392,9 @@ static NOINLINE uint64_t pixel_hadamard_ac( pixel *pix, int stride )
         HADAMARD4( a0,a1,a2,a3, tmp[i], tmp[8+i], tmp[16+i], tmp[24+i] );
         sum8 += abs2(a0) + abs2(a1) + abs2(a2) + abs2(a3);
     }
-    dc = (uint16_t)(tmp[0] + tmp[8] + tmp[16] + tmp[24]);
-    sum4 = (uint16_t)sum4 + ((uint32_t)sum4>>16) - dc;
-    sum8 = (uint16_t)sum8 + ((uint32_t)sum8>>16) - dc;
+    dc = (sum_t)(tmp[0] + tmp[8] + tmp[16] + tmp[24]);
+    sum4 = (sum_t)sum4 + (sum4>>BITS_PER_SUM) - dc;
+    sum8 = (sum_t)sum8 + (sum8>>BITS_PER_SUM) - dc;
     return ((uint64_t)sum8<<32) + sum4;
 }
 
