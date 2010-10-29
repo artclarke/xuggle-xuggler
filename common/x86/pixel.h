@@ -103,10 +103,12 @@ void x264_intra_sa8d_x3_8x8_core_mmxext( uint8_t *, int16_t [2][8], int * );
 void x264_intra_sa8d_x3_8x8_core_sse2  ( uint8_t *, int16_t [2][8], int * );
 void x264_intra_sa8d_x3_8x8_core_ssse3 ( uint8_t *, int16_t [2][8], int * );
 
-uint64_t x264_pixel_ssd_nv12_core_mmxext( uint8_t *pixuv1, int stride1,
-                                          uint8_t *pixuv2, int stride2, int width, int height );
-uint64_t x264_pixel_ssd_nv12_core_sse2( uint8_t *pixuv1, int stride1,
-                                        uint8_t *pixuv2, int stride2, int width, int height );
+void x264_pixel_ssd_nv12_core_mmxext( uint8_t *pixuv1, int stride1,
+                                      uint8_t *pixuv2, int stride2, int width,
+                                      int height, uint64_t *ssd_u, uint64_t *ssd_v );
+void x264_pixel_ssd_nv12_core_sse2( uint8_t *pixuv1, int stride1,
+                                    uint8_t *pixuv2, int stride2, int width,
+                                    int height, uint64_t *ssd_u, uint64_t *ssd_v );
 void x264_pixel_ssim_4x4x2_core_mmxext( const uint8_t *pix1, int stride1,
                                         const uint8_t *pix2, int stride2, int sums[2][4] );
 void x264_pixel_ssim_4x4x2_core_sse2( const uint8_t *pix1, int stride1,

@@ -1664,13 +1664,14 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
                 h->fdec->plane[0] + min_y * h->fdec->i_stride[0], h->fdec->i_stride[0],
                 h->fenc->plane[0] + min_y * h->fenc->i_stride[0], h->fenc->i_stride[0],
                 h->param.i_width, max_y-min_y );
-            uint64_t ssd_uv = x264_pixel_ssd_nv12( &h->pixf,
+            uint64_t ssd_u, ssd_v;
+            x264_pixel_ssd_nv12( &h->pixf,
                 h->fdec->plane[1] + (min_y>>1) * h->fdec->i_stride[1], h->fdec->i_stride[1],
                 h->fenc->plane[1] + (min_y>>1) * h->fenc->i_stride[1], h->fenc->i_stride[1],
-                h->param.i_width>>1, (max_y-min_y)>>1 );
+                h->param.i_width>>1, (max_y-min_y)>>1, &ssd_u, &ssd_v );
             h->stat.frame.i_ssd[0] += ssd_y;
-            h->stat.frame.i_ssd[1] += (uint32_t)ssd_uv;
-            h->stat.frame.i_ssd[2] += ssd_uv>>32;
+            h->stat.frame.i_ssd[1] += ssd_u;
+            h->stat.frame.i_ssd[2] += ssd_v;
         }
 
         if( h->param.analyse.b_ssim )

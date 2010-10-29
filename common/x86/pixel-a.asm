@@ -45,6 +45,9 @@ mask_10:   times 4 dw 0, -1
 mask_1100: times 2 dd 0, -1
 deinterleave_shuf: db 0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15
 
+pd_f0:     times 4 dd 0xffff0000
+pq_0f:     times 2 dd 0xffffffff, 0
+
 SECTION .text
 
 cextern pw_1
@@ -341,14 +344,15 @@ cglobal pixel_ssd_nv12_core_%1, 6,7
     add     r2, r3
     dec    r5d
     jg .loopy
+    mov     r3, r6m
+    mov     r4, r7m
+    mova    m5, [pq_0f]
     HADDD   m3, m0
     HADDD   m4, m0
-    movd   eax, m3
-    movd   edx, m4
-%ifdef ARCH_X86_64
-    shl    rdx, 32
-    add    rax, rdx
-%endif
+    pand    m3, m5
+    pand    m4, m5
+    movq  [r3], m3
+    movq  [r4], m4
     RET
 %endmacro ; SSD_NV12
 

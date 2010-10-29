@@ -452,17 +452,17 @@ static int check_pixel( int cpu_ref, int cpu_new )
     {
         used_asm = 1;
         set_func_name( "ssd_nv12" );
-        uint64_t res_c = pixel_c.ssd_nv12_core(   pbuf1, 368, pbuf2, 368, 360, 8 );
-        uint64_t res_a = pixel_asm.ssd_nv12_core( pbuf1, 368, pbuf2, 368, 360, 8 );
-        if( res_c != res_a )
+        uint64_t res_u_c, res_v_c, res_u_a, res_v_a;
+        pixel_c.ssd_nv12_core(   pbuf1, 368, pbuf2, 368, 360, 8, &res_u_c, &res_v_c );
+        pixel_asm.ssd_nv12_core( pbuf1, 368, pbuf2, 368, 360, 8, &res_u_a, &res_v_a );
+        if( res_u_c != res_u_a || res_v_c != res_v_a )
         {
             ok = 0;
-            fprintf( stderr, "ssd_nv12: %u,%u != %u,%u\n",
-                     (uint32_t)res_c, (uint32_t)(res_c>>32),
-                     (uint32_t)res_a, (uint32_t)(res_a>>32) );
+            fprintf( stderr, "ssd_nv12: %"PRIu64",%"PRIu64" != %"PRIu64",%"PRIu64"\n",
+                     res_u_c, res_v_c, res_u_a, res_v_a );
         }
-        call_c( pixel_c.ssd_nv12_core,   pbuf1, 368, pbuf2, 368, 360, 8 );
-        call_a( pixel_asm.ssd_nv12_core, pbuf1, 368, pbuf2, 368, 360, 8 );
+        call_c( pixel_c.ssd_nv12_core,   pbuf1, 368, pbuf2, 368, 360, 8, &res_u_c, &res_v_c );
+        call_a( pixel_asm.ssd_nv12_core, pbuf1, 368, pbuf2, 368, 360, 8, &res_u_a, &res_v_a );
     }
     report( "ssd_nv12 :" );
 

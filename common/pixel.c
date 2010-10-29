@@ -140,30 +140,29 @@ uint64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, pixel *pix1, int i_pix1,
     return i_ssd;
 }
 
-static uint64_t pixel_ssd_nv12_core( pixel *pixuv1, int stride1, pixel *pixuv2, int stride2, int width, int height )
+static void pixel_ssd_nv12_core( pixel *pixuv1, int stride1, pixel *pixuv2, int stride2, int width, int height, uint64_t *ssd_u, uint64_t *ssd_v )
 {
-    uint32_t ssd_u=0, ssd_v=0;
+    *ssd_u = 0, *ssd_v = 0;
     for( int y = 0; y < height; y++, pixuv1+=stride1, pixuv2+=stride2 )
         for( int x = 0; x < width; x++ )
         {
             int du = pixuv1[2*x]   - pixuv2[2*x];
             int dv = pixuv1[2*x+1] - pixuv2[2*x+1];
-            ssd_u += du*du;
-            ssd_v += dv*dv;
+            *ssd_u += du*du;
+            *ssd_v += dv*dv;
         }
-    return ssd_u + ((uint64_t)ssd_v<<32);
 }
 
-// SSD in uint32 (i.e. packing two into uint64) can potentially overflow on
-// image widths >= 11008 (or 6604 if interlaced), since this is called on blocks
-// of height up to 12 (resp 20). Though it will probably take significantly more
-// than that at sane distortion levels.
-uint64_t x264_pixel_ssd_nv12( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height )
+void x264_pixel_ssd_nv12( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height, uint64_t *ssd_u, uint64_t *ssd_v )
 {
-    uint64_t ssd = pf->ssd_nv12_core( pix1, i_pix1, pix2, i_pix2, i_width&~7, i_height );
+    pf->ssd_nv12_core( pix1, i_pix1, pix2, i_pix2, i_width&~7, i_height, ssd_u, ssd_v );
     if( i_width&7 )
-        ssd += pixel_ssd_nv12_core( pix1+(i_width&~7), i_pix1, pix2+(i_width&~7), i_pix2, i_width&7, i_height );
-    return ssd;
+    {
+        uint64_t tmp[2];
+        pixel_ssd_nv12_core( pix1+(i_width&~7), i_pix1, pix2+(i_width&~7), i_pix2, i_width&7, i_height, &tmp[0], &tmp[1] );
+        *ssd_u += tmp[0];
+        *ssd_v += tmp[1];
+    }
 }
 
 /****************************************************************************
