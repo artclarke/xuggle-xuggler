@@ -421,7 +421,16 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
     dctf->dct4x4dc  = dct4x4dc;
     dctf->idct4x4dc = idct4x4dc;
 
-#if !X264_HIGH_BIT_DEPTH
+#if X264_HIGH_BIT_DEPTH
+#if HAVE_MMX
+    if( cpu&X264_CPU_MMX )
+    {
+        dctf->sub4x4_dct    = x264_sub4x4_dct_mmx;
+        dctf->sub8x8_dct    = x264_sub8x8_dct_mmx;
+        dctf->sub16x16_dct  = x264_sub16x16_dct_mmx;
+    }
+#endif // HAVE_MMX
+#else // !X264_HIGH_BIT_DEPTH
 #if HAVE_MMX
     if( cpu&X264_CPU_MMX )
     {
@@ -519,7 +528,7 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
         dctf->add16x16_idct8= x264_add16x16_idct8_neon;
     }
 #endif
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // X264_HIGH_BIT_DEPTH
 }
 
 void x264_dct_init_weights( void )

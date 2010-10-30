@@ -471,7 +471,10 @@
 
 
 %macro LOAD_DIFF 5
-%ifidn %3, none
+%ifdef X264_HIGH_BIT_DEPTH
+    mova       %1, %4
+    psubw      %1, %5
+%elifidn %3, none
     movh       %1, %4
     movh       %2, %5
     punpcklbw  %1, %2
@@ -557,6 +560,16 @@
     packuswb   %2, %1
 %endmacro
 
+%ifdef X264_HIGH_BIT_DEPTH
+%macro STORE_DIFF 5
+    punpcklwd  %2, %1
+    punpckhwd  %3, %1
+    psrad      %2, 16
+    psrad      %3, 16
+    mova       %4, %2
+    mova       %5, %3
+%endmacro
+%else
 %macro STORE_DIFF 4
     movh       %2, %4
     punpcklbw  %2, %3
@@ -565,6 +578,7 @@
     packuswb   %1, %1
     movh       %4, %1
 %endmacro
+%endif
 
 %macro CLIPW 3 ;(dst, min, max)
     pmaxsw %1, %2

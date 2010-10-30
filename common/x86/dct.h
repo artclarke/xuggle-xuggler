@@ -28,9 +28,9 @@
 #ifndef X264_I386_DCT_H
 #define X264_I386_DCT_H
 
-void x264_sub4x4_dct_mmx      ( int16_t dct    [16], uint8_t *pix1, uint8_t *pix2 );
-void x264_sub8x8_dct_mmx      ( int16_t dct[ 4][16], uint8_t *pix1, uint8_t *pix2 );
-void x264_sub16x16_dct_mmx    ( int16_t dct[16][16], uint8_t *pix1, uint8_t *pix2 );
+void x264_sub4x4_dct_mmx      ( dctcoef dct    [16], pixel   *pix1, pixel   *pix2 );
+void x264_sub8x8_dct_mmx      ( dctcoef dct[ 4][16], pixel   *pix1, pixel   *pix2 );
+void x264_sub16x16_dct_mmx    ( dctcoef dct[16][16], pixel   *pix1, pixel   *pix2 );
 void x264_sub8x8_dct_sse2     ( int16_t dct[ 4][16], uint8_t *pix1, uint8_t *pix2 );
 void x264_sub16x16_dct_sse2   ( int16_t dct[16][16], uint8_t *pix1, uint8_t *pix2 );
 void x264_sub4x4_dct_ssse3    ( int16_t dct    [16], uint8_t *pix1, uint8_t *pix2 );
