@@ -169,6 +169,11 @@ void x264_param_default( x264_param_t *param )
 
 static int x264_param_apply_preset( x264_param_t *param, const char *preset )
 {
+    char *end;
+    int i = strtol( preset, &end, 10 );
+    if( *end == 0 && i >= 0 && i < sizeof(x264_preset_names)/sizeof(*x264_preset_names)-1 )
+        preset = x264_preset_names[i];
+
     if( !strcasecmp( preset, "ultrafast" ) )
     {
         param->i_frame_reference = 1;

@@ -526,7 +526,13 @@ int x264_param_parse( x264_param_t *, const char *name, const char *value );
  *      Currently available presets are, ordered from fastest to slowest: */
 static const char * const x264_preset_names[] = { "ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "placebo", 0 };
 
-/*      Warning: the speed of these presets scales dramatically.  Ultrafast is a full
+/*      The presets can also be indexed numerically, as in:
+ *      x264_param_default_preset( &param, "3", ... )
+ *      with ultrafast mapping to "0" and placebo mapping to "9".  This mapping may
+ *      of course change if new presets are added in between, but will always be
+ *      ordered from fastest to slowest.
+ *
+ *      Warning: the speed of these presets scales dramatically.  Ultrafast is a full
  *      100 times faster than placebo!
  *
  *      Currently available tunings are: */
