@@ -42,7 +42,7 @@ static void register_vid_filter( cli_vid_filter_t *new_filter )
     register_vid_filter( &name##_filter );\
 }
 
-void x264_register_vid_filters()
+void x264_register_vid_filters( void )
 {
     extern cli_vid_filter_t source_filter;
     first_filter = &source_filter;

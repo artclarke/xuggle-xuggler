@@ -286,8 +286,8 @@ uint32_t x264_cpu_detect( void )
 
 #elif ARCH_ARM
 
-void x264_cpu_neon_test();
-int x264_cpu_fast_neon_mrc_test();
+void x264_cpu_neon_test( void );
+int x264_cpu_fast_neon_mrc_test( void );
 
 uint32_t x264_cpu_detect( void )
 {

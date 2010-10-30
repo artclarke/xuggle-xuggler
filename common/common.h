@@ -200,7 +200,7 @@ void x264_log( x264_t *h, int i_level, const char *psz_fmt, ... );
 
 void x264_reduce_fraction( uint32_t *n, uint32_t *d );
 void x264_reduce_fraction64( uint64_t *n, uint64_t *d );
-void x264_init_vlc_tables();
+void x264_init_vlc_tables( void );
 
 static ALWAYS_INLINE pixel x264_clip_pixel( int x )
 {
