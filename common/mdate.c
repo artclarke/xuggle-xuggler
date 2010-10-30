@@ -39,11 +39,11 @@ int64_t x264_mdate( void )
 #ifndef __MINGW32__
     struct timeval tv_date;
     gettimeofday( &tv_date, NULL );
-    return( (int64_t) tv_date.tv_sec * 1000000 + (int64_t) tv_date.tv_usec );
+    return (int64_t)tv_date.tv_sec * 1000000 + (int64_t)tv_date.tv_usec;
 #else
-    struct _timeb tb;
-    _ftime(&tb);
-    return ((int64_t)tb.time * (1000) + (int64_t)tb.millitm) * (1000);
+    struct timeb tb;
+    ftime( &tb );
+    return ((int64_t)tb.time * 1000 + (int64_t)tb.millitm) * 1000;
 #endif
 }
 
