@@ -565,3 +565,26 @@
     packuswb   %1, %1
     movh       %4, %1
 %endmacro
+
+%macro CLIPW 3 ;(dst, min, max)
+    pmaxsw %1, %2
+    pminsw %1, %3
+%endmacro
+
+%macro FIX_STRIDES 1-*
+%ifdef X264_HIGH_BIT_DEPTH
+%rep %0
+    add %1, %1
+    %rotate 1
+%endrep
+%endif
+%endmacro
+
+%macro SPLATW 2-3 0
+%if mmsize == 16
+    pshuflw    %1, %2, %3*0x55
+    punpcklqdq %1, %1
+%else
+    pshufw     %1, %2, %3*0x55
+%endif
+%endmacro

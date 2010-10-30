@@ -47,6 +47,7 @@ const pw_32_0,     times 4 dw 32,
                    times 4 dw 0
 const pw_8000,     times 8 dw 0x8000
 const pw_3fff,     times 8 dw 0x3fff
+const pw_pixel_max,times 8 dw ((1 << BIT_DEPTH)-1)
 
 const pd_1,        times 4 dd 1
 const pd_128,      times 4 dd 128

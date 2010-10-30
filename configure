@@ -724,9 +724,11 @@ fi
 
 if [ "$bit_depth" -gt "8" ]; then
     define X264_HIGH_BIT_DEPTH
+    ASFLAGS="$ASFLAGS -DX264_HIGH_BIT_DEPTH"
 fi
 
 define BIT_DEPTH $bit_depth
+ASFLAGS="$ASFLAGS -DBIT_DEPTH=$bit_depth"
 
 if [ $gpl = yes ]; then
     define HAVE_GPL 1

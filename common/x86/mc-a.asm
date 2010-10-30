@@ -29,6 +29,7 @@
 ;*****************************************************************************
 
 %include "x86inc.asm"
+%include "x86util.asm"
 
 SECTION_RODATA 32
 
@@ -73,15 +74,6 @@ cextern sw_64
         .height_loop:
     %endmacro
 %endif
-
-%macro SPLATW 2-3 0
-%if mmsize==16
-    pshuflw  %1, %2, %3*0x55
-    punpcklqdq %1, %1
-%else
-    pshufw   %1, %2, %3*0x55
-%endif
-%endmacro
 
 %macro BIWEIGHT_MMX 2
     movh      m0, %1
