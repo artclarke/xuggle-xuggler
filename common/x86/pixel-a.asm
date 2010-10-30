@@ -8,6 +8,7 @@
 ;*          Laurent Aimar <fenrir@via.ecp.fr>
 ;*          Alex Izvorski <aizvorksi@gmail.com>
 ;*          Jason Garrett-Glaser <darkshikari@gmail.com>
+;*          Oskar Arvidsson <oskar@irock.se>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -46,7 +47,7 @@ mask_1100: times 2 dd 0, -1
 deinterleave_shuf: db 0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15
 
 pd_f0:     times 4 dd 0xffff0000
-pq_0f:     times 2 dd 0xffffffff, 0
+sq_0f:     times 1 dq 0xffffffff
 
 SECTION .text
 
@@ -55,36 +56,95 @@ cextern pw_00ff
 
 cextern hsub_mul
 
-%macro HADDD 2 ; sum junk
-%if mmsize == 16
-    movhlps %2, %1
-    paddd   %1, %2
-    pshuflw %2, %1, 0xE
-    paddd   %1, %2
-%else
-    pshufw  %2, %1, 0xE
-    paddd   %1, %2
-%endif
-%endmacro
-
-%macro HADDW 2
-    pmaddwd %1, [pw_1]
-    HADDD   %1, %2
-%endmacro
-
-%macro HADDUW 2
-    mova  %2, %1
-    pslld %1, 16
-    psrld %2, 16
-    psrld %1, 16
-    paddd %1, %2
-    HADDD %1, %2
-%endmacro
-
 ;=============================================================================
 ; SSD
 ;=============================================================================
 
+%ifdef X264_HIGH_BIT_DEPTH
+;-----------------------------------------------------------------------------
+; int pixel_ssd_MxN( uint16_t *, int, uint16_t *, int )
+;-----------------------------------------------------------------------------
+%macro SSD_ONE 3
+cglobal pixel_ssd_%1x%2_%3, 4,5,6*(mmsize/16)
+    mov     r4, %1*%2/mmsize
+    pxor    m0, m0
+.loop
+    mova    m1, [r0]
+%if %1 <= mmsize/2
+    mova    m3, [r0+r1*2]
+    %define offset r3*2
+    %define num_rows 2
+%else
+    mova    m3, [r0+mmsize]
+    %define offset mmsize
+    %define num_rows 1
+%endif
+    psubw   m1, [r2]
+    psubw   m3, [r2+offset]
+    pmaddwd m1, m1
+    pmaddwd m3, m3
+    dec     r4
+    lea     r0, [r0+r1*2*num_rows]
+    lea     r2, [r2+r3*2*num_rows]
+    paddd   m0, m1
+    paddd   m0, m3
+    jg .loop
+    HADDD   m0, m5
+    movd   eax, m0
+    RET
+%endmacro
+
+%macro SSD_16_MMX 2
+cglobal pixel_ssd_%1x%2_mmxext, 4,5
+    mov     r4, %1*%2/mmsize/2
+    pxor    m0, m0
+.loop
+    mova    m1, [r0]
+    mova    m2, [r2]
+    mova    m3, [r0+mmsize]
+    mova    m4, [r2+mmsize]
+    mova    m5, [r0+mmsize*2]
+    mova    m6, [r2+mmsize*2]
+    mova    m7, [r0+mmsize*3]
+    psubw   m1, m2
+    psubw   m3, m4
+    mova    m2, [r2+mmsize*3]
+    psubw   m5, m6
+    pmaddwd m1, m1
+    psubw   m7, m2
+    pmaddwd m3, m3
+    pmaddwd m5, m5
+    dec     r4
+    lea     r0, [r0+r1*2]
+    lea     r2, [r2+r3*2]
+    pmaddwd m7, m7
+    paddd   m1, m3
+    paddd   m5, m7
+    paddd   m0, m1
+    paddd   m0, m5
+    jg .loop
+    HADDD   m0, m7
+    movd   eax, m0
+    RET
+%endmacro
+
+INIT_MMX
+SSD_ONE     4,  4, mmxext
+SSD_ONE     4,  8, mmxext
+SSD_ONE     8,  4, mmxext
+SSD_ONE     8,  8, mmxext
+SSD_ONE     8, 16, mmxext
+SSD_16_MMX 16,  8
+SSD_16_MMX 16, 16
+INIT_XMM
+SSD_ONE     8,  4, sse2
+SSD_ONE     8,  8, sse2
+SSD_ONE     8, 16, sse2
+SSD_ONE    16,  8, sse2
+SSD_ONE    16, 16, sse2
+%endif ; X264_HIGH_BIT_DEPTH
+
+%ifndef X264_HIGH_BIT_DEPTH
 %macro SSD_LOAD_FULL 5
     mova      m1, [t0+%1]
     mova      m2, [t2+%2]
@@ -310,9 +370,89 @@ INIT_MMX
 SSD  4,  4, ssse3
 SSD  4,  8, ssse3
 %assign function_align 16
+%endif ; !X264_HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
-; uint64_t pixel_ssd_nv12_core( uint8_t *pixuv1, int stride1, uint8_t *pixuv2, int stride2, int width, int height )
+; void pixel_ssd_nv12_core( uint16_t *pixuv1, int stride1, uint16_t *pixuv2, int stride2,
+;                           int width, int height, uint64_t *ssd_u, uint64_t *ssd_v )
+;
+; The maximum width this function can handle without risk of overflow is given
+; in the following equation:
+;
+;   2 * mmsize/32 * (2^32 - 1) / (2^BIT_DEPTH - 1)^2
+;
+; For 10-bit MMX this means width >= 16416 and for XMM >= 32832. At sane
+; distortion levels it will take much more than that though.
+;-----------------------------------------------------------------------------
+%ifdef X264_HIGH_BIT_DEPTH
+%macro SSD_NV12 1-2 0
+cglobal pixel_ssd_nv12_core_%1, 6,7,7*(mmsize/16)
+    shl        r4d, 2
+    FIX_STRIDES r1, r3
+    add         r0, r4
+    add         r2, r4
+    xor         r6, r6
+    pxor        m4, m4
+    pxor        m5, m5
+    mova        m6, [sq_0f]
+.loopy:
+    mov         r6, r4
+    neg         r6
+    pxor        m2, m2
+    pxor        m3, m3
+.loopx:
+    mova        m0, [r0+r6]
+    mova        m1, [r0+r6+mmsize]
+    psubw       m0, [r2+r6]
+    psubw       m1, [r2+r6+mmsize]
+%if mmsize == 8
+    pshufw      m0, m0, 11011000b
+    pshufw      m1, m1, 11011000b
+%else
+    pshuflw     m0, m0, 11011000b
+    pshuflw     m1, m1, 11011000b
+    pshufhw     m0, m0, 11011000b
+    pshufhw     m1, m1, 11011000b
+%endif
+    pmaddwd     m0, m0
+    pmaddwd     m1, m1
+    paddd       m2, m0
+    paddd       m3, m1
+    add         r6, 2*mmsize
+    jl .loopx
+%if mmsize == 8
+    SBUTTERFLY dq, 2, 3, 1
+%else
+    mova        m1, m2
+    shufps      m2, m3, 10001000b
+    shufps      m3, m1, 11011101b
+%endif
+    HADDD       m2, m1
+    HADDD       m3, m1
+    pand        m2, m6
+    pand        m3, m6
+    paddq       m4, m2
+    paddq       m5, m3
+    add         r0, r1
+    add         r2, r3
+    dec        r5d
+    jg .loopy
+    mov         r3, r6m
+    mov         r4, r7m
+    movq      [r3], m4
+    movq      [r4], m5
+    RET
+%endmacro ; SSD_NV12
+%endif ; X264_HIGH_BIT_DEPTH
+
+%ifndef X264_HIGH_BIT_DEPTH
+;-----------------------------------------------------------------------------
+; void pixel_ssd_nv12_core( uint8_t *pixuv1, int stride1, uint8_t *pixuv2, int stride2,
+;                           int width, int height, uint64_t *ssd_u, uint64_t *ssd_v )
+;
+; This implementation can potentially overflow on image widths >= 11008 (or
+; 6604 if interlaced), since it is called on blocks of height up to 12 (resp
+; 20). At sane distortion levels it will take much more than that though.
 ;-----------------------------------------------------------------------------
 %macro SSD_NV12 1-2 0
 cglobal pixel_ssd_nv12_core_%1, 6,7
@@ -346,7 +486,7 @@ cglobal pixel_ssd_nv12_core_%1, 6,7
     jg .loopy
     mov     r3, r6m
     mov     r4, r7m
-    mova    m5, [pq_0f]
+    mova    m5, [sq_0f]
     HADDD   m3, m0
     HADDD   m4, m0
     pand    m3, m5
@@ -355,6 +495,7 @@ cglobal pixel_ssd_nv12_core_%1, 6,7
     movq  [r4], m4
     RET
 %endmacro ; SSD_NV12
+%endif ; !X264_HIGHT_BIT_DEPTH
 
 INIT_MMX
 SSD_NV12 mmxext
@@ -368,15 +509,25 @@ SSD_NV12 sse2
 %macro VAR_START 1
     pxor  m5, m5    ; sum
     pxor  m6, m6    ; sum squared
+%ifndef X264_HIGH_BIT_DEPTH
 %if %1
     mova  m7, [pw_00ff]
 %else
     pxor  m7, m7    ; zero
 %endif
+%endif ; !X264_HIGH_BIT_DEPTH
 %endmacro
 
-%macro VAR_END 0
-    HADDW   m5, m7
+%macro VAR_END 2
+%ifdef X264_HIGH_BIT_DEPTH
+%if mmsize == 8 && %1*%2 == 256
+    HADDUW  m5, m2
+%else
+    HADDW   m5, m2
+%endif
+%else ; !X264_HIGH_BIT_DEPTH
+    HADDW   m5, m2
+%endif ; X264_HIGH_BIT_DEPTH
     movd   eax, m5
     HADDD   m6, m1
     movd   edx, m6
@@ -405,19 +556,28 @@ SSD_NV12 sse2
 %macro VAR_2ROW 2
     mov      r2d, %2
 .loop:
+%ifdef X264_HIGH_BIT_DEPTH
+    mova      m0, [r0]
+    mova      m1, [r0+mmsize]
+    mova      m3, [r0+%1]
+    mova      m4, [r0+%1+mmsize]
+%else ; !X264_HIGH_BIT_DEPTH
     mova      m0, [r0]
     mova      m1, m0
     mova      m3, [r0+%1]
     mova      m4, m3
     punpcklbw m0, m7
     punpckhbw m1, m7
+%endif ; X264_HIGH_BIT_DEPTH
 %ifidn %1, r1
     lea       r0, [r0+%1*2]
 %else
     add       r0, r1
 %endif
+%ifndef X264_HIGH_BIT_DEPTH
     punpcklbw m3, m7
     punpckhbw m4, m7
+%endif ; !X264_HIGH_BIT_DEPTH
     dec r2d
     VAR_CORE
     jg .loop
@@ -428,16 +588,43 @@ SSD_NV12 sse2
 ;-----------------------------------------------------------------------------
 INIT_MMX
 cglobal pixel_var_16x16_mmxext, 2,3
+    FIX_STRIDES r1
     VAR_START 0
-    VAR_2ROW 8, 16
-    VAR_END
+    VAR_2ROW 8*SIZEOF_PIXEL, 16
+    VAR_END 16, 16
 
 cglobal pixel_var_8x8_mmxext, 2,3
+    FIX_STRIDES r1
     VAR_START 0
     VAR_2ROW r1, 4
-    VAR_END
+    VAR_END 8, 8
 
 INIT_XMM
+%ifdef X264_HIGH_BIT_DEPTH
+cglobal pixel_var_16x16_sse2, 2,3,8
+    FIX_STRIDES r1
+    VAR_START 0
+    VAR_2ROW r1, 8
+    VAR_END 16, 16
+
+cglobal pixel_var_8x8_sse2, 2,3,8
+    lea       r2, [r1*3]
+    VAR_START 0
+    mova      m0, [r0]
+    mova      m1, [r0+r1*2]
+    mova      m3, [r0+r1*4]
+    mova      m4, [r0+r2*2]
+    lea       r0, [r0+r1*8]
+    VAR_CORE
+    mova      m0, [r0]
+    mova      m1, [r0+r1*2]
+    mova      m3, [r0+r1*4]
+    mova      m4, [r0+r2*2]
+    VAR_CORE
+    VAR_END 8, 8
+%endif ; X264_HIGH_BIT_DEPTH
+
+%ifndef X264_HIGH_BIT_DEPTH
 cglobal pixel_var_16x16_sse2, 2,3,8
     VAR_START 1
     mov      r2d, 8
@@ -449,7 +636,7 @@ cglobal pixel_var_16x16_sse2, 2,3,8
     VAR_CORE
     dec r2d
     jg .loop
-    VAR_END
+    VAR_END 16, 16
 
 cglobal pixel_var_8x8_sse2, 2,4,8
     VAR_START 1
@@ -465,7 +652,8 @@ cglobal pixel_var_8x8_sse2, 2,4,8
     VAR_CORE
     dec r2d
     jg .loop
-    VAR_END
+    VAR_END 8, 8
+%endif ; !X264_HIGH_BIT_DEPTH
 
 %macro VAR2_END 0
     HADDW   m5, m7
@@ -480,17 +668,22 @@ cglobal pixel_var_8x8_sse2, 2,4,8
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; int pixel_var2_8x8( uint8_t *, int, uint8_t *, int, int * )
+; int pixel_var2_8x8( pixel *, int, pixel *, int, int * )
 ;-----------------------------------------------------------------------------
-%ifndef ARCH_X86_64
 INIT_MMX
 cglobal pixel_var2_8x8_mmxext, 5,6
+    FIX_STRIDES r1, r3
     VAR_START 0
     mov      r5d, 8
 .loop:
+%ifdef X264_HIGH_BIT_DEPTH
+    mova      m0, [r0]
+    mova      m1, [r0+mmsize]
+    psubw     m0, [r2]
+    psubw     m1, [r2+mmsize]
+%else ; !X264_HIGH_BIT_DEPTH
     movq      m0, [r0]
     movq      m1, m0
-    movq      m4, m0
     movq      m2, [r2]
     movq      m3, m2
     punpcklbw m0, m7
@@ -499,6 +692,7 @@ cglobal pixel_var2_8x8_mmxext, 5,6
     punpckhbw m3, m7
     psubw     m0, m2
     psubw     m1, m3
+%endif ; X264_HIGH_BIT_DEPTH
     paddw     m5, m0
     paddw     m5, m1
     pmaddwd   m0, m0
@@ -511,18 +705,24 @@ cglobal pixel_var2_8x8_mmxext, 5,6
     jg .loop
     VAR2_END
     RET
-%endif
 
 INIT_XMM
 cglobal pixel_var2_8x8_sse2, 5,6,8
     VAR_START 1
     mov      r5d, 4
 .loop:
+%ifdef X264_HIGH_BIT_DEPTH
+    mova      m0, [r0]
+    mova      m1, [r0+r1*2]
+    mova      m2, [r2]
+    mova      m3, [r2+r3*2]
+%else ; !X264_HIGH_BIT_DEPTH
     movq      m1, [r0]
     movhps    m1, [r0+r1]
     movq      m3, [r2]
     movhps    m3, [r2+r3]
     DEINTB    0, 1, 2, 3, 7
+%endif ; X264_HIGH_BIT_DEPTH
     psubw     m0, m2
     psubw     m1, m3
     paddw     m5, m0
@@ -531,13 +731,14 @@ cglobal pixel_var2_8x8_sse2, 5,6,8
     pmaddwd   m1, m1
     paddd     m6, m0
     paddd     m6, m1
-    lea       r0, [r0+r1*2]
-    lea       r2, [r2+r3*2]
+    lea       r0, [r0+r1*2*SIZEOF_PIXEL]
+    lea       r2, [r2+r3*2*SIZEOF_PIXEL]
     dec      r5d
     jg .loop
     VAR2_END
     RET
 
+%ifndef X264_HIGH_BIT_DEPTH
 cglobal pixel_var2_8x8_ssse3, 5,6,8
     pxor      m5, m5    ; sum
     pxor      m6, m6    ; sum squared
@@ -580,6 +781,7 @@ cglobal pixel_var2_8x8_ssse3, 5,6,8
     jg .loop
     VAR2_END
     RET
+%endif ; !X264_HIGH_BIT_DEPTH
 
 ;=============================================================================
 ; SATD
@@ -697,10 +899,11 @@ cglobal pixel_var2_8x8_ssse3, 5,6,8
 ; out: %1 = satd
 %macro SATD_4x4_MMX 3
     %xdefine %%n n%1
-    LOAD_DIFF m4, m3, none, [r0+%2],      [r2+%2]
-    LOAD_DIFF m5, m3, none, [r0+r1+%2],   [r2+r3+%2]
-    LOAD_DIFF m6, m3, none, [r0+2*r1+%2], [r2+2*r3+%2]
-    LOAD_DIFF m7, m3, none, [r0+r4+%2],   [r2+r5+%2]
+    %assign offset %2*SIZEOF_PIXEL
+    LOAD_DIFF m4, m3, none, [r0+     offset], [r2+     offset]
+    LOAD_DIFF m5, m3, none, [r0+  r1+offset], [r2+  r3+offset]
+    LOAD_DIFF m6, m3, none, [r0+2*r1+offset], [r2+2*r3+offset]
+    LOAD_DIFF m7, m3, none, [r0+  r4+offset], [r2+  r5+offset]
 %if %3
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
@@ -733,17 +936,23 @@ cglobal pixel_var2_8x8_ssse3, 5,6,8
 %endmacro
 
 %macro SATD_START_MMX 0
+    FIX_STRIDES r1, r3
     lea  r4, [3*r1] ; 3*stride1
     lea  r5, [3*r3] ; 3*stride2
 %endmacro
 
 %macro SATD_END_MMX 0
+%ifdef X264_HIGH_BIT_DEPTH
+    HADDUW      m0, m1
+    movd       eax, m0
+%else ; !X264_HIGH_BIT_DEPTH
     pshufw      m1, m0, 01001110b
     paddw       m0, m1
     pshufw      m1, m0, 10110001b
     paddw       m0, m1
     movd       eax, m0
     and        eax, 0xffff
+%endif ; X264_HIGH_BIT_DEPTH
     RET
 %endmacro
 
@@ -777,6 +986,35 @@ pixel_satd_8x4_internal_mmxext:
     paddw        m0, m1
     ret
 
+%ifdef X264_HIGH_BIT_DEPTH
+%macro SATD_MxN_MMX 3
+cglobal pixel_satd_%1x%2_mmxext, 4,7
+    SATD_START_MMX
+    pxor   m0, m0
+    call pixel_satd_%1x%3_internal_mmxext
+    HADDUW m0, m1
+    movd  r6d, m0
+%rep %2/%3-1
+    pxor   m0, m0
+    lea    r0, [r0+4*r1]
+    lea    r2, [r2+4*r3]
+    call pixel_satd_%1x%3_internal_mmxext
+    movd   m2, r4
+    HADDUW m0, m1
+    movd   r4, m0
+    add    r6, r4
+    movd   r4, m2
+%endrep
+    movifnidn eax, r6d
+    RET
+%endmacro
+
+SATD_MxN_MMX 16, 16, 4
+SATD_MxN_MMX 16,  8, 4
+SATD_MxN_MMX  8, 16, 8
+%endif ; X264_HIGH_BIT_DEPTH
+
+%ifndef X264_HIGH_BIT_DEPTH
 cglobal pixel_satd_16x16_mmxext, 4,6
     SATD_START_MMX
     pxor   m0, m0
@@ -807,6 +1045,7 @@ cglobal pixel_satd_8x16_mmxext, 4,6
     lea  r2, [r2+4*r3]
     call pixel_satd_8x8_internal_mmxext
     SATD_END_MMX
+%endif ; !X264_HIGH_BIT_DEPTH
 
 cglobal pixel_satd_8x8_mmxext, 4,6
     SATD_START_MMX
@@ -1000,7 +1239,31 @@ cglobal pixel_satd_8x4_%1, 4,6,8
     SATD_END_SSE2 %1, m6
 %endmacro ; SATDS_SSE2
 
+%macro SA8D_INTER 0
+%ifdef ARCH_X86_64
+    %define lh m10
+    %define rh m0
+%else
+    %define lh m0
+    %define rh [esp+48]
+%endif
+%ifdef X264_HIGH_BIT_DEPTH
+    HADDUW  m0, m1
+    paddd   lh, rh
+%else
+    paddusw lh, rh
+%endif ; X264_HIGH_BIT_DEPTH
+%endmacro
+
 %macro SA8D 1
+%ifdef X264_HIGH_BIT_DEPTH
+    %define vertical 1
+%elifidn %1, sse2 ; sse2 doesn't seem to like the horizontal way of doing things
+    %define vertical 1
+%else
+    %define vertical 0
+%endif
+
 %ifdef ARCH_X86_64
 ;-----------------------------------------------------------------------------
 ; int pixel_sa8d_8x8( uint8_t *, int, uint8_t *, int )
@@ -1010,7 +1273,7 @@ cglobal pixel_sa8d_8x8_internal_%1
     lea  r11, [r2+4*r3]
     LOAD_SUMSUB_8x4P 0, 1, 2, 8, 5, 6, 7, r0, r2
     LOAD_SUMSUB_8x4P 4, 5, 3, 9, 11, 6, 7, r10, r11
-%ifidn %1, sse2 ; sse2 doesn't seem to like the horizontal way of doing things
+%if vertical
     HADAMARD8_2D 0, 1, 2, 8, 4, 5, 3, 9, 6, amax
 %else ; non-sse2
     HADAMARD4_V m0, m1, m2, m8, m6
@@ -1033,39 +1296,51 @@ cglobal pixel_sa8d_8x8_internal_%1
     ret
 
 cglobal pixel_sa8d_8x8_%1, 4,6,12
+    FIX_STRIDES r1, r3
     lea  r4, [3*r1]
     lea  r5, [3*r3]
-%ifnidn %1, sse2
+%if vertical == 0
     mova m7, [hmul_8p]
 %endif
     call pixel_sa8d_8x8_internal_%1
+%ifdef X264_HIGH_BIT_DEPTH
+    HADDUW m0, m1
+%else
     HADDW m0, m1
+%endif ; X264_HIGH_BIT_DEPTH
     movd eax, m0
     add eax, 1
     shr eax, 1
     RET
 
 cglobal pixel_sa8d_16x16_%1, 4,6,12
+    FIX_STRIDES r1, r3
     lea  r4, [3*r1]
     lea  r5, [3*r3]
-%ifnidn %1, sse2
+%if vertical == 0
     mova m7, [hmul_8p]
 %endif
     call pixel_sa8d_8x8_internal_%1 ; pix[0]
-    add  r2, 8
-    add  r0, 8
+    add  r2, 8*SIZEOF_PIXEL
+    add  r0, 8*SIZEOF_PIXEL
+%ifdef X264_HIGH_BIT_DEPTH
+    HADDUW m0, m1
+%endif
     mova m10, m0
     call pixel_sa8d_8x8_internal_%1 ; pix[8]
     lea  r2, [r2+8*r3]
     lea  r0, [r0+8*r1]
-    paddusw m10, m0
+    SA8D_INTER
     call pixel_sa8d_8x8_internal_%1 ; pix[8*stride+8]
-    sub  r2, 8
-    sub  r0, 8
-    paddusw m10, m0
+    sub  r2, 8*SIZEOF_PIXEL
+    sub  r0, 8*SIZEOF_PIXEL
+    SA8D_INTER
     call pixel_sa8d_8x8_internal_%1 ; pix[8*stride]
-    paddusw m0, m10
+    SA8D_INTER
+    SWAP m0, m10
+%ifndef X264_HIGH_BIT_DEPTH
     HADDUW m0, m1
+%endif
     movd eax, m0
     add  eax, 1
     shr  eax, 1
@@ -1077,7 +1352,7 @@ cglobal pixel_sa8d_8x8_internal_%1
     %define spill0 [esp+4]
     %define spill1 [esp+20]
     %define spill2 [esp+36]
-%ifidn %1, sse2
+%if vertical
     LOAD_DIFF_8x4P 0, 1, 2, 3, 4, 5, 6, r0, r2, 1
     HADAMARD4_2D 0, 1, 2, 3, 4
     movdqa spill0, m3
@@ -1124,20 +1399,26 @@ cglobal pixel_sa8d_8x8_internal_%1
 %endif ; ifndef mmxext
 
 cglobal pixel_sa8d_8x8_%1, 4,7
-    mov  r6, esp
-    and  esp, ~15
-    sub  esp, 48
-    lea  r4, [3*r1]
-    lea  r5, [3*r3]
+    FIX_STRIDES r1, r3
+    mov    r6, esp
+    and   esp, ~15
+    sub   esp, 48
+    lea    r4, [3*r1]
+    lea    r5, [3*r3]
     call pixel_sa8d_8x8_internal_%1
-    HADDW m0, m1
-    movd eax, m0
-    add  eax, 1
-    shr  eax, 1
-    mov  esp, r6
+%ifdef X264_HIGH_BIT_DEPTH
+    HADDUW m0, m1
+%else
+    HADDW  m0, m1
+%endif ; X264_HIGH_BIT_DEPTH
+    movd  eax, m0
+    add   eax, 1
+    shr   eax, 1
+    mov   esp, r6
     RET
 
 cglobal pixel_sa8d_16x16_%1, 4,7
+    FIX_STRIDES r1, r3
     mov  r6, esp
     and  esp, ~15
     sub  esp, 64
@@ -1148,13 +1429,16 @@ cglobal pixel_sa8d_16x16_%1, 4,7
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
 %endif
+%ifdef X264_HIGH_BIT_DEPTH
+    HADDUW m0, m1
+%endif
     mova [esp+48], m0
     call pixel_sa8d_8x8_internal_%1
     mov  r0, [r6+20]
     mov  r2, [r6+28]
-    add  r0, 8
-    add  r2, 8
-    paddusw m0, [esp+48]
+    add  r0, 8*SIZEOF_PIXEL
+    add  r2, 8*SIZEOF_PIXEL
+    SA8D_INTER
     mova [esp+48], m0
     call pixel_sa8d_8x8_internal_%1
 %ifidn %1, mmxext
@@ -1162,10 +1446,13 @@ cglobal pixel_sa8d_16x16_%1, 4,7
     lea  r2, [r2+4*r3]
 %endif
 %if mmsize == 16
-    paddusw m0, [esp+48]
+    SA8D_INTER
 %endif
     mova [esp+64-mmsize], m0
     call pixel_sa8d_8x8_internal_%1
+%ifdef X264_HIGH_BIT_DEPTH
+    SA8D_INTER
+%else ; !X264_HIGH_BIT_DEPTH
     paddusw m0, [esp+64-mmsize]
 %if mmsize == 16
     HADDUW m0, m1
@@ -1183,6 +1470,7 @@ cglobal pixel_sa8d_16x16_%1, 4,7
     paddd m0, m2
     HADDD m0, m1
 %endif
+%endif ; X264_HIGH_BIT_DEPTH
     movd eax, m0
     add  eax, 1
     shr  eax, 1
@@ -1669,6 +1957,12 @@ cglobal intra_satd_x3_8x8c_%1, 0,6
 ; in:  r0=pix, r1=stride, r2=stride*3, r3=tmp, m6=mask_ac4, m7=0
 ; out: [tmp]=hadamard4, m0=satd
 cglobal hadamard_ac_4x4_mmxext
+%ifdef X264_HIGH_BIT_DEPTH
+    mova      m0, [r0]
+    mova      m1, [r0+r1]
+    mova      m2, [r0+r1*2]
+    mova      m3, [r0+r2]
+%else ; !X264_HIGH_BIT_DEPTH
     movh      m0, [r0]
     movh      m1, [r0+r1]
     movh      m2, [r0+r1*2]
@@ -1677,6 +1971,7 @@ cglobal hadamard_ac_4x4_mmxext
     punpcklbw m1, m7
     punpcklbw m2, m7
     punpcklbw m3, m7
+%endif ; X264_HIGH_BIT_DEPTH
     HADAMARD4_2D 0, 1, 2, 3, 4
     mova [r3],    m0
     mova [r3+8],  m1
@@ -1703,30 +1998,60 @@ cglobal hadamard_ac_2x2max_mmxext
     ABS4 m0, m2, m1, m3, m4, m5
     HADAMARD 0, max, 0, 2, 4, 5
     HADAMARD 0, max, 1, 3, 4, 5
+%ifdef X264_HIGH_BIT_DEPTH
+    pmaddwd   m0, m7
+    pmaddwd   m1, m7
+    paddd     m6, m0
+    paddd     m6, m1
+%else ; !X264_HIGH_BIT_DEPTH
     paddw     m7, m0
     paddw     m7, m1
+%endif ; X264_HIGH_BIT_DEPTH
     SAVE_MM_PERMUTATION hadamard_ac_2x2max_mmxext
     ret
 
+%macro AC_PREP 2
+%ifdef X264_HIGH_BIT_DEPTH
+    pmaddwd %1, %2
+%endif
+%endmacro
+
+%macro AC_PADD 3
+%ifdef X264_HIGH_BIT_DEPTH
+    AC_PREP %2, %3
+    paddd   %1, %2
+%else
+    paddw   %1, %2
+%endif ; X264_HIGH_BIT_DEPTH
+%endmacro
+
 cglobal hadamard_ac_8x8_mmxext
     mova      m6, [mask_ac4]
+%ifdef X264_HIGH_BIT_DEPTH
+    mova      m7, [pw_1]
+%else
     pxor      m7, m7
+%endif ; X264_HIGH_BIT_DEPTH
     call hadamard_ac_4x4_mmxext
-    add       r0, 4
+    add       r0, 4*SIZEOF_PIXEL
     add       r3, 32
     mova      m5, m0
+    AC_PREP   m5, m7
     call hadamard_ac_4x4_mmxext
     lea       r0, [r0+4*r1]
     add       r3, 64
-    paddw     m5, m0
+    AC_PADD   m5, m0, m7
     call hadamard_ac_4x4_mmxext
-    sub       r0, 4
+    sub       r0, 4*SIZEOF_PIXEL
     sub       r3, 32
-    paddw     m5, m0
+    AC_PADD   m5, m0, m7
     call hadamard_ac_4x4_mmxext
-    paddw     m5, m0
+    AC_PADD   m5, m0, m7
     sub       r3, 40
     mova [rsp+gprsize+8], m5 ; save satd
+%ifdef X264_HIGH_BIT_DEPTH
+    pxor      m6, m6
+%endif
 %rep 3
     call hadamard_ac_2x2max_mmxext
 %endrep
@@ -1738,20 +2063,77 @@ cglobal hadamard_ac_8x8_mmxext
     HADAMARD 0, sumsub, 0, 2, 4, 5
     ABS4 m1, m3, m0, m2, m4, m5
     HADAMARD 0, max, 1, 3, 4, 5
+%ifdef X264_HIGH_BIT_DEPTH
+    pand      m0, [mask_ac4]
+    pmaddwd   m1, m7
+    pmaddwd   m0, m7
+    pmaddwd   m2, m7
+    paddd     m6, m1
+    paddd     m0, m2
+    paddd     m6, m6
+    paddd     m0, m6
+    SWAP      m0, m6
+%else ; !X264_HIGH_BIT_DEPTH
     pand      m6, m0
     paddw     m7, m1
     paddw     m6, m2
     paddw     m7, m7
     paddw     m6, m7
+%endif ; X264_HIGH_BIT_DEPTH
     mova [rsp+gprsize], m6 ; save sa8d
     SWAP      m0, m6
     SAVE_MM_PERMUTATION hadamard_ac_8x8_mmxext
     ret
 
+%macro HADAMARD_AC_WXH_SUM_MMXEXT 2
+    mova    m1, [rsp+1*mmsize]
+%ifdef X264_HIGH_BIT_DEPTH
+%if %1*%2 >= 128
+    paddd   m0, [rsp+2*mmsize]
+    paddd   m1, [rsp+3*mmsize]
+%endif
+%if %1*%2 == 256
+    mova    m2, [rsp+4*mmsize]
+    paddd   m1, [rsp+5*mmsize]
+    paddd   m2, [rsp+6*mmsize]
+    mova    m3, m0
+    paddd   m1, [rsp+7*mmsize]
+    paddd   m0, m2
+%endif
+    psrld   m0, 1
+    HADDD   m0, m2
+    psrld   m1, 1
+    HADDD   m1, m3
+%else ; !X264_HIGH_BIT_DEPTH
+%if %1*%2 >= 128
+    paddusw m0, [rsp+2*mmsize]
+    paddusw m1, [rsp+3*mmsize]
+%endif
+%if %1*%2 == 256
+    mova    m2, [rsp+4*mmsize]
+    paddusw m1, [rsp+5*mmsize]
+    paddusw m2, [rsp+6*mmsize]
+    mova    m3, m0
+    paddusw m1, [rsp+7*mmsize]
+    pxor    m3, m2
+    pand    m3, [pw_1]
+    pavgw   m0, m2
+    psubusw m0, m3
+    HADDUW  m0, m2
+%else
+    psrlw   m0, 1
+    HADDW   m0, m2
+%endif
+    psrlw   m1, 1
+    HADDW   m1, m3
+%endif ; X264_HIGH_BIT_DEPTH
+%endmacro
+
 %macro HADAMARD_AC_WXH_MMX 2
 cglobal pixel_hadamard_ac_%1x%2_mmxext, 2,4
     %assign pad 16-gprsize-(stack_offset&15)
     %define ysub r1
+    FIX_STRIDES r1
     sub  rsp, 16+128+pad
     lea  r2, [r1*3]
     lea  r3, [rsp+16]
@@ -1765,7 +2147,7 @@ cglobal pixel_hadamard_ac_%1x%2_mmxext, 2,4
 %if %1==16
     neg  ysub
     sub  rsp, 16
-    lea  r0, [r0+ysub*4+8]
+    lea  r0, [r0+ysub*4+8*SIZEOF_PIXEL]
     neg  ysub
     call hadamard_ac_8x8_mmxext
 %if %2==16
@@ -1774,28 +2156,7 @@ cglobal pixel_hadamard_ac_%1x%2_mmxext, 2,4
     call hadamard_ac_8x8_mmxext
 %endif
 %endif
-    mova    m1, [rsp+0x08]
-%if %1*%2 >= 128
-    paddusw m0, [rsp+0x10]
-    paddusw m1, [rsp+0x18]
-%endif
-%if %1*%2 == 256
-    mova    m2, [rsp+0x20]
-    paddusw m1, [rsp+0x28]
-    paddusw m2, [rsp+0x30]
-    mova    m3, m0
-    paddusw m1, [rsp+0x38]
-    pxor    m3, m2
-    pand    m3, [pw_1]
-    pavgw   m0, m2
-    psubusw m0, m3
-    HADDUW  m0, m2
-%else
-    psrlw m0, 1
-    HADDW m0, m2
-%endif
-    psrlw m1, 1
-    HADDW m1, m3
+    HADAMARD_AC_WXH_SUM_MMXEXT %1, %2
     movd edx, m0
     movd eax, m1
     shr  edx, 1
@@ -1813,6 +2174,15 @@ HADAMARD_AC_WXH_MMX 16,  8
 HADAMARD_AC_WXH_MMX  8,  8
 
 %macro LOAD_INC_8x4W_SSE2 5
+%ifdef X264_HIGH_BIT_DEPTH
+    movu      m%1, [r0]
+    movu      m%2, [r0+r1]
+    movu      m%3, [r0+r1*2]
+    movu      m%4, [r0+r2]
+%ifidn %1, 0
+    lea       r0, [r0+r1*4]
+%endif
+%else ; !X264_HIGH_BIT_DEPTH
     movh      m%1, [r0]
     movh      m%2, [r0+r1]
     movh      m%3, [r0+r1*2]
@@ -1824,6 +2194,7 @@ HADAMARD_AC_WXH_MMX  8,  8
     punpcklbw m%2, m%5
     punpcklbw m%3, m%5
     punpcklbw m%4, m%5
+%endif ; X264_HIGH_BIT_DEPTH
 %endmacro
 
 %macro LOAD_INC_8x4W_SSSE3 5
@@ -1848,15 +2219,19 @@ cglobal hadamard_ac_8x8_%1
     %define spill1 [rsp+gprsize+16]
     %define spill2 [rsp+gprsize+32]
 %endif
-%ifnidn %1, sse2
-    ;LOAD_INC loads sumsubs
-    mova      m7, [hmul_8p]
-%else
+%ifdef X264_HIGH_BIT_DEPTH
+    %define vertical 1
+%elifidn %1, sse2
+    %define vertical 1
     ;LOAD_INC only unpacks to words
     pxor      m7, m7
+%else
+    %define vertical 0
+    ;LOAD_INC loads sumsubs
+    mova      m7, [hmul_8p]
 %endif
     LOAD_INC_8x4W 0, 1, 2, 3, 7
-%ifidn %1, sse2
+%if vertical
     HADAMARD4_2D_SSE 0, 1, 2, 3, 4
 %else
     HADAMARD4_V m0, m1, m2, m3, m4
@@ -1864,13 +2239,13 @@ cglobal hadamard_ac_8x8_%1
     mova  spill0, m1
     SWAP 1, 7
     LOAD_INC_8x4W 4, 5, 6, 7, 1
-%ifidn %1, sse2
+%if vertical
     HADAMARD4_2D_SSE 4, 5, 6, 7, 1
 %else
     HADAMARD4_V m4, m5, m6, m7, m1
 %endif
 
-%ifnidn %1, sse2
+%if vertical == 0
     mova      m1, spill0
     mova      spill0, m6
     mova      spill1, m7
@@ -1892,23 +2267,24 @@ cglobal hadamard_ac_8x8_%1
     ABS_MOV   m3, m5
     paddw     m1, m2
     SUMSUB_BA m0, m4; m2
-%ifnidn %1, sse2
-    pand      m1, [mask_ac4b]
-%else
+%if vertical
     pand      m1, [mask_ac4]
+%else
+    pand      m1, [mask_ac4b]
 %endif
+    AC_PREP   m1, [pw_1]
     ABS_MOV   m2, spill0
-    paddw     m1, m3
+    AC_PADD   m1, m3, [pw_1]
     ABS_MOV   m3, spill1
-    paddw     m1, m2
+    AC_PADD   m1, m2, [pw_1]
     ABS_MOV   m2, spill2
-    paddw     m1, m3
+    AC_PADD   m1, m3, [pw_1]
     ABS_MOV   m3, m6
-    paddw     m1, m2
+    AC_PADD   m1, m2, [pw_1]
     ABS_MOV   m2, m7
-    paddw     m1, m3
+    AC_PADD   m1, m3, [pw_1]
     mova      m3, m7
-    paddw     m1, m2
+    AC_PADD   m1, m2, [pw_1]
     mova      m2, m6
     psubw     m7, spill2
     paddw     m3, spill2
@@ -1918,30 +2294,31 @@ cglobal hadamard_ac_8x8_%1
     paddw     m2, spill1
     psubw     m5, spill0
     paddw     m1, spill0
-%ifnidn %1, sse2
-    mova  spill1, m4
-    HADAMARD 2, amax, 3, 7, 4
-    HADAMARD 2, amax, 2, 6, 7, 4
-    mova m4, spill1
-    HADAMARD 2, amax, 1, 5, 6, 7
-    HADAMARD 2, sumsub, 0, 4, 5, 6
-%else
-    mova  spill1, m4
-    HADAMARD 4, amax, 3, 7, 4
-    HADAMARD 4, amax, 2, 6, 7, 4
-    mova m4, spill1
-    HADAMARD 4, amax, 1, 5, 6, 7
-    HADAMARD 4, sumsub, 0, 4, 5, 6
+    %assign %%x 2
+%if vertical
+    %assign %%x 4
 %endif
-    paddw m2, m3
-    paddw m2, m1
-    paddw m2, m2
+    mova  spill1, m4
+    HADAMARD %%x, amax, 3, 7, 4
+    HADAMARD %%x, amax, 2, 6, 7, 4
+    mova      m4, spill1
+    HADAMARD %%x, amax, 1, 5, 6, 7
+    HADAMARD %%x, sumsub, 0, 4, 5, 6
+    AC_PREP   m2, [pw_1]
+    AC_PADD   m2, m3, [pw_1]
+    AC_PADD   m2, m1, [pw_1]
+%ifdef X264_HIGH_BIT_DEPTH
+    paddd     m2, m2
+%else
+    paddw     m2, m2
+%endif ; X264_HIGH_BIT_DEPTH
     ABS1      m4, m7
     pand      m0, [mask_ac8]
     ABS1      m0, m7
-    paddw m2, m4
-    paddw m0, m2
-    mova  [rsp+gprsize+16], m0 ; save sa8d
+    AC_PADD   m2, m4, [pw_1]
+    AC_PADD   m2, m0, [pw_1]
+    mova [rsp+gprsize+16], m2 ; save sa8d
+    SWAP      m0, m2
     SAVE_MM_PERMUTATION hadamard_ac_8x8_%1
     ret
 
@@ -1951,11 +2328,45 @@ HADAMARD_AC_WXH_SSE2 16,  8, %1
 HADAMARD_AC_WXH_SSE2  8,  8, %1
 %endmacro ; HADAMARD_AC_SSE2
 
+%macro HADAMARD_AC_WXH_SUM_SSE2 2
+    mova    m1, [rsp+2*mmsize]
+%ifdef X264_HIGH_BIT_DEPTH
+%if %1*%2 >= 128
+    paddd   m0, [rsp+3*mmsize]
+    paddd   m1, [rsp+4*mmsize]
+%endif
+%if %1*%2 == 256
+    paddd   m0, [rsp+5*mmsize]
+    paddd   m1, [rsp+6*mmsize]
+    paddd   m0, [rsp+7*mmsize]
+    paddd   m1, [rsp+8*mmsize]
+    psrld   m0, 1
+%endif
+    HADDD   m0, m2
+    HADDD   m1, m3
+%else ; !X264_HIGH_BIT_DEPTH
+%if %1*%2 >= 128
+    paddusw m0, [rsp+3*mmsize]
+    paddusw m1, [rsp+4*mmsize]
+%endif
+%if %1*%2 == 256
+    paddusw m0, [rsp+5*mmsize]
+    paddusw m1, [rsp+6*mmsize]
+    paddusw m0, [rsp+7*mmsize]
+    paddusw m1, [rsp+8*mmsize]
+    psrlw   m0, 1
+%endif
+    HADDUW  m0, m2
+    HADDW   m1, m3
+%endif ; X264_HIGH_BIT_DEPTH
+%endmacro
+
 ; struct { int satd, int sa8d; } pixel_hadamard_ac_16x16( uint8_t *pix, int stride )
 %macro HADAMARD_AC_WXH_SSE2 3
 cglobal pixel_hadamard_ac_%1x%2_%3, 2,3,11
     %assign pad 16-gprsize-(stack_offset&15)
     %define ysub r1
+    FIX_STRIDES r1
     sub  rsp, 48+pad
     lea  r2, [r1*3]
     call hadamard_ac_8x8_%3
@@ -1968,7 +2379,7 @@ cglobal pixel_hadamard_ac_%1x%2_%3, 2,3,11
 %if %1==16
     neg  ysub
     sub  rsp, 32
-    lea  r0, [r0+ysub*4+8]
+    lea  r0, [r0+ysub*4+8*SIZEOF_PIXEL]
     neg  ysub
     call hadamard_ac_8x8_%3
 %if %2==16
@@ -1977,20 +2388,7 @@ cglobal pixel_hadamard_ac_%1x%2_%3, 2,3,11
     call hadamard_ac_8x8_%3
 %endif
 %endif
-    mova    m1, [rsp+0x20]
-%if %1*%2 >= 128
-    paddusw m0, [rsp+0x30]
-    paddusw m1, [rsp+0x40]
-%endif
-%if %1*%2 == 256
-    paddusw m0, [rsp+0x50]
-    paddusw m1, [rsp+0x60]
-    paddusw m0, [rsp+0x70]
-    paddusw m1, [rsp+0x80]
-    psrlw m0, 1
-%endif
-    HADDW m0, m2
-    HADDW m1, m3
+    HADAMARD_AC_WXH_SUM_SSE2 %1, %2
     movd edx, m0
     movd eax, m1
     shr  edx, 2 - (%1*%2 >> 8)
@@ -2025,7 +2423,9 @@ INIT_XMM
 SA8D sse2
 SATDS_SSE2 sse2
 INTRA_SA8D_SSE2 sse2
+%ifndef X264_HIGH_BIT_DEPTH
 INTRA_SATDS_MMX mmxext
+%endif
 HADAMARD_AC_SSE2 sse2
 
 %define ABS1 ABS1_SSSE3
@@ -2034,9 +2434,11 @@ HADAMARD_AC_SSE2 sse2
 %define DIFFOP DIFF_SUMSUB_SSSE3
 %define JDUP JDUP_CONROE
 %define LOAD_DUP_4x8P LOAD_DUP_4x8P_CONROE
+%ifndef X264_HIGH_BIT_DEPTH
 %define LOAD_INC_8x4W LOAD_INC_8x4W_SSSE3
 %define LOAD_SUMSUB_8x4P LOAD_SUMSUB_8x4P_SSSE3
 %define LOAD_SUMSUB_16P  LOAD_SUMSUB_16P_SSSE3
+%endif
 SATDS_SSE2 ssse3
 SA8D ssse3
 HADAMARD_AC_SSE2 ssse3

@@ -605,6 +605,32 @@
     pminsw %1, %3
 %endmacro
 
+%macro HADDD 2 ; sum junk
+%if mmsize == 16
+    movhlps %2, %1
+    paddd   %1, %2
+    pshuflw %2, %1, 0xE
+    paddd   %1, %2
+%else
+    pshufw  %2, %1, 0xE
+    paddd   %1, %2
+%endif
+%endmacro
+
+%macro HADDW 2
+    pmaddwd %1, [pw_1]
+    HADDD   %1, %2
+%endmacro
+
+%macro HADDUW 2
+    mova  %2, %1
+    pslld %1, 16
+    psrld %2, 16
+    psrld %1, 16
+    paddd %1, %2
+    HADDD %1, %2
+%endmacro
+
 %macro FIX_STRIDES 1-*
 %ifdef X264_HIGH_BIT_DEPTH
 %rep %0
