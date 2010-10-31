@@ -1532,12 +1532,12 @@ static int check_quant( int cpu_ref, int cpu_new )
             memcpy( dct1, buf1, size*sizeof(dctcoef) );
             memcpy( dct2, buf1, size*sizeof(dctcoef) );
             memcpy( buf3+256, buf3, 256 );
-            call_c1( qf_c.denoise_dct, dct1, (uint32_t*)buf3, (uint16_t*)buf2, size );
-            call_a1( qf_a.denoise_dct, dct2, (uint32_t*)(buf3+256), (uint16_t*)buf2, size );
+            call_c1( qf_c.denoise_dct, dct1, (uint32_t*)buf3, (udctcoef*)buf2, size );
+            call_a1( qf_a.denoise_dct, dct2, (uint32_t*)(buf3+256), (udctcoef*)buf2, size );
             if( memcmp( dct1, dct2, size*sizeof(dctcoef) ) || memcmp( buf3+4, buf3+256+4, (size-1)*sizeof(uint32_t) ) )
                 ok = 0;
-            call_c2( qf_c.denoise_dct, dct1, (uint32_t*)buf3, (uint16_t*)buf2, size );
-            call_a2( qf_a.denoise_dct, dct2, (uint32_t*)(buf3+256), (uint16_t*)buf2, size );
+            call_c2( qf_c.denoise_dct, dct1, (uint32_t*)buf3, (udctcoef*)buf2, size );
+            call_a2( qf_a.denoise_dct, dct2, (uint32_t*)(buf3+256), (udctcoef*)buf2, size );
         }
     }
     report( "denoise dct :" );
@@ -1549,8 +1549,17 @@ static int check_quant( int cpu_ref, int cpu_new )
         used_asm = 1; \
         for( int i = 0; i < 100; i++ ) \
         { \
+            static const int distrib[16] = {1,1,1,1,1,1,1,1,1,1,1,1,2,3,4};\
+            static const int zerorate_lut[4] = {3,7,15,31};\
+            int zero_rate = zerorate_lut[i&3];\
             for( int idx = 0; idx < w*w; idx++ ) \
-                dct1[idx] = !(rand()&3) + (!(rand()&15))*(rand()&3); \
+            { \
+                int sign = (rand()&1) ? -1 : 1; \
+                int abs_level = distrib[rand()&15]; \
+                if( abs_level == 4 ) abs_level = rand()&0x3fff; \
+                int zero = !(rand()&zero_rate); \
+                dct1[idx] = zero * abs_level * sign; \
+            } \
             if( ac ) \
                 dct1[0] = 0; \
             int result_c = call_c( qf_c.decname, dct1 ); \

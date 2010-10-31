@@ -38,7 +38,7 @@ typedef struct
     void (*dequant_4x4)( dctcoef dct[16], int dequant_mf[6][16], int i_qp );
     void (*dequant_4x4_dc)( dctcoef dct[16], int dequant_mf[6][16], int i_qp );
 
-    void (*denoise_dct)( dctcoef *dct, uint32_t *sum, uint16_t *offset, int size );
+    void (*denoise_dct)( dctcoef *dct, uint32_t *sum, udctcoef *offset, int size );
 
     int (*decimate_score15)( dctcoef *dct );
     int (*decimate_score16)( dctcoef *dct );

@@ -28,8 +28,10 @@
 %assign FDEC_STRIDE 32
 
 %assign SIZEOF_PIXEL 1
+%assign SIZEOF_DCTCOEF 2
 %ifdef X264_HIGH_BIT_DEPTH
     %assign SIZEOF_PIXEL 2
+    %assign SIZEOF_DCTCOEF 4
 %endif
 
 %assign PIXEL_MAX ((1 << BIT_DEPTH)-1)
@@ -159,6 +161,17 @@
     psubb   %4, %2
     pminub  %1, %3
     pminub  %2, %4
+%endmacro
+
+%macro ABSD2_MMX 4
+    pxor    %3, %3
+    pxor    %4, %4
+    pcmpgtd %3, %1
+    pcmpgtd %4, %2
+    pxor    %1, %3
+    pxor    %2, %4
+    psubd   %1, %3
+    psubd   %2, %4
 %endmacro
 
 %macro ABSB_SSSE3 2

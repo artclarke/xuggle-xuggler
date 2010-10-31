@@ -694,12 +694,63 @@ DEQUANT_DC mmxext
 INIT_XMM
 DEQUANT_DC sse2
 
+%ifdef X264_HIGH_BIT_DEPTH
+;-----------------------------------------------------------------------------
+; void denoise_dct( int32_t *dct, uint32_t *sum, uint32_t *offset, int size )
+;-----------------------------------------------------------------------------
+%macro DENOISE_DCT 1-2 0
+cglobal denoise_dct_%1, 4,5,%2
+    mov       r4d, [r0] ; backup DC coefficient
+    pxor      m6, m6
+.loop:
+    sub       r3, mmsize/2
+    mova      m2, [r0+r3*4+0*mmsize]
+    mova      m3, [r0+r3*4+1*mmsize]
+    PABSD     m0, m2
+    PABSD     m1, m3
+    mova      m4, m0
+    mova      m5, m1
+    psubd     m0, [r2+r3*4+0*mmsize]
+    psubd     m1, [r2+r3*4+1*mmsize]
+    mova      m7, m0
+    pcmpgtd   m7, m6
+    pand      m0, m7
+    mova      m7, m1
+    pcmpgtd   m7, m6
+    pand      m1, m7
+    PSIGND    m0, m2
+    PSIGND    m1, m3
+    mova      [r0+r3*4+0*mmsize], m0
+    mova      [r0+r3*4+1*mmsize], m1
+    paddd     m4, [r1+r3*4+0*mmsize]
+    paddd     m5, [r1+r3*4+1*mmsize]
+    mova      [r1+r3*4+0*mmsize], m4
+    mova      [r1+r3*4+1*mmsize], m5
+    jg .loop
+    mov       [r0], r4d ; restore DC coefficient
+    RET
+%endmacro
+
+%define PABSD PABSD_MMX
+%define PSIGND PSIGND_MMX
+%ifndef ARCH_X86_64
+INIT_MMX
+DENOISE_DCT mmx
+%endif
+INIT_XMM
+DENOISE_DCT sse2, 8
+%define PABSD PABSD_SSSE3
+%define PSIGND PSIGND_SSSE3
+DENOISE_DCT ssse3, 8
+
+%else ; !X264_HIGH_BIT_DEPTH
+
 ;-----------------------------------------------------------------------------
 ; void denoise_dct( int16_t *dct, uint32_t *sum, uint16_t *offset, int size )
 ;-----------------------------------------------------------------------------
 %macro DENOISE_DCT 1-2 0
 cglobal denoise_dct_%1, 4,5,%2
-    movzx     r4d, word [r0] ; backup DC coefficient
+    movzx     r4d, word [r0]
     pxor      m6, m6
 .loop:
     sub       r3, mmsize
@@ -730,7 +781,7 @@ cglobal denoise_dct_%1, 4,5,%2
     mova      [r1+r3*4+2*mmsize], m5
     mova      [r1+r3*4+3*mmsize], m3
     jg .loop
-    mov       [r0], r4w ; restore DC coefficient
+    mov       [r0], r4w
     RET
 %endmacro
 
@@ -746,20 +797,33 @@ DENOISE_DCT sse2, 7
 %define PSIGNW PSIGNW_SSSE3
 DENOISE_DCT ssse3, 7
 
-
+%endif ; !X264_HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
-; int decimate_score( int16_t *dct )
+; int decimate_score( dctcoef *dct )
 ;-----------------------------------------------------------------------------
 
-%macro DECIMATE_MASK_SSE2 6
-%ifidn %5, ssse3
+%macro DECIMATE_MASK_SSE2 7
+%ifdef X264_HIGH_BIT_DEPTH
+    movdqa   xmm0, [%3+ 0]
+    movdqa   xmm1, [%3+32]
+    packssdw xmm0, [%3+16]
+    packssdw xmm1, [%3+48]
+%if %7
+    pabsw    xmm0, xmm0
+    pabsw    xmm1, xmm1
+%else
+    ABS2_MMX xmm0, xmm1, xmm3, xmm4
+%endif
+%else
+%if %7
     pabsw    xmm0, [%3+ 0]
     pabsw    xmm1, [%3+16]
 %else
     movdqa   xmm0, [%3+ 0]
     movdqa   xmm1, [%3+16]
     ABS2_MMX xmm0, xmm1, xmm3, xmm4
+%endif
 %endif
     packsswb xmm0, xmm1
     pxor     xmm2, xmm2
@@ -769,23 +833,34 @@ DENOISE_DCT ssse3, 7
     pmovmskb %2, xmm0
 %endmacro
 
-%macro DECIMATE_MASK_MMX 6
+%macro DECIMATE_MASK_MMX 7
+%ifdef X264_HIGH_BIT_DEPTH
+    movq      mm0, [%3+ 0]
+    movq      mm1, [%3+16]
+    movq      mm2, [%3+32]
+    movq      mm3, [%3+48]
+    packssdw  mm0, [%3+ 8]
+    packssdw  mm1, [%3+24]
+    packssdw  mm2, [%3+40]
+    packssdw  mm3, [%3+56]
+%else
     movq      mm0, [%3+ 0]
     movq      mm1, [%3+ 8]
     movq      mm2, [%3+16]
     movq      mm3, [%3+24]
-    ABS2_MMX  mm0, mm1, mm4, mm5
-    ABS2_MMX  mm2, mm3, mm4, mm5
+%endif
+    ABS2_MMX  mm0, mm1, mm6, mm7
+    ABS2_MMX  mm2, mm3, mm6, mm7
     packsswb  mm0, mm1
     packsswb  mm2, mm3
     pxor      mm4, mm4
-    pxor      mm5, mm5
+    pxor      mm6, mm6
     pcmpeqb   mm4, mm0
-    pcmpeqb   mm5, mm2
+    pcmpeqb   mm6, mm2
     pcmpgtb   mm0, %4
     pcmpgtb   mm2, %4
     pmovmskb   %6, mm4
-    pmovmskb   %1, mm5
+    pmovmskb   %1, mm6
     shl        %1, 8
     or         %1, %6
     pmovmskb   %6, mm0
@@ -797,7 +872,7 @@ DENOISE_DCT ssse3, 7
 cextern decimate_table4
 cextern decimate_table8
 
-%macro DECIMATE4x4 3
+%macro DECIMATE4x4 4
 
 ;A LUT is faster than bsf on AMD processors.
 ;This is not true for score64.
@@ -811,7 +886,7 @@ cglobal decimate_score%1_%2, 1,3
     %define table decimate_table4
     %define mask_table decimate_mask_table4
 %endif
-    DECIMATE_MASK edx, eax, r0, [pb_1], %2, ecx
+    DECIMATE_MASK edx, eax, r0, [pb_1], %2, ecx, %4
     xor   edx, 0xffff
     je   .ret
     test  eax, eax
@@ -850,22 +925,22 @@ cglobal decimate_score%1_%2, 1,3
 
 %ifndef ARCH_X86_64
 %define DECIMATE_MASK DECIMATE_MASK_MMX
-DECIMATE4x4 15, mmxext, 0
-DECIMATE4x4 16, mmxext, 0
-DECIMATE4x4 15, mmxext_slowctz, 1
-DECIMATE4x4 16, mmxext_slowctz, 1
+DECIMATE4x4 15, mmxext, 0, 0
+DECIMATE4x4 16, mmxext, 0, 0
+DECIMATE4x4 15, mmxext_slowctz, 1, 0
+DECIMATE4x4 16, mmxext_slowctz, 1, 0
 %endif
 %define DECIMATE_MASK DECIMATE_MASK_SSE2
-DECIMATE4x4 15, sse2, 0
-DECIMATE4x4 16, sse2, 0
-DECIMATE4x4 15, sse2_slowctz, 1
-DECIMATE4x4 16, sse2_slowctz, 1
-DECIMATE4x4 15, ssse3, 0
-DECIMATE4x4 16, ssse3, 0
-DECIMATE4x4 15, ssse3_slowctz, 1
-DECIMATE4x4 16, ssse3_slowctz, 1
+DECIMATE4x4 15, sse2, 0, 0
+DECIMATE4x4 16, sse2, 0, 0
+DECIMATE4x4 15, sse2_slowctz, 1, 0
+DECIMATE4x4 16, sse2_slowctz, 1, 0
+DECIMATE4x4 15, ssse3, 0, 1
+DECIMATE4x4 16, ssse3, 0, 1
+DECIMATE4x4 15, ssse3_slowctz, 1, 1
+DECIMATE4x4 16, ssse3_slowctz, 1, 1
 
-%macro DECIMATE8x8 1
+%macro DECIMATE8x8 2
 
 %ifdef ARCH_X86_64
 cglobal decimate_score64_%1, 1,4
@@ -876,17 +951,17 @@ cglobal decimate_score64_%1, 1,4
     %define table decimate_table8
 %endif
     mova  m5, [pb_1]
-    DECIMATE_MASK r1d, eax, r0, m5, %1, null
+    DECIMATE_MASK r1d, eax, r0+SIZEOF_DCTCOEF* 0, m5, %1, null, %2
     test  eax, eax
     jne  .ret9
-    DECIMATE_MASK r2d, eax, r0+32, m5, %1, null
+    DECIMATE_MASK r2d, eax, r0+SIZEOF_DCTCOEF*16, m5, %1, null, %2
     shl   r2d, 16
     or    r1d, r2d
-    DECIMATE_MASK r2d, r3d, r0+64, m5, %1, null
+    DECIMATE_MASK r2d, r3d, r0+SIZEOF_DCTCOEF*32, m5, %1, null, %2
     shl   r2, 32
     or    eax, r3d
     or    r1, r2
-    DECIMATE_MASK r2d, r3d, r0+96, m5, %1, null
+    DECIMATE_MASK r2d, r3d, r0+SIZEOF_DCTCOEF*48, m5, %1, null, %2
     shl   r2, 48
     or    r1, r2
     xor   r1, -1
@@ -911,16 +986,16 @@ cglobal decimate_score64_%1, 1,6
 %else
 cglobal decimate_score64_%1, 1,5
 %endif
-    mova  m7, [pb_1]
-    DECIMATE_MASK r3, r2, r0, m7, %1, r5
+    mova  m5, [pb_1]
+    DECIMATE_MASK r3, r2, r0+SIZEOF_DCTCOEF* 0, m5, %1, r5, %2
     test  r2, r2
     jne  .ret9
-    DECIMATE_MASK r4, r2, r0+32, m7, %1, r5
+    DECIMATE_MASK r4, r2, r0+SIZEOF_DCTCOEF*16, m5, %1, r5, %2
     shl   r4, 16
     or    r3, r4
-    DECIMATE_MASK r4, r1, r0+64, m7, %1, r5
+    DECIMATE_MASK r4, r1, r0+SIZEOF_DCTCOEF*32, m5, %1, r5, %2
     or    r2, r1
-    DECIMATE_MASK r1, r0, r0+96, m7, %1, r5
+    DECIMATE_MASK r1, r0, r0+SIZEOF_DCTCOEF*48, m5, %1, r5, %2
     shl   r1, 16
     or    r4, r1
     xor   r3, -1
@@ -968,16 +1043,70 @@ cglobal decimate_score64_%1, 1,5
 %ifndef ARCH_X86_64
 INIT_MMX
 %define DECIMATE_MASK DECIMATE_MASK_MMX
-DECIMATE8x8 mmxext
+DECIMATE8x8 mmxext, 0
 %endif
 INIT_XMM
 %define DECIMATE_MASK DECIMATE_MASK_SSE2
-DECIMATE8x8 sse2
-DECIMATE8x8 ssse3
+DECIMATE8x8 sse2, 0
+DECIMATE8x8 ssse3, 1
 
 ;-----------------------------------------------------------------------------
-; int coeff_last( int16_t *dct )
+; int coeff_last( dctcoef *dct )
 ;-----------------------------------------------------------------------------
+
+%macro LAST_X86 3
+    bsr %1, %2
+%endmacro
+
+%macro LAST_SSE4A 3
+    lzcnt %1, %2
+    xor %1, %3
+%endmacro
+
+%ifdef X264_HIGH_BIT_DEPTH
+%macro LAST_MASK4_MMX 2-3
+    movq     mm0, [%2]
+    packssdw mm0, [%2+8]
+    packsswb mm0, mm0
+    pcmpeqb  mm0, mm2
+    pmovmskb  %1, mm0
+%endmacro
+
+%macro LAST_MASK_SSE2 2-3
+    movdqa   xmm0, [%2+ 0]
+    movdqa   xmm1, [%2+32]
+    packssdw xmm0, [%2+16]
+    packssdw xmm1, [%2+48]
+    packsswb xmm0, xmm1
+    pcmpeqb  xmm0, xmm2
+    pmovmskb   %1, xmm0
+%endmacro
+
+%macro LAST_MASK_MMX 3
+    movq     mm0, [%2+ 0]
+    movq     mm1, [%2+16]
+    packssdw mm0, [%2+ 8]
+    packssdw mm1, [%2+24]
+    movq     mm3, [%2+32]
+    movq     mm4, [%2+48]
+    packssdw mm3, [%2+40]
+    packssdw mm4, [%2+56]
+    packsswb mm0, mm1
+    packsswb mm3, mm4
+    pcmpeqb  mm0, mm2
+    pcmpeqb  mm3, mm2
+    pmovmskb  %1, mm0
+    pmovmskb  %3, mm3
+    shl       %3, 8
+    or        %1, %3
+%endmacro
+%else ; !X264_HIGH_BIT_DEPTH
+%macro LAST_MASK4_MMX 2-3
+    movq     mm0, [%2]
+    packsswb mm0, mm0
+    pcmpeqb  mm0, mm2
+    pmovmskb  %1, mm0
+%endmacro
 
 %macro LAST_MASK_SSE2 2-3
     movdqa   xmm0, [%2+ 0]
@@ -999,20 +1128,11 @@ DECIMATE8x8 ssse3
     or        %1, %3
 %endmacro
 
-%macro LAST_X86 3
-    bsr %1, %2
-%endmacro
-
-%macro LAST_SSE4A 3
-    lzcnt %1, %2
-    xor %1, %3
-%endmacro
-
 %macro COEFF_LAST4 1
 %ifdef ARCH_X86_64
 cglobal coeff_last4_%1, 1,1
     LAST rax, [r0], 0x3f
-    shr eax, 4
+    shr  eax, 4
     RET
 %else
 cglobal coeff_last4_%1, 0,3
@@ -1033,11 +1153,12 @@ cglobal coeff_last4_%1, 0,3
 COEFF_LAST4 mmxext
 %define LAST LAST_SSE4A
 COEFF_LAST4 mmxext_lzcnt
+%endif ; X264_HIGH_BIT_DEPTH
 
 %macro COEFF_LAST 1
 cglobal coeff_last15_%1, 1,3
     pxor m2, m2
-    LAST_MASK r1d, r0-2, r2d
+    LAST_MASK r1d, r0-SIZEOF_DCTCOEF, r2d
     xor r1d, 0xffff
     LAST eax, r1d, 0x1f
     dec eax
@@ -1053,14 +1174,14 @@ cglobal coeff_last16_%1, 1,3
 %ifndef ARCH_X86_64
 cglobal coeff_last64_%1, 1, 5-mmsize/16
     pxor m2, m2
-    LAST_MASK r2d, r0+64, r4d
-    LAST_MASK r3d, r0+96, r4d
+    LAST_MASK r2d, r0+SIZEOF_DCTCOEF* 32, r4d
+    LAST_MASK r3d, r0+SIZEOF_DCTCOEF* 48, r4d
     shl r3d, 16
     or  r2d, r3d
     xor r2d, -1
     jne .secondhalf
-    LAST_MASK r1d, r0, r4d
-    LAST_MASK r3d, r0+32, r4d
+    LAST_MASK r1d, r0+SIZEOF_DCTCOEF* 0, r4d
+    LAST_MASK r3d, r0+SIZEOF_DCTCOEF*16, r4d
     shl r3d, 16
     or  r1d, r3d
     not r1d
@@ -1073,10 +1194,10 @@ cglobal coeff_last64_%1, 1, 5-mmsize/16
 %else
 cglobal coeff_last64_%1, 1,4
     pxor m2, m2
-    LAST_MASK_SSE2 r1d, r0
-    LAST_MASK_SSE2 r2d, r0+32
-    LAST_MASK_SSE2 r3d, r0+64
-    LAST_MASK_SSE2 r0d, r0+96
+    LAST_MASK_SSE2 r1d, r0+SIZEOF_DCTCOEF* 0
+    LAST_MASK_SSE2 r2d, r0+SIZEOF_DCTCOEF*16
+    LAST_MASK_SSE2 r3d, r0+SIZEOF_DCTCOEF*32
+    LAST_MASK_SSE2 r0d, r0+SIZEOF_DCTCOEF*48
     shl r2d, 16
     shl r0d, 16
     or  r1d, r2d
@@ -1102,15 +1223,8 @@ COEFF_LAST sse2
 COEFF_LAST sse2_lzcnt
 
 ;-----------------------------------------------------------------------------
-; int coeff_level_run( int16_t *dct, run_level_t *runlevel )
+; int coeff_level_run( dctcoef *dct, run_level_t *runlevel )
 ;-----------------------------------------------------------------------------
-
-%macro LAST_MASK4_MMX 2-3
-    movq     mm0, [%2]
-    packsswb mm0, mm0
-    pcmpeqb  mm0, mm2
-    pmovmskb  %1, mm0
-%endmacro
 
 %macro LZCOUNT_X86 3
     bsr %1, %2
@@ -1135,7 +1249,7 @@ cglobal coeff_level_run%2_%1,0,7
     movifnidn t0, r0mp
     movifnidn t1, r1mp
     pxor    m2, m2
-    LAST_MASK t5d, t0-(%2&1)*2, t4d
+    LAST_MASK t5d, t0-(%2&1)*SIZEOF_DCTCOEF, t4d
     not    t5d
     shl    t5d, 32-((%2+1)&~1)
     mov    t4d, %2-1
@@ -1147,9 +1261,15 @@ cglobal coeff_level_run%2_%1,0,7
     mov   [t1], t4d
 .loop:
     LZCOUNT t3d, t5d, 0x1f
+%ifdef X264_HIGH_BIT_DEPTH
+    mov    t2d, [t0+t4*4]
+    mov   [t1+t6  +4+16*4], t3b
+    mov   [t1+t6*4+ 4], t2d
+%else
     mov    t2w, [t0+t4*2]
-    mov   [t1+t6  +36], t3b
+    mov   [t1+t6  +4+16*2], t3b
     mov   [t1+t6*2+ 4], t2w
+%endif
     inc    t3d
     shl    t5d, t3b
     inc    t6d

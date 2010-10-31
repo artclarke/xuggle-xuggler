@@ -812,7 +812,7 @@ struct x264_t
     } stat;
 
     ALIGNED_16( uint32_t nr_residual_sum[2][64] );
-    ALIGNED_16( uint16_t nr_offset[2][64] );
+    ALIGNED_16( udctcoef nr_offset[2][64] );
     uint32_t        nr_count[2];
 
     /* Buffers that are allocated per-thread even in sliced threads. */
