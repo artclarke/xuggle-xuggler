@@ -90,7 +90,6 @@ struct x264_ratecontrol_t
     float qpa_rc;               /* average of macroblocks' qp before aq */
     float qpa_aq;               /* average of macroblocks' qp after aq */
     float qp_novbv;             /* QP for the current frame if 1-pass VBV was disabled. */
-    int qp_force;
 
     /* VBV stuff */
     double buffer_size;
@@ -456,7 +455,7 @@ void x264_ratecontrol_init_reconfigurable( x264_t *h, int b_init )
         double base_cplx = h->mb.i_mb_count * (h->param.i_bframe ? 120 : 80);
         double mbtree_offset = h->param.rc.b_mb_tree ? (1.0-h->param.rc.f_qcompress)*13.5 : 0;
         rc->rate_factor_constant = pow( base_cplx, 1 - rc->qcompress )
-                                 / qp2qscale( h->param.rc.f_rf_constant + mbtree_offset );
+                                 / qp2qscale( h->param.rc.f_rf_constant + mbtree_offset + QP_BD_OFFSET );
     }
 
     if( h->param.rc.i_vbv_max_bitrate > 0 && h->param.rc.i_vbv_buffer_size > 0 )
@@ -621,7 +620,7 @@ int x264_ratecontrol_new( x264_t *h )
     if( rc->b_abr )
     {
         /* FIXME ABR_INIT_QP is actually used only in CRF */
-#define ABR_INIT_QP ( h->param.rc.i_rc_method == X264_RC_CRF ? h->param.rc.f_rf_constant : 24 )
+#define ABR_INIT_QP (( h->param.rc.i_rc_method == X264_RC_CRF ? h->param.rc.f_rf_constant : 24 ) + QP_BD_OFFSET)
         rc->accum_p_norm = .01;
         rc->accum_p_qp = ABR_INIT_QP * rc->accum_p_norm;
         /* estimated ratio that produces a reasonable QP for the first I-frame */
@@ -732,6 +731,7 @@ int x264_ratecontrol_new( x264_t *h )
                 return -1;
             }
 
+            CMP_OPT_FIRST_PASS( "bitdepth", BIT_DEPTH );
             CMP_OPT_FIRST_PASS( "weightp", X264_MAX( 0, h->param.analyse.i_weighted_pred ) );
             CMP_OPT_FIRST_PASS( "bframes", h->param.i_bframe );
             CMP_OPT_FIRST_PASS( "b_pyramid", h->param.i_bframe_pyramid );
@@ -1173,8 +1173,6 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp, int overhead )
         x264_encoder_reconfig( h, zone->param );
     rc->prev_zone = zone;
 
-    rc->qp_force = i_force_qp;
-
     if( h->param.rc.b_stat_read )
     {
         int frame = h->fenc->i_frame;
@@ -1230,7 +1228,7 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp, int overhead )
     if( h->sh.i_type != SLICE_TYPE_B )
         rc->bframes = h->fenc->i_bframes;
 
-    if( i_force_qp )
+    if( i_force_qp != X264_QP_AUTO )
     {
         q = i_force_qp - 1;
     }

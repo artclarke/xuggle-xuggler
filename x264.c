@@ -381,7 +381,7 @@ static void help( x264_param_t *defaults, int longhelp )
     H0( "            x264 --pass 2 --bitrate 1000 -o <output> <input>\n" );
     H0( "\n" );
     H0( "      Lossless:\n" );
-    H0( "            x264 --crf 0 -o <output> <input>\n" );
+    H0( "            x264 --qp 0 -o <output> <input>\n" );
     H0( "\n" );
     H0( "      Maximum PSNR at the cost of speed and visual quality:\n" );
     H0( "            x264 --preset placebo --tune psnr -o <output> <input>\n" );
@@ -538,7 +538,7 @@ static void help( x264_param_t *defaults, int longhelp )
     H0( "\n" );
     H1( "  -q, --qp <integer>          Force constant QP (0-%d, 0=lossless)\n", QP_MAX );
     H0( "  -B, --bitrate <integer>     Set bitrate (kbit/s)\n" );
-    H0( "      --crf <float>           Quality-based VBR (0-%d, 0=lossless) [%.1f]\n", QP_MAX, defaults->rc.f_rf_constant );
+    H0( "      --crf <float>           Quality-based VBR (%d-51) [%.1f]\n", 51 - QP_MAX, defaults->rc.f_rf_constant );
     H1( "      --rc-lookahead <integer> Number of frames for frametype lookahead [%d]\n", defaults->rc.i_lookahead );
     H0( "      --vbv-maxrate <integer> Max local bitrate (kbit/s) [%d]\n", defaults->rc.i_vbv_max_bitrate );
     H0( "      --vbv-bufsize <integer> Set size of the VBV buffer (kbit) [%d]\n", defaults->rc.i_vbv_buffer_size );
@@ -576,7 +576,7 @@ static void help( x264_param_t *defaults, int longhelp )
         "                                  or  b=<float> (bitrate multiplier)\n" );
     H2( "      --qpfile <string>       Force frametypes and QPs for some or all frames\n"
         "                              Format of each line: framenumber frametype QP\n"
-        "                              QP of -1 lets x264 choose. Frametypes: I,i,K,P,B,b.\n"
+        "                              QP is optional (none lets x264 choose). Frametypes: I,i,K,P,B,b.\n"
         "                                  K=<I or i> depending on open-gop setting\n"
         "                              QPs are restricted by qpmin/qpmax.\n" );
     H1( "\n" );
@@ -1485,16 +1485,17 @@ static void parse_qpfile( cli_opt_t *opt, x264_picture_t *pic, int i_frame )
     {
         file_pos = ftell( opt->qpfile );
         ret = fscanf( opt->qpfile, "%d %c %d\n", &num, &type, &qp );
+        pic->i_type = X264_TYPE_AUTO;
+        pic->i_qpplus1 = X264_QP_AUTO;
         if( num > i_frame || ret == EOF )
         {
-            pic->i_type = X264_TYPE_AUTO;
-            pic->i_qpplus1 = 0;
             fseek( opt->qpfile, file_pos, SEEK_SET );
             break;
         }
         if( num < i_frame && ret == 3 )
             continue;
-        pic->i_qpplus1 = qp+1;
+        if( ret == 3 && qp >= 0 )
+            pic->i_qpplus1 = qp+1;
         if     ( type == 'I' ) pic->i_type = X264_TYPE_IDR;
         else if( type == 'i' ) pic->i_type = X264_TYPE_I;
         else if( type == 'K' ) pic->i_type = X264_TYPE_KEYFRAME;
@@ -1502,13 +1503,11 @@ static void parse_qpfile( cli_opt_t *opt, x264_picture_t *pic, int i_frame )
         else if( type == 'B' ) pic->i_type = X264_TYPE_BREF;
         else if( type == 'b' ) pic->i_type = X264_TYPE_B;
         else ret = 0;
-        if( ret != 3 || qp < -1 || qp > QP_MAX )
+        if( ret < 2 || qp < -1 || qp > QP_MAX )
         {
             x264_cli_log( "x264", X264_LOG_ERROR, "can't parse qpfile for frame %d\n", i_frame );
             fclose( opt->qpfile );
             opt->qpfile = NULL;
-            pic->i_type = X264_TYPE_AUTO;
-            pic->i_qpplus1 = 0;
             break;
         }
     }
@@ -1594,7 +1593,6 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
 
     opt->b_progress &= param->i_log_level < X264_LOG_DEBUG;
     i_update_interval = param->i_frame_total ? x264_clip3( param->i_frame_total / 1000, 1, 10 ) : 10;
-    x264_picture_init( &pic );
 
     /* set up pulldown */
     if( opt->i_pulldown && !param->b_vfr_input )
@@ -1649,6 +1647,7 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
     {
         if( filter.get_frame( opt->hin, &cli_pic, i_frame + opt->i_seek ) )
             break;
+        x264_picture_init( &pic );
         convert_cli_to_lib_pic( &pic, &cli_pic );
 
         if( !param->b_vfr_input )
@@ -1681,12 +1680,6 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
 
         if( opt->qpfile )
             parse_qpfile( opt, &pic, i_frame + opt->i_seek );
-        else
-        {
-            /* Do not force any parameters */
-            pic.i_type = X264_TYPE_AUTO;
-            pic.i_qpplus1 = 0;
-        }
 
         prev_dts = last_dts;
         i_frame_size = encode_frame( h, opt->hout, &pic, &last_dts );

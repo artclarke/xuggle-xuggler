@@ -488,11 +488,11 @@ static int x264_validate_parameters( x264_t *h )
         x264_log( h, X264_LOG_ERROR, "no ratecontrol method specified\n" );
         return -1;
     }
-    h->param.rc.f_rf_constant = x264_clip3f( h->param.rc.f_rf_constant, 0, QP_MAX );
+    h->param.rc.f_rf_constant = x264_clip3f( h->param.rc.f_rf_constant, -QP_BD_OFFSET, 51 );
     h->param.rc.i_qp_constant = x264_clip3( h->param.rc.i_qp_constant, 0, QP_MAX );
     if( h->param.rc.i_rc_method == X264_RC_CRF )
     {
-        h->param.rc.i_qp_constant = h->param.rc.f_rf_constant;
+        h->param.rc.i_qp_constant = h->param.rc.f_rf_constant + QP_BD_OFFSET;
         h->param.rc.i_bitrate = 0;
     }
     if( (h->param.rc.i_rc_method == X264_RC_CQP || h->param.rc.i_rc_method == X264_RC_CRF)

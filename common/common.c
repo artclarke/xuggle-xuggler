@@ -97,7 +97,7 @@ void x264_param_default( x264_param_t *param )
     param->rc.i_vbv_buffer_size = 0;
     param->rc.f_vbv_buffer_init = 0.9;
     param->rc.i_qp_constant = 23 + QP_BD_OFFSET;
-    param->rc.f_rf_constant = 23 + QP_BD_OFFSET;
+    param->rc.f_rf_constant = 23;
     param->rc.i_qp_min = 10;
     param->rc.i_qp_max = QP_MAX;
     param->rc.i_qp_step = 4;
@@ -1038,7 +1038,7 @@ void x264_picture_init( x264_picture_t *pic )
 {
     memset( pic, 0, sizeof( x264_picture_t ) );
     pic->i_type = X264_TYPE_AUTO;
-    pic->i_qpplus1 = 0;
+    pic->i_qpplus1 = X264_QP_AUTO;
     pic->i_pic_struct = PIC_STRUCT_AUTO;
 }
 
@@ -1197,6 +1197,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
         s += sprintf( s, "%dx%d ", p->i_width, p->i_height );
         s += sprintf( s, "fps=%u/%u ", p->i_fps_num, p->i_fps_den );
         s += sprintf( s, "timebase=%u/%u ", p->i_timebase_num, p->i_timebase_den );
+        s += sprintf( s, "bitdepth=%d", BIT_DEPTH );
     }
 
     s += sprintf( s, "cabac=%d", p->b_cabac );

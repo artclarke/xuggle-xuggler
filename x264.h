@@ -143,6 +143,7 @@ typedef struct
 #define X264_RC_CQP                  0
 #define X264_RC_CRF                  1
 #define X264_RC_ABR                  2
+#define X264_QP_AUTO                 0
 #define X264_AQ_NONE                 0
 #define X264_AQ_VARIANCE             1
 #define X264_AQ_AUTOVARIANCE         2
@@ -343,7 +344,7 @@ typedef struct x264_param_t
     {
         int         i_rc_method;    /* X264_RC_* */
 
-        int         i_qp_constant;  /* 0 to (51 + 6*(x264_bit_depth-8)) */
+        int         i_qp_constant;  /* 0 to (51 + 6*(x264_bit_depth-8)). 0=lossless */
         int         i_qp_min;       /* min allowed QP value */
         int         i_qp_max;       /* max allowed QP value */
         int         i_qp_step;      /* max QP step between frames */
@@ -658,7 +659,7 @@ typedef struct
      *     mixing of auto and forced frametypes is done.
      * Out: type of the picture encoded */
     int     i_type;
-    /* In: force quantizer for > 0 */
+    /* In: force quantizer for != X264_QP_AUTO */
     int     i_qpplus1;
     /* In: pic_struct, for pulldown/doubling/etc...used only if b_pic_timing_sei=1.
      *     use pic_struct_e for pic_struct inputs */
