@@ -91,14 +91,14 @@ void x264_sub8x8_dct_altivec( int16_t dct[4][16], uint8_t *pix1, uint8_t *pix2 )
     VEC_DCT( dct0v, dct1v, dct2v, dct3v, tmp0v, tmp1v, tmp2v, tmp3v );
     VEC_DCT( dct4v, dct5v, dct6v, dct7v, tmp4v, tmp5v, tmp6v, tmp7v );
 
-    vec_st(vec_perm(tmp0v, tmp1v, permHighv), 0,   dct);
-    vec_st(vec_perm(tmp2v, tmp3v, permHighv), 16,  dct);
-    vec_st(vec_perm(tmp4v, tmp5v, permHighv), 32,  dct);
-    vec_st(vec_perm(tmp6v, tmp7v, permHighv), 48,  dct);
-    vec_st(vec_perm(tmp0v, tmp1v, permLowv),  64,  dct);
-    vec_st(vec_perm(tmp2v, tmp3v, permLowv),  80,  dct);
-    vec_st(vec_perm(tmp4v, tmp5v, permLowv),  96,  dct);
-    vec_st(vec_perm(tmp6v, tmp7v, permLowv),  112, dct);
+    vec_st(vec_perm(tmp0v, tmp1v, permHighv), 0,   *dct);
+    vec_st(vec_perm(tmp2v, tmp3v, permHighv), 16,  *dct);
+    vec_st(vec_perm(tmp4v, tmp5v, permHighv), 32,  *dct);
+    vec_st(vec_perm(tmp6v, tmp7v, permHighv), 48,  *dct);
+    vec_st(vec_perm(tmp0v, tmp1v, permLowv),  64,  *dct);
+    vec_st(vec_perm(tmp2v, tmp3v, permLowv),  80,  *dct);
+    vec_st(vec_perm(tmp4v, tmp5v, permLowv),  96,  *dct);
+    vec_st(vec_perm(tmp6v, tmp7v, permLowv),  112, *dct);
 }
 
 void x264_sub16x16_dct_altivec( int16_t dct[16][16], uint8_t *pix1, uint8_t *pix2 )

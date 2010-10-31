@@ -460,8 +460,8 @@ static void mc_chroma_altivec_8xh( uint8_t *dstu, uint8_t *dstv, int i_dst_strid
         dstv_16h = vec_sr( dstv_16h, shiftv );
         dstv_16l = vec_sr( dstv_16l, shiftv );
 
-        dstuv = vec_perm( dstv_16h, dstv_16l, perm0v );
-        dstvv = vec_perm( dstv_16h, dstv_16l, perm1v );
+        dstuv = (vec_u8_t)vec_perm( dstv_16h, dstv_16l, perm0v );
+        dstvv = (vec_u8_t)vec_perm( dstv_16h, dstv_16l, perm1v );
 
         VEC_STORE8( dstuv, dstu );
         VEC_STORE8( dstvv, dstv );
@@ -498,8 +498,8 @@ static void mc_chroma_altivec_8xh( uint8_t *dstu, uint8_t *dstv, int i_dst_strid
         dstv_16h = vec_sr( dstv_16h, shiftv );
         dstv_16l = vec_sr( dstv_16l, shiftv );
 
-        dstuv = vec_perm( dstv_16h, dstv_16l, perm0v );
-        dstvv = vec_perm( dstv_16h, dstv_16l, perm1v );
+        dstuv = (vec_u8_t)vec_perm( dstv_16h, dstv_16l, perm0v );
+        dstvv = (vec_u8_t)vec_perm( dstv_16h, dstv_16l, perm1v );
 
         VEC_STORE8( dstuv, dstu );
         VEC_STORE8( dstvv, dstv );
