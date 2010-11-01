@@ -760,9 +760,11 @@ static int x264_validate_parameters( x264_t *h )
             h->param.analyse.i_mv_range = x264_clip3(h->param.analyse.i_mv_range, 32, 512 >> h->param.b_interlaced);
     }
 
-    h->param.analyse.i_weighted_pred = x264_clip3( h->param.analyse.i_weighted_pred, 0, X264_WEIGHTP_SMART );
+    h->param.analyse.i_weighted_pred = x264_clip3( h->param.analyse.i_weighted_pred, X264_WEIGHTP_NONE, X264_WEIGHTP_SMART );
     if( !h->param.analyse.i_weighted_pred && h->param.rc.b_mb_tree && h->param.analyse.b_psy && !h->param.b_interlaced )
         h->param.analyse.i_weighted_pred = X264_WEIGHTP_FAKE;
+    if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_BLIND && BIT_DEPTH > 8 )
+        h->param.analyse.i_weighted_pred = X264_WEIGHTP_NONE;
 
     if( h->i_thread_frames > 1 )
     {
@@ -1417,6 +1419,12 @@ int x264_weighted_reference_duplicate( x264_t *h, int i_ref, const x264_weight_t
     int j = 1;
     x264_frame_t *newframe;
     if( i <= 1 ) /* empty list, definitely can't duplicate frame */
+        return -1;
+
+    /* Duplication is a hack to compensate for crappy rounding in motion compensation.
+     * With high bit depth, it's not worth doing, so turn it off except in the case of
+     * unweighted dupes. */
+    if( BIT_DEPTH > 8 && w != weight_none )
         return -1;
 
     newframe = x264_frame_pop_blank_unused( h );
