@@ -674,6 +674,17 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
         /* shift because x264_scan8[16] is misaligned */
         M32( &h->mb.cache.non_zero_count[x264_scan8[16+0] - 9] ) = M16( &nnz[top][18] ) << 8;
         M32( &h->mb.cache.non_zero_count[x264_scan8[16+4] - 9] ) = M16( &nnz[top][22] ) << 8;
+
+        /* Finish the prefetching */
+        for( int l = 0; l < lists; l++ )
+        {
+            x264_prefetch( &h->mb.mv[l][top_4x4-1] );
+            /* Top right being not in the same cacheline as top left will happen
+             * once every 4 MBs, so one extra prefetch is worthwhile */
+            x264_prefetch( &h->mb.mv[l][top_4x4+4] );
+            x264_prefetch( &h->mb.ref[l][top_8x8-1] );
+            x264_prefetch( &h->mb.mvd[l][top] );
+        }
     }
     else
     {
@@ -709,17 +720,6 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
 
         h->mb.cache.non_zero_count[x264_scan8[16+4+0] - 1] = nnz[left][16+4+1];
         h->mb.cache.non_zero_count[x264_scan8[16+4+2] - 1] = nnz[left][16+4+3];
-
-        /* Finish the prefetching */
-        for( int l = 0; l < lists; l++ )
-        {
-            x264_prefetch( &h->mb.mv[l][top_4x4-1] );
-            /* Top right being not in the same cacheline as top left will happen
-             * once every 4 MBs, so one extra prefetch is worthwhile */
-            x264_prefetch( &h->mb.mv[l][top_4x4+4] );
-            x264_prefetch( &h->mb.ref[l][top_8x8-1] );
-            x264_prefetch( &h->mb.mvd[l][top] );
-        }
     }
     else
     {
