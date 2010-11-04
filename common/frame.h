@@ -42,6 +42,7 @@ typedef struct x264_frame
     int64_t i_dts;
     int64_t i_reordered_pts;
     int     i_duration;  /* in SPS time_scale units (i.e 2 * timebase units) used for vfr */
+    float   f_duration;  /* in seconds */
     int     i_cpb_duration;
     int     i_cpb_delay; /* in SPS time_scale units (i.e 2 * timebase units) */
     int     i_dpb_output_delay;

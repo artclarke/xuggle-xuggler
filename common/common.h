@@ -780,19 +780,20 @@ struct x264_t
         /* Cumulated stats */
 
         /* per slice info */
-        int     i_frame_count[5];
-        int64_t i_frame_size[5];
-        double  f_frame_qp[5];
+        int     i_frame_count[3];
+        int64_t i_frame_size[3];
+        double  f_frame_qp[3];
         int     i_consecutive_bframes[X264_BFRAME_MAX+1];
         /* */
-        int64_t i_ssd_global[5];
-        double  f_psnr_average[5];
-        double  f_psnr_mean_y[5];
-        double  f_psnr_mean_u[5];
-        double  f_psnr_mean_v[5];
-        double  f_ssim_mean_y[5];
+        double  f_ssd_global[3];
+        double  f_psnr_average[3];
+        double  f_psnr_mean_y[3];
+        double  f_psnr_mean_u[3];
+        double  f_psnr_mean_v[3];
+        double  f_ssim_mean_y[3];
+        double  f_frame_duration[3];
         /* */
-        int64_t i_mb_count[5][19];
+        int64_t i_mb_count[3][19];
         int64_t i_mb_partition[2][17];
         int64_t i_mb_count_8x8dct[2];
         int64_t i_mb_count_ref[2][2][X264_REF_MAX*2];
