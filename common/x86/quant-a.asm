@@ -6,6 +6,7 @@
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
 ;*          Jason Garrett-Glaser <darkshikari@gmail.com>
 ;*          Christian Heine <sennindemokrit@gmx.net>
+;*          Oskar Arvidsson <oskar@irock.se>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -78,15 +79,13 @@ cextern pb_01
 %macro QUANT_DC_START_MMX 0
     movd       m6, r1m     ; mf
     movd       m7, r2m     ; bias
-%ifidn m0, mm0
-    pshufw     m6, m6, 0
-    pshufw     m7, m7, 0
+%ifdef X264_HIGH_BIT_DEPTH
+    SPLATD     m6, m6
+    SPLATD     m7, m7
 %else
-    pshuflw    m6, m6, 0
-    pshuflw    m7, m7, 0
-    punpcklqdq m6, m6
-    punpcklqdq m7, m7
-%endif
+    SPLATW     m6, m6
+    SPLATW     m7, m7
+%endif ; X264_HIGH_BIT_DEPTH
 %endmacro
 
 %macro QUANT_DC_START_SSSE3 0
@@ -118,6 +117,246 @@ cextern pb_01
     psignw     %1, %2
 %endmacro
 
+%macro PSIGND_MMX 2
+    pxor        %1, %2
+    psubd       %1, %2
+%endmacro
+
+%macro PSIGND_SSSE3 2
+    psignd      %1, %2
+%endmacro
+
+%macro PABSD_MMX 2
+    pxor        %1, %1
+    pcmpgtd     %1, %2
+    pxor        %2, %1
+    psubd       %2, %1
+    SWAP        %1, %2
+%endmacro
+
+%macro PABSD_SSSE3 2
+    pabsd       %1, %2
+%endmacro
+
+%macro QUANT_END_MMX 0
+    xor      eax, eax
+%ifdef ARCH_X86_64
+%if mmsize == 16
+    packsswb  m5, m5
+%endif
+    movq     rcx, m5
+    test     rcx, rcx
+%else
+%if mmsize == 16
+    pxor      m4, m4
+    pcmpeqb   m5, m4
+    pmovmskb ecx, m5
+    cmp      ecx, (1<<mmsize)-1
+%else
+    packsswb  m5, m5
+    movd     ecx, m5
+    test     ecx, ecx
+%endif
+%endif
+    setne     al
+%endmacro
+
+%macro QUANT_END_SSE4 0
+    xor      eax, eax
+    ptest     m5, m5
+    setne     al
+%endmacro
+
+%ifdef X264_HIGH_BIT_DEPTH
+%macro QUANT_ONE_DC_MMX 4
+    mova        m0, [%1]
+    PABSD       m1, m0
+    paddd       m1, %3
+    mova        m2, m1
+    psrlq       m2, 32
+    pmuludq     m1, %2
+    pmuludq     m2, %2
+    psllq       m2, 32
+    paddd       m1, m2
+    psrld       m1, 16
+    PSIGND      m1, m0
+    mova      [%1], m1
+%if %4
+    por         m5, m1
+%else
+    SWAP        m5, m1
+%endif
+%endmacro
+
+%macro QUANT_TWO_DC_MMX 4
+    QUANT_ONE_DC_MMX %1, %2, %3, %4
+    QUANT_ONE_DC_MMX %1+mmsize, %2, %3, %4+mmsize
+%endmacro
+
+%macro QUANT_ONE_DC_SSE4 4
+    mova        m0, [%1]
+    PABSD       m1, m0
+    paddd       m1, %3
+    pmulld      m1, %2
+    psrad       m1, 16
+    PSIGND      m1, m0
+    mova      [%1], m1
+%if %4
+    por         m5, m1
+%else
+    SWAP        m5, m1
+%endif
+%endmacro
+
+%macro QUANT_TWO_DC_SSE4 4
+    mova        m0, [%1]
+    mova        m1, [%1+mmsize]
+    PABSD       m2, m0
+    PABSD       m3, m1
+    paddd       m2, %3
+    paddd       m3, %3
+    pmulld      m2, %2
+    pmulld      m3, %2
+    psrad       m2, 16
+    psrad       m3, 16
+    PSIGND      m2, m0
+    PSIGND      m3, m1
+    mova      [%1], m2
+    mova      [%1+mmsize], m3
+%if %4
+    por         m5, m2
+%else
+    SWAP        m5, m2
+%endif
+    por         m5, m3
+%endmacro
+
+%macro QUANT_ONE_AC_MMX 4
+    mova        m0, [%1]
+    mova        m2, [%2]
+    PABSD       m1, m0
+    mova        m4, m2
+    paddd       m1, [%3]
+    mova        m3, m1
+    psrlq       m4, 32
+    psrlq       m3, 32
+    pmuludq     m1, m2
+    pmuludq     m3, m4
+    psllq       m3, 32
+    paddd       m1, m3
+    psrad       m1, 16
+    PSIGND      m1, m0
+    mova      [%1], m1
+%if %4
+    por         m5, m1
+%else
+    SWAP        m5, m1
+%endif
+%endmacro
+
+%macro QUANT_TWO_AC_MMX 4
+    QUANT_ONE_AC_MMX %1, %2, %3, %4
+    QUANT_ONE_AC_MMX %1+mmsize, %2+mmsize, %3+mmsize, %4+mmsize
+%endmacro
+
+%macro QUANT_TWO_AC_SSE4 4
+    mova        m0, [%1]
+    mova        m1, [%1+mmsize]
+    PABSD       m2, m0
+    PABSD       m3, m1
+    paddd       m2, [%3]
+    paddd       m3, [%3+mmsize]
+    pmulld      m2, [%2]
+    pmulld      m3, [%2+mmsize]
+    psrad       m2, 16
+    psrad       m3, 16
+    PSIGND      m2, m0
+    PSIGND      m3, m1
+    mova      [%1], m2
+    mova      [%1+mmsize], m3
+%if %4
+    por         m5, m2
+%else
+    SWAP        m5, m2
+%endif
+    por         m5, m3
+%endmacro
+
+;-----------------------------------------------------------------------------
+; int quant_2x2( int32_t dct[M*N], int mf, int bias )
+;-----------------------------------------------------------------------------
+%macro QUANT_DC 3
+cglobal quant_%1x%2_dc_%3, 3,3,8*(mmsize/16)
+    QUANT_DC_START_MMX
+%if %1*%2 <= mmsize/4
+    QUANT_ONE_DC r0, m6, m7, 0
+%else
+%assign x 0
+%rep %1*%2/(mmsize/2)
+    QUANT_TWO_DC r0+x, m6, m7, x
+%assign x x+mmsize*2
+%endrep
+%endif
+    QUANT_END
+    RET
+%endmacro
+
+;-----------------------------------------------------------------------------
+; int quant_MxN( int32_t dct[M*N], uint32_t mf[M*N], uint32_t bias[M*N] )
+;-----------------------------------------------------------------------------
+%macro QUANT_AC 3
+cglobal quant_%1x%2_%3, 3,3,8*(mmsize/16)
+%assign x 0
+%rep %1*%2/(mmsize/2)
+    QUANT_TWO_AC r0+x, r1+x, r2+x, x
+%assign x x+mmsize*2
+%endrep
+    QUANT_END
+    RET
+%endmacro
+
+%define QUANT_TWO_AC QUANT_TWO_AC_MMX
+%define QUANT_ONE_DC QUANT_ONE_DC_MMX
+%define QUANT_TWO_DC QUANT_TWO_DC_MMX
+%define QUANT_END QUANT_END_MMX
+%define PABSD PABSD_MMX
+%define PSIGND PSIGND_MMX
+INIT_MMX
+QUANT_DC 2, 2, mmxext
+QUANT_DC 4, 4, mmxext
+QUANT_AC 4, 4, mmx
+QUANT_AC 8, 8, mmx
+INIT_XMM
+QUANT_DC 2, 2, sse2
+QUANT_DC 4, 4, sse2
+QUANT_AC 4, 4, sse2
+QUANT_AC 8, 8, sse2
+
+%define PABSD PABSD_SSSE3
+%define PSIGND PSIGND_SSSE3
+QUANT_DC 2, 2, ssse3
+QUANT_DC 4, 4, ssse3
+QUANT_AC 4, 4, ssse3
+QUANT_AC 8, 8, ssse3
+
+%define QUANT_TWO_AC QUANT_TWO_AC_SSE4
+%define QUANT_ONE_DC QUANT_ONE_DC_SSE4
+%define QUANT_TWO_DC QUANT_TWO_DC_SSE4
+%define QUANT_END QUANT_END_SSE4
+QUANT_DC 2, 2, sse4
+QUANT_DC 4, 4, sse4
+QUANT_AC 4, 4, sse4
+QUANT_AC 8, 8, sse4
+
+%undef SIGND
+%undef PABSD
+%undef QUANT_END
+%undef QUANT_TWO_AC
+%undef QUANT_ONE_DC
+%undef QUANT_TWO_DC
+%endif ; X264_HIGH_BIT_DEPTH
+
+%ifndef X264_HIGH_BIT_DEPTH
 %macro QUANT_ONE 4
 ;;; %1      (m64)       dct[y][x]
 ;;; %2      (m64/mmx)   mf[y][x] or mf[0][0] (as uint16_t)
@@ -155,35 +394,6 @@ cextern pb_01
     SWAP       m5, m0
     por        m5, m2
 %endif
-%endmacro
-
-%macro QUANT_END_MMX 0
-    xor      eax, eax
-%ifndef ARCH_X86_64
-%if mmsize==8
-    packsswb  m5, m5
-    movd     ecx, m5
-    test     ecx, ecx
-%else
-    pxor      m4, m4
-    pcmpeqb   m5, m4
-    pmovmskb ecx, m5
-    cmp      ecx, (1<<mmsize)-1
-%endif
-%else
-%if mmsize==16
-    packsswb  m5, m5
-%endif
-    movq     rcx, m5
-    test     rcx, rcx
-%endif
-    setne     al
-%endmacro
-
-%macro QUANT_END_SSE4 0
-    xor      eax, eax
-    ptest     m5, m5
-    setne     al
 %endmacro
 
 ;-----------------------------------------------------------------------------
@@ -251,6 +461,7 @@ INIT_XMM
 QUANT_DC quant_4x4_dc_sse4, 2, 8
 QUANT_AC quant_4x4_sse4, 2
 QUANT_AC quant_8x8_sse4, 8
+%endif ; !X264_HIGH_BIT_DEPTH
 
 
 

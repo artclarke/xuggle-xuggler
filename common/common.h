@@ -114,6 +114,7 @@ typedef union { x264_uint128_t i; uint64_t a[2]; uint32_t b[4]; uint16_t c[8]; u
     typedef uint16_t pixel;
     typedef uint64_t pixel4;
     typedef int32_t  dctcoef;
+    typedef uint32_t udctcoef;
 
 #   define PIXEL_SPLAT_X4(x) ((x)*0x0001000100010001ULL)
 #   define MPIXEL_X4(src) M64(src)
@@ -121,6 +122,7 @@ typedef union { x264_uint128_t i; uint64_t a[2]; uint32_t b[4]; uint16_t c[8]; u
     typedef uint8_t  pixel;
     typedef uint32_t pixel4;
     typedef int16_t  dctcoef;
+    typedef uint16_t udctcoef;
 
 #   define PIXEL_SPLAT_X4(x) ((x)*0x01010101U)
 #   define MPIXEL_X4(src) M32(src)
@@ -452,10 +454,10 @@ struct x264_t
     int             (*unquant4_mf[4])[16];   /* [4][52][16] */
     int             (*unquant8_mf[2])[64];   /* [2][52][64] */
     /* quantization matrix for deadzone */
-    uint16_t        (*quant4_mf[4])[16];     /* [4][52][16] */
-    uint16_t        (*quant8_mf[2])[64];     /* [2][52][64] */
-    uint16_t        (*quant4_bias[4])[16];   /* [4][52][16] */
-    uint16_t        (*quant8_bias[2])[64];   /* [2][52][64] */
+    udctcoef        (*quant4_mf[4])[16];     /* [4][52][16] */
+    udctcoef        (*quant8_mf[2])[64];     /* [2][52][64] */
+    udctcoef        (*quant4_bias[4])[16];   /* [4][52][16] */
+    udctcoef        (*quant8_bias[2])[64];   /* [2][52][64] */
 
     /* mv/ref cost arrays.  Indexed by lambda instead of
      * qp because, due to rounding, some quantizers share

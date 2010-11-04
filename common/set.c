@@ -100,7 +100,7 @@ int x264_cqm_init( x264_t *h )
         }
         else
         {
-            CHECKED_MALLOC( h->  quant4_mf[i], (QP_MAX+1)*size*sizeof(uint16_t) );
+            CHECKED_MALLOC( h->  quant4_mf[i], (QP_MAX+1)*size*sizeof(udctcoef) );
             CHECKED_MALLOC( h->dequant4_mf[i],  6*size*sizeof(int) );
             CHECKED_MALLOC( h->unquant4_mf[i], (QP_MAX+1)*size*sizeof(int) );
         }
@@ -112,7 +112,7 @@ int x264_cqm_init( x264_t *h )
         if( j < i )
             h->quant4_bias[i] = h->quant4_bias[j];
         else
-            CHECKED_MALLOC( h->quant4_bias[i], (QP_MAX+1)*size*sizeof(uint16_t) );
+            CHECKED_MALLOC( h->quant4_bias[i], (QP_MAX+1)*size*sizeof(udctcoef) );
     }
 
     for( int q = 0; q < 6; q++ )
@@ -171,7 +171,9 @@ int x264_cqm_init( x264_t *h )
                 for( int i = 0; i < 64; i++ )
                 {
                     h->unquant8_mf[i_list][q][i] = (1ULL << (q/6 + 16 + 8)) / quant8_mf[i_list][q%6][i];
-                    h->quant8_mf[i_list][q][i] = j = SHIFT(quant8_mf[i_list][q%6][i], q/6);
+                    j = SHIFT(quant8_mf[i_list][q%6][i], q/6);
+                    h->quant8_mf[i_list][q][i] = (uint16_t)j;
+
                     if( !j )
                     {
                         min_qp_err = X264_MIN( min_qp_err, q );

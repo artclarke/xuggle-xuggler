@@ -415,7 +415,7 @@ typedef struct {
 
 static ALWAYS_INLINE
 int quant_trellis_cabac( x264_t *h, dctcoef *dct,
-                         const uint16_t *quant_mf, const int *unquant_mf,
+                         const udctcoef *quant_mf, const int *unquant_mf,
                          const int *coef_weight, const uint8_t *zigzag,
                          int ctx_block_cat, int i_lambda2, int b_ac,
                          int dc, int i_coefs, int idx )
@@ -659,7 +659,7 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
  *  such a way that trailing ones and suffix length isn't affected. */
 static ALWAYS_INLINE
 int quant_trellis_cavlc( x264_t *h, dctcoef *dct,
-                         const uint16_t *quant_mf, const int *unquant_mf,
+                         const udctcoef *quant_mf, const int *unquant_mf,
                          const int *coef_weight, const uint8_t *zigzag,
                          int ctx_block_cat, int i_lambda2, int b_ac,
                          int dc, int i_coefs, int idx, int b_8x8 )

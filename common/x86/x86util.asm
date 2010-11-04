@@ -602,3 +602,11 @@
     pshufw     %1, %2, %3*0x55
 %endif
 %endmacro
+
+%macro SPLATD 2-3 0
+%if mmsize == 16
+    pshufd %1, %2, %3*0x55
+%else
+    pshufw %1, %2, %3*0x11 + (%3+1)*0x44
+%endif
+%endmacro

@@ -46,7 +46,7 @@
     nz |= (coef); \
 }
 
-static int quant_8x8( dctcoef dct[64], uint16_t mf[64], uint16_t bias[64] )
+static int quant_8x8( dctcoef dct[64], udctcoef mf[64], udctcoef bias[64] )
 {
     int nz = 0;
     for( int i = 0; i < 64; i++ )
@@ -54,7 +54,7 @@ static int quant_8x8( dctcoef dct[64], uint16_t mf[64], uint16_t bias[64] )
     return !!nz;
 }
 
-static int quant_4x4( dctcoef dct[16], uint16_t mf[16], uint16_t bias[16] )
+static int quant_4x4( dctcoef dct[16], udctcoef mf[16], udctcoef bias[16] )
 {
     int nz = 0;
     for( int i = 0; i < 16; i++ )
@@ -285,7 +285,41 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
     pf->coeff_level_run[  DCT_LUMA_AC] = x264_coeff_level_run15;
     pf->coeff_level_run[ DCT_LUMA_4x4] = x264_coeff_level_run16;
 
-#if !X264_HIGH_BIT_DEPTH
+#if X264_HIGH_BIT_DEPTH
+#if HAVE_MMX
+    if( cpu&X264_CPU_MMX )
+    {
+        pf->quant_4x4 = x264_quant_4x4_mmx;
+        pf->quant_8x8 = x264_quant_8x8_mmx;
+    }
+    if( cpu&X264_CPU_MMXEXT )
+    {
+        pf->quant_2x2_dc = x264_quant_2x2_dc_mmxext;
+        pf->quant_4x4_dc = x264_quant_4x4_dc_mmxext;
+    }
+    if( cpu&X264_CPU_SSE2 )
+    {
+        pf->quant_4x4 = x264_quant_4x4_sse2;
+        pf->quant_8x8 = x264_quant_8x8_sse2;
+        pf->quant_2x2_dc = x264_quant_2x2_dc_sse2;
+        pf->quant_4x4_dc = x264_quant_4x4_dc_sse2;
+    }
+    if( cpu&X264_CPU_SSSE3 )
+    {
+        pf->quant_4x4 = x264_quant_4x4_ssse3;
+        pf->quant_8x8 = x264_quant_8x8_ssse3;
+        pf->quant_2x2_dc = x264_quant_2x2_dc_ssse3;
+        pf->quant_4x4_dc = x264_quant_4x4_dc_ssse3;
+    }
+    if( cpu&X264_CPU_SSE4 )
+    {
+        pf->quant_2x2_dc = x264_quant_2x2_dc_sse4;
+        pf->quant_4x4_dc = x264_quant_4x4_dc_sse4;
+        pf->quant_4x4 = x264_quant_4x4_sse4;
+        pf->quant_8x8 = x264_quant_8x8_sse4;
+    }
+#endif // HAVE_MMX
+#else // !X264_HIGH_BIT_DEPTH
 #if HAVE_MMX
     if( cpu&X264_CPU_MMX )
     {
@@ -424,7 +458,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->coeff_last[DCT_LUMA_8x8] = x264_coeff_last64_neon;
     }
 #endif
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // X264_HIGH_BIT_DEPTH
     pf->coeff_last[  DCT_LUMA_DC] = pf->coeff_last[DCT_LUMA_4x4];
     pf->coeff_last[DCT_CHROMA_AC] = pf->coeff_last[ DCT_LUMA_AC];
     pf->coeff_level_run[  DCT_LUMA_DC] = pf->coeff_level_run[DCT_LUMA_4x4];
