@@ -475,7 +475,10 @@ static int x264_validate_parameters( x264_t *h )
         if( score >= 5 )
         {
             x264_log( h, X264_LOG_ERROR, "broken ffmpeg default settings detected\n" );
-            x264_log( h, X264_LOG_ERROR, "use an encoding preset (vpre)\n" );
+            x264_log( h, X264_LOG_ERROR, "use an encoding preset (e.g. -vpre medium)\n" );
+            x264_log( h, X264_LOG_ERROR, "preset usage: -vpre <speed> -vpre <profile>\n" );
+            x264_log( h, X264_LOG_ERROR, "speed presets are listed in x264 --help\n" );
+            x264_log( h, X264_LOG_ERROR, "profile is optional; x264 defaults to high\n" );
             return -1;
         }
     }
