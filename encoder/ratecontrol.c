@@ -1977,7 +1977,7 @@ static double clip_qscale( x264_t *h, int pict_type, double q )
             {
                 q *= X264_MAX( pbbits / space, bits / (0.5 * rcc->buffer_size) );
             }
-            q = X264_MAX( q0-5, q );
+            q = X264_MAX( q0/2, q );
         }
 
         if( !rcc->b_vbv_min_rate )
