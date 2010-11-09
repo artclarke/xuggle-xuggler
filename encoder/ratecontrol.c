@@ -2206,7 +2206,7 @@ static float rate_estimate_qscale( x264_t *h )
                 q = qp2qscale( rcc->accum_p_qp / rcc->accum_p_norm );
                 q /= fabs( h->param.rc.f_ip_factor );
             }
-            else if( h->i_frame > 0 )
+            else if( h->param.rc.i_rc_method != X264_RC_CRF && h->i_frame > 0 )
             {
                 /* Asymmetric clipping, because symmetric would prevent
                  * overflow control in areas of rapidly oscillating complexity */
