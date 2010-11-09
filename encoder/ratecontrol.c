@@ -2053,9 +2053,9 @@ static float rate_estimate_qscale( x264_t *h )
             q += rcc->pb_offset;
 
         if( rcc->b_2pass && rcc->b_vbv )
-            rcc->frame_size_planned = qscale2bits( &rce, q );
+            rcc->frame_size_planned = qscale2bits( &rce, qp2qscale( q ) );
         else
-            rcc->frame_size_planned = predict_size( rcc->pred_b_from_p, q, h->fref1[h->i_ref1-1]->i_satd );
+            rcc->frame_size_planned = predict_size( rcc->pred_b_from_p, qp2qscale( q ), h->fref1[h->i_ref1-1]->i_satd );
         h->rc->frame_size_estimated = rcc->frame_size_planned;
 
         /* For row SATDs */
