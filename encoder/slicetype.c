@@ -1032,7 +1032,7 @@ static int scenecut_internal( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **f
     return res;
 }
 
-static int scenecut( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, int p0, int p1, int real_scenecut, int num_frames )
+static int scenecut( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, int p0, int p1, int real_scenecut, int num_frames, int i_max_search )
 {
     /* Only do analysis during a normal scenecut check. */
     if( real_scenecut && h->param.i_bframe )
@@ -1061,7 +1061,7 @@ static int scenecut( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, in
          * Instead, the first F frame becomes a scenecut.
          * If the video ends before F, no frame becomes a scenecut. */
         for( int curp0 = p0; curp0 <= maxp1; curp0++ )
-            if( maxp1 != origmaxp1 || (curp0 < maxp1 && scenecut_internal( h, a, frames, curp0, maxp1, 0 )) )
+            if( origmaxp1 > i_max_search || (curp0 < maxp1 && scenecut_internal( h, a, frames, curp0, maxp1, 0 )) )
                 /* If cur_p0 is the p0 of a scenecut, it cannot be the p1 of a scenecut. */
                     frames[curp0]->b_scenecut = 0;
     }
@@ -1119,7 +1119,7 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
     int num_bframes = 0;
     int num_analysed_frames = num_frames;
     int reset_start;
-    if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, 0, 1, 1, orig_num_frames ) )
+    if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, 0, 1, 1, orig_num_frames, i_max_search ) )
     {
         frames[1]->i_type = X264_TYPE_I;
         return;
@@ -1201,7 +1201,7 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
 
         /* Check scenecut on the first minigop. */
         for( int j = 1; j < num_bframes+1; j++ )
-            if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, j, j+1, 0, orig_num_frames ) )
+            if( h->param.i_scenecut_threshold && scenecut( h, &a, frames, j, j+1, 0, orig_num_frames, i_max_search ) )
             {
                 frames[j]->i_type = X264_TYPE_P;
                 num_analysed_frames = j;
