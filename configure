@@ -632,7 +632,9 @@ if [ "$ffms" = "yes" ]; then
     LDFLAGSCLI="$FFMS2_LIBS $LDFLAGSCLI"
     CFLAGS="$CFLAGS $FFMS2_CFLAGS"
     define HAVE_FFMS
-elif [ "$lavf" = "yes" ]; then
+fi
+
+if [ "$lavf" = "yes" ]; then
     LDFLAGSCLI="$LAVF_LIBS $LDFLAGSCLI"
     CFLAGS="$CFLAGS $LAVF_CFLAGS"
 elif [ "$swscale" = "yes" ]; then
