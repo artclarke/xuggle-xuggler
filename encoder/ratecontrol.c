@@ -2204,18 +2204,21 @@ static float rate_estimate_qscale( x264_t *h )
                 q = qp2qscale( rcc->accum_p_qp / rcc->accum_p_norm );
                 q /= fabs( h->param.rc.f_ip_factor );
             }
-            else if( h->param.rc.i_rc_method != X264_RC_CRF && h->i_frame > 0 )
+            else if( h->i_frame > 0 )
             {
-                /* Asymmetric clipping, because symmetric would prevent
-                 * overflow control in areas of rapidly oscillating complexity */
-                double lmin = rcc->last_qscale_for[pict_type] / rcc->lstep;
-                double lmax = rcc->last_qscale_for[pict_type] * rcc->lstep;
-                if( overflow > 1.1 && h->i_frame > 3 )
-                    lmax *= rcc->lstep;
-                else if( overflow < 0.9 )
-                    lmin /= rcc->lstep;
+                if( h->param.rc.i_rc_method != X264_RC_CRF )
+                {
+                    /* Asymmetric clipping, because symmetric would prevent
+                     * overflow control in areas of rapidly oscillating complexity */
+                    double lmin = rcc->last_qscale_for[pict_type] / rcc->lstep;
+                    double lmax = rcc->last_qscale_for[pict_type] * rcc->lstep;
+                    if( overflow > 1.1 && h->i_frame > 3 )
+                        lmax *= rcc->lstep;
+                    else if( overflow < 0.9 )
+                        lmin /= rcc->lstep;
 
-                q = x264_clip3f(q, lmin, lmax);
+                    q = x264_clip3f(q, lmin, lmax);
+                }
             }
             else if( h->param.rc.i_rc_method == X264_RC_CRF && rcc->qcompress != 1 )
             {
