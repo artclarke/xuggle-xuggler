@@ -64,7 +64,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     ffms_hnd_t *h = calloc( 1, sizeof(ffms_hnd_t) );
     if( !h )
         return -1;
-    FFMS_Init( 0 );
+    FFMS_Init( 0, 0 );
     FFMS_ErrorInfo e;
     e.BufferSize = 0;
     int seekmode = opt->seek ? FFMS_SEEK_NORMAL : FFMS_SEEK_LINEAR_NO_RW;
