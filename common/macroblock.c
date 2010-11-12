@@ -238,7 +238,7 @@ int x264_macroblock_cache_allocate( x264_t *h )
     {
         int i_refs = X264_MIN(X264_REF_MAX, (i ? 1 + !!h->param.i_bframe_pyramid : h->param.i_frame_reference) ) << h->param.b_interlaced;
         if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
-            i_refs = X264_MIN(X264_REF_MAX, i_refs + 2); //smart weights add two duplicate frames
+            i_refs = X264_MIN(X264_REF_MAX, i_refs + 1 + (BIT_DEPTH == 8)); //smart weights add two duplicate frames, one in >8-bit
         else if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_BLIND )
             i_refs = X264_MIN(X264_REF_MAX, i_refs + 1); //blind weights add one duplicate frame
 
