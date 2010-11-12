@@ -571,8 +571,8 @@ int x264_sei_version_write( x264_t *h, bs_t *s )
 
     memcpy( payload, uuid, 16 );
     sprintf( payload+16, "x264 - core %d%s - H.264/MPEG-4 AVC codec - "
-             "Copyleft 2003-2010 - http://www.videolan.org/x264.html - options: %s",
-             X264_BUILD, X264_VERSION, opts );
+             "Copy%s 2003-2010 - http://www.videolan.org/x264.html - options: %s",
+             X264_BUILD, X264_VERSION, HAVE_GPL?"left":"right", opts );
     length = strlen(payload)+1;
 
     x264_sei_write( s, (uint8_t *)payload, length, SEI_USER_DATA_UNREGISTERED );
