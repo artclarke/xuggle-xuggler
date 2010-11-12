@@ -37,7 +37,7 @@ namespace com { namespace xuggle { namespace xuggler
   uint32_t
   IAudioSamples :: findSampleBitDepth(Format format)
   {
-    int bits = av_get_bits_per_sample_format((enum SampleFormat) format);
+    int bits = av_get_bits_per_sample_fmt((enum SampleFormat) format);
     return bits;
   }
 
