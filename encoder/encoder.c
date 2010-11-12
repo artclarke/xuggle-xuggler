@@ -2666,6 +2666,9 @@ int     x264_encoder_encode( x264_t *h,
         overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD - (h->param.b_annexb && h->out.i_nal-1);
     }
 
+    if( h->fenc->b_keyframe && h->param.b_intra_refresh )
+        h->i_cpb_delay_pir_offset = h->fenc->i_cpb_delay;
+
     /* Init the rate control */
     /* FIXME: Include slice header bit cost. */
     x264_ratecontrol_start( h, h->fenc->i_qpplus1, overhead*8 );

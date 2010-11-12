@@ -433,6 +433,8 @@ struct x264_t
     int             i_coded_fields_lookahead; /* Use separate counters for lookahead */
     int             i_cpb_delay_lookahead;
 
+    int             i_cpb_delay_pir_offset;
+
     int             b_queued_intra_refresh;
     int64_t         i_last_idr_pts;
 

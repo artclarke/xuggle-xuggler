@@ -1615,7 +1615,7 @@ int x264_ratecontrol_end( x264_t *h, int bits, int *filler )
         }
         else
         {
-            h->fenc->hrd_timing.cpb_removal_time = rc->nrt_first_access_unit + (double)h->fenc->i_cpb_delay *
+            h->fenc->hrd_timing.cpb_removal_time = rc->nrt_first_access_unit + (double)(h->fenc->i_cpb_delay - h->i_cpb_delay_pir_offset) *
                                                    h->sps->vui.i_num_units_in_tick / h->sps->vui.i_time_scale;
 
             double cpb_earliest_arrival_time = h->fenc->hrd_timing.cpb_removal_time - (double)rc->initial_cpb_removal_delay / 90000;
