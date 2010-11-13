@@ -177,18 +177,20 @@ static void mc_copy( pixel *src, int i_src_stride, pixel *dst, int i_dst_stride,
 
 #define TAPFILTER(pix, d) ((pix)[x-2*d] + (pix)[x+3*d] - 5*((pix)[x-d] + (pix)[x+2*d]) + 20*((pix)[x] + (pix)[x+d]))
 static void hpel_filter( pixel *dsth, pixel *dstv, pixel *dstc, pixel *src,
-                         int stride, int width, int height, dctcoef *buf )
+                         int stride, int width, int height, int16_t *buf )
 {
+    const int pad = (BIT_DEPTH > 9) ? (-10 * PIXEL_MAX) : 0;
     for( int y = 0; y < height; y++ )
     {
         for( int x = -2; x < width+3; x++ )
         {
             int v = TAPFILTER(src,stride);
             dstv[x] = x264_clip_pixel( (v + 16) >> 5 );
-            buf[x+2] = v;
+            /* transform v for storage in a 16-bit integer */
+            buf[x+2] = v + pad;
         }
         for( int x = 0; x < width; x++ )
-            dstc[x] = x264_clip_pixel( (TAPFILTER(buf+2,1) + 512) >> 10 );
+            dstc[x] = x264_clip_pixel( (TAPFILTER(buf+2,1) - 32*pad + 512) >> 10 );
         for( int x = 0; x < width; x++ )
             dsth[x] = x264_clip_pixel( (TAPFILTER(src,1) + 16) >> 5 );
         dsth += stride;

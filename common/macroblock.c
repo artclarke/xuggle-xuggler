@@ -333,7 +333,7 @@ int x264_macroblock_thread_allocate( x264_t *h, int b_lookahead )
     int scratch_size = 0;
     if( !b_lookahead )
     {
-        int buf_hpel = (h->thread[0]->fdec->i_width[0]+48) * sizeof(dctcoef);
+        int buf_hpel = (h->thread[0]->fdec->i_width[0]+48) * sizeof(int16_t);
         int buf_ssim = h->param.analyse.b_ssim * 8 * (h->param.i_width/4+3) * sizeof(int);
         int me_range = X264_MIN(h->param.analyse.i_me_range, h->param.analyse.i_mv_range);
         int buf_tesa = (h->param.analyse.i_me_method >= X264_ME_ESA) *
