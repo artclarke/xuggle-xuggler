@@ -1484,7 +1484,8 @@ static void parse_qpfile( cli_opt_t *opt, x264_picture_t *pic, int i_frame )
     while( num < i_frame )
     {
         file_pos = ftell( opt->qpfile );
-        ret = fscanf( opt->qpfile, "%d %c %d\n", &num, &type, &qp );
+        qp = -1;
+        ret = fscanf( opt->qpfile, "%d %c%*[ \t]%d\n", &num, &type, &qp );
         pic->i_type = X264_TYPE_AUTO;
         pic->i_qpplus1 = X264_QP_AUTO;
         if( num > i_frame || ret == EOF )
@@ -1492,7 +1493,7 @@ static void parse_qpfile( cli_opt_t *opt, x264_picture_t *pic, int i_frame )
             fseek( opt->qpfile, file_pos, SEEK_SET );
             break;
         }
-        if( num < i_frame && ret == 3 )
+        if( num < i_frame && ret >= 2 )
             continue;
         if( ret == 3 && qp >= 0 )
             pic->i_qpplus1 = qp+1;
