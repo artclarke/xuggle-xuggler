@@ -77,10 +77,11 @@ static void x264_frame_dump( x264_t *h )
         fwrite( &h->fdec->plane[0][y*h->fdec->i_stride[0]], sizeof(pixel), h->param.i_width, f );
     int cw = h->param.i_width>>1;
     int ch = h->param.i_height>>1;
-    pixel *planeu = x264_malloc( cw*ch*2*sizeof(pixel) );
-    pixel *planev = planeu + cw*ch;
+    pixel *planeu = x264_malloc( (cw*ch*2+32)*sizeof(pixel) );
+    pixel *planev = planeu + cw*ch + 16;
     h->mc.plane_copy_deinterleave( planeu, cw, planev, cw, h->fdec->plane[1], h->fdec->i_stride[1], cw, ch );
-    fwrite( planeu, 1, cw*ch*2*sizeof(pixel), f );
+    fwrite( planeu, 1, cw*ch*sizeof(pixel), f );
+    fwrite( planev, 1, cw*ch*sizeof(pixel), f );
     x264_free( planeu );
     fclose( f );
 }

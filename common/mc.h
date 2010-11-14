@@ -92,6 +92,7 @@ typedef struct
     void (*plane_copy_interleave)( pixel *dst, int i_dst,
                                    uint8_t *srcu, int i_srcu,
                                    uint8_t *srcv, int i_srcv, int w, int h );
+    /* may write up to 15 pixels off the end of each plane */
     void (*plane_copy_deinterleave)( pixel *dstu, int i_dstu,
                                      pixel *dstv, int i_dstv,
                                      pixel *src, int i_src, int w, int h );
