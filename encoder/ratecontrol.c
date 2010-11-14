@@ -53,8 +53,8 @@ typedef struct
     int s_count;
     float blurred_complexity;
     char direct_mode;
-    int16_t weight[2];
-    int16_t i_weight_denom;
+    int16_t weight[3][2];
+    int16_t i_weight_denom[2];
     int refcount[16];
     int refs;
     int i_duration;
@@ -227,11 +227,11 @@ static ALWAYS_INLINE uint32_t ac_energy_plane( x264_t *h, int mb_x, int mb_y, x2
     {
         ALIGNED_ARRAY_16( pixel, pix,[FENC_STRIDE*8] );
         h->mc.load_deinterleave_8x8x2_fenc( pix, frame->plane[1] + offset, stride );
-        return ac_energy_var( h->pixf.var[PIXEL_8x8]( pix, FENC_STRIDE ), 6, frame, i )
-             + ac_energy_var( h->pixf.var[PIXEL_8x8]( pix+FENC_STRIDE/2, FENC_STRIDE ), 6, frame, i );
+        return ac_energy_var( h->pixf.var[PIXEL_8x8]( pix, FENC_STRIDE ), 6, frame, 1 )
+             + ac_energy_var( h->pixf.var[PIXEL_8x8]( pix+FENC_STRIDE/2, FENC_STRIDE ), 6, frame, 2 );
     }
     else
-        return ac_energy_var( h->pixf.var[PIXEL_16x16]( frame->plane[0] + offset, stride ), 8, frame, i );
+        return ac_energy_var( h->pixf.var[PIXEL_16x16]( frame->plane[0] + offset, stride ), 8, frame, 0 );
 }
 
 // Find the total AC energy of the block in all planes.
@@ -854,11 +854,19 @@ int x264_ratecontrol_new( x264_t *h )
             rce->refs = ref;
 
             /* find weights */
-            rce->i_weight_denom = -1;
+            rce->i_weight_denom[0] = rce->i_weight_denom[1] = -1;
             char *w = strchr( p, 'w' );
             if( w )
-                if( sscanf( w, "w:%hd,%hd,%hd", &rce->i_weight_denom, &rce->weight[0], &rce->weight[1] ) != 3 )
-                    rce->i_weight_denom = -1;
+            {
+                int count = sscanf( w, "w:%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd",
+                                    &rce->i_weight_denom[0], &rce->weight[0][0], &rce->weight[0][1],
+                                    &rce->i_weight_denom[1], &rce->weight[1][0], &rce->weight[1][1],
+                                    &rce->weight[2][0], &rce->weight[2][1] );
+                if( count == 3 )
+                    rce->i_weight_denom[1] = -1;
+                else if ( count != 8 )
+                    rce->i_weight_denom[0] = rce->i_weight_denom[1] = -1;
+            }
 
             if( pict_type != 'b' )
                 rce->kept_as_ref = 1;
@@ -1485,8 +1493,15 @@ void x264_ratecontrol_set_weights( x264_t *h, x264_frame_t *frm )
     ratecontrol_entry_t *rce = &h->rc->entry[frm->i_frame];
     if( h->param.analyse.i_weighted_pred <= 0 )
         return;
-    if( rce->i_weight_denom >= 0 )
-        SET_WEIGHT( frm->weight[0][0], 1, rce->weight[0], rce->i_weight_denom, rce->weight[1] );
+
+    if( rce->i_weight_denom[0] >= 0 )
+        SET_WEIGHT( frm->weight[0][0], 1, rce->weight[0][0], rce->i_weight_denom[0], rce->weight[0][1] );
+
+    if( rce->i_weight_denom[1] >= 0 )
+    {
+        SET_WEIGHT( frm->weight[0][1], 1, rce->weight[1][0], rce->i_weight_denom[1], rce->weight[1][1] );
+        SET_WEIGHT( frm->weight[0][2], 1, rce->weight[2][0], rce->i_weight_denom[1], rce->weight[2][1] );
+    }
 }
 
 /* After encoding one frame, save stats and update ratecontrol state */
@@ -1543,9 +1558,19 @@ int x264_ratecontrol_end( x264_t *h, int bits, int *filler )
                 goto fail;
         }
 
-        if( h->sh.weight[0][0].weightfn )
+        if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART && h->sh.weight[0][0].weightfn )
         {
-            if( fprintf( rc->p_stat_file_out, "w:%"PRId32",%"PRId32",%"PRId32, h->sh.weight[0][0].i_denom, h->sh.weight[0][0].i_scale, h->sh.weight[0][0].i_offset ) < 0 )
+            if( fprintf( rc->p_stat_file_out, "w:%d,%d,%d",
+                         h->sh.weight[0][0].i_denom, h->sh.weight[0][0].i_scale, h->sh.weight[0][0].i_offset ) < 0 )
+                goto fail;
+            if( h->sh.weight[0][1].weightfn || h->sh.weight[0][2].weightfn )
+            {
+                if( fprintf( rc->p_stat_file_out, ",%d,%d,%d,%d,%d\n",
+                             h->sh.weight[0][1].i_denom, h->sh.weight[0][1].i_scale, h->sh.weight[0][1].i_offset,
+                             h->sh.weight[0][2].i_scale, h->sh.weight[0][2].i_offset ) < 0 )
+                    goto fail;
+            }
+            else if( fprintf( rc->p_stat_file_out, "\n" ) < 0 )
                 goto fail;
         }
 

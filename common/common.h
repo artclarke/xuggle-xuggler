@@ -807,7 +807,7 @@ struct x264_t
         int     i_direct_score[2];
         int     i_direct_frames[2];
         /* num p-frames weighted */
-        int     i_wpred[3];
+        int     i_wpred[2];
 
     } stat;
 

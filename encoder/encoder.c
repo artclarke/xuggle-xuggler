@@ -1477,49 +1477,67 @@ static void x264_weighted_pred_init( x264_t *h )
 
     int i_padv = PADV << h->param.b_interlaced;
     int denom = -1;
-    int weightluma = 0;
+    int weightplane[2] = { 0, 0 };
     int buffer_next = 0;
-    //FIXME: when chroma support is added, move this into loop
-    h->sh.weight[0][1].weightfn = h->sh.weight[0][2].weightfn = NULL;
-    h->sh.weight[0][1].i_denom = h->sh.weight[0][2].i_denom = 0;
-    for( int j = 0; j < h->i_ref0; j++ )
+    for( int i = 0; i < 3; i++ )
     {
-        if( h->fenc->weight[j][0].weightfn )
+        for( int j = 0; j < h->i_ref0; j++ )
         {
-            h->sh.weight[j][0] = h->fenc->weight[j][0];
-            // if weight is useless, don't write it to stream
-            if( h->sh.weight[j][0].i_scale == 1<<h->sh.weight[j][0].i_denom && h->sh.weight[j][0].i_offset == 0 )
-                h->sh.weight[j][0].weightfn = NULL;
-            else
+            if( h->fenc->weight[j][i].weightfn )
             {
-                if( !weightluma )
+                h->sh.weight[j][i] = h->fenc->weight[j][i];
+                // if weight is useless, don't write it to stream
+                if( h->sh.weight[j][i].i_scale == 1<<h->sh.weight[j][i].i_denom && h->sh.weight[j][i].i_offset == 0 )
+                    h->sh.weight[j][i].weightfn = NULL;
+                else
                 {
-                    weightluma = 1;
-                    h->sh.weight[0][0].i_denom = denom = h->sh.weight[j][0].i_denom;
-                    assert( x264_clip3( denom, 0, 7 ) == denom );
+                    if( !weightplane[!!i] )
+                    {
+                        weightplane[!!i] = 1;
+                        h->sh.weight[0][!!i].i_denom = denom = h->sh.weight[j][i].i_denom;
+                        assert( x264_clip3( denom, 0, 7 ) == denom );
+                    }
+
+                    assert( h->sh.weight[j][i].i_denom == denom );
+                    if( !i )
+                    {
+                        h->fenc->weighted[j] = h->mb.p_weight_buf[buffer_next++] + h->fenc->i_stride[0] * i_padv + PADH;
+                        //scale full resolution frame
+                        if( h->param.i_threads == 1 )
+                        {
+                            pixel *src = h->fref0[j]->filtered[0] - h->fref0[j]->i_stride[0]*i_padv - PADH;
+                            pixel *dst = h->fenc->weighted[j] - h->fenc->i_stride[0]*i_padv - PADH;
+                            int stride = h->fenc->i_stride[0];
+                            int width = h->fenc->i_width[0] + PADH*2;
+                            int height = h->fenc->i_lines[0] + i_padv*2;
+                            x264_weight_scale_plane( h, dst, stride, src, stride, width, height, &h->sh.weight[j][0] );
+                            h->fenc->i_lines_weighted = height;
+                        }
+                    }
                 }
-                assert( h->sh.weight[j][0].i_denom == denom );
-                assert( x264_clip3( h->sh.weight[j][0].i_scale, 0, 127 ) == h->sh.weight[j][0].i_scale );
-                assert( x264_clip3( h->sh.weight[j][0].i_offset, -128, 127 ) == h->sh.weight[j][0].i_offset );
-                h->fenc->weighted[j] = h->mb.p_weight_buf[buffer_next++] +
-                    h->fenc->i_stride[0] * i_padv + PADH;
+            }
+        }
+    }
+
+    if( weightplane[1] )
+        for( int i = 0; i < h->i_ref0; i++ )
+        {
+            if( h->sh.weight[i][1].weightfn && !h->sh.weight[i][2].weightfn )
+            {
+                h->sh.weight[i][2].i_scale = 1 << h->sh.weight[0][1].i_denom;
+                h->sh.weight[i][2].i_offset = 0;
+            }
+            else if( h->sh.weight[i][2].weightfn && !h->sh.weight[i][1].weightfn )
+            {
+                h->sh.weight[i][1].i_scale = 1 << h->sh.weight[0][1].i_denom;
+                h->sh.weight[i][1].i_offset = 0;
             }
         }
 
-        //scale full resolution frame
-        if( h->sh.weight[j][0].weightfn && h->param.i_threads == 1 )
-        {
-            pixel *src = h->fref0[j]->filtered[0] - h->fref0[j]->i_stride[0]*i_padv - PADH;
-            pixel *dst = h->fenc->weighted[j] - h->fenc->i_stride[0]*i_padv - PADH;
-            int stride = h->fenc->i_stride[0];
-            int width = h->fenc->i_width[0] + PADH*2;
-            int height = h->fenc->i_lines[0] + i_padv*2;
-            x264_weight_scale_plane( h, dst, stride, src, stride, width, height, &h->sh.weight[j][0] );
-            h->fenc->i_lines_weighted = height;
-        }
-    }
-    if( !weightluma )
+    if( !weightplane[0] )
         h->sh.weight[0][0].i_denom = 0;
+    if( !weightplane[1] )
+        h->sh.weight[0][1].i_denom = h->sh.weight[0][2].i_denom = 0;
 }
 
 static inline void x264_reference_build_list( x264_t *h, int i_poc )
@@ -2858,13 +2876,10 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     {
         h->stat.i_consecutive_bframes[h->fdec->i_frame - h->fref0[0]->i_frame - 1]++;
         if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
-            for( int i = 0; i < 3; i++ )
-                for( int j = 0; j < h->i_ref0; j++ )
-                    if( h->sh.weight[0][i].i_denom != 0 )
-                    {
-                        h->stat.i_wpred[i]++;
-                        break;
-                    }
+        {
+            h->stat.i_wpred[0] += !!h->sh.weight[0][0].weightfn;
+            h->stat.i_wpred[1] += !!h->sh.weight[0][1].weightfn || !!h->sh.weight[0][2].weightfn;
+        }
     }
     if( h->sh.i_type == SLICE_TYPE_B )
     {
@@ -3210,8 +3225,9 @@ void    x264_encoder_close  ( x264_t *h )
                       fixed_pred_modes[3][3] * 100.0 / sum_pred_modes[3] );
 
         if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART && h->stat.i_frame_count[SLICE_TYPE_P] > 0 )
-            x264_log( h, X264_LOG_INFO, "Weighted P-Frames: Y:%.1f%%\n",
-                      h->stat.i_wpred[0] * 100.0 / h->stat.i_frame_count[SLICE_TYPE_P] );
+            x264_log( h, X264_LOG_INFO, "Weighted P-Frames: Y:%.1f%% UV:%.1f%%\n",
+                      h->stat.i_wpred[0] * 100.0 / h->stat.i_frame_count[SLICE_TYPE_P],
+                      h->stat.i_wpred[1] * 100.0 / h->stat.i_frame_count[SLICE_TYPE_P] );
 
         for( int i_list = 0; i_list < 2; i_list++ )
             for( int i_slice = 0; i_slice < 2; i_slice++ )

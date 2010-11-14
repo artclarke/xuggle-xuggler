@@ -1110,7 +1110,15 @@ void x264_me_refine_bidir_rd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_wei
         uint64_t cost; \
         M32( cache_mv ) = pack16to32_mask(mx,my); \
         if( m->i_pixel <= PIXEL_8x8 ) \
+        { \
             h->mc.mc_chroma( pixu, pixv, FDEC_STRIDE, m->p_fref[4], m->i_stride[1], mx, my + mvy_offset, bw>>1, bh>>1 ); \
+            if( m->weight[1].weightfn ) \
+                m->weight[1].weightfn[x264_pixel_size[i_pixel].w>>3]( pixu, FDEC_STRIDE, pixu, FDEC_STRIDE, \
+                                                                      &m->weight[1], x264_pixel_size[i_pixel].h>>1 ); \
+            if( m->weight[2].weightfn ) \
+                m->weight[2].weightfn[x264_pixel_size[i_pixel].w>>3]( pixv, FDEC_STRIDE, pixv, FDEC_STRIDE, \
+                                                                      &m->weight[2], x264_pixel_size[i_pixel].h>>1 ); \
+        } \
         cost = x264_rd_cost_part( h, i_lambda2, i4, m->i_pixel ); \
         COPY4_IF_LT( bcost, cost, bmx, mx, bmy, my, dir, do_dir?mdir:dir ); \
     } \
