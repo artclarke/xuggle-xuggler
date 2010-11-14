@@ -27,6 +27,13 @@
 %assign FENC_STRIDE 16
 %assign FDEC_STRIDE 32
 
+%assign SIZEOF_PIXEL 1
+%ifdef X264_HIGH_BIT_DEPTH
+    %assign SIZEOF_PIXEL 2
+%endif
+
+%assign PIXEL_MAX ((1 << BIT_DEPTH)-1)
+
 %macro SBUTTERFLY 4
     mova      m%4, m%2
     punpckl%1 m%2, m%3

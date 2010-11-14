@@ -9,6 +9,7 @@
 ;*          Dylan Yudaken <dyudaken@gmail.com>
 ;*          Holger Lubitz <holger@lubitz.org>
 ;*          Min Chen <chenm001.163.com>
+;*          Oskar Arvidsson <oskar@irock.se>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -38,14 +39,18 @@ ch_shuf_adj: times 8 db 0
              times 8 db 2
              times 8 db 4
              times 8 db 6
+sq_1: times 1 dq 1
 
 SECTION .text
 
+cextern pb_0
+cextern pw_1
 cextern pw_4
 cextern pw_8
 cextern pw_32
 cextern pw_64
 cextern pw_00ff
+cextern pw_pixel_max
 cextern sw_64
 
 ;=============================================================================
@@ -181,6 +186,58 @@ AVG_WEIGHT ssse3, 16, 7
 ; P frame explicit weighted prediction
 ;=============================================================================
 
+%ifdef X264_HIGH_BIT_DEPTH
+%macro WEIGHT_START 1 ; (width)
+    movd        m2, [r4+32]         ; denom
+    movd        m3, [r4+36]         ; scale
+    mov    TMP_REG, [r4+40]         ; offset
+    mova        m0, [pw_1]
+    shl    TMP_REG, BIT_DEPTH-7
+    mova        m4, [pw_pixel_max]
+    add    TMP_REG, 1
+    psllw       m0, m2              ; 1<<denom
+    movd        m1, TMP_REG         ; 1+(offset<<(BIT_DEPTH-8+1))
+    psllw       m3, 1               ; scale<<1
+    punpcklwd   m3, m1
+    SPLATD      m3, m3
+    paddw       m2, [sq_1]          ; denom+1
+%endmacro
+
+%macro WEIGHT 2 ; (src1, src2)
+    movh        m5, [%1]
+    movh        m6, [%2]
+    punpcklwd   m5, m0
+    punpcklwd   m6, m0
+    pmaddwd     m5, m3
+    pmaddwd     m6, m3
+    psrad       m5, m2
+    psrad       m6, m2
+    packssdw    m5, m6
+%endmacro
+
+%macro WEIGHT_TWO_ROW 3 ; (src, dst, width)
+    %assign x 0
+%rep (%3+mmsize/2-1)/(mmsize/2)
+%if %3-x/2 <= 4 && mmsize == 16
+    WEIGHT      %1+x, %1+r3+x
+    CLIPW         m5, [pb_0], m4
+    movh      [%2+x], m5
+    movhps [%2+r1+x], m5
+%else
+    WEIGHT      %1+x, %1+x+mmsize/2
+    SWAP          m5, m7
+    WEIGHT   %1+r3+x, %1+r3+x+mmsize/2
+    CLIPW         m5, [pb_0], m4
+    CLIPW         m7, [pb_0], m4
+    mova      [%2+x], m7
+    mova   [%2+r1+x], m5
+%endif
+    %assign x x+mmsize
+%endrep
+%endmacro
+
+%else ; !X264_HIGH_BIT_DEPTH
+
 %macro WEIGHT_START 1
     mova     m3, [r4]
     mova     m6, [r4+16]
@@ -294,6 +351,8 @@ AVG_WEIGHT ssse3, 16, 7
 %endrep
 %endmacro
 
+%endif ; X264_HIGH_BIT_DEPTH
+
 ;-----------------------------------------------------------------------------
 ;void mc_weight_wX( uint8_t *dst, int i_dst_stride, uint8_t *src, int i_src_stride, weight_t *weight, int h )
 ;-----------------------------------------------------------------------------
@@ -302,14 +361,23 @@ AVG_WEIGHT ssse3, 16, 7
 %define NUMREGS 6
 %define LOAD_HEIGHT
 %define HEIGHT_REG r5d
+%define TMP_REG r6d
 %else
 %define NUMREGS 5
+%define TMP_REG r5d
 %define LOAD_HEIGHT mov r4d, r5m
 %define HEIGHT_REG r4d
 %endif
 
+%assign XMMREGS 7
+%ifdef X264_HIGH_BIT_DEPTH
+%assign NUMREGS NUMREGS+1
+%assign XMMREGS 8
+%endif
+
 %macro WEIGHTER 2
-    cglobal mc_weight_w%1_%2, NUMREGS, NUMREGS, 7
+    cglobal mc_weight_w%1_%2, NUMREGS, NUMREGS, XMMREGS*(mmsize/16)
+    FIX_STRIDES r1, r3
     WEIGHT_START %1
     LOAD_HEIGHT
 .loop:
@@ -331,6 +399,9 @@ INIT_XMM
 WEIGHTER  8, sse2
 WEIGHTER 16, sse2
 WEIGHTER 20, sse2
+%ifdef X264_HIGH_BIT_DEPTH
+WEIGHTER 12, sse2
+%else
 %define WEIGHT WEIGHT_SSSE3
 %define WEIGHT_START WEIGHT_START_SSSE3
 INIT_MMX
@@ -339,6 +410,7 @@ INIT_XMM
 WEIGHTER  8, ssse3
 WEIGHTER 16, ssse3
 WEIGHTER 20, ssse3
+%endif
 
 %macro OFFSET_OP 7
     mov%6        m0, [%1]
@@ -501,6 +573,191 @@ AVGH  4,  2, ssse3
 ; pixel avg2
 ;=============================================================================
 
+%ifdef X264_HIGH_BIT_DEPTH
+;-----------------------------------------------------------------------------
+; void pixel_avg2_wN( uint16_t *dst,  int dst_stride,
+;                     uint16_t *src1, int src_stride,
+;                     uint16_t *src2, int height );
+;-----------------------------------------------------------------------------
+%macro AVG2_W_ONE 2
+cglobal pixel_avg2_w%1_%2, 6,7,4*(mmsize/16)
+    sub     r4, r2
+    lea     r6, [r4+r3*2]
+.height_loop:
+    movu    m0, [r2]
+    movu    m1, [r2+r3*2]
+%if mmsize == 8
+    pavgw   m0, [r2+r4]
+    pavgw   m1, [r2+r6]
+%else
+    movu    m2, [r2+r4]
+    movu    m3, [r2+r6]
+    pavgw   m0, m2
+    pavgw   m1, m3
+%endif
+    mova   [r0], m0
+    mova   [r0+r1*2], m1
+    sub    r5d, 2
+    lea     r2, [r2+r3*4]
+    lea     r0, [r0+r1*4]
+    jg .height_loop
+    REP_RET
+%endmacro
+
+%macro AVG2_W_TWO 4
+cglobal pixel_avg2_w%1_%4, 6,7,8*(mmsize/16)
+    sub     r4, r2
+    lea     r6, [r4+r3*2]
+.height_loop:
+    movu    m0, [r2]
+    %2      m1, [r2+mmsize]
+    movu    m2, [r2+r3*2]
+    %2      m3, [r2+r3*2+mmsize]
+%if mmsize == 8
+    pavgw   m0, [r2+r4]
+    pavgw   m1, [r2+r4+mmsize]
+    pavgw   m2, [r2+r6]
+    pavgw   m3, [r2+r6+mmsize]
+%else
+    movu    m4, [r2+r4]
+    %2      m5, [r2+r4+mmsize]
+    movu    m6, [r2+r6]
+    %2      m7, [r2+r6+mmsize]
+    pavgw   m0, m4
+    pavgw   m1, m5
+    pavgw   m2, m6
+    pavgw   m3, m7
+%endif
+    mova   [r0], m0
+    %3     [r0+mmsize], m1
+    mova   [r0+r1*2], m2
+    %3     [r0+r1*2+mmsize], m3
+    sub    r5d, 2
+    lea     r2, [r2+r3*4]
+    lea     r0, [r0+r1*4]
+    jg .height_loop
+    REP_RET
+%endmacro
+
+INIT_MMX
+AVG2_W_ONE  4, mmxext
+AVG2_W_TWO  8, movu, mova, mmxext
+INIT_XMM
+AVG2_W_ONE  8, sse2
+AVG2_W_TWO 10, movd, movd, sse2
+AVG2_W_TWO 16, movu, mova, sse2
+
+INIT_MMX
+cglobal pixel_avg2_w10_mmxext, 6,7
+    sub     r4, r2
+    lea     r6, [r4+r3*2]
+.height_loop:
+    movu    m0, [r2+ 0]
+    movu    m1, [r2+ 8]
+    movh    m2, [r2+16]
+    movu    m3, [r2+r3*2+ 0]
+    movu    m4, [r2+r3*2+ 8]
+    movh    m5, [r2+r3*2+16]
+    pavgw   m0, [r2+r4+ 0]
+    pavgw   m1, [r2+r4+ 8]
+    pavgw   m2, [r2+r4+16]
+    pavgw   m3, [r2+r6+ 0]
+    pavgw   m4, [r2+r6+ 8]
+    pavgw   m5, [r2+r6+16]
+    mova   [r0+ 0], m0
+    mova   [r0+ 8], m1
+    movh   [r0+16], m2
+    mova   [r0+r1*2+ 0], m3
+    mova   [r0+r1*2+ 8], m4
+    movh   [r0+r1*2+16], m5
+    sub    r5d, 2
+    lea     r2, [r2+r3*2*2]
+    lea     r0, [r0+r1*2*2]
+    jg .height_loop
+    REP_RET
+
+cglobal pixel_avg2_w16_mmxext, 6,7
+    sub     r4, r2
+    lea     r6, [r4+r3*2]
+.height_loop:
+    movu    m0, [r2+ 0]
+    movu    m1, [r2+ 8]
+    movu    m2, [r2+16]
+    movu    m3, [r2+24]
+    movu    m4, [r2+r3*2+ 0]
+    movu    m5, [r2+r3*2+ 8]
+    movu    m6, [r2+r3*2+16]
+    movu    m7, [r2+r3*2+24]
+    pavgw   m0, [r2+r4+ 0]
+    pavgw   m1, [r2+r4+ 8]
+    pavgw   m2, [r2+r4+16]
+    pavgw   m3, [r2+r4+24]
+    pavgw   m4, [r2+r6+ 0]
+    pavgw   m5, [r2+r6+ 8]
+    pavgw   m6, [r2+r6+16]
+    pavgw   m7, [r2+r6+24]
+    mova   [r0+ 0], m0
+    mova   [r0+ 8], m1
+    mova   [r0+16], m2
+    mova   [r0+24], m3
+    mova   [r0+r1*2+ 0], m4
+    mova   [r0+r1*2+ 8], m5
+    mova   [r0+r1*2+16], m6
+    mova   [r0+r1*2+24], m7
+    sub    r5d, 2
+    lea     r2, [r2+r3*2*2]
+    lea     r0, [r0+r1*2*2]
+    jg .height_loop
+    REP_RET
+
+cglobal pixel_avg2_w18_mmxext, 6,7
+    sub     r4, r2
+.height_loop:
+    movu    m0, [r2+ 0]
+    movu    m1, [r2+ 8]
+    movu    m2, [r2+16]
+    movu    m3, [r2+24]
+    movh    m4, [r2+32]
+    pavgw   m0, [r2+r4+ 0]
+    pavgw   m1, [r2+r4+ 8]
+    pavgw   m2, [r2+r4+16]
+    pavgw   m3, [r2+r4+24]
+    pavgw   m4, [r2+r4+32]
+    mova   [r0+ 0], m0
+    mova   [r0+ 8], m1
+    mova   [r0+16], m2
+    mova   [r0+24], m3
+    movh   [r0+32], m4
+    sub    r5d, 1
+    lea     r2, [r2+r3*2]
+    lea     r0, [r0+r1*2]
+    jg .height_loop
+    REP_RET
+
+INIT_XMM
+cglobal pixel_avg2_w18_sse2, 6,7,6
+    sub     r4, r2
+.height_loop:
+    movu    m0, [r2+ 0]
+    movu    m1, [r2+16]
+    movh    m2, [r2+32]
+    movu    m3, [r2+r4+ 0]
+    movu    m4, [r2+r4+16]
+    movh    m5, [r2+r4+32]
+    pavgw   m0, m3
+    pavgw   m1, m4
+    pavgw   m2, m5
+    mova   [r0+ 0], m0
+    mova   [r0+16], m1
+    movh   [r0+32], m2
+    sub    r5d, 1
+    lea     r2, [r2+r3*2]
+    lea     r0, [r0+r1*2]
+    jg .height_loop
+    REP_RET
+%endif ; X264_HIGH_BIT_DEPTH
+
+%ifndef X264_HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------
 ; void pixel_avg2_w4( uint8_t *dst, int dst_stride,
 ;                     uint8_t *src1, int src_stride,
@@ -693,7 +950,7 @@ pixel_avg2_w%1_cache_mmxext:
     add    r0, r1
     dec    r5d
     jg .height_loop
-    RET
+    REP_RET
 %endmacro
 
 %macro AVG_CACHELINE_CHECK 3 ; width, cacheline, instruction set
@@ -824,6 +1081,7 @@ AVG16_CACHELINE_LOOP_SSSE3 j, k
 %assign j j+1
 %assign k k+1
 %endrep
+%endif ; !X264_HIGH_BIT_DEPTH
 
 ;=============================================================================
 ; pixel copy
@@ -840,6 +1098,79 @@ AVG16_CACHELINE_LOOP_SSSE3 j, k
     %1  [r0+%3],   m3
 %endmacro
 
+%ifdef X264_HIGH_BIT_DEPTH
+%macro COPY_ONE 6
+    COPY4 %1, %2, %3, %4
+%endmacro
+
+%macro COPY_TWO 6
+    %2  m0, [r2+%5]
+    %2  m1, [r2+%6]
+    %2  m2, [r2+r3+%5]
+    %2  m3, [r2+r3+%6]
+    %2  m4, [r2+r3*2+%5]
+    %2  m5, [r2+r3*2+%6]
+    %2  m6, [r2+%4+%5]
+    %2  m7, [r2+%4+%6]
+    %1 [r0+%5],      m0
+    %1 [r0+%6],      m1
+    %1 [r0+r1+%5],   m2
+    %1 [r0+r1+%6],   m3
+    %1 [r0+r1*2+%5], m4
+    %1 [r0+r1*2+%6], m5
+    %1 [r0+%3+%5],   m6
+    %1 [r0+%3+%6],   m7
+%endmacro
+
+INIT_MMX
+cglobal mc_copy_w4_mmx, 4,6
+    FIX_STRIDES r1, r3
+    cmp dword r4m, 4
+    lea     r5, [r3*3]
+    lea     r4, [r1*3]
+    je .end
+    COPY4 mova, mova, r4, r5
+    lea     r2, [r2+r3*4]
+    lea     r0, [r0+r1*4]
+.end
+    COPY4 movu, mova, r4, r5
+    RET
+
+cglobal mc_copy_w16_mmx, 5,7
+    FIX_STRIDES r1, r3
+    lea     r6, [r3*3]
+    lea     r5, [r1*3]
+.height_loop:
+    COPY_TWO mova, movu, r5, r6, mmsize*0, mmsize*1
+    COPY_TWO mova, movu, r5, r6, mmsize*2, mmsize*3
+    sub    r4d, 4
+    lea     r2, [r2+r3*4]
+    lea     r0, [r0+r1*4]
+    jg .height_loop
+    REP_RET
+
+%macro MC_COPY 5
+cglobal mc_copy_w%2_%4, 5,7,%5
+    FIX_STRIDES r1, r3
+    lea     r6, [r3*3]
+    lea     r5, [r1*3]
+.height_loop:
+    COPY_%1 mova, %3, r5, r6, 0, mmsize
+    sub    r4d, 4
+    lea     r2, [r2+r3*4]
+    lea     r0, [r0+r1*4]
+    jg .height_loop
+    REP_RET
+%endmacro
+
+MC_COPY TWO,  8, movu, mmx,          0
+INIT_XMM
+MC_COPY ONE,  8, movu, sse2,         0
+MC_COPY TWO, 16, movu, sse2,         8
+MC_COPY TWO, 16, mova, aligned_sse2, 8
+%endif ; X264_HIGH_BIT_DEPTH
+
+%ifndef X264_HIGH_BIT_DEPTH
 INIT_MMX
 ;-----------------------------------------------------------------------------
 ; void mc_copy_w4( uint8_t *dst, int i_dst_stride,
@@ -913,6 +1244,7 @@ COPY_W16_SSE2 mc_copy_w16_sse2, movdqu
 ; but with SSE3 the overhead is zero, so there's no reason not to include it.
 COPY_W16_SSE2 mc_copy_w16_sse3, lddqu
 COPY_W16_SSE2 mc_copy_w16_aligned_sse2, movdqa
+%endif ; !X264_HIGH_BIT_DEPTH
 
 
 
@@ -1010,10 +1342,28 @@ cglobal prefetch_ref_mmxext, 3,3
     sar       t1d, 3
     imul      t0d, r4d
     lea       t0d, [t0+t1*2]
+    FIX_STRIDES t0d
     movsxdifnidn t0, t0d
     add       r3,  t0            ; src += (dx>>3) + (dy>>3) * src_stride
 %endmacro
 
+%ifdef X264_HIGH_BIT_DEPTH
+%macro UNPACK_UNALIGNED 4
+    movu       %1, [%4+0]
+    movu       %2, [%4+4]
+    mova       %3, %1
+    punpcklwd  %1, %2
+    punpckhwd  %3, %2
+    mova       %2, %1
+%if mmsize == 8
+    punpcklwd  %1, %3
+    punpckhwd  %2, %3
+%else
+    shufps     %1, %3, 10001000b
+    shufps     %2, %3, 11011101b
+%endif
+%endmacro
+%else ; !X264_HIGH_BIT_DEPTH
 %macro UNPACK_UNALIGNED_MEM 3
     punpcklwd  %1, %3
 %endmacro
@@ -1022,6 +1372,7 @@ cglobal prefetch_ref_mmxext, 3,3
     movh       %2, %3
     punpcklwd  %1, %2
 %endmacro
+%endif ; X264_HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
 ; void mc_chroma( uint8_t *dstu, uint8_t *dstv, int dst_stride,
@@ -1032,6 +1383,7 @@ cglobal prefetch_ref_mmxext, 3,3
 %macro MC_CHROMA 1
 cglobal mc_chroma_%1, 0,6
     MC_CHROMA_START
+    FIX_STRIDES r4
     and       r5d, 7
 %ifdef ARCH_X86_64
     jz .mc1dy
@@ -1075,23 +1427,33 @@ cglobal mc_chroma_%1, 0,6
     pshufd     m5, m5, 0x55
     jg .width8
 %endif
+%ifdef X264_HIGH_BIT_DEPTH
+    add        r2, r2
+    UNPACK_UNALIGNED m0, m1, m2, r3
+%else
     movu       m0, [r3]
     UNPACK_UNALIGNED m0, m1, [r3+2]
     mova       m1, m0
     pand       m0, [pw_00ff]
     psrlw      m1, 8
+%endif ; X264_HIGH_BIT_DEPTH
     pmaddwd    m0, m7
     pmaddwd    m1, m7
     packssdw   m0, m1
     SWAP       m3, m0
 ALIGN 4
 .loop2:
+%ifdef X264_HIGH_BIT_DEPTH
+    UNPACK_UNALIGNED m0, m1, m2, r3+r4
+    pmullw     m3, m6
+%else ; !X264_HIGH_BIT_DEPTH
     movu       m0, [r3+r4]
     UNPACK_UNALIGNED m0, m1, [r3+r4+2]
     pmullw     m3, m6
     mova       m1, m0
     pand       m0, [pw_00ff]
     psrlw      m1, 8
+%endif ; X264_HIGH_BIT_DEPTH
     pmaddwd    m0, m7
     pmaddwd    m1, m7
     mova       m2, [pw_32]
@@ -1101,6 +1463,15 @@ ALIGN 4
     pmullw     m0, m5
     paddw      m0, m2
     psrlw      m0, 6
+%ifdef X264_HIGH_BIT_DEPTH
+    movh     [r0], m0
+%if mmsize == 8
+    psrlq      m0, 32
+    movh     [r1], m0
+%else
+    movhps   [r1], m0
+%endif
+%else ; !X264_HIGH_BIT_DEPTH
     packuswb   m0, m0
     movd     [r0], m0
 %if mmsize==8
@@ -1109,6 +1480,7 @@ ALIGN 4
     psrldq     m0, 4
 %endif
     movd     [r1], m0
+%endif ; X264_HIGH_BIT_DEPTH
     add        r3, r4
     add        r0, r2
     add        r1, r2
@@ -1139,7 +1511,12 @@ ALIGN 4
     mova    multy0, m5
 %endif
 %endif
+    FIX_STRIDES r2
 .loopx:
+%ifdef X264_HIGH_BIT_DEPTH
+    UNPACK_UNALIGNED m0, m2, m4, r3
+    UNPACK_UNALIGNED m1, m3, m5, r3+mmsize
+%else
     movu       m0, [r3]
     movu       m1, [r3+mmsize/2]
     UNPACK_UNALIGNED m0, m2, [r3+2]
@@ -1150,6 +1527,7 @@ ALIGN 4
     pand       m1, [pw_00ff]
     psrlw      m2, 8
     psrlw      m3, 8
+%endif
     pmaddwd    m0, m7
     pmaddwd    m2, m7
     pmaddwd    m1, m7
@@ -1161,6 +1539,16 @@ ALIGN 4
     add        r3, r4
 ALIGN 4
 .loop4:
+%ifdef X264_HIGH_BIT_DEPTH
+    UNPACK_UNALIGNED m0, m1, m2, r3
+    pmaddwd    m0, m7
+    pmaddwd    m1, m7
+    packssdw   m0, m1
+    UNPACK_UNALIGNED m1, m2, m3, r3+mmsize
+    pmaddwd    m1, m7
+    pmaddwd    m2, m7
+    packssdw   m1, m2
+%else ; !X264_HIGH_BIT_DEPTH
     movu       m0, [r3]
     movu       m1, [r3+mmsize/2]
     UNPACK_UNALIGNED m0, m2, [r3+2]
@@ -1177,6 +1565,7 @@ ALIGN 4
     pmaddwd    m3, m7
     packssdw   m0, m2
     packssdw   m1, m3
+%endif ; X264_HIGH_BIT_DEPTH
     pmullw     m4, m6
     pmullw     m5, m6
     mova       m2, [pw_32]
@@ -1191,6 +1580,19 @@ ALIGN 4
     paddw      m1, m3
     psrlw      m0, 6
     psrlw      m1, 6
+%ifdef X264_HIGH_BIT_DEPTH
+    movh     [r0], m0
+    movh     [r0+mmsize/2], m1
+%if mmsize==8
+    psrlq      m0, 32
+    psrlq      m1, 32
+    movh     [r1], m0
+    movh     [r1+mmsize/2], m1
+%else
+    movhps   [r1], m0
+    movhps   [r1+mmsize/2], m1
+%endif
+%else ; !X264_HIGH_BIT_DEPTH
     packuswb   m0, m1
 %if mmsize==8
     pshufw     m1, m0, 0x8
@@ -1202,6 +1604,7 @@ ALIGN 4
     movq     [r0], m0
     movhps   [r1], m0
 %endif
+%endif ; X264_HIGH_BIT_DEPTH
     add        r3, r4
     add        r0, r2
     add        r1, r2
@@ -1215,16 +1618,16 @@ ALIGN 4
     REP_RET
 .width8:
 %ifdef ARCH_X86_64
-    lea        r3, [t2+8]
-    lea        r0, [t0+4]
-    lea        r1, [t1+4]
+    lea        r3, [t2+8*SIZEOF_PIXEL]
+    lea        r0, [t0+4*SIZEOF_PIXEL]
+    lea        r1, [t1+4*SIZEOF_PIXEL]
 %else
     mov        r3, r3m
     mov        r0, r0m
     mov        r1, r1m
-    add        r3, 8
-    add        r0, 4
-    add        r1, 4
+    add        r3, 8*SIZEOF_PIXEL
+    add        r0, 4*SIZEOF_PIXEL
+    add        r1, 4*SIZEOF_PIXEL
 %endif
     mov       r5d, r8m
     jmp .loopx
@@ -1245,14 +1648,20 @@ ALIGN 4
     jmp .mc1d
 .mc1dx:
     movd       m5, r5d
-    mov       r6d, 2
+    mov       r6d, 2*SIZEOF_PIXEL
 .mc1d:
+%ifdef X264_HIGH_BIT_DEPTH
+%if mmsize == 16
+    WIN64_SPILL_XMM 8
+%endif
+%endif
     mova       m4, [pw_8]
     SPLATW     m5, m5
     psubw      m4, m5
     movifnidn  r0, r0mp
     movifnidn  r1, r1mp
     movifnidn r2d, r2m
+    FIX_STRIDES r2
     movifnidn r5d, r8m
     cmp dword r7m, 4
     jg .mc1d_w8
@@ -1262,6 +1671,28 @@ ALIGN 4
     shr       r5d, 1
 %endif
 .loop1d_w4:
+%ifdef X264_HIGH_BIT_DEPTH
+%if mmsize == 8
+    movq       m0, [r3+0]
+    movq       m2, [r3+8]
+    movq       m1, [r3+r6+0]
+    movq       m3, [r3+r6+8]
+%else
+    movu       m0, [r3]
+    movu       m1, [r3+r6]
+    add        r3, r11
+    movu       m2, [r3]
+    movu       m3, [r3+r6]
+%endif
+    SBUTTERFLY wd, 0, 2, 6
+    SBUTTERFLY wd, 1, 3, 7
+    SBUTTERFLY wd, 0, 2, 6
+    SBUTTERFLY wd, 1, 3, 7
+%if mmsize == 16
+    SBUTTERFLY wd, 0, 2, 6
+    SBUTTERFLY wd, 1, 3, 7
+%endif
+%else ; !X264_HIGH_BIT_DEPTH
     movq       m0, [r3]
     movq       m1, [r3+r6]
 %if mmsize!=8
@@ -1275,6 +1706,7 @@ ALIGN 4
     pand       m1, [pw_00ff]
     psrlw      m2, 8
     psrlw      m3, 8
+%endif ; X264_HIGH_BIT_DEPTH
     pmullw     m0, m4
     pmullw     m1, m5
     pmullw     m2, m4
@@ -1285,6 +1717,20 @@ ALIGN 4
     paddw      m2, m3
     psrlw      m0, 3
     psrlw      m2, 3
+%ifdef X264_HIGH_BIT_DEPTH
+%if mmsize == 8
+    xchg       r4, r11
+    xchg       r2, r10
+%endif
+    movq     [r0], m0
+    movq     [r1], m2
+%if mmsize == 16
+    add        r0, r10
+    add        r1, r10
+    movhps   [r0], m0
+    movhps   [r1], m2
+%endif
+%else ; !X264_HIGH_BIT_DEPTH
     packuswb   m0, m2
 %if mmsize==8
     xchg       r4, r11
@@ -1303,6 +1749,7 @@ ALIGN 4
     movd     [r0], m0
     movd     [r1], m1
 %endif
+%endif ; X264_HIGH_BIT_DEPTH
     add        r3, r4
     add        r0, r2
     add        r1, r2
@@ -1310,10 +1757,10 @@ ALIGN 4
     jg .loop1d_w4
     REP_RET
 .mc1d_w8:
-    sub       r2, 4
-    sub       r4, 8
-    mov      r10, 4
-    mov      r11, 8
+    sub       r2, 4*SIZEOF_PIXEL
+    sub       r4, 8*SIZEOF_PIXEL
+    mov      r10, 4*SIZEOF_PIXEL
+    mov      r11, 8*SIZEOF_PIXEL
 %if mmsize==8
     shl       r5d, 1
 %endif
@@ -1457,6 +1904,12 @@ cglobal mc_chroma_ssse3%1, 0,6,9
     REP_RET
 %endmacro
 
+%ifdef X264_HIGH_BIT_DEPTH
+INIT_MMX
+MC_CHROMA mmxext
+INIT_XMM
+MC_CHROMA sse2
+%else ; !X264_HIGH_BIT_DEPTH
 INIT_MMX
 %define UNPACK_UNALIGNED UNPACK_UNALIGNED_MEM
 MC_CHROMA mmxext
@@ -1466,3 +1919,4 @@ MC_CHROMA sse2_misalign
 MC_CHROMA sse2
 MC_CHROMA_SSSE3
 MC_CHROMA_SSSE3 _cache64
+%endif ; X264_HIGH_BIT_DEPTH

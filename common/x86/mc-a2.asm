@@ -7,6 +7,7 @@
 ;*          Jason Garrett-Glaser <darkshikari@gmail.com>
 ;*          Holger Lubitz <holger@lubitz.org>
 ;*          Mathieu Monnier <manao@melix.net>
+;*          Oskar Arvidsson <oskar@irock.se>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -37,13 +38,28 @@ filt_mul51: times 8 db -5, 1
 hpel_shuf: db 0,8,1,9,2,10,3,11,4,12,5,13,6,14,7,15
 deinterleave_shuf: db 0,2,4,6,8,10,12,14,1,3,5,7,9,11,13,15
 
+pd_16: times 4 dd 16
+pd_32: times 4 dd 32
+pd_0f: times 4 dd 0xffff
+
+pad10: times 8 dw    10*PIXEL_MAX
+pad20: times 8 dw    20*PIXEL_MAX
+pad30: times 8 dw    30*PIXEL_MAX
+depad: times 4 dd 32*20*PIXEL_MAX + 512
+
+tap1: times 4 dw  1, -5
+tap2: times 4 dw 20, 20
+tap3: times 4 dw -5,  1
+
 SECTION .text
 
+cextern pb_0
 cextern pw_1
 cextern pw_16
 cextern pw_32
 cextern pw_00ff
 cextern pw_3fff
+cextern pw_pixel_max
 cextern pd_128
 
 %macro LOAD_ADD 4
@@ -106,12 +122,21 @@ cextern pd_128
     paddw  %4, %6
 %endmacro
 
-%macro FILT_PACK 4
-    paddw     %1, %4
-    paddw     %2, %4
-    psraw     %1, %3
-    psraw     %2, %3
-    packuswb  %1, %2
+%macro FILT_PACK 4-6 b
+    paddw      %1, %4
+    paddw      %2, %4
+%if %0 == 6
+    psubusw    %1, %6
+    psubusw    %2, %6
+    psrlw      %1, %3
+    psrlw      %2, %3
+%else
+    psraw      %1, %3
+    psraw      %2, %3
+%endif
+%ifnidn w, %5
+    packuswb %1, %2
+%endif
 %endmacro
 
 ;The hpel_filter routines use non-temporal writes for output.
@@ -123,6 +148,168 @@ cextern pd_128
 ;%define movntps movaps
 ;%define sfence
 
+%ifdef X264_HIGH_BIT_DEPTH
+;-----------------------------------------------------------------------------
+; void hpel_filter_v( uint16_t *dst, uint16_t *src, int16_t *buf, int stride, int width );
+;-----------------------------------------------------------------------------
+%macro HPEL_FILTER 1
+cglobal hpel_filter_v_%1, 5,6,11*(mmsize/16)
+%ifdef WIN64
+    movsxd     r4, r4d
+%endif
+    FIX_STRIDES r3, r4
+    lea        r5, [r1+r3]
+    sub        r1, r3
+    sub        r1, r3
+%if num_mmregs > 8
+    mova       m8, [pad10]
+    mova       m9, [pad20]
+    mova      m10, [pad30]
+    %define s10 m8
+    %define s20 m9
+    %define s30 m10
+%else
+    %define s10 [pad10]
+    %define s20 [pad20]
+    %define s30 [pad30]
+%endif
+    add        r0, r4
+    lea        r2, [r2+r4]
+    neg        r4
+    mova       m7, [pw_pixel_max]
+    pxor       m0, m0
+.loop:
+    mova       m1, [r1]
+    mova       m2, [r1+r3]
+    mova       m3, [r1+r3*2]
+    mova       m4, [r1+mmsize]
+    mova       m5, [r1+r3+mmsize]
+    mova       m6, [r1+r3*2+mmsize]
+    paddw      m1, [r5+r3*2]
+    paddw      m2, [r5+r3]
+    paddw      m3, [r5]
+    paddw      m4, [r5+r3*2+mmsize]
+    paddw      m5, [r5+r3+mmsize]
+    paddw      m6, [r5+mmsize]
+    add        r1, 2*mmsize
+    add        r5, 2*mmsize
+    FILT_V2    m1, m2, m3, m4, m5, m6
+    mova       m6, [pw_16]
+    psubw      m1, s20
+    psubw      m4, s20
+    mova      [r2+r4], m1
+    mova      [r2+r4+mmsize], m4
+    paddw      m1, s30
+    paddw      m4, s30
+    add        r4, 2*mmsize
+    FILT_PACK  m1, m4, 5, m6, w, s10
+    CLIPW      m1, m0, m7
+    CLIPW      m4, m0, m7
+    mova      [r0+r4-mmsize*2], m1
+    mova      [r0+r4-mmsize*1], m4
+    jl .loop
+    REP_RET
+
+;-----------------------------------------------------------------------------
+; void hpel_filter_c( uint16_t *dst, int16_t *buf, int width );
+;-----------------------------------------------------------------------------
+cglobal hpel_filter_c_%1, 3,3,10*(mmsize/16)
+    add        r2, r2
+    add        r0, r2
+    lea        r1, [r1+r2]
+    neg        r2
+    mova       m0, [tap1]
+    mova       m7, [tap3]
+%if num_mmregs > 8
+    mova       m8, [tap2]
+    mova       m9, [depad]
+    %define s1 m8
+    %define s2 m9
+%else
+    %define s1 [tap2]
+    %define s2 [depad]
+%endif
+.loop:
+    movu       m1, [r1+r2-4]
+    movu       m2, [r1+r2-2]
+    mova       m3, [r1+r2+0]
+    movu       m4, [r1+r2+2]
+    movu       m5, [r1+r2+4]
+    movu       m6, [r1+r2+6]
+    pmaddwd    m1, m0
+    pmaddwd    m2, m0
+    pmaddwd    m3, s1
+    pmaddwd    m4, s1
+    pmaddwd    m5, m7
+    pmaddwd    m6, m7
+    paddd      m1, s2
+    paddd      m2, s2
+    paddd      m3, m5
+    paddd      m4, m6
+    paddd      m1, m3
+    paddd      m2, m4
+    psrad      m1, 10
+    psrad      m2, 10
+    pslld      m2, 16
+    pand       m1, [pd_0f]
+    por        m1, m2
+    CLIPW      m1, [pb_0], [pw_pixel_max]
+    mova  [r0+r2], m1
+    add        r2, mmsize
+    jl .loop
+    REP_RET
+
+;-----------------------------------------------------------------------------
+; void hpel_filter_h( uint16_t *dst, uint16_t *src, int width );
+;-----------------------------------------------------------------------------
+cglobal hpel_filter_h_%1, 3,4,8*(mmsize/16)
+    %define src r1+r2
+    add        r2, r2
+    add        r0, r2
+    add        r1, r2
+    neg        r2
+    mova       m0, [pw_pixel_max]
+.loop:
+    movu       m1, [src-4]
+    movu       m2, [src-2]
+    mova       m3, [src+0]
+    movu       m6, [src+2]
+    movu       m4, [src+4]
+    movu       m5, [src+6]
+    paddw      m3, m6 ; c0
+    paddw      m2, m4 ; b0
+    paddw      m1, m5 ; a0
+%if mmsize == 16
+    movu       m4, [src-4+mmsize]
+    movu       m5, [src-2+mmsize]
+%endif
+    movu       m7, [src+4+mmsize]
+    movu       m6, [src+6+mmsize]
+    paddw      m5, m7 ; b1
+    paddw      m4, m6 ; a1
+    movu       m7, [src+2+mmsize]
+    mova       m6, [src+0+mmsize]
+    paddw      m6, m7 ; c1
+    FILT_H2    m1, m2, m3, m4, m5, m6
+    mova       m7, [pw_1]
+    pxor       m2, m2
+    add        r2, mmsize*2
+    FILT_PACK  m1, m4, 1, m7, w
+    CLIPW      m1, m2, m0
+    CLIPW      m4, m2, m0
+    mova      [r0+r2-mmsize*2], m1
+    mova      [r0+r2-mmsize*1], m4
+    jl .loop
+    REP_RET
+%endmacro
+
+INIT_MMX
+HPEL_FILTER mmxext
+INIT_XMM
+HPEL_FILTER sse2
+%endif ; X264_HIGH_BIT_DEPTH
+
+%ifndef X264_HIGH_BIT_DEPTH
 INIT_MMX
 
 %macro HPEL_V 1-2 0
@@ -425,7 +612,7 @@ cglobal hpel_filter_h_ssse3, 3,3
     movntps [r0+r2], m3
     add r2, 16
     jl .loop
-    RET
+    REP_RET
 %endif
 
 %define PALIGNR PALIGNR_MMX
@@ -635,6 +822,7 @@ HPEL ssse3
 %undef movntq
 %undef movntps
 %undef sfence
+%endif ; !X264_HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
 ; void plane_copy_core( uint8_t *dst, int i_dst,
