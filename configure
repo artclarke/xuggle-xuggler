@@ -75,6 +75,10 @@ cc_check() {
         log_msg "$CC conftest.c $CFLAGS $2 $LDFLAGSCLI $LDFLAGS"
         cat conftest.log >> config.log
         log_msg "--------------------------------------------------"
+        log_msg "Failed program was:"
+        log_msg "--------------------------------------------------"
+        cat conftest.c >> config.log
+        log_msg "--------------------------------------------------"
     fi
     return $res
 }
@@ -94,6 +98,10 @@ cpp_check() {
         log_msg "--------------------------------------------------"
         cat conftest.log >> config.log
         log_msg "--------------------------------------------------"
+        log_msg "Failed program was:"
+        log_msg "--------------------------------------------------"
+        cat conftest.c >> config.log
+        log_msg "--------------------------------------------------"
     fi
     return $res
 }
@@ -111,6 +119,10 @@ as_check() {
         log_msg "--------------------------------------------------"
         log_msg "$AS conftest.asm $ASFLAGS $2 -o conftest.o"
         cat conftest.log >> config.log
+        log_msg "--------------------------------------------------"
+        log_msg "Failed program was:"
+        log_msg "--------------------------------------------------"
+        cat conftest.asm >> config.log
         log_msg "--------------------------------------------------"
     fi
     return $res
