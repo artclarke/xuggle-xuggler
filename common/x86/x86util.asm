@@ -29,7 +29,7 @@
 
 %assign SIZEOF_PIXEL 1
 %assign SIZEOF_DCTCOEF 2
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
     %assign SIZEOF_PIXEL 2
     %assign SIZEOF_DCTCOEF 4
 %endif
@@ -491,7 +491,7 @@
 
 
 %macro LOAD_DIFF 5
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
     mova       %1, %4
     psubw      %1, %5
 %elifidn %3, none
@@ -580,7 +580,7 @@
     packuswb   %2, %1
 %endmacro
 
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 %macro STORE_DIFF 5
     punpcklwd  %2, %1
     punpckhwd  %3, %1
@@ -632,7 +632,7 @@
 %endmacro
 
 %macro FIX_STRIDES 1-*
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 %rep %0
     add %1, %1
     %rotate 1

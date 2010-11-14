@@ -43,7 +43,7 @@ cextern pw_4
 cextern pw_00ff
 cextern pw_pixel_max
 
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 ; out: %4 = |%1-%2|-%3
 ; clobbers: %5
 %macro ABS_SUB 5
@@ -781,9 +781,9 @@ INIT_XMM
 DEBLOCK_LUMA sse2
 DEBLOCK_LUMA_INTRA sse2
 %endif
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
 
-%ifndef X264_HIGH_BIT_DEPTH
+%ifndef HIGH_BIT_DEPTH
 ; expands to [base],...,[base+7*stride]
 %define PASS8ROWS(base, base3, stride, stride3) \
     [base], [base+stride], [base+stride*2], [base3], \
@@ -1557,9 +1557,9 @@ DEBLOCK_LUMA_INTRA sse2, v
 INIT_MMX
 DEBLOCK_LUMA_INTRA mmxext, v8
 %endif
-%endif ; !X264_HIGH_BIT_DEPTH
+%endif ; !HIGH_BIT_DEPTH
 
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 ; in: %1=p0, %2=q0, %3=p1, %4=q1, %5=mask, %6=tmp, %7=tmp
 ; out: %1=p0', %2=q0'
 %macro CHROMA_DEBLOCK_P0_Q0_INTRA 7
@@ -1743,9 +1743,9 @@ DEBLOCK_CHROMA mmxext
 %endif
 INIT_XMM
 DEBLOCK_CHROMA sse2
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
 
-%ifndef X264_HIGH_BIT_DEPTH
+%ifndef HIGH_BIT_DEPTH
 %macro CHROMA_V_START 0
     dec    r2d      ; alpha-1
     dec    r3d      ; beta-1
@@ -1909,7 +1909,7 @@ DEBLOCK_CHROMA_INTRA sse2
 INIT_MMX
 DEBLOCK_CHROMA_INTRA mmxext
 %endif
-%endif ; !X264_HIGH_BIT_DEPTH
+%endif ; !HIGH_BIT_DEPTH
 
 
 

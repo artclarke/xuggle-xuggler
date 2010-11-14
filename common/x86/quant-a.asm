@@ -79,13 +79,13 @@ cextern pb_01
 %macro QUANT_DC_START_MMX 0
     movd       m6, r1m     ; mf
     movd       m7, r2m     ; bias
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
     SPLATD     m6, m6
     SPLATD     m7, m7
 %else
     SPLATW     m6, m6
     SPLATW     m7, m7
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
 %endmacro
 
 %macro QUANT_DC_START_SSSE3 0
@@ -167,7 +167,7 @@ cextern pb_01
     setne     al
 %endmacro
 
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 %macro QUANT_ONE_DC_MMX 4
     mova        m0, [%1]
     PABSD       m1, m0
@@ -354,9 +354,9 @@ QUANT_AC 8, 8, sse4
 %undef QUANT_TWO_AC
 %undef QUANT_ONE_DC
 %undef QUANT_TWO_DC
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
 
-%ifndef X264_HIGH_BIT_DEPTH
+%ifndef HIGH_BIT_DEPTH
 %macro QUANT_ONE 4
 ;;; %1      (m64)       dct[y][x]
 ;;; %2      (m64/mmx)   mf[y][x] or mf[0][0] (as uint16_t)
@@ -461,7 +461,7 @@ INIT_XMM
 QUANT_DC quant_4x4_dc_sse4, 2, 8
 QUANT_AC quant_4x4_sse4, 2
 QUANT_AC quant_8x8_sse4, 8
-%endif ; !X264_HIGH_BIT_DEPTH
+%endif ; !HIGH_BIT_DEPTH
 
 
 
@@ -694,7 +694,7 @@ DEQUANT_DC mmxext
 INIT_XMM
 DEQUANT_DC sse2
 
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------
 ; void denoise_dct( int32_t *dct, uint32_t *sum, uint32_t *offset, int size )
 ;-----------------------------------------------------------------------------
@@ -743,7 +743,7 @@ DENOISE_DCT sse2, 8
 %define PSIGND PSIGND_SSSE3
 DENOISE_DCT ssse3, 8
 
-%else ; !X264_HIGH_BIT_DEPTH
+%else ; !HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
 ; void denoise_dct( int16_t *dct, uint32_t *sum, uint16_t *offset, int size )
@@ -797,14 +797,14 @@ DENOISE_DCT sse2, 7
 %define PSIGNW PSIGNW_SSSE3
 DENOISE_DCT ssse3, 7
 
-%endif ; !X264_HIGH_BIT_DEPTH
+%endif ; !HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
 ; int decimate_score( dctcoef *dct )
 ;-----------------------------------------------------------------------------
 
 %macro DECIMATE_MASK_SSE2 7
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
     movdqa   xmm0, [%3+ 0]
     movdqa   xmm1, [%3+32]
     packssdw xmm0, [%3+16]
@@ -834,7 +834,7 @@ DENOISE_DCT ssse3, 7
 %endmacro
 
 %macro DECIMATE_MASK_MMX 7
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
     movq      mm0, [%3+ 0]
     movq      mm1, [%3+16]
     movq      mm2, [%3+32]
@@ -1063,7 +1063,7 @@ DECIMATE8x8 ssse3, 1
     xor %1, %3
 %endmacro
 
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 %macro LAST_MASK4_MMX 2-3
     movq     mm0, [%2]
     packssdw mm0, [%2+8]
@@ -1100,7 +1100,7 @@ DECIMATE8x8 ssse3, 1
     shl       %3, 8
     or        %1, %3
 %endmacro
-%else ; !X264_HIGH_BIT_DEPTH
+%else ; !HIGH_BIT_DEPTH
 %macro LAST_MASK4_MMX 2-3
     movq     mm0, [%2]
     packsswb mm0, mm0
@@ -1153,7 +1153,7 @@ cglobal coeff_last4_%1, 0,3
 COEFF_LAST4 mmxext
 %define LAST LAST_SSE4A
 COEFF_LAST4 mmxext_lzcnt
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
 
 %macro COEFF_LAST 1
 cglobal coeff_last15_%1, 1,3
@@ -1261,7 +1261,7 @@ cglobal coeff_level_run%2_%1,0,7
     mov   [t1], t4d
 .loop:
     LZCOUNT t3d, t5d, 0x1f
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
     mov    t2d, [t0+t4*4]
     mov   [t1+t6  +4+16*4], t3b
     mov   [t1+t6*4+ 4], t2d

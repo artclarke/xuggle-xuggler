@@ -79,7 +79,7 @@
  void x264_predict_16x16_v_sse2( uint8_t *src );
  void x264_predict_16x16_p_core_sse2( uint8_t *src, int i00, int b, int c );
 
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
 ALIGNED_8( static const int8_t pb_12345678[8] ) = {1,2,3,4,5,6,7,8};
 ALIGNED_8( static const int8_t pb_m87654321[8] ) = {-8,-7,-6,-5,-4,-3,-2,-1};
 ALIGNED_8( static const int8_t pb_m32101234[8] ) = {-3,-2,-1,0,1,2,3,4};
@@ -369,7 +369,7 @@ INTRA_SA8D_X3(ssse3)
 #else
 INTRA_SA8D_X3(mmxext)
 #endif
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 
 /****************************************************************************
  * Exported functions:
@@ -378,7 +378,7 @@ void x264_predict_16x16_init_mmx( int cpu, x264_predict_t pf[7] )
 {
     if( !(cpu&X264_CPU_MMX) )
         return;
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
     pf[I_PRED_16x16_V]       = x264_predict_16x16_v_mmx;
     if( !(cpu&X264_CPU_MMXEXT) )
         return;
@@ -404,14 +404,14 @@ void x264_predict_16x16_init_mmx( int cpu, x264_predict_t pf[7] )
 #ifdef __GNUC__
     pf[I_PRED_16x16_P]       = x264_predict_16x16_p_ssse3;
 #endif
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 }
 
 void x264_predict_8x8c_init_mmx( int cpu, x264_predict_t pf[7] )
 {
     if( !(cpu&X264_CPU_MMX) )
         return;
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
 #if ARCH_X86_64
     pf[I_PRED_CHROMA_DC_LEFT] = x264_predict_8x8c_dc_left;
 #endif
@@ -433,14 +433,14 @@ void x264_predict_8x8c_init_mmx( int cpu, x264_predict_t pf[7] )
 #ifdef __GNUC__
     pf[I_PRED_CHROMA_P]       = x264_predict_8x8c_p_ssse3;
 #endif
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 }
 
 void x264_predict_8x8_init_mmx( int cpu, x264_predict8x8_t pf[12], x264_predict_8x8_filter_t *predict_8x8_filter )
 {
     if( !(cpu&X264_CPU_MMXEXT) )
         return;
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
     pf[I_PRED_8x8_V]      = x264_predict_8x8_v_mmxext;
     pf[I_PRED_8x8_H]      = x264_predict_8x8_h_mmxext;
     pf[I_PRED_8x8_DC]     = x264_predict_8x8_dc_mmxext;
@@ -467,14 +467,14 @@ void x264_predict_8x8_init_mmx( int cpu, x264_predict8x8_t pf[12], x264_predict_
     pf[I_PRED_8x8_HD]   = x264_predict_8x8_hd_ssse3;
     pf[I_PRED_8x8_HU]   = x264_predict_8x8_hu_ssse3;
     *predict_8x8_filter = x264_predict_8x8_filter_ssse3;
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 }
 
 void x264_predict_4x4_init_mmx( int cpu, x264_predict_t pf[12] )
 {
     if( !(cpu&X264_CPU_MMXEXT) )
         return;
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
     pf[I_PRED_4x4_VR]  = x264_predict_4x4_vr_mmxext;
     pf[I_PRED_4x4_DDL] = x264_predict_4x4_ddl_mmxext;
     pf[I_PRED_4x4_VL]  = x264_predict_4x4_vl_mmxext;
@@ -487,5 +487,5 @@ void x264_predict_4x4_init_mmx( int cpu, x264_predict_t pf[12] )
     pf[I_PRED_4x4_DDR] = x264_predict_4x4_ddr_ssse3;
     pf[I_PRED_4x4_VR]  = x264_predict_4x4_vr_ssse3;
     pf[I_PRED_4x4_HD]  = x264_predict_4x4_hd_ssse3;
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 }

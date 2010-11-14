@@ -114,7 +114,7 @@ cglobal idct4x4dc_mmx, 1,1
     movq  [r0+24], m3
     RET
 
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------
 ; void sub4x4_dct( int32_t dct[4][4], uint16_t *pix1, uint16_t *pix2 )
 ;-----------------------------------------------------------------------------
@@ -132,9 +132,9 @@ cglobal sub4x4_dct_mmx, 3,3
     STORE_DIFF m2, m4, m5, [r0+32], [r0+40]
     STORE_DIFF m3, m4, m5, [r0+48], [r0+56]
     RET
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
 
-%ifndef X264_HIGH_BIT_DEPTH
+%ifndef HIGH_BIT_DEPTH
 %macro SUB_DCT4 1
 ;-----------------------------------------------------------------------------
 ; void sub4x4_dct( int16_t dct[4][4], uint8_t *pix1, uint8_t *pix2 )
@@ -162,9 +162,9 @@ cglobal sub4x4_dct_%1, 3,3
 
 SUB_DCT4 mmx
 SUB_DCT4 ssse3
-%endif ; !X264_HIGH_BIT_DEPTH
+%endif ; !HIGH_BIT_DEPTH
 
-%ifndef X264_HIGH_BIT_DEPTH
+%ifndef HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------
 ; void add4x4_idct( uint8_t *p_dst, int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
@@ -236,7 +236,7 @@ cglobal add4x4_idct_sse4, 2,2,6
     movd     [r0+FDEC_STRIDE*2], m0
     pextrd   [r0+FDEC_STRIDE*3], m0, 1
     RET
-%endif ; !X264_HIGH_BIT_DEPTH
+%endif ; !HIGH_BIT_DEPTH
 
 INIT_MMX
 ;-----------------------------------------------------------------------------
@@ -244,14 +244,14 @@ INIT_MMX
 ;-----------------------------------------------------------------------------
 %macro SUB_NxN_DCT 6
 cglobal %1, 3,3,11*(mmsize/16)
-%ifndef X264_HIGH_BIT_DEPTH
+%ifndef HIGH_BIT_DEPTH
 %if mmsize == 8
     pxor m7, m7
 %else
     add r2, 4*FDEC_STRIDE
     mova m7, [hsub_mul]
 %endif
-%endif ; !X264_HIGH_BIT_DEPTH
+%endif ; !HIGH_BIT_DEPTH
 .skip_prologue:
 %ifdef WIN64
     sub  rsp, 8
@@ -308,11 +308,11 @@ cglobal %1, 2,2,11*(mmsize/16)
 %endif
 %endmacro
 
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 INIT_MMX
 SUB_NxN_DCT  sub8x8_dct_mmx,    sub4x4_dct_mmx.skip_prologue,  64,  8, 0, 0
 SUB_NxN_DCT  sub16x16_dct_mmx,  sub8x8_dct_mmx.skip_prologue,  64, 16, 8, 8
-%else ; !X264_HIGH_BIT_DEPTH
+%else ; !HIGH_BIT_DEPTH
 %ifndef ARCH_X86_64
 SUB_NxN_DCT  sub8x8_dct_mmx,    sub4x4_dct_mmx.skip_prologue,  32, 4, 0, 0
 ADD_NxN_IDCT add8x8_idct_mmx,   add4x4_idct_mmx.skip_prologue, 32, 4, 0, 0
@@ -341,7 +341,7 @@ ADD_NxN_IDCT add16x16_idct8_sse2, add8x8_idct8_sse2.skip_prologue, 128, 8, 0, 0
 
 cextern sub8x8_dct8_ssse3.skip_prologue
 SUB_NxN_DCT  sub16x16_dct8_ssse3, sub8x8_dct8_ssse3.skip_prologue, 128, 8, 0, 0
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
 
 
 ;-----------------------------------------------------------------------------

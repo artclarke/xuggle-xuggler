@@ -61,7 +61,7 @@ ifneq ($(AS),)
 X86SRC0 = const-a.asm cabac-a.asm dct-a.asm deblock-a.asm mc-a.asm \
           mc-a2.asm pixel-a.asm predict-a.asm quant-a.asm \
           cpu-a.asm dct-32.asm bitstream-a.asm
-ifneq ($(findstring X264_HIGH_BIT_DEPTH, $(CONFIG)),)
+ifneq ($(findstring HIGH_BIT_DEPTH, $(CONFIG)),)
 X86SRC0 += sad16-a.asm
 else
 X86SRC0 += sad-a.asm

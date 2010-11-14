@@ -27,7 +27,7 @@
 #include "common/common.h"
 #include "ppccommon.h"
 
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
 #define VEC_DCT(a0,a1,a2,a3,b0,b1,b2,b3) \
     b1 = vec_add( a0, a3 );              \
     b3 = vec_add( a1, a2 );              \
@@ -486,5 +486,5 @@ void x264_zigzag_scan_4x4_field_altivec( int16_t level[16], int16_t dct[16] )
     vec_st( tmp0v, 0x00, level );
     vec_st( tmp1v, 0x10, level );
 }
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 

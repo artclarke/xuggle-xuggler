@@ -148,7 +148,7 @@ cextern pd_128
 ;%define movntps movaps
 ;%define sfence
 
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------
 ; void hpel_filter_v( uint16_t *dst, uint16_t *src, int16_t *buf, int stride, int width );
 ;-----------------------------------------------------------------------------
@@ -307,9 +307,9 @@ INIT_MMX
 HPEL_FILTER mmxext
 INIT_XMM
 HPEL_FILTER sse2
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
 
-%ifndef X264_HIGH_BIT_DEPTH
+%ifndef HIGH_BIT_DEPTH
 INIT_MMX
 
 %macro HPEL_V 1-2 0
@@ -822,7 +822,7 @@ HPEL ssse3
 %undef movntq
 %undef movntps
 %undef sfence
-%endif ; !X264_HIGH_BIT_DEPTH
+%endif ; !HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
 ; void plane_copy_core( uint8_t *dst, int i_dst,

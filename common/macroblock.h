@@ -371,7 +371,7 @@ static ALWAYS_INLINE uint64_t pack32to64( uint32_t a, uint32_t b )
 #endif
 }
 
-#if X264_HIGH_BIT_DEPTH
+#if HIGH_BIT_DEPTH
 #   define pack_pixel_1to2 pack16to32
 #   define pack_pixel_2to4 pack32to64
 #else

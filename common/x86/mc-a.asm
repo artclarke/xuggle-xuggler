@@ -186,7 +186,7 @@ AVG_WEIGHT ssse3, 16, 7
 ; P frame explicit weighted prediction
 ;=============================================================================
 
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 %macro WEIGHT_START 1 ; (width)
     movd        m2, [r4+32]         ; denom
     movd        m3, [r4+36]         ; scale
@@ -236,7 +236,7 @@ AVG_WEIGHT ssse3, 16, 7
 %endrep
 %endmacro
 
-%else ; !X264_HIGH_BIT_DEPTH
+%else ; !HIGH_BIT_DEPTH
 
 %macro WEIGHT_START 1
     mova     m3, [r4]
@@ -351,7 +351,7 @@ AVG_WEIGHT ssse3, 16, 7
 %endrep
 %endmacro
 
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
 ;void mc_weight_wX( uint8_t *dst, int i_dst_stride, uint8_t *src, int i_src_stride, weight_t *weight, int h )
@@ -370,7 +370,7 @@ AVG_WEIGHT ssse3, 16, 7
 %endif
 
 %assign XMMREGS 7
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 %assign NUMREGS NUMREGS+1
 %assign XMMREGS 8
 %endif
@@ -399,7 +399,7 @@ INIT_XMM
 WEIGHTER  8, sse2
 WEIGHTER 16, sse2
 WEIGHTER 20, sse2
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 WEIGHTER 12, sse2
 %else
 %define WEIGHT WEIGHT_SSSE3
@@ -573,7 +573,7 @@ AVGH  4,  2, ssse3
 ; pixel avg2
 ;=============================================================================
 
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------
 ; void pixel_avg2_wN( uint16_t *dst,  int dst_stride,
 ;                     uint16_t *src1, int src_stride,
@@ -755,9 +755,9 @@ cglobal pixel_avg2_w18_sse2, 6,7,6
     lea     r0, [r0+r1*2]
     jg .height_loop
     REP_RET
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
 
-%ifndef X264_HIGH_BIT_DEPTH
+%ifndef HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------
 ; void pixel_avg2_w4( uint8_t *dst, int dst_stride,
 ;                     uint8_t *src1, int src_stride,
@@ -1081,7 +1081,7 @@ AVG16_CACHELINE_LOOP_SSSE3 j, k
 %assign j j+1
 %assign k k+1
 %endrep
-%endif ; !X264_HIGH_BIT_DEPTH
+%endif ; !HIGH_BIT_DEPTH
 
 ;=============================================================================
 ; pixel copy
@@ -1098,7 +1098,7 @@ AVG16_CACHELINE_LOOP_SSSE3 j, k
     %1  [r0+%3],   m3
 %endmacro
 
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 %macro COPY_ONE 6
     COPY4 %1, %2, %3, %4
 %endmacro
@@ -1168,9 +1168,9 @@ INIT_XMM
 MC_COPY ONE,  8, movu, sse2,         0
 MC_COPY TWO, 16, movu, sse2,         8
 MC_COPY TWO, 16, mova, aligned_sse2, 8
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
 
-%ifndef X264_HIGH_BIT_DEPTH
+%ifndef HIGH_BIT_DEPTH
 INIT_MMX
 ;-----------------------------------------------------------------------------
 ; void mc_copy_w4( uint8_t *dst, int i_dst_stride,
@@ -1244,7 +1244,7 @@ COPY_W16_SSE2 mc_copy_w16_sse2, movdqu
 ; but with SSE3 the overhead is zero, so there's no reason not to include it.
 COPY_W16_SSE2 mc_copy_w16_sse3, lddqu
 COPY_W16_SSE2 mc_copy_w16_aligned_sse2, movdqa
-%endif ; !X264_HIGH_BIT_DEPTH
+%endif ; !HIGH_BIT_DEPTH
 
 
 
@@ -1347,7 +1347,7 @@ cglobal prefetch_ref_mmxext, 3,3
     add       r3,  t0            ; src += (dx>>3) + (dy>>3) * src_stride
 %endmacro
 
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 %macro UNPACK_UNALIGNED 4
     movu       %1, [%4+0]
     movu       %2, [%4+4]
@@ -1363,7 +1363,7 @@ cglobal prefetch_ref_mmxext, 3,3
     shufps     %2, %3, 11011101b
 %endif
 %endmacro
-%else ; !X264_HIGH_BIT_DEPTH
+%else ; !HIGH_BIT_DEPTH
 %macro UNPACK_UNALIGNED_MEM 3
     punpcklwd  %1, %3
 %endmacro
@@ -1372,7 +1372,7 @@ cglobal prefetch_ref_mmxext, 3,3
     movh       %2, %3
     punpcklwd  %1, %2
 %endmacro
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
 ; void mc_chroma( uint8_t *dstu, uint8_t *dstv, int dst_stride,
@@ -1427,7 +1427,7 @@ cglobal mc_chroma_%1, 0,6
     pshufd     m5, m5, 0x55
     jg .width8
 %endif
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
     add        r2, r2
     UNPACK_UNALIGNED m0, m1, m2, r3
 %else
@@ -1436,24 +1436,24 @@ cglobal mc_chroma_%1, 0,6
     mova       m1, m0
     pand       m0, [pw_00ff]
     psrlw      m1, 8
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
     pmaddwd    m0, m7
     pmaddwd    m1, m7
     packssdw   m0, m1
     SWAP       m3, m0
 ALIGN 4
 .loop2:
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
     UNPACK_UNALIGNED m0, m1, m2, r3+r4
     pmullw     m3, m6
-%else ; !X264_HIGH_BIT_DEPTH
+%else ; !HIGH_BIT_DEPTH
     movu       m0, [r3+r4]
     UNPACK_UNALIGNED m0, m1, [r3+r4+2]
     pmullw     m3, m6
     mova       m1, m0
     pand       m0, [pw_00ff]
     psrlw      m1, 8
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
     pmaddwd    m0, m7
     pmaddwd    m1, m7
     mova       m2, [pw_32]
@@ -1463,7 +1463,7 @@ ALIGN 4
     pmullw     m0, m5
     paddw      m0, m2
     psrlw      m0, 6
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
     movh     [r0], m0
 %if mmsize == 8
     psrlq      m0, 32
@@ -1471,7 +1471,7 @@ ALIGN 4
 %else
     movhps   [r1], m0
 %endif
-%else ; !X264_HIGH_BIT_DEPTH
+%else ; !HIGH_BIT_DEPTH
     packuswb   m0, m0
     movd     [r0], m0
 %if mmsize==8
@@ -1480,7 +1480,7 @@ ALIGN 4
     psrldq     m0, 4
 %endif
     movd     [r1], m0
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
     add        r3, r4
     add        r0, r2
     add        r1, r2
@@ -1513,7 +1513,7 @@ ALIGN 4
 %endif
     FIX_STRIDES r2
 .loopx:
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
     UNPACK_UNALIGNED m0, m2, m4, r3
     UNPACK_UNALIGNED m1, m3, m5, r3+mmsize
 %else
@@ -1539,7 +1539,7 @@ ALIGN 4
     add        r3, r4
 ALIGN 4
 .loop4:
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
     UNPACK_UNALIGNED m0, m1, m2, r3
     pmaddwd    m0, m7
     pmaddwd    m1, m7
@@ -1548,7 +1548,7 @@ ALIGN 4
     pmaddwd    m1, m7
     pmaddwd    m2, m7
     packssdw   m1, m2
-%else ; !X264_HIGH_BIT_DEPTH
+%else ; !HIGH_BIT_DEPTH
     movu       m0, [r3]
     movu       m1, [r3+mmsize/2]
     UNPACK_UNALIGNED m0, m2, [r3+2]
@@ -1565,7 +1565,7 @@ ALIGN 4
     pmaddwd    m3, m7
     packssdw   m0, m2
     packssdw   m1, m3
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
     pmullw     m4, m6
     pmullw     m5, m6
     mova       m2, [pw_32]
@@ -1580,7 +1580,7 @@ ALIGN 4
     paddw      m1, m3
     psrlw      m0, 6
     psrlw      m1, 6
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
     movh     [r0], m0
     movh     [r0+mmsize/2], m1
 %if mmsize==8
@@ -1592,7 +1592,7 @@ ALIGN 4
     movhps   [r1], m0
     movhps   [r1+mmsize/2], m1
 %endif
-%else ; !X264_HIGH_BIT_DEPTH
+%else ; !HIGH_BIT_DEPTH
     packuswb   m0, m1
 %if mmsize==8
     pshufw     m1, m0, 0x8
@@ -1604,7 +1604,7 @@ ALIGN 4
     movq     [r0], m0
     movhps   [r1], m0
 %endif
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
     add        r3, r4
     add        r0, r2
     add        r1, r2
@@ -1650,7 +1650,7 @@ ALIGN 4
     movd       m5, r5d
     mov       r6d, 2*SIZEOF_PIXEL
 .mc1d:
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 %if mmsize == 16
     WIN64_SPILL_XMM 8
 %endif
@@ -1671,7 +1671,7 @@ ALIGN 4
     shr       r5d, 1
 %endif
 .loop1d_w4:
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 %if mmsize == 8
     movq       m0, [r3+0]
     movq       m2, [r3+8]
@@ -1692,7 +1692,7 @@ ALIGN 4
     SBUTTERFLY wd, 0, 2, 6
     SBUTTERFLY wd, 1, 3, 7
 %endif
-%else ; !X264_HIGH_BIT_DEPTH
+%else ; !HIGH_BIT_DEPTH
     movq       m0, [r3]
     movq       m1, [r3+r6]
 %if mmsize!=8
@@ -1706,7 +1706,7 @@ ALIGN 4
     pand       m1, [pw_00ff]
     psrlw      m2, 8
     psrlw      m3, 8
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
     pmullw     m0, m4
     pmullw     m1, m5
     pmullw     m2, m4
@@ -1717,7 +1717,7 @@ ALIGN 4
     paddw      m2, m3
     psrlw      m0, 3
     psrlw      m2, 3
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 %if mmsize == 8
     xchg       r4, r11
     xchg       r2, r10
@@ -1730,7 +1730,7 @@ ALIGN 4
     movhps   [r0], m0
     movhps   [r1], m2
 %endif
-%else ; !X264_HIGH_BIT_DEPTH
+%else ; !HIGH_BIT_DEPTH
     packuswb   m0, m2
 %if mmsize==8
     xchg       r4, r11
@@ -1749,7 +1749,7 @@ ALIGN 4
     movd     [r0], m0
     movd     [r1], m1
 %endif
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
     add        r3, r4
     add        r0, r2
     add        r1, r2
@@ -1904,12 +1904,12 @@ cglobal mc_chroma_ssse3%1, 0,6,9
     REP_RET
 %endmacro
 
-%ifdef X264_HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 INIT_MMX
 MC_CHROMA mmxext
 INIT_XMM
 MC_CHROMA sse2
-%else ; !X264_HIGH_BIT_DEPTH
+%else ; !HIGH_BIT_DEPTH
 INIT_MMX
 %define UNPACK_UNALIGNED UNPACK_UNALIGNED_MEM
 MC_CHROMA mmxext
@@ -1919,4 +1919,4 @@ MC_CHROMA sse2_misalign
 MC_CHROMA sse2
 MC_CHROMA_SSSE3
 MC_CHROMA_SSSE3 _cache64
-%endif ; X264_HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH

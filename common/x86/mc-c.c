@@ -166,7 +166,7 @@ static void (* const x264_pixel_avg_wtab_##instr[6])( pixel *, int, pixel *, int
     x264_pixel_avg2_w20_##name5,\
 };
 
-#if X264_HIGH_BIT_DEPTH
+#if HIGH_BIT_DEPTH
 /* we can replace w12/w20 with w10/w18 as only 9/17 pixels in fact are important */
 #define x264_pixel_avg2_w12_mmxext       x264_pixel_avg2_w10_mmxext
 #define x264_pixel_avg2_w20_mmxext       x264_pixel_avg2_w18_mmxext
@@ -178,12 +178,12 @@ static void (* const x264_pixel_avg_wtab_##instr[6])( pixel *, int, pixel *, int
 #define x264_pixel_avg2_w12_cache64_sse2 x264_pixel_avg2_w16_cache64_sse2
 #define x264_pixel_avg2_w12_sse3         x264_pixel_avg2_w16_sse3
 #define x264_pixel_avg2_w12_sse2         x264_pixel_avg2_w16_sse2
-#endif // X264_HIGH_BIT_DEPTH
+#endif // HIGH_BIT_DEPTH
 
 PIXEL_AVG_WTAB(mmxext, mmxext, mmxext, mmxext, mmxext, mmxext)
-#if X264_HIGH_BIT_DEPTH
+#if HIGH_BIT_DEPTH
 PIXEL_AVG_WTAB(sse2, mmxext, sse2, sse2, sse2, sse2)
-#else // !X264_HIGH_BIT_DEPTH
+#else // !HIGH_BIT_DEPTH
 #if ARCH_X86
 PIXEL_AVG_WTAB(cache32_mmxext, mmxext, cache32_mmxext, cache32_mmxext, cache32_mmxext, cache32_mmxext)
 PIXEL_AVG_WTAB(cache64_mmxext, mmxext, cache64_mmxext, cache64_mmxext, cache64_mmxext, cache64_mmxext)
@@ -192,7 +192,7 @@ PIXEL_AVG_WTAB(sse2, mmxext, mmxext, sse2, sse2, sse2)
 PIXEL_AVG_WTAB(sse2_misalign, mmxext, mmxext, sse2, sse2, sse2_misalign)
 PIXEL_AVG_WTAB(cache64_sse2, mmxext, cache64_mmxext, cache64_sse2, cache64_sse2, cache64_sse2)
 PIXEL_AVG_WTAB(cache64_ssse3, mmxext, cache64_mmxext, cache64_ssse3, cache64_ssse3, cache64_sse2)
-#endif // X264_HIGH_BIT_DEPTH
+#endif // HIGH_BIT_DEPTH
 
 #define MC_COPY_WTAB(instr, name1, name2, name3)\
 static void (* const x264_mc_copy_wtab_##instr[5])( pixel *, int, pixel *, int, int ) =\
@@ -218,7 +218,7 @@ MC_COPY_WTAB(sse2,mmx,mmx,sse2)
     x264_mc_##function##_w20_##instr,\
 };
 
-#if X264_HIGH_BIT_DEPTH
+#if HIGH_BIT_DEPTH
 MC_WEIGHT_WTAB(weight,mmxext,mmxext,mmxext,12)
 MC_WEIGHT_WTAB(weight,sse2,mmxext,sse2,12)
 #else
@@ -274,7 +274,7 @@ static void x264_weight_cache_ssse3( x264_t *h, x264_weight_t *w )
         w->cacheb[i] = w->i_offset;
     }
 }
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 
 static const uint8_t hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
 static const uint8_t hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
@@ -305,14 +305,14 @@ static void mc_luma_##name( pixel *dst,    int i_dst_stride,\
 
 MC_LUMA(mmxext,mmxext,mmx)
 MC_LUMA(sse2,sse2,sse2)
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
 #if ARCH_X86
 MC_LUMA(cache32_mmxext,cache32_mmxext,mmx)
 MC_LUMA(cache64_mmxext,cache64_mmxext,mmx)
 #endif
 MC_LUMA(cache64_sse2,cache64_sse2,sse2)
 MC_LUMA(cache64_ssse3,cache64_ssse3,sse2)
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 
 #define GET_REF(name)\
 static pixel *get_ref_##name( pixel *dst,   int *i_dst_stride,\
@@ -347,7 +347,7 @@ static pixel *get_ref_##name( pixel *dst,   int *i_dst_stride,\
 
 GET_REF(mmxext)
 GET_REF(sse2)
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
 #if ARCH_X86
 GET_REF(cache32_mmxext)
 GET_REF(cache64_mmxext)
@@ -355,7 +355,7 @@ GET_REF(cache64_mmxext)
 GET_REF(sse2_misalign)
 GET_REF(cache64_sse2)
 GET_REF(cache64_ssse3)
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 
 #define HPEL(align, cpu, cpuv, cpuc, cpuh)\
 void x264_hpel_filter_v_##cpuv( pixel *dst, pixel *src, int16_t *buf, int stride, int width);\
@@ -384,9 +384,9 @@ static void x264_hpel_filter_##cpu( pixel *dsth, pixel *dstv, pixel *dstc, pixel
 }
 
 HPEL(8, mmxext, mmxext, mmxext, mmxext)
-#if X264_HIGH_BIT_DEPTH
+#if HIGH_BIT_DEPTH
 HPEL(16, sse2, sse2, sse2, sse2 )
-#else // !X264_HIGH_BIT_DEPTH
+#else // !HIGH_BIT_DEPTH
 HPEL(16, sse2_amd, mmxext, mmxext, sse2)
 #if ARCH_X86_64
 void x264_hpel_filter_sse2( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height, int16_t *buf );
@@ -433,7 +433,7 @@ static void x264_plane_copy_interleave_##cpu( uint8_t *dst, int i_dst,\
 
 PLANE_INTERLEAVE(mmxext)
 PLANE_INTERLEAVE(sse2)
-#endif // X264_HIGH_BIT_DEPTH
+#endif // HIGH_BIT_DEPTH
 
 void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 {
@@ -458,7 +458,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->hpel_filter = x264_hpel_filter_mmxext;
     pf->weight = x264_mc_weight_wtab_mmxext;
 
-#if X264_HIGH_BIT_DEPTH
+#if HIGH_BIT_DEPTH
     if( !(cpu&X264_CPU_SSE2) )
         return;
 
@@ -489,7 +489,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 
     if( (cpu&X264_CPU_SHUFFLE_IS_FAST) && !(cpu&X264_CPU_SLOW_ATOM) )
         pf->integral_init4v = x264_integral_init4v_ssse3;
-#else // !X264_HIGH_BIT_DEPTH
+#else // !HIGH_BIT_DEPTH
     pf->offsetadd = x264_mc_offsetadd_wtab_mmxext;
     pf->offsetsub = x264_mc_offsetsub_wtab_mmxext;
     pf->weight_cache = x264_weight_cache_mmxext;
@@ -627,5 +627,5 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 
     pf->integral_init4h = x264_integral_init4h_sse4;
     pf->integral_init8h = x264_integral_init8h_sse4;
-#endif // X264_HIGH_BIT_DEPTH
+#endif // HIGH_BIT_DEPTH
 }
