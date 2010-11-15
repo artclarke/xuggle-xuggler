@@ -207,8 +207,8 @@ static SwsContext *xuggleSws_getContext(int srcW, int srcH, enum PixelFormat src
     av_set_int(c, "dst_format", dstFormat);
 
     if (param) {
-        av_set_int(c, "param0", param[0]);
-        av_set_int(c, "param1", param[1]);
+        av_set_double(c, "param0", param[0]);
+        av_set_double(c, "param1", param[1]);
     }
 
     coeff = sws_getCoefficients(SWS_CS_DEFAULT);
