@@ -170,7 +170,11 @@ static const uint8_t x264_mb_partition_count_table[17] =
 };
 static const uint8_t x264_mb_partition_pixel_table[17] =
 {
-    6, 4, 5, 3, 6, 4, 5, 3, 6, 4, 5, 3, 3, 3, 1, 2, 0
+    PIXEL_4x4, PIXEL_8x4,  PIXEL_4x8,  PIXEL_8x8,   /* D_L0_* */
+    PIXEL_4x4, PIXEL_8x4,  PIXEL_4x8,  PIXEL_8x8,   /* D_L1_* */
+    PIXEL_4x4, PIXEL_8x4,  PIXEL_4x8,  PIXEL_8x8,   /* D_BI_* */
+    PIXEL_8x8,                                      /* D_DIRECT_8x8 */
+    PIXEL_8x8, PIXEL_16x8, PIXEL_8x16, PIXEL_16x16, /* 8x8 .. 16x16 */
 };
 
 /* zigzags are transposed with respect to the tables in the standard */
