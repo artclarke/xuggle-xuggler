@@ -468,8 +468,8 @@ int x264_param_apply_profile( x264_param_t *param, const char *profile )
         x264_log( NULL, X264_LOG_ERROR, "invalid profile: %s\n", profile );
         return -1;
     }
-    if( (param->rc.i_rc_method == X264_RC_CQP && param->rc.i_qp_constant == 0) ||
-        (param->rc.i_rc_method == X264_RC_CRF && param->rc.f_rf_constant == 0) )
+    if( (param->rc.i_rc_method == X264_RC_CQP && param->rc.i_qp_constant <= 0) ||
+        (param->rc.i_rc_method == X264_RC_CRF && (int)(param->rc.f_rf_constant + QP_BD_OFFSET) <= 0) )
     {
         x264_log( NULL, X264_LOG_ERROR, "%s profile doesn't support lossless\n", profile );
         return -1;

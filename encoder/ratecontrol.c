@@ -1095,7 +1095,7 @@ void x264_ratecontrol_summary( x264_t *h )
         double mbtree_offset = h->param.rc.b_mb_tree ? (1.0-h->param.rc.f_qcompress)*13.5 : 0;
         x264_log( h, X264_LOG_INFO, "final ratefactor: %.2f\n",
                   qscale2qp( pow( base_cplx, 1 - rc->qcompress )
-                             * rc->cplxr_sum / rc->wanted_bits_window ) - mbtree_offset );
+                             * rc->cplxr_sum / rc->wanted_bits_window ) - mbtree_offset - QP_BD_OFFSET );
     }
 }
 
@@ -1449,7 +1449,7 @@ int x264_ratecontrol_slice_type( x264_t *h, int frame_num )
             /* We could try to initialize everything required for ABR and
              * adaptive B-frames, but that would be complicated.
              * So just calculate the average QP used so far. */
-            h->param.rc.i_qp_constant = (h->stat.i_frame_count[SLICE_TYPE_P] == 0) ? 24
+            h->param.rc.i_qp_constant = (h->stat.i_frame_count[SLICE_TYPE_P] == 0) ? 24 + QP_BD_OFFSET
                                       : 1 + h->stat.f_frame_qp[SLICE_TYPE_P] / h->stat.i_frame_count[SLICE_TYPE_P];
             rc->qp_constant[SLICE_TYPE_P] = x264_clip3( h->param.rc.i_qp_constant, 0, QP_MAX );
             rc->qp_constant[SLICE_TYPE_I] = x264_clip3( (int)( qscale2qp( qp2qscale( h->param.rc.i_qp_constant ) / fabs( h->param.rc.f_ip_factor )) + 0.5 ), 0, QP_MAX );
