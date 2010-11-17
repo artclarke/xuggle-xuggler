@@ -550,30 +550,35 @@ static const int8_t i4x4_mode_available[2][5][10] =
         {I_PRED_4x4_DC, I_PRED_4x4_H, I_PRED_4x4_V, I_PRED_4x4_DDR, I_PRED_4x4_VR, I_PRED_4x4_HD, I_PRED_4x4_HU, -1},
     }
 };
+
 static ALWAYS_INLINE const int8_t *predict_16x16_mode_available( int i_neighbour )
 {
     int idx = i_neighbour & (MB_TOP|MB_LEFT|MB_TOPLEFT);
-    return i16x16_mode_available[(idx&MB_TOPLEFT)?4:idx];
+    idx = (idx == (MB_TOP|MB_LEFT|MB_TOPLEFT)) ? 4 : idx & (MB_TOP|MB_LEFT);
+    return i16x16_mode_available[idx];
 }
 
 static ALWAYS_INLINE const int8_t *predict_8x8chroma_mode_available( int i_neighbour )
 {
     int idx = i_neighbour & (MB_TOP|MB_LEFT|MB_TOPLEFT);
-    return i8x8chroma_mode_available[(idx&MB_TOPLEFT)?4:idx];
+    idx = (idx == (MB_TOP|MB_LEFT|MB_TOPLEFT)) ? 4 : idx & (MB_TOP|MB_LEFT);
+    return i8x8chroma_mode_available[idx];
 }
 
 static ALWAYS_INLINE const int8_t *predict_8x8_mode_available( int force_intra, int i_neighbour, int i )
 {
     int avoid_topright = force_intra && (i&1);
     int idx = i_neighbour & (MB_TOP|MB_LEFT|MB_TOPLEFT);
-    return i4x4_mode_available[avoid_topright][(idx&MB_TOPLEFT)?4:idx];
+    idx = (idx == (MB_TOP|MB_LEFT|MB_TOPLEFT)) ? 4 : idx & (MB_TOP|MB_LEFT);
+    return i4x4_mode_available[avoid_topright][idx];
 }
 
 static ALWAYS_INLINE const int8_t *predict_4x4_mode_available( int force_intra, int i_neighbour, int i )
 {
     int avoid_topright = force_intra && ((i&5) == 5);
     int idx = i_neighbour & (MB_TOP|MB_LEFT|MB_TOPLEFT);
-    return i4x4_mode_available[avoid_topright][(idx&MB_TOPLEFT)?4:idx];
+    idx = (idx == (MB_TOP|MB_LEFT|MB_TOPLEFT)) ? 4 : idx & (MB_TOP|MB_LEFT);
+    return i4x4_mode_available[avoid_topright][idx];
 }
 
 /* For trellis=2, we need to do this for both sizes of DCT, for trellis=1 we only need to use it on the chosen mode. */
