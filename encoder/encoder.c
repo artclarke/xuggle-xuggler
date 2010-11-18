@@ -417,6 +417,14 @@ static int x264_validate_parameters( x264_t *h )
         return -1;
     }
 
+    if( (h->param.crop_rect.i_left + h->param.crop_rect.i_right ) >= h->param.i_width ||
+        (h->param.crop_rect.i_top  + h->param.crop_rect.i_bottom) >= h->param.i_height )
+    {
+        x264_log( h, X264_LOG_ERROR, "invalid crop-rect %u,%u,%u,%u\n", h->param.crop_rect.i_left,
+                  h->param.crop_rect.i_top, h->param.crop_rect.i_right,  h->param.crop_rect.i_bottom );
+        return -1;
+    }
+
     if( h->param.i_threads == X264_THREADS_AUTO )
         h->param.i_threads = x264_cpu_num_processors() * (h->param.b_sliced_threads?2:3)/2;
     h->param.i_threads = x264_clip3( h->param.i_threads, 1, X264_THREAD_MAX );
@@ -1210,6 +1218,7 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     COPY( analyse.b_mixed_references );
     COPY( analyse.f_psy_rd );
     COPY( analyse.f_psy_trellis );
+    COPY( crop_rect );
     // can only twiddle these if they were enabled to begin with:
     if( h->param.analyse.i_me_method >= X264_ME_ESA || param->analyse.i_me_method < X264_ME_ESA )
         COPY( analyse.i_me_method );

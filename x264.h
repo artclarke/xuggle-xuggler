@@ -39,7 +39,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 107
+#define X264_BUILD 108
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -378,6 +378,15 @@ typedef struct x264_param_t
         int         i_zones;        /* number of zone_t's */
         char        *psz_zones;     /* alternate method of specifying zones */
     } rc;
+
+    /* Cropping Rectangle parameters: added to those implicitly defined by
+       non-mod16 video resolutions. */
+    struct {
+        unsigned int i_left;
+        unsigned int i_top;
+        unsigned int i_right;
+        unsigned int i_bottom;
+    } crop_rect;
 
     /* Muxing parameters */
     int b_aud;                  /* generate access unit delimiters */

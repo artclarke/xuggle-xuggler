@@ -192,10 +192,10 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     sps->b_mb_adaptive_frame_field = param->b_interlaced;
     sps->b_direct8x8_inference = 1;
 
-    sps->crop.i_left   = 0;
-    sps->crop.i_top    = 0;
-    sps->crop.i_right  = sps->i_mb_width*16 - param->i_width;
-    sps->crop.i_bottom = (sps->i_mb_height*16 - param->i_height) >> !sps->b_frame_mbs_only;
+    sps->crop.i_left   = param->crop_rect.i_left;
+    sps->crop.i_top    = param->crop_rect.i_top;
+    sps->crop.i_right  = param->crop_rect.i_right + sps->i_mb_width*16 - param->i_width;
+    sps->crop.i_bottom = (param->crop_rect.i_bottom + sps->i_mb_height*16 - param->i_height) >> !sps->b_frame_mbs_only;
     sps->b_crop = sps->crop.i_left  || sps->crop.i_top ||
                   sps->crop.i_right || sps->crop.i_bottom;
 
