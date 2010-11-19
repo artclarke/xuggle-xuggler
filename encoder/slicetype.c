@@ -159,7 +159,7 @@ static NOINLINE unsigned int x264_weight_cost_luma( x264_t *h, x264_frame_t *fen
     int i_lines = fenc->i_lines_lowres;
     int i_width = fenc->i_width_lowres;
     pixel *fenc_plane = fenc->lowres[0];
-    ALIGNED_ARRAY_8( pixel, buf,[8*8] );
+    ALIGNED_ARRAY_16( pixel, buf,[8*8] );
     int pixoff = 0;
     int i_mb = 0;
 
@@ -189,9 +189,9 @@ static NOINLINE unsigned int x264_weight_cost_chroma( x264_t *h, x264_frame_t *f
     int i_lines = fenc->i_lines[1];
     int i_width = fenc->i_width[1];
     pixel *src = ref + i_offset;
-    ALIGNED_ARRAY_8( pixel, buf, [8*8] );
+    ALIGNED_ARRAY_16( pixel, buf, [8*8] );
     int pixoff = 0;
-    ALIGNED_8( pixel flat[8] ) = {0};
+    ALIGNED_16( static pixel flat [8] ) = {0};
     if( w )
     {
         for( int y = 0; y < i_lines; y += 8, pixoff = y*i_stride )
@@ -370,7 +370,7 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
                             i_mb_y > 0 && i_mb_y < h->mb.i_mb_height - 1) ||
                             h->mb.i_mb_width <= 2 || h->mb.i_mb_height <= 2;
 
-    ALIGNED_ARRAY_8( pixel, pix1,[9*FDEC_STRIDE] );
+    ALIGNED_ARRAY_16( pixel, pix1,[9*FDEC_STRIDE] );
     pixel *pix2 = pix1+8;
     x264_me_t m[2];
     int i_bcost = COST_MAX;

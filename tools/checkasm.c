@@ -536,7 +536,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     ALIGNED_16( dctcoef dct2[16][16] );
     ALIGNED_16( dctcoef dct4[16][16] );
     ALIGNED_16( dctcoef dct8[4][64] );
-    ALIGNED_8( dctcoef dctdc[2][4] );
+    ALIGNED_16( dctcoef dctdc[2][4] );
     x264_t h_buf;
     x264_t *h = &h_buf;
 

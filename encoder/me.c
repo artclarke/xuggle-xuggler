@@ -945,8 +945,8 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
     const int bw = x264_pixel_size[i_pixel].w;
     const int bh = x264_pixel_size[i_pixel].h;
     ALIGNED_ARRAY_16( pixel, pixy_buf,[2],[9][16*16] );
-    ALIGNED_ARRAY_8( pixel, pixu_buf,[2],[9][8*8] );
-    ALIGNED_ARRAY_8( pixel, pixv_buf,[2],[9][8*8] );
+    ALIGNED_ARRAY_16( pixel, pixu_buf,[2],[9][8*8] );
+    ALIGNED_ARRAY_16( pixel, pixv_buf,[2],[9][8*8] );
     pixel *src[2][9];
     pixel *pix  = &h->mb.pic.p_fdec[0][8*x + 8*y*FDEC_STRIDE];
     pixel *pixu = &h->mb.pic.p_fdec[1][4*x + 4*y*FDEC_STRIDE];

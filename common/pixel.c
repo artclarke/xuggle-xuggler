@@ -500,7 +500,7 @@ SATD_X_DECL7( _neon )
 #define INTRA_MBCMP_8x8( mbcmp, cpu )\
 void x264_intra_##mbcmp##_x3_8x8##cpu( pixel *fenc, pixel edge[33], int res[3] )\
 {\
-    pixel pix[8*FDEC_STRIDE];\
+    ALIGNED_ARRAY_16( pixel, pix, [8*FDEC_STRIDE] );\
     x264_predict_8x8_v_c( pix, edge );\
     res[0] = x264_pixel_##mbcmp##_8x8##cpu( pix, FDEC_STRIDE, fenc, FENC_STRIDE );\
     x264_predict_8x8_h_c( pix, edge );\

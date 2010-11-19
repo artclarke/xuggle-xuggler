@@ -1530,7 +1530,7 @@ static void x264_mb_analyse_inter_p8x16( x264_t *h, x264_mb_analysis_t *a, int i
 
 static int x264_mb_analyse_inter_p4x4_chroma( x264_t *h, x264_mb_analysis_t *a, pixel **p_fref, int i8x8, int size )
 {
-    ALIGNED_ARRAY_8( pixel, pix1,[16*8] );
+    ALIGNED_ARRAY_16( pixel, pix1,[16*8] );
     pixel *pix2 = pix1+8;
     const int i_stride = h->mb.pic.i_stride[1];
     const int or = 8*(i8x8&1) + 2*(i8x8&2)*i_stride;
@@ -1686,8 +1686,8 @@ static void x264_mb_analyse_inter_p4x8( x264_t *h, x264_mb_analysis_t *a, int i8
 
 static ALWAYS_INLINE int x264_analyse_bi_chroma( x264_t *h, x264_mb_analysis_t *a, int idx, int i_pixel )
 {
-    ALIGNED_ARRAY_8( pixel, pix, [4],[8*8] );
-    ALIGNED_ARRAY_8( pixel,  bi, [2],[8*8] );
+    ALIGNED_ARRAY_16( pixel, pix, [4],[8*8] );
+    ALIGNED_ARRAY_16( pixel,  bi, [2],[8*8] );
     int l0_mvy_offset, l1_mvy_offset;
     int i_chroma_cost = 0;
 
@@ -1875,8 +1875,8 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
 
         if( h->mb.b_chroma_me )
         {
-            ALIGNED_ARRAY_8( pixel, pixuv, [2],[8*FENC_STRIDE] );
-            ALIGNED_ARRAY_8( pixel, bi, [8*FENC_STRIDE] );
+            ALIGNED_ARRAY_16( pixel, pixuv, [2],[8*FENC_STRIDE] );
+            ALIGNED_ARRAY_16( pixel, bi, [8*FENC_STRIDE] );
 
             if( h->mb.b_interlaced & a->l0.bi16x16.i_ref )
             {
@@ -2018,7 +2018,7 @@ static inline void x264_mb_cache_mv_b8x16( x264_t *h, x264_mb_analysis_t *a, int
 
 static void x264_mb_analyse_inter_b8x8_mixed_ref( x264_t *h, x264_mb_analysis_t *a )
 {
-    ALIGNED_ARRAY_8( pixel, pix,[2],[8*8] );
+    ALIGNED_ARRAY_16( pixel, pix,[2],[8*8] );
     int i_maxref[2] = {h->mb.pic.i_fref[0]-1, h->mb.pic.i_fref[1]-1};
 
     /* early termination: if 16x16 chose ref 0, then evalute no refs older
@@ -2133,7 +2133,7 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
     pixel **p_fref[2] =
         { h->mb.pic.p_fref[0][a->l0.me16x16.i_ref],
           h->mb.pic.p_fref[1][a->l1.me16x16.i_ref] };
-    ALIGNED_ARRAY_8( pixel, pix,[2],[8*8] );
+    ALIGNED_ARRAY_16( pixel, pix,[2],[8*8] );
 
     /* XXX Needed for x264_mb_predict_mv */
     h->mb.i_partition = D_8x8;
@@ -2301,7 +2301,7 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a, int i
 
 static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a, int i_best_satd )
 {
-    ALIGNED_ARRAY_8( pixel, pix,[2],[8*16] );
+    ALIGNED_ARRAY_16( pixel, pix,[2],[8*16] );
     ALIGNED_4( int16_t mvc[3][2] );
 
     h->mb.i_partition = D_8x16;
