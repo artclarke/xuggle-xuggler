@@ -3321,9 +3321,6 @@ void    x264_encoder_close  ( x264_t *h )
     }
 }
 
-/****************************************************************************
- * x264_encoder_delayed_frames:
- ****************************************************************************/
 int x264_encoder_delayed_frames( x264_t *h )
 {
     int delayed_frames = 0;
@@ -3343,4 +3340,9 @@ int x264_encoder_delayed_frames( x264_t *h )
     x264_pthread_mutex_unlock( &h->lookahead->ifbuf.mutex );
     x264_pthread_mutex_unlock( &h->lookahead->ofbuf.mutex );
     return delayed_frames;
+}
+
+int x264_encoder_maximum_delayed_frames( x264_t *h )
+{
+    return h->frames.i_delay;
 }
