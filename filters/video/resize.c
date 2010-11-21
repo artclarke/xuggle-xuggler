@@ -205,10 +205,10 @@ static int pick_closest_supported_csp( int csp )
 
 static int round_dbl( double val, int precision, int b_truncate )
 {
-    int ret = (int)(val / precision) * precision;
-    if( !b_truncate && (val - ret) >= (precision/2) ) // use the remainder if we're not truncating it
-        ret += precision;
-    return ret;
+    if( b_truncate )
+        return trunc(val / precision) * precision;
+    else
+        return round(val / precision) * precision;
 }
 
 static int handle_opts( const char **optlist, char **opts, video_info_t *info, resizer_hnd_t *h )
