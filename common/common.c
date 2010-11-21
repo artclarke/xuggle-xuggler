@@ -98,7 +98,7 @@ void x264_param_default( x264_param_t *param )
     param->rc.f_vbv_buffer_init = 0.9;
     param->rc.i_qp_constant = 23 + QP_BD_OFFSET;
     param->rc.f_rf_constant = 23;
-    param->rc.i_qp_min = 10;
+    param->rc.i_qp_min = 0;
     param->rc.i_qp_max = QP_MAX;
     param->rc.i_qp_step = 4;
     param->rc.f_ip_factor = 1.4;
