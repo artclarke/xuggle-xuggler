@@ -55,6 +55,14 @@
 #include <libavutil/pixdesc.h>
 #endif
 
+#if HAVE_SWSCALE
+#include <libswscale/swscale.h>
+#endif
+
+#if HAVE_FFMS
+#include <ffms.h>
+#endif
+
 /* Ctrl-C handler */
 static volatile int b_ctrl_c = 0;
 static int          b_exit_on_ctrl_c = 0;
@@ -208,6 +216,15 @@ static void print_version_info()
 #else
     printf( "x264 0.%d.X\n", X264_BUILD );
 #endif
+#if HAVE_SWSCALE
+    printf( "(libswscale %d.%d.%d)\n", LIBSWSCALE_VERSION_MAJOR, LIBSWSCALE_VERSION_MINOR, LIBSWSCALE_VERSION_MICRO );
+#endif
+#if HAVE_LAVF
+    printf( "(libavformat %d.%d.%d)\n", LIBAVFORMAT_VERSION_MAJOR, LIBAVFORMAT_VERSION_MINOR, LIBAVFORMAT_VERSION_MICRO );
+#endif
+#if HAVE_FFMS
+    printf( "(ffmpegsource %d.%d.%d.%d)\n", FFMS_VERSION >> 24, (FFMS_VERSION & 0xff0000) >> 16, (FFMS_VERSION & 0xff00) >> 8, FFMS_VERSION & 0xff );
+#endif
     printf( "built on " __DATE__ ", " );
 #ifdef __GNUC__
     printf( "gcc: " __VERSION__ "\n" );
@@ -221,9 +238,9 @@ static void print_version_info()
 #else
     printf( "Non-GPL commercial\n" );
 #endif
-#if HAVE_LAVF
-    const char *license = avformat_license();
-    printf( "libavformat license: %s\n", license );
+#if HAVE_SWSCALE
+    const char *license = swscale_license();
+    printf( "libswscale%s%s license: %s\n", HAVE_LAVF ? "/libavformat" : "", HAVE_FFMS ? "/ffmpegsource" : "" , license );
     if( !strcmp( license, "nonfree and unredistributable" ) ||
        (!HAVE_GPL && (!strcmp( license, "GPL version 2 or later" )
                   ||  !strcmp( license, "GPL version 3 or later" ))))
