@@ -262,6 +262,8 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
         }
         else
             x264_weight_get_h264( round( guess_scale * 128 ), 0, &weights[plane] );
+        if( weights[plane].weightfn )
+            h->mc.weight_cache( h, &weights[plane] );
 
         found = 0;
         mindenom = weights[plane].i_denom;
@@ -333,6 +335,7 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
         {
             weights[i].i_scale = x264_clip3( weights[i].i_scale >> ( weights[i].i_denom - denom ), 0, 255 );
             weights[i].i_denom = denom;
+            h->mc.weight_cache( h, &weights[i] );
         }
     }
 

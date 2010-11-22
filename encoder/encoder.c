@@ -1537,7 +1537,8 @@ static void x264_weighted_pred_init( x264_t *h )
     if( !weightplane[0] )
         h->sh.weight[0][0].i_denom = 0;
     if( !weightplane[1] )
-        h->sh.weight[0][1].i_denom = h->sh.weight[0][2].i_denom = 0;
+        h->sh.weight[0][1].i_denom = 0;
+    h->sh.weight[0][2].i_denom = h->sh.weight[0][1].i_denom;
 }
 
 static inline void x264_reference_build_list( x264_t *h, int i_poc )
