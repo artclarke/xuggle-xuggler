@@ -56,7 +56,7 @@ ELF     .type   \name, %function
         .endm
 
         .macro movrel rd, val
-#if defined(HAVE_ARMV6T2) && !defined(PIC)
+#if HAVE_ARMV6T2 && !defined(PIC)
         movw            \rd, #:lower16:\val
         movt            \rd, #:upper16:\val
 #else
@@ -65,7 +65,7 @@ ELF     .type   \name, %function
         .endm
 
 .macro movconst rd, val
-#ifdef HAVE_ARMV6T2
+#if HAVE_ARMV6T2
     movw        \rd, #:lower16:\val
 .if \val >> 16
     movt        \rd, #:upper16:\val

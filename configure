@@ -171,6 +171,9 @@ cross_prefix=""
 
 EXE=""
 
+# list of all preprocessor HAVE values we can define
+CONFIG_HAVE="MALLOC_H ALTIVEC ALTIVEC_H MMX ARMV6 ARMV6T2 NEON PTHREAD LOG2F VISUALIZE SWSCALE LAVF FFMS GPAC GF_MALLOC AVS GPL"
+
 # parse options
 
 for opt do
@@ -735,11 +738,12 @@ fi
 define BIT_DEPTH $bit_depth
 ASFLAGS="$ASFLAGS -DBIT_DEPTH=$bit_depth"
 
-if [ $gpl = yes ]; then
-    define HAVE_GPL 1
-else
-    define HAVE_GPL 0
-fi
+[ $gpl = yes ] && define HAVE_GPL
+
+#define undefined vars as 0
+for var in $CONFIG_HAVE; do
+    grep -q "HAVE_$var 1" config.h || define HAVE_$var 0
+done
 
 rm -f conftest*
 
@@ -763,10 +767,8 @@ STRIP=$STRIP
 AS=$AS
 ASFLAGS=$ASFLAGS
 EXE=$EXE
-VIS=$vis
 HAVE_GETOPT_LONG=$HAVE_GETOPT_LONG
 DEVNULL=$DEVNULL
-GPL=$gpl
 EOF
 
 if [ "$shared" = "yes" ]; then

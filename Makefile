@@ -25,34 +25,34 @@ SRCSO =
 CONFIG := $(shell cat config.h)
 
 # GPL-only files
-ifeq ($(GPL),yes)
+ifneq ($(findstring HAVE_GPL 1, $(CONFIG)),)
 SRCCLI +=
 endif
 
 # Optional module sources
-ifneq ($(findstring HAVE_AVS, $(CONFIG)),)
+ifneq ($(findstring HAVE_AVS 1, $(CONFIG)),)
 SRCCLI += input/avs.c
 endif
 
-ifneq ($(findstring HAVE_PTHREAD, $(CONFIG)),)
+ifneq ($(findstring HAVE_PTHREAD 1, $(CONFIG)),)
 SRCCLI += input/thread.c
 SRCS   += common/threadpool.c
 endif
 
-ifneq ($(findstring HAVE_LAVF, $(CONFIG)),)
+ifneq ($(findstring HAVE_LAVF 1, $(CONFIG)),)
 SRCCLI += input/lavf.c
 endif
 
-ifneq ($(findstring HAVE_FFMS, $(CONFIG)),)
+ifneq ($(findstring HAVE_FFMS 1, $(CONFIG)),)
 SRCCLI += input/ffms.c
 endif
 
-ifneq ($(findstring HAVE_GPAC, $(CONFIG)),)
+ifneq ($(findstring HAVE_GPAC 1, $(CONFIG)),)
 SRCCLI += output/mp4.c
 endif
 
 # Visualization sources
-ifeq ($(VIS),yes)
+ifneq ($(findstring HAVE_VISUALIZE 1, $(CONFIG)),)
 SRCS   += common/visualize.c common/display-x11.c
 endif
 
