@@ -38,13 +38,13 @@ cextern hsub_mul
 ; in: m0..m7
 ; out: 0,4,6 in mem, rest in regs
 %macro DCT8_1D 9
-    SUMSUB_BA  m%8, m%1      ; %8 = s07, %1 = d07
-    SUMSUB_BA  m%7, m%2      ; %7 = s16, %2 = d16
-    SUMSUB_BA  m%6, m%3      ; %6 = s25, %3 = d25
-    SUMSUB_BA  m%5, m%4      ; %5 = s34, %4 = d34
-    SUMSUB_BA  m%5, m%8      ; %5 = a0,  %8 = a2
-    SUMSUB_BA  m%6, m%7      ; %6 = a1,  %7 = a3
-    SUMSUB_BA  m%6, m%5      ; %6 = dst0, %5 = dst4
+    SUMSUB_BA w, m%8, m%1    ; %8 = s07, %1 = d07
+    SUMSUB_BA w, m%7, m%2    ; %7 = s16, %2 = d16
+    SUMSUB_BA w, m%6, m%3    ; %6 = s25, %3 = d25
+    SUMSUB_BA w, m%5, m%4    ; %5 = s34, %4 = d34
+    SUMSUB_BA w, m%5, m%8    ; %5 = a0,  %8 = a2
+    SUMSUB_BA w, m%6, m%7    ; %6 = a1,  %7 = a3
+    SUMSUB_BA w, m%6, m%5    ; %6 = dst0, %5 = dst4
     mova    [%9+0x00], m%6
     mova    [%9+0x40], m%5
     mova    m%6, m%7         ; a3
@@ -127,13 +127,13 @@ cextern hsub_mul
     psubw     m%2, m%1
     mova      m%1, [%9+0x00]
     mova      m%6, [%9+0x40]
-    SUMSUB_BA m%6, m%1
-    SUMSUB_BA m%7, m%6
-    SUMSUB_BA m%3, m%1
-    SUMSUB_BA m%5, m%7
-    SUMSUB_BA m%2, m%3
-    SUMSUB_BA m%8, m%1
-    SUMSUB_BA m%4, m%6
+    SUMSUB_BA w, m%6, m%1
+    SUMSUB_BA w, m%7, m%6
+    SUMSUB_BA w, m%3, m%1
+    SUMSUB_BA w, m%5, m%7
+    SUMSUB_BA w, m%2, m%3
+    SUMSUB_BA w, m%8, m%1
+    SUMSUB_BA w, m%4, m%6
     SWAP %1, %5, %6
     SWAP %3, %8, %7
 %endmacro
@@ -434,18 +434,18 @@ global add8x8_idct_sse2.skip_prologue
     SBUTTERFLY qdq, 4, 5, 0
     SBUTTERFLY qdq, 6, 7, 0
     UNSPILL r1,0
-    IDCT4_1D 0,1,2,3,r1
+    IDCT4_1D w,0,1,2,3,r1
     SPILL r1, 4
     TRANSPOSE2x4x4W 0,1,2,3,4
     UNSPILL r1, 4
-    IDCT4_1D 4,5,6,7,r1
+    IDCT4_1D w,4,5,6,7,r1
     SPILL r1, 0
     TRANSPOSE2x4x4W 4,5,6,7,0
     UNSPILL r1, 0
     paddw m0, [pw_32]
-    IDCT4_1D 0,1,2,3,r1
+    IDCT4_1D w,0,1,2,3,r1
     paddw m4, [pw_32]
-    IDCT4_1D 4,5,6,7,r1
+    IDCT4_1D w,4,5,6,7,r1
     SPILL r1, 6,7
     pxor m7, m7
     DIFFx2 m0, m1, m6, m7, [r0-4*FDEC_STRIDE], [r0-3*FDEC_STRIDE]; m5

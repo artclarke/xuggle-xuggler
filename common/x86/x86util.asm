@@ -241,44 +241,44 @@
     psrlw  m%4, 8   ; src .. y7 .. y5
 %endmacro
 
-%macro SUMSUB_BA 2-3
-%if %0==2
-    paddw   %1, %2
-    paddw   %2, %2
-    psubw   %2, %1
+%macro SUMSUB_BA 3-4
+%if %0==3
+    padd%1  %2, %3
+    padd%1  %3, %3
+    psub%1  %3, %2
 %else
-    mova    %3, %1
-    paddw   %1, %2
-    psubw   %2, %3
+    mova    %4, %2
+    padd%1  %2, %3
+    psub%1  %3, %4
 %endif
 %endmacro
 
-%macro SUMSUB_BADC 4-5
-%if %0==5
-    SUMSUB_BA %1, %2, %5
-    SUMSUB_BA %3, %4, %5
+%macro SUMSUB_BADC 5-6
+%if %0==6
+    SUMSUB_BA %1, %2, %3, %6
+    SUMSUB_BA %1, %4, %5, %6
 %else
-    paddw   %1, %2
-    paddw   %3, %4
-    paddw   %2, %2
-    paddw   %4, %4
-    psubw   %2, %1
-    psubw   %4, %3
+    padd%1  %2, %3
+    padd%1  %4, %5
+    padd%1  %3, %3
+    padd%1  %5, %5
+    psub%1  %3, %2
+    psub%1  %5, %4
 %endif
 %endmacro
 
 %macro HADAMARD4_V 4+
-    SUMSUB_BADC %1, %2, %3, %4
-    SUMSUB_BADC %1, %3, %2, %4
+    SUMSUB_BADC w, %1, %2, %3, %4
+    SUMSUB_BADC w, %1, %3, %2, %4
 %endmacro
 
 %macro HADAMARD8_V 8+
-    SUMSUB_BADC %1, %2, %3, %4
-    SUMSUB_BADC %5, %6, %7, %8
-    SUMSUB_BADC %1, %3, %2, %4
-    SUMSUB_BADC %5, %7, %6, %8
-    SUMSUB_BADC %1, %5, %2, %6
-    SUMSUB_BADC %3, %7, %4, %8
+    SUMSUB_BADC w, %1, %2, %3, %4
+    SUMSUB_BADC w, %5, %6, %7, %8
+    SUMSUB_BADC w, %1, %3, %2, %4
+    SUMSUB_BADC w, %5, %7, %6, %8
+    SUMSUB_BADC w, %1, %5, %2, %6
+    SUMSUB_BADC w, %3, %7, %4, %8
 %endmacro
 
 %macro TRANS_SSE2 5-6
@@ -363,7 +363,7 @@
     %endif
 %endif
 %ifidn %2, sumsub
-    SUMSUB_BA m%3, m%4, m%5
+    SUMSUB_BA w, m%3, m%4, m%5
 %else
     %ifidn %2, amax
         %if %0==6
@@ -426,67 +426,71 @@
 %endif
 %endmacro
 
-%macro SUMSUB2_AB 3
-    mova    %3, %1
-    paddw   %1, %1
-    paddw   %1, %2
-    psubw   %3, %2
-    psubw   %3, %2
+%macro SUMSUB2_AB 4
+    mova    %4, %2
+    padd%1  %2, %2
+    padd%1  %2, %3
+    psub%1  %4, %3
+    psub%1  %4, %3
 %endmacro
 
-%macro SUMSUB2_BA 3
-    mova    m%3, m%1
-    paddw   m%1, m%2
-    paddw   m%1, m%2
-    psubw   m%2, m%3
-    psubw   m%2, m%3
+%macro SUMSUB2_BA 4
+    mova    m%4, m%2
+    padd%1  m%2, m%3
+    padd%1  m%2, m%3
+    psub%1  m%3, m%4
+    psub%1  m%3, m%4
 %endmacro
 
-%macro SUMSUBD2_AB 4
-    mova    %4, %1
-    mova    %3, %2
-    psraw   %2, 1  ; %2: %2>>1
-    psraw   %1, 1  ; %1: %1>>1
-    paddw   %2, %4 ; %2: %2>>1+%1
-    psubw   %1, %3 ; %1: %1>>1-%2
+%macro SUMSUBD2_AB 5
+    mova    %5, %2
+    mova    %4, %3
+    psra%1  %3, 1  ; %3: %3>>1
+    psra%1  %2, 1  ; %2: %2>>1
+    padd%1  %3, %5 ; %3: %3>>1+%2
+    psub%1  %2, %4 ; %2: %2>>1-%3
 %endmacro
 
 %macro DCT4_1D 5
 %ifnum %5
-    SUMSUB_BADC m%4, m%1, m%3, m%2; m%5
-    SUMSUB_BA   m%3, m%4, m%5
-    SUMSUB2_AB  m%1, m%2, m%5
+    SUMSUB_BADC w, m%4, m%1, m%3, m%2, m%5
+    SUMSUB_BA   w, m%3, m%4, m%5
+    SUMSUB2_AB  w, m%1, m%2, m%5
     SWAP %1, %3, %4, %5, %2
 %else
-    SUMSUB_BADC m%4, m%1, m%3, m%2
-    SUMSUB_BA   m%3, m%4
-    mova       [%5], m%2
-    SUMSUB2_AB m%1, [%5], m%2
+    SUMSUB_BADC w, m%4, m%1, m%3, m%2
+    SUMSUB_BA   w, m%3, m%4
+    mova     [%5], m%2
+    SUMSUB2_AB  w, m%1, [%5], m%2
     SWAP %1, %3, %4, %2
 %endif
 %endmacro
 
-%macro IDCT4_1D 5-6
-%ifnum %5
-    SUMSUBD2_AB m%2, m%4, m%6, m%5
-    ; %2: %2>>1-%4 %4: %2+%4>>1
-    SUMSUB_BA   m%3, m%1, m%6
-    ; %3: %1+%3 %1: %1-%3
-    SUMSUB_BADC m%4, m%3, m%2, m%1, m%6
-    ; %4: %1+%3 + (%2+%4>>1)
-    ; %3: %1+%3 - (%2+%4>>1)
-    ; %2: %1-%3 + (%2>>1-%4)
-    ; %1: %1-%3 - (%2>>1-%4)
+%macro IDCT4_1D 6-7
+%ifnum %6
+    SUMSUBD2_AB %1, m%3, m%5, m%7, m%6
+    ; %3: %3>>1-%5 %5: %3+%5>>1
+    SUMSUB_BA   %1, m%4, m%2, m%7
+    ; %4: %2+%4 %2: %2-%4
+    SUMSUB_BADC %1, m%5, m%4, m%3, m%2, m%7
+    ; %5: %2+%4 + (%3+%5>>1)
+    ; %4: %2+%4 - (%3+%5>>1)
+    ; %3: %2-%4 + (%3>>1-%5)
+    ; %2: %2-%4 - (%3>>1-%5)
 %else
-    SUMSUBD2_AB m%2, m%4, [%5], [%5+16]
-    SUMSUB_BA   m%3, m%1
-    SUMSUB_BADC m%4, m%3, m%2, m%1
+%ifidn %1, w
+    SUMSUBD2_AB %1, m%3, m%5, [%6], [%6+16]
+%else
+    SUMSUBD2_AB %1, m%3, m%5, [%6], [%6+32]
 %endif
-    SWAP %1, %4, %3
-    ; %1: %1+%3 + (%2+%4>>1) row0
-    ; %2: %1-%3 + (%2>>1-%4) row1
-    ; %3: %1-%3 - (%2>>1-%4) row2
-    ; %4: %1+%3 - (%2+%4>>1) row3
+    SUMSUB_BA   %1, m%4, m%2
+    SUMSUB_BADC %1, m%5, m%4, m%3, m%2
+%endif
+    SWAP %2, %5, %4
+    ; %2: %2+%4 + (%3+%5>>1) row0
+    ; %3: %2-%4 + (%3>>1-%5) row1
+    ; %4: %2-%4 - (%3>>1-%5) row2
+    ; %5: %2+%4 - (%3+%5>>1) row3
 %endmacro
 
 

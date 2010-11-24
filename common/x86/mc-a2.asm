@@ -39,7 +39,6 @@ hpel_shuf: db 0,8,1,9,2,10,3,11,4,12,5,13,6,14,7,15
 deinterleave_shuf: db 0,2,4,6,8,10,12,14,1,3,5,7,9,11,13,15
 
 pd_16: times 4 dd 16
-pd_32: times 4 dd 32
 pd_0f: times 4 dd 0xffff
 
 pad10: times 8 dw    10*PIXEL_MAX

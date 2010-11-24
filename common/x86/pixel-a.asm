@@ -881,7 +881,7 @@ cglobal pixel_var2_8x8_ssse3, 5,6,8
     DEINTB %1, %2, %3, %4, %5
     psubw m%1, m%3
     psubw m%2, m%4
-    SUMSUB_BA m%1, m%2, m%3
+    SUMSUB_BA w, m%1, m%2, m%3
 %endmacro
 
 %macro LOAD_SUMSUB_16x4P 10-13 r0, r2, none
@@ -1278,10 +1278,10 @@ cglobal pixel_sa8d_8x8_internal_%1
 %else ; non-sse2
     HADAMARD4_V m0, m1, m2, m8, m6
     HADAMARD4_V m4, m5, m3, m9, m6
-    SUMSUB_BADC m0, m4, m1, m5, m6
+    SUMSUB_BADC w, m0, m4, m1, m5, m6
     HADAMARD 2, sumsub, 0, 4, 6, 11
     HADAMARD 2, sumsub, 1, 5, 6, 11
-    SUMSUB_BADC m2, m3, m8, m9, m6
+    SUMSUB_BADC w, m2, m3, m8, m9, m6
     HADAMARD 2, sumsub, 2, 3, 6, 11
     HADAMARD 2, sumsub, 8, 9, 6, 11
     HADAMARD 1, amax, 0, 4, 6, 11
@@ -1379,7 +1379,7 @@ cglobal pixel_sa8d_8x8_internal_%1
     mova spill0, m6
     mova spill1, m7
     HADAMARD4_V m0, m1, m2, m3, m7
-    SUMSUB_BADC m0, m4, m1, m5, m7
+    SUMSUB_BADC w, m0, m4, m1, m5, m7
     HADAMARD 2, sumsub, 0, 4, 7, 6
     HADAMARD 2, sumsub, 1, 5, 7, 6
     HADAMARD 1, amax, 0, 4, 7, 6
@@ -1387,7 +1387,7 @@ cglobal pixel_sa8d_8x8_internal_%1
     mova m6, spill0
     mova m7, spill1
     paddw m0, m1
-    SUMSUB_BADC m2, m6, m3, m7, m4
+    SUMSUB_BADC w, m2, m6, m3, m7, m4
     HADAMARD 2, sumsub, 2, 6, 4, 5
     HADAMARD 2, sumsub, 3, 7, 4, 5
     HADAMARD 1, amax, 2, 6, 4, 5
@@ -1994,7 +1994,7 @@ cglobal hadamard_ac_2x2max_mmxext
     mova      m2, [r3+0x40]
     mova      m3, [r3+0x60]
     sub       r3, 8
-    SUMSUB_BADC m0, m1, m2, m3, m4
+    SUMSUB_BADC w, m0, m1, m2, m3, m4
     ABS4 m0, m2, m1, m3, m4, m5
     HADAMARD 0, max, 0, 2, 4, 5
     HADAMARD 0, max, 1, 3, 4, 5
@@ -2059,7 +2059,7 @@ cglobal hadamard_ac_8x8_mmxext
     mova      m1, [r3+0x20]
     mova      m2, [r3+0x40]
     mova      m3, [r3+0x60]
-    SUMSUB_BADC m0, m1, m2, m3, m4
+    SUMSUB_BADC w, m0, m1, m2, m3, m4
     HADAMARD 0, sumsub, 0, 2, 4, 5
     ABS4 m1, m3, m0, m2, m4, m5
     HADAMARD 0, max, 1, 3, 4, 5
@@ -2243,9 +2243,6 @@ cglobal hadamard_ac_8x8_%1
     HADAMARD4_2D_SSE 4, 5, 6, 7, 1
 %else
     HADAMARD4_V m4, m5, m6, m7, m1
-%endif
-
-%if vertical == 0
     mova      m1, spill0
     mova      spill0, m6
     mova      spill1, m7
@@ -2259,14 +2256,13 @@ cglobal hadamard_ac_8x8_%1
     HADAMARD 1, sumsub, 6, 7, 1, 0
     mova      m0, spill1
 %endif
-
     mova  spill1, m2
     mova  spill2, m3
     ABS_MOV   m1, m0
     ABS_MOV   m2, m4
     ABS_MOV   m3, m5
     paddw     m1, m2
-    SUMSUB_BA m0, m4; m2
+    SUMSUB_BA w, m0, m4
 %if vertical
     pand      m1, [mask_ac4]
 %else

@@ -52,14 +52,17 @@ SECTION .text
 cextern pw_32_0
 cextern pw_32
 cextern pw_8000
+cextern pw_pixel_max
 cextern hsub_mul
 cextern pb_1
 cextern pw_1
+cextern pd_1
+cextern pd_32
 
-%macro WALSH4_1D 5
-    SUMSUB_BADC m%4, m%3, m%2, m%1, m%5
-    SUMSUB_BADC m%4, m%2, m%3, m%1, m%5
-    SWAP %1, %4, %3
+%macro WALSH4_1D 6
+    SUMSUB_BADC %1, m%5, m%4, m%3, m%2, m%6
+    SUMSUB_BADC %1, m%5, m%3, m%4, m%2, m%6
+    SWAP %2, %5, %4
 %endmacro
 
 %macro SUMSUB_17BIT 4 ; a, b, tmp, 0x8000
@@ -74,19 +77,41 @@ cextern pw_1
     SWAP %1, %2, %3
 %endmacro
 
+%ifdef HIGH_BIT_DEPTH
+INIT_XMM
+;-----------------------------------------------------------------------------
+; void dct4x4dc( dctcoef d[4][4] )
+;-----------------------------------------------------------------------------
+cglobal dct4x4dc_sse2, 1,1,5
+    mova   m0, [r0+ 0]
+    mova   m1, [r0+16]
+    mova   m2, [r0+32]
+    mova   m3, [r0+48]
+    WALSH4_1D  d, 0,1,2,3,4
+    TRANSPOSE4x4D 0,1,2,3,4
+    paddd  m0, [pd_1]
+    WALSH4_1D  d, 0,1,2,3,4
+    psrad  m0, 1
+    psrad  m1, 1
+    psrad  m2, 1
+    psrad  m3, 1
+    mova [r0+ 0], m0
+    mova [r0+16], m1
+    mova [r0+32], m2
+    mova [r0+48], m3
+    RET
+%else
+
 INIT_MMX
-;-----------------------------------------------------------------------------
-; void dct4x4dc( int16_t d[4][4] )
-;-----------------------------------------------------------------------------
 cglobal dct4x4dc_mmx, 1,1
     movq   m3, [r0+24]
     movq   m2, [r0+16]
     movq   m1, [r0+ 8]
     movq   m0, [r0+ 0]
     movq   m7, [pw_8000] ; convert to unsigned and back, so that pavgw works
-    WALSH4_1D  0,1,2,3,4
+    WALSH4_1D  w, 0,1,2,3,4
     TRANSPOSE4x4W 0,1,2,3,4
-    SUMSUB_BADC m1, m0, m3, m2, m4
+    SUMSUB_BADC w, m1, m0, m3, m2, m4
     SWAP 0, 1
     SWAP 2, 3
     SUMSUB_17BIT 0,2,4,7
@@ -96,7 +121,29 @@ cglobal dct4x4dc_mmx, 1,1
     movq [r0+16], m3
     movq [r0+24], m1
     RET
+%endif ; HIGH_BIT_DEPTH
 
+%ifdef HIGH_BIT_DEPTH
+;-----------------------------------------------------------------------------
+; void idct4x4dc( int32_t d[4][4] )
+;-----------------------------------------------------------------------------
+INIT_XMM
+cglobal idct4x4dc_sse2, 1,1
+    mova   m3, [r0+48]
+    mova   m2, [r0+32]
+    mova   m1, [r0+16]
+    mova   m0, [r0+ 0]
+    WALSH4_1D  d,0,1,2,3,4
+    TRANSPOSE4x4D 0,1,2,3,4
+    WALSH4_1D  d,0,1,2,3,4
+    mova  [r0+ 0], m0
+    mova  [r0+16], m1
+    mova  [r0+32], m2
+    mova  [r0+48], m3
+    RET
+%else
+
+INIT_MMX
 ;-----------------------------------------------------------------------------
 ; void idct4x4dc( int16_t d[4][4] )
 ;-----------------------------------------------------------------------------
@@ -105,18 +152,20 @@ cglobal idct4x4dc_mmx, 1,1
     movq   m2, [r0+16]
     movq   m1, [r0+ 8]
     movq   m0, [r0+ 0]
-    WALSH4_1D  0,1,2,3,4
+    WALSH4_1D  w,0,1,2,3,4
     TRANSPOSE4x4W 0,1,2,3,4
-    WALSH4_1D  0,1,2,3,4
+    WALSH4_1D  w,0,1,2,3,4
     movq  [r0+ 0], m0
     movq  [r0+ 8], m1
     movq  [r0+16], m2
     movq  [r0+24], m3
     RET
+%endif ; HIGH_BIT_DEPTH
 
+INIT_MMX
 %ifdef HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------
-; void sub4x4_dct( int32_t dct[4][4], uint16_t *pix1, uint16_t *pix2 )
+; void sub4x4_dct( dctcoef dct[4][4], pixel *pix1, pixel *pix2 )
 ;-----------------------------------------------------------------------------
 cglobal sub4x4_dct_mmx, 3,3
 .skip_prologue:
@@ -132,13 +181,9 @@ cglobal sub4x4_dct_mmx, 3,3
     STORE_DIFF m2, m4, m5, [r0+32], [r0+40]
     STORE_DIFF m3, m4, m5, [r0+48], [r0+56]
     RET
-%endif ; HIGH_BIT_DEPTH
+%else
 
-%ifndef HIGH_BIT_DEPTH
 %macro SUB_DCT4 1
-;-----------------------------------------------------------------------------
-; void sub4x4_dct( int16_t dct[4][4], uint8_t *pix1, uint8_t *pix2 )
-;-----------------------------------------------------------------------------
 cglobal sub4x4_dct_%1, 3,3
 %ifidn %1, mmx
 .skip_prologue:
@@ -162,12 +207,42 @@ cglobal sub4x4_dct_%1, 3,3
 
 SUB_DCT4 mmx
 SUB_DCT4 ssse3
-%endif ; !HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
 
-%ifndef HIGH_BIT_DEPTH
+%ifdef HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------
-; void add4x4_idct( uint8_t *p_dst, int16_t dct[4][4] )
+; void add4x4_idct( pixel *p_dst, dctcoef dct[4][4] )
 ;-----------------------------------------------------------------------------
+%macro STORE_DIFFx2 6
+    psrad     %1, 6
+    psrad     %2, 6
+    packssdw  %1, %2
+    movq      %3, %5
+    movhps    %3, %6
+    paddsw    %1, %3
+    pxor      %4, %4
+    CLIPW     %1, %4, [pw_pixel_max]
+    movq      %5, %1
+    movhps    %6, %1
+%endmacro
+
+INIT_XMM
+cglobal add4x4_idct_sse2, 2,2,7
+    pxor  m6, m6
+.skip_prologue:
+    mova  m1, [r1+16]
+    mova  m3, [r1+48]
+    mova  m2, [r1+32]
+    mova  m0, [r1+ 0]
+    IDCT4_1D d,0,1,2,3,4,5
+    TRANSPOSE4x4D 0,1,2,3,4
+    paddd m0, [pd_32]
+    IDCT4_1D d,0,1,2,3,4,5
+    STORE_DIFFx2 m0, m1, m4, m6, [r0+0*FDEC_STRIDE], [r0+2*FDEC_STRIDE]
+    STORE_DIFFx2 m2, m3, m4, m6, [r0+4*FDEC_STRIDE], [r0+6*FDEC_STRIDE]
+    RET
+%else
+
 cglobal add4x4_idct_mmx, 2,2
     pxor m7, m7
 .skip_prologue:
@@ -175,10 +250,10 @@ cglobal add4x4_idct_mmx, 2,2
     movq  m3, [r1+24]
     movq  m2, [r1+16]
     movq  m0, [r1+ 0]
-    IDCT4_1D 0,1,2,3,4,5
+    IDCT4_1D w,0,1,2,3,4,5
     TRANSPOSE4x4W 0,1,2,3,4
     paddw m0, [pw_32]
-    IDCT4_1D 0,1,2,3,4,5
+    IDCT4_1D w,0,1,2,3,4,5
     STORE_DIFF  m0, m4, m7, [r0+0*FDEC_STRIDE]
     STORE_DIFF  m1, m4, m7, [r0+1*FDEC_STRIDE]
     STORE_DIFF  m2, m4, m7, [r0+2*FDEC_STRIDE]
@@ -198,7 +273,7 @@ cglobal add4x4_idct_sse4, 2,2,6
     psubw     m0, m3            ; row1>>1-row3/row0-2
     paddw     m2, m1            ; row3>>1+row1/row0+2
     SBUTTERFLY2 wd, 0, 2, 1
-    SUMSUB_BA m2, m0, m1
+    SUMSUB_BA w, m2, m0, m1
     pshuflw   m1, m2, 10110001b
     pshufhw   m2, m2, 10110001b
     punpckldq m1, m0
@@ -215,7 +290,7 @@ cglobal add4x4_idct_sse4, 2,2,6
     psubw     m0, m3            ; row1>>1-row3/row0-2
     paddw     m2, m1            ; row3>>1+row1/row0+2
     SBUTTERFLY2 qdq, 0, 2, 1
-    SUMSUB_BA m2, m0, m1
+    SUMSUB_BA w, m2, m0, m1
 
     movd      m4, [r0+FDEC_STRIDE*0]
     movd      m1, [r0+FDEC_STRIDE*1]
@@ -236,7 +311,7 @@ cglobal add4x4_idct_sse4, 2,2,6
     movd     [r0+FDEC_STRIDE*2], m0
     pextrd   [r0+FDEC_STRIDE*3], m0, 1
     RET
-%endif ; !HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
 
 INIT_MMX
 ;-----------------------------------------------------------------------------

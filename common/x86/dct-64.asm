@@ -36,13 +36,13 @@ cextern hsub_mul
 INIT_XMM
 
 %macro DCT8_1D 10
-    SUMSUB_BA  m%5, m%4 ; %5=s34, %4=d34
-    SUMSUB_BA  m%6, m%3 ; %6=s25, %3=d25
-    SUMSUB_BA  m%7, m%2 ; %7=s16, %2=d16
-    SUMSUB_BA  m%8, m%1 ; %8=s07, %1=d07
+    SUMSUB_BA w, m%5, m%4 ; %5=s34, %4=d34
+    SUMSUB_BA w, m%6, m%3 ; %6=s25, %3=d25
+    SUMSUB_BA w, m%7, m%2 ; %7=s16, %2=d16
+    SUMSUB_BA w, m%8, m%1 ; %8=s07, %1=d07
 
-    SUMSUB_BA  m%6, m%7, m%10 ; %6=a1, %7=a3
-    SUMSUB_BA  m%5, m%8, m%10 ; %5=a0, %8=a2
+    SUMSUB_BA w, m%6, m%7, m%10 ; %6=a1, %7=a3
+    SUMSUB_BA w, m%5, m%8, m%10 ; %5=a0, %8=a2
 
     movdqa  m%9, m%1
     psraw   m%9, 1
@@ -56,7 +56,7 @@ INIT_XMM
     paddw   m%10, m%2
     psubw   m%10, m%3 ; %10=a7
 
-    SUMSUB_BA  m%4, m%1
+    SUMSUB_BA w, m%4, m%1
     psubw   m%1, m%3
     psubw   m%4, m%2
     psraw   m%3, 1
@@ -70,7 +70,7 @@ INIT_XMM
     psraw   m%9, 2
     psubw   m%9, m%10 ; %9=b7
 
-    SUMSUB_BA  m%6, m%5, m%10 ; %6=b0, %5=b4
+    SUMSUB_BA w, m%6, m%5, m%10 ; %6=b0, %5=b4
 
     movdqa  m%3, m%7
     psraw   m%3, 1
@@ -88,7 +88,7 @@ INIT_XMM
 %endmacro
 
 %macro IDCT8_1D 10
-    SUMSUB_BA  m%5, m%1, m%9 ; %5=a0, %1=a2
+    SUMSUB_BA w, m%5, m%1, m%9 ; %5=a0, %1=a2
 
     movdqa  m%9, m%2
     psraw   m%9, 1
@@ -123,8 +123,8 @@ INIT_XMM
     psraw   m%6, 2
     psubw   m%9, m%6 ; %9=b7
 
-    SUMSUB_BA m%7, m%5, m%6 ; %7=b0, %5=b6
-    SUMSUB_BA m%3, m%1, m%6; %3=b2, %1=b4
+    SUMSUB_BA w, m%7, m%5, m%6 ; %7=b0, %5=b6
+    SUMSUB_BA w, m%3, m%1, m%6 ; %3=b2, %1=b4
 
     movdqa  m%8, m%10
     psraw   m%8, 2
@@ -132,10 +132,10 @@ INIT_XMM
     psraw   m%2, 2
     psubw   m%2, m%10 ; %2=b5
 
-    SUMSUB_BA m%9, m%7, m%6 ; %9=c0, %7=c7
-    SUMSUB_BA m%2, m%3, m%6 ; %2=c1, %3=c6
-    SUMSUB_BA m%8, m%1, m%6 ; %8=c2, %1=c5
-    SUMSUB_BA m%4, m%5, m%6 ; %4=c3, %5=c4
+    SUMSUB_BA w, m%9, m%7, m%6 ; %9=c0, %7=c7
+    SUMSUB_BA w, m%2, m%3, m%6 ; %2=c1, %3=c6
+    SUMSUB_BA w, m%8, m%1, m%6 ; %8=c2, %1=c5
+    SUMSUB_BA w, m%4, m%5, m%6 ; %4=c3, %5=c4
 
     SWAP %1, %9, %6
     SWAP %3, %8, %7
@@ -263,14 +263,14 @@ global add8x8_idct_sse2.skip_prologue
     mova   m7, [r1+112]
     SBUTTERFLY qdq, 4, 5, 8
     SBUTTERFLY qdq, 6, 7, 8
-    IDCT4_1D 0,1,2,3,8,10
+    IDCT4_1D w,0,1,2,3,8,10
     TRANSPOSE2x4x4W 0,1,2,3,8
-    IDCT4_1D 4,5,6,7,8,10
+    IDCT4_1D w,4,5,6,7,8,10
     TRANSPOSE2x4x4W 4,5,6,7,8
     paddw m0, [pw_32]
-    IDCT4_1D 0,1,2,3,8,10
+    IDCT4_1D w,0,1,2,3,8,10
     paddw m4, [pw_32]
-    IDCT4_1D 4,5,6,7,8,10
+    IDCT4_1D w,4,5,6,7,8,10
     DIFFx2 m0, m1, m8, m9, [r0-4*FDEC_STRIDE], [r0-3*FDEC_STRIDE]
     DIFFx2 m2, m3, m8, m9, [r0-2*FDEC_STRIDE], [r0-1*FDEC_STRIDE]
     DIFFx2 m4, m5, m8, m9, [r0+0*FDEC_STRIDE], [r0+1*FDEC_STRIDE]
