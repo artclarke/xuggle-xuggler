@@ -647,8 +647,7 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
         do_search[1] = b != p1 && frames[b]->lowres_mvs[1][p1-b-1][0][0] == 0x7FFF;
         if( do_search[0] )
         {
-            if( ( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART ||
-                  h->param.analyse.i_weighted_pred == X264_WEIGHTP_FAKE ) && b == p1 )
+            if( h->param.analyse.i_weighted_pred && b == p1 )
             {
                 x264_emms();
                 x264_weights_analyse( h, frames[b], frames[p0], 1 );
@@ -1549,7 +1548,7 @@ void x264_slicetype_decide( x264_t *h )
 
     /* Analyse for weighted P frames */
     if( !h->param.rc.b_stat_read && h->lookahead->next.list[bframes]->i_type == X264_TYPE_P
-        && h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
+        && h->param.analyse.i_weighted_pred >= X264_WEIGHTP_SIMPLE )
     {
         x264_emms();
         x264_weights_analyse( h, h->lookahead->next.list[bframes], h->lookahead->last_nonb, 0 );

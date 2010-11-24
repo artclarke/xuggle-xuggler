@@ -284,7 +284,7 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame, float *quant_off
             }
         }
         /* Need variance data for weighted prediction */
-        if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_FAKE || h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
+        if( h->param.analyse.i_weighted_pred )
         {
             for( int mb_y = 0; mb_y < h->mb.i_mb_height; mb_y++ )
                 for( int mb_x = 0; mb_x < h->mb.i_mb_width; mb_x++ )
@@ -1558,7 +1558,7 @@ int x264_ratecontrol_end( x264_t *h, int bits, int *filler )
                 goto fail;
         }
 
-        if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART && h->sh.weight[0][0].weightfn )
+        if( h->param.analyse.i_weighted_pred >= X264_WEIGHTP_SIMPLE && h->sh.weight[0][0].weightfn )
         {
             if( fprintf( rc->p_stat_file_out, "w:%d,%d,%d",
                          h->sh.weight[0][0].i_denom, h->sh.weight[0][0].i_scale, h->sh.weight[0][0].i_offset ) < 0 )

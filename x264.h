@@ -39,7 +39,7 @@
 
 #include <stdarg.h>
 
-#define X264_BUILD 109
+#define X264_BUILD 110
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -151,7 +151,7 @@ typedef struct
 #define X264_B_ADAPT_FAST            1
 #define X264_B_ADAPT_TRELLIS         2
 #define X264_WEIGHTP_NONE            0
-#define X264_WEIGHTP_BLIND           1
+#define X264_WEIGHTP_SIMPLE          1
 #define X264_WEIGHTP_SMART           2
 #define X264_B_PYRAMID_NONE          0
 #define X264_B_PYRAMID_STRICT        1

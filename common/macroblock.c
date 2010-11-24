@@ -239,8 +239,6 @@ int x264_macroblock_cache_allocate( x264_t *h )
         int i_refs = X264_MIN(X264_REF_MAX, (i ? 1 + !!h->param.i_bframe_pyramid : h->param.i_frame_reference) ) << h->param.b_interlaced;
         if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
             i_refs = X264_MIN(X264_REF_MAX, i_refs + 1 + (BIT_DEPTH == 8)); //smart weights add two duplicate frames, one in >8-bit
-        else if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_BLIND )
-            i_refs = X264_MIN(X264_REF_MAX, i_refs + 1); //blind weights add one duplicate frame
 
         for( int j = !i; j < i_refs; j++ )
         {
@@ -277,7 +275,7 @@ int x264_macroblock_cache_allocate( x264_t *h )
                 //SMART can weight one ref and one offset -1
                 numweightbuf = 2;
             else
-                //blind only has one weighted copy (offset -1)
+                //simple only has one weighted ref
                 numweightbuf = 1;
         }
 
@@ -398,7 +396,7 @@ void x264_macroblock_slice_init( x264_t *h )
     {
         memset( h->mb.cache.skip, 0, sizeof( h->mb.cache.skip ) );
 
-        if( h->sh.i_disable_deblocking_filter_idc != 1 && h->param.analyse.i_weighted_pred )
+        if( h->sh.i_disable_deblocking_filter_idc != 1 && h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
         {
             deblock_ref_table(-2) = -2;
             deblock_ref_table(-1) = -1;
@@ -999,7 +997,7 @@ void x264_macroblock_cache_load_deblock( x264_t *h )
         h->mb.i_neighbour = new_neighbour;
     }
 
-    if( h->param.analyse.i_weighted_pred && h->sh.i_type == SLICE_TYPE_P )
+    if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART && h->sh.i_type == SLICE_TYPE_P )
     {
         /* Handle reference frame duplicates */
         int i8 = x264_scan8[0] - 8;

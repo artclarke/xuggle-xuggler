@@ -436,15 +436,16 @@ static void help( x264_param_t *defaults, int longhelp )
         "                                  - superfast:\n"
         "                                    --no-mbtree --me dia --no-mixed-refs\n"
         "                                    --partitions i8x8,i4x4 --rc-lookahead 0\n"
-        "                                    --ref 1 --subme 1 --trellis 0 --weightp 0\n"
+        "                                    --ref 1 --subme 1 --trellis 0 --weightp 1\n"
         "                                  - veryfast:\n"
         "                                    --no-mixed-refs --rc-lookahead 10\n"
-        "                                    --ref 1 --subme 2 --trellis 0 --weightp 0\n"
+        "                                    --ref 1 --subme 2 --trellis 0 --weightp 1\n"
         "                                  - faster:\n"
         "                                    --no-mixed-refs --rc-lookahead 20\n"
         "                                    --ref 2 --subme 4 --weightp 1\n"
         "                                  - fast:\n"
         "                                    --rc-lookahead 30 --ref 2 --subme 6\n"
+        "                                    --weightp 1\n"
         "                                  - medium:\n"
         "                                    Default settings apply.\n"
         "                                  - slow:\n"
@@ -609,8 +610,8 @@ static void help( x264_param_t *defaults, int longhelp )
     H2( "      --no-weightb            Disable weighted prediction for B-frames\n" );
     H1( "      --weightp <integer>     Weighted prediction for P-frames [%d]\n"
         "                                  - 0: Disabled\n"
-        "                                  - 1: Blind offset\n"
-        "                                  - 2: Smart analysis\n", defaults->analyse.i_weighted_pred );
+        "                                  - 1: Weighted refs\n"
+        "                                  - 2: Weighted refs + Duplicates\n", defaults->analyse.i_weighted_pred );
     H1( "      --me <string>           Integer pixel motion estimation method [\"%s\"]\n",
                                        strtable_lookup( x264_motion_est_names, defaults->analyse.i_me_method ) );
     H2( "                                  - dia: diamond search, radius 1 (fast)\n"
