@@ -286,159 +286,159 @@ host_vendor="${host%%-*}"
 host_os="${host#*-}"
 
 case $host_os in
-  beos*)
-    SYS="BEOS"
-    define HAVE_MALLOC_H
-    ;;
-  darwin*)
-    SYS="MACOSX"
-    CFLAGS="$CFLAGS -falign-loops=16"
-    LDFLAGS="$LDFLAGS -lm"
-    if [ "$pic" = "no" ]; then
-        cc_check "" -mdynamic-no-pic && CFLAGS="$CFLAGS -mdynamic-no-pic"
-    fi
-    ;;
-  freebsd*)
-    SYS="FREEBSD"
-    LDFLAGS="$LDFLAGS -lm"
-    ;;
-  kfreebsd*-gnu)
-    SYS="FREEBSD"
-    define HAVE_MALLOC_H
-    LDFLAGS="$LDFLAGS -lm"
-    ;;
-  netbsd*)
-    SYS="NETBSD"
-    LDFLAGS="$LDFLAGS -lm"
-    ;;
-  openbsd*)
-    SYS="OPENBSD"
-    LDFLAGS="$LDFLAGS -lm"
-    ;;
-  *linux*)
-    SYS="LINUX"
-    define HAVE_MALLOC_H
-    LDFLAGS="$LDFLAGS -lm"
-    ;;
-  cygwin*)
-    SYS="MINGW"
-    EXE=".exe"
-    DEVNULL="NUL"
-    if cc_check "" -mno-cygwin; then
-        CFLAGS="$CFLAGS -mno-cygwin"
-        LDFLAGS="$LDFLAGS -mno-cygwin"
-    fi
-    ;;
-  mingw*)
-    SYS="MINGW"
-    EXE=".exe"
-    DEVNULL="NUL"
-    ;;
-  sunos*|solaris*)
-    SYS="SunOS"
-    define HAVE_MALLOC_H
-    LDFLAGS="$LDFLAGS -lm"
-    HAVE_GETOPT_LONG=0
-    ;;
-  *)
-    die "Unknown system $host, edit the configure"
-    ;;
+    beos*)
+        SYS="BEOS"
+        define HAVE_MALLOC_H
+        ;;
+    darwin*)
+        SYS="MACOSX"
+        CFLAGS="$CFLAGS -falign-loops=16"
+        LDFLAGS="$LDFLAGS -lm"
+        if [ "$pic" = "no" ]; then
+            cc_check "" -mdynamic-no-pic && CFLAGS="$CFLAGS -mdynamic-no-pic"
+        fi
+        ;;
+    freebsd*)
+        SYS="FREEBSD"
+        LDFLAGS="$LDFLAGS -lm"
+        ;;
+    kfreebsd*-gnu)
+        SYS="FREEBSD"
+        define HAVE_MALLOC_H
+        LDFLAGS="$LDFLAGS -lm"
+        ;;
+    netbsd*)
+        SYS="NETBSD"
+        LDFLAGS="$LDFLAGS -lm"
+        ;;
+    openbsd*)
+        SYS="OPENBSD"
+        LDFLAGS="$LDFLAGS -lm"
+        ;;
+    *linux*)
+        SYS="LINUX"
+        define HAVE_MALLOC_H
+        LDFLAGS="$LDFLAGS -lm"
+        ;;
+    cygwin*)
+        SYS="MINGW"
+        EXE=".exe"
+        DEVNULL="NUL"
+        if cc_check "" -mno-cygwin; then
+            CFLAGS="$CFLAGS -mno-cygwin"
+            LDFLAGS="$LDFLAGS -mno-cygwin"
+        fi
+        ;;
+    mingw*)
+        SYS="MINGW"
+        EXE=".exe"
+        DEVNULL="NUL"
+        ;;
+    sunos*|solaris*)
+        SYS="SunOS"
+        define HAVE_MALLOC_H
+        LDFLAGS="$LDFLAGS -lm"
+        HAVE_GETOPT_LONG=0
+        ;;
+    *)
+        die "Unknown system $host, edit the configure"
+        ;;
 esac
 
 case $host_cpu in
-  i*86)
-    ARCH="X86"
-    AS="yasm"
-    ASFLAGS="$ASFLAGS -O2"
-    if [[ "$asm" == auto && "$CFLAGS" != *-march* ]]; then
-      CFLAGS="$CFLAGS -march=i686"
-    fi
-    if [[ "$asm" == auto && "$CFLAGS" != *-mfpmath* ]]; then
-      CFLAGS="$CFLAGS -mfpmath=sse -msse"
-    fi
-    if [ "$SYS" = MACOSX ]; then
-      ASFLAGS="$ASFLAGS -f macho -DPREFIX"
-    elif [ "$SYS" = MINGW ]; then
-      ASFLAGS="$ASFLAGS -f win32 -DPREFIX"
-      LDFLAGS="$LDFLAGS -Wl,--large-address-aware"
-    else
-      ASFLAGS="$ASFLAGS -f elf"
-    fi
-    ;;
-  x86_64)
-    ARCH="X86_64"
-    AS="yasm"
-    if [ "$SYS" = MACOSX ];then
-      ASFLAGS="$ASFLAGS -f macho64 -m amd64 -DPIC -DPREFIX"
-      if cc_check '' "-arch x86_64"; then
-        CFLAGS="$CFLAGS -arch x86_64"
-        LDFLAGS="$LDFLAGS -arch x86_64"
-      fi
-    elif [ "$SYS" = MINGW ]; then
-      ASFLAGS="$ASFLAGS -f win32 -m amd64"
-      cc_check "" "-S" && grep -q "_main:" conftest && ASFLAGS="$ASFLAGS -DPREFIX"
-    else
-      ASFLAGS="$ASFLAGS -f elf -m amd64"
-    fi
-    ;;
-  powerpc|powerpc64)
-    ARCH="PPC"
-    if [ $asm = auto ] ; then
-      define HAVE_ALTIVEC
-      AS="${AS-${cross_prefix}gcc}"
-      if [ $SYS = MACOSX ] ; then
-        CFLAGS="$CFLAGS -faltivec -fastf -mcpu=G4"
-      else
-        CFLAGS="$CFLAGS -maltivec -mabi=altivec"
-        define HAVE_ALTIVEC_H
-      fi
-    fi
-    ;;
-  sparc)
-    ARCH="SPARC"
-    case $(uname -m) in
-      sun4u|sun4v)
-        if [ $asm = auto ]; then
-          ARCH="UltraSPARC"
-          if ! echo $CFLAGS | grep -Eq '\-mcpu' ; then
-            CFLAGS="$CFLAGS -mcpu=ultrasparc"
-            LDFLAGS="$LDFLAGS -mcpu=ultrasparc"
-          fi
-          AS="${AS-${cross_prefix}as}"
-          ASFLAGS="$ASFLAGS -xarch=v8plusa"
+    i*86)
+        ARCH="X86"
+        AS="yasm"
+        ASFLAGS="$ASFLAGS -O2"
+        if [[ "$asm" == auto && "$CFLAGS" != *-march* ]]; then
+            CFLAGS="$CFLAGS -march=i686"
+        fi
+        if [[ "$asm" == auto && "$CFLAGS" != *-mfpmath* ]]; then
+            CFLAGS="$CFLAGS -mfpmath=sse -msse"
+        fi
+        if [ "$SYS" = MACOSX ]; then
+            ASFLAGS="$ASFLAGS -f macho -DPREFIX"
+        elif [ "$SYS" = MINGW ]; then
+            ASFLAGS="$ASFLAGS -f win32 -DPREFIX"
+            LDFLAGS="$LDFLAGS -Wl,--large-address-aware"
+        else
+            ASFLAGS="$ASFLAGS -f elf"
         fi
         ;;
-    esac
-    ;;
-  mips|mipsel|mips64|mips64el)
-    ARCH="MIPS"
-    ;;
-  arm*)
-    ARCH="ARM"
-    if [ "$SYS" = MACOSX ] ; then
-      AS="${AS-extras/gas-preprocessor.pl $CC}"
-      ASFLAGS="$ASFLAGS -DPREFIX -DPIC"  # apple's ld doesn't support movw/movt relocations at all
-      # build for armv7 by default
-      if ! echo $CFLAGS | grep -Eq '\-arch' ; then
-        CFLAGS="$CFLAGS -arch armv7"
-        LDFLAGS="$LDFLAGS -arch armv7"
-      fi
-    else
-      AS="${AS-${cross_prefix}gcc}"
-    fi
-    ;;
-  s390|s390x)
-    ARCH="S390"
-    ;;
-  parisc|parisc64)
-    ARCH="PARISC"
-    ;;
-  ia64)
-    ARCH="IA64"
-    ;;
-  *)
-    ARCH="$(echo $host_cpu | tr a-z A-Z)"
-    ;;
+    x86_64)
+        ARCH="X86_64"
+        AS="yasm"
+        if [ "$SYS" = MACOSX ];then
+            ASFLAGS="$ASFLAGS -f macho64 -m amd64 -DPIC -DPREFIX"
+            if cc_check '' "-arch x86_64"; then
+                CFLAGS="$CFLAGS -arch x86_64"
+                LDFLAGS="$LDFLAGS -arch x86_64"
+            fi
+        elif [ "$SYS" = MINGW ]; then
+            ASFLAGS="$ASFLAGS -f win32 -m amd64"
+            cc_check "" "-S" && grep -q "_main:" conftest && ASFLAGS="$ASFLAGS -DPREFIX"
+        else
+            ASFLAGS="$ASFLAGS -f elf -m amd64"
+        fi
+        ;;
+    powerpc|powerpc64)
+        ARCH="PPC"
+        if [ $asm = auto ] ; then
+            define HAVE_ALTIVEC
+            AS="${AS-${cross_prefix}gcc}"
+            if [ $SYS = MACOSX ] ; then
+                CFLAGS="$CFLAGS -faltivec -fastf -mcpu=G4"
+            else
+                CFLAGS="$CFLAGS -maltivec -mabi=altivec"
+                define HAVE_ALTIVEC_H
+            fi
+        fi
+        ;;
+    sparc)
+        ARCH="SPARC"
+        case $(uname -m) in
+            sun4u|sun4v)
+                if [ $asm = auto ]; then
+                    ARCH="UltraSPARC"
+                    if ! echo $CFLAGS | grep -Eq '\-mcpu' ; then
+                        CFLAGS="$CFLAGS -mcpu=ultrasparc"
+                        LDFLAGS="$LDFLAGS -mcpu=ultrasparc"
+                    fi
+                    AS="${AS-${cross_prefix}as}"
+                    ASFLAGS="$ASFLAGS -xarch=v8plusa"
+                fi
+                ;;
+        esac
+        ;;
+    mips|mipsel|mips64|mips64el)
+        ARCH="MIPS"
+        ;;
+    arm*)
+        ARCH="ARM"
+        if [ "$SYS" = MACOSX ] ; then
+            AS="${AS-extras/gas-preprocessor.pl $CC}"
+            ASFLAGS="$ASFLAGS -DPREFIX -DPIC"  # apple's ld doesn't support movw/movt relocations at all
+            # build for armv7 by default
+            if ! echo $CFLAGS | grep -Eq '\-arch' ; then
+                CFLAGS="$CFLAGS -arch armv7"
+                LDFLAGS="$LDFLAGS -arch armv7"
+            fi
+        else
+            AS="${AS-${cross_prefix}gcc}"
+        fi
+        ;;
+    s390|s390x)
+        ARCH="S390"
+        ;;
+    parisc|parisc64)
+        ARCH="PARISC"
+        ;;
+    ia64)
+        ARCH="IA64"
+        ;;
+    *)
+        ARCH="$(echo $host_cpu | tr a-z A-Z)"
+        ;;
 esac
 
 log_msg "x264 configure script"
@@ -581,7 +581,6 @@ if [ "$swscale" = "auto" ] ; then
         if cpp_check "libswscale/swscale.h" "$SWSCALE_CFLAGS" "LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)" "$error"; then
             # we use colorspaces that were defined in libavutil r19775
             if cc_check "libavutil/pixfmt.h" "$SWSCALE_CFLAGS" "enum PixelFormat pixfmt = PIX_FMT_YUV422P16LE;" ; then
-                define HAVE_SWSCALE
                 swscale="yes"
             else
                 echo "Warning: libavutil is too old, update to ffmpeg r19775+"
@@ -610,7 +609,6 @@ if [ "$lavf" = "auto" ] ; then
         if cc_check libavutil/pixdesc.h "$LAVF_CFLAGS $LAVF_LIBS" ; then
             if [ "$swscale" = "yes" ]; then
                 lavf="yes"
-                define HAVE_LAVF
             else
                 echo "Warning: libavformat is not supported without swscale support"
             fi
@@ -648,18 +646,20 @@ if [ "$ffms" = "auto" ] ; then
     fi
 fi
 
-if [ "$ffms" = "yes" ]; then
-    LDFLAGSCLI="$FFMS2_LIBS $LDFLAGSCLI"
-    CFLAGS="$CFLAGS $FFMS2_CFLAGS"
-    define HAVE_FFMS
-fi
-
-if [ "$lavf" = "yes" ]; then
-    LDFLAGSCLI="$LAVF_LIBS $LDFLAGSCLI"
-    CFLAGS="$CFLAGS $LAVF_CFLAGS"
-elif [ "$swscale" = "yes" ]; then
+if [ "$swscale" = "yes" ]; then
     LDFLAGSCLI="$SWSCALE_LIBS $LDFLAGSCLI"
     CFLAGS="$CFLAGS $SWSCALE_CFLAGS"
+    define HAVE_SWSCALE
+    if [ "$lavf" = "yes" ]; then
+        LDFLAGSCLI="$LAVF_LIBS $LDFLAGSCLI"
+        CFLAGS="$CFLAGS $LAVF_CFLAGS"
+        define HAVE_LAVF
+    fi
+    if [ "ffms" = "yes" ]; then
+        LDFLAGSCLI="$FFMS2_LIBS $LDFLAGSCLI"
+        CFLAGS="$CFLAGS $FFMS2_CFLAGS"
+        define HAVE_FFMS
+    fi
 fi
 
 GPAC_LIBS="-lgpac_static"
