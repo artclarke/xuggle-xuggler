@@ -1231,6 +1231,7 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     COPY( i_slice_max_size );
     COPY( i_slice_max_mbs );
     COPY( i_slice_count );
+    COPY( b_tff );
 
     /* VBV can't be turned on if it wasn't on to begin with */
     if( h->param.rc.i_vbv_max_bitrate > 0 && h->param.rc.i_vbv_buffer_size > 0 &&
