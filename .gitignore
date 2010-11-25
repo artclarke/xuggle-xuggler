@@ -23,3 +23,6 @@ checkasm
 *.y4m
 *.yuv
 x264_2pass.log
+
+.digress_x264
+*.pyc
