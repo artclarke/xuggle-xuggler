@@ -556,17 +556,54 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_cqm_init( h );
     x264_quant_init( h, 0, &qf );
 
+    /* overflow test cases */
+    for( int i = 0; i < 5; i++ )
+    {
+        pixel *enc = &pbuf3[16*i*FENC_STRIDE];
+        pixel *dec = &pbuf4[16*i*FDEC_STRIDE];
+
+        for( int j = 0; j < 16; j++ )
+        {
+            int cond_a = (i < 2) ? 1 : ((j&3) == 0 || (j&3) == (i-1));
+            int cond_b = (i == 0) ? 1 : !cond_a;
+            enc[0] = enc[1] = cond_a ? PIXEL_MAX : 0;
+            enc[2] = enc[3] = cond_b ? PIXEL_MAX : 0;
+
+            for( int k = 0; k < 4; k++ )
+                dec[k] = PIXEL_MAX - enc[k];
+
+            enc += FENC_STRIDE;
+            dec += FDEC_STRIDE;
+        }
+    }
+
 #define TEST_DCT( name, t1, t2, size ) \
     if( dct_asm.name != dct_ref.name ) \
     { \
         set_func_name( #name ); \
         used_asm = 1; \
-        call_c( dct_c.name, t1, pbuf1, pbuf2 ); \
-        call_a( dct_asm.name, t2, pbuf1, pbuf2 ); \
-        if( memcmp( t1, t2, size*sizeof(dctcoef) ) ) \
+        pixel *enc = pbuf3; \
+        pixel *dec = pbuf4; \
+        for( int j = 0; j < 5; j++) \
         { \
-            ok = 0; \
-            fprintf( stderr, #name " [FAILED]\n" ); \
+            call_c( dct_c.name, t1, &pbuf1[j*64], &pbuf2[j*64] ); \
+            call_a( dct_asm.name, t2, &pbuf1[j*64], &pbuf2[j*64] ); \
+            if( memcmp( t1, t2, size*sizeof(dctcoef) ) ) \
+            { \
+                ok = 0; \
+                fprintf( stderr, #name " [FAILED]\n" ); \
+                break; \
+            } \
+            call_c( dct_c.name, t1, enc, dec ); \
+            call_a( dct_asm.name, t2, enc, dec ); \
+            if( memcmp( t1, t2, size*sizeof(dctcoef) ) ) \
+            { \
+                ok = 0; \
+                fprintf( stderr, #name " [FAILED] (overflow)\n" ); \
+                break; \
+            } \
+            enc += 16*FENC_STRIDE; \
+            dec += 16*FDEC_STRIDE; \
         } \
     }
     ok = 1; used_asm = 0;

@@ -77,6 +77,14 @@ cextern pd_32
     SWAP %1, %2, %3
 %endmacro
 
+%macro DCT_UNPACK 3
+    punpcklwd %3, %1
+    punpckhwd %2, %1
+    psrad     %3, 16
+    psrad     %2, 16
+    SWAP      %1, %3
+%endmacro
+
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM
 ;-----------------------------------------------------------------------------
@@ -175,11 +183,24 @@ cglobal sub4x4_dct_mmx, 3,3
     LOAD_DIFF  m2, m4, none, [r1+4*FENC_STRIDE], [r2+4*FDEC_STRIDE]
     DCT4_1D 0,1,2,3,4
     TRANSPOSE4x4W 0,1,2,3,4
-    DCT4_1D 0,1,2,3,4
-    STORE_DIFF m0, m4, m5, [r0+ 0], [r0+ 8]
-    STORE_DIFF m1, m4, m5, [r0+16], [r0+24]
-    STORE_DIFF m2, m4, m5, [r0+32], [r0+40]
-    STORE_DIFF m3, m4, m5, [r0+48], [r0+56]
+
+    SUMSUB_BADC w, m3, m0, m2, m1
+    SUMSUB_BA   w, m2, m3, m4
+    DCT_UNPACK m2, m4, m5
+    DCT_UNPACK m3, m6, m7
+    mova  [r0+ 0], m2 ; s03 + s12
+    mova  [r0+ 8], m4
+    mova  [r0+32], m3 ; s03 - s12
+    mova  [r0+40], m6
+
+    DCT_UNPACK m0, m2, m4
+    DCT_UNPACK m1, m3, m5
+    SUMSUB2_AB  d, m0, m1, m4
+    SUMSUB2_AB  d, m2, m3, m5
+    mova  [r0+16], m0 ; d03*2 + d12
+    mova  [r0+24], m2
+    mova  [r0+48], m4 ; d03 - 2*d12
+    mova  [r0+56], m5
     RET
 %else
 
