@@ -185,23 +185,19 @@ int x264_cqm_init( x264_t *h )
                 }
     }
 
-    if( !h->mb.b_lossless && max_qp_err >= h->param.rc.i_qp_min )
+    if( !h->mb.b_lossless )
     {
-        x264_log( h, X264_LOG_ERROR, "Quantization overflow.  Your CQM is incompatible with QP < %d,\n", max_qp_err+1 );
-        x264_log( h, X264_LOG_ERROR, "but min QP is set to %d.\n", h->param.rc.i_qp_min );
-        return -1;
-    }
-    if( !h->mb.b_lossless && max_chroma_qp_err >= h->chroma_qp_table[h->param.rc.i_qp_min] )
-    {
-        x264_log( h, X264_LOG_ERROR, "Quantization overflow.  Your CQM is incompatible with QP < %d,\n", max_chroma_qp_err+1 );
-        x264_log( h, X264_LOG_ERROR, "but min chroma QP is implied to be %d.\n", h->chroma_qp_table[h->param.rc.i_qp_min] );
-        return -1;
-    }
-    if( !h->mb.b_lossless && min_qp_err <= h->param.rc.i_qp_max )
-    {
-        x264_log( h, X264_LOG_ERROR, "Quantization underflow.  Your CQM is incompatible with QP > %d,\n", min_qp_err-1 );
-        x264_log( h, X264_LOG_ERROR, "but max QP is implied to be %d.\n", h->param.rc.i_qp_max );
-        return -1;
+        while( h->chroma_qp_table[h->param.rc.i_qp_min] <= max_chroma_qp_err )
+            h->param.rc.i_qp_min++;
+        if( min_qp_err <= h->param.rc.i_qp_max )
+            h->param.rc.i_qp_max = min_qp_err-1;
+        if( max_qp_err >= h->param.rc.i_qp_min )
+            h->param.rc.i_qp_min = max_qp_err+1;
+        if( h->param.rc.i_qp_min > h->param.rc.i_qp_max )
+        {
+            x264_log( h, X264_LOG_ERROR, "Impossible QP constraints for CQM (min=%d, max=%d)\n", h->param.rc.i_qp_min, h->param.rc.i_qp_max );
+            return -1;
+        }
     }
     return 0;
 fail:
