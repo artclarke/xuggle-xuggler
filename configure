@@ -655,7 +655,7 @@ if [ "$swscale" = "yes" ]; then
         CFLAGS="$CFLAGS $LAVF_CFLAGS"
         define HAVE_LAVF
     fi
-    if [ "ffms" = "yes" ]; then
+    if [ "$ffms" = "yes" ]; then
         LDFLAGSCLI="$FFMS2_LIBS $LDFLAGSCLI"
         CFLAGS="$CFLAGS $FFMS2_CFLAGS"
         define HAVE_FFMS
