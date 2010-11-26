@@ -34,6 +34,9 @@
     %assign SIZEOF_DCTCOEF 4
 %endif
 
+%assign FENC_STRIDEB SIZEOF_PIXEL*FENC_STRIDE
+%assign FDEC_STRIDEB SIZEOF_PIXEL*FDEC_STRIDE
+
 %assign PIXEL_MAX ((1 << BIT_DEPTH)-1)
 
 %macro SBUTTERFLY 4
@@ -196,12 +199,7 @@
 %macro SPLATB_MMX 3
     movd      %1, [%2-3] ;to avoid crossing a cacheline
     punpcklbw %1, %1
-%if mmsize==16
-    pshuflw   %1, %1, 0xff
-    punpcklqdq %1, %1
-%else
-    pshufw    %1, %1, 0xff
-%endif
+    SPLATW    %1, %1, 3
 %endmacro
 
 %macro SPLATB_SSSE3 3
@@ -635,17 +633,17 @@
 
 %macro SPLATW 2-3 0
 %if mmsize == 16
-    pshuflw    %1, %2, %3*0x55
+    pshuflw    %1, %2, (%3)*0x55
     punpcklqdq %1, %1
 %else
-    pshufw     %1, %2, %3*0x55
+    pshufw     %1, %2, (%3)*0x55
 %endif
 %endmacro
 
 %macro SPLATD 2-3 0
 %if mmsize == 16
-    pshufd %1, %2, %3*0x55
+    pshufd %1, %2, (%3)*0x55
 %else
-    pshufw %1, %2, %3*0x11 + (%3+1)*0x44
+    pshufw %1, %2, (%3)*0x11 + ((%3)+1)*0x44
 %endif
 %endmacro

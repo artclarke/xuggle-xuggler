@@ -452,21 +452,21 @@ INIT_XMM
 ; void add8x8_idct_dc( pixel *p_dst, dctcoef *dct2x2 )
 ;-----------------------------------------------------------------------------
 %macro ADD_DC 2
-    mova    m0, [%1+SIZEOF_PIXEL*FDEC_STRIDE*0] ; 8pixels
-    mova    m1, [%1+SIZEOF_PIXEL*FDEC_STRIDE*1]
-    mova    m2, [%1+SIZEOF_PIXEL*FDEC_STRIDE*2]
+    mova    m0, [%1+FDEC_STRIDEB*0] ; 8pixels
+    mova    m1, [%1+FDEC_STRIDEB*1]
+    mova    m2, [%1+FDEC_STRIDEB*2]
     paddsw  m0, %2
     paddsw  m1, %2
     paddsw  m2, %2
-    paddsw  %2, [%1+SIZEOF_PIXEL*FDEC_STRIDE*3]
+    paddsw  %2, [%1+FDEC_STRIDEB*3]
     CLIPW   m0, m5, m6
     CLIPW   m1, m5, m6
     CLIPW   m2, m5, m6
     CLIPW   %2, m5, m6
-    mova    [%1+SIZEOF_PIXEL*FDEC_STRIDE*0], m0
-    mova    [%1+SIZEOF_PIXEL*FDEC_STRIDE*1], m1
-    mova    [%1+SIZEOF_PIXEL*FDEC_STRIDE*2], m2
-    mova    [%1+SIZEOF_PIXEL*FDEC_STRIDE*3], %2
+    mova    [%1+FDEC_STRIDEB*0], m0
+    mova    [%1+FDEC_STRIDEB*1], m1
+    mova    [%1+FDEC_STRIDEB*2], m2
+    mova    [%1+FDEC_STRIDEB*3], %2
 %endmacro
 
 INIT_XMM
@@ -480,8 +480,8 @@ cglobal add8x8_idct_dc_sse2, 2,2,7
     pshufhw     m3, m3, 10100000b ;   _   _   _   _ dc2 dc2 dc3 dc3
     pshufd      m4, m4, 01010000b ; dc0 dc0 dc0 dc0 dc1 dc1 dc1 dc1
     pshufd      m3, m3, 11111010b ; dc2 dc2 dc2 dc2 dc3 dc3 dc3 dc3
-    ADD_DC r0+SIZEOF_PIXEL*FDEC_STRIDE*0, m4
-    ADD_DC r0+SIZEOF_PIXEL*FDEC_STRIDE*4, m3
+    ADD_DC r0+FDEC_STRIDEB*0, m4
+    ADD_DC r0+FDEC_STRIDEB*4, m3
     RET
 
 cglobal add16x16_idct_dc_sse2, 2,3,8
@@ -497,10 +497,10 @@ cglobal add16x16_idct_dc_sse2, 2,3,8
     pshufhw     m3, m3, 10100000b ;   _   _   _   _ dc2 dc2 dc3 dc3
     pshufd      m4, m4, 01010000b ; dc0 dc0 dc0 dc0 dc1 dc1 dc1 dc1
     pshufd      m3, m3, 11111010b ; dc2 dc2 dc2 dc2 dc3 dc3 dc3 dc3
-    ADD_DC r0+SIZEOF_PIXEL*FDEC_STRIDE*0, m4
+    ADD_DC r0+FDEC_STRIDEB*0, m4
     ADD_DC r0+SIZEOF_PIXEL*8, m3
     add         r1, 16
-    add         r0, 4*FDEC_STRIDE*SIZEOF_PIXEL
+    add         r0, 4*FDEC_STRIDEB
     dec         r2
     jg .loop
     REP_RET
