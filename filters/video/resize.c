@@ -203,14 +203,6 @@ static int pick_closest_supported_csp( int csp )
     }
 }
 
-static int round_dbl( double val, int precision, int b_truncate )
-{
-    if( b_truncate )
-        return trunc(val / precision) * precision;
-    else
-        return round(val / precision) * precision;
-}
-
 static int handle_opts( const char **optlist, char **opts, video_info_t *info, resizer_hnd_t *h )
 {
     uint32_t out_sar_w, out_sar_h;
@@ -266,56 +258,48 @@ static int handle_opts( const char **optlist, char **opts, video_info_t *info, r
     if( fittobox )
     {
         /* resize the video to fit the box as much as possible */
-        double box_width = width;
-        double box_height = height;
         if( !strcasecmp( fittobox, "both" ) )
         {
-            FAIL_IF_ERROR( box_width <= 0 || box_height <= 0, "invalid box resolution %sx%s\n",
-                           x264_otos( str_width, "unset" ), x264_otos( str_height, "unset" ) )
+            FAIL_IF_ERROR( width <= 0 || height <= 0, "invalid box resolution %sx%s\n",
+                           x264_otos( str_width, "<unset>" ), x264_otos( str_height, "<unset>" ) )
         }
         else if( !strcasecmp( fittobox, "width" ) )
         {
-            FAIL_IF_ERROR( box_width <= 0, "invalid box width `%s'\n", x264_otos( str_width, "unset" ) )
-            box_height = INT_MAX;
+            FAIL_IF_ERROR( width <= 0, "invalid box width `%s'\n", x264_otos( str_width, "<unset>" ) )
+            height = INT_MAX;
         }
         else if( !strcasecmp( fittobox, "height" ) )
         {
-            FAIL_IF_ERROR( box_height <= 0, "invalid box height `%s'\n", x264_otos( str_height, "unset" ) )
-            box_width = INT_MAX;
+            FAIL_IF_ERROR( height <= 0, "invalid box height `%s'\n", x264_otos( str_height, "<unset>" ) )
+            width = INT_MAX;
         }
         else FAIL_IF_ERROR( 1, "invalid fittobox mode `%s'\n", fittobox )
 
-        /* we now have the requested bounding box display dimensions, now adjust them for output sar */
-        if( out_sar_w > out_sar_h ) // SAR is wide, decrease width
-            box_width  *= (double)out_sar_h / out_sar_w;
-        else // SAR is thin, decrease height
-            box_height *= (double)out_sar_w  / out_sar_h;
-
-        /* get the display resolution of the clip as it is now */
-        double d_width  = info->width;
-        double d_height = info->height;
-        if( in_sar_w > in_sar_h )
-            d_width  *= (double)in_sar_w / in_sar_h;
-        else
-            d_height *= (double)in_sar_h / in_sar_w;
-        /* now convert it to the coded resolution in accordance with the output sar */
-        if( out_sar_w > out_sar_h )
-            d_width  *= (double)out_sar_h / out_sar_w;
-        else
-            d_height *= (double)out_sar_w / out_sar_h;
-
         /* maximally fit the new coded resolution to the box */
-        double scale = X264_MIN( box_width / d_width, box_height / d_height );
         const x264_cli_csp_t *csp = x264_cli_get_csp( h->dst_csp );
-        width  = round_dbl( scale * d_width,  csp->mod_width,  1 );
-        height = round_dbl( scale * d_height, csp->mod_height, 1 );
+        double width_units = (double)info->height * in_sar_h * out_sar_w;
+        double height_units = (double)info->width * in_sar_w * out_sar_h;
+        width = width / csp->mod_width * csp->mod_width;
+        height = height / csp->mod_height * csp->mod_height;
+        if( width * width_units > height * height_units )
+        {
+            int new_width = round( height * height_units / (width_units * csp->mod_width) );
+            new_width *= csp->mod_width;
+            width = X264_MIN( new_width, width );
+        }
+        else
+        {
+            int new_height = round( width * width_units / (height_units * csp->mod_height) );
+            new_height *= csp->mod_height;
+            height = X264_MIN( new_height, height );
+        }
     }
     else
     {
         if( str_width || str_height )
         {
             FAIL_IF_ERROR( width <= 0 || height <= 0, "invalid resolution %sx%s\n",
-                           x264_otos( str_width, "unset" ), x264_otos( str_height, "unset" ) )
+                           x264_otos( str_width, "<unset>" ), x264_otos( str_height, "<unset>" ) )
             if( !str_sar ) /* res only -> adjust sar */
             {
                 /* new_sar = (new_h * old_w * old_sar_w) / (old_h * new_w * old_sar_h) */
@@ -330,14 +314,20 @@ static int handle_opts( const char **optlist, char **opts, video_info_t *info, r
         else if( str_sar ) /* sar only -> adjust res */
         {
              const x264_cli_csp_t *csp = x264_cli_get_csp( h->dst_csp );
+             double width_units = (double)in_sar_h * out_sar_w;
+             double height_units = (double)in_sar_w * out_sar_h;
              width  = info->width;
              height = info->height;
-             if( (out_sar_w * in_sar_h) > (out_sar_h * in_sar_w) ) // SAR got wider, decrease width
-                 width = round_dbl( (double)info->width * in_sar_w * out_sar_h
-                                  / in_sar_h / out_sar_w, csp->mod_width, 0 );
+             if( width_units > height_units ) // SAR got wider, decrease width
+             {
+                 width = round( info->width * height_units / (width_units * csp->mod_width) );
+                 width *= csp->mod_width;
+             }
              else // SAR got thinner, decrease height
-                 height = round_dbl( (double)info->height * in_sar_h * out_sar_w
-                                   / in_sar_w / out_sar_h, csp->mod_height, 0 );
+             {
+                 height = round( info->height * width_units / (height_units * csp->mod_height) );
+                 height *= csp->mod_height;
+             }
         }
         else /* csp only */
         {
