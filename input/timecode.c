@@ -239,6 +239,7 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
 
         fgets( buff, sizeof(buff), tcfile_in );
         ret = sscanf( buff, "%lf", &timecodes[0] );
+        timecodes[0] *= 1e-3;         /* Timecode format v2 is expressed in milliseconds. */
         FAIL_IF_ERROR( ret != 1, "invalid input tcfile for frame 0\n" )
         for( num = 1; num < timecodes_num; )
         {
@@ -310,11 +311,10 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
     h->pts = malloc( h->stored_pts_num * sizeof(int64_t) );
     if( !h->pts )
         goto fail;
-    h->pts[0] = 0;
-    for( num = 1; num < h->stored_pts_num; num++ )
+    for( num = 0; num < h->stored_pts_num; num++ )
     {
         h->pts[num] = timecodes[num] * ((double)h->timebase_den / h->timebase_num) + 0.5;
-        FAIL_IF_ERROR( h->pts[num] <= h->pts[num - 1], "invalid timebase or timecode for frame %d\n", num )
+        FAIL_IF_ERROR( num > 0 && h->pts[num] <= h->pts[num - 1], "invalid timebase or timecode for frame %d\n", num )
     }
 
     free( timecodes );
