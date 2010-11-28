@@ -241,15 +241,14 @@ SUB_DCT4 ssse3
     movq      %3, %5
     movhps    %3, %6
     paddsw    %1, %3
-    pxor      %4, %4
     CLIPW     %1, %4, [pw_pixel_max]
     movq      %5, %1
     movhps    %6, %1
 %endmacro
 
 INIT_XMM
-cglobal add4x4_idct_sse2, 2,2,7
-    pxor  m6, m6
+cglobal add4x4_idct_sse2, 2,2,6
+    add   r0, 4*FDEC_STRIDE
 .skip_prologue:
     mova  m1, [r1+16]
     mova  m3, [r1+48]
@@ -259,8 +258,9 @@ cglobal add4x4_idct_sse2, 2,2,7
     TRANSPOSE4x4D 0,1,2,3,4
     paddd m0, [pd_32]
     IDCT4_1D d,0,1,2,3,4,5
-    STORE_DIFFx2 m0, m1, m4, m6, [r0+0*FDEC_STRIDE], [r0+2*FDEC_STRIDE]
-    STORE_DIFFx2 m2, m3, m4, m6, [r0+4*FDEC_STRIDE], [r0+6*FDEC_STRIDE]
+    pxor  m5, m5
+    STORE_DIFFx2 m0, m1, m4, m5, [r0-4*FDEC_STRIDE], [r0-2*FDEC_STRIDE]
+    STORE_DIFFx2 m2, m3, m4, m5, [r0+0*FDEC_STRIDE], [r0+2*FDEC_STRIDE]
     RET
 %else
 
@@ -365,8 +365,8 @@ cglobal %1, 3,3,11*(mmsize/16)
     add  r1, %4-%5-%6*FENC_STRIDE
     add  r2, %4-%5-%6*FDEC_STRIDE
 %ifdef WIN64
-    add  rsp, 8
     call %2
+    add  rsp, 8
     RET
 %else
     jmp  %2
@@ -377,8 +377,12 @@ cglobal %1, 3,3,11*(mmsize/16)
 ; void add8x8_idct( uint8_t *pix, int16_t dct[4][4][4] )
 ;-----------------------------------------------------------------------------
 %macro ADD_NxN_IDCT 6-7
+%ifdef HIGH_BIT_DEPTH
+cglobal %1, 2,2,6*(mmsize/16)
+%else
 cglobal %1, 2,2,11*(mmsize/16)
     pxor m7, m7
+%endif
 %if mmsize==16
     add  r0, 4*FDEC_STRIDE
 %endif
@@ -396,8 +400,8 @@ cglobal %1, 2,2,11*(mmsize/16)
     add  r0, %4-%5-%6*FDEC_STRIDE
     add  r1, %3
 %ifdef WIN64
-    add  rsp, 8
     call %2
+    add  rsp, 8
     RET
 %else
     jmp  %2
@@ -408,6 +412,9 @@ cglobal %1, 2,2,11*(mmsize/16)
 INIT_MMX
 SUB_NxN_DCT  sub8x8_dct_mmx,    sub4x4_dct_mmx.skip_prologue,  64,  8, 0, 0
 SUB_NxN_DCT  sub16x16_dct_mmx,  sub8x8_dct_mmx.skip_prologue,  64, 16, 8, 8
+INIT_XMM
+ADD_NxN_IDCT add8x8_idct_sse2,  add4x4_idct_sse2.skip_prologue,64,  8, 0, 0
+ADD_NxN_IDCT add16x16_idct_sse2,add8x8_idct_sse2.skip_prologue,64, 16, 8, 8
 %else ; !HIGH_BIT_DEPTH
 %ifndef ARCH_X86_64
 SUB_NxN_DCT  sub8x8_dct_mmx,    sub4x4_dct_mmx.skip_prologue,  32, 4, 0, 0
@@ -439,11 +446,66 @@ cextern sub8x8_dct8_ssse3.skip_prologue
 SUB_NxN_DCT  sub16x16_dct8_ssse3, sub8x8_dct8_ssse3.skip_prologue, 128, 8, 0, 0
 %endif ; HIGH_BIT_DEPTH
 
-
+%ifdef HIGH_BIT_DEPTH
+INIT_XMM
 ;-----------------------------------------------------------------------------
-; void add8x8_idct_dc( uint8_t *p_dst, int16_t *dct2x2 )
+; void add8x8_idct_dc( pixel *p_dst, dctcoef *dct2x2 )
 ;-----------------------------------------------------------------------------
+%macro ADD_DC 2
+    mova    m0, [%1+SIZEOF_PIXEL*FDEC_STRIDE*0] ; 8pixels
+    mova    m1, [%1+SIZEOF_PIXEL*FDEC_STRIDE*1]
+    mova    m2, [%1+SIZEOF_PIXEL*FDEC_STRIDE*2]
+    paddsw  m0, %2
+    paddsw  m1, %2
+    paddsw  m2, %2
+    paddsw  %2, [%1+SIZEOF_PIXEL*FDEC_STRIDE*3]
+    CLIPW   m0, m5, m6
+    CLIPW   m1, m5, m6
+    CLIPW   m2, m5, m6
+    CLIPW   %2, m5, m6
+    mova    [%1+SIZEOF_PIXEL*FDEC_STRIDE*0], m0
+    mova    [%1+SIZEOF_PIXEL*FDEC_STRIDE*1], m1
+    mova    [%1+SIZEOF_PIXEL*FDEC_STRIDE*2], m2
+    mova    [%1+SIZEOF_PIXEL*FDEC_STRIDE*3], %2
+%endmacro
 
+INIT_XMM
+cglobal add8x8_idct_dc_sse2, 2,2,7
+    mova        m6, [pw_pixel_max]
+    pxor        m5, m5
+    mova        m3, [r1]
+    paddd       m3, [pd_32]
+    psrad       m3, 6             ; dc0   0 dc1   0 dc2   0 dc3   0
+    pshuflw     m4, m3, 10100000b ; dc0 dc0 dc1 dc1   _   _   _   _
+    pshufhw     m3, m3, 10100000b ;   _   _   _   _ dc2 dc2 dc3 dc3
+    pshufd      m4, m4, 01010000b ; dc0 dc0 dc0 dc0 dc1 dc1 dc1 dc1
+    pshufd      m3, m3, 11111010b ; dc2 dc2 dc2 dc2 dc3 dc3 dc3 dc3
+    ADD_DC r0+SIZEOF_PIXEL*FDEC_STRIDE*0, m4
+    ADD_DC r0+SIZEOF_PIXEL*FDEC_STRIDE*4, m3
+    RET
+
+cglobal add16x16_idct_dc_sse2, 2,3,8
+    mov         r2, 4
+    mova        m6, [pw_pixel_max]
+    mova        m7, [pd_32]
+    pxor        m5, m5
+.loop
+    mova        m3, [r1]
+    paddd       m3, m7
+    psrad       m3, 6             ; dc0   0 dc1   0 dc2   0 dc3   0
+    pshuflw     m4, m3, 10100000b ; dc0 dc0 dc1 dc1   _   _   _   _
+    pshufhw     m3, m3, 10100000b ;   _   _   _   _ dc2 dc2 dc3 dc3
+    pshufd      m4, m4, 01010000b ; dc0 dc0 dc0 dc0 dc1 dc1 dc1 dc1
+    pshufd      m3, m3, 11111010b ; dc2 dc2 dc2 dc2 dc3 dc3 dc3 dc3
+    ADD_DC r0+SIZEOF_PIXEL*FDEC_STRIDE*0, m4
+    ADD_DC r0+SIZEOF_PIXEL*8, m3
+    add         r1, 16
+    add         r0, 4*FDEC_STRIDE*SIZEOF_PIXEL
+    dec         r2
+    jg .loop
+    REP_RET
+
+%else ;!HIGH_BIT_DEPTH
 %macro ADD_DC 3
     movq      mm4, [%3+FDEC_STRIDE*0]
     movq      mm5, [%3+FDEC_STRIDE*1]
@@ -624,6 +686,8 @@ cglobal add16x16_idct_dc_ssse3, 2,2,8
     IDCT_DC_STORE FDEC_STRIDE*-4, xmm0, xmm1
     IDCT_DC_STORE 0, xmm2, xmm3
     ret
+
+%endif ; HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
 ; void sub8x8_dct_dc( int16_t dct[2][2], uint8_t *pix1, uint8_t *pix2 )

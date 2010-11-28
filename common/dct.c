@@ -431,9 +431,13 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
     }
     if( cpu&X264_CPU_SSE2 )
     {
-        dctf->add4x4_idct   = x264_add4x4_idct_sse2;
-        dctf->dct4x4dc      = x264_dct4x4dc_sse2;
-        dctf->idct4x4dc     = x264_idct4x4dc_sse2;
+        dctf->add4x4_idct     = x264_add4x4_idct_sse2;
+        dctf->dct4x4dc        = x264_dct4x4dc_sse2;
+        dctf->idct4x4dc       = x264_idct4x4dc_sse2;
+        dctf->add8x8_idct     = x264_add8x8_idct_sse2;
+        dctf->add16x16_idct   = x264_add16x16_idct_sse2;
+        dctf->add8x8_idct_dc  = x264_add8x8_idct_dc_sse2;
+        dctf->add16x16_idct_dc= x264_add16x16_idct_dc_sse2;
     }
 #endif // HAVE_MMX
 #else // !HIGH_BIT_DEPTH
