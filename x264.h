@@ -39,6 +39,8 @@
 
 #include <stdarg.h>
 
+#include "x264_config.h"
+
 #define X264_BUILD 110
 
 /* x264_t:

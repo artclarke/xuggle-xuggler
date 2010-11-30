@@ -138,7 +138,7 @@ die() {
     exit 1
 }
 
-rm -f config.h config.mak config.log x264.pc conftest*
+rm -f x264_config.h config.h config.mak config.log x264.pc conftest*
 
 prefix='/usr/local'
 exec_prefix='${prefix}'
@@ -735,10 +735,9 @@ if [ "$bit_depth" -gt "8" ]; then
     ASFLAGS="$ASFLAGS -DHIGH_BIT_DEPTH"
 fi
 
-define BIT_DEPTH $bit_depth
 ASFLAGS="$ASFLAGS -DBIT_DEPTH=$bit_depth"
 
-[ $gpl = yes ] && define HAVE_GPL
+[ $gpl = yes ] && define HAVE_GPL && x264_gpl=1 || x264_gpl=0
 
 #define undefined vars as 0
 for var in $CONFIG_HAVE; do
@@ -746,6 +745,13 @@ for var in $CONFIG_HAVE; do
 done
 
 rm -f conftest*
+
+# generate exported config file
+
+cat > x264_config.h << EOF
+#define X264_BIT_DEPTH $bit_depth
+#define X264_GPL       $x264_gpl
+EOF
 
 # generate config files
 

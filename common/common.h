@@ -128,6 +128,8 @@ typedef union { x264_uint128_t i; uint64_t a[2]; uint32_t b[4]; uint16_t c[8]; u
 #   define MPIXEL_X4(src) M32(src)
 #endif
 
+#define BIT_DEPTH X264_BIT_DEPTH
+
 #define CPPIXEL_X4(dst,src) MPIXEL_X4(dst) = MPIXEL_X4(src)
 
 #define X264_SCAN8_SIZE (6*8)
