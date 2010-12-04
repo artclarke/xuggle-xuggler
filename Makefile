@@ -109,7 +109,7 @@ endif
 endif
 
 # VIS optims
-ifeq ($(ARCH),UltraSparc)
+ifeq ($(ARCH),UltraSPARC)
 ifeq ($(findstring HIGH_BIT_DEPTH, $(CONFIG)),)
 ASMSRC += common/sparc/pixel.asm
 OBJASM  = $(ASMSRC:%.asm=%.o)

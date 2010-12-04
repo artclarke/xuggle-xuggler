@@ -50,7 +50,7 @@
 #include <fcntl.h> // _O_BINARY
 #endif
 
-#if (SYS_OPENBSD && !defined(isfinite)) || SYS_SunOS
+#if !defined(isfinite) && (SYS_OPENBSD || SYS_SunOS)
 #define isfinite finite
 #endif
 #ifdef _WIN32
