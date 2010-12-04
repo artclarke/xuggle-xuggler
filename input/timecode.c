@@ -410,12 +410,13 @@ static int64_t get_frame_pts( timecode_hnd_t *h, int frame, int real_frame )
 static int read_frame( cli_pic_t *pic, hnd_t handle, int frame )
 {
     timecode_hnd_t *h = handle;
-    int ret = h->input.read_frame( pic, h->p_handle, frame );
+    if( h->input.read_frame( pic, h->p_handle, frame ) )
+        return -1;
 
     pic->pts = get_frame_pts( h, frame, 1 );
     pic->duration = get_frame_pts( h, frame + 1, 0 ) - pic->pts;
 
-    return ret;
+    return 0;
 }
 
 static int release_frame( cli_pic_t *pic, hnd_t handle )
