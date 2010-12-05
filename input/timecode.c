@@ -209,7 +209,10 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
             }
         }
         if( fpss )
+        {
             free( fpss );
+            fpss = NULL;
+        }
 
         h->assume_fps = assume_fps;
         h->last_timecode = timecodes[timecodes_num - 1];
@@ -263,7 +266,7 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
             for( num = 0; num < timecodes_num - 1; num++ )
             {
                 fpss[num] = 1 / (timecodes[num + 1] - timecodes[num]);
-                if( h->timebase_den >= 0 )
+                if( h->auto_timebase_den )
                 {
                     int i = 1;
                     uint64_t fps_num, fps_den;
@@ -289,6 +292,7 @@ static int parse_tcfile( FILE *tcfile_in, timecode_hnd_t *h, video_info_t *info 
                 if( try_mkv_timebase_den( fpss, h, timecodes_num - 1 ) < 0 )
                     goto fail;
             free( fpss );
+            fpss = NULL;
         }
 
         if( timecodes_num > 1 )
