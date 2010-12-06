@@ -966,6 +966,7 @@ parse_error:
             rc[i] = rc[0];
             h->thread[i]->param = h->param;
             h->thread[i]->mb.b_variable_qp = h->mb.b_variable_qp;
+            h->thread[i]->mb.ip_offset = h->mb.ip_offset;
         }
     }
 
