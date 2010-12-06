@@ -1166,10 +1166,10 @@ char *x264_slurp_file( const char *filename )
     b_error |= ( i_size = ftell( fh ) ) <= 0;
     b_error |= fseek( fh, 0, SEEK_SET ) < 0;
     if( b_error )
-        return NULL;
+        goto error;
     buf = x264_malloc( i_size+2 );
-    if( buf == NULL )
-        return NULL;
+    if( !buf )
+        goto error;
     b_error |= fread( buf, 1, i_size, fh ) != i_size;
     if( buf[i_size-1] != '\n' )
         buf[i_size++] = '\n';
@@ -1181,6 +1181,9 @@ char *x264_slurp_file( const char *filename )
         return NULL;
     }
     return buf;
+error:
+    fclose( fh );
+    return NULL;
 }
 
 /****************************************************************************
