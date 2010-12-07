@@ -205,7 +205,7 @@ clean:
 	- sed -e 's/ *-fprofile-\(generate\|use\)//g' config.mak > config.mak2 && mv config.mak2 config.mak
 
 distclean: clean
-	rm -f config.mak config.h config.log x264.pc
+	rm -f config.mak x264_config.h config.h config.log x264.pc
 	rm -rf test/
 
 install: x264$(EXE) $(SONAME)
