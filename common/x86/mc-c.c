@@ -101,8 +101,8 @@ void x264_plane_copy_deinterleave_sse2( uint8_t *dstu, int i_dstu,
 void x264_plane_copy_deinterleave_ssse3( uint8_t *dstu, int i_dstu,
                                          uint8_t *dstv, int i_dstv,
                                          uint8_t *src, int i_src, int w, int h );
-void x264_store_interleave_8x8x2_mmxext( uint8_t *dst, int i_dst, uint8_t *srcu, uint8_t *srcv );
-void x264_store_interleave_8x8x2_sse2( uint8_t *dst, int i_dst, uint8_t *srcu, uint8_t *srcv );
+void x264_store_interleave_8x8x2_mmxext( pixel *dst, int i_dst, pixel *srcu, pixel *srcv );
+void x264_store_interleave_8x8x2_sse2( pixel *dst, int i_dst, pixel *srcu, pixel *srcv );
 void x264_load_deinterleave_8x8x2_fenc_mmx( uint8_t *dst, uint8_t *src, int i_src );
 void x264_load_deinterleave_8x8x2_fenc_sse2( uint8_t *dst, uint8_t *src, int i_src );
 void x264_load_deinterleave_8x8x2_fenc_ssse3( uint8_t *dst, uint8_t *src, int i_src );
@@ -448,6 +448,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->memzero_aligned = x264_memzero_aligned_mmx;
     pf->integral_init4v = x264_integral_init4v_mmx;
     pf->integral_init8v = x264_integral_init8v_mmx;
+    pf->store_interleave_8x8x2 = x264_store_interleave_8x8x2_mmxext;
 
     if( !(cpu&X264_CPU_MMXEXT) )
         return;
@@ -474,6 +475,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->integral_init4v = x264_integral_init4v_sse2;
     pf->integral_init8v = x264_integral_init8v_sse2;
     pf->mbtree_propagate_cost = x264_mbtree_propagate_cost_sse2;
+    pf->store_interleave_8x8x2 = x264_store_interleave_8x8x2_sse2;
 
     if( cpu&X264_CPU_SSE2_IS_SLOW )
         return;

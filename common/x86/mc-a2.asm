@@ -880,11 +880,58 @@ cglobal plane_copy_core_mmxext, 6,7
     emms
     RET
 
+%ifdef HIGH_BIT_DEPTH
+
+%macro INTERLEAVE 4-5 ; dst, srcu, srcv, is_aligned, nt_hint
+%if mmsize==16
+    mov%4       m0, [%2]
+    mov%4       m1, [%3]
+    SBUTTERFLY  wd, 0, 1, 2
+    mov%5a [%1+ 0], m0
+    mov%5a [%1+16], m1
+%else
+    movq        m0, [%2+0]
+    movq        m1, [%3+0]
+    SBUTTERFLY  wd, 0, 1, 2
+    mov%5q [%1+ 0], m0
+    mov%5q [%1+ 8], m1
+    movq        m0, [%2+8]
+    movq        m1, [%3+8]
+    SBUTTERFLY  wd, 0, 1, 2
+    mov%5q [%1+16], m0
+    mov%5q [%1+24], m1
+%endif
+%endmacro
+
+%macro PLANE_INTERLEAVE 1
+;-----------------------------------------------------------------------------
+; void store_interleave_8x8x2( uint16_t *dst, int i_dst, uint16_t *srcu, uint16_t *srcv )
+;-----------------------------------------------------------------------------
+cglobal store_interleave_8x8x2_%1, 4,5
+    mov    r4d, 16
+    FIX_STRIDES r1
+.loop:
+    INTERLEAVE r0, r2, r3, a
+    add    r2, FDEC_STRIDEB
+    add    r3, FDEC_STRIDEB
+    add    r0, r1
+    dec    r4d
+    jg .loop
+    REP_RET
+
+%endmacro ; PLANE_INTERLEAVE
+
+INIT_MMX
+PLANE_INTERLEAVE mmxext
+INIT_XMM
+PLANE_INTERLEAVE sse2
+
+%else ;!HIGH_BIT_DEPTH
 
 %macro INTERLEAVE 4-5 ; dst, srcu, srcv, is_aligned, nt_hint
     movq   m0, [%2]
 %if mmsize==16
-%if %4
+%ifidn %4, a
     punpcklbw m0, [%3]
 %else
     movq   m1, [%3]
@@ -969,8 +1016,8 @@ cglobal plane_copy_interleave_core_%1, 6,7
     mov    r6d, r6m
     neg    r6
 .loopx:
-    INTERLEAVE r0+r6*2,    r2+r6,   r4+r6,   0, nt
-    INTERLEAVE r0+r6*2+16, r2+r6+8, r4+r6+8, 0, nt
+    INTERLEAVE r0+r6*2,    r2+r6,   r4+r6,   u, nt
+    INTERLEAVE r0+r6*2+16, r2+r6+8, r4+r6+8, u, nt
     add    r6, 16
     jl .loopx
 .pad:
@@ -1001,8 +1048,8 @@ cglobal plane_copy_interleave_core_%1, 6,7
 cglobal store_interleave_8x8x2_%1, 4,5
     mov    r4d, 4
 .loop:
-    INTERLEAVE r0, r2, r3, 1
-    INTERLEAVE r0+r1, r2+FDEC_STRIDE, r3+FDEC_STRIDE, 1
+    INTERLEAVE r0, r2, r3, a
+    INTERLEAVE r0+r1, r2+FDEC_STRIDE, r3+FDEC_STRIDE, a
     add    r2, FDEC_STRIDE*2
     add    r3, FDEC_STRIDE*2
     lea    r0, [r0+r1*2]
@@ -1088,6 +1135,7 @@ PLANE_INTERLEAVE sse2
 PLANE_DEINTERLEAVE sse2
 PLANE_DEINTERLEAVE ssse3
 
+%endif ; HIGH_BIT_DEPTH
 
 ; These functions are not general-use; not only do the SSE ones require aligned input,
 ; but they also will fail if given a non-mod16 size or a size less than 64.
