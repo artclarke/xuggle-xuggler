@@ -168,7 +168,7 @@ cextern pb_reverse
 ;-----------------------------------------------------------------------------
 %macro PREDICT_4x4_DDL 4
 cglobal predict_4x4_ddl_%1, 1,1
-    mova    m1, [r0-FDEC_STRIDEB]
+    movu    m1, [r0-FDEC_STRIDEB]
     mova    m2, m1
     mova    m3, m1
     mova    m4, m1
@@ -224,8 +224,21 @@ PREDICT_4x4_DDL mmxext, q , 8, b
 ;-----------------------------------------------------------------------------
 %macro PREDICT_4x4 7
 cglobal predict_4x4_ddr_%1, 1,1
-    mova      m1, [r0+1*FDEC_STRIDEB-8*SIZEOF_PIXEL]
-    mova      m2, [r0+0*FDEC_STRIDEB-8*SIZEOF_PIXEL]
+    movu      m1, [r0+1*FDEC_STRIDEB-8*SIZEOF_PIXEL]
+    movq      m2, [r0+0*FDEC_STRIDEB-8]
+%ifdef HIGH_BIT_DEPTH
+    movh      m4, [r0-1*FDEC_STRIDEB-4*SIZEOF_PIXEL]
+    punpckl%2 m2, m4
+    movh      m3, [r0-1*FDEC_STRIDEB]
+    punpckh%3 m1, m2
+    PALIGNR   m3, m1, 5*SIZEOF_PIXEL, m1
+    mova      m1, m3
+    movhps    m4, [r0+2*FDEC_STRIDEB-4*SIZEOF_PIXEL]
+    PALIGNR   m3, m4, 7*SIZEOF_PIXEL, m4
+    mova      m2, m3
+    movhps    m4, [r0+3*FDEC_STRIDEB-4*SIZEOF_PIXEL]
+    PALIGNR   m3, m4, 7*SIZEOF_PIXEL, m4
+%else
     punpckh%2 m2, [r0-1*FDEC_STRIDEB-8*SIZEOF_PIXEL]
     movh      m3, [r0-1*FDEC_STRIDEB]
     punpckh%3 m1, m2
@@ -234,6 +247,7 @@ cglobal predict_4x4_ddr_%1, 1,1
     PALIGNR   m3, [r0+2*FDEC_STRIDEB-8*SIZEOF_PIXEL], 7*SIZEOF_PIXEL, m4
     mova      m2, m3
     PALIGNR   m3, [r0+3*FDEC_STRIDEB-8*SIZEOF_PIXEL], 7*SIZEOF_PIXEL, m4
+%endif
     PRED8x8_LOWPASS %5, m0, m3, m1, m2, m4
 %assign Y 3
     movh      [r0+Y*FDEC_STRIDEB], m0
@@ -247,6 +261,19 @@ cglobal predict_4x4_ddr_%1, 1,1
 cglobal predict_4x4_vr_%1, 1,1,6*(mmsize/16)
     movh    m0, [r0-1*FDEC_STRIDEB]                                       ; ........t3t2t1t0
     mova    m5, m0
+%ifdef HIGH_BIT_DEPTH
+    movhps  m1, [r0-1*FDEC_STRIDEB-4*SIZEOF_PIXEL]
+    PALIGNR m0, m1, 7*SIZEOF_PIXEL, m1                                    ; ......t3t2t1t0lt
+    pavg%5  m5, m0
+    movhps  m1, [r0+0*FDEC_STRIDEB-4*SIZEOF_PIXEL]
+    PALIGNR m0, m1, 7*SIZEOF_PIXEL, m1                                    ; ....t3t2t1t0ltl0
+    mova    m1, m0
+    movhps  m2, [r0+1*FDEC_STRIDEB-4*SIZEOF_PIXEL]
+    PALIGNR m0, m2, 7*SIZEOF_PIXEL, m2                                    ; ..t3t2t1t0ltl0l1
+    mova    m2, m0
+    movhps  m3, [r0+2*FDEC_STRIDEB-4*SIZEOF_PIXEL]
+    PALIGNR m0, m3, 7*SIZEOF_PIXEL, m3                                    ; t3t2t1t0ltl0l1l2
+%else
     PALIGNR m0, [r0-1*FDEC_STRIDEB-8*SIZEOF_PIXEL], 7*SIZEOF_PIXEL, m1    ; ......t3t2t1t0lt
     pavg%5  m5, m0
     PALIGNR m0, [r0+0*FDEC_STRIDEB-8*SIZEOF_PIXEL], 7*SIZEOF_PIXEL, m1    ; ....t3t2t1t0ltl0
@@ -254,6 +281,7 @@ cglobal predict_4x4_vr_%1, 1,1,6*(mmsize/16)
     PALIGNR m0, [r0+1*FDEC_STRIDEB-8*SIZEOF_PIXEL], 7*SIZEOF_PIXEL, m2    ; ..t3t2t1t0ltl0l1
     mova    m2, m0
     PALIGNR m0, [r0+2*FDEC_STRIDEB-8*SIZEOF_PIXEL], 7*SIZEOF_PIXEL, m3    ; t3t2t1t0ltl0l1l2
+%endif
     PRED8x8_LOWPASS %5, m3, m1, m0, m2, m4
     mova    m1, m3
     psrl%4  m3, %7*2
@@ -269,12 +297,24 @@ cglobal predict_4x4_vr_%1, 1,1,6*(mmsize/16)
 
 cglobal predict_4x4_hd_%1, 1,1,6*(mmsize/16)
     movh      m0, [r0-1*FDEC_STRIDEB-4*SIZEOF_PIXEL] ; lt ..
+%ifdef HIGH_BIT_DEPTH
+    movh      m1, [r0-1*FDEC_STRIDEB]
+    punpckl%6 m0, m1                                 ; t3 t2 t1 t0 lt .. .. ..
+    psll%4    m0, %7                                 ; t2 t1 t0 lt .. .. .. ..
+    movh      m1, [r0+3*FDEC_STRIDEB-4*SIZEOF_PIXEL] ; l3
+    movh      m2, [r0+2*FDEC_STRIDEB-4*SIZEOF_PIXEL]
+    punpckl%2 m1, m2                                 ; l2 l3
+    movh      m2, [r0+1*FDEC_STRIDEB-4*SIZEOF_PIXEL] ; l1
+    movh      m3, [r0+0*FDEC_STRIDEB-4*SIZEOF_PIXEL]
+    punpckl%2 m2, m3                                 ; l0 l1
+%else
     punpckl%6 m0, [r0-1*FDEC_STRIDEB]                ; t3 t2 t1 t0 lt .. .. ..
     psll%4    m0, %7                                 ; t2 t1 t0 lt .. .. .. ..
-    mova      m1, [r0+3*FDEC_STRIDEB-8*SIZEOF_PIXEL] ; l3
+    movu      m1, [r0+3*FDEC_STRIDEB-8*SIZEOF_PIXEL] ; l3
     punpckh%2 m1, [r0+2*FDEC_STRIDEB-8*SIZEOF_PIXEL] ; l2 l3
-    mova      m2, [r0+1*FDEC_STRIDEB-8*SIZEOF_PIXEL] ; l1
+    movu      m2, [r0+1*FDEC_STRIDEB-8*SIZEOF_PIXEL] ; l1
     punpckh%2 m2, [r0+0*FDEC_STRIDEB-8*SIZEOF_PIXEL] ; l0 l1
+%endif
     punpckh%3 m1, m2                                 ; l0 l1 l2 l3
     punpckh%6 m1, m0                                 ; t2 t1 t0 lt l0 l1 l2 l3
     mova      m0, m1
@@ -378,7 +418,7 @@ cglobal predict_4x4_hu_mmxext, 1,1
 ;-----------------------------------------------------------------------------
 %macro PREDICT_4x4_V1 4
 cglobal predict_4x4_vl_%1, 1,1,6*(mmsize/16)
-    mova        m1, [r0-FDEC_STRIDEB]
+    movu        m1, [r0-FDEC_STRIDEB]
     mova        m3, m1
     mova        m2, m1
     psrl%2      m3, %3

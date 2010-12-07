@@ -505,14 +505,14 @@ void x264_predict_4x4_init_mmx( int cpu, x264_predict_t pf[12] )
 #if HIGH_BIT_DEPTH
     if( !(cpu&X264_CPU_SSE2) )
         return;
-//  pf[I_PRED_4x4_DDL] = x264_predict_4x4_ddl_sse2;
+    pf[I_PRED_4x4_DDL] = x264_predict_4x4_ddl_sse2;
     pf[I_PRED_4x4_HU]  = x264_predict_4x4_hu_sse2;
-//  pf[I_PRED_4x4_VL]  = x264_predict_4x4_vl_sse2;
+    pf[I_PRED_4x4_VL]  = x264_predict_4x4_vl_sse2;
     if( !(cpu&X264_CPU_SSSE3) )
         return;
-//  pf[I_PRED_4x4_DDR] = x264_predict_4x4_ddr_ssse3;
-//  pf[I_PRED_4x4_VR]  = x264_predict_4x4_vr_ssse3;
-//  pf[I_PRED_4x4_HD]  = x264_predict_4x4_hd_ssse3;
+    pf[I_PRED_4x4_DDR] = x264_predict_4x4_ddr_ssse3;
+    pf[I_PRED_4x4_VR]  = x264_predict_4x4_vr_ssse3;
+    pf[I_PRED_4x4_HD]  = x264_predict_4x4_hd_ssse3;
 #else
     pf[I_PRED_4x4_VR]  = x264_predict_4x4_vr_mmxext;
     pf[I_PRED_4x4_DDR] = x264_predict_4x4_ddr_mmxext;
