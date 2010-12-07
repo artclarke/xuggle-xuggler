@@ -119,7 +119,7 @@ static ALWAYS_INLINE int cached_satd( x264_t *h, int size, int x, int y )
 
 static inline int ssd_plane( x264_t *h, int size, int p, int x, int y )
 {
-    ALIGNED_16(static pixel zero[16]);
+    ALIGNED_16( static pixel zero[16] );
     int satd = 0;
     pixel *fdec = h->mb.pic.p_fdec[p] + x + y*FDEC_STRIDE;
     pixel *fenc = h->mb.pic.p_fenc[p] + x + y*FENC_STRIDE;

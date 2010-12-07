@@ -368,7 +368,7 @@ case $host_cpu in
     x86_64)
         ARCH="X86_64"
         AS="yasm"
-        if [ "$SYS" = MACOSX ];then
+        if [ "$SYS" = MACOSX ]; then
             ASFLAGS="$ASFLAGS -f macho64 -m amd64 -DPIC -DPREFIX"
             if cc_check '' "-arch x86_64"; then
                 CFLAGS="$CFLAGS -arch x86_64"
@@ -716,6 +716,11 @@ fi
 
 if cc_check '' -fno-tree-vectorize ; then
     CFLAGS="$CFLAGS -fno-tree-vectorize"
+fi
+
+if [ $SYS = MINGW -a $ARCH = X86 ] ; then
+    # workaround gcc/ld bug with alignment of static variables/arrays that are initialized to zero
+    cc_check '' -fno-zero-initialized-in-bss && CFLAGS="$CFLAGS -fno-zero-initialized-in-bss"
 fi
 
 if cc_check "stdio.h" "" "fseeko(stdin,0,0);" ; then

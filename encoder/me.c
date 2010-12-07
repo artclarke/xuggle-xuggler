@@ -589,8 +589,6 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
             /* successive elimination by comparing DC before a full SAD,
              * because sum(abs(diff)) >= abs(diff(sum)). */
             uint16_t *sums_base = m->integral;
-            /* due to a GCC bug on some platforms (win32?), zero[] may not actually be aligned.
-             * this is not a problem because it is not used for any SSE instructions. */
             ALIGNED_16( static pixel zero[8*FENC_STRIDE] );
             ALIGNED_ARRAY_16( int, enc_dc,[4] );
             int sad_size = i_pixel <= PIXEL_8x8 ? PIXEL_8x8 : PIXEL_4x4;
