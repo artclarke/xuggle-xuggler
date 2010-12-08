@@ -891,136 +891,158 @@ cglobal zigzag_scan_8x8_frame_%1, 2,2,8
     RET
 %endmacro
 
+%ifndef HIGH_BIT_DEPTH
 INIT_XMM
 %define PALIGNR PALIGNR_MMX
 SCAN_8x8 sse2
 %define PALIGNR PALIGNR_SSSE3
 SCAN_8x8 ssse3
+%endif
 
 ;-----------------------------------------------------------------------------
-; void zigzag_scan_8x8_frame( int16_t level[64], int16_t dct[8][8] )
+; void zigzag_scan_8x8_frame( dctcoef level[64], dctcoef dct[8][8] )
 ;-----------------------------------------------------------------------------
-cglobal zigzag_scan_8x8_frame_mmxext, 2,2
-    movq       mm0, [r1]
-    movq       mm1, [r1+2*8]
-    movq       mm2, [r1+2*14]
-    movq       mm3, [r1+2*21]
-    movq       mm4, [r1+2*28]
-    movq       mm5, mm0
-    movq       mm6, mm1
-    psrlq      mm0, 16
-    punpckldq  mm1, mm1
-    punpcklwd  mm5, mm6
-    punpckhwd  mm1, mm3
-    punpckhwd  mm6, mm0
-    punpckldq  mm5, mm0
-    movq       mm7, [r1+2*52]
-    movq       mm0, [r1+2*60]
-    punpckhwd  mm1, mm2
-    punpcklwd  mm2, mm4
-    punpckhwd  mm4, mm3
-    punpckldq  mm3, mm3
-    punpckhwd  mm3, mm2
-    movq      [r0], mm5
-    movq  [r0+2*4], mm1
-    movq  [r0+2*8], mm6
-    punpcklwd  mm6, mm0
-    punpcklwd  mm6, mm7
-    movq       mm1, [r1+2*32]
-    movq       mm5, [r1+2*39]
-    movq       mm2, [r1+2*46]
-    movq [r0+2*35], mm3
-    movq [r0+2*47], mm4
-    punpckhwd  mm7, mm0
-    psllq      mm0, 16
-    movq       mm3, mm5
-    punpcklwd  mm5, mm1
-    punpckhwd  mm1, mm2
-    punpckhdq  mm3, mm3
-    movq [r0+2*52], mm6
-    movq [r0+2*13], mm5
-    movq       mm4, [r1+2*11]
-    movq       mm6, [r1+2*25]
-    punpcklwd  mm5, mm7
-    punpcklwd  mm1, mm3
-    punpckhdq  mm0, mm7
-    movq       mm3, [r1+2*4]
-    movq       mm7, [r1+2*18]
-    punpcklwd  mm2, mm5
-    movq [r0+2*25], mm1
-    movq       mm1, mm4
-    movq       mm5, mm6
-    punpcklwd  mm4, mm3
-    punpcklwd  mm6, mm7
-    punpckhwd  mm1, mm3
-    punpckhwd  mm5, mm7
-    movq       mm3, mm6
-    movq       mm7, mm5
-    punpckldq  mm6, mm4
-    punpckldq  mm5, mm1
-    punpckhdq  mm3, mm4
-    punpckhdq  mm7, mm1
-    movq       mm4, [r1+2*35]
-    movq       mm1, [r1+2*49]
-    pshufw     mm6, mm6, 0x1b
-    pshufw     mm5, mm5, 0x1b
-    movq [r0+2*60], mm0
-    movq [r0+2*56], mm2
-    movq       mm0, [r1+2*42]
-    movq       mm2, [r1+2*56]
-    movq [r0+2*17], mm3
-    movq [r0+2*32], mm7
-    movq [r0+2*10], mm6
-    movq [r0+2*21], mm5
-    movq       mm3, mm0
-    movq       mm7, mm2
-    punpcklwd  mm0, mm4
-    punpcklwd  mm2, mm1
-    punpckhwd  mm3, mm4
-    punpckhwd  mm7, mm1
-    movq       mm4, mm2
-    movq       mm1, mm7
-    punpckhdq  mm2, mm0
-    punpckhdq  mm7, mm3
-    punpckldq  mm4, mm0
-    punpckldq  mm1, mm3
-    pshufw     mm2, mm2, 0x1b
-    pshufw     mm7, mm7, 0x1b
-    movq [r0+2*28], mm4
-    movq [r0+2*43], mm1
-    movq [r0+2*39], mm2
-    movq [r0+2*50], mm7
+%macro SCAN_8x8_FRAME 6
+cglobal zigzag_scan_8x8_frame_%1, 2,2,8*(mmsize/16)
+    mova        m0, [r1]
+    mova        m1, [r1+ 8*SIZEOF_DCTCOEF]
+    movu        m2, [r1+14*SIZEOF_DCTCOEF]
+    movu        m3, [r1+21*SIZEOF_DCTCOEF]
+    mova        m4, [r1+28*SIZEOF_DCTCOEF]
+    mova        m5, m0
+    mova        m6, m1
+    psrl%3      m0, %2
+    punpckl%4   m1, m1
+    punpckl%5   m5, m6
+    punpckh%5   m1, m3
+    punpckh%5   m6, m0
+    punpckl%4   m5, m0
+    mova        m7, [r1+52*SIZEOF_DCTCOEF]
+    mova        m0, [r1+60*SIZEOF_DCTCOEF]
+    punpckh%5   m1, m2
+    punpckl%5   m2, m4
+    punpckh%5   m4, m3
+    punpckl%4   m3, m3
+    punpckh%5   m3, m2
+    mova      [r0], m5
+    mova  [r0+ 4*SIZEOF_DCTCOEF], m1
+    mova  [r0+ 8*SIZEOF_DCTCOEF], m6
+    punpckl%5   m6, m0
+    punpckl%5   m6, m7
+    mova        m1, [r1+32*SIZEOF_DCTCOEF]
+    movu        m5, [r1+39*SIZEOF_DCTCOEF]
+    movu        m2, [r1+46*SIZEOF_DCTCOEF]
+    movu [r0+35*SIZEOF_DCTCOEF], m3
+    movu [r0+47*SIZEOF_DCTCOEF], m4
+    punpckh%5   m7, m0
+    psll%3      m0, %2
+    mova        m3, m5
+    punpckl%5   m5, m1
+    punpckh%5   m1, m2
+    punpckh%4   m3, m3
+    mova [r0+52*SIZEOF_DCTCOEF], m6
+    movu [r0+13*SIZEOF_DCTCOEF], m5
+    movu        m4, [r1+11*SIZEOF_DCTCOEF]
+    movu        m6, [r1+25*SIZEOF_DCTCOEF]
+    punpckl%5   m5, m7
+    punpckl%5   m1, m3
+    punpckh%4   m0, m7
+    mova        m3, [r1+ 4*SIZEOF_DCTCOEF]
+    movu        m7, [r1+18*SIZEOF_DCTCOEF]
+    punpckl%5   m2, m5
+    movu [r0+25*SIZEOF_DCTCOEF], m1
+    mova        m1, m4
+    mova        m5, m6
+    punpckl%5   m4, m3
+    punpckl%5   m6, m7
+    punpckh%5   m1, m3
+    punpckh%5   m5, m7
+    mova        m3, m6
+    mova        m7, m5
+    punpckl%4   m6, m4
+    punpckl%4   m5, m1
+    punpckh%4   m3, m4
+    punpckh%4   m7, m1
+    movu        m4, [r1+35*SIZEOF_DCTCOEF]
+    movu        m1, [r1+49*SIZEOF_DCTCOEF]
+    pshuf%6     m6, m6, 0x1b
+    pshuf%6     m5, m5, 0x1b
+    mova [r0+60*SIZEOF_DCTCOEF], m0
+    mova [r0+56*SIZEOF_DCTCOEF], m2
+    movu        m0, [r1+42*SIZEOF_DCTCOEF]
+    mova        m2, [r1+56*SIZEOF_DCTCOEF]
+    movu [r0+17*SIZEOF_DCTCOEF], m3
+    mova [r0+32*SIZEOF_DCTCOEF], m7
+    movu [r0+10*SIZEOF_DCTCOEF], m6
+    movu [r0+21*SIZEOF_DCTCOEF], m5
+    mova        m3, m0
+    mova        m7, m2
+    punpckl%5   m0, m4
+    punpckl%5   m2, m1
+    punpckh%5   m3, m4
+    punpckh%5   m7, m1
+    mova        m4, m2
+    mova        m1, m7
+    punpckh%4   m2, m0
+    punpckh%4   m7, m3
+    punpckl%4   m4, m0
+    punpckl%4   m1, m3
+    pshuf%6     m2, m2, 0x1b
+    pshuf%6     m7, m7, 0x1b
+    mova [r0+28*SIZEOF_DCTCOEF], m4
+    movu [r0+43*SIZEOF_DCTCOEF], m1
+    movu [r0+39*SIZEOF_DCTCOEF], m2
+    movu [r0+50*SIZEOF_DCTCOEF], m7
     RET
+%endmacro
+
+%ifdef HIGH_BIT_DEPTH
+INIT_XMM
+SCAN_8x8_FRAME sse2  , 4 , dq, qdq, dq, d
+%else
+INIT_MMX
+SCAN_8x8_FRAME mmxext, 16, q , dq , wd, w
+%endif
 
 ;-----------------------------------------------------------------------------
-; void zigzag_scan_4x4_frame( int16_t level[16], int16_t dct[4][4] )
+; void zigzag_scan_4x4_frame( dctcoef level[16], dctcoef dct[4][4] )
 ;-----------------------------------------------------------------------------
-cglobal zigzag_scan_4x4_frame_mmx, 2,2
-    movq       mm0, [r1]
-    movq       mm1, [r1+8]
-    movq       mm2, [r1+16]
-    movq       mm3, [r1+24]
-    movq       mm4, mm0
-    movq       mm5, mm1
-    movq       mm6, mm2
-    movq       mm7, mm3
-    psllq      mm3, 16
-    psrlq      mm0, 16
-    punpckldq  mm2, mm2
-    punpckhdq  mm1, mm1
-    punpcklwd  mm4, mm5
-    punpcklwd  mm5, mm3
-    punpckldq  mm4, mm0
-    punpckhwd  mm5, mm2
-    punpckhwd  mm0, mm6
-    punpckhwd  mm6, mm7
-    punpcklwd  mm1, mm0
-    punpckhdq  mm3, mm6
-    movq      [r0], mm4
-    movq    [r0+8], mm5
-    movq   [r0+16], mm1
-    movq   [r0+24], mm3
+%macro SCAN_4x4 5
+cglobal zigzag_scan_4x4_frame_%1, 2,2,8*(mmsize)/16
+    mova       m0, [r1]
+    mova       m1, [r1+ 4*SIZEOF_DCTCOEF]
+    mova       m2, [r1+ 8*SIZEOF_DCTCOEF]
+    mova       m3, [r1+12*SIZEOF_DCTCOEF]
+    mova       m4, m0
+    mova       m5, m1
+    mova       m6, m2
+    mova       m7, m3
+    psll%3     m3, %2
+    psrl%3     m0, %2
+    punpckl%4  m2, m2
+    punpckh%4  m1, m1
+    punpckl%5  m4, m5
+    punpckl%5  m5, m3
+    punpckl%4  m4, m0
+    punpckh%5  m5, m2
+    punpckh%5  m0, m6
+    punpckh%5  m6, m7
+    punpckl%5  m1, m0
+    punpckh%4  m3, m6
+    mova     [r0], m4
+    mova  [r0+ 4*SIZEOF_DCTCOEF], m5
+    mova  [r0+ 8*SIZEOF_DCTCOEF], m1
+    mova  [r0+12*SIZEOF_DCTCOEF], m3
     RET
+%endmacro
+
+%ifdef HIGH_BIT_DEPTH
+INIT_XMM
+SCAN_4x4 sse2, 4 , dq, qdq, dq
+%else
+INIT_MMX
+SCAN_4x4 mmx , 16, q , dq , wd
+%endif
 
 ;-----------------------------------------------------------------------------
 ; void zigzag_scan_4x4_frame( int16_t level[16], int16_t dct[4][4] )
@@ -1039,6 +1061,25 @@ cglobal zigzag_scan_4x4_frame_ssse3, 2,2
     movdqa [r0+16], xmm1
     RET
 
+%ifdef HIGH_BIT_DEPTH
+INIT_XMM
+;-----------------------------------------------------------------------------
+; void zigzag_scan_4x4_field( int32_t level[16], int32_t dct[4][4] )
+;-----------------------------------------------------------------------------
+cglobal zigzag_scan_4x4_field_sse2, 2,3
+    movu       m4, [r1+8]
+    pshufd     m0, m4, 0xd2
+    mova       m1, [r1+32]
+    mova       m2, [r1+48]
+    movu   [r0+8], m0
+    mova  [r0+32], m1
+    mova  [r0+48], m2
+    movq      mm0, [r1]
+    movq     [r0], mm0
+    movq      mm0, [r1+24]
+    movq  [r0+24], mm0
+    RET
+%else
 ;-----------------------------------------------------------------------------
 ; void zigzag_scan_4x4_field( int16_t level[16], int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
@@ -1055,11 +1096,11 @@ cglobal zigzag_scan_4x4_field_mmxext, 2,3
     mov        r2d, [r1+12]
     mov    [r0+12], r2d
     RET
+%endif ; HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
 ; void zigzag_scan_8x8_field( int16_t level[64], int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
-
 ; Output order:
 ;  0  1  2  8  9  3  4 10
 ; 16 11  5  6  7 12 17 24
@@ -1069,84 +1110,93 @@ cglobal zigzag_scan_4x4_field_mmxext, 2,3
 ; 36 37 38 39 43 49 50 44
 ; 45 46 47 51 56 57 52 53
 ; 54 55 58 59 60 61 62 63
-
-cglobal zigzag_scan_8x8_field_mmxext, 2,3
-    movq       mm0, [r1+2*0]        ; 03 02 01 00
-    movq       mm1, [r1+2*4]        ; 07 06 05 04
-    movq       mm2, [r1+2*8]        ; 11 10 09 08
-    pshufw     mm3, mm0, 011111111b ; 03 03 03 03
-    movd        r2, mm2             ; 09 08
-    pshufw     mm2, mm2, 000111001b ; 08 11 10 09
-    punpcklwd  mm3, mm1             ; 05 03 04 03
-    pinsrw     mm0, r2, 3           ; 08 02 01 00
-    movq       mm4, mm2
-    punpcklwd  mm2, mm3             ; 04 10 03 09
-    pshufw     mm2, mm2, 010110100b ; 10 04 03 09
-    movq  [r0+2*0], mm0             ; 08 02 01 00
-    movq  [r0+2*4], mm2             ; 10 04 03 09
-    movq       mm3, [r1+2*12]       ; 15 14 13 12
-    movq       mm5, [r1+2*16]       ; 19 18 17 16
-    punpckldq  mm6, mm5             ; 17 16 XX XX
-    psrlq      mm1, 16              ; XX 07 06 05
-    punpckhwd  mm6, mm4             ; 08 17 11 16
-    punpckldq  mm6, mm1             ; 06 05 11 16
-    movq  [r0+2*8], mm6             ; 06 05 11 16
-    psrlq      mm1, 16              ; XX XX 07 06
-    punpcklwd  mm1, mm5             ; 17 07 16 06
-    movq       mm0, [r1+2*20]       ; 23 22 21 20
-    movq       mm2, [r1+2*24]       ; 27 26 25 24
-    movq       mm6, mm3
-    punpckhdq  mm1, mm1             ; 17 07 17 07
-    punpcklwd  mm6, mm2             ; 25 13 24 12
-    pextrw      r2, mm5, 2
-    movq [r0+2*24], mm0             ; 23 22 21 20
-    punpcklwd  mm1, mm6             ; 24 17 12 07
-    movq [r0+2*12], mm1
-    pinsrw     mm3, r2, 0           ; 15 14 13 18
-    movq [r0+2*16], mm3             ; 15 14 13 18
-    movq       mm7, [r1+2*28]
-    movq       mm0, [r1+2*32]       ; 35 34 33 32
-    psrlq      mm5, 48              ; XX XX XX 19
-    pshufw     mm1, mm2, 011111001b ; 27 27 26 25
-    punpcklwd  mm5, mm0             ; 33 XX 32 19
-    psrlq      mm2, 48              ; XX XX XX 27
-    punpcklwd  mm5, mm1             ; 26 32 25 19
-    movq [r0+2*32], mm7
-    movq [r0+2*20], mm5             ; 26 32 25 19
-    movq       mm7, [r1+2*36]
-    movq       mm1, [r1+2*40]       ; 43 42 41 40
-    pshufw     mm3, mm0, 011111001b ; 35 35 34 33
-    punpcklwd  mm2, mm1             ; 41 XX 40 27
-    movq [r0+2*40], mm7
-    punpcklwd  mm2, mm3             ; 34 40 33 27
-    movq [r0+2*28], mm2
-    movq       mm7, [r1+2*44]       ; 47 46 45 44
-    movq       mm2, [r1+2*48]       ; 51 50 49 48
-    psrlq      mm0, 48              ; XX XX XX 35
-    punpcklwd  mm0, mm2             ; 49 XX 48 35
-    pshufw     mm3, mm1, 011111001b ; 43 43 42 41
-    punpcklwd  mm0, mm3             ; 42 48 41 35
-    movq [r0+2*36], mm0
-    pextrw      r2, mm2, 3          ; 51
-    psrlq      mm1, 48              ; XX XX XX 43
-    punpcklwd  mm1, mm7             ; 45 XX 44 43
-    psrlq      mm2, 16              ; XX 51 50 49
-    punpcklwd  mm1, mm2             ; 50 44 49 43
-    pshufw     mm1, mm1, 010110100b ; 44 50 49 43
-    movq [r0+2*44], mm1
-    psrlq      mm7, 16              ; XX 47 46 45
-    pinsrw     mm7, r2, 3           ; 51 47 46 45
-    movq [r0+2*48], mm7
-    movq       mm0, [r1+2*56]       ; 59 58 57 56
-    movq       mm1, [r1+2*52]       ; 55 54 53 52
-    movq       mm2, mm0
-    movq       mm7, [r1+2*60]
-    punpckldq  mm2, mm1             ; 53 52 57 56
-    punpckhdq  mm1, mm0             ; 59 58 55 54
-    movq [r0+2*52], mm2
-    movq [r0+2*56], mm1
-    movq [r0+2*60], mm7
+%undef SCAN_8x8
+%macro SCAN_8x8 6
+cglobal zigzag_scan_8x8_field_%1, 2,3,8*(mmsize/16)
+    mova       m0, [r1+ 0*SIZEOF_DCTCOEF]       ; 03 02 01 00
+    mova       m1, [r1+ 4*SIZEOF_DCTCOEF]       ; 07 06 05 04
+    mova       m2, [r1+ 8*SIZEOF_DCTCOEF]       ; 11 10 09 08
+    pshuf%2    m3, m0, 011111111b               ; 03 03 03 03
+    movd       r2, m2                           ; 09 08
+    pshuf%2    m2, m2, 000111001b               ; 08 11 10 09
+    punpckl%3  m3, m1                           ; 05 03 04 03
+    pinsr%2    m0, r2d, 3                       ; 08 02 01 00
+    mova       m4, m2
+    punpckl%3  m2, m3                           ; 04 10 03 09
+    pshuf%2    m2, m2, 010110100b               ; 10 04 03 09
+    mova  [r0+ 0*SIZEOF_DCTCOEF], m0            ; 08 02 01 00
+    mova  [r0+ 4*SIZEOF_DCTCOEF], m2            ; 10 04 03 09
+    mova       m3, [r1+12*SIZEOF_DCTCOEF]       ; 15 14 13 12
+    mova       m5, [r1+16*SIZEOF_DCTCOEF]       ; 19 18 17 16
+    punpckl%4  m6, m5                           ; 17 16 XX XX
+    psrl%5     m1, %6                           ; XX 07 06 05
+    punpckh%3  m6, m4                           ; 08 17 11 16
+    punpckl%4  m6, m1                           ; 06 05 11 16
+    mova  [r0+ 8*SIZEOF_DCTCOEF], m6            ; 06 05 11 16
+    psrl%5     m1, %6                           ; XX XX 07 06
+    punpckl%3  m1, m5                           ; 17 07 16 06
+    mova       m0, [r1+20*SIZEOF_DCTCOEF]       ; 23 22 21 20
+    mova       m2, [r1+24*SIZEOF_DCTCOEF]       ; 27 26 25 24
+    mova       m6, m3
+    punpckh%4  m1, m1                           ; 17 07 17 07
+    punpckl%3  m6, m2                           ; 25 13 24 12
+    pextr%2    r2d, m5, 2
+    mova [r0+24*SIZEOF_DCTCOEF], m0             ; 23 22 21 20
+    punpckl%3  m1, m6                           ; 24 17 12 07
+    mova [r0+12*SIZEOF_DCTCOEF], m1
+    pinsr%2    m3, r2d, 0                       ; 15 14 13 18
+    mova [r0+16*SIZEOF_DCTCOEF], m3             ; 15 14 13 18
+    mova       m7, [r1+28*SIZEOF_DCTCOEF]
+    mova       m0, [r1+32*SIZEOF_DCTCOEF]       ; 35 34 33 32
+    psrl%5     m5, %6*3                         ; XX XX XX 19
+    pshuf%2    m1, m2, 011111001b               ; 27 27 26 25
+    punpckl%3  m5, m0                           ; 33 XX 32 19
+    psrl%5     m2, %6*3                         ; XX XX XX 27
+    punpckl%3  m5, m1                           ; 26 32 25 19
+    mova [r0+32*SIZEOF_DCTCOEF], m7
+    mova [r0+20*SIZEOF_DCTCOEF], m5             ; 26 32 25 19
+    mova       m7, [r1+36*SIZEOF_DCTCOEF]
+    mova       m1, [r1+40*SIZEOF_DCTCOEF]       ; 43 42 41 40
+    pshuf%2    m3, m0, 011111001b               ; 35 35 34 33
+    punpckl%3  m2, m1                           ; 41 XX 40 27
+    mova [r0+40*SIZEOF_DCTCOEF], m7
+    punpckl%3  m2, m3                           ; 34 40 33 27
+    mova [r0+28*SIZEOF_DCTCOEF], m2
+    mova       m7, [r1+44*SIZEOF_DCTCOEF]       ; 47 46 45 44
+    mova       m2, [r1+48*SIZEOF_DCTCOEF]       ; 51 50 49 48
+    psrl%5     m0, %6*3                         ; XX XX XX 35
+    punpckl%3  m0, m2                           ; 49 XX 48 35
+    pshuf%2    m3, m1, 011111001b               ; 43 43 42 41
+    punpckl%3  m0, m3                           ; 42 48 41 35
+    mova [r0+36*SIZEOF_DCTCOEF], m0
+    pextr%2     r2d, m2, 3                      ; 51
+    psrl%5      m1, %6*3                        ; XX XX XX 43
+    punpckl%3   m1, m7                          ; 45 XX 44 43
+    psrl%5      m2, %6                          ; XX 51 50 49
+    punpckl%3   m1, m2                          ; 50 44 49 43
+    pshuf%2     m1, m1, 010110100b              ; 44 50 49 43
+    mova [r0+44*SIZEOF_DCTCOEF], m1
+    psrl%5      m7, %6                          ; XX 47 46 45
+    pinsr%2     m7, r2d, 3                      ; 51 47 46 45
+    mova [r0+48*SIZEOF_DCTCOEF], m7
+    mova        m0, [r1+56*SIZEOF_DCTCOEF]      ; 59 58 57 56
+    mova        m1, [r1+52*SIZEOF_DCTCOEF]      ; 55 54 53 52
+    mova        m2, m0
+    mova        m7, [r1+60*SIZEOF_DCTCOEF]
+    punpckl%4   m2, m1                          ; 53 52 57 56
+    punpckh%4   m1, m0                          ; 59 58 55 54
+    mova [r0+52*SIZEOF_DCTCOEF], m2
+    mova [r0+56*SIZEOF_DCTCOEF], m1
+    mova [r0+60*SIZEOF_DCTCOEF], m7
     RET
+%endmacro
+%ifdef HIGH_BIT_DEPTH
+INIT_XMM
+SCAN_8x8 sse4  , d, dq, qdq, dq, 4
+%else
+INIT_MMX
+SCAN_8x8 mmxext, w, wd, dq , q , 16
+%endif
 
 ;-----------------------------------------------------------------------------
 ; void zigzag_sub_4x4_frame( int16_t level[16], const uint8_t *src, uint8_t *dst )
