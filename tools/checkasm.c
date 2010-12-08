@@ -677,8 +677,8 @@ static int check_dct( int cpu_ref, int cpu_new )
         for( int i = 0; i < 16 && ok; i++ )\
         {\
             for( int j = 0; j < 16; j++ )\
-                dct1[0][j] = !i ? (j^j>>1^j>>2^j>>3)&1 ? 4080 : -4080 /* max dc */\
-                           : i<8 ? (*p++)&1 ? 4080 : -4080 /* max elements */\
+                dct1[0][j] = !i ? (j^j>>1^j>>2^j>>3)&1 ? PIXEL_MAX*16 : -PIXEL_MAX*16 /* max dc */\
+                           : i<8 ? (*p++)&1 ? PIXEL_MAX*16 : -PIXEL_MAX*16 /* max elements */\
                            : ((*p++)&0x1fff)-0x1000; /* general case */\
             memcpy( dct2, dct1, 16 * sizeof(dctcoef) );\
             call_c1( dct_c.name, dct1[0] );\
@@ -1533,7 +1533,7 @@ static int check_quant( int cpu_ref, int cpu_new )
             for( int qp = QP_MAX; qp > 0; qp-- ) \
             { \
                 for( int i = 0; i < 16; i++ ) \
-                    dct1[i] = rand(); \
+                    dct1[i] = rand()%(PIXEL_MAX*16*2+1) - PIXEL_MAX*16; \
                 call_c1( qf_c.qname, dct1, h->quant##w##_mf[block][qp][0]>>1, h->quant##w##_bias[block][qp][0]>>1 ); \
                 memcpy( dct2, dct1, w*w*sizeof(dctcoef) ); \
                 call_c1( qf_c.dqname, dct1, h->dequant##w##_mf[block], qp ); \

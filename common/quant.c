@@ -322,6 +322,9 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->quant_8x8 = x264_quant_8x8_sse2;
         pf->quant_2x2_dc = x264_quant_2x2_dc_sse2;
         pf->quant_4x4_dc = x264_quant_4x4_dc_sse2;
+        pf->dequant_4x4 = x264_dequant_4x4_sse2;
+        pf->dequant_8x8 = x264_dequant_8x8_sse2;
+        pf->dequant_4x4_dc = x264_dequant_4x4dc_sse2;
         pf->denoise_dct = x264_denoise_dct_sse2;
         pf->decimate_score15 = x264_decimate_score15_sse2;
         pf->decimate_score16 = x264_decimate_score16_sse2;

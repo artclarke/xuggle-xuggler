@@ -473,11 +473,15 @@ QUANT_AC quant_8x8_sse4, 8
 ;;; %1      dct[y][x]
 ;;; %2,%3   dequant_mf[i_mf][y][x]
 ;;; m2      i_qbits
-
     mova     m0, %2
+%ifdef HIGH_BIT_DEPTH
+    pmaddwd  m0, %1
+    pslld    m0, m2
+%else
     packssdw m0, %3
     pmullw   m0, %1
     psllw    m0, m2
+%endif
     mova     %1, m0
 %endmacro
 
@@ -487,8 +491,12 @@ QUANT_AC quant_8x8_sse4, 8
 ;;; m2      -i_qbits
 ;;; m3      f
 ;;; m4      0
-
     mova      m0, %1
+%ifdef HIGH_BIT_DEPTH
+    pmaddwd   m0, %2
+    paddd     m0, m3
+    psrad     m0, m2
+%else
     mova      m1, m0
     punpcklwd m0, m4
     punpckhwd m1, m4
@@ -499,6 +507,7 @@ QUANT_AC quant_8x8_sse4, 8
     psrad     m0, m2
     psrad     m1, m2
     packssdw  m0, m1
+%endif
     mova      %1, m0
 %endmacro
 
@@ -506,14 +515,14 @@ QUANT_AC quant_8x8_sse4, 8
 %if 8*(%2-2*%3)
     mov t0d, 8*(%2-2*%3)
 %%loop:
-    %1 [r0+t0+8*%3], [r1+t0*2+16*%3], [r1+t0*2+24*%3]
-    %1 [r0+t0     ], [r1+t0*2      ], [r1+t0*2+ 8*%3]
+    %1 [r0+(t0     )*SIZEOF_PIXEL], [r1+t0*2      ], [r1+t0*2+ 8*%3]
+    %1 [r0+(t0+8*%3)*SIZEOF_PIXEL], [r1+t0*2+16*%3], [r1+t0*2+24*%3]
     sub t0d, 16*%3
     jge %%loop
     REP_RET
 %else
-    %1 [r0+8*%3], [r1+16*%3], [r1+24*%3]
-    %1 [r0     ], [r1      ], [r1+ 8*%3]
+    %1 [r0+(8*%3)*SIZEOF_PIXEL], [r1+16*%3], [r1+24*%3]
+    %1 [r0+(0   )*SIZEOF_PIXEL], [r1+0    ], [r1+ 8*%3]
     RET
 %endif
 %endmacro
@@ -562,10 +571,10 @@ QUANT_AC quant_8x8_sse4, 8
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void dequant_4x4( int16_t dct[4][4], int dequant_mf[6][4][4], int i_qp )
+; void dequant_4x4( dctcoef dct[4][4], int dequant_mf[6][4][4], int i_qp )
 ;-----------------------------------------------------------------------------
 %macro DEQUANT 4
-cglobal dequant_%2x%2_%1, 0,3
+cglobal dequant_%2x%2_%1, 0,3,6*(mmsize/16)
 .skip_prologue:
     DEQUANT_START %3+2, %3
 
@@ -623,6 +632,13 @@ cglobal dequant_%2x%2_flat16_%1, 0,3
     RET
 %endmacro ; DEQUANT
 
+%ifdef HIGH_BIT_DEPTH
+INIT_XMM
+DEQUANT sse2, 4, 4, 1
+DEQUANT sse4, 4, 4, 1
+DEQUANT sse2, 8, 6, 1
+DEQUANT sse4, 8, 6, 1
+%else
 %ifndef ARCH_X86_64
 INIT_MMX
 DEQUANT mmx, 4, 4, 1
@@ -631,15 +647,30 @@ DEQUANT mmx, 8, 6, 1
 INIT_XMM
 DEQUANT sse2, 4, 4, 2
 DEQUANT sse2, 8, 6, 2
+%endif
 
-%macro DEQUANT_DC 1
-cglobal dequant_4x4dc_%1, 0,3
+%macro DEQUANT_DC 2
+cglobal dequant_4x4dc_%1, 0,3,6*(mmsize/16)
     DEQUANT_START 6, 6
 
 .lshift:
-    movd   m3, [r1]
-    movd   m2, t0d
-    pslld  m3, m2
+    movd     m3, [r1]
+    movd     m2, t0d
+    pslld    m3, m2
+%ifdef HIGH_BIT_DEPTH
+    pshufd   m3, m3, 0
+%assign x 0
+%rep SIZEOF_PIXEL*16/mmsize
+    mova     m0, [r0+mmsize*0+x]
+    mova     m1, [r0+mmsize*1+x]
+    pmaddwd  m0, m3
+    pmaddwd  m1, m3
+    mova     [r0+mmsize*0+x], m0
+    mova     [r0+mmsize*1+x], m1
+%assign x x+mmsize*2
+%endrep
+
+%else ; !HIGH_BIT_DEPTH
 %if mmsize==16
     pshuflw  m3, m3, 0
     punpcklqdq m3, m3
@@ -647,7 +678,7 @@ cglobal dequant_4x4dc_%1, 0,3
     pshufw   m3, m3, 0
 %endif
 %assign x 0
-%rep 16/mmsize
+%rep SIZEOF_PIXEL*16/mmsize
     mova     m0, [r0+mmsize*0+x]
     mova     m1, [r0+mmsize*1+x]
     pmullw   m0, m3
@@ -656,24 +687,37 @@ cglobal dequant_4x4dc_%1, 0,3
     mova     [r0+mmsize*1+x], m1
 %assign x x+mmsize*2
 %endrep
+%endif ; HIGH_BIT_DEPTH
     RET
 
 .rshift32:
     neg   t0d
     movd  m3, t0d
-    mova  m4, [pw_1]
+    mova  m4, [p%2_1]
     mova  m5, m4
     pslld m4, m3
     psrld m4, 1
     movd  m2, [r1]
+%assign x 0
+%ifdef HIGH_BIT_DEPTH
+    pshufd m2, m2, 0
+%rep SIZEOF_PIXEL*32/mmsize
+    mova      m0, [r0+x]
+    pmaddwd   m0, m2
+    paddd     m0, m4
+    psrad     m0, m3
+    mova      [r0+x], m0
+%assign x x+mmsize
+%endrep
+
+%else
 %if mmsize==8
     punpcklwd m2, m2
 %else
     pshuflw m2, m2, 0
 %endif
     punpcklwd m2, m4
-%assign x 0
-%rep 32/mmsize
+%rep SIZEOF_PIXEL*32/mmsize
     mova      m0, [r0+x]
     mova      m1, m0
     punpcklwd m0, m5
@@ -686,13 +730,20 @@ cglobal dequant_4x4dc_%1, 0,3
     mova      [r0+x], m0
 %assign x x+mmsize
 %endrep
+%endif
     RET
 %endmacro
 
-INIT_MMX
-DEQUANT_DC mmxext
+%ifdef HIGH_BIT_DEPTH
 INIT_XMM
-DEQUANT_DC sse2
+DEQUANT_DC sse2  , d
+DEQUANT_DC sse4  , d
+%else
+INIT_MMX
+DEQUANT_DC mmxext, w
+INIT_XMM
+DEQUANT_DC sse2  , w
+%endif
 
 %ifdef HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------
