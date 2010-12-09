@@ -272,8 +272,8 @@ int x264_macroblock_cache_allocate( x264_t *h )
             luma_plane_size = h->fdec->i_stride[0] * (h->mb.i_mb_height*16+2*i_padv);
 
             if( h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
-                //SMART can weight one ref and one offset -1
-                numweightbuf = 2;
+                //smart can weight one ref and one offset -1 in 8-bit
+                numweightbuf = 1 + (BIT_DEPTH == 8);
             else
                 //simple only has one weighted ref
                 numweightbuf = 1;
