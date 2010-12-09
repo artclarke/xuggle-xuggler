@@ -34,6 +34,7 @@ OPTIONS = [
     [ "--tune %s" % t for t in ("film", "zerolatency") ],
     ("", "--intra-refresh"),
     ("", "--no-cabac"),
+    ("", "--interlaced"),
     [ "--preset %s" % p for p in ("ultrafast",
                                   "superfast",
                                   "veryfast",
