@@ -31,6 +31,7 @@
 
 SECTION .text
 
+%ifndef HIGH_BIT_DEPTH
 cextern pw_32
 cextern hsub_mul
 INIT_XMM
@@ -277,3 +278,4 @@ global add8x8_idct_sse2.skip_prologue
     DIFFx2 m6, m7, m8, m9, [r0+2*FDEC_STRIDE], [r0+3*FDEC_STRIDE]
     STORE_IDCT m1, m3, m5, m7
     ret
+%endif ; !HIGH_BIT_DEPTH
