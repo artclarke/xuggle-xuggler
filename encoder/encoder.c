@@ -521,8 +521,8 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.i_noise_reduction = 0;
         h->param.analyse.b_psy = 0;
         h->param.i_bframe = 0;
-        /* 8x8dct is not useful at all in CAVLC lossless */
-        if( !h->param.b_cabac )
+        /* 8x8dct is not useful without RD in CAVLC lossless */
+        if( !h->param.b_cabac && h->param.analyse.i_subpel_refine < 6 )
             h->param.analyse.b_transform_8x8 = 0;
     }
     if( h->param.rc.i_rc_method == X264_RC_CQP )
