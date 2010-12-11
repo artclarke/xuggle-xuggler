@@ -238,8 +238,8 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
         float fenc_var = fenc->i_pixel_ssd[plane] + !ref->i_pixel_ssd[plane];
         float ref_var  =  ref->i_pixel_ssd[plane] + !ref->i_pixel_ssd[plane];
         float guess_scale = sqrtf( fenc_var / ref_var );
-        float fenc_mean = (float)fenc->i_pixel_sum[plane] / (fenc->i_lines[!!plane] * fenc->i_width[!!plane]);
-        float ref_mean  = (float) ref->i_pixel_sum[plane] / (fenc->i_lines[!!plane] * fenc->i_width[!!plane]);
+        float fenc_mean = (float)fenc->i_pixel_sum[plane] / (fenc->i_lines[!!plane] * fenc->i_width[!!plane]) / (1 << (BIT_DEPTH - 8));
+        float ref_mean  = (float) ref->i_pixel_sum[plane] / (fenc->i_lines[!!plane] * fenc->i_width[!!plane]) / (1 << (BIT_DEPTH - 8));
 
         //early termination
         if( fabsf( ref_mean - fenc_mean ) < 0.5f && fabsf( 1.f - guess_scale ) < epsilon )
