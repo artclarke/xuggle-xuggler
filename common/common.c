@@ -165,6 +165,7 @@ void x264_param_default( x264_param_t *param )
     param->b_tff = 1;
     param->b_pic_struct = 0;
     param->b_fake_interlaced = 0;
+    param->i_frame_packing = -1;
 }
 
 static int x264_param_apply_preset( x264_param_t *param, const char *preset )
@@ -978,6 +979,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->b_pic_struct = atobool(value);
     OPT("fake-interlaced")
         p->b_fake_interlaced = atobool(value);
+    OPT("frame-packing")
+        p->i_frame_packing = atoi(value);
     else
         return X264_PARAM_BAD_NAME;
 #undef OPT

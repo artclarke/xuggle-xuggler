@@ -551,6 +551,13 @@ static void help( x264_param_t *defaults, int longhelp )
     H2( "      --fake-interlaced       Flag stream as interlaced but encode progressive.\n"
         "                              Makes it possible to encode 25p and 30p Blu-Ray\n"
         "                              streams. Ignored in interlaced mode.\n" );
+    H2( "      --frame-packing <integer> For stereoscopic videos define frame arrangement\n"
+        "                                  - 0: checkerboard - pixels are alternatively from L and R\n"
+        "                                  - 1: column alternation - L and R are interlaced by column\n"
+        "                                  - 2: row alternation - L and R are interlaced by row\n"
+        "                                  - 3: side by side - L is on the left, R on the right\n"
+        "                                  - 4: top bottom - L is on top, R on bottom\n"
+        "                                  - 5: frame alternation - one view per frame\n" );
     H0( "\n" );
     H0( "Ratecontrol:\n" );
     H0( "\n" );
@@ -937,6 +944,7 @@ static struct option long_options[] =
     { "nal-hrd",     required_argument, NULL, 0 },
     { "pulldown",    required_argument, NULL, OPT_PULLDOWN },
     { "fake-interlaced",   no_argument, NULL, 0 },
+    { "frame-packing",     required_argument, NULL, 0 },
     { "vf",          required_argument, NULL, OPT_VIDEO_FILTER },
     { "video-filter", required_argument, NULL, OPT_VIDEO_FILTER },
     { "input-res",   required_argument, NULL, OPT_INPUT_RES },

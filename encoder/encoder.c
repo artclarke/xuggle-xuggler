@@ -469,6 +469,8 @@ static int x264_validate_parameters( x264_t *h )
         }
     }
 
+    h->param.i_frame_packing = x264_clip3( h->param.i_frame_packing, -1, 5 );
+
     /* Detect default ffmpeg settings and terminate with an error. */
     {
         int score = 0;
@@ -1199,6 +1201,7 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     COPY( b_deblocking_filter );
     COPY( i_deblocking_filter_alphac0 );
     COPY( i_deblocking_filter_beta );
+    COPY( i_frame_packing );
     COPY( analyse.inter );
     COPY( analyse.intra );
     COPY( analyse.i_direct_mv_pred );
@@ -2674,7 +2677,17 @@ int     x264_encoder_encode( x264_t *h,
             int time_to_recovery = h->param.i_open_gop ? 0 : X264_MIN( h->mb.i_mb_width - 1, h->param.i_keyint_max ) + h->param.i_bframe - 1;
             x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
             x264_sei_recovery_point_write( h, &h->out.bs, time_to_recovery );
-            x264_nal_end( h );
+            if( x264_nal_end( h ) )
+                return -1;
+            overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD - (h->param.b_annexb && h->out.i_nal-1);
+        }
+
+        if ( h->param.i_frame_packing >= 0 )
+        {
+            x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
+            x264_sei_frame_packing_write( h, &h->out.bs );
+            if( x264_nal_end( h ) )
+                return -1;
             overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD - (h->param.b_annexb && h->out.i_nal-1);
         }
     }
