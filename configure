@@ -12,7 +12,8 @@ echo "  --disable-lavf           disables libavformat support"
 echo "  --disable-ffms           disables ffmpegsource support"
 echo "  --disable-gpac           disables gpac support"
 echo "  --disable-gpl            disables GPL-only features"
-echo "  --disable-pthread        disables multithreaded encoding"
+echo "  --disable-thread         disables multithreaded encoding"
+echo "  --enable-win32thread     use win32threads (windows only)"
 echo "  --disable-swscale        disables swscale support"
 echo "  --disable-asm            disables platform-specific assembly optimizations"
 echo "  --enable-debug           adds -g, doesn't strip"
@@ -152,7 +153,7 @@ lavf="auto"
 ffms="auto"
 gpac="auto"
 gpl="yes"
-pthread="auto"
+thread="auto"
 swscale="auto"
 asm="auto"
 debug="no"
@@ -172,7 +173,7 @@ cross_prefix=""
 EXE=""
 
 # list of all preprocessor HAVE values we can define
-CONFIG_HAVE="MALLOC_H ALTIVEC ALTIVEC_H MMX ARMV6 ARMV6T2 NEON PTHREAD LOG2F VISUALIZE SWSCALE LAVF FFMS GPAC GF_MALLOC AVS GPL"
+CONFIG_HAVE="MALLOC_H ALTIVEC ALTIVEC_H MMX ARMV6 ARMV6T2 NEON BEOSTHREAD POSIXTHREAD WIN32THREAD THREAD LOG2F VISUALIZE SWSCALE LAVF FFMS GPAC GF_MALLOC AVS GPL"
 
 # parse options
 
@@ -221,8 +222,11 @@ for opt do
         --extra-ldflags=*)
             LDFLAGS="$LDFLAGS ${opt#--extra-ldflags=}"
             ;;
-        --disable-pthread)
-            pthread="no"
+        --disable-thread)
+            thread="no"
+            ;;
+        --enable-win32thread)
+            thread="win32"
             ;;
         --disable-swscale)
             swscale="no"
@@ -515,42 +519,57 @@ fi
 
 # autodetect options that weren't forced nor disabled
 
+# pthread-win32 is lgpl, prevent its use if --disable-gpl is specified and targeting windows
+[ "$SYS" = "MINGW" -a "$gpl" = "no" -a "$thread" = "auto" ] && thread="win32"
+
 libpthread=""
-if test "$pthread" = "auto" ; then
-    pthread="no"
+if [ "$thread" = "auto" ]; then
+    thread="no"
     case $SYS in
         BEOS)
-            pthread="yes"
+            thread="beos"
+            define HAVE_BEOSTHREAD
             ;;
         MINGW)
             if cc_check pthread.h -lpthread "pthread_create(0,0,0,0);" ; then
-                pthread="yes"
+                thread="posix"
                 libpthread="-lpthread"
             elif cc_check pthread.h -lpthreadGC2 "pthread_create(0,0,0,0);" ; then
-                pthread="yes"
+                thread="posix"
                 libpthread="-lpthreadGC2"
             elif cc_check pthread.h "-lpthreadGC2 -lwsock32 -DPTW32_STATIC_LIB" "pthread_create(0,0,0,0);" ; then
-                pthread="yes"
+                thread="posix"
                 libpthread="-lpthreadGC2 -lwsock32"
                 define PTW32_STATIC_LIB
             elif cc_check pthread.h "-lpthreadGC2 -lws2_32 -DPTW32_STATIC_LIB" "pthread_create(0,0,0,0);" ; then
-                pthread="yes"
+                thread="posix"
                 libpthread="-lpthreadGC2 -lws2_32"
                 define PTW32_STATIC_LIB
+            else
+                # default to native threading if pthread-win32 is unavailable
+                thread="win32"
             fi
             ;;
         OPENBSD)
-            cc_check pthread.h -pthread && pthread="yes" && libpthread="-pthread"
+            cc_check pthread.h -pthread && thread="posix" && libpthread="-pthread"
             ;;
         *)
-            cc_check pthread.h -lpthread && pthread="yes" && libpthread="-lpthread"
+            cc_check pthread.h -lpthread && thread="posix" && libpthread="-lpthread"
             ;;
     esac
 fi
-if test "$pthread" = "yes" ; then
-    define HAVE_PTHREAD
+if [ "$thread" = "posix" ]; then
     LDFLAGS="$LDFLAGS $libpthread"
+    define HAVE_POSIXTHREAD
 fi
+if [ "$thread" = "win32" ]; then
+    if [ "$SYS" = "MINGW" ]; then
+        define HAVE_WIN32THREAD
+    else
+        thread="no"
+    fi
+fi
+[ "$thread" != "no" ] && define HAVE_THREAD
 
 if cc_check "math.h" "-Werror" "return log2f(2);" ; then
     define HAVE_LOG2F
@@ -835,7 +854,7 @@ lavf:       $lavf
 ffms:       $ffms
 gpac:       $gpac
 gpl:        $gpl
-pthread:    $pthread
+thread:     $thread
 filters:    $filters
 debug:      $debug
 gprof:      $gprof

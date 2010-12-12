@@ -254,10 +254,7 @@ int main( int argc, char **argv )
     cli_opt_t opt;
     int ret;
 
-#if PTW32_STATIC_LIB
-    pthread_win32_process_attach_np();
-    pthread_win32_thread_attach_np();
-#endif
+    FAIL_IF_ERROR( x264_threading_init(), "unable to initialize threading\n" )
 
 #ifdef _WIN32
     _setmode(_fileno(stdin), _O_BINARY);
@@ -272,11 +269,6 @@ int main( int argc, char **argv )
     signal( SIGINT, sigint_handler );
 
     ret = encode( &param, &opt );
-
-#if PTW32_STATIC_LIB
-    pthread_win32_thread_detach_np();
-    pthread_win32_process_detach_np();
-#endif
 
     return ret;
 }
@@ -1403,7 +1395,7 @@ generic_option:
     else FAIL_IF_ERROR( !info.vfr && input_opt.timebase, "--timebase is incompatible with cfr input\n" )
 
     /* init threaded input while the information about the input video is unaltered by filtering */
-#if HAVE_PTHREAD
+#if HAVE_THREAD
     if( info.thread_safe && (b_thread_input || param->i_threads > 1
         || (param->i_threads == X264_THREADS_AUTO && x264_cpu_num_processors() > 1)) )
     {

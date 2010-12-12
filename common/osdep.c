@@ -1,9 +1,10 @@
 /*****************************************************************************
- * mdate.c: time measurement
+ * osdep.c: platform-specific code
  *****************************************************************************
  * Copyright (C) 2003-2010 x264 project
  *
- * Authors: Laurent Aimar <fenrir@via.ecp.fr>
+ * Authors: Steven Walters <kemuri9@gmail.com>
+ *          Laurent Aimar <fenrir@via.ecp.fr>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +33,13 @@
 #include <time.h>
 
 #include "common.h"
-#include "osdep.h"
+
+#if PTW32_STATIC_LIB
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+/* this is a global in pthread-win32 to indicate if it has been initialized or not */
+extern int ptw32_processInitialized;
+#endif
 
 int64_t x264_mdate( void )
 {
@@ -47,3 +54,38 @@ int64_t x264_mdate( void )
 #endif
 }
 
+#if HAVE_WIN32THREAD || PTW32_STATIC_LIB
+/* state of the threading library being initialized */
+static volatile LONG x264_threading_is_init = 0;
+
+static void x264_threading_destroy( void )
+{
+#if PTW32_STATIC_LIB
+    pthread_win32_thread_detach_np();
+    pthread_win32_process_detach_np();
+#else
+    x264_win32_threading_destroy();
+#endif
+}
+
+int x264_threading_init( void )
+{
+    /* if already init, then do nothing */
+    if( InterlockedCompareExchange( &x264_threading_is_init, 1, 0 ) )
+        return 0;
+#if PTW32_STATIC_LIB
+    /* if static pthread-win32 is already initialized, then do nothing */
+    if( ptw32_processInitialized )
+        return 0;
+    if( !pthread_win32_process_attach_np() )
+        return -1;
+#else
+    if( x264_win32_threading_init() )
+        return -1;
+#endif
+    /* register cleanup to run at process termination */
+    atexit( x264_threading_destroy );
+
+    return 0;
+}
+#endif

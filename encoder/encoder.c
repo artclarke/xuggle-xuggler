@@ -359,7 +359,7 @@ fail:
     return -1;
 }
 
-#if HAVE_PTHREAD
+#if HAVE_THREAD
 static void x264_encoder_thread_init( x264_t *h )
 {
     if( h->param.i_sync_lookahead )
@@ -430,8 +430,8 @@ static int x264_validate_parameters( x264_t *h )
     h->param.i_threads = x264_clip3( h->param.i_threads, 1, X264_THREAD_MAX );
     if( h->param.i_threads > 1 )
     {
-#if !HAVE_PTHREAD
-        x264_log( h, X264_LOG_WARNING, "not compiled with pthread support!\n");
+#if !HAVE_THREAD
+        x264_log( h, X264_LOG_WARNING, "not compiled with thread support!\n");
         h->param.i_threads = 1;
 #endif
         /* Avoid absurdly small thread slices as they can reduce performance
@@ -661,7 +661,7 @@ static int x264_validate_parameters( x264_t *h )
     }
     if( h->param.rc.b_stat_read )
         h->param.rc.i_lookahead = 0;
-#if HAVE_PTHREAD
+#if HAVE_THREAD
     if( h->param.i_sync_lookahead < 0 )
         h->param.i_sync_lookahead = h->param.i_bframe + 1;
     h->param.i_sync_lookahead = X264_MIN( h->param.i_sync_lookahead, X264_LOOKAHEAD_MAX );
@@ -927,6 +927,12 @@ x264_t *x264_encoder_open( x264_param_t *param )
 
     if( param->param_free )
         param->param_free( param );
+
+    if( x264_threading_init() )
+    {
+        x264_log( h, X264_LOG_ERROR, "unable to initialize threading\n" );
+        goto fail;
+    }
 
     if( x264_validate_parameters( h ) < 0 )
         goto fail;

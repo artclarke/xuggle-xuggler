@@ -337,11 +337,11 @@ uint32_t x264_cpu_detect( void )
 
 int x264_cpu_num_processors( void )
 {
-#if !HAVE_PTHREAD
+#if !HAVE_THREAD
     return 1;
 
 #elif defined(_WIN32)
-    return pthread_num_processors_np();
+    return x264_pthread_num_processors_np();
 
 #elif SYS_LINUX
     unsigned int bit;

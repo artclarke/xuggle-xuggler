@@ -6,7 +6,7 @@ all: default
 
 SRCS = common/mc.c common/predict.c common/pixel.c common/macroblock.c \
        common/frame.c common/dct.c common/cpu.c common/cabac.c \
-       common/common.c common/mdate.c common/rectangle.c \
+       common/common.c common/osdep.c common/rectangle.c \
        common/set.c common/quant.c common/deblock.c common/vlc.c \
        common/mvpred.c common/bitstream.c \
        encoder/analyse.c encoder/me.c encoder/ratecontrol.c \
@@ -34,9 +34,13 @@ ifneq ($(findstring HAVE_AVS 1, $(CONFIG)),)
 SRCCLI += input/avs.c
 endif
 
-ifneq ($(findstring HAVE_PTHREAD 1, $(CONFIG)),)
+ifneq ($(findstring HAVE_THREAD 1, $(CONFIG)),)
 SRCCLI += input/thread.c
 SRCS   += common/threadpool.c
+endif
+
+ifneq ($(findstring HAVE_WIN32THREAD 1, $(CONFIG)),)
+SRCS += common/win32thread.c
 endif
 
 ifneq ($(findstring HAVE_LAVF 1, $(CONFIG)),)

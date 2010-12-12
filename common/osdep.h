@@ -106,7 +106,7 @@
 #endif
 
 /* threads */
-#if SYS_BEOS
+#if HAVE_BEOSTHREAD
 #include <kernel/OS.h>
 #define x264_pthread_t               thread_id
 static inline int x264_pthread_create( x264_pthread_t *t, void *a, void *(*f)(void *), void *d )
@@ -119,22 +119,9 @@ static inline int x264_pthread_create( x264_pthread_t *t, void *a, void *(*f)(vo
 }
 #define x264_pthread_join(t,s)       { long tmp; \
                                        wait_for_thread(t,(s)?(long*)(*(s)):&tmp); }
-#ifndef usleep
-#define usleep(t)                    snooze(t)
-#endif
-#define HAVE_PTHREAD 1
 
-#elif HAVE_PTHREAD
+#elif HAVE_POSIXTHREAD
 #include <pthread.h>
-#define USE_REAL_PTHREAD 1
-
-#else
-#define x264_pthread_t               int
-#define x264_pthread_create(t,u,f,d) 0
-#define x264_pthread_join(t,s)
-#endif //SYS_*
-
-#if USE_REAL_PTHREAD
 #define x264_pthread_t               pthread_t
 #define x264_pthread_create          pthread_create
 #define x264_pthread_join            pthread_join
@@ -151,8 +138,19 @@ static inline int x264_pthread_create( x264_pthread_t *t, void *a, void *(*f)(vo
 #define x264_pthread_attr_t          pthread_attr_t
 #define x264_pthread_attr_init       pthread_attr_init
 #define x264_pthread_attr_destroy    pthread_attr_destroy
+#define x264_pthread_num_processors_np pthread_num_processors_np
 #define X264_PTHREAD_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
+
+#elif HAVE_WIN32THREAD
+#include "win32thread.h"
+
 #else
+#define x264_pthread_t               int
+#define x264_pthread_create(t,u,f,d) 0
+#define x264_pthread_join(t,s)
+#endif //HAVE_*THREAD
+
+#if !HAVE_POSIXTHREAD && !HAVE_WIN32THREAD
 #define x264_pthread_mutex_t         int
 #define x264_pthread_mutex_init(m,f) 0
 #define x264_pthread_mutex_destroy(m)
@@ -167,6 +165,12 @@ static inline int x264_pthread_create( x264_pthread_t *t, void *a, void *(*f)(vo
 #define x264_pthread_attr_init(a)    0
 #define x264_pthread_attr_destroy(a)
 #define X264_PTHREAD_MUTEX_INITIALIZER 0
+#endif
+
+#if HAVE_WIN32THREAD || PTW32_STATIC_LIB
+int x264_threading_init( void );
+#else
+#define x264_threading_init() 0
 #endif
 
 #define WORD_SIZE sizeof(void*)
@@ -270,7 +274,7 @@ static ALWAYS_INLINE void x264_prefetch( void *p )
 #define x264_prefetch(x)
 #endif
 
-#if USE_REAL_PTHREAD
+#if HAVE_POSIXTHREAD
 #if SYS_MINGW
 #define x264_lower_thread_priority(p)\
 {\
@@ -284,7 +288,9 @@ static ALWAYS_INLINE void x264_prefetch( void *p )
 #else
 #include <unistd.h>
 #define x264_lower_thread_priority(p) { UNUSED int nice_ret = nice(p); }
-#endif /* USE_REAL_PTHREAD */
+#endif /* SYS_MINGW */
+#elif HAVE_WIN32THREAD
+#define x264_lower_thread_priority(p) SetThreadPriority( GetCurrentThread(), X264_MAX( -2, -p ) )
 #else
 #define x264_lower_thread_priority(p)
 #endif

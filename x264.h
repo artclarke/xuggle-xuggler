@@ -41,7 +41,7 @@
 
 #include "x264_config.h"
 
-#define X264_BUILD 111
+#define X264_BUILD 112
 
 /* x264_t:
  *      opaque handler for encoder */
