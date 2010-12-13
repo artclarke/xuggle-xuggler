@@ -50,8 +50,8 @@ DECL_SUF( x264_pixel_avg_4x2,   ( uint8_t *, int, uint8_t *, int, uint8_t *, int
     void x264_mc_weight_w##w##_##type( pixel *,int, pixel *,int, const x264_weight_t *,int );
 
 #define MC_WEIGHT_OFFSET(w,type) \
-    void x264_mc_offsetadd_w##w##_##type( uint8_t *,int, uint8_t *,int, const x264_weight_t *,int ); \
-    void x264_mc_offsetsub_w##w##_##type( uint8_t *,int, uint8_t *,int, const x264_weight_t *,int ); \
+    void x264_mc_offsetadd_w##w##_##type( pixel *,int, pixel *,int, const x264_weight_t *,int ); \
+    void x264_mc_offsetsub_w##w##_##type( pixel *,int, pixel *,int, const x264_weight_t *,int ); \
     MC_WEIGHT(w,type)
 
 MC_WEIGHT_OFFSET( 4, mmxext )
@@ -62,6 +62,9 @@ MC_WEIGHT_OFFSET( 20, mmxext )
 MC_WEIGHT_OFFSET( 12, sse2 )
 MC_WEIGHT_OFFSET( 16, sse2 )
 MC_WEIGHT_OFFSET( 20, sse2 )
+#if HIGH_BIT_DEPTH
+MC_WEIGHT_OFFSET( 8, sse2 )
+#endif
 MC_WEIGHT( 8, sse2  )
 MC_WEIGHT( 4, ssse3 )
 MC_WEIGHT( 8, ssse3 )
@@ -220,7 +223,34 @@ MC_COPY_WTAB(sse2,mmx,mmx,sse2)
 
 #if HIGH_BIT_DEPTH
 MC_WEIGHT_WTAB(weight,mmxext,mmxext,mmxext,12)
+MC_WEIGHT_WTAB(offsetadd,mmxext,mmxext,mmxext,12)
+MC_WEIGHT_WTAB(offsetsub,mmxext,mmxext,mmxext,12)
 MC_WEIGHT_WTAB(weight,sse2,mmxext,sse2,12)
+MC_WEIGHT_WTAB(offsetadd,sse2,mmxext,sse2,16)
+MC_WEIGHT_WTAB(offsetsub,sse2,mmxext,sse2,16)
+
+static void x264_weight_cache_mmxext( x264_t *h, x264_weight_t *w )
+{
+    if( w->i_scale == 1<<w->i_denom )
+    {
+        if( w->i_offset < 0 )
+            w->weightfn = h->mc.offsetsub;
+        else
+            w->weightfn = h->mc.offsetadd;
+        for( int i = 0; i < 8; i++ )
+            w->cachea[i] = abs(w->i_offset<<(BIT_DEPTH-8));
+        return;
+    }
+    w->weightfn = h->mc.weight;
+    int den1 = 1<<w->i_denom;
+    int den2 = w->i_scale<<1;
+    int den3 = 1+(w->i_offset<<(BIT_DEPTH-8+1));
+    for( int i = 0; i < 8; i++ )
+    {
+        w->cachea[i] = den1;
+        w->cacheb[i] = i&1 ? den3 : den2;
+    }
+}
 #else
 MC_WEIGHT_WTAB(weight,mmxext,mmxext,mmxext,12)
 MC_WEIGHT_WTAB(offsetadd,mmxext,mmxext,mmxext,12)
@@ -268,7 +298,7 @@ static void x264_weight_cache_ssse3( x264_t *h, x264_weight_t *w )
     }
     w->weightfn = h->mc.weight;
     den1 = w->i_scale << (8 - w->i_denom);
-    for(i = 0;i<8;i++)
+    for( i = 0; i < 8; i++ )
     {
         w->cachea[i] = den1;
         w->cacheb[i] = w->i_offset;
@@ -458,6 +488,9 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->mc_chroma = x264_mc_chroma_mmxext;
     pf->hpel_filter = x264_hpel_filter_mmxext;
     pf->weight = x264_mc_weight_wtab_mmxext;
+    pf->weight_cache = x264_weight_cache_mmxext;
+    pf->offsetadd = x264_mc_offsetadd_wtab_mmxext;
+    pf->offsetsub = x264_mc_offsetsub_wtab_mmxext;
 
 #if HIGH_BIT_DEPTH
     if( !(cpu&X264_CPU_SSE2) )
@@ -476,6 +509,8 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->integral_init8v = x264_integral_init8v_sse2;
     pf->mbtree_propagate_cost = x264_mbtree_propagate_cost_sse2;
     pf->store_interleave_8x8x2 = x264_store_interleave_8x8x2_sse2;
+    pf->offsetadd = x264_mc_offsetadd_wtab_sse2;
+    pf->offsetsub = x264_mc_offsetsub_wtab_sse2;
 
     if( cpu&X264_CPU_SSE2_IS_SLOW )
         return;
@@ -492,10 +527,6 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     if( (cpu&X264_CPU_SHUFFLE_IS_FAST) && !(cpu&X264_CPU_SLOW_ATOM) )
         pf->integral_init4v = x264_integral_init4v_ssse3;
 #else // !HIGH_BIT_DEPTH
-    pf->offsetadd = x264_mc_offsetadd_wtab_mmxext;
-    pf->offsetsub = x264_mc_offsetsub_wtab_mmxext;
-    pf->weight_cache = x264_weight_cache_mmxext;
-
     pf->avg[PIXEL_16x16] = x264_pixel_avg_16x16_mmxext;
     pf->avg[PIXEL_16x8]  = x264_pixel_avg_16x8_mmxext;
     pf->avg[PIXEL_8x16]  = x264_pixel_avg_8x16_mmxext;

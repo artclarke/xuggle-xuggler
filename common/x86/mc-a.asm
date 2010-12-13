@@ -188,18 +188,10 @@ AVG_WEIGHT ssse3, 16, 7
 
 %ifdef HIGH_BIT_DEPTH
 %macro WEIGHT_START 1 ; (width)
+    mova        m0, [r4+ 0]         ; 1<<denom
+    mova        m3, [r4+16]
     movd        m2, [r4+32]         ; denom
-    movd        m3, [r4+36]         ; scale
-    mov    TMP_REG, [r4+40]         ; offset
-    mova        m0, [pw_1]
-    shl    TMP_REG, BIT_DEPTH-7
     mova        m4, [pw_pixel_max]
-    add    TMP_REG, 1
-    psllw       m0, m2              ; 1<<denom
-    movd        m1, TMP_REG         ; 1+(offset<<(BIT_DEPTH-8+1))
-    psllw       m3, 1               ; scale<<1
-    punpcklwd   m3, m1
-    SPLATD      m3, m3
     paddw       m2, [sq_1]          ; denom+1
 %endmacro
 
@@ -354,7 +346,7 @@ AVG_WEIGHT ssse3, 16, 7
 %endif ; HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
-;void mc_weight_wX( uint8_t *dst, int i_dst_stride, uint8_t *src, int i_src_stride, weight_t *weight, int h )
+;void mc_weight_wX( pixel *dst, int i_dst_stride, pixel *src, int i_src_stride, weight_t *weight, int h )
 ;-----------------------------------------------------------------------------
 
 %ifdef ARCH_X86_64
@@ -415,8 +407,17 @@ WEIGHTER 20, ssse3
 %macro OFFSET_OP 7
     mov%6        m0, [%1]
     mov%6        m1, [%2]
+%ifdef HIGH_BIT_DEPTH
+    p%5usw       m0, m2
+    p%5usw       m1, m2
+%ifidn %5,add
+    pminsw       m0, m3
+    pminsw       m1, m3
+%endif
+%else
     p%5usb       m0, m2
     p%5usb       m1, m2
+%endif
     mov%7      [%3], m0
     mov%7      [%4], m1
 %endmacro
@@ -424,25 +425,35 @@ WEIGHTER 20, ssse3
 %macro OFFSET_TWO_ROW 4
 %assign x 0
 %rep %3
-%if (%3-x) >= mmsize
+%if (%3*SIZEOF_PIXEL-x) >= mmsize
     OFFSET_OP (%1+x), (%1+x+r3), (%2+x), (%2+x+r1), %4, u, a
     %assign x (x+mmsize)
 %else
-    OFFSET_OP (%1+x),(%1+x+r3), (%2+x), (%2+x+r1), %4, d, d
+%ifdef HIGH_BIT_DEPTH
+    OFFSET_OP (%1+x), (%1+x+r3), (%2+x), (%2+x+r1), %4, h, h
+%else
+    OFFSET_OP (%1+x), (%1+x+r3), (%2+x), (%2+x+r1), %4, d, d
+%endif
     %exitrep
 %endif
-%if x >= %3
+%if x >= %3*SIZEOF_PIXEL
     %exitrep
 %endif
 %endrep
 %endmacro
 
 ;-----------------------------------------------------------------------------
-;void mc_offset_wX( uint8_t *src, int i_src_stride, uint8_t *dst, int i_dst_stride, weight_t *w, int h )
+;void mc_offset_wX( pixel *src, int i_src_stride, pixel *dst, int i_dst_stride, weight_t *w, int h )
 ;-----------------------------------------------------------------------------
 %macro OFFSET 3
     cglobal mc_offset%3_w%1_%2, NUMREGS, NUMREGS
+    FIX_STRIDES r1, r3
     mova m2, [r4]
+%ifdef HIGH_BIT_DEPTH
+%ifidn %3,add
+    mova m3, [pw_pixel_max]
+%endif
+%endif
     LOAD_HEIGHT
 .loop:
     OFFSET_TWO_ROW r2, r0, %1, %3
@@ -467,6 +478,9 @@ INIT_XMM
 OFFSETPN 12, sse2
 OFFSETPN 16, sse2
 OFFSETPN 20, sse2
+%ifdef HIGH_BIT_DEPTH
+OFFSETPN  8, sse2
+%endif
 %undef LOAD_HEIGHT
 %undef HEIGHT_REG
 %undef NUMREGS
