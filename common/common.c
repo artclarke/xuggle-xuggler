@@ -1207,7 +1207,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
         s += sprintf( s, "%dx%d ", p->i_width, p->i_height );
         s += sprintf( s, "fps=%u/%u ", p->i_fps_num, p->i_fps_den );
         s += sprintf( s, "timebase=%u/%u ", p->i_timebase_num, p->i_timebase_den );
-        s += sprintf( s, "bitdepth=%d", BIT_DEPTH );
+        s += sprintf( s, "bitdepth=%d ", BIT_DEPTH );
     }
 
     s += sprintf( s, "cabac=%d", p->b_cabac );
