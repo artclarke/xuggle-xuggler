@@ -60,6 +60,7 @@ cextern pw_00ff
 cextern pw_3fff
 cextern pw_pixel_max
 cextern pd_128
+cextern pd_ffff
 
 %macro LOAD_ADD 4
     movh       %4, %3
@@ -153,10 +154,10 @@ cextern pd_128
 ;-----------------------------------------------------------------------------
 %macro HPEL_FILTER 1
 cglobal hpel_filter_v_%1, 5,6,11*(mmsize/16)
+    FIX_STRIDES r3d, r4d
 %ifdef WIN64
     movsxd     r4, r4d
 %endif
-    FIX_STRIDES r3, r4
     lea        r5, [r1+r3]
     sub        r1, r3
     sub        r1, r3
@@ -926,8 +927,9 @@ PLANE_INTERLEAVE mmxext
 INIT_XMM
 PLANE_INTERLEAVE sse2
 
-%else ;!HIGH_BIT_DEPTH
+%endif ; HIGH_BIT_DEPTH
 
+%ifndef HIGH_BIT_DEPTH
 %macro INTERLEAVE 4-5 ; dst, srcu, srcv, is_aligned, nt_hint
     movq   m0, [%2]
 %if mmsize==16
@@ -947,8 +949,27 @@ PLANE_INTERLEAVE sse2
     mov%5a [%1+8], m2
 %endif
 %endmacro
+%endif
 
-%macro DEINTERLEAVE 6 ; dstu, dstv, src, dstv==dstu+8, cpu, shuffle constant
+%macro DEINTERLEAVE 7 ; dstu, dstv, src, dstv==dstu+8, cpu, shuffle constant, is aligned
+%ifdef HIGH_BIT_DEPTH
+%assign n 0
+%rep 16/mmsize
+    mova     m0, [%3+(n+0)*mmsize]
+    mova     m1, [%3+(n+1)*mmsize]
+    mova     m2, m0
+    mova     m3, m1
+    pand     m0, %6
+    pand     m1, %6
+    psrld    m2, 16
+    psrld    m3, 16
+    packssdw m0, m1
+    packssdw m2, m3
+    mov%7    [%1+(n/2)*mmsize], m0
+    mov%7    [%2+(n/2)*mmsize], m2
+    %assign n (n+2)
+%endrep
+%else ; !HIGH_BIT_DEPTH
 %if mmsize==16
     mova   m0, [%3]
 %ifidn %5, ssse3
@@ -978,9 +999,11 @@ PLANE_INTERLEAVE sse2
     packuswb m2, m3
     mova   [%1], m0
     mova   [%2], m2
-%endif
+%endif ; mmsize == 16
+%endif ; HIGH_BIT_DEPTH
 %endmacro
 
+%ifndef HIGH_BIT_DEPTH
 %macro PLANE_INTERLEAVE 1
 ;-----------------------------------------------------------------------------
 ; void plane_copy_interleave_core( uint8_t *dst, int i_dst,
@@ -1057,24 +1080,31 @@ cglobal store_interleave_8x8x2_%1, 4,5
     jg .loop
     REP_RET
 %endmacro ; PLANE_INTERLEAVE
+%endif ; !HIGH_BIT_DEPTH
 
 %macro DEINTERLEAVE_START 1
-%ifidn %1, ssse3
+%ifdef HIGH_BIT_DEPTH
+    mova   m4, [pd_ffff]
+%elifidn %1, ssse3
     mova   m4, [deinterleave_shuf]
 %else
     mova   m4, [pw_00ff]
-%endif
+%endif ; HIGH_BIT_DEPTH
 %endmacro
 
 %macro PLANE_DEINTERLEAVE 1
 ;-----------------------------------------------------------------------------
-; void plane_copy_deinterleave( uint8_t *dstu, int i_dstu,
-;                               uint8_t *dstv, int i_dstv,
-;                               uint8_t *src, int i_src, int w, int h )
+; void plane_copy_deinterleave( pixel *dstu, int i_dstu,
+;                               pixel *dstv, int i_dstv,
+;                               pixel *src, int i_src, int w, int h )
 ;-----------------------------------------------------------------------------
 cglobal plane_copy_deinterleave_%1, 6,7
     DEINTERLEAVE_START %1
     mov    r6d, r6m
+    FIX_STRIDES r1d, r3d, r5d, r6d
+%ifdef HIGH_BIT_DEPTH
+    mov    r6m, r6d
+%endif
     movsxdifnidn r1, r1d
     movsxdifnidn r3, r3d
     movsxdifnidn r5, r5d
@@ -1085,9 +1115,9 @@ cglobal plane_copy_deinterleave_%1, 6,7
     mov    r6d, r6m
     neg    r6
 .loopx:
-    DEINTERLEAVE r0+r6,   r2+r6,   r4+r6*2,    0, %1, m4
-    DEINTERLEAVE r0+r6+8, r2+r6+8, r4+r6*2+16, 0, %1, m4
-    add    r6, 16
+    DEINTERLEAVE r0+r6+0*SIZEOF_PIXEL, r2+r6+0*SIZEOF_PIXEL, r4+r6*2+ 0*SIZEOF_PIXEL, 0, %1, m4, u
+    DEINTERLEAVE r0+r6+8*SIZEOF_PIXEL, r2+r6+8*SIZEOF_PIXEL, r4+r6*2+16*SIZEOF_PIXEL, 0, %1, m4, u
+    add    r6, 16*SIZEOF_PIXEL
     jl .loopx
     add    r0, r1
     add    r2, r3
@@ -1097,36 +1127,44 @@ cglobal plane_copy_deinterleave_%1, 6,7
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void load_deinterleave_8x8x2_fenc( uint8_t *dst, uint8_t *src, int i_src )
+; void load_deinterleave_8x8x2_fenc( pixel *dst, pixel *src, int i_src )
 ;-----------------------------------------------------------------------------
 cglobal load_deinterleave_8x8x2_fenc_%1, 3,4
     DEINTERLEAVE_START %1
     mov    r3d, 4
+    FIX_STRIDES r2d
 .loop:
-    DEINTERLEAVE r0, r0+FENC_STRIDE/2, r1, 1, %1, m4
-    DEINTERLEAVE r0+FENC_STRIDE, r0+FENC_STRIDE*3/2, r1+r2, 1, %1, m4
-    add    r0, FENC_STRIDE*2
+    DEINTERLEAVE r0+           0, r0+FENC_STRIDEB*1/2, r1+ 0, 1, %1, m4, a
+    DEINTERLEAVE r0+FENC_STRIDEB, r0+FENC_STRIDEB*3/2, r1+r2, 1, %1, m4, a
+    add    r0, FENC_STRIDEB*2
     lea    r1, [r1+r2*2]
     dec    r3d
     jg .loop
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void load_deinterleave_8x8x2_fdec( uint8_t *dst, uint8_t *src, int i_src )
+; void load_deinterleave_8x8x2_fdec( pixel *dst, pixel *src, int i_src )
 ;-----------------------------------------------------------------------------
 cglobal load_deinterleave_8x8x2_fdec_%1, 3,4
     DEINTERLEAVE_START %1
     mov    r3d, 4
+    FIX_STRIDES r2d
 .loop:
-    DEINTERLEAVE r0, r0+FDEC_STRIDE/2, r1, 0, %1, m4
-    DEINTERLEAVE r0+FDEC_STRIDE, r0+FDEC_STRIDE*3/2, r1+r2, 0, %1, m4
-    add    r0, FDEC_STRIDE*2
+    DEINTERLEAVE r0+           0, r0+FDEC_STRIDEB*1/2, r1+ 0, 0, %1, m4, a
+    DEINTERLEAVE r0+FDEC_STRIDEB, r0+FDEC_STRIDEB*3/2, r1+r2, 0, %1, m4, a
+    add    r0, FDEC_STRIDEB*2
     lea    r1, [r1+r2*2]
     dec    r3d
     jg .loop
     REP_RET
 %endmacro ; PLANE_DEINTERLEAVE
 
+%ifdef HIGH_BIT_DEPTH
+INIT_MMX
+PLANE_DEINTERLEAVE mmx
+INIT_XMM
+PLANE_DEINTERLEAVE sse2
+%else
 INIT_MMX
 PLANE_INTERLEAVE mmxext
 PLANE_DEINTERLEAVE mmx
@@ -1134,8 +1172,7 @@ INIT_XMM
 PLANE_INTERLEAVE sse2
 PLANE_DEINTERLEAVE sse2
 PLANE_DEINTERLEAVE ssse3
-
-%endif ; HIGH_BIT_DEPTH
+%endif
 
 ; These functions are not general-use; not only do the SSE ones require aligned input,
 ; but they also will fail if given a non-mod16 size or a size less than 64.
