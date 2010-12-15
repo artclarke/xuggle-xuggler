@@ -37,14 +37,14 @@
     void func##_sse2 args;\
     void func##_ssse3 args;
 
-DECL_SUF( x264_pixel_avg_16x16, ( uint8_t *, int, uint8_t *, int, uint8_t *, int, int ))
-DECL_SUF( x264_pixel_avg_16x8,  ( uint8_t *, int, uint8_t *, int, uint8_t *, int, int ))
-DECL_SUF( x264_pixel_avg_8x16,  ( uint8_t *, int, uint8_t *, int, uint8_t *, int, int ))
-DECL_SUF( x264_pixel_avg_8x8,   ( uint8_t *, int, uint8_t *, int, uint8_t *, int, int ))
-DECL_SUF( x264_pixel_avg_8x4,   ( uint8_t *, int, uint8_t *, int, uint8_t *, int, int ))
-DECL_SUF( x264_pixel_avg_4x8,   ( uint8_t *, int, uint8_t *, int, uint8_t *, int, int ))
-DECL_SUF( x264_pixel_avg_4x4,   ( uint8_t *, int, uint8_t *, int, uint8_t *, int, int ))
-DECL_SUF( x264_pixel_avg_4x2,   ( uint8_t *, int, uint8_t *, int, uint8_t *, int, int ))
+DECL_SUF( x264_pixel_avg_16x16, ( pixel *, int, pixel *, int, pixel *, int, int ))
+DECL_SUF( x264_pixel_avg_16x8,  ( pixel *, int, pixel *, int, pixel *, int, int ))
+DECL_SUF( x264_pixel_avg_8x16,  ( pixel *, int, pixel *, int, pixel *, int, int ))
+DECL_SUF( x264_pixel_avg_8x8,   ( pixel *, int, pixel *, int, pixel *, int, int ))
+DECL_SUF( x264_pixel_avg_8x4,   ( pixel *, int, pixel *, int, pixel *, int, int ))
+DECL_SUF( x264_pixel_avg_4x8,   ( pixel *, int, pixel *, int, pixel *, int, int ))
+DECL_SUF( x264_pixel_avg_4x4,   ( pixel *, int, pixel *, int, pixel *, int, int ))
+DECL_SUF( x264_pixel_avg_4x2,   ( pixel *, int, pixel *, int, pixel *, int, int ))
 
 #define MC_WEIGHT(w,type) \
     void x264_mc_weight_w##w##_##type( pixel *,int, pixel *,int, const x264_weight_t *,int );
@@ -488,6 +488,15 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     if( !(cpu&X264_CPU_MMXEXT) )
         return;
 
+    pf->avg[PIXEL_16x16] = x264_pixel_avg_16x16_mmxext;
+    pf->avg[PIXEL_16x8]  = x264_pixel_avg_16x8_mmxext;
+    pf->avg[PIXEL_8x16]  = x264_pixel_avg_8x16_mmxext;
+    pf->avg[PIXEL_8x8]   = x264_pixel_avg_8x8_mmxext;
+    pf->avg[PIXEL_8x4]   = x264_pixel_avg_8x4_mmxext;
+    pf->avg[PIXEL_4x8]   = x264_pixel_avg_4x8_mmxext;
+    pf->avg[PIXEL_4x4]   = x264_pixel_avg_4x4_mmxext;
+    pf->avg[PIXEL_4x2]   = x264_pixel_avg_4x2_mmxext;
+
     pf->mc_luma = mc_luma_mmxext;
     pf->get_ref = get_ref_mmxext;
     pf->mc_chroma = x264_mc_chroma_mmxext;
@@ -525,6 +534,15 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     if( cpu&X264_CPU_SSE2_IS_SLOW )
         return;
 
+    pf->avg[PIXEL_16x16] = x264_pixel_avg_16x16_sse2;
+    pf->avg[PIXEL_16x8]  = x264_pixel_avg_16x8_sse2;
+    pf->avg[PIXEL_8x16]  = x264_pixel_avg_8x16_sse2;
+    pf->avg[PIXEL_8x8]   = x264_pixel_avg_8x8_sse2;
+    pf->avg[PIXEL_8x4]   = x264_pixel_avg_8x4_sse2;
+    pf->avg[PIXEL_4x8]   = x264_pixel_avg_4x8_sse2;
+    pf->avg[PIXEL_4x4]   = x264_pixel_avg_4x4_sse2;
+    pf->avg[PIXEL_4x2]   = x264_pixel_avg_4x2_sse2;
+
     pf->copy[PIXEL_16x16] = x264_mc_copy_w16_aligned_sse2;
     pf->weight = x264_mc_weight_wtab_sse2;
 
@@ -537,15 +555,6 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     if( (cpu&X264_CPU_SHUFFLE_IS_FAST) && !(cpu&X264_CPU_SLOW_ATOM) )
         pf->integral_init4v = x264_integral_init4v_ssse3;
 #else // !HIGH_BIT_DEPTH
-    pf->avg[PIXEL_16x16] = x264_pixel_avg_16x16_mmxext;
-    pf->avg[PIXEL_16x8]  = x264_pixel_avg_16x8_mmxext;
-    pf->avg[PIXEL_8x16]  = x264_pixel_avg_8x16_mmxext;
-    pf->avg[PIXEL_8x8]   = x264_pixel_avg_8x8_mmxext;
-    pf->avg[PIXEL_8x4]   = x264_pixel_avg_8x4_mmxext;
-    pf->avg[PIXEL_4x8]   = x264_pixel_avg_4x8_mmxext;
-    pf->avg[PIXEL_4x4]   = x264_pixel_avg_4x4_mmxext;
-    pf->avg[PIXEL_4x2]   = x264_pixel_avg_4x2_mmxext;
-
     pf->store_interleave_8x8x2 = x264_store_interleave_8x8x2_mmxext;
     pf->load_deinterleave_8x8x2_fenc = x264_load_deinterleave_8x8x2_fenc_mmx;
     pf->load_deinterleave_8x8x2_fdec = x264_load_deinterleave_8x8x2_fdec_mmx;

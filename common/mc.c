@@ -66,32 +66,12 @@ static inline void pixel_avg_wxh( pixel *dst, int i_dst, pixel *src1, int i_src1
 
 /* Implicit weighted bipred only:
  * assumes log2_denom = 5, offset = 0, weight1 + weight2 = 64 */
-#define op_scale2(x) dst[x] = x264_clip_pixel( (src1[x]*i_weight1 + src2[x]*i_weight2 + (1<<5)) >> 6 )
 static inline void pixel_avg_weight_wxh( pixel *dst, int i_dst, pixel *src1, int i_src1, pixel *src2, int i_src2, int width, int height, int i_weight1 )
 {
     const int i_weight2 = 64 - i_weight1;
     for( int y = 0; y<height; y++, dst += i_dst, src1 += i_src1, src2 += i_src2 )
-    {
-        op_scale2(0);
-        op_scale2(1);
-        if(width==2) continue;
-        op_scale2(2);
-        op_scale2(3);
-        if(width==4) continue;
-        op_scale2(4);
-        op_scale2(5);
-        op_scale2(6);
-        op_scale2(7);
-        if(width==8) continue;
-        op_scale2(8);
-        op_scale2(9);
-        op_scale2(10);
-        op_scale2(11);
-        op_scale2(12);
-        op_scale2(13);
-        op_scale2(14);
-        op_scale2(15);
-    }
+        for( int x = 0; x<width; x++ )
+            dst[x] = x264_clip_pixel( (src1[x]*i_weight1 + src2[x]*i_weight2 + (1<<5)) >> 6 );
 }
 #undef op_scale2
 

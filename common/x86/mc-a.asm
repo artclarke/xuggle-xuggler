@@ -52,6 +52,7 @@ cextern pw_64
 cextern pw_00ff
 cextern pw_pixel_max
 cextern sw_64
+cextern pd_32
 
 ;=============================================================================
 ; implicit weighted biprediction
@@ -64,7 +65,6 @@ cextern sw_64
 %ifdef WIN64
         movsxd r5, r5d
 %endif
-        .height_loop:
     %endmacro
 %else
     DECLARE_REG_TMP 1,2,3,4,5,6,1,2
@@ -76,10 +76,42 @@ cextern sw_64
         mov t3, r3m
         mov t4, r4m
         mov t5, r5m
-        .height_loop:
     %endmacro
 %endif
 
+%macro AVG_END 0
+    sub eax, 2
+    lea  t4, [t4+t5*2*SIZEOF_PIXEL]
+    lea  t2, [t2+t3*2*SIZEOF_PIXEL]
+    lea  t0, [t0+t1*2*SIZEOF_PIXEL]
+    jg .height_loop
+    REP_RET
+%endmacro
+
+%ifdef HIGH_BIT_DEPTH
+
+%macro BIWEIGHT_MMX 2
+    movh      m0, %1
+    movh      m1, %2
+    punpcklwd m0, m1
+    pmaddwd   m0, m3
+    paddd     m0, m4
+    psrad     m0, 6
+%endmacro
+
+%macro BIWEIGHT_START_MMX 0
+    movzx  t6d, word r6m
+    mov    t7d, 64
+    sub    t7d, t6d
+    shl    t7d, 16
+    add    t6d, t7d
+    movd    m3, t6d
+    SPLATD  m3, m3
+    mova    m4, [pd_32]
+    pxor    m5, m5
+%endmacro
+
+%else ;!HIGH_BIT_DEPTH
 %macro BIWEIGHT_MMX 2
     movh      m0, %1
     movh      m1, %2
@@ -100,6 +132,7 @@ cextern sw_64
     mova    m4, [pw_32] ; rounding
     pxor    m5, m5
 %endmacro
+%endif ;HIGH_BIT_DEPTH
 
 %macro BIWEIGHT_SSSE3 2
     movh      m0, %1
@@ -121,6 +154,24 @@ cextern sw_64
     SPLATW  m3, m3   ; weight_dst,src
 %endmacro
 
+%ifdef HIGH_BIT_DEPTH
+
+%macro BIWEIGHT_ROW 4
+    BIWEIGHT   [%2], [%3]
+%if %4==mmsize/4
+    packssdw     m0, m0
+    CLIPW        m0, m5, m7
+    movh       [%1], m0
+%else
+    SWAP 0, 6
+    BIWEIGHT   [%2+mmsize/2], [%3+mmsize/2]
+    packssdw     m6, m0
+    CLIPW        m6, m5, m7
+    mova       [%1], m6
+%endif
+%endmacro
+
+%else ;!HIGH_BIT_DEPTH
 %macro BIWEIGHT_ROW 4
     BIWEIGHT [%2], [%3]
 %if %4==mmsize/2
@@ -134,34 +185,40 @@ cextern sw_64
 %endif
 %endmacro
 
+%endif ;HIGH_BIT_DEPTH
+
 ;-----------------------------------------------------------------------------
-; int pixel_avg_weight_w16( uint8_t *dst, int, uint8_t *src1, int, uint8_t *src2, int, int i_weight )
+; int pixel_avg_weight_w16( pixel *dst, int, pixel *src1, int, pixel *src2, int, int i_weight )
 ;-----------------------------------------------------------------------------
 %macro AVG_WEIGHT 2-3 0
 cglobal pixel_avg_weight_w%2_%1
     BIWEIGHT_START
     AVG_START %3
-%if %2==8 && mmsize==16
+%ifdef HIGH_BIT_DEPTH
+    mova    m7, [pw_pixel_max]
+%endif
+.height_loop:
+%if mmsize==16 && %2==mmsize/(2*SIZEOF_PIXEL)
     BIWEIGHT [t2], [t4]
     SWAP 0, 6
-    BIWEIGHT [t2+t3], [t4+t5]
+    BIWEIGHT [t2+SIZEOF_PIXEL*t3], [t4+SIZEOF_PIXEL*t5]
+%ifdef HIGH_BIT_DEPTH
+    packssdw m6, m0
+    CLIPW    m6, m5, m7
+%else ;!HIGH_BIT_DEPTH
     packuswb m6, m0
+%endif ;HIGH_BIT_DEPTH
     movlps   [t0], m6
-    movhps   [t0+t1], m6
+    movhps   [t0+SIZEOF_PIXEL*t1], m6
 %else
 %assign x 0
-%rep 1+%2/(mmsize*2)
-    BIWEIGHT_ROW t0+x,    t2+x,    t4+x,    %2
-    BIWEIGHT_ROW t0+x+t1, t2+x+t3, t4+x+t5, %2
+%rep (%2*SIZEOF_PIXEL+mmsize-1)/mmsize
+    BIWEIGHT_ROW   t0+x,                   t2+x,                   t4+x,                 %2
+    BIWEIGHT_ROW   t0+x+SIZEOF_PIXEL*t1,   t2+x+SIZEOF_PIXEL*t3,   t4+x+SIZEOF_PIXEL*t5, %2
 %assign x x+mmsize
 %endrep
 %endif
-    lea  t0, [t0+t1*2]
-    lea  t2, [t2+t3*2]
-    lea  t4, [t4+t5*2]
-    sub  eax, 2
-    jg   .height_loop
-    REP_RET
+    AVG_END
 %endmacro
 
 %define BIWEIGHT BIWEIGHT_MMX
@@ -170,8 +227,13 @@ INIT_MMX
 AVG_WEIGHT mmxext, 4
 AVG_WEIGHT mmxext, 8
 AVG_WEIGHT mmxext, 16
+%ifdef HIGH_BIT_DEPTH
 INIT_XMM
-%define pixel_avg_weight_w4_sse2 pixel_avg_weight_w4_mmxext
+AVG_WEIGHT sse2, 4,  8
+AVG_WEIGHT sse2, 8,  8
+AVG_WEIGHT sse2, 16, 8
+%else ;!HIGH_BIT_DEPTH
+INIT_XMM
 AVG_WEIGHT sse2, 8,  7
 AVG_WEIGHT sse2, 16, 7
 %define BIWEIGHT BIWEIGHT_SSSE3
@@ -181,6 +243,7 @@ AVG_WEIGHT ssse3, 4
 INIT_XMM
 AVG_WEIGHT ssse3, 8,  7
 AVG_WEIGHT ssse3, 16, 7
+%endif ;HIGH_BIT_DEPTH
 
 ;=============================================================================
 ; P frame explicit weighted prediction
@@ -492,8 +555,8 @@ OFFSETPN  8, sse2
 ;=============================================================================
 
 ;-----------------------------------------------------------------------------
-; void pixel_avg_4x4( uint8_t *dst, int dst_stride,
-;                     uint8_t *src1, int src1_stride, uint8_t *src2, int src2_stride, int weight );
+; void pixel_avg_4x4( pixel *dst, int dst_stride,
+;                     pixel *src1, int src1_stride, pixel *src2, int src2_stride, int weight );
 ;-----------------------------------------------------------------------------
 %macro AVGH 3
 cglobal pixel_avg_%1x%2_%3
@@ -508,64 +571,85 @@ cglobal pixel_avg_%1x%2_%3
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void pixel_avg_w4( uint8_t *dst, int dst_stride,
-;                    uint8_t *src1, int src1_stride, uint8_t *src2, int src2_stride,
+; void pixel_avg_w4( pixel *dst, int dst_stride,
+;                    pixel *src1, int src1_stride, pixel *src2, int src2_stride,
 ;                    int height, int weight );
 ;-----------------------------------------------------------------------------
 
-%macro AVG_END 0
-    sub    eax, 2
-    lea    t4, [t4+t5*2]
-    lea    t2, [t2+t3*2]
-    lea    t0, [t0+t1*2]
-    jg     .height_loop
-    REP_RET
-%endmacro
-
-%macro AVG_FUNC 3
-cglobal %1
+%macro AVG_FUNC 4
+cglobal pixel_avg_w%1_%4
     AVG_START
-    %2     m0, [t2]
-    %2     m1, [t2+t3]
-    pavgb  m0, [t4]
-    pavgb  m1, [t4+t5]
-    %3     [t0], m0
-    %3     [t0+t1], m1
+.height_loop:
+%assign x 0
+%rep (%1*SIZEOF_PIXEL+mmsize-1)/mmsize
+    %2     m0, [t2+x]
+    %2     m1, [t2+x+SIZEOF_PIXEL*t3]
+%ifdef HIGH_BIT_DEPTH
+    pavgw  m0, [t4+x]
+    pavgw  m1, [t4+x+SIZEOF_PIXEL*t5]
+%else ;!HIGH_BIT_DEPTH
+    pavgb  m0, [t4+x]
+    pavgb  m1, [t4+x+SIZEOF_PIXEL*t5]
+%endif
+    %3     [t0+x], m0
+    %3     [t0+x+SIZEOF_PIXEL*t1], m1
+%assign x x+mmsize
+%endrep
     AVG_END
 %endmacro
 
+%ifdef HIGH_BIT_DEPTH
+
 INIT_MMX
-AVG_FUNC pixel_avg_w4_mmxext, movd, movd
+AVG_FUNC 4, movq, movq, mmxext
 AVGH 4, 8, mmxext
 AVGH 4, 4, mmxext
 AVGH 4, 2, mmxext
 
-AVG_FUNC pixel_avg_w8_mmxext, movq, movq
+AVG_FUNC 8, movq, movq, mmxext
 AVGH 8, 16, mmxext
-AVGH 8, 8,  mmxext
-AVGH 8, 4,  mmxext
+AVGH 8,  8, mmxext
+AVGH 8,  4, mmxext
 
-cglobal pixel_avg_w16_mmxext
-    AVG_START
-    movq   mm0, [t2  ]
-    movq   mm1, [t2+8]
-    movq   mm2, [t2+t3  ]
-    movq   mm3, [t2+t3+8]
-    pavgb  mm0, [t4  ]
-    pavgb  mm1, [t4+8]
-    pavgb  mm2, [t4+t5  ]
-    pavgb  mm3, [t4+t5+8]
-    movq   [t0  ], mm0
-    movq   [t0+8], mm1
-    movq   [t0+t1  ], mm2
-    movq   [t0+t1+8], mm3
-    AVG_END
+AVG_FUNC 16, movq, movq, mmxext
+AVGH 16, 16, mmxext
+AVGH 16,  8, mmxext
 
+INIT_XMM
+
+AVG_FUNC 4, movq, movq, sse2
+AVGH  4, 8, sse2
+AVGH  4, 4, sse2
+AVGH  4, 2, sse2
+
+AVG_FUNC 8, movdqu, movdqa, sse2
+AVGH  8, 16, sse2
+AVGH  8,  8, sse2
+AVGH  8,  4, sse2
+
+AVG_FUNC 16, movdqu, movdqa, sse2
+AVGH  16, 16, sse2
+AVGH  16,  8, sse2
+
+%else ;!HIGH_BIT_DEPTH
+
+INIT_MMX
+AVG_FUNC 4, movd, movd, mmxext
+AVGH 4, 8, mmxext
+AVGH 4, 4, mmxext
+AVGH 4, 2, mmxext
+
+AVG_FUNC 8, movq, movq, mmxext
+AVGH 8, 16, mmxext
+AVGH 8,  8, mmxext
+AVGH 8,  4, mmxext
+
+AVG_FUNC 16, movq, movq, mmxext
 AVGH 16, 16, mmxext
 AVGH 16, 8,  mmxext
 
 INIT_XMM
-AVG_FUNC pixel_avg_w16_sse2, movdqu, movdqa
+AVG_FUNC 16, movdqu, movdqa, sse2
 AVGH 16, 16, sse2
 AVGH 16,  8, sse2
 AVGH  8, 16, sse2
@@ -581,6 +665,7 @@ AVGH  4,  8, ssse3
 AVGH  4,  4, ssse3
 AVGH  4,  2, ssse3
 
+%endif ;HIGH_BIT_DEPTH
 
 
 ;=============================================================================
