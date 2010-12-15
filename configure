@@ -478,7 +478,7 @@ if [ $asm = auto -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
         exit 1
     fi
     if ! cc_check '' '' '__asm__("pabsw %xmm0, %xmm0");' ; then
-        VER=`(as --version || echo no gnu as) 2>$DEVNULL | head -n 1`
+        VER=`(${cross_prefix}as --version || echo no gnu as) 2>$DEVNULL | head -n 1`
         echo "Found $VER"
         echo "Minimum version is binutils-2.17"
         echo "Your compiler can't handle inline SSSE3 asm."
@@ -511,9 +511,9 @@ define SYS_$SYS
 
 echo "int i[2] = {0x42494745,0}; double f[2] = {0x1.0656e6469616ep+102,0};" > conftest.c
 $CC $CFLAGS conftest.c -c -o conftest.o 2>$DEVNULL || die "endian test failed"
-if (strings -a conftest.o | grep -q BIGE) && (strings -a conftest.o | grep -q FPendian) ; then
+if (${cross_prefix}strings -a conftest.o | grep -q BIGE) && (${cross_prefix}strings -a conftest.o | grep -q FPendian) ; then
     define WORDS_BIGENDIAN
-elif !(strings -a conftest.o | grep -q EGIB && strings -a conftest.o | grep -q naidnePF) ; then
+elif !(${cross_prefix}strings -a conftest.o | grep -q EGIB && ${cross_prefix}strings -a conftest.o | grep -q naidnePF) ; then
     die "endian test failed"
 fi
 
