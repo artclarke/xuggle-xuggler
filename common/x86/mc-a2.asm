@@ -881,56 +881,21 @@ cglobal plane_copy_core_mmxext, 6,7
     emms
     RET
 
+
+%macro INTERLEAVE 4-5 ; dst, srcu, srcv, is_aligned, nt_hint
 %ifdef HIGH_BIT_DEPTH
-
-%macro INTERLEAVE 4-5 ; dst, srcu, srcv, is_aligned, nt_hint
-%if mmsize==16
-    mov%4       m0, [%2]
-    mov%4       m1, [%3]
-    SBUTTERFLY  wd, 0, 1, 2
-    mov%5a [%1+ 0], m0
-    mov%5a [%1+16], m1
+%assign x 0
+%rep 16/mmsize
+    mov%4     m0, [%2+(x/2)*mmsize]
+    mov%4     m1, [%3+(x/2)*mmsize]
+    mova      m2, m0
+    punpcklwd m0, m1
+    punpckhwd m2, m1
+    mov%5a    [%1+(x+0)*mmsize], m0
+    mov%5a    [%1+(x+1)*mmsize], m2
+    %assign x (x+2)
+%endrep
 %else
-    movq        m0, [%2+0]
-    movq        m1, [%3+0]
-    SBUTTERFLY  wd, 0, 1, 2
-    mov%5q [%1+ 0], m0
-    mov%5q [%1+ 8], m1
-    movq        m0, [%2+8]
-    movq        m1, [%3+8]
-    SBUTTERFLY  wd, 0, 1, 2
-    mov%5q [%1+16], m0
-    mov%5q [%1+24], m1
-%endif
-%endmacro
-
-%macro PLANE_INTERLEAVE 1
-;-----------------------------------------------------------------------------
-; void store_interleave_8x8x2( uint16_t *dst, int i_dst, uint16_t *srcu, uint16_t *srcv )
-;-----------------------------------------------------------------------------
-cglobal store_interleave_8x8x2_%1, 4,5
-    mov    r4d, 16
-    FIX_STRIDES r1
-.loop:
-    INTERLEAVE r0, r2, r3, a
-    add    r2, FDEC_STRIDEB
-    add    r3, FDEC_STRIDEB
-    add    r0, r1
-    dec    r4d
-    jg .loop
-    REP_RET
-
-%endmacro ; PLANE_INTERLEAVE
-
-INIT_MMX
-PLANE_INTERLEAVE mmxext
-INIT_XMM
-PLANE_INTERLEAVE sse2
-
-%endif ; HIGH_BIT_DEPTH
-
-%ifndef HIGH_BIT_DEPTH
-%macro INTERLEAVE 4-5 ; dst, srcu, srcv, is_aligned, nt_hint
     movq   m0, [%2]
 %if mmsize==16
 %ifidn %4, a
@@ -945,11 +910,11 @@ PLANE_INTERLEAVE sse2
     mova   m2, m0
     punpcklbw m0, m1
     punpckhbw m2, m1
-    mov%5a [%1], m0
+    mov%5a [%1+0], m0
     mov%5a [%1+8], m2
 %endif
+%endif ; HIGH_BIT_DEPTH
 %endmacro
-%endif
 
 %macro DEINTERLEAVE 7 ; dstu, dstv, src, dstv==dstu+8, cpu, shuffle constant, is aligned
 %ifdef HIGH_BIT_DEPTH
@@ -1003,7 +968,6 @@ PLANE_INTERLEAVE sse2
 %endif ; HIGH_BIT_DEPTH
 %endmacro
 
-%ifndef HIGH_BIT_DEPTH
 %macro PLANE_INTERLEAVE 1
 ;-----------------------------------------------------------------------------
 ; void plane_copy_interleave_core( uint8_t *dst, int i_dst,
@@ -1011,11 +975,17 @@ PLANE_INTERLEAVE sse2
 ;                                  uint8_t *srcv, int i_srcv, int w, int h )
 ;-----------------------------------------------------------------------------
 ; assumes i_dst and w are multiples of 16, and i_dst>2*w
-cglobal plane_copy_interleave_core_%1, 6,7
-    mov    r6d, r6m
+cglobal plane_copy_interleave_core_%1, 7,7
+    FIX_STRIDES r1d, r3d, r5d, r6d
+%ifdef HIGH_BIT_DEPTH
+    mov   r1m, r1d
+    mov   r3m, r3d
+    mov   r6m, r6d
+%endif
     movsxdifnidn r1, r1d
     movsxdifnidn r3, r3d
     movsxdifnidn r5, r5d
+    movsxdifnidn r6, r6d
     lea    r0, [r0+r6*2]
     add    r2,  r6
     add    r4,  r6
@@ -1024,10 +994,10 @@ cglobal plane_copy_interleave_core_%1, 6,7
 %else
     DECLARE_REG_TMP 1,3
 %endif
+    mov  t1, r1
+    shr  t1, SIZEOF_PIXEL
+    sub  t1, r6
     mov  t0d, r7m
-    mov  t1d, r1d
-    shr  t1d, 1
-    sub  t1d, r6d
 .loopy:
     mov    r6d, r6m
     neg    r6
@@ -1039,21 +1009,25 @@ cglobal plane_copy_interleave_core_%1, 6,7
     mov    r6d, r6m
     neg    r6
 .loopx:
-    INTERLEAVE r0+r6*2,    r2+r6,   r4+r6,   u, nt
-    INTERLEAVE r0+r6*2+16, r2+r6+8, r4+r6+8, u, nt
-    add    r6, 16
+    INTERLEAVE r0+r6*2+ 0*SIZEOF_PIXEL, r2+r6+0*SIZEOF_PIXEL, r4+r6+0*SIZEOF_PIXEL, u, nt
+    INTERLEAVE r0+r6*2+16*SIZEOF_PIXEL, r2+r6+8*SIZEOF_PIXEL, r4+r6+8*SIZEOF_PIXEL, u, nt
+    add    r6, 16*SIZEOF_PIXEL
     jl .loopx
 .pad:
+%assign n 0
+%rep SIZEOF_PIXEL
 %if mmsize==8
-    movntq [r0+r6*2], m0
-    movntq [r0+r6*2+8], m0
-    movntq [r0+r6*2+16], m0
-    movntq [r0+r6*2+24], m0
+    movntq [r0+r6*2+(n+ 0)], m0
+    movntq [r0+r6*2+(n+ 8)], m0
+    movntq [r0+r6*2+(n+16)], m0
+    movntq [r0+r6*2+(n+24)], m0
 %else
-    movntdq [r0+r6*2], m0
-    movntdq [r0+r6*2+16], m0
+    movntdq [r0+r6*2+(n+ 0)], m0
+    movntdq [r0+r6*2+(n+16)], m0
 %endif
-    add    r6, 16
+    %assign n n+32
+%endrep
+    add    r6, 16*SIZEOF_PIXEL
     cmp    r6, t1
     jl .pad
     add    r0, r1mp
@@ -1070,17 +1044,17 @@ cglobal plane_copy_interleave_core_%1, 6,7
 ;-----------------------------------------------------------------------------
 cglobal store_interleave_8x8x2_%1, 4,5
     mov    r4d, 4
+    FIX_STRIDES r1d
 .loop:
-    INTERLEAVE r0, r2, r3, a
-    INTERLEAVE r0+r1, r2+FDEC_STRIDE, r3+FDEC_STRIDE, a
-    add    r2, FDEC_STRIDE*2
-    add    r3, FDEC_STRIDE*2
+    INTERLEAVE r0+ 0, r2+           0, r3+           0, a
+    INTERLEAVE r0+r1, r2+FDEC_STRIDEB, r3+FDEC_STRIDEB, a
+    add    r2, FDEC_STRIDEB*2
+    add    r3, FDEC_STRIDEB*2
     lea    r0, [r0+r1*2]
     dec    r4d
     jg .loop
     REP_RET
 %endmacro ; PLANE_INTERLEAVE
-%endif ; !HIGH_BIT_DEPTH
 
 %macro DEINTERLEAVE_START 1
 %ifdef HIGH_BIT_DEPTH
@@ -1161,8 +1135,10 @@ cglobal load_deinterleave_8x8x2_fdec_%1, 3,4
 
 %ifdef HIGH_BIT_DEPTH
 INIT_MMX
+PLANE_INTERLEAVE mmxext
 PLANE_DEINTERLEAVE mmx
 INIT_XMM
+PLANE_INTERLEAVE sse2
 PLANE_DEINTERLEAVE sse2
 %else
 INIT_MMX

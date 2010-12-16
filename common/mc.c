@@ -291,14 +291,14 @@ void x264_plane_copy_c( pixel *dst, int i_dst,
 }
 
 void x264_plane_copy_interleave_c( pixel *dst, int i_dst,
-                                   uint8_t *srcu, int i_srcu,
-                                   uint8_t *srcv, int i_srcv, int w, int h )
+                                   pixel *srcu, int i_srcu,
+                                   pixel *srcv, int i_srcv, int w, int h )
 {
     for( int y=0; y<h; y++, dst+=i_dst, srcu+=i_srcu, srcv+=i_srcv )
         for( int x=0; x<w; x++ )
         {
-            dst[2*x]   = ((pixel*)srcu)[x];
-            dst[2*x+1] = ((pixel*)srcv)[x];
+            dst[2*x]   = srcu[x];
+            dst[2*x+1] = srcv[x];
         }
 }
 

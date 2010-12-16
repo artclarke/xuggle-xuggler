@@ -300,7 +300,8 @@ int x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
         get_plane_ptr( h, src, &pix[1], &stride[1], i_csp==X264_CSP_I420 ? 1 : 2, 1, 1 );
         get_plane_ptr( h, src, &pix[2], &stride[2], i_csp==X264_CSP_I420 ? 2 : 1, 1, 1 );
         h->mc.plane_copy_interleave( dst->plane[1], dst->i_stride[1],
-                                     pix[1], stride[1], pix[2], stride[2],
+                                     (pixel*)pix[1], stride[1]/sizeof(pixel),
+                                     (pixel*)pix[2], stride[2]/sizeof(pixel),
                                      h->param.i_width>>1, h->param.i_height>>1 );
     }
     return 0;
