@@ -29,9 +29,11 @@
 
 %assign SIZEOF_PIXEL 1
 %assign SIZEOF_DCTCOEF 2
+%define pixel byte
 %ifdef HIGH_BIT_DEPTH
     %assign SIZEOF_PIXEL 2
     %assign SIZEOF_DCTCOEF 4
+    %define pixel word
 %endif
 
 %assign FENC_STRIDEB SIZEOF_PIXEL*FENC_STRIDE

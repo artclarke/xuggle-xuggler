@@ -45,7 +45,8 @@
  void x264_predict_16x16_p_core_sse2( uint8_t *src, int i00, int b, int c );
  void x264_predict_8x8c_p_core_mmxext( uint8_t *src, int i00, int b, int c );
  void x264_predict_8x8c_p_core_sse2( uint8_t *src, int i00, int b, int c );
- void x264_predict_8x8c_dc_core_mmxext( uint8_t *src, int s2, int s3 );
+ void x264_predict_8x8c_dc_mmxext( pixel *src );
+ void x264_predict_8x8c_dc_sse2( uint16_t *src );
  void x264_predict_8x8c_dc_top_mmxext( uint8_t *src );
  void x264_predict_8x8c_v_mmx( uint8_t *src );
  void x264_predict_8x8c_h_mmxext( uint8_t *src );
@@ -245,23 +246,6 @@ static void x264_predict_8x8c_p_ssse3( uint8_t *src )
 }
 #endif
 
-static void x264_predict_8x8c_dc_mmxext( uint8_t *src )
-{
-    int s2 = 4
-       + src[-1 + 0*FDEC_STRIDE]
-       + src[-1 + 1*FDEC_STRIDE]
-       + src[-1 + 2*FDEC_STRIDE]
-       + src[-1 + 3*FDEC_STRIDE];
-
-    int s3 = 2
-       + src[-1 + 4*FDEC_STRIDE]
-       + src[-1 + 5*FDEC_STRIDE]
-       + src[-1 + 6*FDEC_STRIDE]
-       + src[-1 + 7*FDEC_STRIDE];
-
-    x264_predict_8x8c_dc_core_mmxext( src, s2, s3 );
-}
-
 #if ARCH_X86_64
 static void x264_predict_8x8c_dc_left( uint8_t *src )
 {
@@ -428,7 +412,14 @@ void x264_predict_8x8c_init_mmx( int cpu, x264_predict_t pf[7] )
 {
     if( !(cpu&X264_CPU_MMX) )
         return;
-#if !HIGH_BIT_DEPTH
+#if HIGH_BIT_DEPTH
+    if( !(cpu&X264_CPU_MMXEXT) )
+        return;
+    pf[I_PRED_CHROMA_DC]      = x264_predict_8x8c_dc_mmxext;
+    if( !(cpu&X264_CPU_SSE2) )
+        return;
+    pf[I_PRED_CHROMA_DC]      = x264_predict_8x8c_dc_sse2;
+#else
 #if ARCH_X86_64
     pf[I_PRED_CHROMA_DC_LEFT] = x264_predict_8x8c_dc_left;
 #endif
@@ -450,7 +441,7 @@ void x264_predict_8x8c_init_mmx( int cpu, x264_predict_t pf[7] )
 #ifdef __GNUC__
     pf[I_PRED_CHROMA_P]       = x264_predict_8x8c_p_ssse3;
 #endif
-#endif // !HIGH_BIT_DEPTH
+#endif // HIGH_BIT_DEPTH
 }
 
 void x264_predict_8x8_init_mmx( int cpu, x264_predict8x8_t pf[12], x264_predict_8x8_filter_t *predict_8x8_filter )

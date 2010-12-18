@@ -1261,41 +1261,98 @@ PRED_8x8C_H mmxext
 PRED_8x8C_H ssse3
 
 ;-----------------------------------------------------------------------------
-; void predict_8x8c_dc_core( uint8_t *src, int s2, int s3 )
+; void predict_8x8c_dc( pixel *src )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8c_dc_core_mmxext, 1,1
-    movq        mm0, [r0 - FDEC_STRIDE]
-    pxor        mm1, mm1
-    pxor        mm2, mm2
-    punpckhbw   mm1, mm0
-    punpcklbw   mm0, mm2
-    psadbw      mm1, mm2        ; s1
-    psadbw      mm0, mm2        ; s0
 
-%ifdef ARCH_X86_64
-    movd        mm4, r1d
-    movd        mm5, r2d
-    paddw       mm0, mm4
-    pshufw      mm2, mm5, 0
+%macro PREDICT_8x8C_DC 1
+cglobal predict_8x8c_dc_%1, 1,3
+    pxor      m7, m7
+%ifdef HIGH_BIT_DEPTH
+    movq      m0, [r0-FDEC_STRIDEB+0]
+    movq      m1, [r0-FDEC_STRIDEB+8]
+    HADDW     m0, m2
+    HADDW     m1, m2
 %else
-    paddw       mm0, r1m
-    pshufw      mm2, r2m, 0
+    movd      m0, [r0-FDEC_STRIDEB+0]
+    movd      m1, [r0-FDEC_STRIDEB+4]
+    psadbw    m0, m7            ; s0
+    psadbw    m1, m7            ; s1
 %endif
-    psrlw       mm0, 3
-    paddw       mm1, [pw_2]
-    movq        mm3, mm2
-    pshufw      mm1, mm1, 0
-    pshufw      mm0, mm0, 0     ; dc0 (w)
-    paddw       mm3, mm1
-    psrlw       mm3, 3          ; dc3 (w)
-    psrlw       mm2, 2          ; dc2 (w)
-    psrlw       mm1, 2          ; dc1 (w)
+    add       r0, FDEC_STRIDEB*4
 
-    packuswb    mm0, mm1        ; dc0,dc1 (b)
-    packuswb    mm2, mm3        ; dc2,dc3 (b)
+    movzx    r1d, pixel [r0-FDEC_STRIDEB*4-SIZEOF_PIXEL]
+    movzx    r2d, pixel [r0-FDEC_STRIDEB*3-SIZEOF_PIXEL]
+    add      r1d, r2d
+    movzx    r2d, pixel [r0-FDEC_STRIDEB*2-SIZEOF_PIXEL]
+    add      r1d, r2d
+    movzx    r2d, pixel [r0-FDEC_STRIDEB*1-SIZEOF_PIXEL]
+    add      r1d, r2d
+    movd      m2, r1d            ; s2
 
-    STORE8x8    mm0, mm2
+    movzx    r1d, pixel [r0+FDEC_STRIDEB*0-SIZEOF_PIXEL]
+    movzx    r2d, pixel [r0+FDEC_STRIDEB*1-SIZEOF_PIXEL]
+    add      r1d, r2d
+    movzx    r2d, pixel [r0+FDEC_STRIDEB*2-SIZEOF_PIXEL]
+    add      r1d, r2d
+    movzx    r2d, pixel [r0+FDEC_STRIDEB*3-SIZEOF_PIXEL]
+    add      r1d, r2d
+    movd      m3, r1d            ; s3
+
+    punpcklwd m0, m1
+    punpcklwd m2, m3
+    punpckldq m0, m2            ; s0, s1, s2, s3
+    pshufw    m3, m0, 11110110b ; s2, s1, s3, s3
+    pshufw    m0, m0, 01110100b ; s0, s1, s3, s1
+    paddw     m0, m3
+    psrlw     m0, 2
+    pavgw     m0, m7            ; s0+s2, s1, s3, s1+s3
+%ifdef HIGH_BIT_DEPTH
+%ifidn %1, sse2
+    movq2dq   xmm0, m0
+    punpcklwd xmm0, xmm0
+    pshufd    xmm1, xmm0, 11111010b
+    punpckldq xmm0, xmm0
+%assign n 0
+%rep 8
+%assign i (0 + (n/4))
+    movdqa [r0+FDEC_STRIDEB*(n-4)+0], xmm %+ i
+%assign n n+1
+%endrep
+%else
+    pshufw    m1, m0, 0x00
+    pshufw    m2, m0, 0x55
+    pshufw    m3, m0, 0xaa
+    pshufw    m4, m0, 0xff
+%assign n 0
+%rep 8
+%assign i (1 + (n/4)*2)
+%assign j (2 + (n/4)*2)
+    movq [r0+FDEC_STRIDEB*(n-4)+0], m %+ i
+    movq [r0+FDEC_STRIDEB*(n-4)+8], m %+ j
+%assign n n+1
+%endrep
+%endif
+%else
+    packuswb  m0, m0
+    punpcklbw m0, m0
+    movq      m1, m0
+    punpcklbw m0, m0
+    punpckhbw m1, m1
+%assign n 0
+%rep 8
+%assign i (0 + (n/4))
+    movq [r0+FDEC_STRIDEB*(n-4)], m %+ i
+%assign n n+1
+%endrep
+%endif
     RET
+%endmacro
+
+INIT_MMX
+PREDICT_8x8C_DC mmxext
+%ifdef HIGH_BIT_DEPTH
+PREDICT_8x8C_DC sse2
+%endif
 
 cglobal predict_8x8c_dc_top_mmxext, 1,1
     movq        mm0, [r0 - FDEC_STRIDE]
