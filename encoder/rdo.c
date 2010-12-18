@@ -92,7 +92,7 @@ static ALWAYS_INLINE int cached_satd( x264_t *h, int size, int x, int y )
     static const uint8_t satd_shift_x[3] = {3,   2,   2};
     static const uint8_t satd_shift_y[3] = {2-1, 3-2, 2-2};
     static const uint8_t  satd_offset[3] = {0,   8,   16};
-    ALIGNED_16( static pixel zero[16] );
+    ALIGNED_16( static pixel zero[16] ) = {0};
     int cache_index = (x >> satd_shift_x[size - PIXEL_8x4]) + (y >> satd_shift_y[size - PIXEL_8x4])
                     + satd_offset[size - PIXEL_8x4];
     int res = h->mb.pic.fenc_satd_cache[cache_index];
@@ -119,7 +119,7 @@ static ALWAYS_INLINE int cached_satd( x264_t *h, int size, int x, int y )
 
 static inline int ssd_plane( x264_t *h, int size, int p, int x, int y )
 {
-    ALIGNED_16( static pixel zero[16] );
+    ALIGNED_16( static pixel zero[16] ) = {0};
     int satd = 0;
     pixel *fdec = h->mb.pic.p_fdec[p] + x + y*FDEC_STRIDE;
     pixel *fenc = h->mb.pic.p_fenc[p] + x + y*FENC_STRIDE;

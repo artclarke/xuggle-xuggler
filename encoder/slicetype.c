@@ -191,7 +191,7 @@ static NOINLINE unsigned int x264_weight_cost_chroma( x264_t *h, x264_frame_t *f
     pixel *src = ref + i_offset;
     ALIGNED_ARRAY_16( pixel, buf, [8*8] );
     int pixoff = 0;
-    ALIGNED_16( static pixel flat[8] );
+    ALIGNED_16( static pixel flat[8] ) = {0};
     if( w )
     {
         for( int y = 0; y < i_lines; y += 8, pixoff = y*i_stride )
