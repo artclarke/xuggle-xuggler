@@ -825,6 +825,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     }
     if( cpu&X264_CPU_SSSE3 )
     {
+        INIT4_NAME( sad_aligned, sad, _ssse3_aligned );
         INIT7( sad, _ssse3 );
         INIT7( sad_x3, _ssse3 );
         INIT7( sad_x4, _ssse3 );

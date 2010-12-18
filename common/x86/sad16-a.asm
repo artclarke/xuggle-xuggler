@@ -189,6 +189,12 @@ SAD_XMM 16,  8, ssse3
 SAD_XMM  8, 16, ssse3
 SAD_XMM  8,  8, ssse3
 SAD_XMM  8,  4, ssse3
+%define movdqu movdqa
+SAD_XMM 16, 16, ssse3_aligned
+SAD_XMM 16,  8, ssse3_aligned
+SAD_XMM  8, 16, ssse3_aligned
+SAD_XMM  8,  8, ssse3_aligned
+%undef movdqu
 %undef ABS1
 %undef ABS2
 
