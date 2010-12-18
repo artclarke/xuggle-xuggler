@@ -1566,12 +1566,12 @@ int x264_ratecontrol_end( x264_t *h, int bits, int *filler )
                 goto fail;
             if( h->sh.weight[0][1].weightfn || h->sh.weight[0][2].weightfn )
             {
-                if( fprintf( rc->p_stat_file_out, ",%d,%d,%d,%d,%d\n",
+                if( fprintf( rc->p_stat_file_out, ",%d,%d,%d,%d,%d ",
                              h->sh.weight[0][1].i_denom, h->sh.weight[0][1].i_scale, h->sh.weight[0][1].i_offset,
                              h->sh.weight[0][2].i_scale, h->sh.weight[0][2].i_offset ) < 0 )
                     goto fail;
             }
-            else if( fprintf( rc->p_stat_file_out, "\n" ) < 0 )
+            else if( fprintf( rc->p_stat_file_out, " " ) < 0 )
                 goto fail;
         }
 
