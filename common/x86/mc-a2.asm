@@ -825,11 +825,13 @@ HPEL ssse3
 %endif ; !HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
-; void plane_copy_core( uint8_t *dst, int i_dst,
-;                       uint8_t *src, int i_src, int w, int h)
+; void plane_copy_core( pixel *dst, int i_dst,
+;                       pixel *src, int i_src, int w, int h)
 ;-----------------------------------------------------------------------------
 ; assumes i_dst and w are multiples of 16, and i_dst>w
+INIT_MMX
 cglobal plane_copy_core_mmxext, 6,7
+    FIX_STRIDES r1d, r3d, r4d
     movsxdifnidn r1, r1d
     movsxdifnidn r3, r3d
     movsxdifnidn r4, r4d
@@ -840,22 +842,22 @@ cglobal plane_copy_core_mmxext, 6,7
     sub    r6d, 63
 .loopx:
     prefetchnta [r2+256]
-    movq   mm0, [r2   ]
-    movq   mm1, [r2+ 8]
-    movntq [r0   ], mm0
-    movntq [r0+ 8], mm1
-    movq   mm2, [r2+16]
-    movq   mm3, [r2+24]
-    movntq [r0+16], mm2
-    movntq [r0+24], mm3
-    movq   mm4, [r2+32]
-    movq   mm5, [r2+40]
-    movntq [r0+32], mm4
-    movntq [r0+40], mm5
-    movq   mm6, [r2+48]
-    movq   mm7, [r2+56]
-    movntq [r0+48], mm6
-    movntq [r0+56], mm7
+    movq   m0, [r2   ]
+    movq   m1, [r2+ 8]
+    movntq [r0   ], m0
+    movntq [r0+ 8], m1
+    movq   m2, [r2+16]
+    movq   m3, [r2+24]
+    movntq [r0+16], m2
+    movntq [r0+24], m3
+    movq   m4, [r2+32]
+    movq   m5, [r2+40]
+    movntq [r0+32], m4
+    movntq [r0+40], m5
+    movq   m6, [r2+48]
+    movq   m7, [r2+56]
+    movntq [r0+48], m6
+    movntq [r0+56], m7
     add    r2,  64
     add    r0,  64
     sub    r6d, 64
@@ -864,10 +866,10 @@ cglobal plane_copy_core_mmxext, 6,7
     add    r6d, 63
     jle .end16
 .loop16:
-    movq   mm0, [r2  ]
-    movq   mm1, [r2+8]
-    movntq [r0  ], mm0
-    movntq [r0+8], mm1
+    movq   m0, [r2  ]
+    movq   m1, [r2+8]
+    movntq [r0  ], m0
+    movntq [r0+8], m1
     add    r2,  16
     add    r0,  16
     sub    r6d, 16

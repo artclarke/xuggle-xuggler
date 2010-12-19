@@ -88,7 +88,7 @@ typedef struct
     void (*load_deinterleave_8x8x2_fdec)( pixel *dst, pixel *src, int i_src );
 
     void (*plane_copy)( pixel *dst, int i_dst,
-                        uint8_t *src, int i_src, int w, int h );
+                        pixel *src, int i_src, int w, int h );
     void (*plane_copy_interleave)( pixel *dst, int i_dst,
                                    pixel *srcu, int i_srcu,
                                    pixel *srcv, int i_srcv, int w, int h );

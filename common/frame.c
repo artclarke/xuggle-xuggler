@@ -287,13 +287,13 @@ int x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
     uint8_t *pix[3];
     int stride[3];
     get_plane_ptr( h, src, &pix[0], &stride[0], 0, 0, 0 );
-    h->mc.plane_copy( dst->plane[0], dst->i_stride[0], pix[0], stride[0],
-                      h->param.i_width, h->param.i_height );
+    h->mc.plane_copy( dst->plane[0], dst->i_stride[0], (pixel*)pix[0],
+                      stride[0]/sizeof(pixel), h->param.i_width, h->param.i_height );
     if( i_csp == X264_CSP_NV12 )
     {
         get_plane_ptr( h, src, &pix[1], &stride[1], 1, 0, 1 );
-        h->mc.plane_copy( dst->plane[1], dst->i_stride[1], pix[1], stride[1],
-                          h->param.i_width, h->param.i_height>>1 );
+        h->mc.plane_copy( dst->plane[1], dst->i_stride[1], (pixel*)pix[1],
+                          stride[1]/sizeof(pixel), h->param.i_width, h->param.i_height>>1 );
     }
     else
     {

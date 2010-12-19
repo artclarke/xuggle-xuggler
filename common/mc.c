@@ -280,7 +280,7 @@ MC_COPY( 8 )
 MC_COPY( 4 )
 
 void x264_plane_copy_c( pixel *dst, int i_dst,
-                        uint8_t *src, int i_src, int w, int h )
+                        pixel *src, int i_src, int w, int h )
 {
     while( h-- )
     {
