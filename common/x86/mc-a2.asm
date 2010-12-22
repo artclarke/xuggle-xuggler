@@ -1447,14 +1447,64 @@ cglobal integral_init4v_ssse3, 3,5
     mova    [%2], m2
 %endmacro
 
+%macro FILT8xU 3
+    mova      m3, [r0+%3+8]
+    mova      m2, [r0+%3]
+    pavgw     m3, [r0+%3+r5+8]
+    pavgw     m2, [r0+%3+r5]
+    movu      m1, [r0+%3+10]
+    movu      m0, [r0+%3+2]
+    pavgw     m1, [r0+%3+r5+10]
+    pavgw     m0, [r0+%3+r5+2]
+    pavgw     m1, m3
+    pavgw     m0, m2
+    mova      m3, m1
+    mova      m2, m0
+    pand      m1, m7
+    pand      m0, m7
+    psrld     m3, 16
+    psrld     m2, 16
+    packssdw  m0, m1
+    packssdw  m2, m3
+    movu    [%1], m0
+    mova    [%2], m2
+%endmacro
+
+%macro FILT8xA 4
+    mova      m3, [r0+%4+mmsize]
+    mova      m2, [r0+%4]
+    pavgw     m3, [r0+%4+r5+mmsize]
+    pavgw     m2, [r0+%4+r5]
+    PALIGNR   %1, m3, 2, m6
+    pavgw     %1, m3
+    PALIGNR   m3, m2, 2, m6
+    pavgw     m3, m2
+    mova      m5, m3
+    mova      m4, %1
+    pand      m3, m7
+    pand      %1, m7
+    psrld     m5, 16
+    psrld     m4, 16
+    packssdw  m3, %1
+    packssdw  m5, m4
+    mova    [%2], m3
+    mova    [%3], m5
+    mova      %1, m2
+%endmacro
+
 ;-----------------------------------------------------------------------------
 ; void frame_init_lowres_core( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
 ;                              int src_stride, int dst_stride, int width, int height )
 ;-----------------------------------------------------------------------------
-%macro FRAME_INIT_LOWRES 1-2 0 ; FIXME
-cglobal frame_init_lowres_core_%1, 6,7,%2
+%macro FRAME_INIT_LOWRES 1
+cglobal frame_init_lowres_core_%1, 6,7,(12-4*(BIT_DEPTH/9))*(mmsize/16) ; 8 for HIGH_BIT_DEPTH, 12 otherwise
+%ifdef HIGH_BIT_DEPTH
+    shl   dword r6m, 1
+    FIX_STRIDES r5d
+    shl   dword r7m, 1
+%endif
 %ifdef WIN64
-    movsxd   r5, r5d
+    movsxd    r5, r5d
 %endif
     ; src += 2*(height-1)*stride + 2*width
     mov      r6d, r8m
@@ -1481,6 +1531,33 @@ cglobal frame_init_lowres_core_%1, 6,7,%2
     shl      r6d, 1
     PUSH      r6
     %define src_gap [rsp]
+%ifdef HIGH_BIT_DEPTH
+    pcmpeqw   m7, m7
+    psrld     m7, 16
+.vloop:
+    mov      r6d, r7m
+%ifnidn %1,mmxext
+    mova      m0, [r0]
+    mova      m1, [r0+r5]
+    pavgw     m0, m1
+    pavgw     m1, [r0+r5*2]
+%endif
+.hloop:
+    sub       r0, mmsize*2
+    sub       r1, mmsize
+    sub       r2, mmsize
+    sub       r3, mmsize
+    sub       r4, mmsize
+%ifidn %1,mmxext
+    FILT8xU r1, r2, 0
+    FILT8xU r3, r4, r5
+%else
+    FILT8xA m0, r1, r2, 0
+    FILT8xA m1, r3, r4, r5
+%endif
+    sub      r6d, mmsize
+    jg .hloop
+%else ; !HIGH_BIT_DEPTH
 %if mmsize == 16
     ; adjust for the odd end case
     mov      r6d, r7m
@@ -1544,6 +1621,7 @@ cglobal frame_init_lowres_core_%1, 6,7,%2
 %endif
     sub      r6d, mmsize
     jg .hloop
+%endif ; HIGH_BIT_DEPTH
 .skip:
     mov       r6, dst_gap
     sub       r0, src_gap
@@ -1565,9 +1643,9 @@ FRAME_INIT_LOWRES mmxext
 FRAME_INIT_LOWRES cache32_mmxext
 %endif
 INIT_XMM
-FRAME_INIT_LOWRES sse2, 12
+FRAME_INIT_LOWRES sse2
 %define PALIGNR PALIGNR_SSSE3
-FRAME_INIT_LOWRES ssse3, 12
+FRAME_INIT_LOWRES ssse3
 
 ;-----------------------------------------------------------------------------
 ; void mbtree_propagate_cost( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,

@@ -137,7 +137,7 @@ MC_CHROMA(ssse3)
 MC_CHROMA(ssse3_cache64)
 
 #define LOWRES(cpu)\
-void x264_frame_init_lowres_core_##cpu( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,\
+void x264_frame_init_lowres_core_##cpu( pixel *src0, pixel *dst0, pixel *dsth, pixel *dstv, pixel *dstc,\
                                         int src_stride, int dst_stride, int width, int height );
 LOWRES(mmxext)
 LOWRES(cache32_mmxext)
@@ -510,9 +510,18 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->offsetadd = x264_mc_offsetadd_wtab_mmxext;
     pf->offsetsub = x264_mc_offsetsub_wtab_mmxext;
 
+    pf->frame_init_lowres_core = x264_frame_init_lowres_core_mmxext;
+
 #if HIGH_BIT_DEPTH
+#if ARCH_X86 // all x86_64 cpus with cacheline split issues use sse2 instead
+    if( cpu&(X264_CPU_CACHELINE_32|X264_CPU_CACHELINE_64) )
+        pf->frame_init_lowres_core = x264_frame_init_lowres_core_cache32_mmxext;
+#endif
+
     if( !(cpu&X264_CPU_SSE2) )
         return;
+
+    pf->frame_init_lowres_core = x264_frame_init_lowres_core_sse2;
 
     pf->load_deinterleave_8x8x2_fenc = x264_load_deinterleave_8x8x2_fenc_sse2;
     pf->load_deinterleave_8x8x2_fdec = x264_load_deinterleave_8x8x2_fdec_sse2;
@@ -557,11 +566,11 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     if( !(cpu&X264_CPU_SSSE3) )
         return;
 
+    pf->frame_init_lowres_core = x264_frame_init_lowres_core_ssse3;
+
     if( (cpu&X264_CPU_SHUFFLE_IS_FAST) && !(cpu&X264_CPU_SLOW_ATOM) )
         pf->integral_init4v = x264_integral_init4v_ssse3;
 #else // !HIGH_BIT_DEPTH
-    pf->frame_init_lowres_core = x264_frame_init_lowres_core_mmxext;
-
     pf->prefetch_fenc = x264_prefetch_fenc_mmxext;
     pf->prefetch_ref  = x264_prefetch_ref_mmxext;
 
