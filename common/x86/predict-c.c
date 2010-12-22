@@ -68,17 +68,19 @@
  void x264_predict_8x8_dc_left_sse2( uint16_t *src, uint16_t edge[33] );
  void x264_predict_8x8_ddl_mmxext( uint8_t *src, uint8_t edge[33] );
  void x264_predict_8x8_ddr_mmxext( uint8_t *src, uint8_t edge[33] );
- void x264_predict_8x8_ddl_sse2( uint8_t *src, uint8_t edge[33] );
- void x264_predict_8x8_ddr_sse2( uint8_t *src, uint8_t edge[33] );
+ void x264_predict_8x8_ddl_sse2( pixel *src, pixel edge[33] );
+ void x264_predict_8x8_ddr_sse2( pixel *src, pixel edge[33] );
  void x264_predict_8x8_vl_sse2( uint8_t *src, uint8_t edge[33] );
- void x264_predict_8x8_vr_sse2( uint8_t *src, uint8_t edge[33] );
- void x264_predict_8x8_hu_sse2( uint8_t *src, uint8_t edge[33] );
- void x264_predict_8x8_hd_sse2( uint8_t *src, uint8_t edge[33] );
- void x264_predict_8x8_vr_core_mmxext( uint8_t *src, uint8_t edge[33] );
- void x264_predict_8x8_hd_ssse3( uint8_t *src, uint8_t edge[33] );
- void x264_predict_8x8_hu_ssse3( uint8_t *src, uint8_t edge[33] );
+ void x264_predict_8x8_vr_mmxext( uint8_t *src, uint8_t edge[33] );
+ void x264_predict_8x8_vr_sse2( pixel *src, pixel edge[33] );
+ void x264_predict_8x8_vr_ssse3( uint16_t *src, uint16_t edge[33] );
+ void x264_predict_8x8_hu_sse2( pixel *src, pixel edge[33] );
+ void x264_predict_8x8_hu_ssse3( pixel *src, pixel edge[33] );
+ void x264_predict_8x8_hd_sse2( pixel *src, pixel edge[33] );
+ void x264_predict_8x8_hd_ssse3( pixel *src, pixel edge[33] );
  void x264_predict_8x8_filter_mmxext( uint8_t *src, uint8_t edge[33], int i_neighbor, int i_filters );
- void x264_predict_8x8_filter_ssse3( uint8_t *src, uint8_t edge[33], int i_neighbor, int i_filters );
+ void x264_predict_8x8_filter_sse2( uint16_t *src, uint16_t edge[33], int i_neighbor, int i_filters );
+ void x264_predict_8x8_filter_ssse3( pixel *src, pixel edge[33], int i_neighbor, int i_filters );
  void x264_predict_4x4_ddl_mmxext( pixel *src );
  void x264_predict_4x4_ddl_sse2( uint16_t *src );
  void x264_predict_4x4_ddr_mmxext( uint8_t *src );
@@ -278,47 +280,14 @@ static void x264_predict_8x8c_dc_left( uint8_t *src )
 }
 #endif
 
-/****************************************************************************
- * 8x8 prediction for intra luma block
- ****************************************************************************/
-
 #define PL(y) \
     UNUSED int l##y = edge[14-y];
 #define PT(x) \
     UNUSED int t##x = edge[16+x];
-#define PREDICT_8x8_LOAD_TOPLEFT \
-    int lt = edge[15];
 #define PREDICT_8x8_LOAD_LEFT \
     PL(0) PL(1) PL(2) PL(3) PL(4) PL(5) PL(6) PL(7)
 #define PREDICT_8x8_LOAD_TOP \
     PT(0) PT(1) PT(2) PT(3) PT(4) PT(5) PT(6) PT(7)
-
-#define PREDICT_8x8_DC(v) \
-    int y; \
-    for( y = 0; y < 8; y++ ) { \
-        M32( src+0 ) = v; \
-        M32( src+4 ) = v; \
-        src += FDEC_STRIDE; \
-    }
-
-#define SRC(x,y) src[(x)+(y)*FDEC_STRIDE]
-
-#ifndef ARCH_X86_64
-static void x264_predict_8x8_vr_mmxext( uint8_t *src, uint8_t edge[33] )
-{
-    x264_predict_8x8_vr_core_mmxext( src, edge );
-    {
-        PREDICT_8x8_LOAD_TOPLEFT
-        PREDICT_8x8_LOAD_LEFT
-        SRC(0,2)=SRC(1,4)=SRC(2,6)= (l1 + 2*l0 + lt + 2) >> 2;
-        SRC(0,3)=SRC(1,5)=SRC(2,7)= (l2 + 2*l1 + l0 + 2) >> 2;
-        SRC(0,4)=SRC(1,6)= (l3 + 2*l2 + l1 + 2) >> 2;
-        SRC(0,5)=SRC(1,7)= (l4 + 2*l3 + l2 + 2) >> 2;
-        SRC(0,6)= (l5 + 2*l4 + l3 + 2) >> 2;
-        SRC(0,7)= (l6 + 2*l5 + l4 + 2) >> 2;
-    }
-}
-#endif
 
 #define SUMSUB(a,b,c,d,e,f,g,h)\
     t=a; a+=b; b-=t;\
@@ -463,6 +432,18 @@ void x264_predict_8x8_init_mmx( int cpu, x264_predict8x8_t pf[12], x264_predict_
     pf[I_PRED_8x8_DC]     = x264_predict_8x8_dc_sse2;
     pf[I_PRED_8x8_DC_TOP] = x264_predict_8x8_dc_top_sse2;
     pf[I_PRED_8x8_DC_LEFT]= x264_predict_8x8_dc_left_sse2;
+    pf[I_PRED_8x8_DDL]    = x264_predict_8x8_ddl_sse2;
+    pf[I_PRED_8x8_DDR]    = x264_predict_8x8_ddr_sse2;
+    pf[I_PRED_8x8_VR]     = x264_predict_8x8_vr_sse2;
+    pf[I_PRED_8x8_HD]     = x264_predict_8x8_hd_sse2;
+    pf[I_PRED_8x8_HU]     = x264_predict_8x8_hu_sse2;
+    *predict_8x8_filter   = x264_predict_8x8_filter_sse2;
+    if( !(cpu&X264_CPU_SSSE3) )
+        return;
+    pf[I_PRED_8x8_HD]     = x264_predict_8x8_hd_ssse3;
+    pf[I_PRED_8x8_HU]     = x264_predict_8x8_hu_ssse3;
+    pf[I_PRED_8x8_VR]     = x264_predict_8x8_vr_ssse3;
+    *predict_8x8_filter   = x264_predict_8x8_filter_ssse3;
 #else
     pf[I_PRED_8x8_V]      = x264_predict_8x8_v_mmxext;
     pf[I_PRED_8x8_H]      = x264_predict_8x8_h_mmxext;
