@@ -343,8 +343,7 @@ typedef struct
     int i_num_ref_idx_l0_active;
     int i_num_ref_idx_l1_active;
 
-    int b_ref_pic_list_reordering_l0;
-    int b_ref_pic_list_reordering_l1;
+    int b_ref_pic_list_reordering[2];
     struct
     {
         int idc;
@@ -518,10 +517,8 @@ struct x264_t
     x264_frame_t    *fdec;
 
     /* references lists */
-    int             i_ref0;
-    x264_frame_t    *fref0[X264_REF_MAX+3];     /* ref list 0 */
-    int             i_ref1;
-    x264_frame_t    *fref1[X264_REF_MAX+3];     /* ref list 1 */
+    int             i_ref[2];
+    x264_frame_t    *fref[2][X264_REF_MAX+3];
     int             b_ref_reorder[2];
 
     /* hrd */

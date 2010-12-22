@@ -369,23 +369,23 @@ void x264_macroblock_slice_init( x264_t *h )
     h->mb.type = h->fdec->mb_type;
     h->mb.partition = h->fdec->mb_partition;
 
-    h->fdec->i_ref[0] = h->i_ref0;
-    h->fdec->i_ref[1] = h->i_ref1;
-    for( int i = 0; i < h->i_ref0; i++ )
-        h->fdec->ref_poc[0][i] = h->fref0[i]->i_poc;
+    h->fdec->i_ref[0] = h->i_ref[0];
+    h->fdec->i_ref[1] = h->i_ref[1];
+    for( int i = 0; i < h->i_ref[0]; i++ )
+        h->fdec->ref_poc[0][i] = h->fref[0][i]->i_poc;
     if( h->sh.i_type == SLICE_TYPE_B )
     {
-        for( int i = 0; i < h->i_ref1; i++ )
-            h->fdec->ref_poc[1][i] = h->fref1[i]->i_poc;
+        for( int i = 0; i < h->i_ref[1]; i++ )
+            h->fdec->ref_poc[1][i] = h->fref[1][i]->i_poc;
 
         map_col_to_list0(-1) = -1;
         map_col_to_list0(-2) = -2;
-        for( int i = 0; i < h->fref1[0]->i_ref[0]; i++ )
+        for( int i = 0; i < h->fref[1][0]->i_ref[0]; i++ )
         {
-            int poc = h->fref1[0]->ref_poc[0][i];
+            int poc = h->fref[1][0]->ref_poc[0][i];
             map_col_to_list0(i) = -2;
-            for( int j = 0; j < h->i_ref0; j++ )
-                if( h->fref0[j]->i_poc == poc )
+            for( int j = 0; j < h->i_ref[0]; j++ )
+                if( h->fref[0][j]->i_poc == poc )
                 {
                     map_col_to_list0(i) = j;
                     break;
@@ -400,15 +400,15 @@ void x264_macroblock_slice_init( x264_t *h )
         {
             deblock_ref_table(-2) = -2;
             deblock_ref_table(-1) = -1;
-            for( int i = 0; i < h->i_ref0 << h->sh.b_mbaff; i++ )
+            for( int i = 0; i < h->i_ref[0] << h->sh.b_mbaff; i++ )
             {
                 /* Mask off high bits to avoid frame num collisions with -1/-2.
                  * In current x264 frame num values don't cover a range of more
                  * than 32, so 6 bits is enough for uniqueness. */
                 if( !h->mb.b_interlaced )
-                    deblock_ref_table(i) = h->fref0[i]->i_frame_num&63;
+                    deblock_ref_table(i) = h->fref[0][i]->i_frame_num&63;
                 else
-                    deblock_ref_table(i) = ((h->fref0[i>>1]->i_frame_num&63)<<1) + (i&1);
+                    deblock_ref_table(i) = ((h->fref[0][i>>1]->i_frame_num&63)<<1) + (i&1);
             }
         }
     }
@@ -416,11 +416,11 @@ void x264_macroblock_slice_init( x264_t *h )
     /* init with not available (for top right idx=7,15) */
     memset( h->mb.cache.ref, -2, sizeof( h->mb.cache.ref ) );
 
-    if( h->i_ref0 > 0 )
+    if( h->i_ref[0] > 0 )
         for( int field = 0; field <= h->sh.b_mbaff; field++ )
         {
             int curpoc = h->fdec->i_poc + field*h->sh.i_delta_poc_bottom;
-            int refpoc = h->fref0[0]->i_poc;
+            int refpoc = h->fref[0][0]->i_poc;
             if( h->sh.b_mbaff && field )
                 refpoc += h->sh.i_delta_poc_bottom;
             int delta = curpoc - refpoc;
@@ -499,7 +499,6 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x
     pixel *plane_fdec = &h->fdec->plane[i][i_pix_offset];
     pixel *intra_fdec = &h->intra_border_backup[mb_y&1][i][mb_x*16];
     int ref_pix_offset[2] = { i_pix_offset, i_pix_offset };
-    x264_frame_t **fref[2] = { h->fref0, h->fref1 };
     if( b_interlaced )
         ref_pix_offset[1] += (1-2*(mb_y&1)) * i_stride;
     h->mb.pic.i_stride[i] = i_stride2;
@@ -528,11 +527,11 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x
     }
     for( int j = 0; j < h->mb.pic.i_fref[0]; j++ )
     {
-        h->mb.pic.p_fref[0][j][i?4:0] = &fref[0][j >> b_interlaced]->plane[i][ref_pix_offset[j&1]];
+        h->mb.pic.p_fref[0][j][i?4:0] = &h->fref[0][j >> b_interlaced]->plane[i][ref_pix_offset[j&1]];
         if( !i )
         {
             for( int k = 1; k < 4; k++ )
-                h->mb.pic.p_fref[0][j][k] = &fref[0][j >> b_interlaced]->filtered[k][ref_pix_offset[j&1]];
+                h->mb.pic.p_fref[0][j][k] = &h->fref[0][j >> b_interlaced]->filtered[k][ref_pix_offset[j&1]];
             if( h->sh.weight[j][0].weightfn )
                 h->mb.pic.p_fref_w[j] = &h->fenc->weighted[j >> b_interlaced][ref_pix_offset[j&1]];
             else
@@ -542,10 +541,10 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x
     if( h->sh.i_type == SLICE_TYPE_B )
         for( int j = 0; j < h->mb.pic.i_fref[1]; j++ )
         {
-            h->mb.pic.p_fref[1][j][i?4:0] = &fref[1][j >> b_interlaced]->plane[i][ref_pix_offset[j&1]];
+            h->mb.pic.p_fref[1][j][i?4:0] = &h->fref[1][j >> b_interlaced]->plane[i][ref_pix_offset[j&1]];
             if( !i )
                 for( int k = 1; k < 4; k++ )
-                    h->mb.pic.p_fref[1][j][k] = &fref[1][j >> b_interlaced]->filtered[k][ref_pix_offset[j&1]];
+                    h->mb.pic.p_fref[1][j][k] = &h->fref[1][j >> b_interlaced]->filtered[k][ref_pix_offset[j&1]];
         }
 }
 
@@ -748,8 +747,8 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
 
     if( h->sh.b_mbaff )
     {
-        h->mb.pic.i_fref[0] = h->i_ref0 << h->mb.b_interlaced;
-        h->mb.pic.i_fref[1] = h->i_ref1 << h->mb.b_interlaced;
+        h->mb.pic.i_fref[0] = h->i_ref[0] << h->mb.b_interlaced;
+        h->mb.pic.i_fref[1] = h->i_ref[1] << h->mb.b_interlaced;
         h->mb.cache.i_neighbour_interlaced =
             !!(h->mb.i_neighbour & MB_LEFT)
           + !!(h->mb.i_neighbour & MB_TOP);
@@ -773,10 +772,9 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
     if( h->fdec->integral )
     {
         int offset = 16 * (mb_x + mb_y * h->fdec->i_stride[0]);
-        for( int i = 0; i < h->mb.pic.i_fref[0]; i++ )
-            h->mb.pic.p_integral[0][i] = &h->fref0[i]->integral[offset];
-        for( int i = 0; i < h->mb.pic.i_fref[1]; i++ )
-            h->mb.pic.p_integral[1][i] = &h->fref1[i]->integral[offset];
+        for( int list = 0; list < 2; list++ )
+            for( int i = 0; i < h->mb.pic.i_fref[list]; i++ )
+                h->mb.pic.p_integral[list][i] = &h->fref[list][i]->integral[offset];
     }
 
     x264_prefetch_fenc( h, h->fenc, mb_x, mb_y );
@@ -1287,15 +1285,15 @@ void x264_macroblock_cache_save( x264_t *h )
 void x264_macroblock_bipred_init( x264_t *h )
 {
     for( int field = 0; field <= h->sh.b_mbaff; field++ )
-        for( int i_ref0 = 0; i_ref0 < (h->i_ref0<<h->sh.b_mbaff); i_ref0++ )
+        for( int i_ref0 = 0; i_ref0 < (h->i_ref[0]<<h->sh.b_mbaff); i_ref0++ )
         {
-            int poc0 = h->fref0[i_ref0>>h->sh.b_mbaff]->i_poc;
+            int poc0 = h->fref[0][i_ref0>>h->sh.b_mbaff]->i_poc;
             if( h->sh.b_mbaff && field^(i_ref0&1) )
                 poc0 += h->sh.i_delta_poc_bottom;
-            for( int i_ref1 = 0; i_ref1 < (h->i_ref1<<h->sh.b_mbaff); i_ref1++ )
+            for( int i_ref1 = 0; i_ref1 < (h->i_ref[1]<<h->sh.b_mbaff); i_ref1++ )
             {
                 int dist_scale_factor;
-                int poc1 = h->fref1[i_ref1>>h->sh.b_mbaff]->i_poc;
+                int poc1 = h->fref[1][i_ref1>>h->sh.b_mbaff]->i_poc;
                 if( h->sh.b_mbaff && field^(i_ref1&1) )
                     poc1 += h->sh.i_delta_poc_bottom;
                 int cur_poc = h->fdec->i_poc + field*h->sh.i_delta_poc_bottom;

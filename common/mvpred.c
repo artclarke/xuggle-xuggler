@@ -163,8 +163,8 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
 {
     int i_mb_4x4 = 16 * h->mb.i_mb_stride * h->mb.i_mb_y + 4 * h->mb.i_mb_x;
     int i_mb_8x8 =  4 * h->mb.i_mb_stride * h->mb.i_mb_y + 2 * h->mb.i_mb_x;
-    const int type_col = h->fref1[0]->mb_type[h->mb.i_mb_xy];
-    const int partition_col = h->fref1[0]->mb_partition[h->mb.i_mb_xy];
+    const int type_col = h->fref[1][0]->mb_type[h->mb.i_mb_xy];
+    const int partition_col = h->fref[1][0]->mb_partition[h->mb.i_mb_xy];
 
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, 0 );
 
@@ -191,13 +191,13 @@ static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
         int x8 = i8&1;
         int y8 = i8>>1;
         int i_part_8x8 = i_mb_8x8 + x8 + y8 * h->mb.i_b8_stride;
-        int i_ref1_ref = h->fref1[0]->ref[0][i_part_8x8];
+        int i_ref1_ref = h->fref[1][0]->ref[0][i_part_8x8];
         int i_ref = (map_col_to_list0(i_ref1_ref>>h->sh.b_mbaff) << h->sh.b_mbaff) + (i_ref1_ref&h->sh.b_mbaff);
 
         if( i_ref >= 0 )
         {
             int dist_scale_factor = h->mb.dist_scale_factor[i_ref][0];
-            int16_t *mv_col = h->fref1[0]->mv[0][i_mb_4x4 + 3*x8 + 3*y8 * h->mb.i_b4_stride];
+            int16_t *mv_col = h->fref[1][0]->mv[0][i_mb_4x4 + 3*x8 + 3*y8 * h->mb.i_b4_stride];
             int l0x = ( dist_scale_factor * mv_col[0] + 128 ) >> 8;
             int l0y = ( dist_scale_factor * mv_col[1] + 128 ) >> 8;
             if( h->param.i_threads > 1 && (l0y > h->mb.mv_max_spel[1] || l0y-mv_col[1] > h->mb.mv_max_spel[1]) )
@@ -224,12 +224,12 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
 {
     int8_t ref[2];
     ALIGNED_ARRAY_8( int16_t, mv,[2],[2] );
-    const int8_t *l1ref0 = &h->fref1[0]->ref[0][h->mb.i_b8_xy];
-    const int8_t *l1ref1 = &h->fref1[0]->ref[1][h->mb.i_b8_xy];
-    const int16_t (*l1mv[2])[2] = { (const int16_t (*)[2]) &h->fref1[0]->mv[0][h->mb.i_b4_xy],
-                                    (const int16_t (*)[2]) &h->fref1[0]->mv[1][h->mb.i_b4_xy] };
-    const int type_col = h->fref1[0]->mb_type[h->mb.i_mb_xy];
-    const int partition_col = h->fref1[0]->mb_partition[h->mb.i_mb_xy];
+    const int8_t *l1ref0 = &h->fref[1][0]->ref[0][h->mb.i_b8_xy];
+    const int8_t *l1ref1 = &h->fref[1][0]->ref[1][h->mb.i_b8_xy];
+    const int16_t (*l1mv[2])[2] = { (const int16_t (*)[2]) &h->fref[1][0]->mv[0][h->mb.i_b4_xy],
+                                    (const int16_t (*)[2]) &h->fref[1][0]->mv[1][h->mb.i_b4_xy] };
+    const int type_col = h->fref[1][0]->mb_type[h->mb.i_mb_xy];
+    const int partition_col = h->fref[1][0]->mb_partition[h->mb.i_mb_xy];
 
     h->mb.i_partition = partition_col;
 
@@ -412,8 +412,8 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
 
     if( i_ref == 0 && h->frames.b_have_lowres )
     {
-        int idx = i_list ? h->fref1[0]->i_frame-h->fenc->i_frame-1
-                         : h->fenc->i_frame-h->fref0[0]->i_frame-1;
+        int idx = i_list ? h->fref[1][0]->i_frame-h->fenc->i_frame-1
+                         : h->fenc->i_frame-h->fref[0][0]->i_frame-1;
         if( idx <= h->param.i_bframe )
         {
             int16_t (*lowres_mv)[2] = h->fenc->lowres_mvs[i_list][idx];
@@ -433,13 +433,12 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
 #undef SET_MVP
 
     /* temporal predictors */
-    if( h->fref0[0]->i_ref[0] > 0 )
+    if( h->fref[0][0]->i_ref[0] > 0 )
     {
-        x264_frame_t *l0 = h->fref0[0];
-        x264_frame_t **fref = i_list ? h->fref1 : h->fref0;
+        x264_frame_t *l0 = h->fref[0][0];
         int field = h->mb.i_mb_y&1;
         int curpoc = h->fdec->i_poc + field*h->sh.i_delta_poc_bottom;
-        int refpoc = fref[i_ref>>h->sh.b_mbaff]->i_poc;
+        int refpoc = h->fref[i_list][i_ref>>h->sh.b_mbaff]->i_poc;
         if( h->sh.b_mbaff && field^(i_ref&1) )
             refpoc += h->sh.i_delta_poc_bottom;
 

@@ -124,7 +124,7 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
 
     if( !h->mb.b_direct_auto_read && sh->i_type == SLICE_TYPE_B )
     {
-        if( h->fref1[0]->i_poc_l0ref0 == h->fref0[0]->i_poc )
+        if( h->fref[1][0]->i_poc_l0ref0 == h->fref[0][0]->i_poc )
         {
             if( h->mb.b_direct_auto_write )
                 sh->b_direct_spatial_mv_pred = ( h->stat.i_direct_score[1] > h->stat.i_direct_score[0] );
@@ -143,20 +143,23 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
     sh->i_num_ref_idx_l0_active = 1;
     sh->i_num_ref_idx_l1_active = 1;
 
-    sh->b_ref_pic_list_reordering_l0 = h->b_ref_reorder[0];
-    sh->b_ref_pic_list_reordering_l1 = h->b_ref_reorder[1];
+    sh->b_ref_pic_list_reordering[0] = h->b_ref_reorder[0];
+    sh->b_ref_pic_list_reordering[1] = h->b_ref_reorder[1];
 
     /* If the ref list isn't in the default order, construct reordering header */
     /* List1 reordering isn't needed yet */
-    if( sh->b_ref_pic_list_reordering_l0 )
+    for( int list = 0; list < 2; list++ )
     {
-        int pred_frame_num = i_frame;
-        for( int i = 0; i < h->i_ref0; i++ )
+        if( sh->b_ref_pic_list_reordering[list] )
         {
-            int diff = h->fref0[i]->i_frame_num - pred_frame_num;
-            sh->ref_pic_list_order[0][i].idc = ( diff > 0 );
-            sh->ref_pic_list_order[0][i].arg = (abs(diff) - 1) & ((1 << sps->i_log2_max_frame_num) - 1);
-            pred_frame_num = h->fref0[i]->i_frame_num;
+            int pred_frame_num = i_frame;
+            for( int i = 0; i < h->i_ref[list]; i++ )
+            {
+                int diff = h->fref[list][i]->i_frame_num - pred_frame_num;
+                sh->ref_pic_list_order[list][i].idc = ( diff > 0 );
+                sh->ref_pic_list_order[list][i].arg = (abs(diff) - 1) & ((1 << sps->i_log2_max_frame_num) - 1);
+                pred_frame_num = h->fref[list][i]->i_frame_num;
+            }
         }
     }
 
@@ -234,8 +237,8 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
     /* ref pic list reordering */
     if( sh->i_type != SLICE_TYPE_I )
     {
-        bs_write1( s, sh->b_ref_pic_list_reordering_l0 );
-        if( sh->b_ref_pic_list_reordering_l0 )
+        bs_write1( s, sh->b_ref_pic_list_reordering[0] );
+        if( sh->b_ref_pic_list_reordering[0] )
         {
             for( int i = 0; i < sh->i_num_ref_idx_l0_active; i++ )
             {
@@ -247,8 +250,8 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
     }
     if( sh->i_type == SLICE_TYPE_B )
     {
-        bs_write1( s, sh->b_ref_pic_list_reordering_l1 );
-        if( sh->b_ref_pic_list_reordering_l1 )
+        bs_write1( s, sh->b_ref_pic_list_reordering[1] );
+        if( sh->b_ref_pic_list_reordering[1] )
         {
             for( int i = 0; i < sh->i_num_ref_idx_l1_active; i++ )
             {
@@ -1019,8 +1022,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
                         + h->i_thread_frames + 3) * sizeof(x264_frame_t *) );
     if( h->param.analyse.i_weighted_pred > 0 )
         CHECKED_MALLOCZERO( h->frames.blank_unused, h->i_thread_frames * 4 * sizeof(x264_frame_t *) );
-    h->i_ref0 = 0;
-    h->i_ref1 = 0;
+    h->i_ref[0] = h->i_ref[1] = 0;
     h->i_cpb_delay = h->i_coded_fields = h->i_disp_fields = 0;
     h->i_prev_duration = ((uint64_t)h->param.i_fps_den * h->sps->vui.i_time_scale) / ((uint64_t)h->param.i_fps_num * h->sps->vui.i_num_units_in_tick);
     h->i_disp_fields_last_frame = -1;
@@ -1421,10 +1423,10 @@ static inline void x264_reference_check_reorder( x264_t *h )
             h->b_ref_reorder[0] = 1;
             return;
         }
-    for( int i = 0; i < h->i_ref0 - 1; i++ )
+    for( int i = 0; i < h->i_ref[0] - 1; i++ )
         /* P and B-frames use different default orders. */
-        if( h->sh.i_type == SLICE_TYPE_P ? h->fref0[i]->i_frame_num < h->fref0[i+1]->i_frame_num
-                                         : h->fref0[i]->i_poc < h->fref0[i+1]->i_poc )
+        if( h->sh.i_type == SLICE_TYPE_P ? h->fref[0][i]->i_frame_num < h->fref[0][i+1]->i_frame_num
+                                         : h->fref[0][i]->i_poc < h->fref[0][i+1]->i_poc )
         {
             h->b_ref_reorder[0] = 1;
             return;
@@ -1434,7 +1436,7 @@ static inline void x264_reference_check_reorder( x264_t *h )
 /* return -1 on failure, else return the index of the new reference frame */
 int x264_weighted_reference_duplicate( x264_t *h, int i_ref, const x264_weight_t *w )
 {
-    int i = h->i_ref0;
+    int i = h->i_ref[0];
     int j = 1;
     x264_frame_t *newframe;
     if( i <= 1 ) /* empty list, definitely can't duplicate frame */
@@ -1453,18 +1455,18 @@ int x264_weighted_reference_duplicate( x264_t *h, int i_ref, const x264_weight_t
     newframe = x264_frame_pop_blank_unused( h );
 
     //FIXME: probably don't need to copy everything
-    *newframe = *h->fref0[i_ref];
+    *newframe = *h->fref[0][i_ref];
     newframe->i_reference_count = 1;
-    newframe->orig = h->fref0[i_ref];
+    newframe->orig = h->fref[0][i_ref];
     newframe->b_duplicate = 1;
     memcpy( h->fenc->weight[j], w, sizeof(h->fenc->weight[i]) );
 
     /* shift the frames to make space for the dupe. */
     h->b_ref_reorder[0] = 1;
-    if( h->i_ref0 < X264_REF_MAX )
-        ++h->i_ref0;
-    h->fref0[X264_REF_MAX-1] = NULL;
-    x264_frame_unshift( &h->fref0[j], newframe );
+    if( h->i_ref[0] < X264_REF_MAX )
+        ++h->i_ref[0];
+    h->fref[0][X264_REF_MAX-1] = NULL;
+    x264_frame_unshift( &h->fref[0][j], newframe );
 
     return j;
 }
@@ -1472,14 +1474,14 @@ int x264_weighted_reference_duplicate( x264_t *h, int i_ref, const x264_weight_t
 static void x264_weighted_pred_init( x264_t *h )
 {
     /* for now no analysis and set all weights to nothing */
-    for( int i_ref = 0; i_ref < h->i_ref0; i_ref++ )
-        h->fenc->weighted[i_ref] = h->fref0[i_ref]->filtered[0];
+    for( int i_ref = 0; i_ref < h->i_ref[0]; i_ref++ )
+        h->fenc->weighted[i_ref] = h->fref[0][i_ref]->filtered[0];
 
     // FIXME: This only supports weighting of one reference frame
     // and duplicates of that frame.
     h->fenc->i_lines_weighted = 0;
 
-    for( int i_ref = 0; i_ref < (h->i_ref0 << h->sh.b_mbaff); i_ref++ )
+    for( int i_ref = 0; i_ref < (h->i_ref[0] << h->sh.b_mbaff); i_ref++ )
         for( int i = 0; i < 3; i++ )
             h->sh.weight[i_ref][i].weightfn = NULL;
 
@@ -1493,7 +1495,7 @@ static void x264_weighted_pred_init( x264_t *h )
     int buffer_next = 0;
     for( int i = 0; i < 3; i++ )
     {
-        for( int j = 0; j < h->i_ref0; j++ )
+        for( int j = 0; j < h->i_ref[0]; j++ )
         {
             if( h->fenc->weight[j][i].weightfn )
             {
@@ -1517,7 +1519,7 @@ static void x264_weighted_pred_init( x264_t *h )
                         //scale full resolution frame
                         if( h->param.i_threads == 1 )
                         {
-                            pixel *src = h->fref0[j]->filtered[0] - h->fref0[j]->i_stride[0]*i_padv - PADH;
+                            pixel *src = h->fref[0][j]->filtered[0] - h->fref[0][j]->i_stride[0]*i_padv - PADH;
                             pixel *dst = h->fenc->weighted[j] - h->fenc->i_stride[0]*i_padv - PADH;
                             int stride = h->fenc->i_stride[0];
                             int width = h->fenc->i_width[0] + PADH*2;
@@ -1532,7 +1534,7 @@ static void x264_weighted_pred_init( x264_t *h )
     }
 
     if( weightplane[1] )
-        for( int i = 0; i < h->i_ref0; i++ )
+        for( int i = 0; i < h->i_ref[0]; i++ )
         {
             if( h->sh.weight[i][1].weightfn && !h->sh.weight[i][2].weightfn )
             {
@@ -1558,8 +1560,8 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
     int b_ok;
 
     /* build ref list 0/1 */
-    h->mb.pic.i_fref[0] = h->i_ref0 = 0;
-    h->mb.pic.i_fref[1] = h->i_ref1 = 0;
+    h->mb.pic.i_fref[0] = h->i_ref[0] = 0;
+    h->mb.pic.i_fref[1] = h->i_ref[1] = 0;
     if( h->sh.i_type == SLICE_TYPE_I )
         return;
 
@@ -1568,20 +1570,20 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
         if( h->frames.reference[i]->b_corrupt )
             continue;
         if( h->frames.reference[i]->i_poc < i_poc )
-            h->fref0[h->i_ref0++] = h->frames.reference[i];
+            h->fref[0][h->i_ref[0]++] = h->frames.reference[i];
         else if( h->frames.reference[i]->i_poc > i_poc )
-            h->fref1[h->i_ref1++] = h->frames.reference[i];
+            h->fref[1][h->i_ref[1]++] = h->frames.reference[i];
     }
 
     /* Order ref0 from higher to lower poc */
     do
     {
         b_ok = 1;
-        for( int i = 0; i < h->i_ref0 - 1; i++ )
+        for( int i = 0; i < h->i_ref[0] - 1; i++ )
         {
-            if( h->fref0[i]->i_poc < h->fref0[i+1]->i_poc )
+            if( h->fref[0][i]->i_poc < h->fref[0][i+1]->i_poc )
             {
-                XCHG( x264_frame_t*, h->fref0[i], h->fref0[i+1] );
+                XCHG( x264_frame_t*, h->fref[0][i], h->fref[0][i+1] );
                 b_ok = 0;
                 break;
             }
@@ -1589,10 +1591,10 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
     } while( !b_ok );
 
     if( h->sh.i_mmco_remove_from_end )
-        for( int i = h->i_ref0-1; i >= h->i_ref0 - h->sh.i_mmco_remove_from_end; i-- )
+        for( int i = h->i_ref[0]-1; i >= h->i_ref[0] - h->sh.i_mmco_remove_from_end; i-- )
         {
-            int diff = h->i_frame_num - h->fref0[i]->i_frame_num;
-            h->sh.mmco[h->sh.i_mmco_command_count].i_poc = h->fref0[i]->i_poc;
+            int diff = h->i_frame_num - h->fref[0][i]->i_frame_num;
+            h->sh.mmco[h->sh.i_mmco_command_count].i_poc = h->fref[0][i]->i_poc;
             h->sh.mmco[h->sh.i_mmco_command_count++].i_difference_of_pic_nums = diff;
         }
 
@@ -1600,11 +1602,11 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
     do
     {
         b_ok = 1;
-        for( int i = 0; i < h->i_ref1 - 1; i++ )
+        for( int i = 0; i < h->i_ref[1] - 1; i++ )
         {
-            if( h->fref1[i]->i_poc > h->fref1[i+1]->i_poc )
+            if( h->fref[1][i]->i_poc > h->fref[1][i+1]->i_poc )
             {
-                XCHG( x264_frame_t*, h->fref1[i], h->fref1[i+1] );
+                XCHG( x264_frame_t*, h->fref[1][i], h->fref[1][i+1] );
                 b_ok = 0;
                 break;
             }
@@ -1613,9 +1615,9 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
 
     x264_reference_check_reorder( h );
 
-    h->i_ref1 = X264_MIN( h->i_ref1, h->frames.i_max_ref1 );
-    h->i_ref0 = X264_MIN( h->i_ref0, h->frames.i_max_ref0 );
-    h->i_ref0 = X264_MIN( h->i_ref0, h->param.i_frame_reference ); // if reconfig() has lowered the limit
+    h->i_ref[1] = X264_MIN( h->i_ref[1], h->frames.i_max_ref1 );
+    h->i_ref[0] = X264_MIN( h->i_ref[0], h->frames.i_max_ref0 );
+    h->i_ref[0] = X264_MIN( h->i_ref[0], h->param.i_frame_reference ); // if reconfig() has lowered the limit
 
     /* add duplicates */
     if( h->fenc->i_type == X264_TYPE_P )
@@ -1653,9 +1655,9 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
         h->mb.ref_blind_dupe = idx;
     }
 
-    assert( h->i_ref0 + h->i_ref1 <= X264_REF_MAX );
-    h->mb.pic.i_fref[0] = h->i_ref0;
-    h->mb.pic.i_fref[1] = h->i_ref1;
+    assert( h->i_ref[0] + h->i_ref[1] <= X264_REF_MAX );
+    h->mb.pic.i_fref[0] = h->i_ref[0];
+    h->mb.pic.i_fref[1] = h->i_ref[1];
 }
 
 static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
@@ -1822,8 +1824,8 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_global_qp )
     {
         x264_slice_header_init( h, &h->sh, h->sps, h->pps, -1, h->i_frame_num, i_global_qp );
 
-        h->sh.i_num_ref_idx_l0_active = h->i_ref0 <= 0 ? 1 : h->i_ref0;
-        h->sh.i_num_ref_idx_l1_active = h->i_ref1 <= 0 ? 1 : h->i_ref1;
+        h->sh.i_num_ref_idx_l0_active = h->i_ref[0] <= 0 ? 1 : h->i_ref[0];
+        h->sh.i_num_ref_idx_l1_active = h->i_ref[1] <= 0 ? 1 : h->i_ref[1];
         if( h->sh.i_num_ref_idx_l0_active != h->pps->i_num_ref_idx_l0_default_active ||
             (h->sh.i_type == SLICE_TYPE_B && h->sh.i_num_ref_idx_l1_active != h->pps->i_num_ref_idx_l1_default_active) )
         {
@@ -2605,10 +2607,10 @@ int     x264_encoder_encode( x264_t *h,
         }
         else if( h->fenc->i_type == X264_TYPE_P )
         {
-            int pocdiff = (h->fdec->i_poc - h->fref0[0]->i_poc)/2;
+            int pocdiff = (h->fdec->i_poc - h->fref[0][0]->i_poc)/2;
             float increment = X264_MAX( ((float)h->mb.i_mb_width-1) / h->param.i_keyint_max, 1 );
-            h->fdec->f_pir_position = h->fref0[0]->f_pir_position;
-            h->fdec->i_frames_since_pir = h->fref0[0]->i_frames_since_pir + pocdiff;
+            h->fdec->f_pir_position = h->fref[0][0]->f_pir_position;
+            h->fdec->i_frames_since_pir = h->fref[0][0]->i_frames_since_pir + pocdiff;
             if( h->fdec->i_frames_since_pir >= h->param.i_keyint_max ||
                 (h->b_queued_intra_refresh && h->fdec->f_pir_position + 0.5 >= h->mb.i_mb_width) )
             {
@@ -2725,8 +2727,8 @@ int     x264_encoder_encode( x264_t *h,
         x264_reference_check_reorder( h );
     }
 
-    if( h->i_ref0 )
-        h->fdec->i_poc_l0ref0 = h->fref0[0]->i_poc;
+    if( h->i_ref[0] )
+        h->fdec->i_poc_l0ref0 = h->fref[0][0]->i_poc;
 
     if( h->sh.i_type == SLICE_TYPE_B )
         x264_macroblock_bipred_init( h );
@@ -2888,7 +2890,7 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
                 h->stat.i_mb_count_ref[h->sh.i_type][i_list][i] += h->stat.frame.i_mb_count_ref[i_list][i];
     if( h->sh.i_type == SLICE_TYPE_P )
     {
-        h->stat.i_consecutive_bframes[h->fdec->i_frame - h->fref0[0]->i_frame - 1]++;
+        h->stat.i_consecutive_bframes[h->fdec->i_frame - h->fref[0][0]->i_frame - 1]++;
         if( h->param.analyse.i_weighted_pred >= X264_WEIGHTP_SIMPLE )
         {
             h->stat.i_wpred[0] += !!h->sh.weight[0][0].weightfn;
@@ -2980,11 +2982,11 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 
     /* Remove duplicates, must be done near the end as breaks h->fref0 array
      * by freeing some of its pointers. */
-    for( int i = 0; i < h->i_ref0; i++ )
-        if( h->fref0[i] && h->fref0[i]->b_duplicate )
+    for( int i = 0; i < h->i_ref[0]; i++ )
+        if( h->fref[0][i] && h->fref[0][i]->b_duplicate )
         {
-            x264_frame_push_blank_unused( h, h->fref0[i] );
-            h->fref0[i] = 0;
+            x264_frame_push_blank_unused( h, h->fref[0][i] );
+            h->fref[0][i] = 0;
         }
 
     if( h->param.psz_dump_yuv )

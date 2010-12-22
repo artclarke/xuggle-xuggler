@@ -402,22 +402,22 @@ int x264_reference_build_list_optimal( x264_t *h )
     x264_weight_t weights[16][3];
     int refcount[16];
 
-    if( rce->refs != h->i_ref0 )
+    if( rce->refs != h->i_ref[0] )
         return -1;
 
-    memcpy( frames, h->fref0, sizeof(frames) );
+    memcpy( frames, h->fref[0], sizeof(frames) );
     memcpy( refcount, rce->refcount, sizeof(refcount) );
     memcpy( weights, h->fenc->weight, sizeof(weights) );
     memset( &h->fenc->weight[1][0], 0, sizeof(x264_weight_t[15][3]) );
 
     /* For now don't reorder ref 0; it seems to lower quality
        in most cases due to skips. */
-    for( int ref = 1; ref < h->i_ref0; ref++ )
+    for( int ref = 1; ref < h->i_ref[0]; ref++ )
     {
         int max = -1;
         int bestref = 1;
 
-        for( int i = 1; i < h->i_ref0; i++ )
+        for( int i = 1; i < h->i_ref[0]; i++ )
             /* Favor lower POC as a tiebreaker. */
             COPY2_IF_GT( max, refcount[i], bestref, i );
 
@@ -425,7 +425,7 @@ int x264_reference_build_list_optimal( x264_t *h )
          * that the optimal ordering doesnt place every duplicate. */
 
         refcount[bestref] = -1;
-        h->fref0[ref] = frames[bestref];
+        h->fref[0][ref] = frames[bestref];
         memcpy( h->fenc->weight[ref], weights[bestref], sizeof(weights[bestref]) );
     }
 
@@ -1290,15 +1290,15 @@ static double predict_row_size( x264_t *h, int y, double qp )
     x264_ratecontrol_t *rc = h->rc;
     double pred_s = predict_size( rc->row_pred[0], qp2qscale( qp ), h->fdec->i_row_satd[y] );
     double pred_t = 0;
-    if( h->sh.i_type == SLICE_TYPE_I || qp >= h->fref0[0]->f_row_qp[y] )
+    if( h->sh.i_type == SLICE_TYPE_I || qp >= h->fref[0][0]->f_row_qp[y] )
     {
         if( h->sh.i_type == SLICE_TYPE_P
-            && h->fref0[0]->i_type == h->fdec->i_type
-            && h->fref0[0]->i_row_satd[y] > 0
-            && (abs(h->fref0[0]->i_row_satd[y] - h->fdec->i_row_satd[y]) < h->fdec->i_row_satd[y]/2))
+            && h->fref[0][0]->i_type == h->fdec->i_type
+            && h->fref[0][0]->i_row_satd[y] > 0
+            && (abs(h->fref[0][0]->i_row_satd[y] - h->fdec->i_row_satd[y]) < h->fdec->i_row_satd[y]/2))
         {
-            pred_t = h->fref0[0]->i_row_bits[y] * h->fdec->i_row_satd[y] / h->fref0[0]->i_row_satd[y]
-                     * qp2qscale( h->fref0[0]->f_row_qp[y] ) / qp2qscale( qp );
+            pred_t = h->fref[0][0]->i_row_bits[y] * h->fdec->i_row_satd[y] / h->fref[0][0]->i_row_satd[y]
+                     * qp2qscale( h->fref[0][0]->f_row_qp[y] ) / qp2qscale( qp );
         }
         if( pred_t == 0 )
             pred_t = pred_s;
@@ -1347,7 +1347,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     h->fdec->f_row_qp[y] = rc->qpm;
 
     update_predictor( rc->row_pred[0], qp2qscale( rc->qpm ), h->fdec->i_row_satd[y], h->fdec->i_row_bits[y] );
-    if( h->sh.i_type == SLICE_TYPE_P && rc->qpm < h->fref0[0]->f_row_qp[y] )
+    if( h->sh.i_type == SLICE_TYPE_P && rc->qpm < h->fref[0][0]->f_row_qp[y] )
         update_predictor( rc->row_pred[1], qp2qscale( rc->qpm ), h->fdec->i_row_satds[0][0][y], h->fdec->i_row_bits[y] );
 
     /* tweak quality based on difference from predicted size */
@@ -1364,7 +1364,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
         /* B-frames shouldn't use lower QP than their reference frames. */
         if( h->sh.i_type == SLICE_TYPE_B )
         {
-            qp_min = X264_MAX( qp_min, X264_MAX( h->fref0[0]->f_row_qp[y+1], h->fref1[0]->f_row_qp[y+1] ) );
+            qp_min = X264_MAX( qp_min, X264_MAX( h->fref[0][0]->f_row_qp[y+1], h->fref[1][0]->f_row_qp[y+1] ) );
             rc->qpm = X264_MAX( rc->qpm, qp_min );
         }
 
@@ -1549,7 +1549,7 @@ int x264_ratecontrol_end( x264_t *h, int bits, int *filler )
 
         /* Only write information for reference reordering once. */
         int use_old_stats = h->param.rc.b_stat_read && rc->rce->refs > 1;
-        for( int i = 0; i < (use_old_stats ? rc->rce->refs : h->i_ref0); i++ )
+        for( int i = 0; i < (use_old_stats ? rc->rce->refs : h->i_ref[0]); i++ )
         {
             int refcount = use_old_stats         ? rc->rce->refcount[i]
                          : h->param.b_interlaced ? h->stat.frame.i_mb_count_ref[0][i*2]
@@ -1620,7 +1620,7 @@ int x264_ratecontrol_end( x264_t *h, int bits, int *filler )
             if( h->fenc->b_last_minigop_bframe )
             {
                 update_predictor( rc->pred_b_from_p, qp2qscale( rc->qpa_rc ),
-                                  h->fref1[h->i_ref1-1]->i_satd, rc->bframe_bits / rc->bframes );
+                                  h->fref[1][h->i_ref[1]-1]->i_satd, rc->bframe_bits / rc->bframes );
                 rc->bframe_bits = 0;
             }
         }
@@ -2050,16 +2050,16 @@ static float rate_estimate_qscale( x264_t *h )
         /* B-frames don't have independent ratecontrol, but rather get the
          * average QP of the two adjacent P-frames + an offset */
 
-        int i0 = IS_X264_TYPE_I(h->fref0[0]->i_type);
-        int i1 = IS_X264_TYPE_I(h->fref1[0]->i_type);
-        int dt0 = abs(h->fenc->i_poc - h->fref0[0]->i_poc);
-        int dt1 = abs(h->fenc->i_poc - h->fref1[0]->i_poc);
-        float q0 = h->fref0[0]->f_qp_avg_rc;
-        float q1 = h->fref1[0]->f_qp_avg_rc;
+        int i0 = IS_X264_TYPE_I(h->fref[0][0]->i_type);
+        int i1 = IS_X264_TYPE_I(h->fref[1][0]->i_type);
+        int dt0 = abs(h->fenc->i_poc - h->fref[0][0]->i_poc);
+        int dt1 = abs(h->fenc->i_poc - h->fref[1][0]->i_poc);
+        float q0 = h->fref[0][0]->f_qp_avg_rc;
+        float q1 = h->fref[1][0]->f_qp_avg_rc;
 
-        if( h->fref0[0]->i_type == X264_TYPE_BREF )
+        if( h->fref[0][0]->i_type == X264_TYPE_BREF )
             q0 -= rcc->pb_offset/2;
-        if( h->fref1[0]->i_type == X264_TYPE_BREF )
+        if( h->fref[1][0]->i_type == X264_TYPE_BREF )
             q1 -= rcc->pb_offset/2;
 
         if( i0 && i1 )
@@ -2079,7 +2079,7 @@ static float rate_estimate_qscale( x264_t *h )
         if( rcc->b_2pass && rcc->b_vbv )
             rcc->frame_size_planned = qscale2bits( &rce, qp2qscale( q ) );
         else
-            rcc->frame_size_planned = predict_size( rcc->pred_b_from_p, qp2qscale( q ), h->fref1[h->i_ref1-1]->i_satd );
+            rcc->frame_size_planned = predict_size( rcc->pred_b_from_p, qp2qscale( q ), h->fref[1][h->i_ref[1]-1]->i_satd );
         h->rc->frame_size_estimated = rcc->frame_size_planned;
 
         /* For row SATDs */
