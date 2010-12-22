@@ -48,8 +48,11 @@
  void x264_predict_8x8c_dc_mmxext( pixel *src );
  void x264_predict_8x8c_dc_sse2( uint16_t *src );
  void x264_predict_8x8c_dc_top_mmxext( uint8_t *src );
- void x264_predict_8x8c_v_mmx( uint8_t *src );
+ void x264_predict_8x8c_dc_top_sse2( uint16_t *src );
+ void x264_predict_8x8c_v_mmx( pixel *src );
+ void x264_predict_8x8c_v_sse2( uint16_t *src );
  void x264_predict_8x8c_h_mmxext( uint8_t *src );
+ void x264_predict_8x8c_h_sse2( pixel *src );
  void x264_predict_8x8c_h_ssse3( uint8_t *src );
  void x264_predict_8x8_v_mmxext( uint8_t *src, uint8_t edge[33] );
  void x264_predict_8x8_v_sse2( uint16_t *src, uint16_t edge[33] );
@@ -413,12 +416,16 @@ void x264_predict_8x8c_init_mmx( int cpu, x264_predict_t pf[7] )
     if( !(cpu&X264_CPU_MMX) )
         return;
 #if HIGH_BIT_DEPTH
+    pf[I_PRED_CHROMA_V]       = x264_predict_8x8c_v_mmx;
     if( !(cpu&X264_CPU_MMXEXT) )
         return;
     pf[I_PRED_CHROMA_DC]      = x264_predict_8x8c_dc_mmxext;
     if( !(cpu&X264_CPU_SSE2) )
         return;
+    pf[I_PRED_CHROMA_V]       = x264_predict_8x8c_v_sse2;
     pf[I_PRED_CHROMA_DC]      = x264_predict_8x8c_dc_sse2;
+    pf[I_PRED_CHROMA_DC_TOP]  = x264_predict_8x8c_dc_top_sse2;
+    pf[I_PRED_CHROMA_H]       = x264_predict_8x8c_h_sse2;
 #else
 #if ARCH_X86_64
     pf[I_PRED_CHROMA_DC_LEFT] = x264_predict_8x8c_dc_left;

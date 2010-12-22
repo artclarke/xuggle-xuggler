@@ -1230,16 +1230,66 @@ PREDICT_8x8_HU ssse3
 ;-----------------------------------------------------------------------------
 ; void predict_8x8c_v( uint8_t *src )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8c_v_mmx, 1,1
-    movq        mm0, [r0 - FDEC_STRIDE]
-    STORE8x8    mm0, mm0
+
+%macro PREDICT_8x8C_V 1
+cglobal predict_8x8c_v_%1, 1,1
+    mova        m0, [r0 - FDEC_STRIDEB]
+    STORE8x8    m0, m0
     RET
+%endmacro
+
+%ifdef HIGH_BIT_DEPTH
+INIT_XMM
+PREDICT_8x8C_V sse2
+%else
+INIT_MMX
+PREDICT_8x8C_V mmx
+%endif
+
+%ifdef HIGH_BIT_DEPTH
+
+INIT_MMX
+cglobal predict_8x8c_v_mmx, 1,1
+    mova        m0, [r0 - FDEC_STRIDEB]
+    mova        m1, [r0 - FDEC_STRIDEB + 8]
+%assign n 0
+%rep 8
+    mova        [r0 + (n&1)*FDEC_STRIDEB], m0
+    mova        [r0 + (n&1)*FDEC_STRIDEB + 8], m1
+%if (n&1) && (n!=7)
+    add         r0, FDEC_STRIDEB*2
+%endif
+%assign n n+1
+%endrep
+    RET
+
+%endif
 
 ;-----------------------------------------------------------------------------
 ; void predict_8x8c_h( uint8_t *src )
 ;-----------------------------------------------------------------------------
+%ifdef HIGH_BIT_DEPTH
+%macro PREDICT_8x8C_H 1
 
-%macro PRED_8x8C_H 1
+cglobal predict_8x8c_h_%1, 1,1
+    add        r0, FDEC_STRIDEB*4
+%assign n -4
+%rep 8
+    movd       m0, [r0+FDEC_STRIDEB*n-SIZEOF_PIXEL*2]
+    SPLATW     m0, m0, 1
+    mova [r0+FDEC_STRIDEB*n], m0
+%assign n n+1
+%endrep
+    RET
+
+%endmacro
+
+INIT_XMM
+PREDICT_8x8C_H sse2
+
+%else
+
+%macro PREDICT_8x8C_H 1
 cglobal predict_8x8c_h_%1, 1,1
 %ifidn %1, ssse3
     mova   m1, [pb_3]
@@ -1256,10 +1306,11 @@ cglobal predict_8x8c_h_%1, 1,1
 
 INIT_MMX
 %define SPLATB SPLATB_MMX
-PRED_8x8C_H mmxext
+PREDICT_8x8C_H mmxext
 %define SPLATB SPLATB_SSSE3
-PRED_8x8C_H ssse3
+PREDICT_8x8C_H ssse3
 
+%endif
 ;-----------------------------------------------------------------------------
 ; void predict_8x8c_dc( pixel *src )
 ;-----------------------------------------------------------------------------
@@ -1354,6 +1405,24 @@ PREDICT_8x8C_DC mmxext
 PREDICT_8x8C_DC sse2
 %endif
 
+%ifdef HIGH_BIT_DEPTH
+
+INIT_XMM
+cglobal predict_8x8c_dc_top_sse2, 1,1
+    pxor        m2, m2
+    mova        m0, [r0 - FDEC_STRIDEB]
+    pmaddwd     m0, [pw_1]
+    pshufd      m1, m0, 0x31
+    paddd       m0, m1
+    psrlw       m0, 1
+    pavgw       m0, m2
+    pshuflw     m0, m0, 0
+    pshufhw     m0, m0, 0
+    STORE8x8    m0, m0
+    RET
+
+%else
+
 cglobal predict_8x8c_dc_top_mmxext, 1,1
     movq        mm0, [r0 - FDEC_STRIDE]
     pxor        mm1, mm1
@@ -1372,6 +1441,7 @@ cglobal predict_8x8c_dc_top_mmxext, 1,1
     STORE8x8    mm0, mm0
     RET
 
+%endif
 ;-----------------------------------------------------------------------------
 ; void predict_8x8c_p_core( uint8_t *src, int i00, int b, int c )
 ;-----------------------------------------------------------------------------
@@ -1493,7 +1563,7 @@ cglobal predict_16x16_v_sse2, 1,1
 ;-----------------------------------------------------------------------------
 ; void predict_16x16_h( pixel *src )
 ;-----------------------------------------------------------------------------
-%macro PRED_16x16_H 1
+%macro PREDICT_16x16_H 1
 cglobal predict_16x16_h_%1, 1,2
     mov r1, 12*FDEC_STRIDEB
 %ifdef HIGH_BIT_DEPTH
@@ -1533,14 +1603,14 @@ cglobal predict_16x16_h_%1, 1,2
 
 INIT_MMX
 %define SPLATB SPLATB_MMX
-PRED_16x16_H mmxext
+PREDICT_16x16_H mmxext
 INIT_XMM
 %ifdef HIGH_BIT_DEPTH
-PRED_16x16_H sse2
+PREDICT_16x16_H sse2
 %else
 ;no SSE2 for 8-bit, it's slower than MMX on all systems that don't support SSSE3
 %define SPLATB SPLATB_SSSE3
-PRED_16x16_H ssse3
+PREDICT_16x16_H ssse3
 %endif
 
 ;-----------------------------------------------------------------------------
