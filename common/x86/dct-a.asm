@@ -1267,47 +1267,57 @@ ZIGZAG_SUB_4x4 ac, field
 ;-----------------------------------------------------------------------------
 ; void zigzag_interleave_8x8_cavlc( int16_t *dst, int16_t *src, uint8_t *nnz )
 ;-----------------------------------------------------------------------------
-
-%macro INTERLEAVE 1
-    movq   m0, [r1+%1*4+ 0]
-    movq   m1, [r1+%1*4+ 8]
-    movq   m2, [r1+%1*4+16]
-    movq   m3, [r1+%1*4+24]
-    TRANSPOSE4x4W 0,1,2,3,4
-    movq   [r0+%1+ 0], m0
-    movq   [r0+%1+32], m1
-    movq   [r0+%1+64], m2
-    movq   [r0+%1+96], m3
+%macro INTERLEAVE 2
+    mova     m0, [r1+(%1*4+ 0)*SIZEOF_PIXEL]
+    mova     m1, [r1+(%1*4+ 8)*SIZEOF_PIXEL]
+    mova     m2, [r1+(%1*4+16)*SIZEOF_PIXEL]
+    mova     m3, [r1+(%1*4+24)*SIZEOF_PIXEL]
+    TRANSPOSE4x4%2 0,1,2,3,4
+    mova     [r0+(%1+ 0)*SIZEOF_PIXEL], m0
+    mova     [r0+(%1+32)*SIZEOF_PIXEL], m1
+    mova     [r0+(%1+64)*SIZEOF_PIXEL], m2
+    mova     [r0+(%1+96)*SIZEOF_PIXEL], m3
+    packsswb m0, m1
 %if %1
-    packsswb m0, m1
-    por    m6, m2
-    por    m7, m3
-    por    m5, m0
+    por      m6, m2
+    por      m7, m3
+    por      m5, m0
 %else
-    packsswb m0, m1
-    SWAP   m5, m0
-    SWAP   m6, m2
-    SWAP   m7, m3
+    SWAP     m5, m0
+    SWAP     m6, m2
+    SWAP     m7, m3
 %endif
 %endmacro
 
-INIT_MMX
-cglobal zigzag_interleave_8x8_cavlc_mmx, 3,3
-    INTERLEAVE  0
-    INTERLEAVE  8
-    INTERLEAVE 16
-    INTERLEAVE 24
-    packsswb m6, m7
-    packsswb m5, m6
-    packsswb m5, m5
-    pxor     m0, m0
-    pcmpeqb  m5, m0
-    paddb    m5, [pb_1]
-    movd    r0d, m5
-    mov  [r2+0], r0w
-    shr     r0d, 16
-    mov  [r2+8], r0w
+%macro ZIGZAG_8x8_CAVLC 2
+cglobal zigzag_interleave_8x8_cavlc_%1, 3,3,8*(mmsize/16)
+    INTERLEAVE  0, %2
+    INTERLEAVE  8, %2
+    INTERLEAVE 16, %2
+    INTERLEAVE 24, %2
+    packsswb   m6, m7
+    packsswb   m5, m6
+    packsswb   m5, m5
+    pxor       m0, m0
+%ifdef HIGH_BIT_DEPTH
+    packsswb   m5, m5
+%endif
+    pcmpeqb    m5, m0
+    paddb      m5, [pb_1]
+    movd      r0d, m5
+    mov    [r2+0], r0w
+    shr       r0d, 16
+    mov    [r2+8], r0w
     RET
+%endmacro
+
+%ifdef HIGH_BIT_DEPTH
+INIT_XMM
+ZIGZAG_8x8_CAVLC sse2, D
+%else
+INIT_MMX
+ZIGZAG_8x8_CAVLC mmx , W
+%endif
 
 %macro INTERLEAVE_XMM 1
     mova   m0, [r1+%1*4+ 0]

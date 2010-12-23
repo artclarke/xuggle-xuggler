@@ -802,12 +802,15 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
     }
 
     pf->interleave_8x8_cavlc = zigzag_interleave_8x8_cavlc;
-#if !HIGH_BIT_DEPTH
 #if HAVE_MMX
+#if HIGH_BIT_DEPTH
+    if( cpu&X264_CPU_SSE2 )
+        pf->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_sse2;
+#else
     if( cpu&X264_CPU_MMX )
         pf->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_mmx;
     if( cpu&X264_CPU_SHUFFLE_IS_FAST )
         pf->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_sse2;
+#endif // HIGH_BIT_DEPTH
 #endif
-#endif // !HIGH_BIT_DEPTH
 }
