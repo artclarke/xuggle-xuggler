@@ -429,16 +429,16 @@ struct x264_t
     int             i_nal_type;
     int             i_nal_ref_idc;
 
-    int             i_disp_fields;  /* Number of displayed fields (both coded and implied via pic_struct) */
+    int64_t         i_disp_fields;  /* Number of displayed fields (both coded and implied via pic_struct) */
     int             i_disp_fields_last_frame;
-    int             i_prev_duration; /* Duration of previous frame */
-    int             i_coded_fields; /* Number of coded fields (both coded and implied via pic_struct) */
-    int             i_cpb_delay;    /* Equal to number of fields preceding this field
+    int64_t         i_prev_duration; /* Duration of previous frame */
+    int64_t         i_coded_fields; /* Number of coded fields (both coded and implied via pic_struct) */
+    int64_t         i_cpb_delay;    /* Equal to number of fields preceding this field
                                      * since last buffering_period SEI */
-    int             i_coded_fields_lookahead; /* Use separate counters for lookahead */
-    int             i_cpb_delay_lookahead;
+    int64_t         i_coded_fields_lookahead; /* Use separate counters for lookahead */
+    int64_t         i_cpb_delay_lookahead;
 
-    int             i_cpb_delay_pir_offset;
+    int64_t         i_cpb_delay_pir_offset;
 
     int             b_queued_intra_refresh;
     int64_t         i_last_idr_pts;

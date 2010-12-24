@@ -57,8 +57,8 @@ typedef struct
     int16_t i_weight_denom[2];
     int refcount[16];
     int refs;
-    int i_duration;
-    int i_cpb_duration;
+    int64_t i_duration;
+    int64_t i_cpb_duration;
 } ratecontrol_entry_t;
 
 typedef struct
@@ -834,7 +834,7 @@ int x264_ratecontrol_new( x264_t *h )
             rce = &rc->entry[frame_number];
             rce->direct_mode = 0;
 
-            e += sscanf( p, " in:%*d out:%*d type:%c dur:%d cpbdur:%d q:%f tex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d d:%c",
+            e += sscanf( p, " in:%*d out:%*d type:%c dur:%"SCNd64" cpbdur:%"SCNd64" q:%f tex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d d:%c",
                    &pict_type, &rce->i_duration, &rce->i_cpb_duration, &qp, &rce->tex_bits,
                    &rce->mv_bits, &rce->misc_bits, &rce->i_count, &rce->p_count,
                    &rce->s_count, &rce->direct_mode );
@@ -1534,7 +1534,7 @@ int x264_ratecontrol_end( x264_t *h, int bits, int *filler )
                           dir_avg>0 ? 's' : dir_avg<0 ? 't' : '-' )
                         : '-';
         if( fprintf( rc->p_stat_file_out,
-                 "in:%d out:%d type:%c dur:%d cpbdur:%d q:%.2f tex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d d:%c ref:",
+                 "in:%d out:%d type:%c dur:%"PRId64" cpbdur:%"PRId64" q:%.2f tex:%d mv:%d misc:%d imb:%d pmb:%d smb:%d d:%c ref:",
                  h->fenc->i_frame, h->i_frame,
                  c_type, h->fenc->i_duration,
                  h->fenc->i_cpb_duration, rc->qpa_rc,

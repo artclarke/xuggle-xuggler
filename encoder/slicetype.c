@@ -955,7 +955,7 @@ static int x264_vbv_frame_cost( x264_t *h, x264_mb_analysis_t *a, x264_frame_t *
     return cost;
 }
 
-static void x264_calculate_durations( x264_t *h, x264_frame_t *cur_frame, x264_frame_t *prev_frame, int *i_cpb_delay, int *i_coded_fields )
+static void x264_calculate_durations( x264_t *h, x264_frame_t *cur_frame, x264_frame_t *prev_frame, int64_t *i_cpb_delay, int64_t *i_coded_fields )
 {
     cur_frame->i_cpb_delay = *i_cpb_delay;
     cur_frame->i_dpb_output_delay = cur_frame->i_field_cnt - *i_coded_fields;
