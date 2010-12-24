@@ -1603,9 +1603,7 @@ int x264_ratecontrol_end( x264_t *h, int bits, int *filler )
             rc->cplxr_sum += bits * qp2qscale( rc->qpa_rc ) / (rc->last_rceq * fabs( h->param.rc.f_pb_factor ));
         }
         rc->cplxr_sum *= rc->cbr_decay;
-        double frame_duration = (double)h->fenc->i_duration * h->sps->vui.i_num_units_in_tick / h->sps->vui.i_time_scale;
-
-        rc->wanted_bits_window += frame_duration * rc->bitrate;
+        rc->wanted_bits_window += h->fenc->f_duration * rc->bitrate;
         rc->wanted_bits_window *= rc->cbr_decay;
     }
 
@@ -2184,7 +2182,7 @@ static float rate_estimate_qscale( x264_t *h )
             rcc->last_satd = x264_rc_analyse_slice( h );
             rcc->short_term_cplxsum *= 0.5;
             rcc->short_term_cplxcount *= 0.5;
-            rcc->short_term_cplxsum += rcc->last_satd;
+            rcc->short_term_cplxsum += rcc->last_satd / (CLIP_DURATION(h->fenc->f_duration) / BASE_FRAME_DURATION);
             rcc->short_term_cplxcount ++;
 
             rce.tex_bits = rcc->last_satd;
@@ -2541,10 +2539,11 @@ static int init_pass2( x264_t *h )
 {
     x264_ratecontrol_t *rcc = h->rc;
     uint64_t all_const_bits = 0;
+    double timescale = (double)h->sps->vui.i_num_units_in_tick / h->sps->vui.i_time_scale;
     double duration = 0;
     for( int i = 0; i < rcc->num_entries; i++ )
         duration += rcc->entry[i].i_duration;
-    duration *= (double)h->sps->vui.i_num_units_in_tick / h->sps->vui.i_time_scale;
+    duration *= timescale;
     uint64_t all_available_bits = h->param.rc.i_bitrate * 1000. * duration;
     double rate_factor, step_mult;
     double qblur = h->param.rc.f_qblur;
@@ -2583,21 +2582,23 @@ static int init_pass2( x264_t *h )
         for( int j = 1; j < cplxblur*2 && j < rcc->num_entries-i; j++ )
         {
             ratecontrol_entry_t *rcj = &rcc->entry[i+j];
+            double frame_duration = CLIP_DURATION(rcj->i_duration * timescale) / BASE_FRAME_DURATION;
             weight *= 1 - pow( (float)rcj->i_count / rcc->nmb, 2 );
             if( weight < .0001 )
                 break;
             gaussian_weight = weight * exp( -j*j/200.0 );
             weight_sum += gaussian_weight;
-            cplx_sum += gaussian_weight * (qscale2bits(rcj, 1) - rcj->misc_bits);
+            cplx_sum += gaussian_weight * (qscale2bits( rcj, 1 ) - rcj->misc_bits) / frame_duration;
         }
         /* weighted average of cplx of past frames */
         weight = 1.0;
         for( int j = 0; j <= cplxblur*2 && j <= i; j++ )
         {
             ratecontrol_entry_t *rcj = &rcc->entry[i-j];
+            double frame_duration = CLIP_DURATION(rcj->i_duration * timescale) / BASE_FRAME_DURATION;
             gaussian_weight = weight * exp( -j*j/200.0 );
             weight_sum += gaussian_weight;
-            cplx_sum += gaussian_weight * (qscale2bits( rcj, 1 ) - rcj->misc_bits);
+            cplx_sum += gaussian_weight * (qscale2bits( rcj, 1 ) - rcj->misc_bits) / frame_duration;
             weight *= 1 - pow( (float)rcj->i_count / rcc->nmb, 2 );
             if( weight < .0001 )
                 break;

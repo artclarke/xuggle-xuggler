@@ -124,7 +124,7 @@ void x264_integral_init8v_mmx( uint16_t *sum8, int stride );
 void x264_integral_init8v_sse2( uint16_t *sum8, int stride );
 void x264_integral_init4v_ssse3( uint16_t *sum8, uint16_t *sum4, int stride );
 void x264_mbtree_propagate_cost_sse2( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
-                                      uint16_t *inter_costs, uint16_t *inv_qscales, int len );
+                                      uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
 
 #define MC_CHROMA(cpu)\
 void x264_mc_chroma_##cpu( pixel *dstu, pixel *dstv, int i_dst,\

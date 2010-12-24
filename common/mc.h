@@ -123,7 +123,7 @@ typedef struct
     void (*weight_cache)( x264_t *, x264_weight_t * );
 
     void (*mbtree_propagate_cost)( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
-                                   uint16_t *inter_costs, uint16_t *inv_qscales, int len );
+                                   uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
 } x264_mc_functions_t;
 
 void x264_mc_init( int cpu, x264_mc_functions_t *pf );

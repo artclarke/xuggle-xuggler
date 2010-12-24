@@ -27,6 +27,16 @@
 #ifndef X264_RATECONTROL_H
 #define X264_RATECONTROL_H
 
+/* Completely arbitrary.  Ratecontrol lowers relative quality at higher framerates
+ * and the reverse at lower framerates; this serves as the center of the curve. */
+#define BASE_FRAME_DURATION (0.04f)
+
+/* Arbitrary limitations as a sanity check. */
+#define MAX_FRAME_DURATION 1.00f
+#define MIN_FRAME_DURATION 0.01f
+
+#define CLIP_DURATION(f) x264_clip3f(f,MIN_FRAME_DURATION,MAX_FRAME_DURATION)
+
 int  x264_ratecontrol_new   ( x264_t * );
 void x264_ratecontrol_delete( x264_t * );
 

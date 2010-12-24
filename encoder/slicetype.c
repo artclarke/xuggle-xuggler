@@ -748,9 +748,10 @@ static int x264_slicetype_frame_cost_recalculate( x264_t *h, x264_frame_t **fram
     return i_score;
 }
 
-static void x264_macroblock_tree_finish( x264_t *h, x264_frame_t *frame, int ref0_distance )
+static void x264_macroblock_tree_finish( x264_t *h, x264_frame_t *frame, float average_duration, int ref0_distance )
 {
-    x264_emms();
+    int fps_factor_intra     = round( CLIP_DURATION(frame->f_duration) / BASE_FRAME_DURATION * 256 );
+    int fps_factor_propagate = round( CLIP_DURATION( average_duration) / BASE_FRAME_DURATION * 256 );
     float weightdelta = 0.0;
     if( ref0_distance && frame->f_weighted_cost_delta[ref0_distance-1] > 0 )
         weightdelta = (1.0 - frame->f_weighted_cost_delta[ref0_distance-1]);
@@ -760,17 +761,18 @@ static void x264_macroblock_tree_finish( x264_t *h, x264_frame_t *frame, int ref
     float strength = 5.0f * (1.0f - h->param.rc.f_qcompress);
     for( int mb_index = 0; mb_index < h->mb.i_mb_count; mb_index++ )
     {
-        int intra_cost = (frame->i_intra_cost[mb_index] * frame->i_inv_qscale_factor[mb_index]+128)>>8;
+        int intra_cost = (frame->i_intra_cost[mb_index] * frame->i_inv_qscale_factor[mb_index] + 128) >> 8;
+        int intra_cost_scaled = (intra_cost * fps_factor_intra + 128) >> 8;
         if( intra_cost )
         {
-            int propagate_cost = frame->i_propagate_cost[mb_index];
-            float log2_ratio = x264_log2(intra_cost + propagate_cost) - x264_log2(intra_cost) + weightdelta;
+            int propagate_cost = (frame->i_propagate_cost[mb_index] * fps_factor_propagate + 128) >> 8;
+            float log2_ratio = x264_log2(intra_cost_scaled + propagate_cost) - x264_log2(intra_cost) + weightdelta;
             frame->f_qp_offset[mb_index] = frame->f_qp_offset_aq[mb_index] - strength * log2_ratio;
         }
     }
 }
 
-static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, int p0, int p1, int b, int referenced )
+static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, float average_duration, int p0, int p1, int b, int referenced )
 {
     uint16_t *ref_costs[2] = {frames[p0]->i_propagate_cost,frames[p1]->i_propagate_cost};
     int dist_scale_factor = ( ((b-p0) << 8) + ((p1-p0) >> 1) ) / (p1-p0);
@@ -779,6 +781,9 @@ static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, in
     int bipred_weights[2] = {i_bipred_weight, 64 - i_bipred_weight};
     int *buf = h->scratch_buffer;
     uint16_t *propagate_cost = frames[b]->i_propagate_cost;
+
+    x264_emms();
+    float fps_factor = CLIP_DURATION(frames[b]->f_duration) / CLIP_DURATION(average_duration);
 
     /* For non-reffed frames the source costs are always zero, so just memset one row and re-use it. */
     if( !referenced )
@@ -789,7 +794,7 @@ static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, in
         int mb_index = h->mb.i_mb_y*h->mb.i_mb_stride;
         h->mc.mbtree_propagate_cost( buf, propagate_cost,
             frames[b]->i_intra_cost+mb_index, frames[b]->lowres_costs[b-p0][p1-b]+mb_index,
-            frames[b]->i_inv_qscale_factor+mb_index, h->mb.i_mb_width );
+            frames[b]->i_inv_qscale_factor+mb_index, &fps_factor, h->mb.i_mb_width );
         if( referenced )
             propagate_cost += h->mb.i_mb_width;
         for( h->mb.i_mb_x = 0; h->mb.i_mb_x < h->mb.i_mb_width; h->mb.i_mb_x++, mb_index++ )
@@ -858,7 +863,7 @@ static void x264_macroblock_tree_propagate( x264_t *h, x264_frame_t **frames, in
     }
 
     if( h->param.rc.i_vbv_buffer_size && h->param.rc.i_lookahead && referenced )
-        x264_macroblock_tree_finish( h, frames[b], b == p1 ? b - p0 : 0 );
+        x264_macroblock_tree_finish( h, frames[b], average_duration, b == p1 ? b - p0 : 0 );
 }
 
 static void x264_macroblock_tree( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, int num_frames, int b_intra )
@@ -866,6 +871,13 @@ static void x264_macroblock_tree( x264_t *h, x264_mb_analysis_t *a, x264_frame_t
     int idx = !b_intra;
     int last_nonb, cur_nonb = 1;
     int bframes = 0;
+
+    x264_emms();
+    float total_duration = 0.0;
+    for( int j = 0; j <= num_frames; j++ )
+        total_duration += frames[j]->f_duration;
+    float average_duration = total_duration / (num_frames + 1);
+
     int i = num_frames;
 
     if( b_intra )
@@ -918,34 +930,34 @@ static void x264_macroblock_tree( x264_t *h, x264_mb_analysis_t *a, x264_frame_t
                 if( i != middle )
                 {
                     x264_slicetype_frame_cost( h, a, frames, p0, p1, i, 0 );
-                    x264_macroblock_tree_propagate( h, frames, p0, p1, i, 0 );
+                    x264_macroblock_tree_propagate( h, frames, average_duration, p0, p1, i, 0 );
                 }
                 i--;
             }
-            x264_macroblock_tree_propagate( h, frames, cur_nonb, last_nonb, middle, 1 );
+            x264_macroblock_tree_propagate( h, frames, average_duration, cur_nonb, last_nonb, middle, 1 );
         }
         else
         {
             while( i > cur_nonb )
             {
                 x264_slicetype_frame_cost( h, a, frames, cur_nonb, last_nonb, i, 0 );
-                x264_macroblock_tree_propagate( h, frames, cur_nonb, last_nonb, i, 0 );
+                x264_macroblock_tree_propagate( h, frames, average_duration, cur_nonb, last_nonb, i, 0 );
                 i--;
             }
         }
-        x264_macroblock_tree_propagate( h, frames, cur_nonb, last_nonb, last_nonb, 1 );
+        x264_macroblock_tree_propagate( h, frames, average_duration, cur_nonb, last_nonb, last_nonb, 1 );
         last_nonb = cur_nonb;
     }
 
     if( !h->param.rc.i_lookahead )
     {
-        x264_macroblock_tree_propagate( h, frames, 0, last_nonb, last_nonb, 1 );
+        x264_macroblock_tree_propagate( h, frames, average_duration, 0, last_nonb, last_nonb, 1 );
         XCHG( uint16_t*, frames[last_nonb]->i_propagate_cost, frames[0]->i_propagate_cost );
     }
 
-    x264_macroblock_tree_finish( h, frames[last_nonb], last_nonb );
+    x264_macroblock_tree_finish( h, frames[last_nonb], average_duration, last_nonb );
     if( h->param.i_bframe_pyramid && bframes > 1 && !h->param.rc.i_vbv_buffer_size )
-        x264_macroblock_tree_finish( h, frames[last_nonb+(bframes+1)/2], 0 );
+        x264_macroblock_tree_finish( h, frames[last_nonb+(bframes+1)/2], average_duration, 0 );
 }
 
 static int x264_vbv_frame_cost( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, int p0, int p1, int b )

@@ -1236,29 +1236,34 @@ static int check_mc( int cpu_ref, int cpu_new )
 
     if( mc_a.mbtree_propagate_cost != mc_ref.mbtree_propagate_cost )
     {
-        ok = 1; used_asm = 1;
-        set_func_name( "mbtree_propagate" );
-        int *dsta = (int*)buf3;
-        int *dstc = dsta+400;
-        uint16_t *prop = (uint16_t*)buf1;
-        uint16_t *intra = (uint16_t*)buf4;
-        uint16_t *inter = intra+400;
-        uint16_t *qscale = inter+400;
-        uint16_t *rnd = (uint16_t*)buf2;
         x264_emms();
-        for( int i = 0; i < 400; i++ )
+        for( int i = 0; i < 10; i++ )
         {
-            intra[i]  = *rnd++ & 0x7fff;
-            intra[i] += !intra[i];
-            inter[i]  = *rnd++ & 0x7fff;
-            qscale[i] = *rnd++ & 0x7fff;
+            float fps_factor = (rand()&65535) / 256.;
+            ok = 1; used_asm = 1;
+            set_func_name( "mbtree_propagate" );
+            int *dsta = (int*)buf3;
+            int *dstc = dsta+400;
+            uint16_t *prop = (uint16_t*)buf1;
+            uint16_t *intra = (uint16_t*)buf4;
+            uint16_t *inter = intra+100;
+            uint16_t *qscale = inter+100;
+            uint16_t *rnd = (uint16_t*)buf2;
+            x264_emms();
+            for( int j = 0; j < 100; j++ )
+            {
+                intra[j]  = *rnd++ & 0x7fff;
+                intra[j] += !intra[j];
+                inter[j]  = *rnd++ & 0x7fff;
+                qscale[j] = *rnd++ & 0x7fff;
+            }
+            call_c( mc_c.mbtree_propagate_cost, dstc, prop, intra, inter, qscale, &fps_factor, 100 );
+            call_a( mc_a.mbtree_propagate_cost, dsta, prop, intra, inter, qscale, &fps_factor, 100 );
+            // I don't care about exact rounding, this is just how close the floating-point implementation happens to be
+            x264_emms();
+            for( int j = 0; j < 100; j++ )
+                ok &= abs( dstc[j]-dsta[j] ) <= 1 || fabs( (double)dstc[j]/dsta[j]-1 ) < 1e-4;
         }
-        call_c( mc_c.mbtree_propagate_cost, dstc, prop, intra, inter, qscale, 400 );
-        call_a( mc_a.mbtree_propagate_cost, dsta, prop, intra, inter, qscale, 400 );
-        // I don't care about exact rounding, this is just how close the floating-point implementation happens to be
-        x264_emms();
-        for( int i = 0; i < 400; i++ )
-            ok &= abs( dstc[i]-dsta[i] ) <= 1 || fabs( (double)dstc[i]/dsta[i]-1 ) < 1e-6;
         report( "mbtree propagate :" );
     }
 

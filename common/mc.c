@@ -431,30 +431,19 @@ static void frame_init_lowres_core( pixel *src0, pixel *dst0, pixel *dsth, pixel
     }
 }
 
-#if defined(__GNUC__) && (ARCH_X86 || ARCH_X86_64)
-// gcc isn't smart enough to use the "idiv" instruction
-static ALWAYS_INLINE int32_t div_64_32(int64_t x, int32_t y)
-{
-    int32_t quotient, remainder;
-    asm("idiv %4"
-        :"=a"(quotient), "=d"(remainder)
-        :"a"((uint32_t)x), "d"((int32_t)(x>>32)), "r"(y)
-    );
-    return quotient;
-}
-#else
-#define div_64_32(x,y) ((x)/(y))
-#endif
-
 /* Estimate the total amount of influence on future quality that could be had if we
  * were to improve the reference samples used to inter predict any given macroblock. */
 static void mbtree_propagate_cost( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
-                                   uint16_t *inter_costs, uint16_t *inv_qscales, int len )
+                                   uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len )
 {
+    float fps = *fps_factor / 256.f;
     for( int i = 0; i < len; i++ )
     {
-        int propagate_amount = propagate_in[i] + ((intra_costs[i] * inv_qscales[i] + 128)>>8);
-        dst[i] = div_64_32((int64_t)propagate_amount * (intra_costs[i] - (inter_costs[i] & LOWRES_COST_MASK)), intra_costs[i]);
+        float intra_cost       = intra_costs[i] * inv_qscales[i];
+        float propagate_amount = propagate_in[i] + intra_cost*fps;
+        float propagate_num    = intra_costs[i] - (inter_costs[i] & LOWRES_COST_MASK);
+        float propagate_denom  = intra_costs[i];
+        dst[i] = (int)(propagate_amount * propagate_num / propagate_denom + 0.5f);
     }
 }
 
