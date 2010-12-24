@@ -1647,5 +1647,9 @@ int x264_rc_analyse_slice( x264_t *h )
         }
     }
 
-    return cost;
+    if( BIT_DEPTH > 8 )
+        for( int y = 0; y < h->mb.i_mb_height; y++ )
+            h->fdec->i_row_satd[y] >>= (BIT_DEPTH - 8);
+
+    return cost >> (BIT_DEPTH - 8);
 }
