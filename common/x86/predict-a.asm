@@ -339,7 +339,83 @@ cglobal predict_4x4_hd_%1, 1,1,6*(mmsize/16)
 %endmacro
 
 %ifdef HIGH_BIT_DEPTH
+INIT_MMX
+%define PALIGNR PALIGNR_MMX
+cglobal predict_4x4_ddr_mmxext, 1,1
+    movq    m3, [r0+3*FDEC_STRIDEB-8]
+    psrlq   m3, 48
+    PALIGNR m3, [r0+2*FDEC_STRIDEB-8], 6, m6
+    PALIGNR m3, [r0+1*FDEC_STRIDEB-8], 6, m7
+    movq    m6, [r0+0*FDEC_STRIDEB-8]
+    PALIGNR m3, m6, 6, m5
+
+    movq    m4, [r0-1*FDEC_STRIDEB-8]
+    movq    m2, m3
+    movq    m1, m3
+    PALIGNR m2, m4, 6, m5
+    movq    m1, m2
+    psllq   m1, 16
+    PRED8x8_LOWPASS w, m0, m3, m1, m2
+    pshufw  m0, m0, 0x1B
+    movq    [r0+3*FDEC_STRIDEB], m0
+
+    movq    m2, [r0-1*FDEC_STRIDEB-0]
+    movq    m5, m2
+    PALIGNR m5, m4, 6, m4
+    movq    m3, m5
+    PALIGNR m5, m6, 6, m6
+    PRED8x8_LOWPASS w, m1, m5, m2, m3
+    movq    [r0+0*FDEC_STRIDEB], m1
+
+    psllq   m0, 16
+    PALIGNR m1, m0, 6, m2
+    movq    [r0+1*FDEC_STRIDEB], m1
+    psllq   m0, 16
+    PALIGNR m1, m0, 6, m0
+    movq    [r0+2*FDEC_STRIDEB], m1
+    psrlq   m1, 16
+    movd    [r0+3*FDEC_STRIDEB+4], m1
+    RET
+
+cglobal predict_4x4_hd_mmxext, 1,1
+    mova      m0, [r0+1*FDEC_STRIDEB-8]
+    punpckhwd m0, [r0+0*FDEC_STRIDEB-8]
+    mova      m1, [r0+3*FDEC_STRIDEB-8]
+    punpckhwd m1, [r0+2*FDEC_STRIDEB-8]
+    punpckhdq m1, m0
+    mova      m0, m1
+    mova      m4, m1
+
+    movu      m3, [r0-1*FDEC_STRIDEB-2]
+    mova      m7, m3
+    punpckhdq m4, [r0-1*FDEC_STRIDEB-6]
+    PALIGNR   m3, m1, 2, m2
+    PRED8x8_LOWPASS w, m2, m4, m1, m3, m6
+
+    pavgw     m0, m3
+    mova      m5, m0
+    punpcklwd m5, m2
+    mova      m4, m0
+    punpckhwd m4, m2
+    mova      [r0+3*FDEC_STRIDEB], m5
+    mova      [r0+1*FDEC_STRIDEB], m4
+
+    mova      m4, m7
+    mova      m6, [r0-1*FDEC_STRIDEB+0]
+    PALIGNR   m7, [r0+0*FDEC_STRIDEB-8], 6, m5
+    PRED8x8_LOWPASS w, m3, m7, m6, m4, m1
+
+    PALIGNR   m3, m0, 6, m5
+    mova      [r0+0*FDEC_STRIDEB], m3
+    psrlq     m0, 16
+    psrlq     m2, 16
+    punpcklwd m0, m2
+    mova      [r0+2*FDEC_STRIDEB], m0
+    RET
+
 INIT_XMM
+%define PALIGNR PALIGNR_MMX
+PREDICT_4x4 sse2  , wd, dq, dq, w, qdq, 2
 %define PALIGNR PALIGNR_SSSE3
 PREDICT_4x4 ssse3 , wd, dq, dq, w, qdq, 2
 %else
@@ -354,35 +430,35 @@ PREDICT_4x4 ssse3 , bw, wd, q , b, dq , 8
 ; void predict_4x4_hu( pixel *src )
 ;-----------------------------------------------------------------------------
 %ifdef HIGH_BIT_DEPTH
-INIT_XMM
-cglobal predict_4x4_hu_sse2, 1,1,6
-    movq      mm0, [r0+0*FDEC_STRIDEB-4*2]
-    punpckhwd mm0, [r0+1*FDEC_STRIDEB-4*2]
-    movq      mm1, [r0+2*FDEC_STRIDEB-4*2]
-    punpckhwd mm1, [r0+3*FDEC_STRIDEB-4*2]
-    punpckhdq mm0, mm1
-    pshufw    mm1, mm1, 0xFF
-    movq2dq    m0, mm0
-    movq2dq    m1, mm1
-    punpcklqdq m0, m1
-    mova       m2, m0
-    mova       m3, m0
-    mova       m1, m0
-    psrldq     m2, 4
-    psrldq     m3, 2
-    pavgw      m1, m3
-    PRED8x8_LOWPASS w, m4, m0, m2, m3, m5
-    punpcklwd  m1, m4
+INIT_MMX
+cglobal predict_4x4_hu_mmxext, 1,1
+    movq      m0, [r0+0*FDEC_STRIDEB-4*2]
+    punpckhwd m0, [r0+1*FDEC_STRIDEB-4*2]
+    movq      m1, [r0+2*FDEC_STRIDEB-4*2]
+    punpckhwd m1, [r0+3*FDEC_STRIDEB-4*2]
+    punpckhdq m0, m1
+    pshufw    m1, m1, 0xFF
+    movq      [r0+3*FDEC_STRIDEB], m1
+    movd      [r0+2*FDEC_STRIDEB+4], m1
+    mova      m2, m0
+    psrlq     m2, 16
+    pavgw     m2, m0
 
-    movq       [r0+0*FDEC_STRIDEB], m1
-    psrldq     m1, 4
-    movq       [r0+1*FDEC_STRIDEB], m1
-    psrldq     m1, 4
-    movq       [r0+2*FDEC_STRIDEB], m1
-    movq       [r0+3*FDEC_STRIDEB], mm1
+    pshufw    m1, m0, 11111001b
+    pshufw    m5, m0, 11111110b
+    PRED8x8_LOWPASS w, m3, m0, m5, m1, m7
+    movq      m6, m2
+    punpcklwd m6, m3
+    mova      [r0+0*FDEC_STRIDEB], m6
+    psrlq     m2, 16
+    psrlq     m3, 16
+    punpcklwd m2, m3
+    mova      [r0+1*FDEC_STRIDEB], m2
+    psrlq     m2, 32
+    movd      [r0+2*FDEC_STRIDEB+0], m2
     RET
 
-%else
+%else ; !HIGH_BIT_DEPTH
 INIT_MMX
 cglobal predict_4x4_hu_mmxext, 1,1
     movq      mm0, [r0+0*FDEC_STRIDE-8]
