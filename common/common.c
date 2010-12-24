@@ -1287,6 +1287,15 @@ char *x264_param2string( x264_param_t *p, int b_res )
     }
     else if( p->rc.i_rc_method == X264_RC_CQP )
         s += sprintf( s, " qp=%d", p->rc.i_qp_constant );
+
+    if( p->rc.i_vbv_buffer_size )
+        s += sprintf( s, " nal_hrd=%s", x264_nal_hrd_names[p->i_nal_hrd] );
+    if( p->crop_rect.i_left | p->crop_rect.i_top | p->crop_rect.i_right | p->crop_rect.i_bottom )
+        s += sprintf( s, " crop_rect=%u,%u,%u,%u", p->crop_rect.i_left, p->crop_rect.i_top,
+                                                   p->crop_rect.i_right, p->crop_rect.i_bottom );
+    if( p->i_frame_packing >= 0 )
+        s += sprintf( s, " frame-packing=%d", p->i_frame_packing );
+
     if( !(p->rc.i_rc_method == X264_RC_CQP && p->rc.i_qp_constant == 0) )
     {
         s += sprintf( s, " ip_ratio=%.2f", p->rc.f_ip_factor );
@@ -1301,8 +1310,6 @@ char *x264_param2string( x264_param_t *p, int b_res )
             s += sprintf( s, " zones" );
     }
 
-    if( p->rc.i_vbv_buffer_size )
-        s += sprintf( s, " nal_hrd=%s", x264_nal_hrd_names[p->i_nal_hrd] );
     return buf;
 }
 
