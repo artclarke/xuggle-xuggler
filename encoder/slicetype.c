@@ -229,9 +229,9 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
     SET_WEIGHT( weights[1], 0, 1, 0, 0 );
     SET_WEIGHT( weights[2], 0, 1, 0, 0 );
     /* Don't check chroma in lookahead, or if there wasn't a luma weight. */
-    for( int plane = 0; plane <= 2  && !( plane && ( !weights[0].weightfn || b_lookahead ) ); plane++ )
+    for( int plane = 0; plane <= 2 && !( plane && ( !weights[0].weightfn || b_lookahead ) ); plane++ )
     {
-        int offset_search;
+        int cur_offset, start_offset, end_offset;
         int minoff, minscale, mindenom;
         unsigned int minscore, origscore;
         int found;
@@ -292,11 +292,13 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
         if( !minscore )
             continue;
 
-        // This gives a slight improvement due to rounding errors but only tests
-        // one offset on lookahead.
-        // TODO: currently searches only offset +1. try other offsets/multipliers/combinations thereof?
-        offset_search = x264_clip3( fenc_mean - ref_mean * minscale / (1 << mindenom) + 0.5f * b_lookahead, -128, 126 );
-        for( int i_off = offset_search; i_off <= offset_search+!b_lookahead; i_off++ )
+        // This gives a slight improvement due to rounding errors but only tests one offset in lookahead.
+        // Currently only searches within +/- 1 of the best offset found so far.
+        // TODO: Try other offsets/multipliers/combinations thereof?
+        cur_offset = fenc_mean - ref_mean * minscale / (1 << mindenom) + 0.5f * b_lookahead;
+        start_offset = x264_clip3( cur_offset - !b_lookahead, -128, 127 );
+        end_offset   = x264_clip3( cur_offset + !b_lookahead, -128, 127 );
+        for( int i_off = start_offset; i_off <= end_offset; i_off++ )
         {
             SET_WEIGHT( weights[plane], 1, minscale, mindenom, i_off );
             unsigned int s;
@@ -305,6 +307,10 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
             else
                 s = x264_weight_cost_luma( h, fenc, mcbuf, &weights[plane] );
             COPY3_IF_LT( minscore, s, minoff, i_off, found, 1 );
+
+            // Don't check any more offsets if the previous one had a lower cost than the current one
+            if( minoff == start_offset && i_off != start_offset )
+                break;
         }
         x264_emms();
 
