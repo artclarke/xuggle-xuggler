@@ -1151,6 +1151,22 @@ DECIMATE8x8 ssse3, 1
     shl       %3, 8
     or        %1, %3
 %endmacro
+
+%macro COEFF_LAST4 1
+cglobal coeff_last4_%1, 1,3
+    pxor mm2, mm2
+    LAST_MASK4_MMX r1d, r0
+    xor  r1d, 0xff
+    shr  r1d, 4
+    LAST eax, r1d, 0x1f
+    RET
+%endmacro
+
+%define LAST LAST_X86
+COEFF_LAST4 mmxext
+%define LAST LAST_SSE4A
+COEFF_LAST4 mmxext_lzcnt
+
 %else ; !HIGH_BIT_DEPTH
 %macro LAST_MASK4_MMX 2-3
     movq     mm0, [%2]

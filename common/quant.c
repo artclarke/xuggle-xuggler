@@ -306,6 +306,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
             pf->decimate_score16 = x264_decimate_score16_mmxext_slowctz;
         }
         pf->decimate_score64 = x264_decimate_score64_mmxext;
+        pf->coeff_last[DCT_CHROMA_DC] = x264_coeff_last4_mmxext;
         pf->coeff_last[  DCT_LUMA_AC] = x264_coeff_last15_mmxext;
         pf->coeff_last[ DCT_LUMA_4x4] = x264_coeff_last16_mmxext;
         pf->coeff_last[ DCT_LUMA_8x8] = x264_coeff_last64_mmxext;
@@ -341,6 +342,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->coeff_level_run[DCT_LUMA_4x4] = x264_coeff_level_run16_sse2;
         if( cpu&X264_CPU_LZCNT )
         {
+            pf->coeff_last[DCT_CHROMA_DC] = x264_coeff_last4_mmxext_lzcnt;
             pf->coeff_last[ DCT_LUMA_AC] = x264_coeff_last15_sse2_lzcnt;
             pf->coeff_last[DCT_LUMA_4x4] = x264_coeff_last16_sse2_lzcnt;
             pf->coeff_last[DCT_LUMA_8x8] = x264_coeff_last64_sse2_lzcnt;
