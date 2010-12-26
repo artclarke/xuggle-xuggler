@@ -26,6 +26,7 @@
 
 #include "common/common.h"
 #include "ppccommon.h"
+#include "../predict.h"
 
 #if !HIGH_BIT_DEPTH
 /***********************************************************************
@@ -1983,6 +1984,61 @@ static void ssim_4x4x2_core_altivec( const uint8_t *pix1, int stride1,
     sums[0][3] = temp[0];
     sums[1][3] = temp[1];
 }
+
+#define SATD_X( size ) \
+static void pixel_satd_x3_##size##_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1, uint8_t *pix2, int i_stride, int scores[3] )\
+{\
+    scores[0] = pixel_satd_##size##_altivec( fenc, FENC_STRIDE, pix0, i_stride );\
+    scores[1] = pixel_satd_##size##_altivec( fenc, FENC_STRIDE, pix1, i_stride );\
+    scores[2] = pixel_satd_##size##_altivec( fenc, FENC_STRIDE, pix2, i_stride );\
+}\
+static void pixel_satd_x4_##size##_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1, uint8_t *pix2, uint8_t *pix3, int i_stride, int scores[4] )\
+{\
+    scores[0] = pixel_satd_##size##_altivec( fenc, FENC_STRIDE, pix0, i_stride );\
+    scores[1] = pixel_satd_##size##_altivec( fenc, FENC_STRIDE, pix1, i_stride );\
+    scores[2] = pixel_satd_##size##_altivec( fenc, FENC_STRIDE, pix2, i_stride );\
+    scores[3] = pixel_satd_##size##_altivec( fenc, FENC_STRIDE, pix3, i_stride );\
+}
+SATD_X( 16x16 )\
+SATD_X( 16x8 )\
+SATD_X( 8x16 )\
+SATD_X( 8x8 )\
+SATD_X( 8x4 )\
+SATD_X( 4x8 )\
+SATD_X( 4x4 )
+
+
+#define INTRA_MBCMP_8x8( mbcmp )\
+void intra_##mbcmp##_x3_8x8_altivec( uint8_t *fenc, uint8_t edge[33], int res[3] )\
+{\
+    ALIGNED_8( uint8_t pix[8*FDEC_STRIDE] );\
+    x264_predict_8x8_v_c( pix, edge );\
+    res[0] = pixel_##mbcmp##_8x8_altivec( pix, FDEC_STRIDE, fenc, FENC_STRIDE );\
+    x264_predict_8x8_h_c( pix, edge );\
+    res[1] = pixel_##mbcmp##_8x8_altivec( pix, FDEC_STRIDE, fenc, FENC_STRIDE );\
+    x264_predict_8x8_dc_c( pix, edge );\
+    res[2] = pixel_##mbcmp##_8x8_altivec( pix, FDEC_STRIDE, fenc, FENC_STRIDE );\
+}
+
+INTRA_MBCMP_8x8(sad)
+INTRA_MBCMP_8x8(sa8d)
+
+#define INTRA_MBCMP( mbcmp, size, pred1, pred2, pred3, chroma )\
+void intra_##mbcmp##_x3_##size##x##size##chroma##_altivec( uint8_t *fenc, uint8_t *fdec, int res[3] )\
+{\
+    x264_predict_##size##x##size##chroma##_##pred1##_c( fdec );\
+    res[0] = pixel_##mbcmp##_##size##x##size##_altivec( fdec, FDEC_STRIDE, fenc, FENC_STRIDE );\
+    x264_predict_##size##x##size##chroma##_##pred2##_c( fdec );\
+    res[1] = pixel_##mbcmp##_##size##x##size##_altivec( fdec, FDEC_STRIDE, fenc, FENC_STRIDE );\
+    x264_predict_##size##x##size##chroma##_##pred3##_c( fdec );\
+    res[2] = pixel_##mbcmp##_##size##x##size##_altivec( fdec, FDEC_STRIDE, fenc, FENC_STRIDE );\
+}
+
+INTRA_MBCMP(satd, 4, v, h, dc, )
+INTRA_MBCMP(sad, 8, dc, h, v, c )
+INTRA_MBCMP(satd, 8, dc, h, v, c )
+INTRA_MBCMP(sad, 16, v, h, dc, )
+INTRA_MBCMP(satd, 16, v, h, dc, )
 #endif // !HIGH_BIT_DEPTH
 
 /****************************************************************************
@@ -2014,11 +2070,37 @@ void x264_pixel_altivec_init( x264_pixel_function_t *pixf )
     pixf->satd[PIXEL_4x8]   = pixel_satd_4x8_altivec;
     pixf->satd[PIXEL_4x4]   = pixel_satd_4x4_altivec;
 
+    pixf->satd_x3[PIXEL_16x16] = pixel_satd_x3_16x16_altivec;
+    pixf->satd_x3[PIXEL_8x16]  = pixel_satd_x3_8x16_altivec;
+    pixf->satd_x3[PIXEL_16x8]  = pixel_satd_x3_16x8_altivec;
+    pixf->satd_x3[PIXEL_8x8]   = pixel_satd_x3_8x8_altivec;
+    pixf->satd_x3[PIXEL_8x4]   = pixel_satd_x3_8x4_altivec;
+    pixf->satd_x3[PIXEL_4x8]   = pixel_satd_x3_4x8_altivec;
+    pixf->satd_x3[PIXEL_4x4]   = pixel_satd_x3_4x4_altivec;
+
+    pixf->satd_x4[PIXEL_16x16] = pixel_satd_x4_16x16_altivec;
+    pixf->satd_x4[PIXEL_8x16]  = pixel_satd_x4_8x16_altivec;
+    pixf->satd_x4[PIXEL_16x8]  = pixel_satd_x4_16x8_altivec;
+    pixf->satd_x4[PIXEL_8x8]   = pixel_satd_x4_8x8_altivec;
+    pixf->satd_x4[PIXEL_8x4]   = pixel_satd_x4_8x4_altivec;
+    pixf->satd_x4[PIXEL_4x8]   = pixel_satd_x4_4x8_altivec;
+    pixf->satd_x4[PIXEL_4x4]   = pixel_satd_x4_4x4_altivec;
+
+    pixf->intra_sad_x3_8x8    = intra_sad_x3_8x8_altivec;
+    pixf->intra_sad_x3_8x8c   = intra_sad_x3_8x8c_altivec;
+    pixf->intra_sad_x3_16x16  = intra_sad_x3_16x16_altivec;
+
+    pixf->intra_satd_x3_4x4   = intra_satd_x3_4x4_altivec;
+    pixf->intra_satd_x3_8x8c  = intra_satd_x3_8x8c_altivec;
+    pixf->intra_satd_x3_16x16 = intra_satd_x3_16x16_altivec;
+
     pixf->ssd[PIXEL_16x16] = pixel_ssd_16x16_altivec;
     pixf->ssd[PIXEL_8x8]   = pixel_ssd_8x8_altivec;
 
     pixf->sa8d[PIXEL_16x16] = pixel_sa8d_16x16_altivec;
     pixf->sa8d[PIXEL_8x8]   = pixel_sa8d_8x8_altivec;
+
+    pixf->intra_sa8d_x3_8x8   = intra_sa8d_x3_8x8_altivec;
 
     pixf->var[PIXEL_16x16] = x264_pixel_var_16x16_altivec;
     pixf->var[PIXEL_8x8]   = x264_pixel_var_8x8_altivec;
