@@ -62,7 +62,9 @@ typedef struct
     int dst_csp;
     struct SwsContext *ctx;
     int ctx_flags;
-    int swap_chroma;    /* state of swapping chroma planes */
+    /* state of swapping chroma planes pre and post resize */
+    int pre_swap_chroma;
+    int post_swap_chroma;
     frame_prop_t dst;   /* desired output properties */
     frame_prop_t scale; /* properties of the SwsContext input */
 } resizer_hnd_t;
@@ -394,8 +396,11 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
         h->ctx_flags |= SWS_FULL_CHR_H_INT | SWS_FULL_CHR_H_INP | SWS_ACCURATE_RND;
     h->dst.pix_fmt = convert_csp_to_pix_fmt( h->dst_csp );
     h->scale = h->dst;
-    /* swap chroma planes for yv12 to have it become i420 */
-    h->swap_chroma = (info->csp & X264_CSP_MASK) == X264_CSP_YV12;
+
+    /* swap chroma planes if YV12 is involved, as libswscale works with I420 */
+    h->pre_swap_chroma = (info->csp & X264_CSP_MASK) == X264_CSP_YV12;
+    h->post_swap_chroma = (h->dst_csp & X264_CSP_MASK) == X264_CSP_YV12;
+
     int src_pix_fmt = convert_csp_to_pix_fmt( info->csp );
 
     int src_pix_fmt_inv = convert_csp_to_pix_fmt( info->csp ^ X264_CSP_HIGH_DEPTH );
@@ -466,6 +471,8 @@ static int get_frame( hnd_t handle, cli_pic_t *output, int frame )
         return -1;
     if( check_resizer( h, output ) )
         return -1;
+    if( h->pre_swap_chroma )
+        XCHG( uint8_t*, output->img.plane[1], output->img.plane[2] );
     if( h->ctx )
     {
         sws_scale( h->ctx, (const uint8_t* const*)output->img.plane, output->img.stride,
@@ -474,7 +481,7 @@ static int get_frame( hnd_t handle, cli_pic_t *output, int frame )
     }
     else
         output->img.csp = h->dst_csp;
-    if( h->swap_chroma )
+    if( h->post_swap_chroma )
         XCHG( uint8_t*, output->img.plane[1], output->img.plane[2] );
 
     return 0;
