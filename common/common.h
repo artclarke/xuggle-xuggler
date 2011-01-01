@@ -519,6 +519,7 @@ struct x264_t
     /* references lists */
     int             i_ref[2];
     x264_frame_t    *fref[2][X264_REF_MAX+3];
+    x264_frame_t    *fref_nearest[2];
     int             b_ref_reorder[2];
 
     /* hrd */

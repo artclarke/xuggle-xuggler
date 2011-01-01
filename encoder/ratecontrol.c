@@ -2050,16 +2050,16 @@ static float rate_estimate_qscale( x264_t *h )
         /* B-frames don't have independent ratecontrol, but rather get the
          * average QP of the two adjacent P-frames + an offset */
 
-        int i0 = IS_X264_TYPE_I(h->fref[0][0]->i_type);
-        int i1 = IS_X264_TYPE_I(h->fref[1][0]->i_type);
-        int dt0 = abs(h->fenc->i_poc - h->fref[0][0]->i_poc);
-        int dt1 = abs(h->fenc->i_poc - h->fref[1][0]->i_poc);
-        float q0 = h->fref[0][0]->f_qp_avg_rc;
-        float q1 = h->fref[1][0]->f_qp_avg_rc;
+        int i0 = IS_X264_TYPE_I(h->fref_nearest[0]->i_type);
+        int i1 = IS_X264_TYPE_I(h->fref_nearest[1]->i_type);
+        int dt0 = abs(h->fenc->i_poc - h->fref_nearest[0]->i_poc);
+        int dt1 = abs(h->fenc->i_poc - h->fref_nearest[1]->i_poc);
+        float q0 = h->fref_nearest[0]->f_qp_avg_rc;
+        float q1 = h->fref_nearest[1]->f_qp_avg_rc;
 
-        if( h->fref[0][0]->i_type == X264_TYPE_BREF )
+        if( h->fref_nearest[0]->i_type == X264_TYPE_BREF )
             q0 -= rcc->pb_offset/2;
-        if( h->fref[1][0]->i_type == X264_TYPE_BREF )
+        if( h->fref_nearest[1]->i_type == X264_TYPE_BREF )
             q1 -= rcc->pb_offset/2;
 
         if( i0 && i1 )

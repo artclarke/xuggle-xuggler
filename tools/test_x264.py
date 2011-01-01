@@ -35,6 +35,7 @@ OPTIONS = [
     ("", "--intra-refresh"),
     ("", "--no-cabac"),
     ("", "--interlaced"),
+    ("", "--frame-packing 5"),
     [ "--preset %s" % p for p in ("ultrafast",
                                   "superfast",
                                   "veryfast",

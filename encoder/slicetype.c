@@ -1606,8 +1606,8 @@ int x264_rc_analyse_slice( x264_t *h )
         p1 = b = h->fenc->i_bframes + 1;
     else //B
     {
-        p1 = (h->fref[1][0]->i_poc - h->fref[0][0]->i_poc)/2;
-        b  = (h->fenc->i_poc - h->fref[0][0]->i_poc)/2;
+        p1 = (h->fref_nearest[1]->i_poc - h->fref_nearest[0]->i_poc)/2;
+        b  = (h->fenc->i_poc - h->fref_nearest[0]->i_poc)/2;
     }
     /* We don't need to assign p0/p1 since we are not performing any real analysis here. */
     x264_frame_t **frames = &h->fenc - b;

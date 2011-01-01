@@ -147,7 +147,6 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
     sh->b_ref_pic_list_reordering[1] = h->b_ref_reorder[1];
 
     /* If the ref list isn't in the default order, construct reordering header */
-    /* List1 reordering isn't needed yet */
     for( int list = 0; list < 2; list++ )
     {
         if( sh->b_ref_pic_list_reordering[list] )
@@ -1423,13 +1422,17 @@ static inline void x264_reference_check_reorder( x264_t *h )
             h->b_ref_reorder[0] = 1;
             return;
         }
-    for( int i = 0; i < h->i_ref[0] - 1; i++ )
-        /* P and B-frames use different default orders. */
-        if( h->sh.i_type == SLICE_TYPE_P ? h->fref[0][i]->i_frame_num < h->fref[0][i+1]->i_frame_num
-                                         : h->fref[0][i]->i_poc < h->fref[0][i+1]->i_poc )
+    for( int list = 0; list <= (h->sh.i_type == SLICE_TYPE_B); list++ )
+        for( int i = 0; i < h->i_ref[list] - 1; i++ )
         {
-            h->b_ref_reorder[0] = 1;
-            return;
+            int framenum_diff = h->fref[list][i+1]->i_frame_num - h->fref[list][i]->i_frame_num;
+            int poc_diff = h->fref[list][i+1]->i_poc - h->fref[list][i]->i_poc;
+            /* P and B-frames use different default orders. */
+            if( h->sh.i_type == SLICE_TYPE_P ? framenum_diff > 0 : list == 1 ? poc_diff < 0 : poc_diff > 0 )
+            {
+                h->b_ref_reorder[list] = 1;
+                return;
+            }
         }
 }
 
@@ -1555,6 +1558,15 @@ static void x264_weighted_pred_init( x264_t *h )
     h->sh.weight[0][2].i_denom = h->sh.weight[0][1].i_denom;
 }
 
+static inline int x264_reference_distance( x264_t *h, x264_frame_t *frame )
+{
+    if( h->param.i_frame_packing == 5 )
+        return abs((h->fenc->i_frame&~1) - (frame->i_frame&~1)) +
+                  ((h->fenc->i_frame&1) != (frame->i_frame&1));
+    else
+        return abs(h->fenc->i_frame - frame->i_frame);
+}
+
 static inline void x264_reference_build_list( x264_t *h, int i_poc )
 {
     int b_ok;
@@ -1575,20 +1587,27 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
             h->fref[1][h->i_ref[1]++] = h->frames.reference[i];
     }
 
-    /* Order ref0 from higher to lower poc */
-    do
+    /* Order reference lists by distance from the current frame. */
+    for( int list = 0; list < 2; list++ )
     {
-        b_ok = 1;
-        for( int i = 0; i < h->i_ref[0] - 1; i++ )
+        h->fref_nearest[list] = h->fref[list][0];
+        do
         {
-            if( h->fref[0][i]->i_poc < h->fref[0][i+1]->i_poc )
+            b_ok = 1;
+            for( int i = 0; i < h->i_ref[list] - 1; i++ )
             {
-                XCHG( x264_frame_t*, h->fref[0][i], h->fref[0][i+1] );
-                b_ok = 0;
-                break;
+                if( list ? h->fref[list][i+1]->i_poc < h->fref_nearest[list]->i_poc
+                         : h->fref[list][i+1]->i_poc > h->fref_nearest[list]->i_poc )
+                    h->fref_nearest[list] = h->fref[list][i+1];
+                if( x264_reference_distance( h, h->fref[list][i] ) > x264_reference_distance( h, h->fref[list][i+1] ) )
+                {
+                    XCHG( x264_frame_t*, h->fref[list][i], h->fref[list][i+1] );
+                    b_ok = 0;
+                    break;
+                }
             }
-        }
-    } while( !b_ok );
+        } while( !b_ok );
+    }
 
     if( h->sh.i_mmco_remove_from_end )
         for( int i = h->i_ref[0]-1; i >= h->i_ref[0] - h->sh.i_mmco_remove_from_end; i-- )
@@ -1597,21 +1616,6 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
             h->sh.mmco[h->sh.i_mmco_command_count].i_poc = h->fref[0][i]->i_poc;
             h->sh.mmco[h->sh.i_mmco_command_count++].i_difference_of_pic_nums = diff;
         }
-
-    /* Order ref1 from lower to higher poc (bubble sort) for B-frame */
-    do
-    {
-        b_ok = 1;
-        for( int i = 0; i < h->i_ref[1] - 1; i++ )
-        {
-            if( h->fref[1][i]->i_poc > h->fref[1][i+1]->i_poc )
-            {
-                XCHG( x264_frame_t*, h->fref[1][i], h->fref[1][i+1] );
-                b_ok = 0;
-                break;
-            }
-        }
-    } while( !b_ok );
 
     x264_reference_check_reorder( h );
 
@@ -2888,14 +2892,10 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
         for( int i_list = 0; i_list < 2; i_list++ )
             for( int i = 0; i < X264_REF_MAX*2; i++ )
                 h->stat.i_mb_count_ref[h->sh.i_type][i_list][i] += h->stat.frame.i_mb_count_ref[i_list][i];
-    if( h->sh.i_type == SLICE_TYPE_P )
+    if( h->sh.i_type == SLICE_TYPE_P && h->param.analyse.i_weighted_pred >= X264_WEIGHTP_SIMPLE )
     {
-        h->stat.i_consecutive_bframes[h->fdec->i_frame - h->fref[0][0]->i_frame - 1]++;
-        if( h->param.analyse.i_weighted_pred >= X264_WEIGHTP_SIMPLE )
-        {
-            h->stat.i_wpred[0] += !!h->sh.weight[0][0].weightfn;
-            h->stat.i_wpred[1] += !!h->sh.weight[0][1].weightfn || !!h->sh.weight[0][2].weightfn;
-        }
+        h->stat.i_wpred[0] += !!h->sh.weight[0][0].weightfn;
+        h->stat.i_wpred[1] += !!h->sh.weight[0][1].weightfn || !!h->sh.weight[0][2].weightfn;
     }
     if( h->sh.i_type == SLICE_TYPE_B )
     {
@@ -2910,6 +2910,8 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
                 h->stat.i_direct_score[i] += h->stat.frame.i_direct_score[i];
         }
     }
+    else
+        h->stat.i_consecutive_bframes[h->fenc->i_bframes]++;
 
     psz_message[0] = '\0';
     double dur = h->fenc->f_duration;
@@ -3072,11 +3074,11 @@ void    x264_encoder_close  ( x264_t *h )
             }
         }
     }
-    if( h->param.i_bframe && h->stat.i_frame_count[SLICE_TYPE_P] )
+    if( h->param.i_bframe && h->stat.i_frame_count[SLICE_TYPE_B] )
     {
         char *p = buf;
         int den = 0;
-        // weight by number of frames (including the P-frame) that are in a sequence of N B-frames
+        // weight by number of frames (including the I/P-frames) that are in a sequence of N B-frames
         for( int i = 0; i <= h->param.i_bframe; i++ )
             den += (i+1) * h->stat.i_consecutive_bframes[i];
         for( int i = 0; i <= h->param.i_bframe; i++ )
