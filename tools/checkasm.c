@@ -633,6 +633,7 @@ static int check_dct( int cpu_ref, int cpu_new )
         qf.quant_8x8( dct8[i], h->quant8_mf[CQM_8IY][20], h->quant8_bias[CQM_8IY][20] );
         qf.dequant_8x8( dct8[i], h->dequant8_mf[CQM_8IY], 20 );
     }
+    x264_cqm_delete( h );
 
 #define TEST_IDCT( name, src ) \
     if( dct_asm.name != dct_ref.name ) \
@@ -1384,7 +1385,6 @@ static int check_quant( int cpu_ref, int cpu_new )
     h->pps = h->pps_array;
     x264_param_default( &h->param );
     h->chroma_qp_table = i_chroma_qp_table + 12;
-    h->param.rc.i_qp_min = 26 + QP_BD_OFFSET;
     h->param.analyse.b_transform_8x8 = 1;
 
     for( int i_cqm = 0; i_cqm < 4; i_cqm++ )
@@ -1415,6 +1415,8 @@ static int check_quant( int cpu_ref, int cpu_new )
             h->param.i_cqm_preset = h->pps->i_cqm_preset = X264_CQM_CUSTOM;
         }
 
+        h->param.rc.i_qp_min = 0;
+        h->param.rc.i_qp_max = QP_MAX;
         x264_cqm_init( h );
         x264_quant_init( h, 0, &qf_c );
         x264_quant_init( h, cpu_ref, &qf_ref );
@@ -1445,7 +1447,7 @@ static int check_quant( int cpu_ref, int cpu_new )
         { \
             set_func_name( #name ); \
             used_asms[0] = 1; \
-            for( int qp = QP_MAX; qp > 0; qp-- ) \
+            for( int qp = h->param.rc.i_qp_max; qp >= h->param.rc.i_qp_min; qp-- ) \
             { \
                 for( int j = 0; j < 2; j++ ) \
                 { \
@@ -1471,7 +1473,7 @@ static int check_quant( int cpu_ref, int cpu_new )
         { \
             set_func_name( #qname ); \
             used_asms[0] = 1; \
-            for( int qp = QP_MAX; qp > 0; qp-- ) \
+            for( int qp = h->param.rc.i_qp_max; qp >= h->param.rc.i_qp_min; qp-- ) \
             { \
                 for( int j = 0; j < 2; j++ ) \
                 { \
@@ -1502,7 +1504,7 @@ static int check_quant( int cpu_ref, int cpu_new )
         { \
             set_func_name( "%s_%s", #dqname, i_cqm?"cqm":"flat" ); \
             used_asms[1] = 1; \
-            for( int qp = QP_MAX; qp > 0; qp-- ) \
+            for( int qp = h->param.rc.i_qp_max; qp >= h->param.rc.i_qp_min; qp-- ) \
             { \
                 INIT_QUANT##w(1) \
                 call_c1( qf_c.qname, dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
@@ -1530,7 +1532,7 @@ static int check_quant( int cpu_ref, int cpu_new )
         { \
             set_func_name( "%s_%s", #dqname, i_cqm?"cqm":"flat" ); \
             used_asms[1] = 1; \
-            for( int qp = QP_MAX; qp > 0; qp-- ) \
+            for( int qp = h->param.rc.i_qp_max; qp >= h->param.rc.i_qp_min; qp-- ) \
             { \
                 for( int i = 0; i < 16; i++ ) \
                     dct1[i] = rand()%(PIXEL_MAX*16*2+1) - PIXEL_MAX*16; \
