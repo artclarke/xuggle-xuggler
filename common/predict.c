@@ -119,7 +119,7 @@ void x264_predict_16x16_v_c( pixel *src )
         src += FDEC_STRIDE;
     }
 }
-static void x264_predict_16x16_p_c( pixel *src )
+void x264_predict_16x16_p_c( pixel *src )
 {
     int H = 0, V = 0;
 
@@ -269,7 +269,7 @@ void x264_predict_8x8c_v_c( pixel *src )
         src += FDEC_STRIDE;
     }
 }
-static void x264_predict_8x8c_p_c( pixel *src )
+void x264_predict_8x8c_p_c( pixel *src )
 {
     int H = 0, V = 0;
 

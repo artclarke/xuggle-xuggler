@@ -1694,6 +1694,7 @@ static int check_intra( int cpu_ref, int cpu_new )
     int ret = 0, ok = 1, used_asm = 0;
     ALIGNED_16( pixel edge[33] );
     ALIGNED_16( pixel edge2[33] );
+    ALIGNED_16( pixel fdec[FDEC_STRIDE*20] );
     struct
     {
         x264_predict_t      predict_16x16[4+3];
@@ -1718,18 +1719,20 @@ static int check_intra( int cpu_ref, int cpu_new )
     x264_predict_8x8_init( cpu_new, ip_a.predict_8x8, &ip_a.predict_8x8_filter );
     x264_predict_4x4_init( cpu_new, ip_a.predict_4x4 );
 
-    ip_c.predict_8x8_filter( pbuf1+48, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
+    memcpy( fdec, pbuf1, 32*20 * sizeof(pixel) );\
 
-#define INTRA_TEST( name, dir, w, ... )\
+    ip_c.predict_8x8_filter( fdec+48, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
+
+#define INTRA_TEST( name, dir, w, bench, ... )\
     if( ip_a.name[dir] != ip_ref.name[dir] )\
     {\
         set_func_name( "intra_%s_%s", #name, intra_##name##_names[dir] );\
         used_asm = 1;\
-        memcpy( pbuf3, pbuf1, 32*20 * sizeof(pixel) );\
-        memcpy( pbuf4, pbuf1, 32*20 * sizeof(pixel) );\
-        call_c( ip_c.name[dir], pbuf3+48, ##__VA_ARGS__ );\
-        call_a( ip_a.name[dir], pbuf4+48, ##__VA_ARGS__ );\
-        if( memcmp( pbuf3, pbuf4, 32*20 * sizeof(pixel) ) )\
+        memcpy( pbuf3, fdec, FDEC_STRIDE*20 * sizeof(pixel) );\
+        memcpy( pbuf4, fdec, FDEC_STRIDE*20 * sizeof(pixel) );\
+        call_c##bench( ip_c.name[dir], pbuf3+48, ##__VA_ARGS__ );\
+        call_a##bench( ip_a.name[dir], pbuf4+48, ##__VA_ARGS__ );\
+        if( memcmp( pbuf3, pbuf4, FDEC_STRIDE*20 * sizeof(pixel) ) )\
         {\
             fprintf( stderr, #name "[%d] :  [FAILED]\n", dir );\
             ok = 0;\
@@ -1740,7 +1743,7 @@ static int check_intra( int cpu_ref, int cpu_new )
             {\
                 printf( "%2x ", edge[14-j] );\
                 for( int k = 0; k < w; k++ )\
-                    printf( "%2x ", pbuf4[48+k+j*32] );\
+                    printf( "%2x ", pbuf4[48+k+j*FDEC_STRIDE] );\
                 printf( "\n" );\
             }\
             printf( "\n" );\
@@ -1748,20 +1751,20 @@ static int check_intra( int cpu_ref, int cpu_new )
             {\
                 printf( "   " );\
                 for( int k = 0; k < w; k++ )\
-                    printf( "%2x ", pbuf3[48+k+j*32] );\
+                    printf( "%2x ", pbuf3[48+k+j*FDEC_STRIDE] );\
                 printf( "\n" );\
             }\
         }\
     }
 
     for( int i = 0; i < 12; i++ )
-        INTRA_TEST( predict_4x4, i, 4 );
+        INTRA_TEST(   predict_4x4, i,  4, );
     for( int i = 0; i < 7; i++ )
-        INTRA_TEST( predict_8x8c, i, 8 );
+        INTRA_TEST(  predict_8x8c, i,  8, );
     for( int i = 0; i < 7; i++ )
-        INTRA_TEST( predict_16x16, i, 16 );
+        INTRA_TEST( predict_16x16, i, 16, );
     for( int i = 0; i < 12; i++ )
-        INTRA_TEST( predict_8x8, i, 8, edge );
+        INTRA_TEST(   predict_8x8, i,  8, , edge );
 
     set_func_name("intra_predict_8x8_filter");
     if( ip_a.predict_8x8_filter != ip_ref.predict_8x8_filter )
@@ -1780,6 +1783,32 @@ static int check_intra( int cpu_ref, int cpu_new )
         }
     }
 
+#define EXTREMAL_PLANE(size) \
+    { \
+        int max[7]; \
+        for( int j = 0; j < 7; j++ ) \
+            max[j] = test ? rand()&PIXEL_MAX : PIXEL_MAX; \
+        fdec[48-1-FDEC_STRIDE] = (i&1)*max[0]; \
+        for( int j = 0; j < size/2; j++ ) \
+            fdec[48+j-FDEC_STRIDE] = (!!(i&2))*max[1]; \
+        for( int j = size/2; j < size-1; j++ ) \
+            fdec[48+j-FDEC_STRIDE] = (!!(i&4))*max[2]; \
+        fdec[48+(size-1)-FDEC_STRIDE] = (!!(i&8))*max[3]; \
+        for( int j = 0; j < size/2; j++ ) \
+            fdec[48+j*FDEC_STRIDE-1] = (!!(i&16))*max[4]; \
+        for( int j = size/2; j < size-1; j++ ) \
+            fdec[48+j*FDEC_STRIDE-1] = (!!(i&32))*max[5]; \
+        fdec[48+(size-1)*FDEC_STRIDE-1] = (!!(i&64))*max[6]; \
+    }
+    /* Extremal test case for planar prediction. */
+    for( int test = 0; test < 100 && ok; test++ )
+        for( int i = 0; i < 128 && ok; i++ )
+        {
+            EXTREMAL_PLANE(  8 );
+            INTRA_TEST(  predict_8x8c, I_PRED_CHROMA_P,  8, 1 );
+            EXTREMAL_PLANE( 16 );
+            INTRA_TEST( predict_16x16,  I_PRED_16x16_P, 16, 1 );
+        }
     report( "intra pred :" );
     return ret;
 }
