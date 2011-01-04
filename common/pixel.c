@@ -793,6 +793,8 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         pixf->intra_sa8d_x3_8x8 = x264_intra_sa8d_x3_8x8_sse2;
 #endif
         pixf->ssd_nv12_core = x264_pixel_ssd_nv12_core_sse2;
+        pixf->ssim_4x4x2_core  = x264_pixel_ssim_4x4x2_core_sse2;
+        pixf->ssim_end4        = x264_pixel_ssim_end4_sse2;
         pixf->var[PIXEL_16x16] = x264_pixel_var_16x16_sse2;
         pixf->var[PIXEL_8x8] = x264_pixel_var_8x8_sse2;
         pixf->var2_8x8 = x264_pixel_var2_8x8_sse2;

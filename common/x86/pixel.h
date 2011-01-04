@@ -117,8 +117,8 @@ void x264_pixel_ssd_nv12_core_sse2( pixel *pixuv1, int stride1,
                                     int height, uint64_t *ssd_u, uint64_t *ssd_v );
 void x264_pixel_ssim_4x4x2_core_mmxext( const uint8_t *pix1, int stride1,
                                         const uint8_t *pix2, int stride2, int sums[2][4] );
-void x264_pixel_ssim_4x4x2_core_sse2( const uint8_t *pix1, int stride1,
-                                      const uint8_t *pix2, int stride2, int sums[2][4] );
+void x264_pixel_ssim_4x4x2_core_sse2( const pixel *pix1, int stride1,
+                                      const pixel *pix2, int stride2, int sums[2][4] );
 float x264_pixel_ssim_end4_sse2( int sum0[5][4], int sum1[5][4], int width );
 int  x264_pixel_var2_8x8_mmxext( pixel *, int, pixel *, int, int * );
 int  x264_pixel_var2_8x8_sse2( pixel *, int, pixel *, int, int * );

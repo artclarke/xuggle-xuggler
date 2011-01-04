@@ -34,8 +34,18 @@
 SECTION_RODATA 32
 mask_ff:   times 16 db 0xff
            times 16 db 0
-ssim_c1:   times 4 dd 416    ; .01*.01*255*255*64
-ssim_c2:   times 4 dd 235963 ; .03*.03*255*255*64*63
+%if BIT_DEPTH == 10
+ssim_c1:   times 4 dd 6697.7856    ; .01*.01*1023*1023*64
+ssim_c2:   times 4 dd 3797644.4352 ; .03*.03*1023*1023*64*63
+pf_64:     times 4 dd 64.0
+pf_128:    times 4 dd 128.0
+%elif BIT_DEPTH == 9
+ssim_c1:   times 4 dd 1671         ; .01*.01*511*511*64
+ssim_c2:   times 4 dd 947556       ; .03*.03*511*511*64*63
+%else ; 8-bit
+ssim_c1:   times 4 dd 416          ; .01*.01*255*255*64
+ssim_c2:   times 4 dd 235963       ; .03*.03*255*255*64*63
+%endif
 mask_ac4:  dw 0, -1, -1, -1, 0, -1, -1, -1
 mask_ac4b: dw 0, -1, 0, -1, -1, -1, -1, -1
 mask_ac8:  dw 0, -1, -1, -1, -1, -1, -1, -1
@@ -2461,10 +2471,15 @@ HADAMARD_AC_SSE2 sse4
 ;-----------------------------------------------------------------------------
 
 %macro SSIM_ITER 1
+%ifdef HIGH_BIT_DEPTH
+    movdqu    m5, [r0+(%1&1)*r1]
+    movdqu    m6, [r2+(%1&1)*r3]
+%else
     movq      m5, [r0+(%1&1)*r1]
     movq      m6, [r2+(%1&1)*r3]
     punpcklbw m5, m0
     punpcklbw m6, m0
+%endif
 %if %1==1
     lea       r0, [r0+r1*2]
     lea       r2, [r2+r3*2]
@@ -2491,6 +2506,7 @@ HADAMARD_AC_SSE2 sse4
 %endmacro
 
 cglobal pixel_ssim_4x4x2_core_sse2, 4,4,8
+    FIX_STRIDES r1, r3
     pxor      m0, m0
     SSIM_ITER 0
     SSIM_ITER 1
@@ -2548,6 +2564,26 @@ cglobal pixel_ssim_end4_sse2, 3,3,7
     TRANSPOSE4x4D  0, 1, 2, 3, 4
 
 ;   s1=m0, s2=m1, ss=m2, s12=m3
+%if BIT_DEPTH == 10
+    cvtdq2ps  m0, m0
+    cvtdq2ps  m1, m1
+    cvtdq2ps  m2, m2
+    cvtdq2ps  m3, m3
+    mulps     m2, [pf_64] ; ss*64
+    mulps     m3, [pf_128] ; s12*128
+    movdqa    m4, m1
+    mulps     m4, m0      ; s1*s2
+    mulps     m1, m1      ; s2*s2
+    mulps     m0, m0      ; s1*s1
+    addps     m4, m4      ; s1*s2*2
+    addps     m0, m1      ; s1*s1 + s2*s2
+    subps     m2, m0      ; vars
+    subps     m3, m4      ; covar*2
+    addps     m4, m5      ; s1*s2*2 + ssim_c1
+    addps     m0, m5      ; s1*s1 + s2*s2 + ssim_c1
+    addps     m2, m6      ; vars + ssim_c2
+    addps     m3, m6      ; covar*2 + ssim_c2
+%else
     movdqa    m4, m1
     pslld     m1, 16
     pmaddwd   m4, m0  ; s1*s2
@@ -2566,6 +2602,7 @@ cglobal pixel_ssim_end4_sse2, 3,3,7
     cvtdq2ps  m4, m4  ; (float)(s1*s2*2 + ssim_c1)
     cvtdq2ps  m3, m3  ; (float)(covar*2 + ssim_c2)
     cvtdq2ps  m2, m2  ; (float)(vars + ssim_c2)
+%endif
     mulps     m4, m3
     mulps     m0, m2
     divps     m4, m0  ; ssim
