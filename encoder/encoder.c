@@ -1862,7 +1862,7 @@ static int x264_slice_write( x264_t *h )
     int i_skip;
     int mb_xy, i_mb_x, i_mb_y;
     int i_skip_bak = 0; /* Shut up GCC. */
-    bs_t bs_bak;
+    bs_t UNINIT(bs_bak);
     x264_cabac_t cabac_bak;
     uint8_t cabac_prevbyte_bak = 0; /* Shut up GCC. */
     int mv_bits_bak = 0;

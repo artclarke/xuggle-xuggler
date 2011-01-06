@@ -2028,7 +2028,7 @@ static float rate_estimate_qscale( x264_t *h )
 {
     float q;
     x264_ratecontrol_t *rcc = h->rc;
-    ratecontrol_entry_t rce;
+    ratecontrol_entry_t UNINIT(rce);
     int pict_type = h->sh.i_type;
     int64_t total_bits = 8*(h->stat.i_frame_size[SLICE_TYPE_I]
                           + h->stat.i_frame_size[SLICE_TYPE_P]
