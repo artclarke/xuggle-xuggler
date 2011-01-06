@@ -520,7 +520,7 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
             }
 
             x264_me_search( h, &m[l], mvc, i_mvc );
-            m[l].cost -= 2 * a->i_lambda; // remove mvcost from skip mbs
+            m[l].cost -= a->p_cost_mv[0]; // remove mvcost from skip mbs
             if( M32( m[l].mv ) )
                 m[l].cost += 5 * a->i_lambda;
 
@@ -1215,6 +1215,8 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
     for( framecnt = 0; framecnt < i_max_search && h->lookahead->next.list[framecnt]->i_type == X264_TYPE_AUTO; framecnt++ )
         frames[framecnt+1] = h->lookahead->next.list[framecnt];
 
+    x264_lowres_context_init( h, &a );
+
     if( !framecnt )
     {
         if( h->param.rc.b_mb_tree )
@@ -1224,8 +1226,6 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
 
     keyint_limit = h->param.i_keyint_max - frames[0]->i_frame + h->lookahead->i_last_keyframe - 1;
     orig_num_frames = num_frames = h->param.b_intra_refresh ? framecnt : X264_MIN( framecnt, keyint_limit );
-
-    x264_lowres_context_init( h, &a );
 
     /* This is important psy-wise: if we have a non-scenecut keyframe,
      * there will be significant visual artifacts if the frames just before
