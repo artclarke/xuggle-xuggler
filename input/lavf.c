@@ -39,6 +39,12 @@ typedef struct
     cli_pic_t *first_pic;
 } lavf_hnd_t;
 
+#define x264_free_packet( pkt )\
+{\
+    av_free_packet( pkt );\
+    av_init_packet( pkt );\
+}
+
 static int read_frame_internal( cli_pic_t *p_pic, lavf_hnd_t *h, int i_frame, video_info_t *info )
 {
     if( h->first_pic && !info )
@@ -81,6 +87,9 @@ static int read_frame_internal( cli_pic_t *p_pic, lavf_hnd_t *h, int i_frame, vi
                 if( avcodec_decode_video2( c, &frame, &finished, pkt ) < 0 )
                     x264_cli_log( "lavf", X264_LOG_WARNING, "video decoding failed on frame %d\n", h->next_frame );
             }
+            /* if the packet successfully decoded but the data from it is not desired, free it */
+            else if( ret >= 0 )
+                x264_free_packet( pkt );
         } while( !finished && ret >= 0 );
 
         if( !finished )
@@ -203,8 +212,7 @@ static int read_frame( cli_pic_t *pic, hnd_t handle, int i_frame )
 
 static int release_frame( cli_pic_t *pic, hnd_t handle )
 {
-    av_free_packet( pic->opaque );
-    av_init_packet( pic->opaque );
+    x264_free_packet( pic->opaque );
     return 0;
 }
 
