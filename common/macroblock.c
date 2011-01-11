@@ -574,11 +574,11 @@ static void inline x264_macroblock_cache_load_neighbours( x264_t *h, int mb_x, i
     h->mb.i_neighbour_intra = 0;
     h->mb.i_neighbour_frame = 0;
     h->mb.i_mb_top_xy = -1;
-    h->mb.i_mb_left_xy = -1;
+    h->mb.i_mb_left_xy[0] = h->mb.i_mb_left_xy[1] = -1;
     h->mb.i_mb_topleft_xy = -1;
     h->mb.i_mb_topright_xy = -1;
     h->mb.i_mb_type_top = -1;
-    h->mb.i_mb_type_left = -1;
+    h->mb.i_mb_type_left[0] = h->mb.i_mb_type_left[1] = -1;
     h->mb.i_mb_type_topleft = -1;
     h->mb.i_mb_type_topright = -1;
     h->mb.left_index_table = &left_indices[3];
@@ -586,13 +586,13 @@ static void inline x264_macroblock_cache_load_neighbours( x264_t *h, int mb_x, i
     if( mb_x > 0 )
     {
         h->mb.i_neighbour_frame |= MB_LEFT;
-        h->mb.i_mb_left_xy = h->mb.i_mb_xy - 1;
-        h->mb.i_mb_type_left = h->mb.type[h->mb.i_mb_left_xy];
+        h->mb.i_mb_left_xy[0] = h->mb.i_mb_xy - 1;
+        h->mb.i_mb_type_left[0] = h->mb.type[h->mb.i_mb_left_xy[0]];
         if( h->mb.i_mb_xy > h->sh.i_first_mb )
         {
             h->mb.i_neighbour |= MB_LEFT;
 
-            if( !h->param.b_constrained_intra || IS_INTRA( h->mb.i_mb_type_left ) )
+            if( !h->param.b_constrained_intra || IS_INTRA( h->mb.i_mb_type_left[0] ) )
                 h->mb.i_neighbour_intra |= MB_LEFT;
         }
     }
@@ -658,7 +658,7 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
 {
     x264_macroblock_cache_load_neighbours( h, mb_x, mb_y );
 
-    int left = h->mb.i_mb_left_xy;
+    int left = h->mb.i_mb_left_xy[0];
     int top  = h->mb.i_mb_top_xy;
     int top_y = mb_y - (1 << h->mb.b_interlaced);
     int s8x8 = h->mb.i_b8_stride;
@@ -926,8 +926,8 @@ void x264_macroblock_cache_load_neighbours_deblock( x264_t *h, int mb_x, int mb_
 
     if( mb_x > 0 )
     {
-        h->mb.i_mb_left_xy = h->mb.i_mb_xy - 1;
-        if( deblock_on_slice_edges || h->mb.slice_table[h->mb.i_mb_left_xy] == h->mb.slice_table[h->mb.i_mb_xy] )
+        h->mb.i_mb_left_xy[0] = h->mb.i_mb_xy - 1;
+        if( deblock_on_slice_edges || h->mb.slice_table[h->mb.i_mb_left_xy[0]] == h->mb.slice_table[h->mb.i_mb_xy] )
             h->mb.i_neighbour |= MB_LEFT;
     }
 
@@ -970,7 +970,7 @@ void x264_macroblock_cache_load_deblock( x264_t *h )
 
             if( h->mb.i_neighbour & MB_LEFT )
             {
-                int left = h->mb.i_mb_left_xy;
+                int left = h->mb.i_mb_left_xy[0];
                 h->mb.cache.non_zero_count[x264_scan8[0 ] - 1] = nnz[left][left_index_table->nnz[0]];
                 h->mb.cache.non_zero_count[x264_scan8[2 ] - 1] = nnz[left][left_index_table->nnz[1]];
                 h->mb.cache.non_zero_count[x264_scan8[8 ] - 1] = nnz[left][left_index_table->nnz[2]];
@@ -1045,7 +1045,7 @@ void x264_macroblock_cache_load_deblock( x264_t *h )
     {
         uint8_t (*nnz)[24] = h->mb.non_zero_count;
         int top = h->mb.i_mb_top_xy;
-        int left = h->mb.i_mb_left_xy;
+        int left = h->mb.i_mb_left_xy[0];
 
         if( (h->mb.i_neighbour & MB_TOP) && h->mb.mb_transform_size[top] )
         {

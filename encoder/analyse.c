@@ -536,7 +536,7 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int qp )
         {
             /* Always run in fast-intra mode for subme < 3 */
             if( h->mb.i_subpel_refine > 2 &&
-              ( IS_INTRA( h->mb.i_mb_type_left ) ||
+              ( IS_INTRA( h->mb.i_mb_type_left[0] ) ||
                 IS_INTRA( h->mb.i_mb_type_top ) ||
                 IS_INTRA( h->mb.i_mb_type_topleft ) ||
                 IS_INTRA( h->mb.i_mb_type_topright ) ||
@@ -1316,7 +1316,7 @@ static void x264_mb_analyse_inter_p8x8_mixed_ref( x264_t *h, x264_mb_analysis_t 
     /* early termination: if 16x16 chose ref 0, then evalute no refs older
      * than those used by the neighbors */
     if( i_maxref > 0 && (a->l0.me16x16.i_ref == 0 || a->l0.me16x16.i_ref == h->mb.ref_blind_dupe) &&
-        h->mb.i_mb_type_top > 0 && h->mb.i_mb_type_left > 0 )
+        h->mb.i_mb_type_top > 0 && h->mb.i_mb_type_left[0] > 0 )
     {
         i_maxref = 0;
         CHECK_NEIGHBOUR(  -8 - 1 );
@@ -2083,7 +2083,7 @@ static void x264_mb_analyse_inter_b8x8_mixed_ref( x264_t *h, x264_mb_analysis_t 
     {
         x264_mb_analysis_list_t *lX = l ? &a->l1 : &a->l0;
         if( i_maxref[l] > 0 && lX->me16x16.i_ref == 0 &&
-            h->mb.i_mb_type_top > 0 && h->mb.i_mb_type_left > 0 )
+            h->mb.i_mb_type_top > 0 && h->mb.i_mb_type_left[0] > 0 )
         {
             i_maxref[l] = 0;
             CHECK_NEIGHBOUR(  -8 - 1 );
@@ -2837,7 +2837,7 @@ intra_analysis:
                     {}
                 else if( h->param.analyse.i_subpel_refine >= 3 )
                     analysis.b_try_skip = 1;
-                else if( h->mb.i_mb_type_left == P_SKIP ||
+                else if( h->mb.i_mb_type_left[0] == P_SKIP ||
                          h->mb.i_mb_type_top == P_SKIP ||
                          h->mb.i_mb_type_topleft == P_SKIP ||
                          h->mb.i_mb_type_topright == P_SKIP )

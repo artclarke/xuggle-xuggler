@@ -603,11 +603,11 @@ struct x264_t
         unsigned int i_neighbour_intra;     /* for constrained intra pred */
         unsigned int i_neighbour_frame;     /* ignoring slice boundaries */
         int     i_mb_type_top;
-        int     i_mb_type_left;
+        int     i_mb_type_left[2];
         int     i_mb_type_topleft;
         int     i_mb_type_topright;
         int     i_mb_prev_xy;
-        int     i_mb_left_xy;
+        int     i_mb_left_xy[2];
         int     i_mb_top_xy;
         int     i_mb_topleft_xy;
         int     i_mb_topright_xy;

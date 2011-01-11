@@ -347,10 +347,10 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
 
         if( h->mb.i_neighbour & MB_LEFT )
         {
-            int qpl = h->mb.qp[h->mb.i_mb_left_xy];
+            int qpl = h->mb.qp[h->mb.i_mb_left_xy[0]];
             int qp_left = (qp + qpl + 1) >> 1;
             int qpc_left = (h->chroma_qp_table[qp] + h->chroma_qp_table[qpl] + 1) >> 1;
-            int intra_left = IS_INTRA( h->mb.type[h->mb.i_mb_left_xy] );
+            int intra_left = IS_INTRA( h->mb.type[h->mb.i_mb_left_xy[0]] );
             if( intra_cur || intra_left )
                 FILTER( _intra, 0, 0, qp_left, qpc_left );
             else

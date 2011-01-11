@@ -426,7 +426,7 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
     }
 
     /* spatial predictors */
-    SET_MVP( mvr[h->mb.i_mb_left_xy] );
+    SET_MVP( mvr[h->mb.i_mb_left_xy[0]] );
     SET_MVP( mvr[h->mb.i_mb_top_xy] );
     SET_MVP( mvr[h->mb.i_mb_topleft_xy] );
     SET_MVP( mvr[h->mb.i_mb_topright_xy] );
