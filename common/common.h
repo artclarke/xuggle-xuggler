@@ -574,6 +574,7 @@ struct x264_t
         int     i_psy_trellis; /* Psy trellis strength--fixed point value*/
 
         int     b_interlaced;
+        int     b_adaptive_mbaff; /* MBAFF+subme 0 requires non-adaptive MBAFF i.e. all field mbs */
 
         /* Allowed qpel MV range to stay within the picture + emulated edge pixels */
         int     mv_min[2];
