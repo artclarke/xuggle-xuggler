@@ -28,12 +28,14 @@
 #define X264_RATECONTROL_H
 
 /* Completely arbitrary.  Ratecontrol lowers relative quality at higher framerates
- * and the reverse at lower framerates; this serves as the center of the curve. */
-#define BASE_FRAME_DURATION (0.04f)
+ * and the reverse at lower framerates; this serves as the center of the curve.
+ * Halve all the values for frame-packed 3D to compensate for the "doubled"
+ * framerate. */
+#define BASE_FRAME_DURATION (0.04f / ((h->param.i_frame_packing == 5)+1))
 
 /* Arbitrary limitations as a sanity check. */
-#define MAX_FRAME_DURATION 1.00f
-#define MIN_FRAME_DURATION 0.01f
+#define MAX_FRAME_DURATION (1.00f / ((h->param.i_frame_packing == 5)+1))
+#define MIN_FRAME_DURATION (0.01f / ((h->param.i_frame_packing == 5)+1))
 
 #define CLIP_DURATION(f) x264_clip3f(f,MIN_FRAME_DURATION,MAX_FRAME_DURATION)
 
