@@ -550,6 +550,17 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x
         }
 }
 
+x264_left_table_t left_indices[4] =
+{
+    /* Current is progressive */
+    {{ 4, 4, 5, 5}, { 3,  3,  7,  7}, {16+1, 16+1, 16+4+1, 16+4+1}, {0, 0, 1, 1}, {0, 0, 0, 0}},
+    {{ 6, 6, 3, 3}, {11, 11, 15, 15}, {16+3, 16+3, 16+4+3, 16+4+3}, {2, 2, 3, 3}, {1, 1, 1, 1}},
+    /* Current is interlaced */
+    {{ 4, 6, 4, 6}, { 3, 11,  3, 11}, {16+1, 16+1, 16+4+1, 16+4+1}, {0, 2, 0, 2}, {0, 1, 0, 1}},
+    /* Both same */
+    {{ 4, 5, 6, 3}, { 3,  7, 11, 15}, {16+1, 16+3, 16+4+1, 16+4+3}, {0, 1, 2, 3}, {0, 0, 1, 1}}
+};
+
 static void inline x264_macroblock_cache_load_neighbours( x264_t *h, int mb_x, int mb_y )
 {
     int top = (mb_y - (1 << h->mb.b_interlaced)) * h->mb.i_mb_stride + mb_x;
@@ -570,6 +581,7 @@ static void inline x264_macroblock_cache_load_neighbours( x264_t *h, int mb_x, i
     h->mb.i_mb_type_left = -1;
     h->mb.i_mb_type_topleft = -1;
     h->mb.i_mb_type_topright = -1;
+    h->mb.left_index_table = &left_indices[3];
 
     if( mb_x > 0 )
     {
@@ -661,6 +673,8 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
     uint8_t (*nnz)[24] = h->mb.non_zero_count;
     int16_t *cbp = h->mb.cbp;
 
+    x264_left_table_t *left_index_table = h->mb.left_index_table;
+
     /* load cache */
     if( h->mb.i_neighbour & MB_TOP )
     {
@@ -703,22 +717,22 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
         h->mb.cache.i_cbp_left = cbp[left];
 
         /* load intra4x4 */
-        h->mb.cache.intra4x4_pred_mode[x264_scan8[0 ] - 1] = i4x4[left][4];
-        h->mb.cache.intra4x4_pred_mode[x264_scan8[2 ] - 1] = i4x4[left][5];
-        h->mb.cache.intra4x4_pred_mode[x264_scan8[8 ] - 1] = i4x4[left][6];
-        h->mb.cache.intra4x4_pred_mode[x264_scan8[10] - 1] = i4x4[left][3];
+        h->mb.cache.intra4x4_pred_mode[x264_scan8[0 ] - 1] = i4x4[left][left_index_table->intra[0]];
+        h->mb.cache.intra4x4_pred_mode[x264_scan8[2 ] - 1] = i4x4[left][left_index_table->intra[1]];
+        h->mb.cache.intra4x4_pred_mode[x264_scan8[8 ] - 1] = i4x4[left][left_index_table->intra[2]];
+        h->mb.cache.intra4x4_pred_mode[x264_scan8[10] - 1] = i4x4[left][left_index_table->intra[3]];
 
         /* load non_zero_count */
-        h->mb.cache.non_zero_count[x264_scan8[0 ] - 1] = nnz[left][3];
-        h->mb.cache.non_zero_count[x264_scan8[2 ] - 1] = nnz[left][7];
-        h->mb.cache.non_zero_count[x264_scan8[8 ] - 1] = nnz[left][11];
-        h->mb.cache.non_zero_count[x264_scan8[10] - 1] = nnz[left][15];
+        h->mb.cache.non_zero_count[x264_scan8[0 ] - 1] = nnz[left][left_index_table->nnz[0]];
+        h->mb.cache.non_zero_count[x264_scan8[2 ] - 1] = nnz[left][left_index_table->nnz[1]];
+        h->mb.cache.non_zero_count[x264_scan8[8 ] - 1] = nnz[left][left_index_table->nnz[2]];
+        h->mb.cache.non_zero_count[x264_scan8[10] - 1] = nnz[left][left_index_table->nnz[3]];
 
-        h->mb.cache.non_zero_count[x264_scan8[16+0] - 1] = nnz[left][16+1];
-        h->mb.cache.non_zero_count[x264_scan8[16+2] - 1] = nnz[left][16+3];
+        h->mb.cache.non_zero_count[x264_scan8[16+0] - 1] = nnz[left][left_index_table->nnz_chroma[0]];
+        h->mb.cache.non_zero_count[x264_scan8[16+2] - 1] = nnz[left][left_index_table->nnz_chroma[1]];
 
-        h->mb.cache.non_zero_count[x264_scan8[16+4+0] - 1] = nnz[left][16+4+1];
-        h->mb.cache.non_zero_count[x264_scan8[16+4+2] - 1] = nnz[left][16+4+3];
+        h->mb.cache.non_zero_count[x264_scan8[16+4+0] - 1] = nnz[left][left_index_table->nnz_chroma[2]];
+        h->mb.cache.non_zero_count[x264_scan8[16+4+2] - 1] = nnz[left][left_index_table->nnz_chroma[3]];
     }
     else
     {
@@ -857,10 +871,10 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
 
             if( h->mb.i_neighbour & MB_LEFT )
             {
-                CP16( h->mb.cache.mvd[l][x264_scan8[0 ] - 1], mvd[left][4] );
-                CP16( h->mb.cache.mvd[l][x264_scan8[2 ] - 1], mvd[left][5] );
-                CP16( h->mb.cache.mvd[l][x264_scan8[8 ] - 1], mvd[left][6] );
-                CP16( h->mb.cache.mvd[l][x264_scan8[10] - 1], mvd[left][3] );
+                CP16( h->mb.cache.mvd[l][x264_scan8[0 ] - 1], mvd[left][left_index_table->intra[0]] );
+                CP16( h->mb.cache.mvd[l][x264_scan8[2 ] - 1], mvd[left][left_index_table->intra[1]] );
+                CP16( h->mb.cache.mvd[l][x264_scan8[8 ] - 1], mvd[left][left_index_table->intra[2]] );
+                CP16( h->mb.cache.mvd[l][x264_scan8[10] - 1], mvd[left][left_index_table->intra[3]] );
             }
             else
                 for( int i = 0; i < 4; i++ )
@@ -949,6 +963,7 @@ void x264_macroblock_cache_load_deblock( x264_t *h )
             int s4x4 = h->mb.i_b4_stride;
 
             uint8_t (*nnz)[24] = h->mb.non_zero_count;
+            x264_left_table_t *left_index_table = h->mb.left_index_table;
 
             if( h->mb.i_neighbour & MB_TOP )
                 CP32( &h->mb.cache.non_zero_count[x264_scan8[0] - 8], &nnz[h->mb.i_mb_top_xy][12] );
@@ -956,10 +971,10 @@ void x264_macroblock_cache_load_deblock( x264_t *h )
             if( h->mb.i_neighbour & MB_LEFT )
             {
                 int left = h->mb.i_mb_left_xy;
-                h->mb.cache.non_zero_count[x264_scan8[0 ] - 1] = nnz[left][3];
-                h->mb.cache.non_zero_count[x264_scan8[2 ] - 1] = nnz[left][7];
-                h->mb.cache.non_zero_count[x264_scan8[8 ] - 1] = nnz[left][11];
-                h->mb.cache.non_zero_count[x264_scan8[10] - 1] = nnz[left][15];
+                h->mb.cache.non_zero_count[x264_scan8[0 ] - 1] = nnz[left][left_index_table->nnz[0]];
+                h->mb.cache.non_zero_count[x264_scan8[2 ] - 1] = nnz[left][left_index_table->nnz[1]];
+                h->mb.cache.non_zero_count[x264_scan8[8 ] - 1] = nnz[left][left_index_table->nnz[2]];
+                h->mb.cache.non_zero_count[x264_scan8[10] - 1] = nnz[left][left_index_table->nnz[3]];
             }
 
             for( int l = 0; l <= (h->sh.i_type == SLICE_TYPE_B); l++ )

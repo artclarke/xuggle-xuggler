@@ -394,6 +394,15 @@ typedef struct x264_lookahead_t
 
 typedef struct x264_ratecontrol_t   x264_ratecontrol_t;
 
+typedef struct x264_left_table_t
+{
+    uint8_t intra[4];
+    uint8_t nnz[4];
+    uint8_t nnz_chroma[4];
+    uint8_t mv[4];
+    uint8_t ref[4];
+} x264_left_table_t;
+
 struct x264_t
 {
     /* encoder parameters */
@@ -602,6 +611,7 @@ struct x264_t
         int     i_mb_top_xy;
         int     i_mb_topleft_xy;
         int     i_mb_topright_xy;
+        x264_left_table_t *left_index_table;
 
         /**** thread synchronization ends here ****/
         /* subsequent variables are either thread-local or constant,
