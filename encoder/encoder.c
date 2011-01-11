@@ -2029,6 +2029,14 @@ static int x264_slice_write( x264_t *h )
         if( i_mb_x == 0 && !h->mb.b_reencode_mb )
             x264_fdec_filter_row( h, i_mb_y, 1 );
 
+        if( h->param.b_interlaced )
+        {
+            if( !(i_mb_y&1) )
+                h->mb.b_interlaced = 1;
+            x264_zigzag_init( h->param.cpu, &h->zigzagf, h->mb.b_interlaced );
+            h->mb.field[mb_xy] = h->mb.b_interlaced;
+        }
+
         /* load cache */
         x264_macroblock_cache_load( h, i_mb_x, i_mb_y );
 

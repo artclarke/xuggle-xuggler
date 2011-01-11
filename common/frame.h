@@ -92,6 +92,7 @@ typedef struct x264_frame
     int16_t (*mv[2])[2];
     int16_t (*mv16x16)[2];
     int16_t (*lowres_mvs[2][X264_BFRAME_MAX+1])[2];
+    uint8_t *field;
 
     /* Stored as (lists_used << LOWRES_COST_SHIFT) + (cost).
      * Doesn't need special addressing for intra cost because

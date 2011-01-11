@@ -371,6 +371,7 @@ void x264_macroblock_slice_init( x264_t *h )
     h->mb.ref[1] = h->fdec->ref[1];
     h->mb.type = h->fdec->mb_type;
     h->mb.partition = h->fdec->mb_partition;
+    h->mb.field = h->fdec->field;
 
     h->fdec->i_ref[0] = h->i_ref[0];
     h->fdec->i_ref[1] = h->i_ref[1];

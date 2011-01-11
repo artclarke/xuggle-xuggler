@@ -623,6 +623,7 @@ struct x264_t
         int8_t  *mb_transform_size;         /* transform_size_8x8_flag of each mb */
         uint16_t *slice_table;              /* sh->first_mb of the slice that the indexed mb is part of
                                              * NOTE: this will fail on resolutions above 2^16 MBs... */
+        uint8_t *field;
 
          /* buffer for weighted versions of the reference frames */
         pixel *p_weight_buf[X264_REF_MAX];

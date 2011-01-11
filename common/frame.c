@@ -145,6 +145,8 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
                             frame->i_stride[0] * (frame->i_lines[0] + 2*i_padv) * sizeof(uint16_t) << h->frames.b_have_sub8x8_esa );
             frame->integral = (uint16_t*)frame->buffer[3] + frame->i_stride[0] * i_padv + PADH;
         }
+        if( h->param.b_interlaced )
+            CHECKED_MALLOC( frame->field, i_mb_count * sizeof(uint8_t) );
     }
     else /* fenc frame */
     {
@@ -219,6 +221,7 @@ void x264_frame_delete( x264_frame_t *frame )
         x264_free( frame->i_inv_qscale_factor );
         x264_free( frame->i_row_bits );
         x264_free( frame->f_row_qp );
+        x264_free( frame->field );
         x264_free( frame->mb_type );
         x264_free( frame->mb_partition );
         x264_free( frame->mv[0] );
