@@ -165,6 +165,7 @@ static void print_bench(void)
             if( k < j )
                 continue;
             printf( "%s_%s%s: %"PRId64"\n", benchs[i].name,
+                    b->cpu&X264_CPU_AVX ? "avx" :
                     b->cpu&X264_CPU_SSE4 ? "sse4" :
                     b->cpu&X264_CPU_SHUFFLE_IS_FAST ? "fastshuffle" :
                     b->cpu&X264_CPU_SSSE3 ? "ssse3" :
@@ -2020,6 +2021,8 @@ static int check_all_flags( void )
         cpu1 &= ~X264_CPU_CACHELINE_64;
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_SSE4, "SSE4" );
     }
+    if( x264_cpu_detect() & X264_CPU_AVX )
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_AVX, "AVX" );
 #elif ARCH_PPC
     if( x264_cpu_detect() & X264_CPU_ALTIVEC )
     {
