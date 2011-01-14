@@ -1772,6 +1772,13 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
         }
     }
 
+    if( h->sh.b_mbaff )
+        for( int i = 0; i < 2; i++ )
+        {
+            XCHG( pixel *, h->intra_border_backup[0][i], h->intra_border_backup[3][i] );
+            XCHG( pixel *, h->intra_border_backup[1][i], h->intra_border_backup[4][i] );
+        }
+
     if( h->i_thread_frames > 1 && h->fdec->b_kept_as_ref )
         x264_frame_cond_broadcast( h->fdec, mb_y*16 + (b_end ? 10000 : -(X264_THREAD_HEIGHT << h->sh.b_mbaff)) );
 

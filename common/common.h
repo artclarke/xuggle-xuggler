@@ -564,6 +564,8 @@ struct x264_t
         int     i_mb_stride;
         int     i_b8_stride;
         int     i_b4_stride;
+        int     left_b8[2];
+        int     left_b4[2];
 
         /* Current index */
         int     i_mb_x;
@@ -611,7 +613,11 @@ struct x264_t
         int     i_mb_top_xy;
         int     i_mb_topleft_xy;
         int     i_mb_topright_xy;
+        int     i_mb_top_y;
+        int     i_mb_topleft_y;
+        int     i_mb_topright_y;
         x264_left_table_t *left_index_table;
+        int     topleft_partition;
 
         /**** thread synchronization ends here ****/
         /* subsequent variables are either thread-local or constant,
@@ -843,7 +849,7 @@ struct x264_t
 
     /* Buffers that are allocated per-thread even in sliced threads. */
     void *scratch_buffer; /* for any temporary storage that doesn't want repeated malloc */
-    pixel *intra_border_backup[2][2]; /* bottom pixels of the previous mb row, used for intra prediction after the framebuffer has been deblocked */
+    pixel *intra_border_backup[5][2]; /* bottom pixels of the previous mb row, used for intra prediction after the framebuffer has been deblocked */
     uint8_t (*deblock_strength[2])[2][4][4];
 
     /* CPU functions dependents */
