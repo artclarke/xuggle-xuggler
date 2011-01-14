@@ -1,7 +1,7 @@
 /*****************************************************************************
  * pixel.c: pixel metrics
  *****************************************************************************
- * Copyright (C) 2004-2010 x264 project
+ * Copyright (C) 2004-2011 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Jason Garrett-Glaser <darkshikari@gmail.com>

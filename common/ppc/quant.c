@@ -1,7 +1,7 @@
 /*****************************************************************************
  * quant.c: ppc quantization
  *****************************************************************************
- * Copyright (C) 2007-2010 x264 project
+ * Copyright (C) 2007-2011 x264 project
  *
  * Authors: Guillaume Poirier <gpoirier@mplayerhq.hu>
  *

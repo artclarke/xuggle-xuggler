@@ -1,7 +1,7 @@
 /*****************************************************************************
  * util.h: x86 inline asm
  *****************************************************************************
- * Copyright (C) 2008-2010 x264 Project
+ * Copyright (C) 2008-2011 x264 project
  *
  * Authors: Jason Garrett-Glaser <darkshikari@gmail.com>
  *          Loren Merritt <lorenm@u.washington.edu>

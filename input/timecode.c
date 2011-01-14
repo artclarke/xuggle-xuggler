@@ -1,7 +1,7 @@
 /*****************************************************************************
  * timecode.c: timecode file input
  *****************************************************************************
- * Copyright (C) 2010 x264 project
+ * Copyright (C) 2010-2011 x264 project
  *
  * Authors: Yusuke Nakamura <muken.the.vfrmaniac@gmail.com>
  *

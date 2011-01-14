@@ -1,7 +1,7 @@
 /*****************************************************************************
  * slicetype.c: lookahead analysis
  *****************************************************************************
- * Copyright (C) 2005-2010 x264 project
+ * Copyright (C) 2005-2011 x264 project
  *
  * Authors: Jason Garrett-Glaser <darkshikari@gmail.com>
  *          Loren Merritt <lorenm@u.washington.edu>

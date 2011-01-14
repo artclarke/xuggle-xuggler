@@ -1,7 +1,7 @@
 /*****************************************************************************
  * osdep.h: platform-specific code
  *****************************************************************************
- * Copyright (C) 2007-2010 x264 project
+ * Copyright (C) 2007-2011 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>

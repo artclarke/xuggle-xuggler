@@ -1,7 +1,7 @@
 /*****************************************************************************
  * internal.h: video filter utilities
  *****************************************************************************
- * Copyright (C) 2010 x264 project
+ * Copyright (C) 2010-2011 x264 project
  *
  * Authors: Steven Walters <kemuri9@gmail.com>
  *
