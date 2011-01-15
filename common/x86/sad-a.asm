@@ -258,7 +258,7 @@ SAD_W16 sse2_aligned
 %if %1
     paddw   m0, m1
 %else
-    SWAP    m0, m1
+    SWAP     0, 1
 %endif
     paddw   m0, m2
 %endmacro
@@ -319,18 +319,18 @@ cglobal intra_sad_x3_4x4_mmxext, 3,3
     movd   [r2+4], mm1 ;H prediction cost
     RET
 
-cglobal intra_sad_x3_4x4_sse4, 3,3
+%macro INTRA_SADx3_4x4 1
+cglobal intra_sad_x3_4x4_%1, 3,3
     movd       xmm4, [r1+FDEC_STRIDE*0-4]
     pinsrd     xmm4, [r1+FDEC_STRIDE*1-4], 1
     pinsrd     xmm4, [r1+FDEC_STRIDE*2-4], 2
     pinsrd     xmm4, [r1+FDEC_STRIDE*3-4], 3
     movd       xmm2, [r1-FDEC_STRIDE]
     pxor       xmm3, xmm3
-    movdqa     xmm5, xmm4
-    pshufb     xmm4, [h4x4_pred_shuf2] ; EFGH
-    pshufb     xmm5, [h4x4_pred_shuf]  ; EEEEFFFFGGGGHHHH
-    pshufd     xmm0, xmm2, 0           ; ABCDABCDABCDABCD
-    punpckldq  xmm2, xmm4              ; ABCDEFGH
+    pshufb     xmm5, xmm4, [h4x4_pred_shuf] ; EEEEFFFFGGGGHHHH
+    pshufb     xmm4, [h4x4_pred_shuf2]      ; EFGH
+    pshufd     xmm0, xmm2, 0                ; ABCDABCDABCDABCD
+    punpckldq  xmm2, xmm4                   ; ABCDEFGH
     psadbw     xmm2, xmm3
     movd       xmm1, [r0+FENC_STRIDE*0]
     pinsrd     xmm1, [r0+FENC_STRIDE*1], 1
@@ -341,9 +341,8 @@ cglobal intra_sad_x3_4x4_sse4, 3,3
     psraw      xmm2, 2
     pavgw      xmm2, xmm3
     pshufb     xmm2, xmm3              ; DC prediction
-    movdqa     xmm3, xmm0
+    punpckhqdq xmm3, xmm0, xmm5
     punpcklqdq xmm0, xmm5
-    punpckhqdq xmm3, xmm5
     psadbw     xmm2, xmm1
     paddw      xmm0, xmm3
     movhlps    xmm4, xmm2
@@ -352,6 +351,12 @@ cglobal intra_sad_x3_4x4_sse4, 3,3
     movq       [r2], xmm0              ; V/H prediction costs
     movd     [r2+8], xmm2              ; DC prediction cost
     RET
+%endmacro ; INTRA_SADx3_4x4
+
+INIT_XMM
+INTRA_SADx3_4x4 sse4
+INIT_AVX
+INTRA_SADx3_4x4 avx
 
 ;-----------------------------------------------------------------------------
 ; void intra_sad_x3_8x8( uint8_t *fenc, uint8_t edge[33], int res[3]);
@@ -373,21 +378,21 @@ cglobal intra_sad_x3_4x4_sse4, 3,3
 %if %1
     paddw     m1, m4
 %else
-    SWAP      m1, m4
+    SWAP       1, 4
 %endif
     movq      m4, m5
     psadbw    m4, m6
 %if %1
     paddw     m2, m4
 %else
-    SWAP      m2, m4
+    SWAP       2, 4
 %endif
     pshufw    m4, m7, %2
     psadbw    m5, m4
 %if %1
     paddw     m3, m5
 %else
-    SWAP      m3, m5
+    SWAP       3, 5
 %endif
 %endmacro
 
@@ -420,8 +425,8 @@ cglobal intra_sad_x3_8x8_mmxext, 3,3
     movd  [r2+8], m1
     RET
 
-INIT_XMM
-cglobal intra_sad_x3_8x8_ssse3, 3,4,9
+%macro INTRA_SADx3_8x8 1
+cglobal intra_sad_x3_8x8_%1, 3,4,9
 %ifdef PIC
     lea        r11, [h8x8_pred_shuf]
 %define shuf r11
@@ -446,12 +451,10 @@ cglobal intra_sad_x3_8x8_ssse3, 3,4,9
 .loop:
     movq        m6, [r0+FENC_STRIDE*0]
     movhps      m6, [r0+FENC_STRIDE*1]
-    movdqa      m7, m0
-    pshufb      m7, [shuf+r3*8] ; H prediction
+    pshufb      m7, m0, [shuf+r3*8] ; H prediction
 %ifdef ARCH_X86_64
-    movdqa      m8, m1
     psadbw      m7, m6
-    psadbw      m8, m6
+    psadbw      m8, m1, m6
     psadbw      m6, m2
     paddw       m4, m7
     paddw       m3, m8
@@ -459,8 +462,7 @@ cglobal intra_sad_x3_8x8_ssse3, 3,4,9
 %else
     psadbw      m7, m6
     paddw       m4, m7
-    movdqa      m7, m1
-    psadbw      m7, m6
+    psadbw      m7, m1, m6
     psadbw      m6, m2
     paddw       m3, m7
     paddw       m5, m6
@@ -479,6 +481,12 @@ cglobal intra_sad_x3_8x8_ssse3, 3,4,9
     movd    [r2+4], m4
     movd    [r2+8], m5
     RET
+%endmacro ; INTRA_SADx3_8x8
+
+INIT_XMM
+INTRA_SADx3_8x8 ssse3
+INIT_AVX
+INTRA_SADx3_8x8 avx
 
 ;-----------------------------------------------------------------------------
 ; void intra_sad_x3_8x8c( uint8_t *fenc, uint8_t *fdec, int res[3] );

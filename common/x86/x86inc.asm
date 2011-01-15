@@ -547,6 +547,7 @@ SECTION .note.GNU-stack noalloc noexec nowrite progbits
 %macro INIT_AVX 0
     INIT_XMM
     %assign avx_enabled 1
+    %define PALIGNR PALIGNR_SSSE3
     %define RESET_MM_PERMUTATION INIT_AVX
 %endmacro
 
@@ -870,6 +871,7 @@ AVX_INSTR punpcklwd, 0, 0
 AVX_INSTR punpckldq, 0, 0
 AVX_INSTR punpcklqdq, 0, 0
 AVX_INSTR pxor, 0, 0
+AVX_INSTR shufps, 0, 1
 AVX_INSTR subpd, 1, 0
 AVX_INSTR subps, 1, 0
 AVX_INSTR subsd, 1, 0

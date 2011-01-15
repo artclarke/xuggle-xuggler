@@ -73,12 +73,10 @@ cextern pd_ffff
 %macro LOAD_ADD_2 6
     mova       %5, %3
     mova       %1, %4
-    mova       %6, %5
-    mova       %2, %1
+    punpckhbw  %6, %5, m0
     punpcklbw  %5, m0
+    punpckhbw  %2, %1, m0
     punpcklbw  %1, m0
-    punpckhbw  %6, m0
-    punpckhbw  %2, m0
     paddw      %1, %5
     paddw      %2, %6
 %endmacro
@@ -301,7 +299,7 @@ cglobal hpel_filter_h_%1, 3,4,8*(mmsize/16)
     mova      [r0+r2-mmsize*1], m4
     jl .loop
     REP_RET
-%endmacro
+%endmacro ; HPEL_FILTER
 
 INIT_MMX
 HPEL_FILTER mmxext
@@ -310,9 +308,7 @@ HPEL_FILTER sse2
 %endif ; HIGH_BIT_DEPTH
 
 %ifndef HIGH_BIT_DEPTH
-INIT_MMX
-
-%macro HPEL_V 1-2 0
+%macro HPEL_V 3
 ;-----------------------------------------------------------------------------
 ; void hpel_filter_v( uint8_t *dst, uint8_t *src, int16_t *buf, int stride, int width );
 ;-----------------------------------------------------------------------------
@@ -326,13 +322,13 @@ cglobal hpel_filter_v_%1, 5,6,%2
     add r0, r4
     lea r2, [r2+r4*2]
     neg r4
-%ifnidn %1, ssse3
-    pxor m0, m0
-%else
+%if %3
     mova m0, [filt_mul15]
+%else
+    pxor m0, m0
 %endif
 .loop:
-%ifidn %1, ssse3
+%if %3
     mova m1, [r1]
     mova m4, [r1+r3]
     mova m2, [r5+r3*2]
@@ -356,7 +352,7 @@ cglobal hpel_filter_v_%1, 5,6,%2
     LOAD_ADD_2 m1, m4, [r1     ], [r5+r3*2], m6, m7            ; a0 / a1
     LOAD_ADD_2 m2, m5, [r1+r3  ], [r5+r3  ], m6, m7            ; b0 / b1
     LOAD_ADD   m3,     [r1+r3*2], [r5     ], m7                ; c0
-    LOAD_ADD   m6,     [r1+r3*2+mmsize/2], [r5+mmsize/2], m7 ; c1
+    LOAD_ADD   m6,     [r1+r3*2+mmsize/2], [r5+mmsize/2], m7   ; c1
     FILT_V2 m1, m2, m3, m4, m5, m6
 %endif
     mova      m7, [pw_16]
@@ -370,7 +366,6 @@ cglobal hpel_filter_v_%1, 5,6,%2
     jl .loop
     REP_RET
 %endmacro
-HPEL_V mmxext
 
 ;-----------------------------------------------------------------------------
 ; void hpel_filter_c( uint8_t *dst, int16_t *buf, int width );
@@ -485,18 +480,13 @@ cglobal hpel_filter_c_%1, 3,3,9
     mova      m1, [src]
 .loop:
     mova      m2, [src+16]
-    mova      m4, m1
-    PALIGNR   m4, m0, 12, m7
-    mova      m5, m1
-    PALIGNR   m5, m0, 14, m0
-    mova      m0, m2
-    PALIGNR   m0, m1, 6, m7
+    PALIGNR   m4, m1, m0, 12, m7
+    PALIGNR   m5, m1, m0, 14, m0
+    PALIGNR   m0, m2, m1, 6, m7
     paddw     m4, m0
-    mova      m0, m2
-    PALIGNR   m0, m1, 4, m7
+    PALIGNR   m0, m2, m1, 4, m7
     paddw     m5, m0
-    mova      m6, m2
-    PALIGNR   m6, m1, 2, m7
+    PALIGNR   m6, m2, m1, 2, m7
     paddw     m6, m1
     FILT_H    m4, m5, m6
 
@@ -505,14 +495,11 @@ cglobal hpel_filter_c_%1, 3,3,9
     PALIGNR   m2, m1, 12, m7
     PALIGNR   m5, m1, 14, m1
     mova      m1, [src+32]
-    mova      m3, m1
-    PALIGNR   m3, m0, 6, m7
+    PALIGNR   m3, m1, m0, 6, m7
     paddw     m3, m2
-    mova      m6, m1
-    PALIGNR   m6, m0, 4, m7
+    PALIGNR   m6, m1, m0, 4, m7
     paddw     m5, m6
-    mova      m6, m1
-    PALIGNR   m6, m0, 2, m7
+    PALIGNR   m6, m1, m0, 2, m7
     paddw     m6, m0
     FILT_H    m3, m5, m6
 %endif
@@ -585,19 +572,14 @@ cglobal hpel_filter_h_ssse3, 3,3
     mova      m7, [pw_16]
 .loop:
     mova      m2, [src+16]
-    mova      m3, m1
-    palignr   m3, m0, 14
-    mova      m4, m1
-    palignr   m4, m0, 15
-    mova      m0, m2
-    palignr   m0, m1, 2
+    palignr   m3, m1, m0, 14
+    palignr   m4, m1, m0, 15
+    palignr   m0, m2, m1, 2
     pmaddubsw m3, [filt_mul15]
     pmaddubsw m4, [filt_mul15]
     pmaddubsw m0, [filt_mul51]
-    mova      m5, m2
-    palignr   m5, m1, 1
-    mova      m6, m2
-    palignr   m6, m1, 3
+    palignr   m5, m2, m1, 1
+    palignr   m6, m2, m1, 3
     paddw     m3, m0
     mova      m0, m1
     pmaddubsw m1, [filt_mul20]
@@ -613,20 +595,25 @@ cglobal hpel_filter_h_ssse3, 3,3
     add r2, 16
     jl .loop
     REP_RET
-%endif
+%endif ; !ARCH_X86_64
 
 %define PALIGNR PALIGNR_MMX
+INIT_MMX
+HPEL_V mmxext, 0, 1
+INIT_XMM
+HPEL_V sse2,   8, 1
+HPEL_C sse2_misalign
 %ifndef ARCH_X86_64
 HPEL_C sse2
-%endif
-HPEL_V sse2, 8
-HPEL_C sse2_misalign
 %define PALIGNR PALIGNR_SSSE3
 HPEL_C ssse3
-HPEL_V ssse3
+HPEL_V ssse3,  0, 0
+INIT_AVX
+HPEL_C avx
+HPEL_V avx,    0, 0
+%endif
 
 %ifdef ARCH_X86_64
-
 %macro DO_FILT_V 6
     ;The optimum prefetch distance is difficult to determine in checkasm:
     ;any prefetch seems slower than not prefetching.
@@ -634,22 +621,19 @@ HPEL_V ssse3
     ;+16 is picked somewhat arbitrarily here based on the fact that even one
     ;loop iteration is going to take longer than the prefetch.
     prefetcht0 [r1+r2*2+16]
-%ifidn %6, ssse3
+%ifnidn %6, sse2
     mova m1, [r3]
     mova m2, [r3+r2]
     mova %3, [r3+r2*2]
     mova m3, [r1]
     mova %1, [r1+r2]
     mova %2, [r1+r2*2]
-    mova m4, m1
+    punpckhbw m4, m1, m2
     punpcklbw m1, m2
-    punpckhbw m4, m2
-    mova m2, %1
+    punpckhbw m2, %1, %2
     punpcklbw %1, %2
-    punpckhbw m2, %2
-    mova %2, m3
+    punpckhbw %2, m3, %3
     punpcklbw m3, %3
-    punpckhbw %2, %3
 
     pmaddubsw m1, m12
     pmaddubsw m4, m12
@@ -678,14 +662,10 @@ HPEL_V ssse3
 %endmacro
 
 %macro FILT_C 4
-    mova      m1, %2
-    PALIGNR   m1, %1, 12, m2
-    mova      m2, %2
-    PALIGNR   m2, %1, 14, %1
-    mova      m3, %3
-    PALIGNR   m3, %2, 4, %1
-    mova      m4, %3
-    PALIGNR   m4, %2, 2, %1
+    PALIGNR   m1, %2, %1, 12, m2
+    PALIGNR   m2, %2, %1, 14, %1
+    PALIGNR   m3, %3, %2, 4, %1
+    PALIGNR   m4, %3, %2, 2, %1
     paddw     m3, m2
     mova      %1, %3
     PALIGNR   %3, %2, 6, m2
@@ -702,27 +682,20 @@ HPEL_V ssse3
 %endmacro
 
 %macro ADD8TO16 5
-    mova      %3, %1
-    mova      %4, %2
+    punpckhbw %3, %1, %5
     punpcklbw %1, %5
+    punpcklbw %4, %2, %5
     punpckhbw %2, %5
-    punpckhbw %3, %5
-    punpcklbw %4, %5
     paddw     %2, %3
     paddw     %1, %4
 %endmacro
 
 %macro DO_FILT_H 4
-    mova      m1, %2
-    PALIGNR   m1, %1, 14, m3
-    mova      m2, %2
-    PALIGNR   m2, %1, 15, m3
-    mova      m4, %3
-    PALIGNR   m4, %2, 1 , m3
-    mova      m5, %3
-    PALIGNR   m5, %2, 2 , m3
-    mova      m6, %3
-    PALIGNR   m6, %2, 3 , m3
+    PALIGNR   m1, %2, %1, 14, m3
+    PALIGNR   m2, %2, %1, 15, m3
+    PALIGNR   m4, %3, %2, 1 , m3
+    PALIGNR   m5, %3, %2, 2 , m3
+    PALIGNR   m6, %3, %2, 3 , m3
     mova      %1, %2
 %ifidn %4, sse2
     ADD8TO16  m1, m6, m12, m3, m0 ; a
@@ -730,7 +703,7 @@ HPEL_V ssse3
     ADD8TO16  %2, m4, m12, m3, m0 ; c
     FILT_V2   m1, m2, %2, m6, m5, m4
     FILT_PACK m1, m6, 5, m15
-%else ; ssse3
+%else ; ssse3, avx
     pmaddubsw m1, m12
     pmaddubsw m2, m12
     pmaddubsw %2, m14
@@ -813,11 +786,14 @@ cglobal hpel_filter_%1, 7,7,16
     RET
 %endmacro
 
+INIT_XMM
 %define PALIGNR PALIGNR_MMX
 HPEL sse2
 %define PALIGNR PALIGNR_SSSE3
 HPEL ssse3
-%endif
+INIT_AVX
+HPEL avx
+%endif ; ARCH_X86_64
 
 %undef movntq
 %undef movntps
@@ -890,9 +866,8 @@ cglobal plane_copy_core_mmxext, 6,7
 %rep 16/mmsize
     mov%4     m0, [%2+(x/2)*mmsize]
     mov%4     m1, [%3+(x/2)*mmsize]
-    mova      m2, m0
+    punpckhwd m2, m0, m1
     punpcklwd m0, m1
-    punpckhwd m2, m1
     mov%5a    [%1+(x+0)*mmsize], m0
     mov%5a    [%1+(x+1)*mmsize], m2
     %assign x (x+2)
@@ -909,9 +884,8 @@ cglobal plane_copy_core_mmxext, 6,7
     mov%5a [%1], m0
 %else
     movq   m1, [%3]
-    mova   m2, m0
+    punpckhbw m2, m0, m1
     punpcklbw m0, m1
-    punpckhbw m2, m1
     mov%5a [%1+0], m0
     mov%5a [%1+8], m2
 %endif
@@ -924,12 +898,10 @@ cglobal plane_copy_core_mmxext, 6,7
 %rep 16/mmsize
     mova     m0, [%3+(n+0)*mmsize]
     mova     m1, [%3+(n+1)*mmsize]
-    mova     m2, m0
-    mova     m3, m1
+    psrld    m2, m0, 16
+    psrld    m3, m1, 16
     pand     m0, %6
     pand     m1, %6
-    psrld    m2, 16
-    psrld    m3, 16
     packssdw m0, m1
     packssdw m2, m3
     mov%7    [%1+(n/2)*mmsize], m0
@@ -1142,6 +1114,9 @@ PLANE_DEINTERLEAVE mmx
 INIT_XMM
 PLANE_INTERLEAVE sse2
 PLANE_DEINTERLEAVE sse2
+INIT_AVX
+PLANE_INTERLEAVE avx
+PLANE_DEINTERLEAVE avx
 %else
 INIT_MMX
 PLANE_INTERLEAVE mmxext
@@ -1258,7 +1233,8 @@ cglobal integral_init4h_sse4, 3,4
     jl .loop
     REP_RET
 
-cglobal integral_init8h_sse4, 3,4
+%macro INTEGRAL_INIT8H 1
+cglobal integral_init8h_%1, 3,4
     lea     r3, [r0+r2*2]
     add     r1, r2
     neg     r2
@@ -1267,12 +1243,10 @@ cglobal integral_init8h_sse4, 3,4
     movdqa  m0, [r1+r2]
     movdqa  m1, [r1+r2+16]
     palignr m1, m0, 8
-    movdqa  m2, m0
-    movdqa  m3, m1
+    mpsadbw m2, m0, m4, 4
+    mpsadbw m3, m1, m4, 4
     mpsadbw m0, m4, 0
     mpsadbw m1, m4, 0
-    mpsadbw m2, m4, 4
-    mpsadbw m3, m4, 4
     paddw   m0, [r0+r2*2]
     paddw   m1, [r0+r2*2+16]
     paddw   m0, m2
@@ -1282,6 +1256,12 @@ cglobal integral_init8h_sse4, 3,4
     add     r2, 16
     jl .loop
     REP_RET
+%endmacro
+
+INIT_XMM
+INTEGRAL_INIT8H sse4
+INIT_AVX
+INTEGRAL_INIT8H avx
 
 %macro INTEGRAL_INIT_8V 1
 ;-----------------------------------------------------------------------------
@@ -1394,12 +1374,10 @@ cglobal integral_init4v_ssse3, 3,5
     PALIGNR   %2, %4, 1, m6
     pavgb     %1, %3
     pavgb     %2, %4
-    mova      %5, %1
-    mova      %6, %2
+    psrlw     %5, %1, 8
+    psrlw     %6, %2, 8
     pand      %1, m7
     pand      %2, m7
-    psrlw     %5, 8
-    psrlw     %6, 8
 %endmacro
 
 %macro FILT16x2 4
@@ -1411,12 +1389,10 @@ cglobal integral_init4v_ssse3, 3,5
     pavgb     %1, m3
     PALIGNR   m3, m2, 1, m6
     pavgb     m3, m2
-    mova      m5, m3
-    mova      m4, %1
+    psrlw     m5, m3, 8
+    psrlw     m4, %1, 8
     pand      m3, m7
     pand      %1, m7
-    psrlw     m5, 8
-    psrlw     m4, 8
     packuswb  m3, %1
     packuswb  m5, m4
     mova    [%2], m3
@@ -1435,12 +1411,10 @@ cglobal integral_init4v_ssse3, 3,5
     pavgb     m0, [r0+%3+r5+1]
     pavgb     m1, m3
     pavgb     m0, m2
-    mova      m3, m1
-    mova      m2, m0
+    psrlw     m3, m1, 8
+    psrlw     m2, m0, 8
     pand      m1, m7
     pand      m0, m7
-    psrlw     m3, 8
-    psrlw     m2, 8
     packuswb  m0, m1
     packuswb  m2, m3
     mova    [%1], m0
@@ -1458,12 +1432,10 @@ cglobal integral_init4v_ssse3, 3,5
     pavgw     m0, [r0+%3+r5+2]
     pavgw     m1, m3
     pavgw     m0, m2
-    mova      m3, m1
-    mova      m2, m0
+    psrld     m3, m1, 16
+    psrld     m2, m0, 16
     pand      m1, m7
     pand      m0, m7
-    psrld     m3, 16
-    psrld     m2, 16
     packssdw  m0, m1
     packssdw  m2, m3
     movu    [%1], m0
@@ -1479,12 +1451,10 @@ cglobal integral_init4v_ssse3, 3,5
     pavgw     %1, m3
     PALIGNR   m3, m2, 2, m6
     pavgw     m3, m2
-    mova      m5, m3
-    mova      m4, %1
+    psrld     m5, m3, 16
+    psrld     m4, %1, 16
     pand      m3, m7
     pand      %1, m7
-    psrld     m5, 16
-    psrld     m4, 16
     packssdw  m3, %1
     packssdw  m5, m4
     mova    [%2], m3

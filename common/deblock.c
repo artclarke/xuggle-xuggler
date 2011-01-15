@@ -437,13 +437,21 @@ void x264_macroblock_deblock( x264_t *h )
 
 #if HAVE_MMX
 void x264_deblock_v_luma_sse2( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 );
+void x264_deblock_v_luma_avx ( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_h_luma_sse2( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 );
+void x264_deblock_h_luma_avx ( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_v_chroma_sse2( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 );
+void x264_deblock_v_chroma_avx ( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_h_chroma_sse2( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 );
+void x264_deblock_h_chroma_avx ( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_v_luma_intra_sse2( pixel *pix, int stride, int alpha, int beta );
+void x264_deblock_v_luma_intra_avx ( pixel *pix, int stride, int alpha, int beta );
 void x264_deblock_h_luma_intra_sse2( pixel *pix, int stride, int alpha, int beta );
+void x264_deblock_h_luma_intra_avx ( pixel *pix, int stride, int alpha, int beta );
 void x264_deblock_v_chroma_intra_sse2( pixel *pix, int stride, int alpha, int beta );
+void x264_deblock_v_chroma_intra_avx ( pixel *pix, int stride, int alpha, int beta );
 void x264_deblock_h_chroma_intra_sse2( pixel *pix, int stride, int alpha, int beta );
+void x264_deblock_h_chroma_intra_avx ( pixel *pix, int stride, int alpha, int beta );
 void x264_deblock_strength_mmxext( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
                                    int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4],
                                    int mvy_limit, int bframe );
@@ -451,6 +459,9 @@ void x264_deblock_strength_sse2  ( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X
                                    int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4],
                                    int mvy_limit, int bframe );
 void x264_deblock_strength_ssse3 ( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
+                                   int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4],
+                                   int mvy_limit, int bframe );
+void x264_deblock_strength_avx   ( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
                                    int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4],
                                    int mvy_limit, int bframe );
 #if ARCH_X86
@@ -537,6 +548,21 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
         }
         if( cpu&X264_CPU_SSSE3 )
             pf->deblock_strength = x264_deblock_strength_ssse3;
+        if( cpu&X264_CPU_AVX )
+        {
+            pf->deblock_strength = x264_deblock_strength_avx;
+            if( !(cpu&X264_CPU_STACK_MOD4) )
+            {
+                pf->deblock_luma[1] = x264_deblock_v_luma_avx;
+                pf->deblock_luma[0] = x264_deblock_h_luma_avx;
+                pf->deblock_chroma[1] = x264_deblock_v_chroma_avx;
+                pf->deblock_chroma[0] = x264_deblock_h_chroma_avx;
+                pf->deblock_luma_intra[1] = x264_deblock_v_luma_intra_avx;
+                pf->deblock_luma_intra[0] = x264_deblock_h_luma_intra_avx;
+                pf->deblock_chroma_intra[1] = x264_deblock_v_chroma_intra_avx;
+                pf->deblock_chroma_intra[0] = x264_deblock_h_chroma_intra_avx;
+            }
+        }
     }
 #endif
 

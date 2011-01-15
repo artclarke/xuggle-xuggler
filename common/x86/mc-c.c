@@ -71,6 +71,11 @@ MC_WEIGHT( 8, ssse3 )
 MC_WEIGHT( 12, ssse3 )
 MC_WEIGHT( 16, ssse3 )
 MC_WEIGHT( 20, ssse3 )
+MC_WEIGHT( 4, avx )
+MC_WEIGHT( 8, avx )
+MC_WEIGHT( 12, avx )
+MC_WEIGHT( 16, avx )
+MC_WEIGHT( 20, avx )
 #undef MC_OFFSET
 #undef MC_WEIGHT
 
@@ -92,6 +97,9 @@ void x264_plane_copy_interleave_core_mmxext( pixel *dst, int i_dst,
 void x264_plane_copy_interleave_core_sse2( pixel *dst, int i_dst,
                                            pixel *srcu, int i_srcu,
                                            pixel *srcv, int i_srcv, int w, int h );
+void x264_plane_copy_interleave_core_avx( pixel *dst, int i_dst,
+                                           pixel *srcu, int i_srcu,
+                                           pixel *srcv, int i_srcv, int w, int h );
 void x264_plane_copy_interleave_c( pixel *dst, int i_dst,
                                    pixel *srcu, int i_srcu,
                                    pixel *srcv, int i_srcv, int w, int h );
@@ -104,20 +112,27 @@ void x264_plane_copy_deinterleave_sse2( pixel *dstu, int i_dstu,
 void x264_plane_copy_deinterleave_ssse3( uint8_t *dstu, int i_dstu,
                                          uint8_t *dstv, int i_dstv,
                                          uint8_t *src, int i_src, int w, int h );
+void x264_plane_copy_deinterleave_avx( uint16_t *dstu, int i_dstu,
+                                         uint16_t *dstv, int i_dstv,
+                                         uint16_t *src, int i_src, int w, int h );
 void x264_store_interleave_8x8x2_mmxext( pixel *dst, int i_dst, pixel *srcu, pixel *srcv );
 void x264_store_interleave_8x8x2_sse2( pixel *dst, int i_dst, pixel *srcu, pixel *srcv );
+void x264_store_interleave_8x8x2_avx( pixel *dst, int i_dst, pixel *srcu, pixel *srcv );
 void x264_load_deinterleave_8x8x2_fenc_mmx( pixel *dst, pixel *src, int i_src );
 void x264_load_deinterleave_8x8x2_fenc_sse2( pixel *dst, pixel *src, int i_src );
 void x264_load_deinterleave_8x8x2_fenc_ssse3( uint8_t *dst, uint8_t *src, int i_src );
+void x264_load_deinterleave_8x8x2_fenc_avx( uint16_t *dst, uint16_t *src, int i_src );
 void x264_load_deinterleave_8x8x2_fdec_mmx( pixel *dst, pixel *src, int i_src );
 void x264_load_deinterleave_8x8x2_fdec_sse2( pixel *dst, pixel *src, int i_src );
 void x264_load_deinterleave_8x8x2_fdec_ssse3( uint8_t *dst, uint8_t *src, int i_src );
+void x264_load_deinterleave_8x8x2_fdec_avx( uint16_t *dst, uint16_t *src, int i_src );
 void *x264_memcpy_aligned_mmx( void * dst, const void * src, size_t n );
 void *x264_memcpy_aligned_sse2( void * dst, const void * src, size_t n );
 void x264_memzero_aligned_mmx( void * dst, int n );
 void x264_memzero_aligned_sse2( void * dst, int n );
 void x264_integral_init4h_sse4( uint16_t *sum, uint8_t *pix, int stride );
 void x264_integral_init8h_sse4( uint16_t *sum, uint8_t *pix, int stride );
+void x264_integral_init8h_avx ( uint16_t *sum, uint8_t *pix, int stride );
 void x264_integral_init4v_mmx( uint16_t *sum8, uint16_t *sum4, int stride );
 void x264_integral_init4v_sse2( uint16_t *sum8, uint16_t *sum4, int stride );
 void x264_integral_init8v_mmx( uint16_t *sum8, int stride );
@@ -135,6 +150,8 @@ MC_CHROMA(sse2)
 MC_CHROMA(sse2_misalign)
 MC_CHROMA(ssse3)
 MC_CHROMA(ssse3_cache64)
+MC_CHROMA(avx)
+MC_CHROMA(avx_cache64)
 
 #define LOWRES(cpu)\
 void x264_frame_init_lowres_core_##cpu( pixel *src0, pixel *dst0, pixel *dsth, pixel *dstv, pixel *dstc,\
@@ -415,15 +432,17 @@ static void x264_hpel_filter_##cpu( pixel *dsth, pixel *dstv, pixel *dstc, pixel
 
 HPEL(8, mmxext, mmxext, mmxext, mmxext)
 #if HIGH_BIT_DEPTH
-HPEL(16, sse2, sse2, sse2, sse2 )
+HPEL(16, sse2, sse2, sse2, sse2)
 #else // !HIGH_BIT_DEPTH
 HPEL(16, sse2_amd, mmxext, mmxext, sse2)
 #if ARCH_X86_64
 void x264_hpel_filter_sse2( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height, int16_t *buf );
 void x264_hpel_filter_ssse3( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height, int16_t *buf );
+void x264_hpel_filter_avx( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height, int16_t *buf );
 #else
 HPEL(16, sse2, sse2, sse2, sse2)
 HPEL(16, ssse3, ssse3, ssse3, ssse3)
+HPEL(16, avx, avx, avx, ssse3)
 #endif
 HPEL(16, sse2_misalign, sse2, sse2_misalign, sse2)
 #endif // HIGH_BIT_DEPTH
@@ -465,6 +484,9 @@ static void x264_plane_copy_interleave_##cpu( pixel *dst, int i_dst,\
 
 PLANE_INTERLEAVE(mmxext)
 PLANE_INTERLEAVE(sse2)
+#if HIGH_BIT_DEPTH
+PLANE_INTERLEAVE(avx)
+#endif
 
 void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 {
@@ -570,6 +592,18 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 
     if( (cpu&X264_CPU_SHUFFLE_IS_FAST) && !(cpu&X264_CPU_SLOW_ATOM) )
         pf->integral_init4v = x264_integral_init4v_ssse3;
+
+    if( !(cpu&X264_CPU_AVX) )
+        return;
+
+    pf->load_deinterleave_8x8x2_fenc = x264_load_deinterleave_8x8x2_fenc_avx;
+    pf->load_deinterleave_8x8x2_fdec = x264_load_deinterleave_8x8x2_fdec_avx;
+    pf->plane_copy_interleave        = x264_plane_copy_interleave_avx;
+    pf->plane_copy_deinterleave      = x264_plane_copy_deinterleave_avx;
+    pf->store_interleave_8x8x2       = x264_store_interleave_8x8x2_avx;
+
+    if( !(cpu&X264_CPU_STACK_MOD4) )
+        pf->mc_chroma = x264_mc_chroma_avx;
 #else // !HIGH_BIT_DEPTH
     pf->prefetch_fenc = x264_prefetch_fenc_mmxext;
     pf->prefetch_ref  = x264_prefetch_ref_mmxext;
@@ -685,5 +719,13 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 
     pf->integral_init4h = x264_integral_init4h_sse4;
     pf->integral_init8h = x264_integral_init8h_sse4;
+
+    if( !(cpu&X264_CPU_AVX) )
+        return;
+
+    pf->integral_init8h = x264_integral_init8h_avx;
+    pf->hpel_filter = x264_hpel_filter_avx;
+    if( !(cpu&X264_CPU_STACK_MOD4) )
+        pf->mc_chroma = x264_mc_chroma_avx;
 #endif // HIGH_BIT_DEPTH
 }

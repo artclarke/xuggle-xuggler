@@ -134,18 +134,16 @@ cextern pw_pixel_max
 ; output: %1 = (t[n-1] + t[n]*2 + t[n+1] + 2) >> 2
 %macro PRED8x8_LOWPASS 5-6
 %ifidn %1, w
-    mova        %2, %5
     paddw       %3, %4
     psrlw       %3, 1
-    pavgw       %2, %3
+    pavgw       %2, %5, %3
 %else
     mova        %6, %3
     pavgb       %3, %4
     pxor        %4, %6
-    mova        %2, %5
     pand        %4, [pb_1]
     psubusb     %3, %4
-    pavgb       %2, %3
+    pavgb       %2, %5, %3
 %endif
 %endmacro
 
@@ -170,14 +168,13 @@ cextern pw_pixel_max
 %macro PREDICT_4x4_DDL 4
 cglobal predict_4x4_ddl_%1, 1,1
     movu    m1, [r0-FDEC_STRIDEB]
-    mova    m2, m1
+    psll%2  m2, m1, %3
     mova    m3, m1
     mova    m4, m1
-    psll%2  m1, %3
-    pxor    m2, m1
-    psrl%2  m2, %3
-    pxor    m3, m2
-    PRED8x8_LOWPASS %4, m0, m1, m3, m4, m5
+    pxor    m1, m2
+    psrl%2  m1, %3
+    pxor    m3, m1
+    PRED8x8_LOWPASS %4, m0, m2, m3, m4, m5
 
 %assign Y 0
 %rep 4
@@ -192,6 +189,8 @@ cglobal predict_4x4_ddl_%1, 1,1
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM
 PREDICT_4x4_DDL sse2, dq, 2, w
+INIT_AVX
+PREDICT_4x4_DDL avx , dq, 2, w
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
 cglobal predict_4x4_ddl_mmxext, 1,2
@@ -284,9 +283,8 @@ cglobal predict_4x4_vr_%1, 1,1,6*(mmsize/16)
     PALIGNR m0, [r0+2*FDEC_STRIDEB-8*SIZEOF_PIXEL], 7*SIZEOF_PIXEL, m3    ; t3t2t1t0ltl0l1l2
 %endif
     PRED8x8_LOWPASS %5, m3, m1, m0, m2, m4
-    mova    m1, m3
+    psll%4  m1, m3, %7*6
     psrl%4  m3, %7*2
-    psll%4  m1, %7*6
     movh    [r0+0*FDEC_STRIDEB], m5
     movh    [r0+1*FDEC_STRIDEB], m3
     PALIGNR m5, m1, 7*SIZEOF_PIXEL, m2
@@ -318,12 +316,9 @@ cglobal predict_4x4_hd_%1, 1,1,6*(mmsize/16)
 %endif
     punpckh%3 m1, m2                                 ; l0 l1 l2 l3
     punpckh%6 m1, m0                                 ; t2 t1 t0 lt l0 l1 l2 l3
-    mova      m0, m1
-    mova      m2, m1
-    mova      m5, m1
-    psrl%4    m0, %7*2                               ; .. .. t2 t1 t0 lt l0 l1
-    psrl%4    m2, %7                                 ; .. t2 t1 t0 lt l0 l1 l2
-    pavg%5    m5, m2
+    psrl%4    m2, m1, %7                             ; .. t2 t1 t0 lt l0 l1 l2
+    psrl%4    m0, m1, %7*2                           ; .. .. t2 t1 t0 lt l0 l1
+    pavg%5    m5, m1, m2
     PRED8x8_LOWPASS %5, m3, m1, m0, m2, m4
     punpckl%2 m5, m3
     psrl%4    m3, %7*4
@@ -419,6 +414,8 @@ INIT_XMM
 PREDICT_4x4 sse2  , wd, dq, dq, w, qdq, 2
 %define PALIGNR PALIGNR_SSSE3
 PREDICT_4x4 ssse3 , wd, dq, dq, w, qdq, 2
+INIT_AVX
+PREDICT_4x4 avx   , wd, dq, dq, w, qdq, 2
 %else
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
@@ -496,12 +493,9 @@ cglobal predict_4x4_hu_mmxext, 1,1
 %macro PREDICT_4x4_V1 4
 cglobal predict_4x4_vl_%1, 1,1,6*(mmsize/16)
     movu        m1, [r0-FDEC_STRIDEB]
-    mova        m3, m1
-    mova        m2, m1
-    psrl%2      m3, %3
-    psrl%2      m2, %3*2
-    mova        m4, m3
-    pavg%4      m4, m1
+    psrl%2      m3, m1, %3
+    psrl%2      m2, m1, %3*2
+    pavg%4      m4, m3, m1
     PRED8x8_LOWPASS %4, m0, m1, m2, m3, m5
 
     movh        [r0+0*FDEC_STRIDEB], m4
@@ -516,6 +510,10 @@ cglobal predict_4x4_vl_%1, 1,1,6*(mmsize/16)
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM
 PREDICT_4x4_V1 sse2, dq, 2, w
+%ifdef ARCH_X86_64
+INIT_AVX
+PREDICT_4x4_V1 avx , dq, 2, w
+%endif
 
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
@@ -664,10 +662,9 @@ cglobal predict_8x8_filter_%1, 4,5,7*(mmsize/16)
     test        r2b, 0x04
     je .fix_tr_2
     mova        m0, [src-1*FDEC_STRIDEB+8*SIZEOF_PIXEL]
-    mova        m5, m0
     mova        m2, m0
     mova        m4, m0
-    psrl%5      m5, 7*%6
+    psrl%5      m5, m0, 7*%6
     PALIGNR     m2, m3, 7*SIZEOF_PIXEL, m3
     PALIGNR     m5, m4, 1*SIZEOF_PIXEL, m4
     PRED8x8_LOWPASS %2, m1, m2, m5, m0, m4
@@ -683,23 +680,20 @@ cglobal predict_8x8_filter_%1, 4,5,7*(mmsize/16)
 .done:
     REP_RET
 .fix_lt_1:
-    mova        m5, m3
-    pxor        m5, m4
+    pxor        m5, m3, m4
     psrl%5      m5, 7*%6
     psll%5      m5, 6*%6
     pxor        m1, m5
     jmp .do_left
 .fix_lt_2:
-    mova        m5, m3
-    pxor        m5, m2
+    pxor        m5, m3, m2
     psll%5      m5, 7*%6
     psrl%5      m5, 7*%6
     pxor        m2, m5
     test       r2b, 0x04
     jne .do_top
 .fix_tr_1:
-    mova        m5, m3
-    pxor        m5, m1
+    pxor        m5, m3, m1
     psrl%5      m5, 7*%6
     psll%5      m5, 7*%6
     pxor        m1, m5
@@ -712,6 +706,8 @@ INIT_XMM
 PREDICT_FILTER sse2  , w, d, q, dq, 2
 %define PALIGNR PALIGNR_SSSE3
 PREDICT_FILTER ssse3 , w, d, q, dq, 2
+INIT_AVX
+PREDICT_FILTER avx   , w, d, q, dq, 2
 %else
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
@@ -745,9 +741,8 @@ PREDICT_8x8_V mmxext
 cglobal predict_8x8_h_%1, 2,2
     movu      m1, [r1+7*SIZEOF_PIXEL]
     add       r0, 4*FDEC_STRIDEB
-    mova      m2, m1
+    punpckl%2 m2, m1, m1
     punpckh%2 m1, m1
-    punpckl%2 m2, m2
 %assign n 0
 %rep 8
 %assign i 1+n/4
@@ -844,17 +839,21 @@ cglobal predict_8x8_ddl_%1, 2,2,8*(mmsize/16)
     movu        m2, [r1+17*SIZEOF_PIXEL]
     movu        m3, [r1+23*SIZEOF_PIXEL]
     movu        m4, [r1+25*SIZEOF_PIXEL]
-    mova        m1, m5
-    psll%3      m1, %4
+    psll%3      m1, m5, %4
     add         r0, FDEC_STRIDEB*4
     PRED8x8_LOWPASS %2, m0, m1, m2, m5, m7
+%if avx_enabled == 1
+    INIT_XMM
     PRED8x8_LOWPASS %2, m1, m3, m4, [r1+24*SIZEOF_PIXEL], m6
+    INIT_AVX
+%else
+    PRED8x8_LOWPASS %2, m1, m3, m4, [r1+24*SIZEOF_PIXEL], m6
+%endif
 %assign Y 3
 %rep 6
     mova        [r0+Y*FDEC_STRIDEB], m1
-    mova        m2, m0
     psll%3      m1, %4
-    psrl%3      m2, 7*%4
+    psrl%3      m2, m0, 7*%4
     psll%3      m0, %4
     por         m1, m2
 %assign Y (Y-1)
@@ -870,6 +869,7 @@ cglobal predict_8x8_ddl_%1, 2,2,8*(mmsize/16)
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_ddr( pixel *src, pixel *edge )
 ;-----------------------------------------------------------------------------
+%if avx_enabled == 0
 cglobal predict_8x8_ddr_%1, 2,2,7*(mmsize/16)
     movu        m1, [r1+ 7*SIZEOF_PIXEL]
     movu        m2, [r1+ 9*SIZEOF_PIXEL]
@@ -881,9 +881,8 @@ cglobal predict_8x8_ddr_%1, 2,2,7*(mmsize/16)
 %assign Y 3
 %rep 6
     mova        [r0+Y*FDEC_STRIDEB], m0
-    mova        m2, m1
     psrl%3      m0, %4
-    psll%3      m2, 7*%4
+    psll%3      m2, m1, 7*%4
     psrl%3      m1, %4
     por         m0, m2
 %assign Y (Y-1)
@@ -895,11 +894,14 @@ cglobal predict_8x8_ddr_%1, 2,2,7*(mmsize/16)
 %assign Y (Y-1)
     mova        [r0+Y*FDEC_STRIDEB], m0
     RET
+%endif
 %endmacro ; PREDICT_8x8
 
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM
 PREDICT_8x8 sse2  , w, dq, 2
+INIT_AVX
+PREDICT_8x8 avx   , w, dq, 2
 %elifndef ARCH_X86_64
 INIT_MMX
 PREDICT_8x8 mmxext, b, q , 8
@@ -918,19 +920,17 @@ cglobal predict_8x8_hu_%1, 2,2,8*(mmsize/16)
     psll%4    m0, 8*SIZEOF_PIXEL
     psrl%4    m2, 8*SIZEOF_PIXEL
     por       m2, m0                  ; l7 l6 l5 l4 l3 l2 l1 l0
-    mova      m3, m2
     mova      m4, m2
     mova      m5, m2
+    psrl%3    m3, m2, 2*%6
     psrl%3    m2, %6
-    psrl%3    m3, 2*%6
     por       m2, m1                  ; l7 l7 l6 l5 l4 l3 l2 l1
     punpckh%5 m1, m1
     por       m3, m1                  ; l7 l7 l7 l6 l5 l4 l3 l2
     pavg%2    m4, m2
     PRED8x8_LOWPASS %2, m1, m3, m5, m2, m6
-    mova      m5, m4
+    punpckh%5 m5, m4, m1              ; p8 p7 p6 p5
     punpckl%5 m4, m1                  ; p4 p3 p2 p1
-    punpckh%5 m5, m1                  ; p8 p7 p6 p5
     mova      m6, m5
     mova      m7, m5
     mova      m0, m5
@@ -957,6 +957,8 @@ INIT_XMM
 PREDICT_8x8_HU sse2  , w, dq, d, wd, 2
 %define PALIGNR PALIGNR_SSSE3
 PREDICT_8x8_HU ssse3 , w, dq, d, wd, 2
+INIT_AVX
+PREDICT_8x8_HU avx   , w, dq, d, wd, 2
 %elifndef ARCH_X86_64
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
@@ -971,14 +973,13 @@ cglobal predict_8x8_vr_%1, 2,3,7*(mmsize/16)
     mova        m2, [r1+16*SIZEOF_PIXEL]
     movu        m3, [r1+15*SIZEOF_PIXEL]
     movu        m1, [r1+14*SIZEOF_PIXEL]
-    mova        m4, m3
-    pavg%2      m3, m2
+    pavg%2      m4, m3, m2
     add         r0, FDEC_STRIDEB*4
-    PRED8x8_LOWPASS %2, m0, m1, m2, m4, m5
-    mova        [r0-4*FDEC_STRIDEB], m3
+    PRED8x8_LOWPASS %2, m0, m1, m2, m3, m5
+    mova        [r0-4*FDEC_STRIDEB], m4
     mova        [r0-3*FDEC_STRIDEB], m0
     mova        m5, m0
-    mova        m6, m3
+    mova        m6, m4
     mova        m1, [r1+8*SIZEOF_PIXEL]
     mova        m2, m1
     psll%3      m2, %4
@@ -1005,6 +1006,8 @@ INIT_XMM
 PREDICT_8x8_VR sse2  , w, dq, 2
 %define PALIGNR PALIGNR_SSSE3
 PREDICT_8x8_VR ssse3 , w, dq, 2
+INIT_AVX
+PREDICT_8x8_VR avx   , w, dq, 2
 %else
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
@@ -1042,8 +1045,8 @@ ALIGN 4
     REP_RET
 %endif ; !ARCH_X86_64
 
-INIT_XMM
-cglobal predict_8x8c_p_core_sse2, 1,1
+%macro PREDICT_8x8C_P 1
+cglobal predict_8x8c_p_core_%1, 1,1
     movd        m0, r1m
     movd        m2, r2m
     movd        m4, r3m
@@ -1058,8 +1061,7 @@ cglobal predict_8x8c_p_core_sse2, 1,1
 %ifdef HIGH_BIT_DEPTH
     mov        r1d, 8
 .loop:
-    mova        m5, m0
-    paddsw      m5, m2
+    paddsw      m5, m0, m2
     psraw       m5, 5
     CLIPW       m5, m1, m3
     mova      [r0], m5
@@ -1069,32 +1071,31 @@ cglobal predict_8x8c_p_core_sse2, 1,1
     jg .loop
 %else ;!HIGH_BIT_DEPTH
     paddsw      m0, m2        ; m0 = {i+0*b, i+1*b, i+2*b, i+3*b, i+4*b, i+5*b, i+6*b, i+7*b}
-    mova        m3, m0
-    paddsw      m3, m4
+    paddsw      m3, m0, m4
     paddsw      m4, m4
 call .loop
     add         r0, FDEC_STRIDE*4
 .loop:
-    mova        m5, m0
-    mova        m1, m3
-    psraw       m0, 5
+    paddsw      m1, m3, m4
+    paddsw      m5, m0, m4
     psraw       m3, 5
+    psraw       m0, 5
     packuswb    m0, m3
     movq        [r0+FDEC_STRIDE*0], m0
     movhps      [r0+FDEC_STRIDE*1], m0
-    paddsw      m5, m4
-    paddsw      m1, m4
-    mova        m0, m5
-    mova        m3, m1
+    paddsw      m0, m5, m4
+    paddsw      m3, m1, m4
     psraw       m5, 5
     psraw       m1, 5
     packuswb    m5, m1
     movq        [r0+FDEC_STRIDE*2], m5
     movhps      [r0+FDEC_STRIDE*3], m5
-    paddsw      m0, m4
-    paddsw      m3, m4
 %endif ;!HIGH_BIT_DEPTH
     RET
+%endmacro ; PREDICT_8x8C_P
+
+INIT_XMM
+PREDICT_8x8C_P sse2
 
 ;-----------------------------------------------------------------------------
 ; void predict_16x16_p_core( uint8_t *src, int i00, int b, int c )
@@ -1140,8 +1141,8 @@ ALIGN 4
     REP_RET
 %endif ; !ARCH_X86_64
 
-INIT_XMM
-cglobal predict_16x16_p_core_sse2, 1,2,8
+%macro PREDICT_16x16_P 1
+cglobal predict_16x16_p_core_%1, 1,2,8
     movd     m0, r1m
     movd     m1, r2m
     movd     m2, r3m
@@ -1152,8 +1153,7 @@ cglobal predict_16x16_p_core_sse2, 1,2,8
     SPLATW   m0, m0, 0
     SPLATW   m1, m1, 0
     SPLATW   m2, m2, 0
-    mova     m3, m1
-    pmullw   m3, [pw_76543210]
+    pmullw   m3, m1, [pw_76543210]
     psllw    m1, 3
 %ifdef HIGH_BIT_DEPTH
     mov     r1d, 16
@@ -1175,22 +1175,17 @@ cglobal predict_16x16_p_core_sse2, 1,2,8
     paddw    m6, m2
     dec      r1d
     jg       .loop
-%else ;!HIGH_BIT_DEPTH
+%else ; !HIGH_BIT_DEPTH
     paddsw   m0, m3  ; m0 = {i+ 0*b, i+ 1*b, i+ 2*b, i+ 3*b, i+ 4*b, i+ 5*b, i+ 6*b, i+ 7*b}
     paddsw   m1, m0  ; m1 = {i+ 8*b, i+ 9*b, i+10*b, i+11*b, i+12*b, i+13*b, i+14*b, i+15*b}
-    mova     m7, m2
-    paddsw   m7, m7
+    paddsw   m7, m2, m2
     mov     r1d, 8
 ALIGN 4
 .loop:
-    mova     m3, m0
-    mova     m4, m1
-    mova     m5, m0
-    mova     m6, m1
-    psraw    m3, 5
-    psraw    m4, 5
-    paddsw   m5, m2
-    paddsw   m6, m2
+    psraw    m3, m0, 5
+    psraw    m4, m1, 5
+    paddsw   m5, m0, m2
+    paddsw   m6, m1, m2
     psraw    m5, 5
     psraw    m6, 5
     packuswb m3, m4
@@ -1202,19 +1197,26 @@ ALIGN 4
     add      r0, FDEC_STRIDE*2
     dec      r1d
     jg       .loop
-%endif ;!HIGH_BIT_DEPTH
+%endif ; !HIGH_BIT_DEPTH
     REP_RET
+%endmacro ; PREDICT_16x16_P
+
+INIT_XMM
+PREDICT_16x16_P sse2
+%ifndef HIGH_BIT_DEPTH
+INIT_AVX
+PREDICT_16x16_P avx
+%endif
 
 %ifndef HIGH_BIT_DEPTH
-INIT_XMM
+%macro PREDICT_8x8 1
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_ddl( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8_ddl_sse2, 2,2
+cglobal predict_8x8_ddl_%1, 2,2
     movdqa      xmm3, [r1+16]
     movdqu      xmm2, [r1+17]
-    movdqa      xmm1, xmm3
-    pslldq      xmm1, 1
+    pslldq      xmm1, xmm3, 1
     add          r0, FDEC_STRIDE*4
     PRED8x8_LOWPASS b, xmm0, xmm1, xmm2, xmm3, xmm4
 
@@ -1229,16 +1231,14 @@ cglobal predict_8x8_ddl_sse2, 2,2
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_ddr( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8_ddr_sse2, 2,2
+cglobal predict_8x8_ddr_%1, 2,2
     movdqu      xmm3, [r1+8]
     movdqu      xmm1, [r1+7]
-    movdqa      xmm2, xmm3
-    psrldq      xmm2, 1
+    psrldq      xmm2, xmm3, 1
     add           r0, FDEC_STRIDE*4
     PRED8x8_LOWPASS b, xmm0, xmm1, xmm2, xmm3, xmm4
 
-    movdqa      xmm1, xmm0
-    psrldq      xmm1, 1
+    psrldq      xmm1, xmm0, 1
 %assign Y 3
 %rep 3
     movq        [r0+Y*FDEC_STRIDE], xmm0
@@ -1250,19 +1250,15 @@ cglobal predict_8x8_ddr_sse2, 2,2
     movq        [r0-3*FDEC_STRIDE], xmm0
     movq        [r0-4*FDEC_STRIDE], xmm1
     RET
-%endif ; !HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_vl( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8_vl_sse2, 2,2
+cglobal predict_8x8_vl_%1, 2,2
     movdqa      xmm4, [r1+16]
-    movdqa      xmm2, xmm4
-    movdqa      xmm1, xmm4
-    movdqa      xmm3, xmm4
-    psrldq      xmm2, 1
-    pslldq      xmm1, 1
-    pavgb       xmm3, xmm2
+    pslldq      xmm1, xmm4, 1
+    psrldq      xmm2, xmm4, 1
+    pavgb       xmm3, xmm4, xmm2
     add           r0, FDEC_STRIDE*4
     PRED8x8_LOWPASS b, xmm0, xmm1, xmm2, xmm4, xmm5
 ; xmm0: (t0 + 2*t1 + t2 + 2) >> 2
@@ -1282,19 +1278,17 @@ cglobal predict_8x8_vl_sse2, 2,2
 
     RET
 
-%ifndef HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_vr( uint8_t *src, uint8_t *edge )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8_vr_sse2, 2,2,7
+cglobal predict_8x8_vr_%1, 2,2,7
     movdqu      xmm0, [r1+8]
     movdqa      xmm6, [pw_ff00]
     add         r0, 4*FDEC_STRIDE
-    movdqa      xmm1, xmm0
     movdqa      xmm2, xmm0
     movdqa      xmm3, xmm0
+    pslldq      xmm1, xmm0, 2
     pslldq      xmm0, 1
-    pslldq      xmm1, 2
     pavgb       xmm2, xmm0
     PRED8x8_LOWPASS b, xmm4, xmm3, xmm1, xmm0, xmm5
     pandn       xmm6, xmm4
@@ -1317,7 +1311,14 @@ cglobal predict_8x8_vr_sse2, 2,2,7
 %assign Y (Y-2)
 %endrep
     RET
-%endif
+%endmacro ; PREDICT_8x8
+
+INIT_XMM
+PREDICT_8x8 sse2
+INIT_AVX
+PREDICT_8x8 avx
+
+%endif ; !HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_hd( pixel *src, pixel *edge )
@@ -1336,15 +1337,12 @@ cglobal predict_8x8_hd_%1, 2,2,8*(mmsize/16)
     mova      m5, m3
     pavg%2    m3, m1
     PRED8x8_LOWPASS %2, m0, m4, m1, m5, m7
-    mova      m4, m2
-    mova      m1, m2                       ; t6 t5 t4 t3 t2 t1 t0 lt
-    psrl%3    m4, 2*%5                     ; .. .. t6 t5 t4 t3 t2 t1
-    psrl%3    m1, %5                       ; .. t6 t5 t4 t3 t2 t1 t0
+    psrl%3    m4, m2, 2*%5                 ; .. .. t6 t5 t4 t3 t2 t1
+    psrl%3    m1, m2, %5                   ; .. t6 t5 t4 t3 t2 t1 t0
     PRED8x8_LOWPASS %2, m6, m4, m2, m1, m5
                                            ; .. p11 p10 p9
-    mova      m7, m3
+    punpckh%4 m7, m3, m0                   ; p8 p7 p6 p5
     punpckl%4 m3, m0                       ; p4 p3 p2 p1
-    punpckh%4 m7, m0                       ; p8 p7 p6 p5
     mova      m1, m7
     mova      m0, m7
     mova      m4, m7
@@ -1373,6 +1371,8 @@ INIT_XMM
 PREDICT_8x8_HD sse2  , w, dq, wd, 2
 %define PALIGNR PALIGNR_SSSE3
 PREDICT_8x8_HD ssse3 , w, dq, wd, 2
+INIT_AVX
+PREDICT_8x8_HD avx   , w, dq, wd, 2
 %else
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
@@ -1391,8 +1391,7 @@ cglobal predict_8x8_hd_%1, 2,2
     PALIGNR xmm1, xmm0, 7, xmm4
     PALIGNR xmm2, xmm0, 9, xmm5
     PALIGNR xmm3, xmm0, 8, xmm0
-    movdqa  xmm4, xmm1
-    pavgb   xmm4, xmm3
+    pavgb   xmm4, xmm1, xmm3
     PRED8x8_LOWPASS b, xmm0, xmm1, xmm2, xmm3, xmm5
     punpcklbw xmm4, xmm0
     movhlps xmm0, xmm4
@@ -1414,6 +1413,8 @@ INIT_XMM
 PREDICT_8x8_HD sse2
 %define PALIGNR PALIGNR_SSSE3
 PREDICT_8x8_HD ssse3
+INIT_AVX
+PREDICT_8x8_HD avx
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
 %endif ; HIGH_BIT_DEPTH

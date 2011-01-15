@@ -39,48 +39,39 @@ cextern hsub_mul
 ; in: m0..m7
 ; out: 0,4,6 in mem, rest in regs
 %macro DCT8_1D 9
-    SUMSUB_BA w, m%8, m%1    ; %8 = s07, %1 = d07
-    SUMSUB_BA w, m%7, m%2    ; %7 = s16, %2 = d16
-    SUMSUB_BA w, m%6, m%3    ; %6 = s25, %3 = d25
-    SUMSUB_BA w, m%5, m%4    ; %5 = s34, %4 = d34
-    SUMSUB_BA w, m%5, m%8    ; %5 = a0,  %8 = a2
-    SUMSUB_BA w, m%6, m%7    ; %6 = a1,  %7 = a3
-    SUMSUB_BA w, m%6, m%5    ; %6 = dst0, %5 = dst4
+    SUMSUB_BA w, %8, %1      ; %8 = s07,  %1 = d07
+    SUMSUB_BA w, %7, %2      ; %7 = s16,  %2 = d16
+    SUMSUB_BA w, %6, %3      ; %6 = s25,  %3 = d25
+    SUMSUB_BA w, %5, %4      ; %5 = s34,  %4 = d34
+    SUMSUB_BA w, %5, %8      ; %5 = a0,   %8 = a2
+    SUMSUB_BA w, %6, %7      ; %6 = a1,   %7 = a3
+    SUMSUB_BA w, %6, %5      ; %6 = dst0, %5 = dst4
     mova    [%9+0x00], m%6
     mova    [%9+0x40], m%5
-    mova    m%6, m%7         ; a3
-    psraw   m%6, 1           ; a3>>1
+    psraw   m%6, m%7, 1      ; a3>>1
     paddw   m%6, m%8         ; a2 + (a3>>1)
     psraw   m%8, 1           ; a2>>1
     psubw   m%8, m%7         ; (a2>>1) - a3
     mova    [%9+0x60], m%8
-    mova    m%5, m%3
-    psraw   m%5, 1
+    psraw   m%5, m%3, 1
     paddw   m%5, m%3         ; d25+(d25>>1)
-    mova    m%7, m%1
-    psubw   m%7, m%4         ; a5 = d07-d34-(d25+(d25>>1))
+    psubw   m%7, m%1, m%4    ; a5 = d07-d34-(d25+(d25>>1))
     psubw   m%7, m%5
-    mova    m%5, m%2
-    psraw   m%5, 1
+    psraw   m%5, m%2, 1
     paddw   m%5, m%2         ; d16+(d16>>1)
-    mova    m%8, m%1
-    paddw   m%8, m%4
+    paddw   m%8, m%1, m%4
     psubw   m%8, m%5         ; a6 = d07+d34-(d16+(d16>>1))
-    mova    m%5, m%1
-    psraw   m%5, 1
+    psraw   m%5, m%1, 1
     paddw   m%5, m%1         ; d07+(d07>>1)
     paddw   m%5, m%2
     paddw   m%5, m%3         ; a4 = d16+d25+(d07+(d07>>1))
-    mova    m%1, m%4
-    psraw   m%1, 1
+    psraw   m%1, m%4, 1
     paddw   m%1, m%4         ; d34+(d34>>1)
     paddw   m%1, m%2
     psubw   m%1, m%3         ; a7 = d16-d25+(d34+(d34>>1))
-    mova    m%4, m%1
-    psraw   m%4, 2
+    psraw   m%4, m%1, 2
     paddw   m%4, m%5         ; a4 + (a7>>2)
-    mova    m%3, m%8
-    psraw   m%3, 2
+    psraw   m%3, m%8, 2
     paddw   m%3, m%7         ; a5 + (a6>>2)
     psraw   m%5, 2
     psraw   m%7, 2
@@ -92,22 +83,18 @@ cextern hsub_mul
 ; in: 0,4 in mem, rest in regs
 ; out: m0..m7
 %macro IDCT8_1D 9
-    mova      m%1, m%3
-    mova      m%5, m%7
-    psraw     m%3, 1
-    psraw     m%7, 1
-    psubw     m%3, m%5
-    paddw     m%7, m%1
-    mova      m%5, m%2
-    psraw     m%5, 1
-    paddw     m%5, m%2
-    paddw     m%5, m%4
-    paddw     m%5, m%6
-    mova      m%1, m%6
-    psraw     m%1, 1
-    paddw     m%1, m%6
-    paddw     m%1, m%8
-    psubw     m%1, m%2
+    psraw     m%1, m%3, 1
+    psraw     m%5, m%7, 1
+    psubw     m%1, m%7
+    paddw     m%5, m%3
+    psraw     m%7, m%2, 1
+    paddw     m%7, m%2
+    paddw     m%7, m%4
+    paddw     m%7, m%6
+    psraw     m%3, m%6, 1
+    paddw     m%3, m%6
+    paddw     m%3, m%8
+    psubw     m%3, m%2
     psubw     m%2, m%4
     psubw     m%6, m%4
     paddw     m%2, m%8
@@ -116,25 +103,25 @@ cextern hsub_mul
     psraw     m%8, 1
     psubw     m%2, m%4
     psubw     m%6, m%8
-    mova      m%4, m%5
-    mova      m%8, m%1
-    psraw     m%4, 2
-    psraw     m%8, 2
+    psraw     m%4, m%7, 2
+    psraw     m%8, m%3, 2
     paddw     m%4, m%6
     paddw     m%8, m%2
     psraw     m%6, 2
     psraw     m%2, 2
-    psubw     m%5, m%6
-    psubw     m%2, m%1
-    mova      m%1, [%9+0x00]
+    psubw     m%7, m%6
+    psubw     m%2, m%3
+    mova      m%3, [%9+0x00]
     mova      m%6, [%9+0x40]
-    SUMSUB_BA w, m%6, m%1
-    SUMSUB_BA w, m%7, m%6
-    SUMSUB_BA w, m%3, m%1
-    SUMSUB_BA w, m%5, m%7
-    SUMSUB_BA w, m%2, m%3
-    SUMSUB_BA w, m%8, m%1
-    SUMSUB_BA w, m%4, m%6
+    SUMSUB_BA w, %6, %3
+    SUMSUB_BA w, %5, %6
+    SUMSUB_BA w, %1, %3
+    SUMSUB_BA w, %7, %5
+    SUMSUB_BA w, %2, %1
+    SUMSUB_BA w, %8, %3
+    SUMSUB_BA w, %4, %6
+    SWAP %1, %3
+    SWAP %5, %7
     SWAP %1, %5, %6
     SWAP %3, %8, %7
 %endmacro
@@ -246,9 +233,8 @@ idct8_mmx:
 
 %macro ADD_STORE_ROW 3
     movq  m1, [r0+%1*FDEC_STRIDE]
-    movq  m2, m1
+    punpckhbw m2, m1, m0
     punpcklbw m1, m0
-    punpckhbw m2, m0
     paddw m1, %2
     paddw m2, %3
     packuswb m1, m2
@@ -344,7 +330,6 @@ global add8x8_idct8_mmx.skip_prologue
     ADD_STORE_ROW 7, m7, [r1+0x78]
     ret
 
-INIT_XMM
 %macro DCT_SUB8 1
 cglobal sub8x8_dct_%1, 3,3
     add r2, 4*FDEC_STRIDE
@@ -411,6 +396,7 @@ global sub8x8_dct8_%1.skip_prologue
     ret
 %endmacro
 
+INIT_XMM
 %define LOAD_DIFF8x4 LOAD_DIFF8x4_SSE2
 %define movdqa movaps
 %define punpcklqdq movlhps
@@ -419,13 +405,16 @@ DCT_SUB8 sse2
 %undef punpcklqdq
 %define LOAD_DIFF8x4 LOAD_DIFF8x4_SSSE3
 DCT_SUB8 ssse3
+INIT_AVX
+DCT_SUB8 avx
 
 ;-----------------------------------------------------------------------------
 ; void add8x8_idct( uint8_t *pix, int16_t dct[4][4][4] )
 ;-----------------------------------------------------------------------------
-cglobal add8x8_idct_sse2, 2,2
+%macro ADD8x8 1
+cglobal add8x8_idct_%1, 2,2
     add r0, 4*FDEC_STRIDE
-global add8x8_idct_sse2.skip_prologue
+global add8x8_idct_%1.skip_prologue
 .skip_prologue:
     UNSPILL_SHUFFLE r1, 0,2,1,3, 0,1,2,3
     SBUTTERFLY qdq, 0, 1, 4
@@ -456,13 +445,20 @@ global add8x8_idct_sse2.skip_prologue
     DIFFx2 m0, m2, m6, m7, [r0+2*FDEC_STRIDE], [r0+3*FDEC_STRIDE]; m5
     STORE_IDCT m1, m3, m5, m2
     ret
+%endmacro ; ADD8x8
+
+INIT_XMM
+ADD8x8 sse2
+INIT_AVX
+ADD8x8 avx
 
 ;-----------------------------------------------------------------------------
 ; void add8x8_idct8( uint8_t *p_dst, int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
-cglobal add8x8_idct8_sse2, 2,2
+%macro ADD8x8_IDCT8 1
+cglobal add8x8_idct8_%1, 2,2
     add r0, 4*FDEC_STRIDE
-global add8x8_idct8_sse2.skip_prologue
+global add8x8_idct8_%1.skip_prologue
 .skip_prologue:
     UNSPILL r1, 1,2,3,5,6,7
     IDCT8_1D   0,1,2,3,4,5,6,7,r1
@@ -480,4 +476,10 @@ global add8x8_idct8_sse2.skip_prologue
     DIFFx2 m0, m2, m6, m7, [r0+2*FDEC_STRIDE], [r0+3*FDEC_STRIDE]; m5
     STORE_IDCT m1, m3, m5, m2
     ret
+%endmacro ; ADD8x8_IDCT8
+
+INIT_XMM
+ADD8x8_IDCT8 sse2
+INIT_AVX
+ADD8x8_IDCT8 avx
 %endif ; !HIGH_BIT_DEPTH

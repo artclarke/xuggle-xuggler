@@ -184,7 +184,7 @@ cextern pb_01
 %if %4
     por         m5, m1
 %else
-    SWAP        m5, m1
+    SWAP         5, 1
 %endif
 %endmacro
 
@@ -204,7 +204,7 @@ cextern pb_01
 %if %4
     por         m5, m1
 %else
-    SWAP        m5, m1
+    SWAP         5, 1
 %endif
 %endmacro
 
@@ -226,7 +226,7 @@ cextern pb_01
 %if %4
     por         m5, m2
 %else
-    SWAP        m5, m2
+    SWAP         5, 2
 %endif
     por         m5, m3
 %endmacro
@@ -250,7 +250,7 @@ cextern pb_01
 %if %4
     por         m5, m1
 %else
-    SWAP        m5, m1
+    SWAP         5, 1
 %endif
 %endmacro
 
@@ -277,7 +277,7 @@ cextern pb_01
 %if %4
     por         m5, m2
 %else
-    SWAP        m5, m2
+    SWAP         5,  2
 %endif
     por         m5, m3
 %endmacro
@@ -365,7 +365,7 @@ QUANT_AC 8, 8, sse4
 %if %4
     por        m5, m0
 %else
-    SWAP       m5, m0
+    SWAP        5, 0
 %endif
 %endmacro
 
@@ -386,7 +386,7 @@ QUANT_AC 8, 8, sse4
     por        m5, m0
     por        m5, m2
 %else
-    SWAP       m5, m0
+    SWAP        5,  0
     por        m5, m2
 %endif
 %endmacro
@@ -492,9 +492,8 @@ QUANT_AC quant_8x8_sse4, 8
     paddd     m0, m3
     psrad     m0, m2
 %else
-    mova      m1, m0
+    punpckhwd m1, m0, m4
     punpcklwd m0, m4
-    punpckhwd m1, m4
     pmaddwd   m0, %2
     pmaddwd   m1, %3
     paddd     m0, m3
@@ -586,6 +585,7 @@ cglobal dequant_%2x%2_%1, 0,3,6*(mmsize/16)
     psrld m3, 1
     DEQUANT_LOOP DEQUANT32_R, %2*%2/4, %4
 
+%ifnidn %1, avx
 cglobal dequant_%2x%2_flat16_%1, 0,3
     movifnidn t2d, r2m
 %if %2 == 8
@@ -625,6 +625,7 @@ cglobal dequant_%2x%2_flat16_%1, 0,3
     DEQUANT16_FLAT [r1+32], 32, 96
 %endif
     RET
+%endif ; !AVX
 %endmacro ; DEQUANT
 
 %ifdef HIGH_BIT_DEPTH
@@ -642,6 +643,9 @@ DEQUANT mmx, 8, 6, 1
 INIT_XMM
 DEQUANT sse2, 4, 4, 2
 DEQUANT sse2, 8, 6, 2
+INIT_AVX
+DEQUANT avx, 4, 4, 2
+DEQUANT avx, 8, 6, 2
 %endif
 
 %macro DEQUANT_DC 2
@@ -714,9 +718,8 @@ cglobal dequant_4x4dc_%1, 0,3,6*(mmsize/16)
     punpcklwd m2, m4
 %rep SIZEOF_PIXEL*32/mmsize
     mova      m0, [r0+x]
-    mova      m1, m0
+    punpckhwd m1, m0, m5
     punpcklwd m0, m5
-    punpckhwd m1, m5
     pmaddwd   m0, m2
     pmaddwd   m1, m2
     psrad     m0, m3
@@ -733,11 +736,15 @@ cglobal dequant_4x4dc_%1, 0,3,6*(mmsize/16)
 INIT_XMM
 DEQUANT_DC sse2  , d
 DEQUANT_DC sse4  , d
+INIT_AVX
+DEQUANT_DC avx   , d
 %else
 INIT_MMX
 DEQUANT_DC mmxext, w
 INIT_XMM
 DEQUANT_DC sse2  , w
+INIT_AVX
+DEQUANT_DC avx   , w
 %endif
 
 %ifdef HIGH_BIT_DEPTH
@@ -757,11 +764,9 @@ cglobal denoise_dct_%1, 4,4,%2
     mova      m5, m1
     psubd     m0, [r2+r3*4+0*mmsize]
     psubd     m1, [r2+r3*4+1*mmsize]
-    mova      m7, m0
-    pcmpgtd   m7, m6
+    pcmpgtd   m7, m0, m6
     pand      m0, m7
-    mova      m7, m1
-    pcmpgtd   m7, m6
+    pcmpgtd   m7, m1, m6
     pand      m1, m7
     PSIGND    m0, m2
     PSIGND    m1, m3
@@ -786,6 +791,8 @@ DENOISE_DCT sse2, 8
 %define PABSD PABSD_SSSE3
 %define PSIGND PSIGND_SSSE3
 DENOISE_DCT ssse3, 8
+INIT_AVX
+DENOISE_DCT avx  , 8
 
 %else ; !HIGH_BIT_DEPTH
 

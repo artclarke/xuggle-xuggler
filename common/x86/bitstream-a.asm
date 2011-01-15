@@ -44,19 +44,17 @@ SECTION .text
     jmp %1_continue
 ALIGN 16
 %1:
-    mova      m3, m1
-    mova      m2, m0
-    pcmpeqb   m1, m4
-    pcmpeqb   m0, m4
-    pmovmskb r3d, m1
-    %2   [r0+r1], m2
-    pmovmskb r4d, m0
+    pcmpeqb   m3, m1, m4
+    pcmpeqb   m2, m0, m4
+    pmovmskb r3d, m3
+    %2   [r0+r1], m0
+    pmovmskb r4d, m2
     shl      r3d, mmsize
     mova      m0, [r1+r2+2*mmsize]
     or       r4d, r3d
-    mova      m1, [r1+r2+3*mmsize]
+    %2 [r0+r1+mmsize], m1
     lea      r3d, [r4+r4+1]
-    %2 [r0+r1+mmsize], m3
+    mova      m1, [r1+r2+3*mmsize]
     and      r4d, r3d
     jnz %1_escape
 %1_continue:
@@ -129,3 +127,5 @@ INIT_MMX
 NAL_ESCAPE mmxext
 INIT_XMM
 NAL_ESCAPE sse2
+INIT_AVX
+NAL_ESCAPE avx

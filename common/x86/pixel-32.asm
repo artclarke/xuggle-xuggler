@@ -74,7 +74,7 @@ cglobal pixel_sa8d_8x8_internal_mmxext
 %define spill esp+0x60 ; +16
 %define trans esp+0    ; +96
     LOAD_DIFF_4x8P 0
-    HADAMARD8_V m0, m1, m2, m3, m4, m5, m6, m7
+    HADAMARD8_V 0, 1, 2, 3, 4, 5, 6, 7
 
     movq   [spill], m1
     TRANSPOSE4x4W 4, 5, 6, 7, 1
@@ -92,7 +92,7 @@ cglobal pixel_sa8d_8x8_internal_mmxext
     mov    r0, [args+4]
     mov    r2, [args]
     LOAD_DIFF_4x8P 4
-    HADAMARD8_V m0, m1, m2, m3, m4, m5, m6, m7
+    HADAMARD8_V 0, 1, 2, 3, 4, 5, 6, 7
 
     movq   [spill], m7
     TRANSPOSE4x4W 0, 1, 2, 3, 7
@@ -107,7 +107,7 @@ cglobal pixel_sa8d_8x8_internal_mmxext
     movq   m2, [trans+0x10]
     movq   m3, [trans+0x18]
 
-    HADAMARD8_V m0, m1, m2, m3, m4, m5, m6, m7
+    HADAMARD8_V 0, 1, 2, 3, 4, 5, 6, 7
     SUM4x8_MM
     movq   [trans], m0
 
@@ -120,7 +120,7 @@ cglobal pixel_sa8d_8x8_internal_mmxext
     movq   m6, [trans+0x50]
     movq   m7, [trans+0x58]
 
-    HADAMARD8_V m0, m1, m2, m3, m4, m5, m6, m7
+    HADAMARD8_V 0, 1, 2, 3, 4, 5, 6, 7
     SUM4x8_MM
 
     pavgw  m0, [trans]
@@ -183,7 +183,7 @@ cglobal intra_sa8d_x3_8x8_core_mmxext
 %define trans esp+0    ; +96
 %define sum   esp+0    ; +32
     LOAD_4x8P 0
-    HADAMARD8_V m0, m1, m2, m3, m4, m5, m6, m7
+    HADAMARD8_V 0, 1, 2, 3, 4, 5, 6, 7
 
     movq   [spill], m0
     TRANSPOSE4x4W 4, 5, 6, 7, 0
@@ -199,7 +199,7 @@ cglobal intra_sa8d_x3_8x8_core_mmxext
     movq   [trans+0x38], m3
 
     LOAD_4x8P 4
-    HADAMARD8_V m0, m1, m2, m3, m4, m5, m6, m7
+    HADAMARD8_V 0, 1, 2, 3, 4, 5, 6, 7
 
     movq   [spill], m7
     TRANSPOSE4x4W 0, 1, 2, 3, 7
@@ -214,7 +214,7 @@ cglobal intra_sa8d_x3_8x8_core_mmxext
     movq   m2, [trans+0x10]
     movq   m3, [trans+0x18]
 
-    HADAMARD8_V m0, m1, m2, m3, m4, m5, m6, m7
+    HADAMARD8_V 0, 1, 2, 3, 4, 5, 6, 7
 
     movq [spill+0], m0
     movq [spill+8], m1
@@ -249,7 +249,7 @@ cglobal intra_sa8d_x3_8x8_core_mmxext
     movq   m6, [trans+0x50]
     movq   m7, [trans+0x58]
 
-    HADAMARD8_V m0, m1, m2, m3, m4, m5, m6, m7
+    HADAMARD8_V 0, 1, 2, 3, 4, 5, 6, 7
 
     movd   [sum+0x10], m0
     movd   [sum+0x12], m1

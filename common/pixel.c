@@ -488,6 +488,7 @@ SATD_X_DECL7( _mmxext )
 SATD_X_DECL6( _sse2 )
 SATD_X_DECL7( _ssse3 )
 SATD_X_DECL7( _sse4 )
+SATD_X_DECL7( _avx )
 #endif // !HIGH_BIT_DEPTH
 #endif
 
@@ -1029,6 +1030,32 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         pixf->intra_sad_x3_4x4 = x264_intra_sad_x3_4x4_sse4;
         /* Slower on Conroe, so only enable under SSE4 */
         pixf->intra_sad_x3_8x8  = x264_intra_sad_x3_8x8_ssse3;
+    }
+
+    if( cpu&X264_CPU_AVX )
+    {
+        INIT7( satd, _avx );
+        INIT7( satd_x3, _avx );
+        INIT7( satd_x4, _avx );
+        pixf->ads[PIXEL_16x16] = x264_pixel_ads4_avx;
+        pixf->ads[PIXEL_16x8]  = x264_pixel_ads2_avx;
+        if( !(cpu&X264_CPU_STACK_MOD4) )
+        {
+            INIT4( hadamard_ac, _avx );
+        }
+        INIT5( ssd, _avx );
+#if ARCH_X86_64
+        pixf->sa8d[PIXEL_16x16]= x264_pixel_sa8d_16x16_avx;
+        pixf->sa8d[PIXEL_8x8]  = x264_pixel_sa8d_8x8_avx;
+        pixf->intra_sa8d_x3_8x8= x264_intra_sa8d_x3_8x8_avx;
+#endif
+        pixf->ssd_nv12_core    = x264_pixel_ssd_nv12_core_avx;
+        pixf->var[PIXEL_16x16] = x264_pixel_var_16x16_avx;
+        pixf->var[PIXEL_8x8]   = x264_pixel_var_8x8_avx;
+        pixf->ssim_4x4x2_core  = x264_pixel_ssim_4x4x2_core_avx;
+        pixf->ssim_end4        = x264_pixel_ssim_end4_avx;
+        pixf->intra_sad_x3_4x4 = x264_intra_sad_x3_4x4_avx;
+        pixf->intra_sad_x3_8x8 = x264_intra_sad_x3_8x8_avx;
     }
 #endif //HAVE_MMX
 

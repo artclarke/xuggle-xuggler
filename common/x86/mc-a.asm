@@ -155,7 +155,6 @@ cextern pd_32
 %endmacro
 
 %ifdef HIGH_BIT_DEPTH
-
 %macro BIWEIGHT_ROW 4
     BIWEIGHT   [%2], [%3]
 %if %4==mmsize/4
@@ -280,7 +279,7 @@ AVG_WEIGHT ssse3, 16, 7
     movhps [%2+r1+x], m5
 %else
     WEIGHT      %1+x, %1+x+mmsize/2
-    SWAP          m5, m7
+    SWAP           5,  7
     WEIGHT   %1+r3+x, %1+r3+x+mmsize/2
     CLIPW         m5, [pb_0], m4
     CLIPW         m7, [pb_0], m4
@@ -456,6 +455,11 @@ WEIGHTER 16, sse2
 WEIGHTER 20, sse2
 %ifdef HIGH_BIT_DEPTH
 WEIGHTER 12, sse2
+INIT_AVX
+WEIGHTER  8, avx
+WEIGHTER 12, avx
+WEIGHTER 16, avx
+WEIGHTER 20, avx
 %else
 %define WEIGHT WEIGHT_SSSE3
 %define WEIGHT_START WEIGHT_START_SSSE3
@@ -465,6 +469,10 @@ INIT_XMM
 WEIGHTER  8, ssse3
 WEIGHTER 16, ssse3
 WEIGHTER 20, ssse3
+INIT_AVX
+WEIGHTER  8, avx
+WEIGHTER 16, avx
+WEIGHTER 20, avx
 %endif
 
 %macro OFFSET_OP 7
@@ -541,8 +549,15 @@ INIT_XMM
 OFFSETPN 12, sse2
 OFFSETPN 16, sse2
 OFFSETPN 20, sse2
+INIT_AVX
+OFFSETPN 12, avx
+OFFSETPN 16, avx
+OFFSETPN 20, avx
 %ifdef HIGH_BIT_DEPTH
+INIT_XMM
 OFFSETPN  8, sse2
+INIT_AVX
+OFFSETPN  8, avx
 %endif
 %undef LOAD_HEIGHT
 %undef HEIGHT_REG
@@ -616,7 +631,6 @@ AVGH 16, 16, mmxext
 AVGH 16,  8, mmxext
 
 INIT_XMM
-
 AVG_FUNC 4, movq, movq, sse2
 AVGH  4, 8, sse2
 AVGH  4, 4, sse2
@@ -1450,16 +1464,15 @@ cglobal prefetch_ref_mmxext, 3,3
 %macro UNPACK_UNALIGNED 4
     movu       %1, [%4+0]
     movu       %2, [%4+4]
-    mova       %3, %1
+    punpckhwd  %3, %1, %2
     punpcklwd  %1, %2
-    punpckhwd  %3, %2
-    mova       %2, %1
 %if mmsize == 8
+    mova       %2, %1
     punpcklwd  %1, %3
     punpckhwd  %2, %3
 %else
+    shufps     %2, %1, %3, 11011101b
     shufps     %1, %3, 10001000b
-    shufps     %2, %3, 11011101b
 %endif
 %endmacro
 %else ; !HIGH_BIT_DEPTH
@@ -1539,7 +1552,7 @@ cglobal mc_chroma_%1, 0,6
     pmaddwd    m0, m7
     pmaddwd    m1, m7
     packssdw   m0, m1
-    SWAP       m3, m0
+    SWAP        3, 0
 ALIGN 4
 .loop2:
 %ifdef HIGH_BIT_DEPTH
@@ -1604,7 +1617,7 @@ ALIGN 4
 .width8:
 %ifdef ARCH_X86_64
     %define multy0 m8
-    SWAP       m8, m5
+    SWAP        8, 5
 %else
     %define multy0 r0m
     mova    multy0, m5
@@ -1620,12 +1633,10 @@ ALIGN 4
     movu       m1, [r3+mmsize/2]
     UNPACK_UNALIGNED m0, m2, [r3+2]
     UNPACK_UNALIGNED m1, m3, [r3+2+mmsize/2]
-    mova       m2, m0
-    mova       m3, m1
+    psrlw      m2, m0, 8
+    psrlw      m3, m1, 8
     pand       m0, [pw_00ff]
     pand       m1, [pw_00ff]
-    psrlw      m2, 8
-    psrlw      m3, 8
 %endif
     pmaddwd    m0, m7
     pmaddwd    m2, m7
@@ -1633,8 +1644,8 @@ ALIGN 4
     pmaddwd    m3, m7
     packssdw   m0, m2
     packssdw   m1, m3
-    SWAP       m4, m0
-    SWAP       m5, m1
+    SWAP        4, 0
+    SWAP        5, 1
     add        r3, r4
 ALIGN 4
 .loop4:
@@ -1652,12 +1663,10 @@ ALIGN 4
     movu       m1, [r3+mmsize/2]
     UNPACK_UNALIGNED m0, m2, [r3+2]
     UNPACK_UNALIGNED m1, m3, [r3+2+mmsize/2]
-    mova       m2, m0
-    mova       m3, m1
+    psrlw      m2, m0, 8
+    psrlw      m3, m1, 8
     pand       m0, [pw_00ff]
     pand       m1, [pw_00ff]
-    psrlw      m2, 8
-    psrlw      m3, 8
     pmaddwd    m0, m7
     pmaddwd    m2, m7
     pmaddwd    m1, m7
@@ -1668,9 +1677,8 @@ ALIGN 4
     pmullw     m4, m6
     pmullw     m5, m6
     mova       m2, [pw_32]
-    mova       m3, m2
+    paddw      m3, m2, m5
     paddw      m2, m4
-    paddw      m3, m5
     mova       m4, m0
     mova       m5, m1
     pmullw     m0, multy0
@@ -1799,12 +1807,10 @@ ALIGN 4
     movhps     m0, [r3]
     movhps     m1, [r3+r6]
 %endif
-    mova       m2, m0
-    mova       m3, m1
+    psrlw      m2, m0, 8
+    psrlw      m3, m1, 8
     pand       m0, [pw_00ff]
     pand       m1, [pw_00ff]
-    psrlw      m2, 8
-    psrlw      m3, 8
 %endif ; HIGH_BIT_DEPTH
     pmullw     m0, m4
     pmullw     m1, m5
@@ -1868,9 +1874,8 @@ ALIGN 4
 %endmacro ; MC_CHROMA
 
 
-%macro MC_CHROMA_SSSE3 0-1
-INIT_XMM
-cglobal mc_chroma_ssse3%1, 0,6,9
+%macro MC_CHROMA_SSSE3 1-2
+cglobal mc_chroma_%1, 0,6,9
     MC_CHROMA_START
     and       r5d, 7
     and       t2d, 7
@@ -1884,7 +1889,7 @@ cglobal mc_chroma_ssse3%1, 0,6,9
     imul      r5d, t0d ; (x*255+8)*(8-y)
     movd       m6, t2d
     movd       m7, r5d
-%ifidn %1, _cache64
+%ifidn %2, _cache64
     mov       t0d, r3d
     and       t0d, 7
 %ifdef PIC
@@ -1913,11 +1918,10 @@ cglobal mc_chroma_ssse3%1, 0,6,9
     pshufb     m1, m5
     movu       m3, [r3+r4*2]
     pshufb     m3, m5
-    mova       m2, m1
     mova       m4, m3
     pmaddubsw  m0, m7
+    pmaddubsw  m2, m1, m7
     pmaddubsw  m1, m6
-    pmaddubsw  m2, m7
     pmaddubsw  m3, m6
     paddw      m0, [pw_32]
     paddw      m2, [pw_32]
@@ -1947,7 +1951,7 @@ cglobal mc_chroma_ssse3%1, 0,6,9
     movu       m1, [r3+8]
     pshufb     m1, m5
 %ifdef ARCH_X86_64
-    SWAP       m8, m6
+    SWAP        8, 6
     %define  mult1 m8
 %else
     mova      r0m, m6
@@ -2008,6 +2012,8 @@ INIT_MMX
 MC_CHROMA mmxext
 INIT_XMM
 MC_CHROMA sse2
+INIT_AVX
+MC_CHROMA avx
 %else ; !HIGH_BIT_DEPTH
 INIT_MMX
 %define UNPACK_UNALIGNED UNPACK_UNALIGNED_MEM
@@ -2016,6 +2022,8 @@ INIT_XMM
 MC_CHROMA sse2_misalign
 %define UNPACK_UNALIGNED UNPACK_UNALIGNED_LOAD
 MC_CHROMA sse2
-MC_CHROMA_SSSE3
-MC_CHROMA_SSSE3 _cache64
+MC_CHROMA_SSSE3 ssse3
+MC_CHROMA_SSSE3 ssse3_cache64, _cache64
+INIT_AVX
+MC_CHROMA_SSSE3 avx ; No known AVX CPU will trigger CPU_CACHELINE_64
 %endif ; HIGH_BIT_DEPTH

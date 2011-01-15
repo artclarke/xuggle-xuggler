@@ -42,6 +42,7 @@ static uint8_t *x264_nal_escape_c( uint8_t *dst, uint8_t *src, uint8_t *end )
 #if HAVE_MMX
 uint8_t *x264_nal_escape_mmxext( uint8_t *dst, uint8_t *src, uint8_t *end );
 uint8_t *x264_nal_escape_sse2( uint8_t *dst, uint8_t *src, uint8_t *end );
+uint8_t *x264_nal_escape_avx( uint8_t *dst, uint8_t *src, uint8_t *end );
 #endif
 
 /****************************************************************************
@@ -93,5 +94,7 @@ void x264_bitstream_init( int cpu, x264_bitstream_function_t *pf )
         pf->nal_escape = x264_nal_escape_mmxext;
     if( (cpu&X264_CPU_SSE2) && (cpu&X264_CPU_SSE2_IS_FAST) )
         pf->nal_escape = x264_nal_escape_sse2;
+    if( cpu&X264_CPU_AVX )
+        pf->nal_escape = x264_nal_escape_avx;
 #endif
 }

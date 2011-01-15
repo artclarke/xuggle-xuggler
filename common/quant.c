@@ -477,6 +477,9 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
 
     if( cpu&X264_CPU_AVX )
     {
+        pf->dequant_4x4 = x264_dequant_4x4_avx;
+        pf->dequant_8x8 = x264_dequant_8x8_avx;
+        pf->dequant_4x4_dc = x264_dequant_4x4dc_avx;
         pf->denoise_dct = x264_denoise_dct_avx;
     }
 #endif // HAVE_MMX
