@@ -654,12 +654,10 @@ void x264_sei_frame_packing_write( x264_t *h, bs_t *s )
     // 0: views are unrelated, 1: left view is on the left, 2: left view is on the right
     bs_write ( &q, 6, 1 );                        // content_interpretation_type
 
-    /* The following flags shall be set to 0 and ignored by the decoder
-     * (Why, then, do they even exist?  Who knows.) */
     bs_write1( &q, 0 );                           // spatial_flipping_flag
     bs_write1( &q, 0 );                           // frame0_flipped_flag
     bs_write1( &q, 0 );                           // field_views_flag
-    bs_write1( &q, 0 );                           // current_frame_is_frame0_flag
+    bs_write1( &q, h->param.i_frame_packing == 5 && !(h->fenc->i_frame&1) ); // current_frame_is_frame0_flag
     bs_write1( &q, 0 );                           // frame0_self_contained_flag
     bs_write1( &q, 0 );                           // frame1_self_contained_flag
     if ( /* quincunx_sampling_flag == 0 && */ h->param.i_frame_packing != 5 )
@@ -670,7 +668,7 @@ void x264_sei_frame_packing_write( x264_t *h, bs_t *s )
         bs_write( &q, 4, 0 );                     // frame1_grid_position_y
     }
     bs_write( &q, 8, 0 );                         // frame_packing_arrangement_reserved_byte
-    bs_write_ue( &q, 0 );                         // frame_packing_arrangement_repetition_period
+    bs_write_ue( &q, 1 );                         // frame_packing_arrangement_repetition_period
     bs_write1( &q, 0 );                           // frame_packing_arrangement_extension_flag
 
     bs_align_10( &q );
