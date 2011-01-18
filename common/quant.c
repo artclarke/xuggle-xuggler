@@ -143,7 +143,7 @@ static void dequant_4x4_dc( dctcoef dct[16], int dequant_mf[6][16], int i_qp )
 
 static void x264_denoise_dct( dctcoef *dct, uint32_t *sum, udctcoef *offset, int size )
 {
-    for( int i = 1; i < size; i++ )
+    for( int i = 0; i < size; i++ )
     {
         int level = dct[i];
         int sign = level>>31;

@@ -164,8 +164,8 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
 
     sh->i_cabac_init_idc = param->i_cabac_init_idc;
 
-    sh->i_qp = i_qp;
-    sh->i_qp_delta = i_qp - pps->i_pic_init_qp;
+    sh->i_qp = SPEC_QP(i_qp);
+    sh->i_qp_delta = sh->i_qp - pps->i_pic_init_qp;
     sh->b_sp_for_swidth = 0;
     sh->i_qs_delta = 0;
 
@@ -1065,7 +1065,8 @@ x264_t *x264_encoder_open( x264_param_t *param )
         p += sprintf( p, " none!" );
     x264_log( h, X264_LOG_INFO, "%s\n", buf );
 
-    for( qp = h->param.rc.i_qp_min; qp <= h->param.rc.i_qp_max; qp++ )
+    int qp_max = h->param.rc.i_qp_max == QP_MAX_SPEC ? QP_MAX : h->param.rc.i_qp_max;
+    for( qp = h->param.rc.i_qp_min; qp <= qp_max; qp++ )
         if( x264_analyse_init_costs( h, qp ) )
             goto fail;
     if( x264_analyse_init_costs( h, X264_LOOKAHEAD_QP ) )
@@ -1073,7 +1074,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
 
     static const uint16_t cost_mv_correct[7] = { 24, 47, 95, 189, 379, 757, 1515 };
     /* Checks for known miscompilation issues. */
-    if( h->cost_mv[x264_lambda_tab[X264_LOOKAHEAD_QP]][2013] != cost_mv_correct[BIT_DEPTH-8] )
+    if( h->cost_mv[X264_LOOKAHEAD_QP][2013] != cost_mv_correct[BIT_DEPTH-8] )
     {
         x264_log( h, X264_LOG_ERROR, "MV cost test failed: x264 has been miscompiled!\n" );
         goto fail;
