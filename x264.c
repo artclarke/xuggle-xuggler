@@ -251,8 +251,8 @@ static void print_version_info()
 int main( int argc, char **argv )
 {
     x264_param_t param;
-    cli_opt_t opt;
-    int ret;
+    cli_opt_t opt = {0};
+    int ret = 0;
 
     FAIL_IF_ERROR( x264_threading_init(), "unable to initialize threading\n" )
 
@@ -263,12 +263,25 @@ int main( int argc, char **argv )
 
     /* Parse command line */
     if( parse( argc, argv, &param, &opt ) < 0 )
-        return -1;
+        ret = -1;
 
     /* Control-C handler */
     signal( SIGINT, sigint_handler );
 
-    ret = encode( &param, &opt );
+    if( !ret )
+        ret = encode( &param, &opt );
+
+    /* clean up handles */
+    if( filter.free )
+        filter.free( opt.hin );
+    else if( opt.hin )
+        input.close_file( opt.hin );
+    if( opt.hout )
+        output.close_file( opt.hout, 0, 0 );
+    if( opt.tcfile_out )
+        fclose( opt.tcfile_out );
+    if( opt.qpfile )
+        fclose( opt.qpfile );
 
     return ret;
 }
@@ -1159,7 +1172,6 @@ static int parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
     x264_param_default( &defaults );
     cli_log_level = defaults.i_log_level;
 
-    memset( opt, 0, sizeof(cli_opt_t) );
     memset( &input_opt, 0, sizeof(cli_input_opt_t) );
     memset( &output_opt, 0, sizeof(cli_output_opt_t) );
     input_opt.bit_depth = 8;
@@ -1590,15 +1602,24 @@ static void convert_cli_to_lib_pic( x264_picture_t *lib, cli_pic_t *cli )
     lib->i_pts = cli->pts;
 }
 
+#define FAIL_IF_ERROR2( cond, ... )\
+if( cond )\
+{\
+    x264_cli_log( "x264", X264_LOG_ERROR, __VA_ARGS__ );\
+    retval = -1;\
+    goto fail;\
+}
+
 static int encode( x264_param_t *param, cli_opt_t *opt )
 {
-    x264_t *h;
+    x264_t *h = NULL;
     x264_picture_t pic;
     cli_pic_t cli_pic;
     const cli_pulldown_t *pulldown = NULL; // shut up gcc
 
-    int     i_frame, i_frame_output;
-    int64_t i_start, i_end;
+    int     i_frame = 0;
+    int     i_frame_output = 0;
+    int64_t i_end, i_start = 0;
     int64_t i_file = 0;
     int     i_frame_size;
     int     i_update_interval;
@@ -1612,6 +1633,7 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
     int64_t ticks_per_frame;
     double  duration;
     double  pulldown_pts = 0;
+    int     retval = 0;
 
     opt->b_progress &= param->i_log_level < X264_LOG_DEBUG;
     i_update_interval = param->i_frame_total ? x264_clip3( param->i_frame_total / 1000, 1, 10 ) : 10;
@@ -1623,32 +1645,22 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
         param->b_pic_struct = 1;
         pulldown = &pulldown_values[opt->i_pulldown];
         param->i_timebase_num = param->i_fps_den;
-        FAIL_IF_ERROR( fmod( param->i_fps_num * pulldown->fps_factor, 1 ),
-                       "unsupported framerate for chosen pulldown\n" )
+        FAIL_IF_ERROR2( fmod( param->i_fps_num * pulldown->fps_factor, 1 ),
+                        "unsupported framerate for chosen pulldown\n" )
         param->i_timebase_den = param->i_fps_num * pulldown->fps_factor;
     }
 
-    if( ( h = x264_encoder_open( param ) ) == NULL )
-    {
-        x264_cli_log( "x264", X264_LOG_ERROR, "x264_encoder_open failed\n" );
-        filter.free( opt->hin );
-        return -1;
-    }
+    h = x264_encoder_open( param );
+    FAIL_IF_ERROR2( !h, "x264_encoder_open failed\n" );
 
     x264_encoder_parameters( h, param );
 
-    if( output.set_param( opt->hout, param ) )
-    {
-        x264_cli_log( "x264", X264_LOG_ERROR, "can't set outfile param\n" );
-        filter.free( opt->hin );
-        output.close_file( opt->hout, largest_pts, second_largest_pts );
-        return -1;
-    }
+    FAIL_IF_ERROR2( output.set_param( opt->hout, param ), "can't set outfile param\n" );
 
     i_start = x264_mdate();
     /* ticks/frame = ticks/second / frames/second */
     ticks_per_frame = (int64_t)param->i_timebase_den * param->i_fps_den / param->i_timebase_num / param->i_fps_num;
-    FAIL_IF_ERROR( ticks_per_frame < 1 && !param->b_vfr_input, "ticks_per_frame invalid: %"PRId64"\n", ticks_per_frame )
+    FAIL_IF_ERROR2( ticks_per_frame < 1 && !param->b_vfr_input, "ticks_per_frame invalid: %"PRId64"\n", ticks_per_frame )
     ticks_per_frame = X264_MAX( ticks_per_frame, 1 );
 
     if( !param->b_repeat_headers )
@@ -1657,16 +1669,15 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
         x264_nal_t *headers;
         int i_nal;
 
-        FAIL_IF_ERROR( x264_encoder_headers( h, &headers, &i_nal ) < 0, "x264_encoder_headers failed\n" )
-        if( (i_file = output.write_headers( opt->hout, headers )) < 0 )
-            return -1;
+        FAIL_IF_ERROR2( x264_encoder_headers( h, &headers, &i_nal ) < 0, "x264_encoder_headers failed\n" )
+        FAIL_IF_ERROR2( (i_file = output.write_headers( opt->hout, headers )) < 0, "error writing headers to output file\n" );
     }
 
     if( opt->tcfile_out )
         fprintf( opt->tcfile_out, "# timecode format v2\n" );
 
     /* Encode frames */
-    for( i_frame = 0, i_frame_output = 0; !b_ctrl_c && (i_frame < param->i_frame_total || !param->i_frame_total); i_frame++ )
+    for( ; !b_ctrl_c && (i_frame < param->i_frame_total || !param->i_frame_total); i_frame++ )
     {
         if( filter.get_frame( opt->hin, &cli_pic, i_frame + opt->i_seek ) )
             break;
@@ -1707,10 +1718,13 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
         prev_dts = last_dts;
         i_frame_size = encode_frame( h, opt->hout, &pic, &last_dts );
         if( i_frame_size < 0 )
-            return -1;
-        i_file += i_frame_size;
-        if( i_frame_size )
         {
+            b_ctrl_c = 1; /* lie to exit the loop */
+            retval = -1;
+        }
+        else if( i_frame_size )
+        {
+            i_file += i_frame_size;
             i_frame_output++;
             if( i_frame_output == 1 )
                 first_dts = prev_dts = last_dts;
@@ -1729,10 +1743,13 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
         prev_dts = last_dts;
         i_frame_size = encode_frame( h, opt->hout, NULL, &last_dts );
         if( i_frame_size < 0 )
-            return -1;
-        i_file += i_frame_size;
-        if( i_frame_size )
         {
+            b_ctrl_c = 1; /* lie to exit the loop */
+            retval = -1;
+        }
+        else if( i_frame_size )
+        {
+            i_file += i_frame_size;
             i_frame_output++;
             if( i_frame_output == 1 )
                 first_dts = prev_dts = last_dts;
@@ -1740,6 +1757,7 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
         if( opt->b_progress && i_frame_output % i_update_interval == 0 && i_frame_output )
             print_status( i_start, i_frame_output, param->i_frame_total, i_file, param, 2 * last_dts - prev_dts - first_dts );
     }
+fail:
     if( pts_warning_cnt >= MAX_PTS_WARNING && cli_log_level < X264_LOG_DEBUG )
         x264_cli_log( "x264", X264_LOG_WARNING, "%d suppressed nonmonotonic pts warnings\n", pts_warning_cnt-MAX_PTS_WARNING );
 
@@ -1755,20 +1773,15 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
     /* Erase progress indicator before printing encoding stats. */
     if( opt->b_progress )
         fprintf( stderr, "                                                                               \r" );
-    x264_encoder_close( h );
+    if( h )
+        x264_encoder_close( h );
     fprintf( stderr, "\n" );
 
     if( b_ctrl_c )
         fprintf( stderr, "aborted at input frame %d, output frame %d\n", opt->i_seek + i_frame, i_frame_output );
 
-    if( opt->tcfile_out )
-    {
-        fclose( opt->tcfile_out );
-        opt->tcfile_out = NULL;
-    }
-
-    filter.free( opt->hin );
     output.close_file( opt->hout, largest_pts, second_largest_pts );
+    opt->hout = NULL;
 
     if( i_frame_output > 0 )
     {
@@ -1779,5 +1792,5 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
                  (double) i_file * 8 / ( 1000 * duration ) );
     }
 
-    return 0;
+    return retval;
 }

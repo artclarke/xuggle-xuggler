@@ -1456,6 +1456,8 @@ int x264_weighted_reference_duplicate( x264_t *h, int i_ref, const x264_weight_t
         return -1;
 
     newframe = x264_frame_pop_blank_unused( h );
+    if( !newframe )
+        return -1;
 
     //FIXME: probably don't need to copy everything
     *newframe = *h->fref[0][i_ref];
@@ -3325,10 +3327,13 @@ void    x264_encoder_close  ( x264_t *h )
                     x264_frame_delete( *frame );
             }
             frame = &h->thread[i]->fdec;
-            assert( (*frame)->i_reference_count > 0 );
-            (*frame)->i_reference_count--;
-            if( (*frame)->i_reference_count == 0 )
-                x264_frame_delete( *frame );
+            if( *frame )
+            {
+                assert( (*frame)->i_reference_count > 0 );
+                (*frame)->i_reference_count--;
+                if( (*frame)->i_reference_count == 0 )
+                    x264_frame_delete( *frame );
+            }
             x264_macroblock_cache_free( h->thread[i] );
         }
         x264_macroblock_thread_free( h->thread[i], 0 );
