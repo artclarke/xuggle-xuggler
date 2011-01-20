@@ -147,7 +147,12 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         param->pix_fmt = opt->colorspace ? av_get_pix_fmt( opt->colorspace ) : PIX_FMT_YUV420P;
     }
 
-    FAIL_IF_ERROR( av_open_input_file( &h->lavf, psz_filename, NULL, 0, param ), "could not open input file\n" )
+    /* specify the input format. this is helpful when lavf fails to guess */
+    AVInputFormat *format = NULL;
+    if( opt->format )
+        FAIL_IF_ERROR( !(format = av_find_input_format( opt->format )), "unknown file format: %s\n", opt->format );
+
+    FAIL_IF_ERROR( av_open_input_file( &h->lavf, psz_filename, format, 0, param ), "could not open input file\n" )
     if( param )
         free( param );
     FAIL_IF_ERROR( av_find_stream_info( h->lavf ) < 0, "could not find input stream info\n" )

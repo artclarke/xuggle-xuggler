@@ -34,6 +34,7 @@
 typedef struct
 {
     char *index_file;
+    char *format;
     char *resolution;
     char *colorspace;
     int bit_depth;
