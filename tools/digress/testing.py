@@ -22,6 +22,8 @@ from functools import wraps
 
 from itertools import izip_longest
 
+from hashlib import sha1
+
 class depends(object):
     """
     Dependency decorator for a test.
@@ -142,6 +144,7 @@ class Fixture(object):
         Takes a revision for an argument.
         """
         oldrev = None
+        oldbranch = None
         dirty = False
 
         try:
@@ -152,6 +155,7 @@ class Fixture(object):
 
             if revision:
                 oldrev = self.scm.current_rev()
+                oldbranch = self.scm.current_branch()
 
                 if dirty:
                     self.scm.stash()
@@ -164,8 +168,8 @@ class Fixture(object):
                 if os.path.isdir(self.datastore):
                     if self.flush_before:
                         self.flush(rev)
-
-                os.makedirs(self.datastore)
+                else:
+                    os.makedirs(self.datastore)
             else:
                 rev = "(dirty working tree)"
                 self.datastore = None
@@ -201,6 +205,8 @@ class Fixture(object):
         finally:
             if oldrev:
                 self.scm.checkout(oldrev)
+                if oldbranch:
+                    self.scm.checkout(oldbranch)
                 if dirty:
                     self.scm.unstash()
 
@@ -488,7 +494,10 @@ class Case(object):
                 # XXX: this smells funny
                 raise IOError
 
-            with open(os.path.join(self.datastore, "%s.json" % test_name), "r") as f:
+            with open(os.path.join(
+                self.datastore,
+                "%s.json" % sha1(test_name).hexdigest()
+            ), "r") as f:
                 result = json.load(f)
 
             value = str(result["value"])
@@ -539,7 +548,10 @@ class Case(object):
             result = { "status" : status, "value" : value, "time" : run_time }
 
             if self.datastore:
-                with open(os.path.join(self.datastore, "%s.json" % test_name), "w") as f:
+                with open(os.path.join(
+                    self.datastore,
+                    "%s.json" % sha1(test_name).hexdigest()
+                ), "w") as f:
                     json.dump(result, f)
 
         results[test_name] = result
@@ -549,7 +561,10 @@ class Case(object):
         print "Running case %s..." % self.__class__.__name__
 
         if self.fixture.datastore:
-            self.datastore = os.path.join(self.fixture.datastore, self.__class__.__name__)
+            self.datastore = os.path.join(
+                self.fixture.datastore,
+                sha1(self.__class__.__name__).hexdigest()
+            )
             if not os.path.isdir(self.datastore):
                 os.makedirs(self.datastore)
         else:

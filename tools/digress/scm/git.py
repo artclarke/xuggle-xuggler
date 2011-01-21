@@ -3,7 +3,11 @@ Git SCM backend for Digress.
 """
 
 from subprocess import Popen, PIPE, STDOUT
+import re
+
 from digress.errors import SCMError
+
+GIT_BRANCH_EXPR = re.compile("[*] (.*)")
 
 def checkout(revision):
     """
@@ -37,6 +41,22 @@ def current_rev():
     Get the current revision.
     """
     return rev_parse("HEAD")
+
+def current_branch():
+    """
+    Get the current branch.
+    """
+    proc = Popen([
+        "git",
+        "branch",
+        "--no-color"
+    ], stdout=PIPE, stderr=STDOUT)
+
+    output = proc.communicate()[0].strip()
+    if proc.returncode != 0:
+        raise SCMError("branch error: %s" % output)
+    branch_name = GIT_BRANCH_EXPR.findall(output)[0]
+    return branch_name != "(no branch)" and branch_name or None
 
 def revisions(rev_a, rev_b):
     """
