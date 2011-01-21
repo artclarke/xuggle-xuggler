@@ -287,15 +287,8 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
 
 #if HIGH_BIT_DEPTH
 #if HAVE_MMX
-    if( cpu&X264_CPU_MMX )
-    {
-        pf->quant_4x4 = x264_quant_4x4_mmx;
-        pf->quant_8x8 = x264_quant_8x8_mmx;
-    }
     if( cpu&X264_CPU_MMXEXT )
     {
-        pf->quant_2x2_dc = x264_quant_2x2_dc_mmxext;
-        pf->quant_4x4_dc = x264_quant_4x4_dc_mmxext;
 #if ARCH_X86
         pf->denoise_dct = x264_denoise_dct_mmx;
         pf->decimate_score15 = x264_decimate_score15_mmxext;

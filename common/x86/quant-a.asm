@@ -321,11 +321,6 @@ cglobal quant_%1x%2_%3, 3,3,8*(mmsize/16)
 %define QUANT_END QUANT_END_MMX
 %define PABSD PABSD_MMX
 %define PSIGND PSIGND_MMX
-INIT_MMX
-QUANT_DC 2, 2, mmxext
-QUANT_DC 4, 4, mmxext
-QUANT_AC 4, 4, mmx
-QUANT_AC 8, 8, mmx
 INIT_XMM
 QUANT_DC 2, 2, sse2
 QUANT_DC 4, 4, sse2
