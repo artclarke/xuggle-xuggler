@@ -387,7 +387,7 @@ SSD  4,  8, ssse3
 ;                           int width, int height, uint64_t *ssd_u, uint64_t *ssd_v )
 ;
 ; The maximum width this function can handle without risk of overflow is given
-; in the following equation:
+; in the following equation: (mmsize in bits)
 ;
 ;   2 * mmsize/32 * (2^32 - 1) / (2^BIT_DEPTH - 1)^2
 ;
@@ -404,7 +404,7 @@ cglobal pixel_ssd_nv12_core_%1, 6,7,7*(mmsize/16)
     xor         r6, r6
     pxor        m4, m4
     pxor        m5, m5
-    mova        m6, [sq_0f]
+    pxor        m6, m6
 .loopy:
     mov         r6, r4
     neg         r6
@@ -415,7 +415,7 @@ cglobal pixel_ssd_nv12_core_%1, 6,7,7*(mmsize/16)
     mova        m1, [r0+r6+mmsize]
     psubw       m0, [r2+r6]
     psubw       m1, [r2+r6+mmsize]
-%if mmsize == 8
+%if mmsize==8
     pshufw      m0, m0, 11011000b
     pshufw      m1, m1, 11011000b
 %else
@@ -430,27 +430,52 @@ cglobal pixel_ssd_nv12_core_%1, 6,7,7*(mmsize/16)
     paddd       m3, m1
     add         r6, 2*mmsize
     jl .loopx
-%if mmsize == 8
-    SBUTTERFLY dq, 2, 3, 1
-%else
-    mova        m1, m2
-    shufps      m2, m3, 10001000b
-    shufps      m3, m1, 11011101b
+%if mmsize==16 ; using HADDD would remove the mmsize/32 part from the
+               ; equation above, putting the width limit at 8208
+    mova        m0, m2
+    mova        m1, m3
+    punpckldq   m2, m6
+    punpckldq   m3, m6
+    punpckhdq   m0, m6
+    punpckhdq   m1, m6
+    paddq       m3, m2
+    paddq       m1, m0
+    paddq       m4, m3
+    paddq       m4, m1
+%else ; unfortunately paddq is sse2
+      ; emulate 48 bit precision for mmxext instead
+    mova        m0, m2
+    mova        m1, m3
+    punpcklwd   m2, m6
+    punpcklwd   m3, m6
+    punpckhwd   m0, m6
+    punpckhwd   m1, m6
+    paddd       m3, m2
+    paddd       m1, m0
+    paddd       m4, m3
+    paddd       m5, m1
 %endif
-    HADDD       m2, m1
-    HADDD       m3, m1
-    pand        m2, m6
-    pand        m3, m6
-    paddq       m4, m2
-    paddq       m5, m3
     add         r0, r1
     add         r2, r3
     dec        r5d
     jg .loopy
     mov         r3, r6m
     mov         r4, r7m
+%if mmsize==16
     movq      [r3], m4
+    movhps    [r4], m4
+%else ; fixup for mmxext
+    SBUTTERFLY dq, 4, 5, 0
+    mova        m0, m4
+    psrld       m4, 16
+    paddd       m5, m4
+    pslld       m0, 16
+    SBUTTERFLY dq, 0, 5, 4
+    psrlq       m0, 16
+    psrlq       m5, 16
+    movq      [r3], m0
     movq      [r4], m5
+%endif
     RET
 %endmacro ; SSD_NV12
 %endif ; HIGH_BIT_DEPTH
