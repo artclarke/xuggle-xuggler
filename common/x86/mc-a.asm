@@ -1061,8 +1061,8 @@ pixel_avg2_w%1_cache_mmxext:
 %endif
 cglobal pixel_avg2_w%1_cache%2_%3
     mov    eax, r2m
-    and    eax, 0x1f|(%2>>1)
-    cmp    eax, (32-%1-(%1 % 8))|(%2>>1)
+    and    eax, %2-1
+    cmp    eax, (%2-%1-(%1 % 8))
 %if %1==12||%1==20
     jbe pixel_avg2_w%1_%3
 %else
