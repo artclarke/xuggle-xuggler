@@ -24,14 +24,25 @@
  * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
-/* TODO: work with windows 7 x86_64's (and later systems) awkward
- *       way of handling systems with >64 logical processors */
+/* Microsoft's way of supporting systems with >64 logical cpus can be found at
+ * http://www.microsoft.com/whdc/system/Sysinternals/MoreThan64proc.mspx */
+
+/* Based on the agreed standing that x264 does not need to utilize >64 logical cpus,
+ * this API does not detect nor utilize more than 64 cpus for systems that have them. */
 
 #include "common.h"
 #include <process.h>
 
 /* number of times to spin a thread about to block on a locked mutex before retrying and sleeping if still locked */
 #define X264_SPIN_COUNT 0
+
+/* GROUP_AFFINITY struct */
+typedef struct
+{
+    ULONG_PTR mask; // KAFFINITY = ULONG_PTR
+    USHORT group;
+    USHORT reserved[3];
+} x264_group_affinity_t;
 
 typedef struct
 {
@@ -263,13 +274,27 @@ void x264_win32_threading_destroy( void )
 
 int x264_pthread_num_processors_np()
 {
-    DWORD_PTR process_cpus, system_cpus;
-    if( GetProcessAffinityMask( GetCurrentProcess(), &process_cpus, &system_cpus ) )
+    DWORD_PTR system_cpus, process_cpus = 0;
+    int cpus = 0;
+
+    /* GetProcessAffinityMask returns affinities of 0 when the process has threads in multiple processor groups.
+     * On platforms that support processor grouping, use GetThreadGroupAffinity to get the current thread's affinity instead. */
+#if ARCH_X86_64
+    /* find function pointers to API functions specific to x86_64 platforms, if they exist */
+    HANDLE kernel_dll = GetModuleHandle( TEXT( "kernel32.dll" ) );
+    BOOL (*get_thread_affinity)( HANDLE thread, x264_group_affinity_t *group_affinity ) = (void*)GetProcAddress( kernel_dll, "GetThreadGroupAffinity" );
+    if( get_thread_affinity )
     {
-        int cpus = 0;
-        for( DWORD_PTR bit = 1; bit; bit <<= 1 )
-            cpus += !!(process_cpus & bit);
-        return cpus;
+        /* running on a platform that supports >64 logical cpus */
+        x264_group_affinity_t thread_affinity;
+        if( get_thread_affinity( GetCurrentThread(), &thread_affinity ) )
+            process_cpus = thread_affinity.mask;
     }
-    return 1;
+#endif
+    if( !process_cpus )
+        GetProcessAffinityMask( GetCurrentProcess(), &process_cpus, &system_cpus );
+    for( DWORD_PTR bit = 1; bit; bit <<= 1 )
+        cpus += !!(process_cpus & bit);
+
+    return cpus ? cpus : 1;
 }
