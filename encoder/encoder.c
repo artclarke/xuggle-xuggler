@@ -1845,11 +1845,12 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_global_qp )
         if( h->param.b_interlaced )
         {
             h->sh.i_delta_poc_bottom = h->param.b_tff ? 1 : -1;
-            if( h->sh.i_delta_poc_bottom == -1 )
-                h->sh.i_poc = h->fdec->i_poc + 1;
+            h->sh.i_poc += h->sh.i_delta_poc_bottom == -1;
         }
         else
             h->sh.i_delta_poc_bottom = 0;
+        h->fdec->i_delta_poc[0] = h->sh.i_delta_poc_bottom == -1;
+        h->fdec->i_delta_poc[1] = h->sh.i_delta_poc_bottom ==  1;
     }
     else if( h->sps->i_poc_type == 1 )
     {
@@ -2734,14 +2735,14 @@ int     x264_encoder_encode( x264_t *h,
     if( h->i_ref[0] )
         h->fdec->i_poc_l0ref0 = h->fref[0][0]->i_poc;
 
+    /* ------------------------ Create slice header  ----------------------- */
+    x264_slice_init( h, i_nal_type, i_global_qp );
+
+    /*------------------------- Weights -------------------------------------*/
     if( h->sh.i_type == SLICE_TYPE_B )
         x264_macroblock_bipred_init( h );
 
-    /*------------------------- Weights -------------------------------------*/
     x264_weighted_pred_init( h );
-
-    /* ------------------------ Create slice header  ----------------------- */
-    x264_slice_init( h, i_nal_type, i_global_qp );
 
     if( i_nal_ref_idc != NAL_PRIORITY_DISPOSABLE )
         h->i_frame_num++;

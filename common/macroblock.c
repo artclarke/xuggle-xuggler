@@ -419,10 +419,8 @@ void x264_macroblock_slice_init( x264_t *h )
     if( h->i_ref[0] > 0 )
         for( int field = 0; field <= h->sh.b_mbaff; field++ )
         {
-            int curpoc = h->fdec->i_poc + field*h->sh.i_delta_poc_bottom;
-            int refpoc = h->fref[0][0]->i_poc;
-            if( h->sh.b_mbaff && field )
-                refpoc += h->sh.i_delta_poc_bottom;
+            int curpoc = h->fdec->i_poc + h->fdec->i_delta_poc[field];
+            int refpoc = h->fref[0][0]->i_poc + h->fref[0][0]->i_delta_poc[field];
             int delta = curpoc - refpoc;
 
             h->fdec->inv_ref_poc[field] = (256 + delta/2) / delta;
@@ -1287,16 +1285,14 @@ void x264_macroblock_bipred_init( x264_t *h )
     for( int field = 0; field <= h->sh.b_mbaff; field++ )
         for( int i_ref0 = 0; i_ref0 < (h->i_ref[0]<<h->sh.b_mbaff); i_ref0++ )
         {
-            int poc0 = h->fref[0][i_ref0>>h->sh.b_mbaff]->i_poc;
-            if( h->sh.b_mbaff && field^(i_ref0&1) )
-                poc0 += h->sh.i_delta_poc_bottom;
+            x264_frame_t *l0 = h->fref[0][i_ref0>>h->sh.b_mbaff];
+            int poc0 = l0->i_poc + l0->i_delta_poc[field^(i_ref0&1)];
             for( int i_ref1 = 0; i_ref1 < (h->i_ref[1]<<h->sh.b_mbaff); i_ref1++ )
             {
                 int dist_scale_factor;
-                int poc1 = h->fref[1][i_ref1>>h->sh.b_mbaff]->i_poc;
-                if( h->sh.b_mbaff && field^(i_ref1&1) )
-                    poc1 += h->sh.i_delta_poc_bottom;
-                int cur_poc = h->fdec->i_poc + field*h->sh.i_delta_poc_bottom;
+                x264_frame_t *l1 = h->fref[1][i_ref1>>h->sh.b_mbaff];
+                int poc1 = l1->i_poc + l1->i_delta_poc[field^(i_ref1&1)];
+                int cur_poc = h->fdec->i_poc + h->fdec->i_delta_poc[field];
                 int td = x264_clip3( poc1 - poc0, -128, 127 );
                 if( td == 0 /* || pic0 is a long-term ref */ )
                     dist_scale_factor = 256;

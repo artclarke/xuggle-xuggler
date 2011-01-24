@@ -36,6 +36,7 @@ typedef struct x264_frame
 {
     /* */
     int     i_poc;
+    int     i_delta_poc[2];
     int     i_type;
     int     i_qpplus1;
     int64_t i_pts;

@@ -159,7 +159,7 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     while( (1 << sps->i_log2_max_frame_num) <= max_frame_num )
         sps->i_log2_max_frame_num++;
 
-    sps->i_poc_type = param->i_bframe ? 0 : 2;
+    sps->i_poc_type = param->i_bframe || param->b_interlaced ? 0 : 2;
     if( sps->i_poc_type == 0 )
     {
         int max_delta_poc = (param->i_bframe + 2) * (!!param->i_bframe_pyramid + 1) * 2;
