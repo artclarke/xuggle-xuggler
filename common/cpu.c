@@ -95,7 +95,7 @@ static void sigill_handler( int sig )
 #if HAVE_MMX
 int x264_cpu_cpuid_test( void );
 void x264_cpu_cpuid( uint32_t op, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx );
-void x264_cpu_xgetbv( uint32_t op, int *eax, int *edx );
+void x264_cpu_xgetbv( uint32_t op, uint32_t *eax, uint32_t *edx );
 
 uint32_t x264_cpu_detect( void )
 {
