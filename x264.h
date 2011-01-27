@@ -122,9 +122,8 @@ typedef struct
 #define X264_CPU_FAST_NEON_MRC  0x080000  /* Transfer from NEON to ARM register is fast (Cortex-A9) */
 #define X264_CPU_SLOW_CTZ       0x100000  /* BSR/BSF x86 instructions are really slow on some CPUs */
 #define X264_CPU_SLOW_ATOM      0x200000  /* The Atom just sucks */
-#define X264_CPU_AVX            0x400000  /* AVX support -- we don't currently use YMM registers, just
-                                           * the 3-operand capability, so we don't require OS support
-                                           * for AVX. */
+#define X264_CPU_AVX            0x400000  /* AVX support: requires OS support even if YMM registers
+                                           * aren't used. */
 
 /* Analyse flags
  */

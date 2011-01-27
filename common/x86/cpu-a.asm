@@ -29,27 +29,43 @@
 
 SECTION .text
 
-%ifdef ARCH_X86_64
-
 ;-----------------------------------------------------------------------------
-; int cpu_cpuid( int op, int *eax, int *ebx, int *ecx, int *edx )
+; void cpu_cpuid( int op, int *eax, int *ebx, int *ecx, int *edx )
 ;-----------------------------------------------------------------------------
 cglobal cpu_cpuid, 5,7
-    push    rbx
-    mov     r11,   r1
-    mov     r10,   r2
-    movifnidn r9,  r3
-    movifnidn r8,  r4
-    mov     eax,   r0d
+    push rbx
+    push  r4
+    push  r3
+    push  r2
+    push  r1
+    mov  eax, r0d
     cpuid
-    mov     [r11], eax
-    mov     [r10], ebx
-    mov     [r9],  ecx
-    mov     [r8],  edx
-    pop     rbx
+    pop  rsi
+    mov [rsi], eax
+    pop  rsi
+    mov [rsi], ebx
+    pop  rsi
+    mov [rsi], ecx
+    pop  rsi
+    mov [rsi], edx
+    pop  rbx
     RET
 
-%else
+;-----------------------------------------------------------------------------
+; void cpu_xgetbv( int op, int *eax, int *edx )
+;-----------------------------------------------------------------------------
+cglobal cpu_xgetbv, 3,7
+    push  r2
+    push  r1
+    mov  ecx, r0d
+    xgetbv
+    pop  rsi
+    mov [rsi], eax
+    pop  rsi
+    mov [rsi], edx
+    RET
+
+%ifndef ARCH_X86_64
 
 ;-----------------------------------------------------------------------------
 ; int cpu_cpuid_test( void )
@@ -76,22 +92,6 @@ cglobal cpu_cpuid_test
     pop     ebx
     popfd
     ret
-
-;-----------------------------------------------------------------------------
-; int cpu_cpuid( int op, int *eax, int *ebx, int *ecx, int *edx )
-;-----------------------------------------------------------------------------
-cglobal cpu_cpuid, 0,6
-    mov     eax,    r0m
-    cpuid
-    mov     esi,    r1m
-    mov     [esi],  eax
-    mov     esi,    r2m
-    mov     [esi],  ebx
-    mov     esi,    r3m
-    mov     [esi],  ecx
-    mov     esi,    r4m
-    mov     [esi],  edx
-    RET
 
 ;-----------------------------------------------------------------------------
 ; void stack_align( void (*func)(void*), void *arg );

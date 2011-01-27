@@ -94,7 +94,8 @@ static void sigill_handler( int sig )
 
 #if HAVE_MMX
 int x264_cpu_cpuid_test( void );
-uint32_t x264_cpu_cpuid( uint32_t op, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx );
+void x264_cpu_cpuid( uint32_t op, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx );
+void x264_cpu_xgetbv( uint32_t op, int *eax, int *edx );
 
 uint32_t x264_cpu_detect( void )
 {
@@ -130,8 +131,14 @@ uint32_t x264_cpu_detect( void )
         cpu |= X264_CPU_SSE4;
     if( ecx&0x00100000 )
         cpu |= X264_CPU_SSE42;
-    if( ecx&0x10000000 )
-        cpu |= X264_CPU_AVX;
+    /* Check OXSAVE and AVX bits */
+    if( (ecx&0x18000000) == 0x18000000 )
+    {
+        /* Check for OS support */
+        x264_cpu_xgetbv( 0, &eax, &edx );
+        if( (eax&0x6) == 0x6 )
+            cpu |= X264_CPU_AVX;
+    }
 
     if( cpu & X264_CPU_SSSE3 )
         cpu |= X264_CPU_SSE2_IS_FAST;
