@@ -2359,7 +2359,7 @@ int     x264_encoder_encode( x264_t *h,
         thread_oldest  = h;
     }
 #if HAVE_MMX
-    if( h->i_thread_frames == 1 && h->param.cpu&X264_CPU_SSE_MISALIGN )
+    if( h->param.cpu&X264_CPU_SSE_MISALIGN )
         x264_cpu_mask_misalign_sse();
 #endif
 
