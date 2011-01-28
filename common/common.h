@@ -418,6 +418,9 @@ struct x264_t
     uint8_t *nal_buffer;
     int      nal_buffer_size;
 
+    x264_sps_t      *sps;
+    x264_pps_t      *pps;
+
     /**** thread synchronization starts here ****/
 
     /* frame number/poc */
@@ -445,9 +448,7 @@ struct x264_t
 
     /* We use only one SPS and one PPS */
     x264_sps_t      sps_array[1];
-    x264_sps_t      *sps;
     x264_pps_t      pps_array[1];
-    x264_pps_t      *pps;
     int             i_idr_pic_id;
 
     /* quantization matrix for decoding, [cqm][qp%6][coef] */

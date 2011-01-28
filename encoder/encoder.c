@@ -909,6 +909,7 @@ static void x264_set_aspect_ratio( x264_t *h, x264_param_t *param, int initial )
                 h->param.vui.i_sar_width = i_w;
                 h->param.vui.i_sar_height = i_h;
             }
+            x264_sps_init( h->sps, h->param.i_sps_id, &h->param );
         }
     }
 }
@@ -1123,6 +1124,9 @@ x264_t *x264_encoder_open( x264_param_t *param )
         }
         else
             h->thread[i]->fdec = h->thread[0]->fdec;
+
+        h->thread[i]->sps = &h->thread[i]->sps_array[0];
+        h->thread[i]->pps = &h->thread[i]->pps_array[0];
 
         CHECKED_MALLOC( h->thread[i]->out.p_bitstream, h->out.i_bitstream );
         /* Start each thread with room for init_nal_count NAL units; it'll realloc later if needed. */
