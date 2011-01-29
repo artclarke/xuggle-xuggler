@@ -388,7 +388,7 @@ public class IContainerFormat extends RefCounted {
 
       if (inputCodecId != null && inputCodecId != ICodec.ID.CODEC_ID_NONE)
       {
-        inputCodec = ICodec.findEncodingCodec(inputCodecId);
+        inputCodec = ICodec.findDecodingCodec(inputCodecId);
         if (inputCodec == null)
           throw new IllegalArgumentException("could not find input codec id");
         
