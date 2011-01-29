@@ -413,7 +413,7 @@ static void help( x264_param_t *defaults, int longhelp )
     H0( "\n" );
     H0( "Presets:\n" );
     H0( "\n" );
-    H0( "      --profile               Force the limits of an H.264 profile\n"
+    H0( "      --profile <string>      Force the limits of an H.264 profile\n"
         "                                  Overrides all settings.\n" );
     H2( "                                  - baseline:\n"
         "                                    --no-8x8dct --bframes 0 --no-cabac\n"
@@ -429,7 +429,7 @@ static void help( x264_param_t *defaults, int longhelp )
         "                                    No lossless.\n"
         "                                    Support for bit depth 8-10.\n" );
         else H0( "                                  - baseline,main,high,high10\n" );
-    H0( "      --preset                Use a preset to select encoding settings [medium]\n"
+    H0( "      --preset <string>       Use a preset to select encoding settings [medium]\n"
         "                                  Overridden by user settings.\n" );
     H2( "                                  - ultrafast:\n"
         "                                    --no-8x8dct --aq-mode 0 --b-adapt 0\n"
@@ -473,7 +473,7 @@ static void help( x264_param_t *defaults, int longhelp )
         "                                    --trellis 2\n" );
     else H0( "                                  - ultrafast,superfast,veryfast,faster,fast\n"
              "                                  - medium,slow,slower,veryslow,placebo\n" );
-    H0( "      --tune                  Tune the settings for a particular type of source\n"
+    H0( "      --tune <string>         Tune the settings for a particular type of source\n"
         "                              or situation\n"
         "                                  Overridden by user settings.\n"
         "                                  Multiple tunings are separated by commas.\n"
@@ -646,7 +646,7 @@ static void help( x264_param_t *defaults, int longhelp )
         "                                  - 9: RD refinement for all frames\n"
         "                                  - 10: QP-RD - requires trellis=2, aq-mode>0\n" );
     else H1( "                                  decision quality: 1=fast, 10=best.\n"  );
-    H1( "      --psy-rd                Strength of psychovisual optimization [\"%.1f:%.1f\"]\n"
+    H1( "      --psy-rd <float:float>  Strength of psychovisual optimization [\"%.1f:%.1f\"]\n"
         "                                  #1: RD (requires subme>=6)\n"
         "                                  #2: Trellis (requires trellis, experimental)\n",
                                        defaults->analyse.f_psy_rd, defaults->analyse.f_psy_trellis );
@@ -674,9 +674,9 @@ static void help( x264_param_t *defaults, int longhelp )
         "                                  Takes a comma-separated list of 16 integers.\n" );
     H2( "      --cqm8 <list>           Set all 8x8 quant matrices\n"
         "                                  Takes a comma-separated list of 64 integers.\n" );
-    H2( "      --cqm4i, --cqm4p, --cqm8i, --cqm8p\n"
+    H2( "      --cqm4i, --cqm4p, --cqm8i, --cqm8p <list>\n"
         "                              Set both luma and chroma quant matrices\n" );
-    H2( "      --cqm4iy, --cqm4ic, --cqm4py, --cqm4pc\n"
+    H2( "      --cqm4iy, --cqm4ic, --cqm4py, --cqm4pc <list>\n"
         "                              Set individual quant matrices\n" );
     H2( "\n" );
     H2( "Video Usability Info (Annex E):\n" );
@@ -716,7 +716,7 @@ static void help( x264_param_t *defaults, int longhelp )
     H0( "\n" );
     H0( "Input/Output:\n" );
     H0( "\n" );
-    H0( "  -o, --output                Specify output file\n" );
+    H0( "  -o, --output <string>       Specify output file\n" );
     H1( "      --muxer <string>        Specify output container format [\"%s\"]\n"
         "                                  - %s\n", muxer_names[0], stringify_names( buf, muxer_names ) );
     H1( "      --demuxer <string>      Specify input container format [\"%s\"]\n"
