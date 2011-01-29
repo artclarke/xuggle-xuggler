@@ -445,7 +445,7 @@ void x264_pps_init( x264_pps_t *pps, int i_id, x264_param_t *param, x264_sps_t *
     pps->b_weighted_pred = param->analyse.i_weighted_pred > 0;
     pps->b_weighted_bipred = param->analyse.b_weighted_bipred ? 2 : 0;
 
-    pps->i_pic_init_qp = param->rc.i_rc_method == X264_RC_ABR ? 26 + QP_BD_OFFSET : param->rc.i_qp_constant;
+    pps->i_pic_init_qp = param->rc.i_rc_method == X264_RC_ABR ? 26 + QP_BD_OFFSET : SPEC_QP( param->rc.i_qp_constant );
     pps->i_pic_init_qs = 26 + QP_BD_OFFSET;
 
     pps->i_chroma_qp_index_offset = param->analyse.i_chroma_qp_offset;

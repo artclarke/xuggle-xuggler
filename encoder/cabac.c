@@ -265,9 +265,9 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
     if( i_dqp != 0 )
     {
         int val = i_dqp <= 0 ? (-2*i_dqp) : (2*i_dqp - 1);
-        /* dqp is interpreted modulo (QP_MAX+1) */
-        if( val >= QP_MAX && val != QP_MAX+1 )
-            val = 2*QP_MAX+1 - val;
+        /* dqp is interpreted modulo (QP_MAX_SPEC+1) */
+        if( val >= QP_MAX_SPEC && val != QP_MAX_SPEC+1 )
+            val = 2*QP_MAX_SPEC+1 - val;
         do
         {
             x264_cabac_encode_decision( cb, 60 + ctx, 1 );
