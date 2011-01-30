@@ -179,19 +179,26 @@ uint32_t x264_cpu_detect( void )
         x264_cpu_cpuid( 1, &eax, &ebx, &ecx, &edx );
         int family = ((eax>>8)&0xf) + ((eax>>20)&0xff);
         int model  = ((eax>>4)&0xf) + ((eax>>12)&0xf0);
-        /* 6/9 (pentium-m "banias"), 6/13 (pentium-m "dothan"), and 6/14 (core1 "yonah")
-         * theoretically support sse2, but it's significantly slower than mmx for
-         * almost all of x264's functions, so let's just pretend they don't. */
-        if( family == 6 && (model == 9 || model == 13 || model == 14) )
+        if( family == 6 )
         {
-            cpu &= ~(X264_CPU_SSE2|X264_CPU_SSE3);
-            assert(!(cpu&(X264_CPU_SSSE3|X264_CPU_SSE4)));
-        }
-        /* Detect Atom CPU */
-        if( family == 6 && model == 28 )
-        {
-            cpu |= X264_CPU_SLOW_ATOM;
-            cpu |= X264_CPU_SLOW_CTZ;
+            /* 6/9 (pentium-m "banias"), 6/13 (pentium-m "dothan"), and 6/14 (core1 "yonah")
+             * theoretically support sse2, but it's significantly slower than mmx for
+             * almost all of x264's functions, so let's just pretend they don't. */
+            if( model == 9 || model == 13 || model == 14 )
+            {
+                cpu &= ~(X264_CPU_SSE2|X264_CPU_SSE3);
+                assert(!(cpu&(X264_CPU_SSSE3|X264_CPU_SSE4)));
+            }
+            /* Detect Atom CPU */
+            else if( model == 28 )
+            {
+                cpu |= X264_CPU_SLOW_ATOM;
+                cpu |= X264_CPU_SLOW_CTZ;
+            }
+            /* Some Penryns and Nehalems are pointlessly crippled (SSE4 disabled), so
+             * detect them here. */
+            else if( model >= 23 )
+                cpu |= X264_CPU_SHUFFLE_IS_FAST;
         }
     }
 
