@@ -450,8 +450,11 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 
 ; Symbol prefix for C linkage
 %macro cglobal 1-2+
-    %xdefine %1 mangle(program_name %+ _ %+ %1)
-    %xdefine %1.skip_prologue %1 %+ .skip_prologue
+    %ifndef cglobaled_%1
+        %xdefine %1 mangle(program_name %+ _ %+ %1)
+        %xdefine %1.skip_prologue %1 %+ .skip_prologue
+        CAT_XDEFINE cglobaled_, %1, 1
+    %endif
     %ifidn __OUTPUT_FORMAT__,elf
         global %1:function hidden
     %else

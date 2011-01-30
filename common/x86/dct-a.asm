@@ -1349,6 +1349,7 @@ ZIGZAG_8x8_CAVLC mmx , W
 %endif
 %endmacro
 
+%ifndef HIGH_BIT_DEPTH
 INIT_XMM
 cglobal zigzag_interleave_8x8_cavlc_sse2, 3,3,8
     INTERLEAVE_XMM  0
@@ -1364,4 +1365,4 @@ cglobal zigzag_interleave_8x8_cavlc_sse2, 3,3,8
     shr     r0d, 16
     mov  [r2+8], r0w
     RET
-
+%endif ; !HIGH_BIT_DEPTH

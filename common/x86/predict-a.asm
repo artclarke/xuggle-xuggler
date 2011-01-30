@@ -1205,6 +1205,7 @@ ALIGN 4
 %endif ;!HIGH_BIT_DEPTH
     REP_RET
 
+%ifndef HIGH_BIT_DEPTH
 INIT_XMM
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_ddl( uint8_t *src, uint8_t *edge )
@@ -1248,8 +1249,8 @@ cglobal predict_8x8_ddr_sse2, 2,2
 %endrep
     movq        [r0-3*FDEC_STRIDE], xmm0
     movq        [r0-4*FDEC_STRIDE], xmm1
-
     RET
+%endif ; !HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_vl( uint8_t *src, uint8_t *edge )
@@ -1477,8 +1478,10 @@ cglobal predict_8x8_hu_%1, 2,2
     RET
 %endmacro
 
+%ifndef HIGH_BIT_DEPTH
 PREDICT_8x8_HU sse2
 PREDICT_8x8_HU ssse3
+%endif
 
 ;-----------------------------------------------------------------------------
 ; void predict_8x8c_v( uint8_t *src )
