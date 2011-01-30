@@ -314,8 +314,6 @@
       }
       if (outputCodecId != null && outputCodecId != ICodec.ID.CODEC_ID_NONE)
       {
-        if (codec != null)
-          codec.delete();
         codec = ICodec.findEncodingCodec(outputCodecId);
       }
       if (codec != null)
@@ -324,8 +322,6 @@
       // ok, otherwise that didn't work, so try the input codec
       if (inputCodec != null)
       {
-        if (codec != null)
-          codec.delete();
         codec = ICodec.findEncodingCodec(inputCodecId);
         if (codec != null &&
             this.isCodecSupportedForOutput(codec.getID()))
