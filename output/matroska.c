@@ -202,7 +202,7 @@ static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest
     int ret;
     int64_t i_last_delta;
 
-    i_last_delta = (int64_t)(((largest_pts - second_largest_pts) * p_mkv->i_timebase_num / p_mkv->i_timebase_den) + 0.5);
+    i_last_delta = p_mkv->i_timebase_den ? (int64_t)(((largest_pts - second_largest_pts) * p_mkv->i_timebase_num / p_mkv->i_timebase_den) + 0.5) : 0;
 
     ret = mk_close( p_mkv->w, i_last_delta );
 
