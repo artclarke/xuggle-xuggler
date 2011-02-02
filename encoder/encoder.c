@@ -992,8 +992,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
     i_slicetype_length = h->frames.i_delay;
     h->frames.i_delay += h->i_thread_frames - 1;
     h->frames.i_delay += h->param.i_sync_lookahead;
-    h->frames.i_delay += h->param.b_vfr_input && (h->param.rc.i_rc_method == X264_RC_ABR || h->param.rc.b_stat_write
-                                                 || h->param.rc.i_vbv_buffer_size);
+    h->frames.i_delay += h->param.b_vfr_input;
     h->frames.i_bframe_delay = h->param.i_bframe ? (h->param.i_bframe_pyramid ? 2 : 1) : 0;
 
     h->frames.i_max_ref0 = h->param.i_frame_reference;

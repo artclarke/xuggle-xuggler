@@ -100,7 +100,7 @@ static void x264_lookahead_thread( x264_t *h )
         shift = X264_MIN( h->lookahead->next.i_max_size - h->lookahead->next.i_size, h->lookahead->ifbuf.i_size );
         x264_lookahead_shift( &h->lookahead->next, &h->lookahead->ifbuf, shift );
         x264_pthread_mutex_unlock( &h->lookahead->next.mutex );
-        if( h->lookahead->next.i_size <= h->lookahead->i_slicetype_length )
+        if( h->lookahead->next.i_size <= h->lookahead->i_slicetype_length + h->param.b_vfr_input )
         {
             while( !h->lookahead->ifbuf.i_size && !h->lookahead->b_exit_thread )
                 x264_pthread_cond_wait( &h->lookahead->ifbuf.cv_fill, &h->lookahead->ifbuf.mutex );
