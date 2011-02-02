@@ -41,7 +41,7 @@
 
 #include "x264_config.h"
 
-#define X264_BUILD 113
+#define X264_BUILD 114
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -678,7 +678,8 @@ typedef struct
     /* In: force quantizer for != X264_QP_AUTO */
     int     i_qpplus1;
     /* In: pic_struct, for pulldown/doubling/etc...used only if b_pic_struct=1.
-     *     use pic_struct_e for pic_struct inputs */
+     *     use pic_struct_e for pic_struct inputs
+     * Out: pic_struct element associated with frame */
     int     i_pic_struct;
     /* Out: whether this frame is a keyframe.  Important when using modes that result in
      * SEI recovery points being used instead of IDR frames. */
