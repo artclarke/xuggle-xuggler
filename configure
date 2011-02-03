@@ -1,34 +1,35 @@
 #!/bin/bash
 
 if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
+cat <<EOF
+Usage: ./configure [options]
 
-echo "Usage: ./configure [options]"
-echo ""
-echo "available options:"
-echo ""
-echo "  --help                   print this message"
-echo "  --disable-avs            disables avisynth support (windows only)"
-echo "  --disable-lavf           disables libavformat support"
-echo "  --disable-ffms           disables ffmpegsource support"
-echo "  --disable-gpac           disables gpac support"
-echo "  --disable-gpl            disables GPL-only features"
-echo "  --disable-thread         disables multithreaded encoding"
-echo "  --enable-win32thread     use win32threads (windows only)"
-echo "  --disable-swscale        disables swscale support"
-echo "  --disable-asm            disables platform-specific assembly optimizations"
-echo "  --enable-debug           adds -g, doesn't strip"
-echo "  --enable-gprof           adds -pg, doesn't strip"
-echo "  --enable-visualize       enables visualization (X11 only)"
-echo "  --enable-pic             build position-independent code"
-echo "  --enable-shared          build libx264.so"
-echo "  --bit-depth=BIT_DEPTH    sets output bit depth (8-10), default 8"
-echo "  --extra-asflags=EASFLAGS add EASFLAGS to ASFLAGS"
-echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS"
-echo "  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS"
-echo "  --host=HOST              build programs to run on HOST"
-echo "  --cross-prefix=PREFIX    use PREFIX for compilation tools"
-echo "  --sysroot=SYSROOT        root of cross-build tree"
-echo ""
+available options:
+
+  --help                   print this message
+  --disable-avs            disables avisynth support (windows only)
+  --disable-lavf           disables libavformat support
+  --disable-ffms           disables ffmpegsource support
+  --disable-gpac           disables gpac support
+  --disable-gpl            disables GPL-only features
+  --disable-thread         disables multithreaded encoding
+  --enable-win32thread     use win32threads (windows only)
+  --disable-swscale        disables swscale support
+  --disable-asm            disables platform-specific assembly optimizations
+  --enable-debug           adds -g, doesn't strip
+  --enable-gprof           adds -pg, doesn't strip
+  --enable-visualize       enables visualization (X11 only)
+  --enable-pic             build position-independent code
+  --enable-shared          build shared library
+  --bit-depth=BIT_DEPTH    sets output bit depth (8-10), default 8
+  --extra-asflags=EASFLAGS add EASFLAGS to ASFLAGS
+  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS
+  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS
+  --host=HOST              build programs to run on HOST
+  --cross-prefix=PREFIX    use PREFIX for compilation tools
+  --sysroot=SYSROOT        root of cross-build tree
+
+EOF
 exit 1
 fi
 
