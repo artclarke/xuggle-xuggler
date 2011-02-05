@@ -45,6 +45,7 @@
 #ifdef _WIN32
 #include <windows.h>
 #else
+#define GetConsoleTitle(t,n)
 #define SetConsoleTitle(t)
 #endif
 
@@ -1640,6 +1641,9 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
     double  duration;
     double  pulldown_pts = 0;
     int     retval = 0;
+    char    UNUSED originalCTitle[200] = "";
+
+    GetConsoleTitle( originalCTitle, sizeof(originalCTitle) );
 
     opt->b_progress &= param->i_log_level < X264_LOG_DEBUG;
     i_update_interval = param->i_frame_total ? x264_clip3( param->i_frame_total / 1000, 1, 10 ) : 10;
@@ -1797,6 +1801,8 @@ fail:
         fprintf( stderr, "encoded %d frames, %.2f fps, %.2f kb/s\n", i_frame_output, fps,
                  (double) i_file * 8 / ( 1000 * duration ) );
     }
+
+    SetConsoleTitle( originalCTitle );
 
     return retval;
 }
