@@ -2704,7 +2704,7 @@ static inline void x264_mb_analyse_qp_rd( x264_t *h, x264_mb_analysis_t *a )
         }
 
         h->mb.i_qp += direction;
-        while( h->mb.i_qp >= h->param.rc.i_qp_min && h->mb.i_qp <= h->param.rc.i_qp_max )
+        while( h->mb.i_qp >= h->param.rc.i_qp_min && h->mb.i_qp <= SPEC_QP( h->param.rc.i_qp_max ) )
         {
             if( h->mb.i_last_qp == h->mb.i_qp )
                 last_qp_tried = 1;

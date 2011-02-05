@@ -1447,7 +1447,7 @@ int x264_ratecontrol_mb_qp( x264_t *h )
         float qp_offset = h->fdec->b_kept_as_ref ? h->fenc->f_qp_offset[h->mb.i_mb_xy] : h->fenc->f_qp_offset_aq[h->mb.i_mb_xy];
         /* Scale AQ's effect towards zero in emergency mode. */
         if( qp > QP_MAX_SPEC )
-            qp_offset *= (QP_MAX - qp) / (QP_MAX_SPEC - QP_MAX);
+            qp_offset *= (QP_MAX - qp) / (QP_MAX - QP_MAX_SPEC);
         qp += qp_offset;
     }
     return x264_clip3( qp + .5, h->param.rc.i_qp_min, h->param.rc.i_qp_max );
