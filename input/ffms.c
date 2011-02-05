@@ -45,12 +45,18 @@ typedef struct
     int reduce_pts;
     int vfr_input;
     int num_frames;
+    int64_t time;
 } ffms_hnd_t;
 
 static int FFMS_CC update_progress( int64_t current, int64_t total, void *private )
 {
-    if( current % 10 )
+    int64_t *time = private;
+    int64_t oldtime = *time;
+    int64_t newtime = x264_mdate();
+    if( oldtime && newtime - oldtime < UPDATE_INTERVAL )
         return 0;
+    *time = newtime;
+
     char buf[200];
     sprintf( buf, "ffms [info]: indexing input file [%.1f%%]", 100.0 * current / total );
     fprintf( stderr, "%s  \r", buf+5 );
@@ -79,7 +85,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     }
     if( !idx )
     {
-        idx = FFMS_MakeIndex( psz_filename, 0, 0, NULL, NULL, 0, update_progress, NULL, &e );
+        idx = FFMS_MakeIndex( psz_filename, 0, 0, NULL, NULL, 0, update_progress, &h->time, &e );
         fprintf( stderr, "                                            \r" );
         FAIL_IF_ERROR( !idx, "could not create index\n" )
         if( opt->index_file && FFMS_WriteIndex( opt->index_file, idx, &e ) )

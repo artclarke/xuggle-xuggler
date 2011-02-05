@@ -29,6 +29,9 @@
 
 #include "common/common.h"
 
+/* In microseconds */
+#define UPDATE_INTERVAL 250000
+
 typedef void *hnd_t;
 
 static inline int64_t gcd( int64_t a, int64_t b )

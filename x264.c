@@ -1574,10 +1574,13 @@ static int encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic, int64_t *la
     return i_frame_size;
 }
 
-static void print_status( int64_t i_start, int i_frame, int i_frame_total, int64_t i_file, x264_param_t *param, int64_t last_ts )
+static int64_t print_status( int64_t i_start, int64_t i_previous, int i_frame, int i_frame_total, int64_t i_file, x264_param_t *param, int64_t last_ts )
 {
     char buf[200];
-    int64_t i_elapsed = x264_mdate() - i_start;
+    int64_t i_time = x264_mdate();
+    if( i_previous && i_time - i_previous < UPDATE_INTERVAL )
+        return i_previous;
+    int64_t i_elapsed = i_time - i_start;
     double fps = i_elapsed > 0 ? i_frame * 1000000. / i_elapsed : 0;
     double bitrate;
     if( last_ts )
@@ -1598,6 +1601,7 @@ static void print_status( int64_t i_start, int i_frame, int i_frame_total, int64
     fprintf( stderr, "%s  \r", buf+5 );
     SetConsoleTitle( buf );
     fflush( stderr ); // needed in windows
+    return i_time;
 }
 
 static void convert_cli_to_lib_pic( x264_picture_t *lib, cli_pic_t *cli )
@@ -1626,10 +1630,9 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
 
     int     i_frame = 0;
     int     i_frame_output = 0;
-    int64_t i_end, i_start = 0;
+    int64_t i_end, i_previous = 0, i_start = 0;
     int64_t i_file = 0;
     int     i_frame_size;
-    int     i_update_interval;
     int64_t last_dts = 0;
     int64_t prev_dts = 0;
     int64_t first_dts = 0;
@@ -1646,7 +1649,6 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
     GetConsoleTitle( originalCTitle, sizeof(originalCTitle) );
 
     opt->b_progress &= param->i_log_level < X264_LOG_DEBUG;
-    i_update_interval = param->i_frame_total ? x264_clip3( param->i_frame_total / 1000, 1, 10 ) : 10;
 
     /* set up pulldown */
     if( opt->i_pulldown && !param->b_vfr_input )
@@ -1668,6 +1670,7 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
     FAIL_IF_ERROR2( output.set_param( opt->hout, param ), "can't set outfile param\n" );
 
     i_start = x264_mdate();
+
     /* ticks/frame = ticks/second / frames/second */
     ticks_per_frame = (int64_t)param->i_timebase_den * param->i_fps_den / param->i_timebase_num / param->i_fps_num;
     FAIL_IF_ERROR2( ticks_per_frame < 1 && !param->b_vfr_input, "ticks_per_frame invalid: %"PRId64"\n", ticks_per_frame )
@@ -1744,8 +1747,8 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
             break;
 
         /* update status line (up to 1000 times per input file) */
-        if( opt->b_progress && i_frame_output % i_update_interval == 0 && i_frame_output )
-            print_status( i_start, i_frame_output, param->i_frame_total, i_file, param, 2 * last_dts - prev_dts - first_dts );
+        if( opt->b_progress && i_frame_output )
+            i_previous = print_status( i_start, i_previous, i_frame_output, param->i_frame_total, i_file, param, 2 * last_dts - prev_dts - first_dts );
     }
     /* Flush delayed frames */
     while( !b_ctrl_c && x264_encoder_delayed_frames( h ) )
@@ -1764,8 +1767,8 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
             if( i_frame_output == 1 )
                 first_dts = prev_dts = last_dts;
         }
-        if( opt->b_progress && i_frame_output % i_update_interval == 0 && i_frame_output )
-            print_status( i_start, i_frame_output, param->i_frame_total, i_file, param, 2 * last_dts - prev_dts - first_dts );
+        if( opt->b_progress && i_frame_output )
+            i_previous = print_status( i_start, i_previous, i_frame_output, param->i_frame_total, i_file, param, 2 * last_dts - prev_dts - first_dts );
     }
 fail:
     if( pts_warning_cnt >= MAX_PTS_WARNING && cli_log_level < X264_LOG_DEBUG )
