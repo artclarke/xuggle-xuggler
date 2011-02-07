@@ -1132,9 +1132,14 @@ static void x264_slicetype_path( x264_t *h, x264_mb_analysis_t *a, x264_frame_t 
     memcpy( best_paths[length % (X264_BFRAME_MAX+1)], paths[idx^1], length );
 }
 
-static int scenecut_internal( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, int p0, int p1, int print )
+static int scenecut_internal( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, int p0, int p1, int real_scenecut )
 {
     x264_frame_t *frame = frames[p1];
+
+    /* Don't do scenecuts on the right view of a frame-packed video. */
+    if( real_scenecut && h->param.i_frame_packing == 5 && (frame->i_frame&1) )
+        return 0;
+
     x264_slicetype_frame_cost( h, a, frames, p0, p1, p1, 0 );
 
     int icost = frame->i_cost_est[0][0];
@@ -1161,7 +1166,7 @@ static int scenecut_internal( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **f
     }
 
     res = pcost >= (1.0 - f_bias) * icost;
-    if( res && print )
+    if( res && real_scenecut )
     {
         int imb = frame->i_intra_mbs[p1-p0];
         int pmb = NUM_MBS - imb;
