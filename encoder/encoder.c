@@ -1065,8 +1065,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
         p += sprintf( p, " none!" );
     x264_log( h, X264_LOG_INFO, "%s\n", buf );
 
-    int qp_max = h->param.rc.i_qp_max == QP_MAX_SPEC ? QP_MAX : h->param.rc.i_qp_max;
-    for( qp = X264_MIN( h->param.rc.i_qp_min, QP_MAX_SPEC ); qp <= qp_max; qp++ )
+    for( qp = X264_MIN( h->param.rc.i_qp_min, QP_MAX_SPEC ); qp <= h->param.rc.i_qp_max; qp++ )
         if( x264_analyse_init_costs( h, qp ) )
             goto fail;
     if( x264_analyse_init_costs( h, X264_LOOKAHEAD_QP ) )
