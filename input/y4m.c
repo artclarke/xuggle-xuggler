@@ -136,7 +136,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
                 }
                 break;
             case 'F': /* Frame rate - 0:0 if unknown */
-                if( sscanf( tokstart, "%d:%d", &n, &d ) == 2 && n && d )
+                if( sscanf( tokstart, "%u:%u", &n, &d ) == 2 && n && d )
                 {
                     x264_reduce_fraction( &n, &d );
                     info->fps_num = n;
@@ -146,7 +146,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
                 break;
             case 'A': /* Pixel aspect - 0:0 if unknown */
                 /* Don't override the aspect ratio if sar has been explicitly set on the commandline. */
-                if( sscanf( tokstart, "%d:%d", &n, &d ) == 2 && n && d )
+                if( sscanf( tokstart, "%u:%u", &n, &d ) == 2 && n && d )
                 {
                     x264_reduce_fraction( &n, &d );
                     info->sar_width  = n;

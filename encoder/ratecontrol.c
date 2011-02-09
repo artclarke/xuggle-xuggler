@@ -981,11 +981,11 @@ static int parse_zone( x264_t *h, x264_zone_t *z, char *p )
     char *tok, UNUSED *saveptr=NULL;
     z->param = NULL;
     z->f_bitrate_factor = 1;
-    if( 3 <= sscanf(p, "%u,%u,q=%u%n", &z->i_start, &z->i_end, &z->i_qp, &len) )
+    if( 3 <= sscanf(p, "%d,%d,q=%d%n", &z->i_start, &z->i_end, &z->i_qp, &len) )
         z->b_force_qp = 1;
-    else if( 3 <= sscanf(p, "%u,%u,b=%f%n", &z->i_start, &z->i_end, &z->f_bitrate_factor, &len) )
+    else if( 3 <= sscanf(p, "%d,%d,b=%f%n", &z->i_start, &z->i_end, &z->f_bitrate_factor, &len) )
         z->b_force_qp = 0;
-    else if( 2 <= sscanf(p, "%u,%u%n", &z->i_start, &z->i_end, &len) )
+    else if( 2 <= sscanf(p, "%d,%d%n", &z->i_start, &z->i_end, &len) )
         z->b_force_qp = 0;
     else
     {
