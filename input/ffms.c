@@ -50,12 +50,12 @@ typedef struct
 
 static int FFMS_CC update_progress( int64_t current, int64_t total, void *private )
 {
-    int64_t *time = private;
-    int64_t oldtime = *time;
+    int64_t *update_time = private;
+    int64_t oldtime = *update_time;
     int64_t newtime = x264_mdate();
     if( oldtime && newtime - oldtime < UPDATE_INTERVAL )
         return 0;
-    *time = newtime;
+    *update_time = newtime;
 
     char buf[200];
     sprintf( buf, "ffms [info]: indexing input file [%.1f%%]", 100.0 * current / total );
