@@ -125,33 +125,36 @@ static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest
 
     if( p_mp4->p_file )
     {
-        /* The mdhd duration is defined as CTS[final] - CTS[0] + duration of last frame.
-         * The mdhd duration (in seconds) should be able to be longer than the tkhd duration since the track is managed by edts.
-         * So, if mdhd duration is equal to the last DTS or less, we give the last composition time delta to the last sample duration.
-         * And then, the mdhd duration is updated, but it time-wise doesn't give the actual duration.
-         * The tkhd duration is the actual track duration. */
-        uint64_t mdhd_duration = (2 * largest_pts - second_largest_pts) * p_mp4->i_time_inc;
-        if( mdhd_duration != gf_isom_get_media_duration( p_mp4->p_file, p_mp4->i_track ) )
+        if( p_mp4->i_track )
         {
-            uint64_t last_dts = gf_isom_get_sample_dts( p_mp4->p_file, p_mp4->i_track, p_mp4->i_numframe );
-            uint32_t last_duration = (uint32_t)( mdhd_duration > last_dts ? mdhd_duration - last_dts : (largest_pts - second_largest_pts) * p_mp4->i_time_inc );
-            gf_isom_set_last_sample_duration( p_mp4->p_file, p_mp4->i_track, last_duration );
-        }
+            /* The mdhd duration is defined as CTS[final] - CTS[0] + duration of last frame.
+             * The mdhd duration (in seconds) should be able to be longer than the tkhd duration since the track is managed by edts.
+             * So, if mdhd duration is equal to the last DTS or less, we give the last composition time delta to the last sample duration.
+             * And then, the mdhd duration is updated, but it time-wise doesn't give the actual duration.
+             * The tkhd duration is the actual track duration. */
+            uint64_t mdhd_duration = (2 * largest_pts - second_largest_pts) * p_mp4->i_time_inc;
+            if( mdhd_duration != gf_isom_get_media_duration( p_mp4->p_file, p_mp4->i_track ) )
+            {
+                uint64_t last_dts = gf_isom_get_sample_dts( p_mp4->p_file, p_mp4->i_track, p_mp4->i_numframe );
+                uint32_t last_duration = (uint32_t)( mdhd_duration > last_dts ? mdhd_duration - last_dts : (largest_pts - second_largest_pts) * p_mp4->i_time_inc );
+                gf_isom_set_last_sample_duration( p_mp4->p_file, p_mp4->i_track, last_duration );
+            }
 
-        /* Write an Edit Box if the first CTS offset is positive.
-         * A media_time is given by not the mvhd timescale but rather the mdhd timescale.
-         * The reason is that an Edit Box maps the presentation time-line to the media time-line.
-         * Any demuxers should follow the Edit Box if it exists. */
-        GF_ISOSample *sample = gf_isom_get_sample_info( p_mp4->p_file, p_mp4->i_track, 1, NULL, NULL );
-        if( sample && sample->CTS_Offset > 0 )
-        {
-            uint32_t mvhd_timescale = gf_isom_get_timescale( p_mp4->p_file );
-            uint64_t tkhd_duration = (uint64_t)( mdhd_duration * ( (double)mvhd_timescale / p_mp4->i_time_res ) );
-            gf_isom_append_edit_segment( p_mp4->p_file, p_mp4->i_track, tkhd_duration, sample->CTS_Offset, GF_ISOM_EDIT_NORMAL );
-        }
-        gf_isom_sample_del( &sample );
+            /* Write an Edit Box if the first CTS offset is positive.
+             * A media_time is given by not the mvhd timescale but rather the mdhd timescale.
+             * The reason is that an Edit Box maps the presentation time-line to the media time-line.
+             * Any demuxers should follow the Edit Box if it exists. */
+            GF_ISOSample *sample = gf_isom_get_sample_info( p_mp4->p_file, p_mp4->i_track, 1, NULL, NULL );
+            if( sample && sample->CTS_Offset > 0 )
+            {
+                uint32_t mvhd_timescale = gf_isom_get_timescale( p_mp4->p_file );
+                uint64_t tkhd_duration = (uint64_t)( mdhd_duration * ( (double)mvhd_timescale / p_mp4->i_time_res ) );
+                gf_isom_append_edit_segment( p_mp4->p_file, p_mp4->i_track, tkhd_duration, sample->CTS_Offset, GF_ISOM_EDIT_NORMAL );
+            }
+            gf_isom_sample_del( &sample );
 
-        recompute_bitrate_mp4( p_mp4->p_file, p_mp4->i_track );
+            recompute_bitrate_mp4( p_mp4->p_file, p_mp4->i_track );
+        }
         gf_isom_set_pl_indication( p_mp4->p_file, GF_ISOM_PL_VISUAL, 0x15 );
         gf_isom_set_storage_mode( p_mp4->p_file, GF_ISOM_STORE_FLAT );
         gf_isom_close( p_mp4->p_file );
