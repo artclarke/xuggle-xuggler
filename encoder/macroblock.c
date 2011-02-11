@@ -1175,7 +1175,7 @@ void x264_macroblock_encode_p8x8( x264_t *h, int i8 )
             p_fenc = h->mb.pic.p_fenc[1+ch] + 4*x + 4*y*FENC_STRIDE;
             p_fdec = h->mb.pic.p_fdec[1+ch] + 4*x + 4*y*FDEC_STRIDE;
             h->dctf.sub4x4_dct( dct4x4, p_fenc, p_fdec );
-            if( h->mb.b_noise_reduction );
+            if( h->mb.b_noise_reduction )
                 h->quantf.denoise_dct( dct4x4, h->nr_residual_sum[2], h->nr_offset[2], 16 );
             dct4x4[0] = 0;
 
