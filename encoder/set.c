@@ -50,16 +50,16 @@ static void scaling_list_write( bs_t *s, x264_pps_t *pps, int idx )
                             : (idx==CQM_4PC) ? pps->scaling_list[CQM_4PY]
                             : x264_cqm_jvt[idx];
     if( !memcmp( list, def_list, len ) )
-        bs_write( s, 1, 0 ); // scaling_list_present_flag
+        bs_write1( s, 0 );   // scaling_list_present_flag
     else if( !memcmp( list, x264_cqm_jvt[idx], len ) )
     {
-        bs_write( s, 1, 1 ); // scaling_list_present_flag
+        bs_write1( s, 1 );   // scaling_list_present_flag
         bs_write_se( s, -8 ); // use jvt list
     }
     else
     {
         int run;
-        bs_write( s, 1, 1 ); // scaling_list_present_flag
+        bs_write1( s, 1 );   // scaling_list_present_flag
 
         // try run-length compression of trailing values
         for( run = len; run > 1; run-- )
@@ -271,10 +271,10 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
 {
     bs_realign( s );
     bs_write( s, 8, sps->i_profile_idc );
-    bs_write( s, 1, sps->b_constraint_set0 );
-    bs_write( s, 1, sps->b_constraint_set1 );
-    bs_write( s, 1, sps->b_constraint_set2 );
-    bs_write( s, 1, sps->b_constraint_set3 );
+    bs_write1( s, sps->b_constraint_set0 );
+    bs_write1( s, sps->b_constraint_set1 );
+    bs_write1( s, sps->b_constraint_set2 );
+    bs_write1( s, sps->b_constraint_set3 );
 
     bs_write( s, 4, 0 );    /* reserved */
 
@@ -287,8 +287,8 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
         bs_write_ue( s, 1 ); // chroma_format_idc = 4:2:0
         bs_write_ue( s, BIT_DEPTH-8 ); // bit_depth_luma_minus8
         bs_write_ue( s, BIT_DEPTH-8 ); // bit_depth_chroma_minus8
-        bs_write( s, 1, sps->b_qpprime_y_zero_transform_bypass );
-        bs_write( s, 1, 0 ); // seq_scaling_matrix_present_flag
+        bs_write1( s, sps->b_qpprime_y_zero_transform_bypass );
+        bs_write1( s, 0 ); // seq_scaling_matrix_present_flag
     }
 
     bs_write_ue( s, sps->i_log2_max_frame_num - 4 );
@@ -299,7 +299,7 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
     }
     else if( sps->i_poc_type == 1 )
     {
-        bs_write( s, 1, sps->b_delta_pic_order_always_zero );
+        bs_write1( s, sps->b_delta_pic_order_always_zero );
         bs_write_se( s, sps->i_offset_for_non_ref_pic );
         bs_write_se( s, sps->i_offset_for_top_to_bottom_field );
         bs_write_ue( s, sps->i_num_ref_frames_in_poc_cycle );
@@ -308,15 +308,15 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
             bs_write_se( s, sps->i_offset_for_ref_frame[i] );
     }
     bs_write_ue( s, sps->i_num_ref_frames );
-    bs_write( s, 1, sps->b_gaps_in_frame_num_value_allowed );
+    bs_write1( s, sps->b_gaps_in_frame_num_value_allowed );
     bs_write_ue( s, sps->i_mb_width - 1 );
     bs_write_ue( s, (sps->i_mb_height >> !sps->b_frame_mbs_only) - 1);
-    bs_write( s, 1, sps->b_frame_mbs_only );
+    bs_write1( s, sps->b_frame_mbs_only );
     if( !sps->b_frame_mbs_only )
-        bs_write( s, 1, sps->b_mb_adaptive_frame_field );
-    bs_write( s, 1, sps->b_direct8x8_inference );
+        bs_write1( s, sps->b_mb_adaptive_frame_field );
+    bs_write1( s, sps->b_direct8x8_inference );
 
-    bs_write( s, 1, sps->b_crop );
+    bs_write1( s, sps->b_crop );
     if( sps->b_crop )
     {
         bs_write_ue( s, sps->crop.i_left   / 2 );
@@ -325,7 +325,7 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
         bs_write_ue( s, sps->crop.i_bottom / 2 );
     }
 
-    bs_write( s, 1, sps->b_vui );
+    bs_write1( s, sps->b_vui );
     if( sps->b_vui )
     {
         bs_write1( s, sps->vui.b_aspect_ratio_info_present );
@@ -494,35 +494,35 @@ void x264_pps_write( bs_t *s, x264_pps_t *pps )
     bs_write_ue( s, pps->i_id );
     bs_write_ue( s, pps->i_sps_id );
 
-    bs_write( s, 1, pps->b_cabac );
-    bs_write( s, 1, pps->b_pic_order );
+    bs_write1( s, pps->b_cabac );
+    bs_write1( s, pps->b_pic_order );
     bs_write_ue( s, pps->i_num_slice_groups - 1 );
 
     bs_write_ue( s, pps->i_num_ref_idx_l0_default_active - 1 );
     bs_write_ue( s, pps->i_num_ref_idx_l1_default_active - 1 );
-    bs_write( s, 1, pps->b_weighted_pred );
+    bs_write1( s, pps->b_weighted_pred );
     bs_write( s, 2, pps->b_weighted_bipred );
 
     bs_write_se( s, pps->i_pic_init_qp - 26 - QP_BD_OFFSET );
     bs_write_se( s, pps->i_pic_init_qs - 26 - QP_BD_OFFSET );
     bs_write_se( s, pps->i_chroma_qp_index_offset );
 
-    bs_write( s, 1, pps->b_deblocking_filter_control );
-    bs_write( s, 1, pps->b_constrained_intra_pred );
-    bs_write( s, 1, pps->b_redundant_pic_cnt );
+    bs_write1( s, pps->b_deblocking_filter_control );
+    bs_write1( s, pps->b_constrained_intra_pred );
+    bs_write1( s, pps->b_redundant_pic_cnt );
 
     if( pps->b_transform_8x8_mode || pps->i_cqm_preset != X264_CQM_FLAT )
     {
-        bs_write( s, 1, pps->b_transform_8x8_mode );
-        bs_write( s, 1, (pps->i_cqm_preset != X264_CQM_FLAT) );
+        bs_write1( s, pps->b_transform_8x8_mode );
+        bs_write1( s, (pps->i_cqm_preset != X264_CQM_FLAT) );
         if( pps->i_cqm_preset != X264_CQM_FLAT )
         {
             scaling_list_write( s, pps, CQM_4IY );
             scaling_list_write( s, pps, CQM_4IC );
-            bs_write( s, 1, 0 ); // Cr = Cb
+            bs_write1( s, 0 ); // Cr = Cb
             scaling_list_write( s, pps, CQM_4PY );
             scaling_list_write( s, pps, CQM_4PC );
-            bs_write( s, 1, 0 ); // Cr = Cb
+            bs_write1( s, 0 ); // Cr = Cb
             if( pps->b_transform_8x8_mode )
             {
                 scaling_list_write( s, pps, CQM_8IY+4 );
@@ -545,8 +545,8 @@ void x264_sei_recovery_point_write( x264_t *h, bs_t *s, int recovery_frame_cnt )
     bs_realign( &q );
 
     bs_write_ue( &q, recovery_frame_cnt ); // recovery_frame_cnt
-    bs_write( &q, 1, 1 ); //exact_match_flag 1
-    bs_write( &q, 1, 0 ); //broken_link_flag 0
+    bs_write1( &q, 1 );   //exact_match_flag 1
+    bs_write1( &q, 0 );   //broken_link_flag 0
     bs_write( &q, 2, 0 ); //changing_slice_group 0
 
     bs_align_10( &q );
