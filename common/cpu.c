@@ -102,7 +102,7 @@ uint32_t x264_cpu_detect( void )
     uint32_t cpu = 0;
     uint32_t eax, ebx, ecx, edx;
     uint32_t vendor[4] = {0};
-    int max_extended_cap;
+    uint32_t max_extended_cap;
     int cache;
 
 #if !ARCH_X86_64
