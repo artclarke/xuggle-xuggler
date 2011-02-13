@@ -3318,6 +3318,12 @@ void    x264_encoder_close  ( x264_t *h )
 
     h = h->thread[0];
 
+    for( int i = 0; i < h->i_thread_frames; i++ )
+        if( h->thread[i]->b_thread_active )
+            for( int j = 0; j < h->thread[i]->i_ref[0]; j++ )
+                if( h->thread[i]->fref[0][j] && h->thread[i]->fref[0][j]->b_duplicate )
+                    x264_frame_delete( h->thread[i]->fref[0][j] );
+
     for( int i = h->param.i_threads - 1; i >= 0; i-- )
     {
         x264_frame_t **frame;
