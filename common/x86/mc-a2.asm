@@ -323,12 +323,18 @@ cglobal hpel_filter_v_%1, 5,6,%2
     lea r2, [r2+r4*2]
     neg r4
 %if %3
-    mova m0, [filt_mul15]
-%else
     pxor m0, m0
+%else
+    mova m0, [filt_mul15]
 %endif
 .loop:
 %if %3
+    LOAD_ADD_2 m1, m4, [r1     ], [r5+r3*2], m6, m7            ; a0 / a1
+    LOAD_ADD_2 m2, m5, [r1+r3  ], [r5+r3  ], m6, m7            ; b0 / b1
+    LOAD_ADD   m3,     [r1+r3*2], [r5     ], m7                ; c0
+    LOAD_ADD   m6,     [r1+r3*2+mmsize/2], [r5+mmsize/2], m7   ; c1
+    FILT_V2 m1, m2, m3, m4, m5, m6
+%else
     mova m1, [r1]
     mova m4, [r1+r3]
     mova m2, [r5+r3*2]
@@ -348,12 +354,6 @@ cglobal hpel_filter_v_%1, 5,6,%2
     paddw  m4, m5
     paddw  m1, m3
     paddw  m4, m6
-%else
-    LOAD_ADD_2 m1, m4, [r1     ], [r5+r3*2], m6, m7            ; a0 / a1
-    LOAD_ADD_2 m2, m5, [r1+r3  ], [r5+r3  ], m6, m7            ; b0 / b1
-    LOAD_ADD   m3,     [r1+r3*2], [r5     ], m7                ; c0
-    LOAD_ADD   m6,     [r1+r3*2+mmsize/2], [r5+mmsize/2], m7   ; c1
-    FILT_V2 m1, m2, m3, m4, m5, m6
 %endif
     mova      m7, [pw_16]
     mova      [r2+r4*2], m1
