@@ -2015,6 +2015,7 @@ static int x264_slice_write( x264_t *h )
         last_emu_check = h->out.bs.p;
     h->mb.i_last_qp = h->sh.i_qp;
     h->mb.i_last_dqp = 0;
+    h->mb.field_decoding_flag = 0;
 
     i_mb_y = h->sh.i_first_mb / h->mb.i_mb_width;
     i_mb_x = h->sh.i_first_mb % h->mb.i_mb_width;

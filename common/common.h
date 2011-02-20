@@ -623,8 +623,10 @@ struct x264_t
         int     i_mb_topleft_y;
         int     i_mb_topright_y;
         x264_left_table_t *left_index_table;
+        int     i_mb_top_mbpair_xy;
         int     topleft_partition;
         int     b_allow_skip;
+        int     field_decoding_flag;
 
         /**** thread synchronization ends here ****/
         /* subsequent variables are either thread-local or constant,
@@ -748,7 +750,6 @@ struct x264_t
 
             /* number of neighbors (top and left) that used 8x8 dct */
             int     i_neighbour_transform_size;
-            int     i_neighbour_interlaced;
 
             /* neighbor CBPs */
             int     i_cbp_top;

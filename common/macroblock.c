@@ -458,7 +458,7 @@ void x264_macroblock_thread_init( x264_t *h )
                          (h->sh.i_type == SLICE_TYPE_B && h->mb.i_subpel_refine >= 9));
     h->mb.b_dct_decimate = h->sh.i_type == SLICE_TYPE_B ||
                           (h->param.analyse.b_dct_decimate && h->sh.i_type != SLICE_TYPE_I);
-
+    h->mb.i_mb_prev_xy = -1;
 
     /* fdec:      fenc:
      * yyyyyyy
@@ -623,6 +623,7 @@ static void inline x264_macroblock_cache_load_neighbours( x264_t *h, int mb_x, i
     h->mb.i_mb_topright_xy = -1;
     h->mb.i_mb_topleft_y = -1;
     h->mb.i_mb_topright_y = -1;
+    h->mb.i_mb_top_mbpair_xy = h->mb.i_mb_xy - 2*h->mb.i_mb_stride;
     h->mb.i_mb_type_top = -1;
     h->mb.i_mb_type_left[0] = h->mb.i_mb_type_left[1] = -1;
     h->mb.i_mb_type_topleft = -1;
@@ -884,9 +885,6 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
     {
         h->mb.pic.i_fref[0] = h->i_ref[0] << h->mb.b_interlaced;
         h->mb.pic.i_fref[1] = h->i_ref[1] << h->mb.b_interlaced;
-        h->mb.cache.i_neighbour_interlaced =
-            !!(h->mb.i_neighbour & MB_LEFT && h->mb.field[left[0]])
-          + !!(h->mb.i_neighbour & MB_TOP && h->mb.field[top]);
     }
 
     if( !h->param.b_interlaced )
@@ -1109,11 +1107,17 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
         }
     }
 
+    if( h->sh.b_mbaff && mb_x == 0 && !(mb_y&1) && mb_y > 0 )
+        h->mb.field_decoding_flag = h->mb.field[h->mb.i_mb_xy - h->mb.i_mb_stride];
+
     /* Check whether skip here would cause decoder to predict interlace mode incorrectly.
      * FIXME: It might be better to change the interlace type rather than forcing a skip to be non-skip. */
     h->mb.b_allow_skip = 1;
     if( h->sh.b_mbaff )
     {
+        if( h->mb.b_interlaced != h->mb.field_decoding_flag &&
+            h->mb.i_mb_prev_xy >= 0 && IS_SKIP(h->mb.type[h->mb.i_mb_prev_xy]) )
+            h->mb.b_allow_skip = 0;
         if( (mb_y&1) && IS_SKIP(h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride]) )
         {
             if( h->mb.i_neighbour & MB_LEFT )

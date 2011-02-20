@@ -66,15 +66,31 @@ static inline void x264_cabac_mb_type_intra( x264_t *h, x264_cabac_t *cb, int i_
     }
 }
 
+#if !RDO_SKIP_BS
+static void x264_cabac_field_decoding_flag( x264_t *h, x264_cabac_t *cb )
+{
+    int ctx = 0;
+    ctx += h->mb.field_decoding_flag & !!h->mb.i_mb_x;
+    ctx += (h->mb.i_mb_top_mbpair_xy >= 0
+            && h->mb.slice_table[h->mb.i_mb_top_mbpair_xy] == h->sh.i_first_mb
+            && h->mb.field[h->mb.i_mb_top_mbpair_xy]);
+
+    x264_cabac_encode_decision_noup( cb, 70 + ctx, h->mb.b_interlaced );
+    h->mb.field_decoding_flag = h->mb.b_interlaced;
+}
+#endif
+
 static void x264_cabac_mb_type( x264_t *h, x264_cabac_t *cb )
 {
     const int i_mb_type = h->mb.i_type;
 
+#if !RDO_SKIP_BS
     if( h->sh.b_mbaff &&
         (!(h->mb.i_mb_y & 1) || IS_SKIP(h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride])) )
     {
-        x264_cabac_encode_decision_noup( cb, 70 + h->mb.cache.i_neighbour_interlaced, h->mb.b_interlaced );
+        x264_cabac_field_decoding_flag( h, cb );
     }
+#endif
 
     if( h->sh.i_type == SLICE_TYPE_I )
     {
