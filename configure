@@ -49,6 +49,47 @@ log_msg() {
     echo "$1" >> config.log
 }
 
+intel_cflags() {
+    # Intel Compiler issues an incredibly large number of warnings on any warning level,
+    # suppress them by disabling all warnings rather than having to use #pragmas to disable most of them
+    for arg in $*; do
+        [ $arg = -ffast-math ] && arg=
+        [[ "$arg" = -falign-loops* ]] && arg=
+        [ "$arg" = -fno-tree-vectorize ] && arg=
+        [ "$arg" = -Wshadow ] && arg=
+        if [ $compiler = ICL ]; then
+            [ "$arg" = -Wall ] && arg=-W0
+            [ "$arg" = -g ] && arg=-Z7
+            [ "$arg" = -fomit-frame-pointer ] && arg=
+            [ "$arg" = -s ] && arg=
+            [ "$arg" = -fPIC ] && arg=
+        else
+            [ "$arg" = -Wall ] && arg=-w0
+        fi
+
+        # Intel Compiler on Mac OS X does not allow pre -msse3
+        [ $SYS = MACOSX -a \( "$arg" = -mia32 -o "$arg" = -msse -o "$arg" = -msse2 \) ] && arg=
+        [ -n "$arg" ] && echo -n "$arg "
+    done
+}
+
+icl_ldflags() {
+    for arg in $*; do
+        arg=${arg/LIBPATH/libpath}
+        [ ${arg#-libpath:} == $arg -a ${arg#-l} != $arg ] && arg=${arg#-l}.lib
+        [ ${arg#-L} != $arg ] && arg=-libpath:${arg#-L}
+        [ $arg = -Wl,--large-address-aware ] && arg=-largeaddressaware
+        [ $arg = -s ] && arg=
+        [ "$arg" = -Wl,-Bsymbolic ] && arg=
+
+        arg=${arg/pthreadGC/pthreadVC}
+        [ "$arg" = avifil32.lib ] && arg=vfw32.lib
+        [ "$arg" = gpac_static.lib ] && arg=libgpac_static.lib
+
+        [ -n "$arg" ] && echo -n "$arg "
+    done
+}
+
 cc_check() {
     if [ -z "$3" ]; then
         if [ -z "$1$2" ]; then
@@ -66,7 +107,12 @@ cc_check() {
     rm -f conftest.c
     [ -n "$1" ] && echo "#include <$1>" > conftest.c
     echo "int main () { $3 return 0; }" >> conftest.c
-    if $CC conftest.c $CFLAGS $2 $LDFLAGSCLI $LDFLAGS -o conftest >conftest.log 2>&1; then
+    if [ $compiler = ICL ]; then
+        cc_cmd="$CC conftest.c $CFLAGS $2 -link $(icl_ldflags $2 $LDFLAGSCLI $LDFLAGS)"
+    else
+        cc_cmd="$CC conftest.c $CFLAGS $2 $LDFLAGSCLI $LDFLAGS -o conftest"
+    fi
+    if $cc_cmd >conftest.log 2>&1; then
         res=$?
         log_ok
     else
@@ -74,7 +120,7 @@ cc_check() {
         log_fail
         log_msg "Failed commandline was:"
         log_msg "--------------------------------------------------"
-        log_msg "$CC conftest.c $CFLAGS $2 $LDFLAGSCLI $LDFLAGS"
+        log_msg "$cc_cmd"
         cat conftest.log >> config.log
         log_msg "--------------------------------------------------"
         log_msg "Failed program was:"
@@ -140,7 +186,7 @@ die() {
     exit 1
 }
 
-rm -f x264_config.h config.h config.mak config.log x264.pc conftest*
+rm -f x264_config.h config.h config.mak config.log x264.pc x264.def conftest*
 
 prefix='/usr/local'
 exec_prefix='${prefix}'
@@ -163,6 +209,7 @@ pic="no"
 vis="no"
 shared="no"
 bit_depth="8"
+compiler="GNU"
 
 CFLAGS="$CFLAGS -Wall -I."
 LDFLAGS="$LDFLAGS"
@@ -290,6 +337,28 @@ host="${host#*-}"
 host_vendor="${host%%-*}"
 host_os="${host#*-}"
 
+# test for use of Intel Compiler
+if [[ $host_os = mingw* || $host_os = cygwin* ]]; then
+    if [[ `basename "$CC"` = icl* ]]; then
+        # Windows Intel Compiler creates dependency generation with absolute Windows paths, Cygwin's make does not support Windows paths.
+        [[ $host_os = cygwin* ]] && die "Windows Intel Compiler support requires MSYS"
+        ARCHPRE="-arch:"
+        compiler=ICL
+        CFLAGS="$CFLAGS -Qstd=c99 -nologo -Qms0 -DHAVE_STRING_H -Iextras"
+        QPRE="-Q"
+        `$CC 2>&1 | grep -q IA-32` && host_cpu=i486
+        `$CC 2>&1 | grep -q "Intel(R) 64"` && host_cpu=x86_64
+        cpp_check "" "" "_MSC_VER >= 1400" || die "Windows Intel Compiler support requires Visual Studio 2005 or newer"
+    fi
+else
+    if [[ `basename "$CC"` = icc* ]]; then
+        AR="xiar"
+        ARCHPRE="-m"
+        compiler=ICC
+        QPRE="-"
+    fi
+fi
+
 case $host_os in
     beos*)
         SYS="BEOS"
@@ -326,7 +395,7 @@ case $host_os in
         LDFLAGS="$LDFLAGS -lm"
         ;;
     cygwin*)
-        SYS="MINGW"
+        SYS="WINDOWS"
         EXE=".exe"
         DEVNULL="NUL"
         if cc_check "" -mno-cygwin; then
@@ -335,7 +404,7 @@ case $host_os in
         fi
         ;;
     mingw*)
-        SYS="MINGW"
+        SYS="WINDOWS"
         EXE=".exe"
         DEVNULL="NUL"
         ;;
@@ -355,15 +424,37 @@ case $host_cpu in
         ARCH="X86"
         AS="yasm"
         ASFLAGS="$ASFLAGS -O2"
-        if [[ "$asm" == auto && "$CFLAGS" != *-march* ]]; then
-            CFLAGS="$CFLAGS -march=i686"
-        fi
-        if [[ "$asm" == auto && "$CFLAGS" != *-mfpmath* ]]; then
-            CFLAGS="$CFLAGS -mfpmath=sse -msse"
+        if [ $compiler = GNU ]; then
+            if [[ "$asm" == auto && "$CFLAGS" != *-march* ]]; then
+                CFLAGS="$CFLAGS -march=i686"
+            fi
+            if [[ "$asm" == auto && "$CFLAGS" != *-mfpmath* ]]; then
+                CFLAGS="$CFLAGS -mfpmath=sse -msse"
+            fi
+        else
+            # Intel Compiler >= 11 generally defaults to SSE2 optimization. -msse is also deprecated for -mia32
+            if cpp_check "" "" "__INTEL_COMPILER >= 1100" \
+             && ! (echo $CFLAGS | grep -Eiq "(${ARCHPRE}ia32|${ARCHPRE}sse|${ARCHPRE}ssse3|${ARCHPRE}avx)") \
+             && [[ "$CFLAGS" != *${QPRE}x* ]]; then
+                CFLAGS="$CFLAGS ${ARCHPRE}ia32"
+            fi
+            # icc on linux has various degrees of mod16 stack support
+            if [ $SYS = LINUX ]; then
+                # < 11 is completely incapable of keeping a mod16 stack
+                if cpp_check "" "" "__INTEL_COMPILER < 1100" ; then
+                    define BROKEN_STACK_ALIGNMENT
+                # 11 <= x < 12 is capable of keeping a mod16 stack, but defaults to not doing so.
+                elif cpp_check "" "" "__INTEL_COMPILER < 1200" ; then
+                    CFLAGS="$CFLAGS -falign-stack=assume-16-byte"
+                fi
+                # >= 12 defaults to a mod16 stack
+            fi
+            # icl on windows has no mod16 stack support
+            [ $SYS = WINDOWS ] && define BROKEN_STACK_ALIGNMENT
         fi
         if [ "$SYS" = MACOSX ]; then
             ASFLAGS="$ASFLAGS -f macho -DPREFIX"
-        elif [ "$SYS" = MINGW ]; then
+        elif [ "$SYS" = WINDOWS ]; then
             ASFLAGS="$ASFLAGS -f win32 -DPREFIX"
             LDFLAGS="$LDFLAGS -Wl,--large-address-aware"
         else
@@ -379,9 +470,10 @@ case $host_cpu in
                 CFLAGS="$CFLAGS -arch x86_64"
                 LDFLAGS="$LDFLAGS -arch x86_64"
             fi
-        elif [ "$SYS" = MINGW ]; then
+        elif [ "$SYS" = WINDOWS ]; then
             ASFLAGS="$ASFLAGS -f win32 -m amd64"
-            cc_check "" "-S" && grep -q "_main:" conftest && ASFLAGS="$ASFLAGS -DPREFIX"
+            # only the GNU toolchain is inconsistent in prefixing function names with _
+            [ $compiler = GNU ] && cc_check "" "-S" && grep -q "_main:" conftest && ASFLAGS="$ASFLAGS -DPREFIX"
         else
             ASFLAGS="$ASFLAGS -f elf -m amd64"
         fi
@@ -460,10 +552,12 @@ log_msg ""
 
 cc_check || die "No working C compiler found."
 
-if cc_check '' -std=gnu99 ; then
-    CFLAGS="$CFLAGS -std=gnu99"
-elif cc_check '' -std=c99 ; then
-    CFLAGS="$CFLAGS -std=c99 -D_POSIX_C_SOURCE=200112L -D_BSD_SOURCE"
+if [ $compiler != ICL ]; then
+    if cc_check '' -std=gnu99 ; then
+        CFLAGS="$CFLAGS -std=gnu99"
+    elif cc_check '' -std=c99 ; then
+        CFLAGS="$CFLAGS -std=c99 -D_POSIX_C_SOURCE=200112L -D_BSD_SOURCE"
+    fi
 fi
 
 if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" -o $ARCH = "ARM" -o $ARCH = "IA64" \) ] ; then
@@ -510,18 +604,21 @@ fi
 define ARCH_$ARCH
 define SYS_$SYS
 
-echo "int i[2] = {0x42494745,0}; double f[2] = {0x1.0656e6469616ep+102,0};" > conftest.c
-$CC $CFLAGS conftest.c -c -o conftest.o 2>$DEVNULL || die "endian test failed"
-if (${cross_prefix}strings -a conftest.o | grep -q BIGE) && (${cross_prefix}strings -a conftest.o | grep -q FPendian) ; then
-    define WORDS_BIGENDIAN
-elif !(${cross_prefix}strings -a conftest.o | grep -q EGIB && ${cross_prefix}strings -a conftest.o | grep -q naidnePF) ; then
-    die "endian test failed"
+# skip endianness check for Intel Compiler, as all supported platforms are little. the -ipo flag will also cause the check to fail
+if [ $compiler = GNU ]; then
+    echo "int i[2] = {0x42494745,0}; double f[2] = {0x1.0656e6469616ep+102,0};" > conftest.c
+    $CC $CFLAGS conftest.c -c -o conftest.o 2>$DEVNULL || die "endian test failed"
+    if (${cross_prefix}strings -a conftest.o | grep -q BIGE) && (${cross_prefix}strings -a conftest.o | grep -q FPendian) ; then
+        define WORDS_BIGENDIAN
+    elif !(${cross_prefix}strings -a conftest.o | grep -q EGIB && ${cross_prefix}strings -a conftest.o | grep -q naidnePF) ; then
+        die "endian test failed"
+    fi
 fi
 
 # autodetect options that weren't forced nor disabled
 
 # pthread-win32 is lgpl, prevent its use if --disable-gpl is specified and targeting windows
-[ "$SYS" = "MINGW" -a "$gpl" = "no" -a "$thread" = "auto" ] && thread="win32"
+[ "$SYS" = "WINDOWS" -a "$gpl" = "no" -a "$thread" = "auto" ] && thread="win32"
 
 libpthread=""
 if [ "$thread" = "auto" ]; then
@@ -531,7 +628,7 @@ if [ "$thread" = "auto" ]; then
             thread="beos"
             define HAVE_BEOSTHREAD
             ;;
-        MINGW)
+        WINDOWS)
             if cc_check pthread.h -lpthread "pthread_create(0,0,0,0);" ; then
                 thread="posix"
                 libpthread="-lpthread"
@@ -564,7 +661,7 @@ if [ "$thread" = "posix" ]; then
     define HAVE_POSIXTHREAD
 fi
 if [ "$thread" = "win32" ]; then
-    if [ "$SYS" = "MINGW" ]; then
+    if [ "$SYS" = "WINDOWS" ]; then
         define HAVE_WIN32THREAD
     else
         thread="no"
@@ -683,7 +780,7 @@ if [ "$swscale" = "yes" ]; then
 fi
 
 GPAC_LIBS="-lgpac_static"
-if [ $SYS = MINGW ]; then
+if [ $SYS = WINDOWS ]; then
     GPAC_LIBS="$GPAC_LIBS -lwinmm"
 fi
 if [ "$gpac" = "auto" ] ; then
@@ -706,7 +803,7 @@ fi
 
 if [ "$avs" = "auto" ] ; then
     avs="no"
-    if [ $SYS = MINGW ] && cc_check extras/avisynth_c.h ; then
+    if [ $SYS = WINDOWS ] && cc_check extras/avisynth_c.h ; then
         avs="yes"
         define HAVE_AVS
     fi
@@ -738,7 +835,7 @@ if cc_check '' -fno-tree-vectorize ; then
     CFLAGS="$CFLAGS -fno-tree-vectorize"
 fi
 
-if [ $SYS = MINGW -a $ARCH = X86 ] ; then
+if [ $SYS = WINDOWS -a $ARCH = X86 -a $compiler = GNU ] ; then
     # workaround gcc/ld bug with alignment of static variables/arrays that are initialized to zero
     cc_check '' -fno-zero-initialized-in-bss && CFLAGS="$CFLAGS -fno-zero-initialized-in-bss"
 fi
@@ -749,6 +846,9 @@ if cc_check "stdio.h" "" "fseeko(stdin,0,0);" ; then
 elif cc_check "stdio.h" "" "fseeko64(stdin,0,0);" ; then
     define fseek fseeko64
     define ftell ftello64
+elif cc_check "stdio.h" "" "_fseeki64(stdin,0,0);" ; then
+    define fseek _fseeki64
+    define ftell _ftelli64
 fi
 
 if cc_check '' -Wshadow ; then
@@ -768,6 +868,45 @@ ASFLAGS="$ASFLAGS -DBIT_DEPTH=$bit_depth"
 for var in $CONFIG_HAVE; do
     grep -q "HAVE_$var 1" config.h || define HAVE_$var 0
 done
+
+if [ $compiler = ICL ]; then
+    AR="xilib -nologo -out:"
+    DEPMM=-QMM
+    DEPMT=-QMT
+    HAVE_GETOPT_LONG=0
+    LD="xilink -out:"
+    LDFLAGS="-nologo -incremental:no $(icl_ldflags $LDFLAGS)"
+    LDFLAGSCLI="$(icl_ldflags $LDFLAGSCLI)"
+    LIBX264=libx264.lib
+    RANLIB=
+    STRIP=
+    if [ $debug = yes ]; then
+        LDFLAGS="-debug $LDFLAGS"
+        CFLAGS="-D_DEBUG $CFLAGS"
+    else
+        CFLAGS="-DNDEBUG $CFLAGS"
+    fi
+else
+    AR="$AR rc "
+    DEPMM="-MM -g0"
+    DEPMT="-MT"
+    LD="$CC -o "
+    LIBX264=libx264.a
+fi
+if [ $compiler = GNU ]; then
+    PROF_GEN_CC="-fprofile-generate"
+    PROF_GEN_LD="-fprofile-generate"
+    PROF_USE_CC="-fprofile-use"
+    PROF_USE_LD="-fprofile-use"
+else
+    CFLAGS="$(intel_cflags $CFLAGS)"
+    # icc does not define __SSE__ until SSE2 optimization and icl never defines it or _M_IX86_FP
+    [ \( $ARCH = X86_64 -o $ARCH = X86 \) -a $asm = yes ] && ! cpp_check "" "" "defined(__SSE__)" && define __SSE__
+    PROF_GEN_CC="${QPRE}prof-gen ${QPRE}prof-dir."
+    PROF_GEN_LD=
+    PROF_USE_CC="${QPRE}prof-use ${QPRE}prof-dir."
+    PROF_USE_LD=
+fi
 
 rm -f conftest*
 
@@ -790,8 +929,12 @@ ARCH=$ARCH
 SYS=$SYS
 CC=$CC
 CFLAGS=$CFLAGS
+DEPMM=$DEPMM
+DEPMT=$DEPMT
+LD=$LD
 LDFLAGS=$LDFLAGS
 LDFLAGSCLI=$LDFLAGSCLI
+LIBX264=$LIBX264
 AR=$AR
 RANLIB=$RANLIB
 STRIP=$STRIP
@@ -800,26 +943,44 @@ ASFLAGS=$ASFLAGS
 EXE=$EXE
 HAVE_GETOPT_LONG=$HAVE_GETOPT_LONG
 DEVNULL=$DEVNULL
+PROF_GEN_CC=$PROF_GEN_CC
+PROF_GEN_LD=$PROF_GEN_LD
+PROF_USE_CC=$PROF_USE_CC
+PROF_USE_LD=$PROF_USE_LD
 EOF
+
+if [ $compiler = ICL ]; then
+    echo '%.o: %.c' >> config.mak
+    echo '	$(CC) $(CFLAGS) -c -Fo$@ $<' >> config.mak
+fi
 
 if [ "$shared" = "yes" ]; then
     API=$(grep '#define X264_BUILD' < x264.h | cut -f 3 -d ' ')
-    if [ "$SYS" = "MINGW" ]; then
+    if [ "$SYS" = "WINDOWS" ]; then
         echo "SONAME=libx264-$API.dll" >> config.mak
-        echo 'IMPLIBNAME=libx264.dll.a' >> config.mak
-        echo 'SOFLAGS=-Wl,--out-implib,$(IMPLIBNAME) -Wl,--enable-auto-image-base' >> config.mak
+        if [ $compiler = ICL ]; then
+            echo 'IMPLIBNAME=libx264.dll.lib' >> config.mak
+            # GNU ld on windows defaults to exporting all global functions if there are no explicit __declspec(dllexport) declarations
+            # MSVC link does not act similarly, so it is required to make an export definition out of x264.h and use it at link time
+            echo 'SOFLAGS=-dll -def:x264.def -implib:$(IMPLIBNAME)' >> config.mak
+            echo "EXPORTS" > x264.def
+            grep "^\(int\|void\|x264_t\|extern\).*x264.*[\[(;]" x264.h | sed -e "s/.*\(x264.*\)[\[(].*/\1/;s/.*\(x264.*\);/\1/;s/open/open_$API/g" >> x264.def
+        else
+            echo 'IMPLIBNAME=libx264.dll.a' >> config.mak
+            echo 'SOFLAGS=-shared -Wl,--out-implib,$(IMPLIBNAME) -Wl,--enable-auto-image-base' >> config.mak
+        fi
     elif [ "$SYS" = "MACOSX" ]; then
         echo "SOSUFFIX=dylib" >> config.mak
         echo "SONAME=libx264.$API.dylib" >> config.mak
-        echo 'SOFLAGS=-dynamiclib -Wl,-single_module -Wl,-read_only_relocs,suppress -install_name $(DESTDIR)$(libdir)/$(SONAME)' >> config.mak
+        echo 'SOFLAGS=-shared -dynamiclib -Wl,-single_module -Wl,-read_only_relocs,suppress -install_name $(DESTDIR)$(libdir)/$(SONAME)' >> config.mak
     elif [ "$SYS" = "SunOS" ]; then
         echo "SOSUFFIX=so" >> config.mak
         echo "SONAME=libx264.so.$API" >> config.mak
-        echo 'SOFLAGS=-Wl,-h,$(SONAME)' >> config.mak
+        echo 'SOFLAGS=-shared -Wl,-h,$(SONAME)' >> config.mak
     else
         echo "SOSUFFIX=so" >> config.mak
         echo "SONAME=libx264.so.$API" >> config.mak
-        echo 'SOFLAGS=-Wl,-soname,$(SONAME)' >> config.mak
+        echo 'SOFLAGS=-shared -Wl,-soname,$(SONAME)' >> config.mak
     fi
     echo 'default: $(SONAME)' >> config.mak
 fi

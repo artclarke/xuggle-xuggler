@@ -26,10 +26,6 @@
  *****************************************************************************/
 
 #include <ctype.h>
-#include <stdlib.h>
-#include <limits.h>
-#include <math.h>
-
 #include "common/common.h"
 #include "common/cpu.h"
 
@@ -92,7 +88,7 @@ static const char **intra_predict_8x8_names = intra_predict_4x4_names;
 static inline uint32_t read_time(void)
 {
     uint32_t a = 0;
-#if defined(__GNUC__) && (ARCH_X86 || ARCH_X86_64)
+#if HAVE_X86_INLINE_ASM
     asm volatile( "rdtsc" :"=a"(a) ::"edx" );
 #elif ARCH_PPC
     asm volatile( "mftb %0" : "=r" (a) );

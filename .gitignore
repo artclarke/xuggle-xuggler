@@ -5,6 +5,9 @@
 *.rej
 *.dll*
 *.exe
+*.def
+*.lib
+*.pdb
 *.mo
 *.o
 *.patch

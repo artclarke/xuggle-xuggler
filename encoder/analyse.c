@@ -26,8 +26,6 @@
  *****************************************************************************/
 
 #define _ISOC99_SOURCE
-#include <math.h>
-#include <unistd.h>
 
 #include "common/common.h"
 #include "macroblock.h"

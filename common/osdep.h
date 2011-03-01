@@ -50,6 +50,25 @@
 #include <fcntl.h> // _O_BINARY
 #endif
 
+#ifdef __ICL
+#define inline __inline
+#define strcasecmp _stricmp
+#define strncasecmp _strnicmp
+#define snprintf _snprintf
+#define strtok_r strtok_s
+#define S_ISREG(x) (((x) & S_IFMT) == S_IFREG)
+#endif
+
+#ifdef __INTEL_COMPILER
+#include <mathimf.h>
+#else
+#include <math.h>
+#endif
+
+#if (defined(__GNUC__) || defined(__INTEL_COMPILER)) && (ARCH_X86 || ARCH_X86_64)
+#define HAVE_X86_INLINE_ASM 1
+#endif
+
 #if !defined(isfinite) && (SYS_OPENBSD || SYS_SunOS)
 #define isfinite finite
 #endif
@@ -60,7 +79,11 @@
 #endif
 #endif
 
+#ifdef __ICL
+#define DECLARE_ALIGNED( var, n ) __declspec(align(n)) var
+#else
 #define DECLARE_ALIGNED( var, n ) var __attribute__((aligned(n)))
+#endif
 #define ALIGNED_16( var ) DECLARE_ALIGNED( var, 16 )
 #define ALIGNED_8( var )  DECLARE_ALIGNED( var, 8 )
 #define ALIGNED_4( var )  DECLARE_ALIGNED( var, 4 )
@@ -99,9 +122,14 @@
 #define x264_constant_p(x) __builtin_constant_p(x)
 #define x264_nonconstant_p(x) (!__builtin_constant_p(x))
 #else
-#define UNUSED
+#ifdef __ICL
+#define ALWAYS_INLINE __forceinline
+#define NOINLINE __declspec(noinline)
+#else
 #define ALWAYS_INLINE inline
 #define NOINLINE
+#endif
+#define UNUSED
 #define MAY_ALIAS
 #define x264_constant_p(x) 0
 #define x264_nonconstant_p(x) 0
@@ -179,19 +207,13 @@ int x264_threading_init( void );
 
 #define asm __asm__
 
-#if !defined(_WIN64) && !defined(__LP64__)
-#if defined(__INTEL_COMPILER)
-#define BROKEN_STACK_ALIGNMENT 1 /* define it if stack is not mod16 */
-#endif
-#endif
-
 #if WORDS_BIGENDIAN
 #define endian_fix(x) (x)
 #define endian_fix64(x) (x)
 #define endian_fix32(x) (x)
 #define endian_fix16(x) (x)
 #else
-#if defined(__GNUC__) && HAVE_MMX
+#if HAVE_X86_INLINE_ASM && HAVE_MMX
 static ALWAYS_INLINE uint32_t endian_fix32( uint32_t x )
 {
     asm("bswap %0":"+r"(x));
@@ -209,7 +231,7 @@ static ALWAYS_INLINE uint32_t endian_fix32( uint32_t x )
     return (x<<24) + ((x<<8)&0xff0000) + ((x>>8)&0xff00) + (x>>24);
 }
 #endif
-#if defined(__GNUC__) && ARCH_X86_64
+#if HAVE_X86_INLINE_ASM && ARCH_X86_64
 static ALWAYS_INLINE uint64_t endian_fix64( uint64_t x )
 {
     asm("bswap %0":"+r"(x));
@@ -260,7 +282,7 @@ static int ALWAYS_INLINE x264_ctz( uint32_t x )
 }
 #endif
 
-#if defined(__GNUC__) && HAVE_MMX
+#if HAVE_X86_INLINE_ASM && HAVE_MMX
 /* Don't use __builtin_prefetch; even as recent as 4.3.4, GCC seems incapable of
  * using complex address modes properly unless we use inline asm. */
 static ALWAYS_INLINE void x264_prefetch( void *p )
@@ -277,7 +299,7 @@ static ALWAYS_INLINE void x264_prefetch( void *p )
 #endif
 
 #if HAVE_POSIXTHREAD
-#if SYS_MINGW
+#if SYS_WINDOWS
 #define x264_lower_thread_priority(p)\
 {\
     x264_pthread_t handle = pthread_self();\
@@ -290,7 +312,7 @@ static ALWAYS_INLINE void x264_prefetch( void *p )
 #else
 #include <unistd.h>
 #define x264_lower_thread_priority(p) { UNUSED int nice_ret = nice(p); }
-#endif /* SYS_MINGW */
+#endif /* SYS_WINDOWS */
 #elif HAVE_WIN32THREAD
 #define x264_lower_thread_priority(p) SetThreadPriority( GetCurrentThread(), X264_MAX( -2, -p ) )
 #else

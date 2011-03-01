@@ -27,13 +27,9 @@
  * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
-#include <stdlib.h>
-#include <math.h>
-
 #include <signal.h>
 #define _GNU_SOURCE
 #include <getopt.h>
-
 #include "common/common.h"
 #include "x264cli.h"
 #include "input/input.h"
@@ -230,10 +226,12 @@ static void print_version_info()
     printf( "(ffmpegsource %d.%d.%d.%d)\n", FFMS_VERSION >> 24, (FFMS_VERSION & 0xff0000) >> 16, (FFMS_VERSION & 0xff00) >> 8, FFMS_VERSION & 0xff );
 #endif
     printf( "built on " __DATE__ ", " );
-#ifdef __GNUC__
+#ifdef __INTEL_COMPILER
+    printf( "intel: %.2f (%d)\n", __INTEL_COMPILER / 100.f, __INTEL_COMPILER_BUILD_DATE );
+#elif defined(__GNUC__)
     printf( "gcc: " __VERSION__ "\n" );
 #else
-    printf( "using a non-gcc compiler\n" );
+    printf( "using an unknown compiler\n" );
 #endif
     printf( "configuration: --bit-depth=%d\n", x264_bit_depth );
     printf( "x264 license: " );

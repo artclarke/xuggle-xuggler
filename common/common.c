@@ -1095,7 +1095,7 @@ void x264_picture_clean( x264_picture_t *pic )
 void *x264_malloc( int i_size )
 {
     uint8_t *align_buf = NULL;
-#if SYS_MACOSX || (SYS_MINGW && ARCH_X86_64)
+#if SYS_MACOSX || (SYS_WINDOWS && ARCH_X86_64)
     /* Mac OS X and Win x64 always returns 16 byte aligned memory */
     align_buf = malloc( i_size );
 #elif HAVE_MALLOC_H
@@ -1121,7 +1121,7 @@ void x264_free( void *p )
 {
     if( p )
     {
-#if HAVE_MALLOC_H || SYS_MACOSX || (SYS_MINGW && ARCH_X86_64)
+#if HAVE_MALLOC_H || SYS_MACOSX || (SYS_WINDOWS && ARCH_X86_64)
         free( p );
 #else
         free( *( ( ( void **) p ) - 1 ) );

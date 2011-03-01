@@ -24,8 +24,6 @@
  * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
-#include <math.h>
-
 #include "common/common.h"
 #include "set.h"
 

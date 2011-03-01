@@ -24,15 +24,15 @@
  * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
-#ifndef __MINGW32__
-#include <sys/time.h>
-#else
+#include "common.h"
+
+#if SYS_WINDOWS
 #include <sys/types.h>
 #include <sys/timeb.h>
+#else
+#include <sys/time.h>
 #endif
 #include <time.h>
-
-#include "common.h"
 
 #if PTW32_STATIC_LIB
 #define WIN32_LEAN_AND_MEAN
@@ -43,14 +43,14 @@ extern int ptw32_processInitialized;
 
 int64_t x264_mdate( void )
 {
-#ifndef __MINGW32__
-    struct timeval tv_date;
-    gettimeofday( &tv_date, NULL );
-    return (int64_t)tv_date.tv_sec * 1000000 + (int64_t)tv_date.tv_usec;
-#else
+#if SYS_WINDOWS
     struct timeb tb;
     ftime( &tb );
     return ((int64_t)tb.time * 1000 + (int64_t)tb.millitm) * 1000;
+#else
+    struct timeval tv_date;
+    gettimeofday( &tv_date, NULL );
+    return (int64_t)tv_date.tv_sec * 1000000 + (int64_t)tv_date.tv_usec;
 #endif
 }
 

@@ -27,7 +27,7 @@
 #ifndef X264_X86_UTIL_H
 #define X264_X86_UTIL_H
 
-#ifdef __GNUC__
+#if HAVE_X86_INLINE_ASM
 
 #ifdef __SSE__
 #include <xmmintrin.h>
