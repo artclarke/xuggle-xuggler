@@ -358,8 +358,11 @@ int x264_cpu_num_processors( void )
 #if !HAVE_THREAD
     return 1;
 
-#elif defined(_WIN32)
+#elif SYS_WINDOWS
     return x264_pthread_num_processors_np();
+
+#elif SYS_CYGWIN
+    return sysconf( _SC_NPROCESSORS_ONLN );
 
 #elif SYS_LINUX
     unsigned int bit;
