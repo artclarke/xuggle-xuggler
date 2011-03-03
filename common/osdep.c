@@ -89,3 +89,35 @@ int x264_threading_init( void )
     return 0;
 }
 #endif
+
+#ifdef __INTEL_COMPILER
+/* Agner's patch to Intel's CPU dispatcher from pages 131-132 of
+ * http://agner.org/optimize/optimizing_cpp.pdf (2011-01-30)
+ * adapted to x264's cpu schema. */
+
+// Global variable indicating cpu
+int __intel_cpu_indicator = 0;
+// CPU dispatcher function
+void __intel_cpu_indicator_init( void )
+{
+    unsigned int cpu = x264_cpu_detect();
+    if( cpu&X264_CPU_AVX )
+        __intel_cpu_indicator = 0x20000;
+    else if( cpu&X264_CPU_SSE42 )
+        __intel_cpu_indicator = 0x8000;
+    else if( cpu&X264_CPU_SSE4 )
+        __intel_cpu_indicator = 0x2000;
+    else if( cpu&X264_CPU_SSSE3 )
+        __intel_cpu_indicator = 0x1000;
+    else if( cpu&X264_CPU_SSE3 )
+        __intel_cpu_indicator = 0x800;
+    else if( cpu&X264_CPU_SSE2 && !(cpu&X264_CPU_SSE2_IS_SLOW) )
+        __intel_cpu_indicator = 0x200;
+    else if( cpu&X264_CPU_SSE )
+        __intel_cpu_indicator = 0x80;
+    else if( cpu&X264_CPU_MMXEXT )
+        __intel_cpu_indicator = 8;
+    else
+        __intel_cpu_indicator = 1;
+}
+#endif
