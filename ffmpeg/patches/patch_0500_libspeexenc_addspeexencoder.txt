@@ -167,7 +167,7 @@ Index: libavcodec/libspeexenc.c
 +    return 0;
 +}
 +
-+AVCodec libspeex_encoder = {
++AVCodec ff_libspeex_encoder = {
 +    "libspeex",
 +    CODEC_TYPE_AUDIO,
 +    CODEC_ID_SPEEX,
