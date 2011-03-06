@@ -319,7 +319,7 @@ namespace com { namespace xuggle { namespace xuggler
       }
       mFormatContext->oformat = outputFormat;
 
-      retval = url_fopen(&mFormatContext->pb, url, URL_WRONLY);
+      retval = avio_open(&mFormatContext->pb, url, URL_WRONLY);
       if (retval >= 0) {
         mIsOpened = true;
         strncpy(mFormatContext->filename, url, sizeof(mFormatContext->filename)-1);
@@ -458,7 +458,7 @@ namespace com { namespace xuggle { namespace xuggler
         mFormatContext = 0;
       } else
       {
-        retval = url_fclose(mFormatContext->pb);
+        retval = avio_close(mFormatContext->pb);
         av_metadata_free(&mFormatContext->metadata);
         av_free(mFormatContext);
         mFormatContext = 0;
