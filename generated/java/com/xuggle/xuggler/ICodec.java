@@ -587,7 +587,8 @@ public class ICodec extends RefCounted {
   public enum ID {
   /**
    * These are the codecs this library currently supports.
-   * These are based on FFMPEG r25942 or later
+   * These are based on FFMPEG Git versions later than this:
+   * 391a1327bd076c25c2b2509ab7ae0081c443b94e
    */
     CODEC_ID_NONE,
     CODEC_ID_MPEG1VIDEO,
@@ -652,7 +653,6 @@ public class ICodec extends RefCounted {
     CODEC_ID_QDRAW,
     CODEC_ID_VIXL,
     CODEC_ID_QPEG,
-    CODEC_ID_XVID,
     CODEC_ID_PNG,
     CODEC_ID_PPM,
     CODEC_ID_PBM,
@@ -742,6 +742,8 @@ public class ICodec extends RefCounted {
     CODEC_ID_A64_MULTI5,
     CODEC_ID_R10K,
     CODEC_ID_MXPEG,
+    CODEC_ID_LAGARITH,
+    CODEC_ID_PRORES,
     CODEC_ID_PCM_S16LE(XugglerJNI.ICodec_CODEC_ID_PCM_S16LE_get()),
     CODEC_ID_PCM_S16BE,
     CODEC_ID_PCM_U16LE,
@@ -858,6 +860,7 @@ public class ICodec extends RefCounted {
     CODEC_ID_BINKAUDIO_RDFT,
     CODEC_ID_BINKAUDIO_DCT,
     CODEC_ID_AAC_LATM,
+    CODEC_ID_QDMC,
     CODEC_ID_DVD_SUBTITLE(XugglerJNI.ICodec_CODEC_ID_DVD_SUBTITLE_get()),
     CODEC_ID_DVB_SUBTITLE,
     CODEC_ID_TEXT,
@@ -869,7 +872,8 @@ public class ICodec extends RefCounted {
     CODEC_ID_SRT,
     CODEC_ID_TTF(XugglerJNI.ICodec_CODEC_ID_TTF_get()),
     CODEC_ID_PROBE(XugglerJNI.ICodec_CODEC_ID_PROBE_get()),
-    CODEC_ID_MPEG2TS(XugglerJNI.ICodec_CODEC_ID_MPEG2TS_get());
+    CODEC_ID_MPEG2TS(XugglerJNI.ICodec_CODEC_ID_MPEG2TS_get()),
+    CODEC_ID_FFMETADATA(XugglerJNI.ICodec_CODEC_ID_FFMETADATA_get());
 
     public final int swigValue() {
       return swigValue;

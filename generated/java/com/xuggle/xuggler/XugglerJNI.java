@@ -230,6 +230,7 @@ class XugglerJNI {
   public final static native int ICodec_CODEC_ID_TTF_get();
   public final static native int ICodec_CODEC_ID_PROBE_get();
   public final static native int ICodec_CODEC_ID_MPEG2TS_get();
+  public final static native int ICodec_CODEC_ID_FFMETADATA_get();
   public final static native int ICodec_CODEC_TYPE_UNKNOWN_get();
   public final static native String ICodec_getName(long jarg1, ICodec jarg1_);
   public final static native int ICodec_getIDAsInt(long jarg1, ICodec jarg1_);
