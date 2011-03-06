@@ -8,7 +8,7 @@ SUBDIRS=io
 SUFFIXES=.i
 lib_LTLIBRARIES = libxuggle-xuggler.la
 
-libxuggle_xuggler_la_LIBADD= -lavdevice -lavformat -lavcodec -lavutil -lavcore
+libxuggle_xuggler_la_LIBADD= -lavdevice -lavformat -lavcodec -lavutil
 if VS_ENABLE_GPL
 libxuggle_xuggler_la_LIBADD+= -lswscale
 endif
