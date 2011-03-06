@@ -1,7 +1,7 @@
 /*****************************************************************************
- * mc.c: h264 encoder library (Motion Compensation)
+ * mc.c: motion compensation
  *****************************************************************************
- * Copyright (C) 2003-2008 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -19,6 +19,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #include "common.h"
@@ -63,32 +66,12 @@ static inline void pixel_avg_wxh( pixel *dst, int i_dst, pixel *src1, int i_src1
 
 /* Implicit weighted bipred only:
  * assumes log2_denom = 5, offset = 0, weight1 + weight2 = 64 */
-#define op_scale2(x) dst[x] = x264_clip_pixel( (src1[x]*i_weight1 + src2[x]*i_weight2 + (1<<5)) >> 6 )
 static inline void pixel_avg_weight_wxh( pixel *dst, int i_dst, pixel *src1, int i_src1, pixel *src2, int i_src2, int width, int height, int i_weight1 )
 {
     const int i_weight2 = 64 - i_weight1;
     for( int y = 0; y<height; y++, dst += i_dst, src1 += i_src1, src2 += i_src2 )
-    {
-        op_scale2(0);
-        op_scale2(1);
-        if(width==2) continue;
-        op_scale2(2);
-        op_scale2(3);
-        if(width==4) continue;
-        op_scale2(4);
-        op_scale2(5);
-        op_scale2(6);
-        op_scale2(7);
-        if(width==8) continue;
-        op_scale2(8);
-        op_scale2(9);
-        op_scale2(10);
-        op_scale2(11);
-        op_scale2(12);
-        op_scale2(13);
-        op_scale2(14);
-        op_scale2(15);
-    }
+        for( int x = 0; x<width; x++ )
+            dst[x] = x264_clip_pixel( (src1[x]*i_weight1 + src2[x]*i_weight2 + (1<<5)) >> 6 );
 }
 #undef op_scale2
 
@@ -174,18 +157,20 @@ static void mc_copy( pixel *src, int i_src_stride, pixel *dst, int i_dst_stride,
 
 #define TAPFILTER(pix, d) ((pix)[x-2*d] + (pix)[x+3*d] - 5*((pix)[x-d] + (pix)[x+2*d]) + 20*((pix)[x] + (pix)[x+d]))
 static void hpel_filter( pixel *dsth, pixel *dstv, pixel *dstc, pixel *src,
-                         int stride, int width, int height, dctcoef *buf )
+                         int stride, int width, int height, int16_t *buf )
 {
+    const int pad = (BIT_DEPTH > 9) ? (-10 * PIXEL_MAX) : 0;
     for( int y = 0; y < height; y++ )
     {
         for( int x = -2; x < width+3; x++ )
         {
             int v = TAPFILTER(src,stride);
             dstv[x] = x264_clip_pixel( (v + 16) >> 5 );
-            buf[x+2] = v;
+            /* transform v for storage in a 16-bit integer */
+            buf[x+2] = v + pad;
         }
         for( int x = 0; x < width; x++ )
-            dstc[x] = x264_clip_pixel( (TAPFILTER(buf+2,1) + 512) >> 10 );
+            dstc[x] = x264_clip_pixel( (TAPFILTER(buf+2,1) - 32*pad + 512) >> 10 );
         for( int x = 0; x < width; x++ )
             dsth[x] = x264_clip_pixel( (TAPFILTER(src,1) + 16) >> 5 );
         dsth += stride;
@@ -252,7 +237,7 @@ static pixel *get_ref( pixel *dst,   int *i_dst_stride,
 }
 
 /* full chroma mc (ie until 1/8 pixel)*/
-static void mc_chroma( pixel *dst, int i_dst_stride,
+static void mc_chroma( pixel *dstu, pixel *dstv, int i_dst_stride,
                        pixel *src, int i_src_stride,
                        int mvx, int mvy,
                        int i_width, int i_height )
@@ -266,14 +251,20 @@ static void mc_chroma( pixel *dst, int i_dst_stride,
     int cC = (8-d8x)*d8y;
     int cD = d8x    *d8y;
 
-    src += (mvy >> 3) * i_src_stride + (mvx >> 3);
+    src += (mvy >> 3) * i_src_stride + (mvx >> 3)*2;
     srcp = &src[i_src_stride];
 
     for( int y = 0; y < i_height; y++ )
     {
         for( int x = 0; x < i_width; x++ )
-            dst[x] = ( cA*src[x]  + cB*src[x+1] + cC*srcp[x] + cD*srcp[x+1] + 32 ) >> 6;
-        dst  += i_dst_stride;
+        {
+            dstu[x] = ( cA*src[2*x]  + cB*src[2*x+2] +
+                        cC*srcp[2*x] + cD*srcp[2*x+2] + 32 ) >> 6;
+            dstv[x] = ( cA*src[2*x+1]  + cB*src[2*x+3] +
+                        cC*srcp[2*x+1] + cD*srcp[2*x+3] + 32 ) >> 6;
+        }
+        dstu += i_dst_stride;
+        dstv += i_dst_stride;
         src   = srcp;
         srcp += i_src_stride;
     }
@@ -289,19 +280,58 @@ MC_COPY( 8 )
 MC_COPY( 4 )
 
 void x264_plane_copy_c( pixel *dst, int i_dst,
-                        uint8_t *src, int i_src, int w, int h)
+                        pixel *src, int i_src, int w, int h )
 {
     while( h-- )
     {
-#if X264_HIGH_BIT_DEPTH
-        for( int i = 0; i < w; i++ )
-            dst[i] = src[i] << (BIT_DEPTH-8);
-#else
-        memcpy( dst, src, w );
-#endif
+        memcpy( dst, src, w * sizeof(pixel) );
         dst += i_dst;
         src += i_src;
     }
+}
+
+void x264_plane_copy_interleave_c( pixel *dst, int i_dst,
+                                   pixel *srcu, int i_srcu,
+                                   pixel *srcv, int i_srcv, int w, int h )
+{
+    for( int y=0; y<h; y++, dst+=i_dst, srcu+=i_srcu, srcv+=i_srcv )
+        for( int x=0; x<w; x++ )
+        {
+            dst[2*x]   = srcu[x];
+            dst[2*x+1] = srcv[x];
+        }
+}
+
+void x264_plane_copy_deinterleave_c( pixel *dstu, int i_dstu,
+                                     pixel *dstv, int i_dstv,
+                                     pixel *src, int i_src, int w, int h )
+{
+    for( int y=0; y<h; y++, dstu+=i_dstu, dstv+=i_dstv, src+=i_src )
+        for( int x=0; x<w; x++ )
+        {
+            dstu[x] = src[2*x];
+            dstv[x] = src[2*x+1];
+        }
+}
+
+static void store_interleave_8x8x2( pixel *dst, int i_dst, pixel *srcu, pixel *srcv )
+{
+    for( int y=0; y<8; y++, dst+=i_dst, srcu+=FDEC_STRIDE, srcv+=FDEC_STRIDE )
+        for( int x=0; x<8; x++ )
+        {
+            dst[2*x]   = srcu[x];
+            dst[2*x+1] = srcv[x];
+        }
+}
+
+static void load_deinterleave_8x8x2_fenc( pixel *dst, pixel *src, int i_src )
+{
+    x264_plane_copy_deinterleave_c( dst, FENC_STRIDE, dst+FENC_STRIDE/2, FENC_STRIDE, src, i_src, 8, 8 );
+}
+
+static void load_deinterleave_8x8x2_fdec( pixel *dst, pixel *src, int i_src )
+{
+    x264_plane_copy_deinterleave_c( dst, FDEC_STRIDE, dst+FDEC_STRIDE/2, FDEC_STRIDE, src, i_src, 8, 8 );
 }
 
 static void prefetch_fenc_null( pixel *pix_y, int stride_y,
@@ -401,30 +431,19 @@ static void frame_init_lowres_core( pixel *src0, pixel *dst0, pixel *dsth, pixel
     }
 }
 
-#if defined(__GNUC__) && (ARCH_X86 || ARCH_X86_64)
-// gcc isn't smart enough to use the "idiv" instruction
-static ALWAYS_INLINE int32_t div_64_32(int64_t x, int32_t y)
-{
-    int32_t quotient, remainder;
-    asm("idiv %4"
-        :"=a"(quotient), "=d"(remainder)
-        :"a"((uint32_t)x), "d"((int32_t)(x>>32)), "r"(y)
-    );
-    return quotient;
-}
-#else
-#define div_64_32(x,y) ((x)/(y))
-#endif
-
 /* Estimate the total amount of influence on future quality that could be had if we
  * were to improve the reference samples used to inter predict any given macroblock. */
 static void mbtree_propagate_cost( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
-                                   uint16_t *inter_costs, uint16_t *inv_qscales, int len )
+                                   uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len )
 {
+    float fps = *fps_factor / 256.f;
     for( int i = 0; i < len; i++ )
     {
-        int propagate_amount = propagate_in[i] + ((intra_costs[i] * inv_qscales[i] + 128)>>8);
-        dst[i] = div_64_32((int64_t)propagate_amount * (intra_costs[i] - (inter_costs[i] & LOWRES_COST_MASK)), intra_costs[i]);
+        float intra_cost       = intra_costs[i] * inv_qscales[i];
+        float propagate_amount = propagate_in[i] + intra_cost*fps;
+        float propagate_num    = intra_costs[i] - (inter_costs[i] & LOWRES_COST_MASK);
+        float propagate_denom  = intra_costs[i];
+        dst[i] = (int)(propagate_amount * propagate_num / propagate_denom + 0.5f);
     }
 }
 
@@ -455,7 +474,14 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     pf->copy[PIXEL_8x8]   = mc_copy_w8;
     pf->copy[PIXEL_4x4]   = mc_copy_w4;
 
+    pf->store_interleave_8x8x2  = store_interleave_8x8x2;
+    pf->load_deinterleave_8x8x2_fenc = load_deinterleave_8x8x2_fenc;
+    pf->load_deinterleave_8x8x2_fdec = load_deinterleave_8x8x2_fdec;
+
     pf->plane_copy = x264_plane_copy_c;
+    pf->plane_copy_interleave = x264_plane_copy_interleave_c;
+    pf->plane_copy_deinterleave = x264_plane_copy_deinterleave_c;
+
     pf->hpel_filter = hpel_filter;
 
     pf->prefetch_fenc = prefetch_fenc_null;

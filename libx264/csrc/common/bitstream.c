@@ -1,7 +1,7 @@
 /*****************************************************************************
- * bitstream.c: h264 encoder library
+ * bitstream.c: bitstream writing
  *****************************************************************************
- * Copyright (C) 2010 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Jason Garrett-Glaser <darkshikari@gmail.com>
@@ -19,6 +19,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #include "common.h"
@@ -36,9 +39,10 @@ static uint8_t *x264_nal_escape_c( uint8_t *dst, uint8_t *src, uint8_t *end )
     return dst;
 }
 
-#ifdef HAVE_MMX
+#if HAVE_MMX
 uint8_t *x264_nal_escape_mmxext( uint8_t *dst, uint8_t *src, uint8_t *end );
 uint8_t *x264_nal_escape_sse2( uint8_t *dst, uint8_t *src, uint8_t *end );
+uint8_t *x264_nal_escape_avx( uint8_t *dst, uint8_t *src, uint8_t *end );
 #endif
 
 /****************************************************************************
@@ -79,15 +83,18 @@ void x264_nal_encode( x264_t *h, uint8_t *dst, x264_nal_t *nal )
 
     nal->i_payload = size+4;
     nal->p_payload = orig_dst;
+    x264_emms();
 }
 
 void x264_bitstream_init( int cpu, x264_bitstream_function_t *pf )
 {
     pf->nal_escape = x264_nal_escape_c;
-#ifdef HAVE_MMX
+#if HAVE_MMX
     if( cpu&X264_CPU_MMXEXT )
         pf->nal_escape = x264_nal_escape_mmxext;
     if( (cpu&X264_CPU_SSE2) && (cpu&X264_CPU_SSE2_IS_FAST) )
         pf->nal_escape = x264_nal_escape_sse2;
+    if( cpu&X264_CPU_AVX )
+        pf->nal_escape = x264_nal_escape_avx;
 #endif
 }

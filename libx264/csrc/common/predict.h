@@ -1,7 +1,7 @@
 /*****************************************************************************
- * predict.h: h264 encoder library
+ * predict.h: intra prediction
  *****************************************************************************
- * Copyright (C) 2003-2008 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -19,6 +19,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #ifndef X264_PREDICT_H
@@ -115,9 +118,11 @@ void x264_predict_4x4_v_c   ( pixel *src );
 void x264_predict_16x16_dc_c( pixel *src );
 void x264_predict_16x16_h_c ( pixel *src );
 void x264_predict_16x16_v_c ( pixel *src );
+void x264_predict_16x16_p_c ( pixel *src );
 void x264_predict_8x8c_dc_c ( pixel *src );
 void x264_predict_8x8c_h_c  ( pixel *src );
 void x264_predict_8x8c_v_c  ( pixel *src );
+void x264_predict_8x8c_p_c  ( pixel *src );
 
 void x264_predict_16x16_init ( int cpu, x264_predict_t pf[7] );
 void x264_predict_8x8c_init  ( int cpu, x264_predict_t pf[7] );

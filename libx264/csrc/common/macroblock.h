@@ -1,7 +1,7 @@
 /*****************************************************************************
- * macroblock.h: h264 encoder library
+ * macroblock.h: macroblock common functions
  *****************************************************************************
- * Copyright (C) 2005-2008 x264 project
+ * Copyright (C) 2005-2011 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -20,6 +20,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #ifndef X264_MACROBLOCK_H
@@ -167,7 +170,11 @@ static const uint8_t x264_mb_partition_count_table[17] =
 };
 static const uint8_t x264_mb_partition_pixel_table[17] =
 {
-    6, 4, 5, 3, 6, 4, 5, 3, 6, 4, 5, 3, 3, 3, 1, 2, 0
+    PIXEL_4x4, PIXEL_8x4,  PIXEL_4x8,  PIXEL_8x8,   /* D_L0_* */
+    PIXEL_4x4, PIXEL_8x4,  PIXEL_4x8,  PIXEL_8x8,   /* D_L1_* */
+    PIXEL_4x4, PIXEL_8x4,  PIXEL_4x8,  PIXEL_8x8,   /* D_BI_* */
+    PIXEL_8x8,                                      /* D_DIRECT_8x8 */
+    PIXEL_8x8, PIXEL_16x8, PIXEL_8x16, PIXEL_16x16, /* 8x8 .. 16x16 */
 };
 
 /* zigzags are transposed with respect to the tables in the standard */
@@ -292,6 +299,8 @@ void x264_macroblock_bipred_init( x264_t *h );
 
 void x264_prefetch_fenc( x264_t *h, x264_frame_t *fenc, int i_mb_x, int i_mb_y );
 
+void x264_copy_column8( pixel *dst, pixel *src );
+
 /* x264_mb_predict_mv_16x16:
  *      set mvp with predicted mv for D_16x16 block
  *      h->mb. need only valid values from other blocks */
@@ -355,14 +364,14 @@ static ALWAYS_INLINE uint32_t pack16to32_mask( int a, int b )
 }
 static ALWAYS_INLINE uint64_t pack32to64( uint32_t a, uint32_t b )
 {
-#ifdef WORDS_BIGENDIAN
+#if WORDS_BIGENDIAN
    return b + ((uint64_t)a<<32);
 #else
    return a + ((uint64_t)b<<32);
 #endif
 }
 
-#if X264_HIGH_BIT_DEPTH
+#if HIGH_BIT_DEPTH
 #   define pack_pixel_1to2 pack16to32
 #   define pack_pixel_2to4 pack32to64
 #else

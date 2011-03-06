@@ -1,7 +1,9 @@
 /*****************************************************************************
- * matroska.c: x264 matroska output module
+ * matroska.c: matroska muxer
  *****************************************************************************
- * Copyright (C) 2005 Mike Matsnev
+ * Copyright (C) 2005-2011 x264 project
+ *
+ * Authors: Mike Matsnev <mike@haali.su>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +18,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #include "output.h"
@@ -27,6 +32,8 @@ typedef struct
 
     int width, height, d_width, d_height;
 
+    int display_size_units;
+
     int64_t frame_duration;
 
     char b_writing_frame;
@@ -35,7 +42,7 @@ typedef struct
 
 } mkv_hnd_t;
 
-static int open_file( char *psz_filename, hnd_t *p_handle )
+static int open_file( char *psz_filename, hnd_t *p_handle, cli_output_opt_t *opt )
 {
     mkv_hnd_t *p_mkv;
 
@@ -74,29 +81,25 @@ static int set_param( hnd_t handle, x264_param_t *p_param )
         p_mkv->frame_duration = 0;
     }
 
-    p_mkv->width = p_param->i_width;
-    p_mkv->height = p_param->i_height;
+    p_mkv->width = p_mkv->d_width = p_param->i_width;
+    p_mkv->height = p_mkv->d_height = p_param->i_height;
+    p_mkv->display_size_units = DS_PIXELS;
 
-    if( p_param->vui.i_sar_width && p_param->vui.i_sar_height )
+    if( p_param->vui.i_sar_width && p_param->vui.i_sar_height
+        && p_param->vui.i_sar_width != p_param->vui.i_sar_height )
     {
-        dw = (int64_t)p_param->i_width  * p_param->vui.i_sar_width;
-        dh = (int64_t)p_param->i_height * p_param->vui.i_sar_height;
-    }
-    else
-    {
-        dw = p_param->i_width;
-        dh = p_param->i_height;
-    }
+        if ( p_param->vui.i_sar_width > p_param->vui.i_sar_height ) {
+            dw = (int64_t)p_param->i_width * p_param->vui.i_sar_width / p_param->vui.i_sar_height;
+            dh = p_param->i_height;
+        } else {
+            dw = p_param->i_width;
+            dh = (int64_t)p_param->i_height * p_param->vui.i_sar_height / p_param->vui.i_sar_width;
+        }
 
-    if( dw > 0 && dh > 0 )
-    {
-        int64_t x = gcd( dw, dh );
-        dw /= x;
-        dh /= x;
+        p_mkv->d_width = (int)dw;
+        p_mkv->d_height = (int)dh;
     }
 
-    p_mkv->d_width = (int)dw;
-    p_mkv->d_height = (int)dh;
     p_mkv->i_timebase_num = p_param->i_timebase_num;
     p_mkv->i_timebase_den = p_param->i_timebase_den;
 
@@ -146,10 +149,10 @@ static int write_headers( hnd_t handle, x264_nal_t *p_nal )
 
     memcpy( avcC+11+sps_size, pps, pps_size );
 
-    ret = mk_writeHeader( p_mkv->w, "x264" X264_VERSION, "V_MPEG4/ISO/AVC",
-                          avcC, avcC_len, p_mkv->frame_duration, 50000,
-                          p_mkv->width, p_mkv->height,
-                          p_mkv->d_width, p_mkv->d_height );
+    ret = mk_write_header( p_mkv->w, "x264" X264_VERSION, "V_MPEG4/ISO/AVC",
+                           avcC, avcC_len, p_mkv->frame_duration, 50000,
+                           p_mkv->width, p_mkv->height,
+                           p_mkv->d_width, p_mkv->d_height, p_mkv->display_size_units );
     if( ret < 0 )
         return ret;
 
@@ -199,7 +202,7 @@ static int close_file( hnd_t handle, int64_t largest_pts, int64_t second_largest
     int ret;
     int64_t i_last_delta;
 
-    i_last_delta = (int64_t)(((largest_pts - second_largest_pts) * p_mkv->i_timebase_num / p_mkv->i_timebase_den) + 0.5);
+    i_last_delta = p_mkv->i_timebase_den ? (int64_t)(((largest_pts - second_largest_pts) * p_mkv->i_timebase_num / p_mkv->i_timebase_den) + 0.5) : 0;
 
     ret = mk_close( p_mkv->w, i_last_delta );
 

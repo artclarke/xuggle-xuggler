@@ -1,7 +1,7 @@
 /*****************************************************************************
- * cavlc.c: h264 encoder library
+ * cavlc.c: cavlc bitstream writing
  *****************************************************************************
- * Copyright (C) 2003-2008 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -20,6 +20,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #include "common/common.h"
@@ -95,7 +98,7 @@ static inline int block_residual_write_cavlc_escape( x264_t *h, int i_suffix_len
             {
 #if RDO_SKIP_BS
                 /* Weight highly against overflows. */
-                s->i_bits_encoded += 1000000;
+                s->i_bits_encoded += 2000;
 #else
                 x264_log(h, X264_LOG_WARNING, "OVERFLOW levelcode=%d is only allowed in High Profile\n", i_level_code );
                 /* clip level, preserving sign */
@@ -113,7 +116,7 @@ static inline int block_residual_write_cavlc_escape( x264_t *h, int i_suffix_len
     return i_suffix_length;
 }
 
-static int block_residual_write_cavlc( x264_t *h, int i_ctxBlockCat, dctcoef *l, int nC )
+static int block_residual_write_cavlc_internal( x264_t *h, int ctx_block_cat, dctcoef *l, int nC )
 {
     bs_t *s = &h->out.bs;
     static const uint8_t ctz_index[8] = {3,0,1,0,2,0,1,0};
@@ -127,7 +130,7 @@ static int block_residual_write_cavlc( x264_t *h, int i_ctxBlockCat, dctcoef *l,
     /* set these to 2 to allow branchless i_trailing calculation */
     runlevel.level[1] = 2;
     runlevel.level[2] = 2;
-    i_total = h->quantf.coeff_level_run[i_ctxBlockCat]( l, &runlevel );
+    i_total = h->quantf.coeff_level_run[ctx_block_cat]( l, &runlevel );
     i_total_zero = runlevel.last + 1 - i_total;
 
     i_trailing = ((((runlevel.level[0]+1) | (1-runlevel.level[0])) >> 31) & 1) // abs(runlevel.level[0])>1
@@ -172,9 +175,9 @@ static int block_residual_write_cavlc( x264_t *h, int i_ctxBlockCat, dctcoef *l,
         }
     }
 
-    if( (uint8_t)i_total < count_cat[i_ctxBlockCat] )
+    if( (uint8_t)i_total < count_cat[ctx_block_cat] )
     {
-        if( i_ctxBlockCat == DCT_CHROMA_DC )
+        if( ctx_block_cat == DCT_CHROMA_DC )
             bs_write_vlc( s, x264_total_zeros_dc[i_total-1][i_total_zero] );
         else
             bs_write_vlc( s, x264_total_zeros[i_total-1][i_total_zero] );
@@ -199,7 +202,7 @@ static const uint8_t ct_index[17] = {0,0,1,1,2,2,2,2,3,3,3,3,3,3,3,3,3};
     if( !*nnz )\
         bs_write_vlc( &h->out.bs, x264_coeff0_token[nC] );\
     else\
-        *nnz = block_residual_write_cavlc(h,cat,l,nC);\
+        *nnz = block_residual_write_cavlc_internal(h,cat,l,nC);\
 }
 
 static void cavlc_qp_delta( x264_t *h )
@@ -219,10 +222,10 @@ static void cavlc_qp_delta( x264_t *h )
 
     if( i_dqp )
     {
-        if( i_dqp < -(QP_MAX+1)/2 )
-            i_dqp += QP_MAX+1;
-        else if( i_dqp > QP_MAX/2 )
-            i_dqp -= QP_MAX+1;
+        if( i_dqp < -(QP_MAX_SPEC+1)/2 )
+            i_dqp += QP_MAX_SPEC+1;
+        else if( i_dqp > QP_MAX_SPEC/2 )
+            i_dqp -= QP_MAX_SPEC+1;
     }
     bs_write_se( s, i_dqp );
 }
@@ -311,7 +314,7 @@ void x264_macroblock_write_cavlc( x264_t *h )
 
         for( int i = 0; i < 256; i++ )
             bs_write( s, BIT_DEPTH, h->mb.pic.p_fenc[0][i] );
-        for( int ch = 0; ch < 2; ch++ )
+        for( int ch = 1; ch < 3; ch++ )
             for( int i = 0; i < 8; i++ )
                 for( int j = 0; j < 8; j++ )
                     bs_write( s, BIT_DEPTH, h->mb.pic.p_fenc[ch][i*FENC_STRIDE+j] );

@@ -6,54 +6,70 @@ all: default
 
 SRCS = common/mc.c common/predict.c common/pixel.c common/macroblock.c \
        common/frame.c common/dct.c common/cpu.c common/cabac.c \
-       common/common.c common/mdate.c common/rectangle.c \
+       common/common.c common/osdep.c common/rectangle.c \
        common/set.c common/quant.c common/deblock.c common/vlc.c \
        common/mvpred.c common/bitstream.c \
        encoder/analyse.c encoder/me.c encoder/ratecontrol.c \
        encoder/set.c encoder/macroblock.c encoder/cabac.c \
        encoder/cavlc.c encoder/encoder.c encoder/lookahead.c
 
-SRCCLI = x264.c input/timecode.c \
-         input/yuv.c input/y4m.c output/raw.c \
-         output/matroska.c output/matroska_ebml.c \
-         output/flv.c output/flv_bytestream.c
+SRCCLI = x264.c input/input.c input/timecode.c input/raw.c input/y4m.c \
+         output/raw.c output/matroska.c output/matroska_ebml.c \
+         output/flv.c output/flv_bytestream.c filters/filters.c \
+         filters/video/video.c filters/video/source.c filters/video/internal.c \
+         filters/video/resize.c filters/video/cache.c filters/video/fix_vfr_pts.c \
+         filters/video/select_every.c filters/video/crop.c filters/video/depth.c
 
 SRCSO =
 
 CONFIG := $(shell cat config.h)
 
+# GPL-only files
+ifneq ($(findstring HAVE_GPL 1, $(CONFIG)),)
+SRCCLI +=
+endif
+
 # Optional module sources
-ifneq ($(findstring HAVE_AVS, $(CONFIG)),)
+ifneq ($(findstring HAVE_AVS 1, $(CONFIG)),)
 SRCCLI += input/avs.c
 endif
 
-ifneq ($(findstring HAVE_PTHREAD, $(CONFIG)),)
+ifneq ($(findstring HAVE_THREAD 1, $(CONFIG)),)
 SRCCLI += input/thread.c
 SRCS   += common/threadpool.c
 endif
 
-ifneq ($(findstring HAVE_LAVF, $(CONFIG)),)
+ifneq ($(findstring HAVE_WIN32THREAD 1, $(CONFIG)),)
+SRCS += common/win32thread.c
+endif
+
+ifneq ($(findstring HAVE_LAVF 1, $(CONFIG)),)
 SRCCLI += input/lavf.c
 endif
 
-ifneq ($(findstring HAVE_FFMS, $(CONFIG)),)
+ifneq ($(findstring HAVE_FFMS 1, $(CONFIG)),)
 SRCCLI += input/ffms.c
 endif
 
-ifneq ($(findstring HAVE_GPAC, $(CONFIG)),)
+ifneq ($(findstring HAVE_GPAC 1, $(CONFIG)),)
 SRCCLI += output/mp4.c
 endif
 
 # Visualization sources
-ifeq ($(VIS),yes)
+ifneq ($(findstring HAVE_VISUALIZE 1, $(CONFIG)),)
 SRCS   += common/visualize.c common/display-x11.c
 endif
 
 # MMX/SSE optims
 ifneq ($(AS),)
 X86SRC0 = const-a.asm cabac-a.asm dct-a.asm deblock-a.asm mc-a.asm \
-          mc-a2.asm pixel-a.asm predict-a.asm quant-a.asm sad-a.asm \
+          mc-a2.asm pixel-a.asm predict-a.asm quant-a.asm \
           cpu-a.asm dct-32.asm bitstream-a.asm
+ifneq ($(findstring HIGH_BIT_DEPTH, $(CONFIG)),)
+X86SRC0 += sad16-a.asm
+else
+X86SRC0 += sad-a.asm
+endif
 X86SRC = $(X86SRC0:%=common/x86/%)
 
 ifeq ($(ARCH),X86)
@@ -97,9 +113,11 @@ endif
 endif
 
 # VIS optims
-ifeq ($(ARCH),UltraSparc)
+ifeq ($(ARCH),UltraSPARC)
+ifeq ($(findstring HIGH_BIT_DEPTH, $(CONFIG)),)
 ASMSRC += common/sparc/pixel.asm
 OBJASM  = $(ASMSRC:%.asm=%.o)
+endif
 endif
 
 ifneq ($(HAVE_GETOPT_LONG),1)
@@ -129,7 +147,7 @@ $(SONAME): .depend $(OBJS) $(OBJASM) $(OBJSO)
 	$(CC) -shared -o $@ $(OBJS) $(OBJASM) $(OBJSO) $(SOFLAGS) $(LDFLAGS)
 
 x264$(EXE): $(OBJCLI) libx264.a
-	$(CC) -o $@ $+ $(LDFLAGS) $(LDFLAGSCLI)
+	$(CC) -o $@ $+ $(LDFLAGSCLI) $(LDFLAGS)
 
 checkasm: tools/checkasm.o libx264.a
 	$(CC) -o $@ $+ $(LDFLAGS)
@@ -191,7 +209,7 @@ clean:
 	- sed -e 's/ *-fprofile-\(generate\|use\)//g' config.mak > config.mak2 && mv config.mak2 config.mak
 
 distclean: clean
-	rm -f config.mak config.h config.log x264.pc
+	rm -f config.mak x264_config.h config.h config.log x264.pc
 	rm -rf test/
 
 install: x264$(EXE) $(SONAME)
@@ -200,6 +218,7 @@ install: x264$(EXE) $(SONAME)
 	install -d $(DESTDIR)$(libdir)
 	install -d $(DESTDIR)$(libdir)/pkgconfig
 	install -m 644 x264.h $(DESTDIR)$(includedir)
+	install -m 644 x264_config.h $(DESTDIR)$(includedir)
 	install -m 644 libx264.a $(DESTDIR)$(libdir)
 	install -m 644 x264.pc $(DESTDIR)$(libdir)/pkgconfig
 	install x264$(EXE) $(DESTDIR)$(bindir)
@@ -213,7 +232,7 @@ endif
 	$(if $(IMPLIBNAME), install -m 644 $(IMPLIBNAME) $(DESTDIR)$(libdir))
 
 uninstall:
-	rm -f $(DESTDIR)$(includedir)/x264.h $(DESTDIR)$(libdir)/libx264.a
+	rm -f $(DESTDIR)$(includedir)/x264.h $(DESTDIR)$(includedir)/x264_config.h $(DESTDIR)$(libdir)/libx264.a
 	rm -f $(DESTDIR)$(bindir)/x264$(EXE) $(DESTDIR)$(libdir)/pkgconfig/x264.pc
 	$(if $(SONAME), rm -f $(DESTDIR)$(libdir)/$(SONAME) $(DESTDIR)$(libdir)/libx264.$(SOSUFFIX))
 
@@ -221,20 +240,3 @@ etags: TAGS
 
 TAGS:
 	etags $(SRCS)
-
-dox:
-	doxygen Doxyfile
-
-ifeq (,$(VIDS))
-test:
-	@echo 'usage: make test VIDS="infile1 infile2 ..."'
-	@echo 'where infiles are anything that x264 understands,'
-	@echo 'i.e. YUV with resolution in the filename, y4m, or avisynth.'
-else
-test:
-	perl tools/regression-test.pl --version=head,current --options='$(OPT0)' --options='$(OPT1)' --options='$(OPT2)' $(VIDS:%=--input=%)
-endif
-
-testclean:
-	rm -f test/*.log test/*.264
-	$(foreach DIR, $(wildcard test/x264-r*/), cd $(DIR) ; make clean ; cd ../.. ;)

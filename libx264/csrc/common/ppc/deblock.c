@@ -1,27 +1,32 @@
 /*****************************************************************************
-* deblock.c: Altivec-accelerated deblocking for h264 encoder
-*****************************************************************************
-* Copyright (C) 2007-2008 Guillaume Poirier <gpoirier@mplayerhq.hu>
-*
-* This program is free software; you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation; either version 2 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with this program; if not, write to the Free Software
-* Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
-*****************************************************************************/
+ * deblock.c: ppc deblocking
+ *****************************************************************************
+ * Copyright (C) 2007-2011 x264 project
+ *
+ * Authors: Guillaume Poirier <gpoirier@mplayerhq.hu>
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
+ *****************************************************************************/
 
 #include "common/common.h"
 #include "ppccommon.h"
 
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
 #define transpose4x16(r0, r1, r2, r3)        \
 {                                            \
     register vec_u8_t r4;                    \
@@ -72,7 +77,7 @@ static inline void write16x4( uint8_t *dst, int dst_stride,
 }
 
 /** \brief performs a 6x16 transpose of data in src, and stores it to dst */
-#define readAndTranspose16x6(src, src_stride, r8, r9, r10, r11, r12, r13)\
+#define read_and_transpose16x6(src, src_stride, r8, r9, r10, r11, r12, r13)\
 {\
     register vec_u8_t r0, r1, r2, r3, r4, r5, r6, r7, r14, r15;\
     VEC_LOAD(src,                  r0, 16, vec_u8_t, pix );    \
@@ -288,9 +293,9 @@ void x264_deblock_h_luma_altivec( uint8_t *pix, int stride, int alpha, int beta,
         return;
     PREP_LOAD;
     vec_u8_t _pix_ = vec_lvsl(0, pix-3);
-    readAndTranspose16x6(pix-3, stride, line0, line1, line2, line3, line4, line5);
+    read_and_transpose16x6(pix-3, stride, line0, line1, line2, line3, line4, line5);
     h264_loop_filter_luma_altivec(line0, line1, line2, line3, line4, line5, alpha, beta, tc0);
     transpose4x16(line1, line2, line3, line4);
     write16x4(pix-2, stride, line1, line2, line3, line4);
 }
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH

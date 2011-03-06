@@ -1,7 +1,9 @@
 /*****************************************************************************
- * mc.h: h264 encoder library (Motion Compensation)
+ * mc.h: motion compensation
  *****************************************************************************
- * Copyright (C) 2004-2008 Loren Merritt <lorenm@u.washington.edu>
+ * Copyright (C) 2004-2011 x264 project
+ *
+ * Authors: Loren Merritt <lorenm@u.washington.edu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +18,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #ifndef X264_MC_H
@@ -68,7 +73,7 @@ typedef struct
 
     /* mc_chroma may write up to 2 bytes of garbage to the right of dst,
      * so it must be run from left to right. */
-    void (*mc_chroma)(pixel *dst, int i_dst, pixel *src, int i_src,
+    void (*mc_chroma)(pixel *dstu, pixel *dstv, int i_dst, pixel *src, int i_src,
                       int mvx, int mvy,
                       int i_width, int i_height );
 
@@ -78,11 +83,22 @@ typedef struct
     void (*copy[7])( pixel *dst, int, pixel *src, int, int i_height );
     void (*copy_16x16_unaligned)( pixel *dst, int, pixel *src, int, int i_height );
 
+    void (*store_interleave_8x8x2)( pixel *dst, int i_dst, pixel *srcu, pixel *srcv );
+    void (*load_deinterleave_8x8x2_fenc)( pixel *dst, pixel *src, int i_src );
+    void (*load_deinterleave_8x8x2_fdec)( pixel *dst, pixel *src, int i_src );
+
     void (*plane_copy)( pixel *dst, int i_dst,
-                        uint8_t *src, int i_src, int w, int h);
+                        pixel *src, int i_src, int w, int h );
+    void (*plane_copy_interleave)( pixel *dst, int i_dst,
+                                   pixel *srcu, int i_srcu,
+                                   pixel *srcv, int i_srcv, int w, int h );
+    /* may write up to 15 pixels off the end of each plane */
+    void (*plane_copy_deinterleave)( pixel *dstu, int i_dstu,
+                                     pixel *dstv, int i_dstv,
+                                     pixel *src, int i_src, int w, int h );
 
     void (*hpel_filter)( pixel *dsth, pixel *dstv, pixel *dstc, pixel *src,
-                         int i_stride, int i_width, int i_height, dctcoef *buf );
+                         int i_stride, int i_width, int i_height, int16_t *buf );
 
     /* prefetch the next few macroblocks of fenc or fdec */
     void (*prefetch_fenc)( pixel *pix_y, int stride_y,
@@ -107,7 +123,7 @@ typedef struct
     void (*weight_cache)( x264_t *, x264_weight_t * );
 
     void (*mbtree_propagate_cost)( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
-                                   uint16_t *inter_costs, uint16_t *inv_qscales, int len );
+                                   uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
 } x264_mc_functions_t;
 
 void x264_mc_init( int cpu, x264_mc_functions_t *pf );

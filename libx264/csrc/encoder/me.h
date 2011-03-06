@@ -1,7 +1,7 @@
 /*****************************************************************************
- * me.h: h264 encoder library (Motion Estimation)
+ * me.h: motion estimation
  *****************************************************************************
- * Copyright (C) 2003-2008 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -19,6 +19,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #ifndef X264_ME_H
@@ -68,7 +71,7 @@ void x264_me_refine_bidir_rd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_wei
 void x264_me_refine_bidir_satd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_weight );
 uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i8, int i_pixel );
 
-extern uint16_t *x264_cost_mv_fpel[LAMBDA_MAX+1][4];
+extern uint16_t *x264_cost_mv_fpel[QP_MAX+1][4];
 
 #define COPY1_IF_LT(x,y)\
 if((y)<(x))\

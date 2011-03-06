@@ -1,7 +1,7 @@
 /*****************************************************************************
- * predict_armv6.S: h264 encoder
+ * predict.S: arm intra prediction
  *****************************************************************************
- * Copyright (C) 2009 x264 project
+ * Copyright (C) 2009-2011 x264 project
  *
  * Authors: David Conrad <lessen42@gmail.com>
  *          Mans Rullgard <mans@mansr.com>
@@ -19,6 +19,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #include "asm.S"
@@ -441,8 +444,8 @@ function x264_predict_16x16_p_neon
     vadd.i16    d5,  d6,  d7
     vpadd.i16   d4,  d4,  d5
     vpadd.i16   d4,  d4,  d4
-    vshl.i16    d5,  d4,  #2
-    vaddl.s16   q2,  d4,  d5
+    vshll.s16   q3,  d4,  #2
+    vaddw.s16   q2,  q3,  d4
     vrshrn.s32  d4,  q2,  #6
     mov         r3,  #0
     vtrn.16     d4,  d5

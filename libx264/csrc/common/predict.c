@@ -1,7 +1,7 @@
 /*****************************************************************************
- * predict.c: h264 encoder
+ * predict.c: intra prediction
  *****************************************************************************
- * Copyright (C) 2003-2008 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -20,6 +20,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 /* predict4x4 are inspired from ffmpeg h264 decoder */
@@ -116,7 +119,7 @@ void x264_predict_16x16_v_c( pixel *src )
         src += FDEC_STRIDE;
     }
 }
-static void x264_predict_16x16_p_c( pixel *src )
+void x264_predict_16x16_p_c( pixel *src )
 {
     int H = 0, V = 0;
 
@@ -266,7 +269,7 @@ void x264_predict_8x8c_v_c( pixel *src )
         src += FDEC_STRIDE;
     }
 }
-static void x264_predict_8x8c_p_c( pixel *src )
+void x264_predict_8x8c_p_c( pixel *src )
 {
     int H = 0, V = 0;
 

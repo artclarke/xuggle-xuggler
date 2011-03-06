@@ -1,7 +1,9 @@
 /*****************************************************************************
- * matroska_ebml.c:
+ * matroska_ebml.c: matroska muxer utilities
  *****************************************************************************
- * Copyright (C) 2005 Mike Matsnev
+ * Copyright (C) 2005-2011 x264 project
+ *
+ * Authors: Mike Matsnev <mike@haali.su>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +18,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #include "output.h"
@@ -315,13 +320,13 @@ mk_writer *mk_create_writer( const char *filename )
     return w;
 }
 
-int mk_writeHeader( mk_writer *w, const char *writing_app,
-                    const char *codec_id,
-                    const void *codec_private, unsigned codec_private_size,
-                    int64_t default_frame_duration,
-                    int64_t timescale,
-                    unsigned width, unsigned height,
-                    unsigned d_width, unsigned d_height )
+int mk_write_header( mk_writer *w, const char *writing_app,
+                     const char *codec_id,
+                     const void *codec_private, unsigned codec_private_size,
+                     int64_t default_frame_duration,
+                     int64_t timescale,
+                     unsigned width, unsigned height,
+                     unsigned d_width, unsigned d_height, int display_size_units )
 {
     mk_context  *c, *ti, *v;
 
@@ -374,6 +379,7 @@ int mk_writeHeader( mk_writer *w, const char *writing_app,
         return -1;
     CHECK( mk_write_uint( v, 0xb0, width ) );
     CHECK( mk_write_uint( v, 0xba, height ) );
+    CHECK( mk_write_uint( v, 0x54b2, display_size_units ) );
     CHECK( mk_write_uint( v, 0x54b0, d_width ) );
     CHECK( mk_write_uint( v, 0x54ba, d_height ) );
     CHECK( mk_close_context( v, 0 ) );

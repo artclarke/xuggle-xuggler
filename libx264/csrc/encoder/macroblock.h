@@ -1,7 +1,7 @@
 /*****************************************************************************
- * macroblock.h: h264 encoder library
+ * macroblock.h: macroblock encoding
  *****************************************************************************
- * Copyright (C) 2003-2008 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -19,6 +19,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #ifndef X264_ENCODER_MACROBLOCK_H
@@ -56,9 +59,9 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp );
 void x264_cabac_mb_skip( x264_t *h, int b_skip );
 
 int x264_quant_dc_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
-                             int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma );
+                             int i_qp, int ctx_block_cat, int b_intra, int b_chroma );
 int x264_quant_4x4_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
-                             int i_qp, int i_ctxBlockCat, int b_intra, int b_chroma, int idx );
+                             int i_qp, int ctx_block_cat, int b_intra, int b_chroma, int idx );
 int x264_quant_8x8_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
                              int i_qp, int b_intra, int idx );
 

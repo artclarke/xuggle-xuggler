@@ -1,7 +1,7 @@
 /*****************************************************************************
  * output.h: x264 file output modules
  *****************************************************************************
- * Copyright (C) 2003-2009 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -19,6 +19,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #ifndef X264_OUTPUT_H
@@ -28,7 +31,12 @@
 
 typedef struct
 {
-    int (*open_file)( char *psz_filename, hnd_t *p_handle );
+    int use_dts_compress;
+} cli_output_opt_t;
+
+typedef struct
+{
+    int (*open_file)( char *psz_filename, hnd_t *p_handle, cli_output_opt_t *opt );
     int (*set_param)( hnd_t handle, x264_param_t *p_param );
     int (*write_headers)( hnd_t handle, x264_nal_t *p_nal );
     int (*write_frame)( hnd_t handle, uint8_t *p_nal, int i_size, x264_picture_t *p_picture );

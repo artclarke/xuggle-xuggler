@@ -1,8 +1,7 @@
 /*****************************************************************************
- * lookahead.c: Lookahead slicetype decisions for x264
+ * lookahead.c: high-level lookahead functions
  *****************************************************************************
- * Lookahead.c and associated modifications:
- *     Copyright (C) 2008 Avail Media
+ * Copyright (C) 2010-2011 Avail Media and x264 project
  *
  * Authors: Michael Kazmier <mkazmier@availmedia.com>
  *          Alex Giladi <agiladi@availmedia.com>
@@ -20,7 +19,10 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 /* LOOKAHEAD (threaded and non-threaded mode)
@@ -62,7 +64,7 @@ static void x264_lookahead_update_last_nonb( x264_t *h, x264_frame_t *new_nonb )
     new_nonb->i_reference_count++;
 }
 
-#if HAVE_PTHREAD
+#if HAVE_THREAD
 static void x264_lookahead_slicetype_decide( x264_t *h )
 {
     x264_stack_align( x264_slicetype_decide, h );
@@ -98,7 +100,7 @@ static void x264_lookahead_thread( x264_t *h )
         shift = X264_MIN( h->lookahead->next.i_max_size - h->lookahead->next.i_size, h->lookahead->ifbuf.i_size );
         x264_lookahead_shift( &h->lookahead->next, &h->lookahead->ifbuf, shift );
         x264_pthread_mutex_unlock( &h->lookahead->next.mutex );
-        if( h->lookahead->next.i_size <= h->lookahead->i_slicetype_length )
+        if( h->lookahead->next.i_size <= h->lookahead->i_slicetype_length + h->param.b_vfr_input )
         {
             while( !h->lookahead->ifbuf.i_size && !h->lookahead->b_exit_thread )
                 x264_pthread_cond_wait( &h->lookahead->ifbuf.cv_fill, &h->lookahead->ifbuf.mutex );

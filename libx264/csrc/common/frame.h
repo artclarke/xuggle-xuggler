@@ -1,10 +1,11 @@
 /*****************************************************************************
- * frame.h: h264 encoder library
+ * frame.h: frame handling
  *****************************************************************************
- * Copyright (C) 2003-2008 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
+ *          Jason Garrett-Glaser <darkshikari@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,6 +20,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #ifndef X264_FRAME_H
@@ -32,20 +36,22 @@ typedef struct x264_frame
 {
     /* */
     int     i_poc;
+    int     i_delta_poc[2];
     int     i_type;
     int     i_qpplus1;
     int64_t i_pts;
     int64_t i_dts;
     int64_t i_reordered_pts;
-    int     i_duration;  /* in SPS time_scale units (i.e 2 * timebase units) used for vfr */
-    int     i_cpb_duration;
-    int     i_cpb_delay; /* in SPS time_scale units (i.e 2 * timebase units) */
-    int     i_dpb_output_delay;
+    int64_t i_duration;  /* in SPS time_scale units (i.e 2 * timebase units) used for vfr */
+    float   f_duration;  /* in seconds */
+    int64_t i_cpb_duration;
+    int64_t i_cpb_delay; /* in SPS time_scale units (i.e 2 * timebase units) */
+    int64_t i_dpb_output_delay;
     x264_param_t *param;
 
     int     i_frame;     /* Presentation frame number */
     int     i_coded;     /* Coded frame number */
-    int     i_field_cnt; /* Presentation field count */
+    int64_t i_field_cnt; /* Presentation field count */
     int     i_frame_num; /* 7.4.3 frame_num */
     int     b_kept_as_ref;
     int     i_pic_struct;
@@ -59,13 +65,13 @@ typedef struct x264_frame
 
     /* YUV buffer */
     int     i_plane;
-    int     i_stride[3];
-    int     i_width[3];
-    int     i_lines[3];
+    int     i_stride[2];
+    int     i_width[2];
+    int     i_lines[2];
     int     i_stride_lowres;
     int     i_width_lowres;
     int     i_lines_lowres;
-    pixel *plane[3];
+    pixel *plane[2];
     pixel *filtered[4]; /* plane[0], H, V, HV */
     pixel *lowres[4]; /* half-size copy of input frame: Orig, H, V, HV */
     uint16_t *integral;
@@ -75,8 +81,8 @@ typedef struct x264_frame
     pixel *buffer[4];
     pixel *buffer_lowres[4];
 
-    x264_weight_t weight[16][3]; /* [ref_index][plane] */
-    pixel *weighted[16]; /* plane[0] weighted of the reference frames */
+    x264_weight_t weight[X264_REF_MAX][3]; /* [ref_index][plane] */
+    pixel *weighted[X264_REF_MAX]; /* plane[0] weighted of the reference frames */
     int b_duplicate;
     struct x264_frame *orig;
 
@@ -97,7 +103,7 @@ typedef struct x264_frame
     int     *lowres_mv_costs[2][X264_BFRAME_MAX+1];
     int8_t  *ref[2];
     int     i_ref[2];
-    int     ref_poc[2][16];
+    int     ref_poc[2][X264_REF_MAX];
     int16_t inv_ref_poc[2]; // inverse values of ref0 poc to avoid divisions in temporal MV prediction
 
     /* for adaptive B-frame decision.
@@ -129,8 +135,8 @@ typedef struct x264_frame
     uint8_t i_planned_type[X264_LOOKAHEAD_MAX+1];
     int i_planned_satd[X264_LOOKAHEAD_MAX+1];
     double f_planned_cpb_duration[X264_LOOKAHEAD_MAX+1];
-    int i_coded_fields_lookahead;
-    int i_cpb_delay_lookahead;
+    int64_t i_coded_fields_lookahead;
+    int64_t i_cpb_delay_lookahead;
 
     /* threading */
     int     i_lines_completed; /* in pixels */
@@ -147,6 +153,9 @@ typedef struct x264_frame
 
     /* interactive encoder control */
     int     b_corrupt;
+
+    /* user sei */
+    x264_sei_t extra_sei;
 } x264_frame_t;
 
 /* synchronized frame list */
@@ -184,6 +193,7 @@ void          x264_frame_expand_border_lowres( x264_frame_t *frame );
 void          x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame );
 
 void          x264_frame_deblock_row( x264_t *h, int mb_y );
+void          x264_macroblock_deblock( x264_t *h );
 
 void          x264_frame_filter( x264_t *h, x264_frame_t *frame, int mb_y, int b_end );
 void          x264_frame_init_lowres( x264_t *h, x264_frame_t *frame );

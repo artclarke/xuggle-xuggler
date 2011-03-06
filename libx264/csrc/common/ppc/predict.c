@@ -1,7 +1,9 @@
 /*****************************************************************************
- * predict.c: h264 encoder
+ * predict.c: ppc intra prediction
  *****************************************************************************
- * Copyright (C) 2007-2009 Guillaume Poirier <gpoirier@mplayerhq.hu>
+ * Copyright (C) 2007-2011 x264 project
+ *
+ * Authors: Guillaume Poirier <gpoirier@mplayerhq.hu>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +18,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #include "common/common.h"
@@ -23,7 +28,7 @@
 #include "pixel.h"
 #include "ppccommon.h"
 
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
 static void predict_8x8c_p_altivec( uint8_t *src )
 {
     int H = 0, V = 0;
@@ -195,7 +200,7 @@ static void predict_16x16_v_altivec( uint8_t *src )
         src += FDEC_STRIDE;
     }
 }
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 
 
 /****************************************************************************
@@ -203,7 +208,7 @@ static void predict_16x16_v_altivec( uint8_t *src )
  ****************************************************************************/
 void x264_predict_16x16_init_altivec( x264_predict_t pf[7] )
 {
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
     pf[I_PRED_16x16_V ]      = predict_16x16_v_altivec;
     pf[I_PRED_16x16_H ]      = predict_16x16_h_altivec;
     pf[I_PRED_16x16_DC]      = predict_16x16_dc_altivec;
@@ -211,12 +216,12 @@ void x264_predict_16x16_init_altivec( x264_predict_t pf[7] )
     pf[I_PRED_16x16_DC_LEFT] = predict_16x16_dc_left_altivec;
     pf[I_PRED_16x16_DC_TOP ] = predict_16x16_dc_top_altivec;
     pf[I_PRED_16x16_DC_128 ] = predict_16x16_dc_128_altivec;
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 }
 
 void x264_predict_8x8c_init_altivec( x264_predict_t pf[7] )
 {
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
     pf[I_PRED_CHROMA_P]       = predict_8x8c_p_altivec;
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 }

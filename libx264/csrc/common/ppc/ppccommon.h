@@ -1,7 +1,9 @@
 /*****************************************************************************
- * ppccommon.h: h264 encoder
+ * ppccommon.h: ppc utility macros
  *****************************************************************************
- * Copyright (C) 2003 Eric Petit <eric.petit@lapsus.org>
+ * Copyright (C) 2003-2011 x264 project
+ *
+ * Authors: Eric Petit <eric.petit@lapsus.org>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,6 +18,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #if HAVE_ALTIVEC_H
@@ -263,6 +268,16 @@ typedef union {
     d     = vec_sub( pix1v, pix2v );                \
     p1   += i1;                                     \
     p2   += i2
+
+#define VEC_DIFF_H_OFFSET(p1,i1,p2,i2,n,d,g1,g2)    \
+    pix1v = (vec_s16_t)vec_perm( vec_ld( 0, p1 ), zero_u8v, _##g1##_ );\
+    pix1v = vec_u8_to_s16( pix1v );                 \
+    VEC_LOAD( p2, pix2v, n, vec_s16_t, g2);         \
+    pix2v = vec_u8_to_s16( pix2v );                 \
+    d     = vec_sub( pix1v, pix2v );                \
+    p1   += i1;                                     \
+    p2   += i2
+
 
 /***********************************************************************
  * VEC_DIFF_HL

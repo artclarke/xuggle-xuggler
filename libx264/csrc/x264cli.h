@@ -1,7 +1,7 @@
 /*****************************************************************************
  * x264cli.h: x264cli common
  *****************************************************************************
- * Copyright (C) 2003-2010 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -19,12 +19,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #ifndef X264_CLI_H
 #define X264_CLI_H
 
 #include "common/common.h"
+
+/* In microseconds */
+#define UPDATE_INTERVAL 250000
 
 typedef void *hnd_t;
 
@@ -57,11 +63,13 @@ static inline char *get_filename_extension( char *filename )
 void x264_cli_log( const char *name, int i_level, const char *fmt, ... );
 void x264_cli_printf( int i_level, const char *fmt, ... );
 
-#define FAIL_IF_ERR( cond, name, ... )\
+#define RETURN_IF_ERR( cond, name, ret, ... )\
 if( cond )\
 {\
     x264_cli_log( name, X264_LOG_ERROR, __VA_ARGS__ );\
-    return -1;\
+    return ret;\
 }
+
+#define FAIL_IF_ERR( cond, name, ... ) RETURN_IF_ERR( cond, name, -1, __VA_ARGS__ )
 
 #endif

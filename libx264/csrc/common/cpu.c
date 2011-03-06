@@ -1,7 +1,7 @@
 /*****************************************************************************
- * cpu.c: h264 encoder library
+ * cpu.c: cpu detection
  *****************************************************************************
- * Copyright (C) 2003-2008 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -20,6 +20,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #define _GNU_SOURCE // for sched_getaffinity
@@ -56,6 +59,7 @@ const x264_cpu_name_t x264_cpu_names[] = {
     {"FastShuffle",   X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SHUFFLE_IS_FAST},
     {"SSE4.1",  X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4},
     {"SSE4.2",  X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4|X264_CPU_SSE42},
+    {"AVX", X264_CPU_AVX},
     {"Cache32", X264_CPU_CACHELINE_32},
     {"Cache64", X264_CPU_CACHELINE_64},
     {"SSEMisalign", X264_CPU_SSE_MISALIGN},
@@ -90,14 +94,15 @@ static void sigill_handler( int sig )
 
 #if HAVE_MMX
 int x264_cpu_cpuid_test( void );
-uint32_t x264_cpu_cpuid( uint32_t op, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx );
+void x264_cpu_cpuid( uint32_t op, uint32_t *eax, uint32_t *ebx, uint32_t *ecx, uint32_t *edx );
+void x264_cpu_xgetbv( uint32_t op, uint32_t *eax, uint32_t *edx );
 
 uint32_t x264_cpu_detect( void )
 {
     uint32_t cpu = 0;
     uint32_t eax, ebx, ecx, edx;
     uint32_t vendor[4] = {0};
-    int max_extended_cap;
+    uint32_t max_extended_cap;
     int cache;
 
 #if !ARCH_X86_64
@@ -126,6 +131,14 @@ uint32_t x264_cpu_detect( void )
         cpu |= X264_CPU_SSE4;
     if( ecx&0x00100000 )
         cpu |= X264_CPU_SSE42;
+    /* Check OXSAVE and AVX bits */
+    if( (ecx&0x18000000) == 0x18000000 )
+    {
+        /* Check for OS support */
+        x264_cpu_xgetbv( 0, &eax, &edx );
+        if( (eax&0x6) == 0x6 )
+            cpu |= X264_CPU_AVX;
+    }
 
     if( cpu & X264_CPU_SSSE3 )
         cpu |= X264_CPU_SSE2_IS_FAST;
@@ -166,19 +179,26 @@ uint32_t x264_cpu_detect( void )
         x264_cpu_cpuid( 1, &eax, &ebx, &ecx, &edx );
         int family = ((eax>>8)&0xf) + ((eax>>20)&0xff);
         int model  = ((eax>>4)&0xf) + ((eax>>12)&0xf0);
-        /* 6/9 (pentium-m "banias"), 6/13 (pentium-m "dothan"), and 6/14 (core1 "yonah")
-         * theoretically support sse2, but it's significantly slower than mmx for
-         * almost all of x264's functions, so let's just pretend they don't. */
-        if( family == 6 && (model == 9 || model == 13 || model == 14) )
+        if( family == 6 )
         {
-            cpu &= ~(X264_CPU_SSE2|X264_CPU_SSE3);
-            assert(!(cpu&(X264_CPU_SSSE3|X264_CPU_SSE4)));
-        }
-        /* Detect Atom CPU */
-        if( family == 6 && model == 28 )
-        {
-            cpu |= X264_CPU_SLOW_ATOM;
-            cpu |= X264_CPU_SLOW_CTZ;
+            /* 6/9 (pentium-m "banias"), 6/13 (pentium-m "dothan"), and 6/14 (core1 "yonah")
+             * theoretically support sse2, but it's significantly slower than mmx for
+             * almost all of x264's functions, so let's just pretend they don't. */
+            if( model == 9 || model == 13 || model == 14 )
+            {
+                cpu &= ~(X264_CPU_SSE2|X264_CPU_SSE3);
+                assert(!(cpu&(X264_CPU_SSSE3|X264_CPU_SSE4)));
+            }
+            /* Detect Atom CPU */
+            else if( model == 28 )
+            {
+                cpu |= X264_CPU_SLOW_ATOM;
+                cpu |= X264_CPU_SLOW_CTZ;
+            }
+            /* Some Penryns and Nehalems are pointlessly crippled (SSE4 disabled), so
+             * detect them here. */
+            else if( model >= 23 )
+                cpu |= X264_CPU_SHUFFLE_IS_FAST;
         }
     }
 
@@ -283,8 +303,8 @@ uint32_t x264_cpu_detect( void )
 
 #elif ARCH_ARM
 
-void x264_cpu_neon_test();
-int x264_cpu_fast_neon_mrc_test();
+void x264_cpu_neon_test( void );
+int x264_cpu_fast_neon_mrc_test( void );
 
 uint32_t x264_cpu_detect( void )
 {
@@ -334,11 +354,11 @@ uint32_t x264_cpu_detect( void )
 
 int x264_cpu_num_processors( void )
 {
-#if !HAVE_PTHREAD
+#if !HAVE_THREAD
     return 1;
 
 #elif defined(_WIN32)
-    return pthread_num_processors_np();
+    return x264_pthread_num_processors_np();
 
 #elif SYS_LINUX
     unsigned int bit;
@@ -356,18 +376,18 @@ int x264_cpu_num_processors( void )
     return info.cpu_count;
 
 #elif SYS_MACOSX || SYS_FREEBSD || SYS_OPENBSD
-    int numberOfCPUs;
-    size_t length = sizeof( numberOfCPUs );
+    int ncpu;
+    size_t length = sizeof( ncpu );
 #if SYS_OPENBSD
     int mib[2] = { CTL_HW, HW_NCPU };
-    if( sysctl(mib, 2, &numberOfCPUs, &length, NULL, 0) )
+    if( sysctl(mib, 2, &ncpu, &length, NULL, 0) )
 #else
-    if( sysctlbyname("hw.ncpu", &numberOfCPUs, &length, NULL, 0) )
+    if( sysctlbyname("hw.ncpu", &ncpu, &length, NULL, 0) )
 #endif
     {
-        numberOfCPUs = 1;
+        ncpu = 1;
     }
-    return numberOfCPUs;
+    return ncpu;
 
 #else
     return 1;

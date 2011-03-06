@@ -1,7 +1,7 @@
 /*****************************************************************************
- * osdep.h: h264 encoder
+ * osdep.h: platform-specific code
  *****************************************************************************
- * Copyright (C) 2007-2008 x264 project
+ * Copyright (C) 2007-2011 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -19,6 +19,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #ifndef X264_OSDEP_H
@@ -47,7 +50,7 @@
 #include <fcntl.h> // _O_BINARY
 #endif
 
-#if (SYS_OPENBSD && !defined(isfinite)) || SYS_SunOS
+#if !defined(isfinite) && (SYS_OPENBSD || SYS_SunOS)
 #define isfinite finite
 #endif
 #ifdef _WIN32
@@ -86,6 +89,8 @@
     ALIGNED_16( type name sub1 __VA_ARGS__ )
 #endif
 
+#define UNINIT(x) x=x
+
 #if defined(__GNUC__) && (__GNUC__ > 3 || __GNUC__ == 3 && __GNUC_MINOR__ > 0)
 #define UNUSED __attribute__((unused))
 #define ALWAYS_INLINE __attribute__((always_inline)) inline
@@ -103,7 +108,7 @@
 #endif
 
 /* threads */
-#if SYS_BEOS
+#if HAVE_BEOSTHREAD
 #include <kernel/OS.h>
 #define x264_pthread_t               thread_id
 static inline int x264_pthread_create( x264_pthread_t *t, void *a, void *(*f)(void *), void *d )
@@ -116,22 +121,9 @@ static inline int x264_pthread_create( x264_pthread_t *t, void *a, void *(*f)(vo
 }
 #define x264_pthread_join(t,s)       { long tmp; \
                                        wait_for_thread(t,(s)?(long*)(*(s)):&tmp); }
-#ifndef usleep
-#define usleep(t)                    snooze(t)
-#endif
-#define HAVE_PTHREAD 1
 
-#elif HAVE_PTHREAD
+#elif HAVE_POSIXTHREAD
 #include <pthread.h>
-#define USE_REAL_PTHREAD 1
-
-#else
-#define x264_pthread_t               int
-#define x264_pthread_create(t,u,f,d) 0
-#define x264_pthread_join(t,s)
-#endif //SYS_*
-
-#if USE_REAL_PTHREAD
 #define x264_pthread_t               pthread_t
 #define x264_pthread_create          pthread_create
 #define x264_pthread_join            pthread_join
@@ -148,8 +140,19 @@ static inline int x264_pthread_create( x264_pthread_t *t, void *a, void *(*f)(vo
 #define x264_pthread_attr_t          pthread_attr_t
 #define x264_pthread_attr_init       pthread_attr_init
 #define x264_pthread_attr_destroy    pthread_attr_destroy
+#define x264_pthread_num_processors_np pthread_num_processors_np
 #define X264_PTHREAD_MUTEX_INITIALIZER PTHREAD_MUTEX_INITIALIZER
+
+#elif HAVE_WIN32THREAD
+#include "win32thread.h"
+
 #else
+#define x264_pthread_t               int
+#define x264_pthread_create(t,u,f,d) 0
+#define x264_pthread_join(t,s)
+#endif //HAVE_*THREAD
+
+#if !HAVE_POSIXTHREAD && !HAVE_WIN32THREAD
 #define x264_pthread_mutex_t         int
 #define x264_pthread_mutex_init(m,f) 0
 #define x264_pthread_mutex_destroy(m)
@@ -164,6 +167,12 @@ static inline int x264_pthread_create( x264_pthread_t *t, void *a, void *(*f)(vo
 #define x264_pthread_attr_init(a)    0
 #define x264_pthread_attr_destroy(a)
 #define X264_PTHREAD_MUTEX_INITIALIZER 0
+#endif
+
+#if HAVE_WIN32THREAD || PTW32_STATIC_LIB
+int x264_threading_init( void );
+#else
+#define x264_threading_init() 0
 #endif
 
 #define WORD_SIZE sizeof(void*)
@@ -267,7 +276,7 @@ static ALWAYS_INLINE void x264_prefetch( void *p )
 #define x264_prefetch(x)
 #endif
 
-#if USE_REAL_PTHREAD
+#if HAVE_POSIXTHREAD
 #if SYS_MINGW
 #define x264_lower_thread_priority(p)\
 {\
@@ -281,7 +290,9 @@ static ALWAYS_INLINE void x264_prefetch( void *p )
 #else
 #include <unistd.h>
 #define x264_lower_thread_priority(p) { UNUSED int nice_ret = nice(p); }
-#endif /* USE_REAL_PTHREAD */
+#endif /* SYS_MINGW */
+#elif HAVE_WIN32THREAD
+#define x264_lower_thread_priority(p) SetThreadPriority( GetCurrentThread(), X264_MAX( -2, -p ) )
 #else
 #define x264_lower_thread_priority(p)
 #endif

@@ -1,7 +1,9 @@
 /*****************************************************************************
- * mdate.c: h264 encoder
+ * internal.h: video filter utilities
  *****************************************************************************
- * Copyright (C) 2003 Laurent Aimar <fenrir@via.ecp.fr>
+ * Copyright (C) 2010-2011 x264 project
+ *
+ * Authors: Steven Walters <kemuri9@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,29 +18,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
-#ifndef __MINGW32__
-#include <sys/time.h>
-#else
-#include <sys/types.h>
-#include <sys/timeb.h>
+#ifndef X264_FILTER_VIDEO_INTERNAL_H
+#define X264_FILTER_VIDEO_INTERNAL_H
+#include "video.h"
+
+void x264_cli_plane_copy( uint8_t *dst, int i_dst, uint8_t *src, int i_src, int w, int h );
+int  x264_cli_pic_copy( cli_pic_t *out, cli_pic_t *in );
+
 #endif
-#include <time.h>
-
-#include "common.h"
-#include "osdep.h"
-
-int64_t x264_mdate( void )
-{
-#ifndef __MINGW32__
-    struct timeval tv_date;
-    gettimeofday( &tv_date, NULL );
-    return( (int64_t) tv_date.tv_sec * 1000000 + (int64_t) tv_date.tv_usec );
-#else
-    struct _timeb tb;
-    _ftime(&tb);
-    return ((int64_t)tb.time * (1000) + (int64_t)tb.millitm) * (1000);
-#endif
-}
-

@@ -1,7 +1,7 @@
 /*****************************************************************************
- * pixel.c: h264 encoder
+ * pixel.c: ppc pixel metrics
  *****************************************************************************
- * Copyright (C) 2003-2008 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Eric Petit <eric.petit@lapsus.org>
  *          Guillaume Poirier <gpoirier@mplayerhq.hu>
@@ -19,12 +19,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #include "common/common.h"
 #include "ppccommon.h"
 
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
 /***********************************************************************
  * SAD routines
  **********************************************************************/
@@ -280,19 +283,19 @@ static int pixel_satd_8x8_altivec( uint8_t *pix1, int i_pix1,
               temp4v, temp5v, temp6v, temp7v;
     vec_s32_t satdv;
 
-    PREP_LOAD_SRC( pix1 );
-    vec_u8_t _offset1v_ = vec_lvsl(0, pix2);
-    vec_u8_t _offset2v_ = vec_lvsl(0, pix2 + i_pix2);
+    vec_u8_t _offset1_1v_ = vec_lvsl(0, pix1);
+    vec_u8_t _offset1_2v_ = vec_lvsl(0, pix1 + i_pix1);
+    vec_u8_t _offset2_1v_ = vec_lvsl(0, pix2);
+    vec_u8_t _offset2_2v_ = vec_lvsl(0, pix2 + i_pix2);
 
-
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff0v, offset1v );
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff1v, offset2v );
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff2v, offset1v );
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff3v, offset2v );
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff4v, offset1v );
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff5v, offset2v );
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff6v, offset1v );
-    VEC_DIFF_H( pix1, i_pix1, pix2, i_pix2, 8, diff7v, offset2v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff0v, offset1_1v, offset2_1v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff1v, offset1_2v, offset2_2v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff2v, offset1_1v, offset2_1v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff3v, offset1_2v, offset2_2v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff4v, offset1_1v, offset2_1v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff5v, offset1_2v, offset2_2v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff6v, offset1_1v, offset2_1v );
+    VEC_DIFF_H_OFFSET( pix1, i_pix1, pix2, i_pix2, 8, diff7v, offset1_2v, offset2_2v );
 
     VEC_HADAMAR( diff0v, diff1v, diff2v, diff3v,
                  temp0v, temp1v, temp2v, temp3v );
@@ -1980,14 +1983,14 @@ static void ssim_4x4x2_core_altivec( const uint8_t *pix1, int stride1,
     sums[0][3] = temp[0];
     sums[1][3] = temp[1];
 }
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 
 /****************************************************************************
  * x264_pixel_init:
  ****************************************************************************/
 void x264_pixel_altivec_init( x264_pixel_function_t *pixf )
 {
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
     pixf->sad[PIXEL_16x16]  = pixel_sad_16x16_altivec;
     pixf->sad[PIXEL_8x16]   = pixel_sad_8x16_altivec;
     pixf->sad[PIXEL_16x8]   = pixel_sad_16x8_altivec;
@@ -2026,5 +2029,5 @@ void x264_pixel_altivec_init( x264_pixel_function_t *pixf )
     pixf->hadamard_ac[PIXEL_8x8]   = x264_pixel_hadamard_ac_8x8_altivec;
 
     pixf->ssim_4x4x2_core = ssim_4x4x2_core_altivec;
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 }

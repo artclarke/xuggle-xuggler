@@ -1,7 +1,7 @@
 /*****************************************************************************
- * mc-c.c: h264 encoder library (Motion Compensation)
+ * mc-c.c: arm motion compensation
  *****************************************************************************
- * Copyright (C) 2009 x264 project
+ * Copyright (C) 2009-2011 x264 project
  *
  * Authors: David Conrad <lessen42@gmail.com>
  *
@@ -18,6 +18,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #include "common/common.h"
@@ -76,7 +79,7 @@ void x264_hpel_filter_v_neon( uint8_t *, uint8_t *, int16_t *, int, int );
 void x264_hpel_filter_c_neon( uint8_t *, int16_t *, int );
 void x264_hpel_filter_h_neon( uint8_t *, uint8_t *, int );
 
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
 static void x264_weight_cache_neon( x264_t *h, x264_weight_t *w )
 {
     if( w->i_scale == 1<<w->i_denom )
@@ -199,22 +202,22 @@ static void hpel_filter_neon( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8
         src  += stride;
     }
 }
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 
 void x264_mc_init_arm( int cpu, x264_mc_functions_t *pf )
 {
     if( !(cpu&X264_CPU_ARMV6) )
         return;
 
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
     pf->prefetch_fenc = x264_prefetch_fenc_arm;
     pf->prefetch_ref  = x264_prefetch_ref_arm;
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 
     if( !(cpu&X264_CPU_NEON) )
         return;
 
-#if !X264_HIGH_BIT_DEPTH
+#if !HIGH_BIT_DEPTH
     pf->copy_16x16_unaligned = x264_mc_copy_w16_neon;
     pf->copy[PIXEL_16x16] = x264_mc_copy_w16_aligned_neon;
     pf->copy[PIXEL_8x8]   = x264_mc_copy_w8_neon;
@@ -234,12 +237,12 @@ void x264_mc_init_arm( int cpu, x264_mc_functions_t *pf )
     pf->offsetsub = x264_mc_offsetsub_wtab_neon;
     pf->weight_cache = x264_weight_cache_neon;
 
-    pf->mc_chroma = x264_mc_chroma_neon;
+//  pf->mc_chroma = x264_mc_chroma_neon;
     pf->mc_luma = mc_luma_neon;
     pf->get_ref = get_ref_neon;
     pf->hpel_filter = hpel_filter_neon;
     pf->frame_init_lowres_core = x264_frame_init_lowres_core_neon;
-#endif // !X264_HIGH_BIT_DEPTH
+#endif // !HIGH_BIT_DEPTH
 
 // Apple's gcc stupidly cannot align stack variables, and ALIGNED_ARRAY can't work on structs
 #ifndef SYS_MACOSX

@@ -1,6 +1,11 @@
 A qualitative overview of x264's ratecontrol methods
 By Loren Merritt
 
+Historical note:
+This document is outdated, but a significant part of it is still accurate.  Here are some important ways ratecontrol has changed since the authoring of this document:
+- By default, MB-tree is used instead of qcomp for weighting frame quality based on complexity.  MB-tree is effectively a generalization of qcomp to the macroblock level.  MB-tree also replaces the constant offsets for B-frame quantizers.  The legacy algorithm is still available for low-latency applications.
+- Adaptive quantization is now used to distribute quality among each frame; frames are no longer constant quantizer, even if MB-tree is off.
+- VBV runs per-row rather than per-frame to improve accuracy.
 
 x264's ratecontrol is based on libavcodec's, and is mostly empirical. But I can retroactively propose the following theoretical points which underlie most of the algorithms:
 
@@ -37,8 +42,3 @@ The goal is the same as in 2pass, but here we don't have the benefit of a previo
 
     constant quantizer:
 QPs are simply based on frame type.
-
-
-    all modes:
-H.264 allows each macroblock to have a different QP. x264 does not do so. Ratecontrol returns one QP which is used for the whole frame.
-

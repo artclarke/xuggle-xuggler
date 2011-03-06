@@ -1,7 +1,7 @@
 /*****************************************************************************
- * thread.c: x264 threaded input module
+ * thread.c: threaded input
  *****************************************************************************
- * Copyright (C) 2003-2009 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -19,17 +19,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #include "input.h"
-
-extern cli_input_t input;
 
 typedef struct
 {
     cli_input_t input;
     hnd_t p_handle;
-    x264_picture_t pic;
+    cli_pic_t pic;
     x264_threadpool_t *pool;
     int next_frame;
     int frame_total;
@@ -39,7 +40,7 @@ typedef struct
 typedef struct thread_input_arg_t
 {
     thread_hnd_t *h;
-    x264_picture_t *pic;
+    cli_pic_t *pic;
     int i_frame;
     int status;
 } thread_input_arg_t;
@@ -57,7 +58,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         return -1;
     h->next_args->h = h;
     h->next_args->status = 0;
-    h->frame_total = input.get_frame_total( h->p_handle );
+    h->frame_total = info->num_frames;
     thread_input.picture_alloc = h->input.picture_alloc;
     thread_input.picture_clean = h->input.picture_clean;
 
@@ -68,18 +69,12 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     return 0;
 }
 
-static int get_frame_total( hnd_t handle )
-{
-    thread_hnd_t *h = handle;
-    return h->frame_total;
-}
-
 static void read_frame_thread_int( thread_input_arg_t *i )
 {
     i->status = i->h->input.read_frame( i->pic, i->h->p_handle, i->i_frame );
 }
 
-static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
+static int read_frame( cli_pic_t *p_pic, hnd_t handle, int i_frame )
 {
     thread_hnd_t *h = handle;
     int ret = 0;
@@ -91,7 +86,7 @@ static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
     }
 
     if( h->next_frame == i_frame )
-        XCHG( x264_picture_t, *p_pic, h->pic );
+        XCHG( cli_pic_t, *p_pic, h->pic );
     else
         ret |= h->input.read_frame( p_pic, h->p_handle, i_frame );
 
@@ -108,7 +103,7 @@ static int read_frame( x264_picture_t *p_pic, hnd_t handle, int i_frame )
     return ret;
 }
 
-static int release_frame( x264_picture_t *pic, hnd_t handle )
+static int release_frame( cli_pic_t *pic, hnd_t handle )
 {
     thread_hnd_t *h = handle;
     if( h->input.release_frame )
@@ -127,4 +122,4 @@ static int close_file( hnd_t handle )
     return 0;
 }
 
-cli_input_t thread_input = { open_file, get_frame_total, NULL, read_frame, release_frame, NULL, close_file };
+cli_input_t thread_input = { open_file, NULL, read_frame, release_frame, NULL, close_file };

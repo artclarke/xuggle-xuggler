@@ -1,31 +1,35 @@
 #!/bin/bash
 
 if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
+cat <<EOF
+Usage: ./configure [options]
 
-echo "Usage: ./configure [options]"
-echo ""
-echo "available options:"
-echo ""
-echo "  --help                   print this message"
-echo "  --disable-avs            disables avisynth support (windows only)"
-echo "  --disable-lavf           disables libavformat support"
-echo "  --disable-ffms           disables ffmpegsource support"
-echo "  --disable-gpac           disables gpac support"
-echo "  --disable-pthread        disables multithreaded encoding"
-echo "  --disable-asm            disables platform-specific assembly optimizations"
-echo "  --enable-debug           adds -g, doesn't strip"
-echo "  --enable-gprof           adds -pg, doesn't strip"
-echo "  --enable-visualize       enables visualization (X11 only)"
-echo "  --enable-pic             build position-independent code"
-echo "  --enable-shared          build libx264.so"
-echo "  --bit-depth=BIT_DEPTH    sets output bit depth (8-10), default 8"
-echo "  --extra-asflags=EASFLAGS add EASFLAGS to ASFLAGS"
-echo "  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS"
-echo "  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS"
-echo "  --host=HOST              build programs to run on HOST"
-echo "  --cross-prefix=PREFIX    use PREFIX for compilation tools"
-echo "  --sysroot=SYSROOT        root of cross-build tree"
-echo ""
+available options:
+
+  --help                   print this message
+  --disable-avs            disables avisynth support (windows only)
+  --disable-lavf           disables libavformat support
+  --disable-ffms           disables ffmpegsource support
+  --disable-gpac           disables gpac support
+  --disable-gpl            disables GPL-only features
+  --disable-thread         disables multithreaded encoding
+  --enable-win32thread     use win32threads (windows only)
+  --disable-swscale        disables swscale support
+  --disable-asm            disables platform-specific assembly optimizations
+  --enable-debug           adds -g, doesn't strip
+  --enable-gprof           adds -pg, doesn't strip
+  --enable-visualize       enables visualization (X11 only)
+  --enable-pic             build position-independent code
+  --enable-shared          build shared library
+  --bit-depth=BIT_DEPTH    sets output bit depth (8-10), default 8
+  --extra-asflags=EASFLAGS add EASFLAGS to ASFLAGS
+  --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS
+  --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS
+  --host=HOST              build programs to run on HOST
+  --cross-prefix=PREFIX    use PREFIX for compilation tools
+  --sysroot=SYSROOT        root of cross-build tree
+
+EOF
 exit 1
 fi
 
@@ -62,7 +66,7 @@ cc_check() {
     rm -f conftest.c
     [ -n "$1" ] && echo "#include <$1>" > conftest.c
     echo "int main () { $3 return 0; }" >> conftest.c
-    if $CC conftest.c $CFLAGS $LDFLAGS $LDFLAGSCLI $2 -o conftest >conftest.log 2>&1; then
+    if $CC conftest.c $CFLAGS $2 $LDFLAGSCLI $LDFLAGS -o conftest >conftest.log 2>&1; then
         res=$?
         log_ok
     else
@@ -70,8 +74,35 @@ cc_check() {
         log_fail
         log_msg "Failed commandline was:"
         log_msg "--------------------------------------------------"
-        log_msg "$CC conftest.c $CFLAGS $LDFLAGS $LDFLAGSCLI $2"
+        log_msg "$CC conftest.c $CFLAGS $2 $LDFLAGSCLI $LDFLAGS"
         cat conftest.log >> config.log
+        log_msg "--------------------------------------------------"
+        log_msg "Failed program was:"
+        log_msg "--------------------------------------------------"
+        cat conftest.c >> config.log
+        log_msg "--------------------------------------------------"
+    fi
+    return $res
+}
+
+cpp_check() {
+    log_check "whether $3 is true"
+    rm -f conftest.c
+    [ -n "$1" ] && echo "#include <$1>" > conftest.c
+    echo -e "#if !($3) \n#error $4 \n#endif " >> conftest.c
+
+    if $CC conftest.c $CFLAGS $2 -E -o conftest >conftest.log 2>&1; then
+        res=$?
+        log_ok
+    else
+        res=$?
+        log_fail
+        log_msg "--------------------------------------------------"
+        cat conftest.log >> config.log
+        log_msg "--------------------------------------------------"
+        log_msg "Failed program was:"
+        log_msg "--------------------------------------------------"
+        cat conftest.c >> config.log
         log_msg "--------------------------------------------------"
     fi
     return $res
@@ -91,6 +122,10 @@ as_check() {
         log_msg "$AS conftest.asm $ASFLAGS $2 -o conftest.o"
         cat conftest.log >> config.log
         log_msg "--------------------------------------------------"
+        log_msg "Failed program was:"
+        log_msg "--------------------------------------------------"
+        cat conftest.asm >> config.log
+        log_msg "--------------------------------------------------"
     fi
     return $res
 }
@@ -105,7 +140,7 @@ die() {
     exit 1
 }
 
-rm -f config.h config.mak config.log x264.pc conftest*
+rm -f x264_config.h config.h config.mak config.log x264.pc conftest*
 
 prefix='/usr/local'
 exec_prefix='${prefix}'
@@ -118,7 +153,9 @@ avs="auto"
 lavf="auto"
 ffms="auto"
 gpac="auto"
-pthread="auto"
+gpl="yes"
+thread="auto"
+swscale="auto"
 asm="auto"
 debug="no"
 gprof="no"
@@ -135,6 +172,9 @@ HAVE_GETOPT_LONG=1
 cross_prefix=""
 
 EXE=""
+
+# list of all preprocessor HAVE values we can define
+CONFIG_HAVE="MALLOC_H ALTIVEC ALTIVEC_H MMX ARMV6 ARMV6T2 NEON BEOSTHREAD POSIXTHREAD WIN32THREAD THREAD LOG2F VISUALIZE SWSCALE LAVF FFMS GPAC GF_MALLOC AVS GPL"
 
 # parse options
 
@@ -171,6 +211,9 @@ for opt do
         --disable-gpac)
             gpac="no"
             ;;
+        --disable-gpl)
+            gpl="no"
+            ;;
         --extra-asflags=*)
             ASFLAGS="$ASFLAGS ${opt#--extra-asflags=}"
             ;;
@@ -180,8 +223,14 @@ for opt do
         --extra-ldflags=*)
             LDFLAGS="$LDFLAGS ${opt#--extra-ldflags=}"
             ;;
-        --disable-pthread)
-            pthread="no"
+        --disable-thread)
+            thread="no"
+            ;;
+        --enable-win32thread)
+            thread="win32"
+            ;;
+        --disable-swscale)
+            swscale="no"
             ;;
         --enable-debug)
             debug="yes"
@@ -242,154 +291,159 @@ host_vendor="${host%%-*}"
 host_os="${host#*-}"
 
 case $host_os in
-  beos*)
-    SYS="BEOS"
-    define HAVE_MALLOC_H
-    ;;
-  darwin*)
-    SYS="MACOSX"
-    CFLAGS="$CFLAGS -falign-loops=16"
-    LDFLAGS="$LDFLAGS -lm"
-    if [ "$pic" = "no" ]; then
-        cc_check "" -mdynamic-no-pic && CFLAGS="$CFLAGS -mdynamic-no-pic"
-    fi
-    ;;
-  freebsd*)
-    SYS="FREEBSD"
-    LDFLAGS="$LDFLAGS -lm"
-    ;;
-  kfreebsd*-gnu)
-    SYS="FREEBSD"
-    define HAVE_MALLOC_H
-    LDFLAGS="$LDFLAGS -lm"
-    ;;
-  netbsd*)
-    SYS="NETBSD"
-    LDFLAGS="$LDFLAGS -lm"
-    ;;
-  openbsd*)
-    SYS="OPENBSD"
-    CFLAGS="$CFLAGS -I/usr/X11R6/include"
-    LDFLAGS="$LDFLAGS -lm"
-    ;;
-  *linux*)
-    SYS="LINUX"
-    define HAVE_MALLOC_H
-    LDFLAGS="$LDFLAGS -lm"
-    ;;
-  cygwin*)
-    SYS="MINGW"
-    EXE=".exe"
-    DEVNULL="NUL"
-    if cc_check "" -mno-cygwin; then
-        CFLAGS="$CFLAGS -mno-cygwin"
-        LDFLAGS="$LDFLAGS -mno-cygwin"
-    fi
-    ;;
-  mingw*)
-    SYS="MINGW"
-    EXE=".exe"
-    DEVNULL="NUL"
-    ;;
-  sunos*|solaris*)
-    SYS="SunOS"
-    define HAVE_MALLOC_H
-    LDFLAGS="$LDFLAGS -lm"
-    HAVE_GETOPT_LONG=0
-    ;;
-  *)
-    die "Unknown system $host, edit the configure"
-    ;;
+    beos*)
+        SYS="BEOS"
+        define HAVE_MALLOC_H
+        ;;
+    darwin*)
+        SYS="MACOSX"
+        CFLAGS="$CFLAGS -falign-loops=16"
+        LDFLAGS="$LDFLAGS -lm"
+        if [ "$pic" = "no" ]; then
+            cc_check "" -mdynamic-no-pic && CFLAGS="$CFLAGS -mdynamic-no-pic"
+        fi
+        ;;
+    freebsd*)
+        SYS="FREEBSD"
+        LDFLAGS="$LDFLAGS -lm"
+        ;;
+    kfreebsd*-gnu)
+        SYS="FREEBSD"
+        define HAVE_MALLOC_H
+        LDFLAGS="$LDFLAGS -lm"
+        ;;
+    netbsd*)
+        SYS="NETBSD"
+        LDFLAGS="$LDFLAGS -lm"
+        ;;
+    openbsd*)
+        SYS="OPENBSD"
+        LDFLAGS="$LDFLAGS -lm"
+        ;;
+    *linux*)
+        SYS="LINUX"
+        define HAVE_MALLOC_H
+        LDFLAGS="$LDFLAGS -lm"
+        ;;
+    cygwin*)
+        SYS="MINGW"
+        EXE=".exe"
+        DEVNULL="NUL"
+        if cc_check "" -mno-cygwin; then
+            CFLAGS="$CFLAGS -mno-cygwin"
+            LDFLAGS="$LDFLAGS -mno-cygwin"
+        fi
+        ;;
+    mingw*)
+        SYS="MINGW"
+        EXE=".exe"
+        DEVNULL="NUL"
+        ;;
+    sunos*|solaris*)
+        SYS="SunOS"
+        define HAVE_MALLOC_H
+        LDFLAGS="$LDFLAGS -lm"
+        HAVE_GETOPT_LONG=0
+        ;;
+    *)
+        die "Unknown system $host, edit the configure"
+        ;;
 esac
 
 case $host_cpu in
-  i*86)
-    ARCH="X86"
-    AS="yasm"
-    ASFLAGS="$ASFLAGS -O2"
-    if [[ "$asm" == auto && "$CFLAGS" != *-march* ]]; then
-      CFLAGS="$CFLAGS -march=i686"
-    fi
-    if [[ "$asm" == auto && "$CFLAGS" != *-mfpmath* ]]; then
-      CFLAGS="$CFLAGS -mfpmath=sse -msse"
-    fi
-    if [ "$SYS" = MACOSX ]; then
-      ASFLAGS="$ASFLAGS -f macho -DPREFIX"
-    elif [ "$SYS" = MINGW ]; then
-      ASFLAGS="$ASFLAGS -f win32 -DPREFIX"
-      LDFLAGS="$LDFLAGS -Wl,--large-address-aware"
-    else
-      ASFLAGS="$ASFLAGS -f elf"
-    fi
-    ;;
-  x86_64)
-    ARCH="X86_64"
-    AS="yasm"
-    if [ "$SYS" = MACOSX ];then
-      ASFLAGS="$ASFLAGS -f macho64 -m amd64 -DPIC -DPREFIX"
-      if cc_check '' "-arch x86_64"; then
-        CFLAGS="$CFLAGS -arch x86_64"
-        LDFLAGS="$LDFLAGS -arch x86_64"
-      fi
-    elif [ "$SYS" = MINGW ]; then
-      ASFLAGS="$ASFLAGS -f win32 -m amd64 -DPREFIX"
-    else
-      ASFLAGS="$ASFLAGS -f elf -m amd64"
-    fi
-    ;;
-  powerpc|powerpc64)
-    ARCH="PPC"
-    if [ $asm = auto ] ; then
-      define HAVE_ALTIVEC
-      AS="${AS-${cross_prefix}gcc}"
-      if [ $SYS = MACOSX ] ; then
-        CFLAGS="$CFLAGS -faltivec -fastf -mcpu=G4"
-      else
-        CFLAGS="$CFLAGS -maltivec -mabi=altivec"
-        define HAVE_ALTIVEC_H
-      fi
-    fi
-    ;;
-  sparc)
-    if [ $asm = auto ] && test "$(uname -m)" = "sun4u"; then
-      ARCH="UltraSparc"
-      CFLAGS="$CFLAGS -mcpu=ultrasparc"
-      LDFLAGS="$LDFLAGS -mcpu=ultrasparc"
-      AS="${AS-${cross_prefix}as}"
-      ASFLAGS="$ASFLAGS -xarch=v8plusa"
-    else
-      ARCH="Sparc"
-    fi
-    ;;
-  mips|mipsel|mips64|mips64el)
-    ARCH="MIPS"
-    ;;
-  arm*)
-    ARCH="ARM"
-    if [ "$SYS" = MACOSX ] ; then
-      AS="${AS-extras/gas-preprocessor.pl $CC}"
-      ASFLAGS="$ASFLAGS -DPREFIX -DPIC"  # apple's ld doesn't support movw/movt relocations at all
-      # build for armv7 by default
-      if ! echo $CFLAGS | grep -Eq '\-arch' ; then
-        CFLAGS="$CFLAGS -arch armv7"
-        LDFLAGS="$LDFLAGS -arch armv7"
-      fi
-    else
-      AS="${AS-${cross_prefix}gcc}"
-    fi
-    ;;
-  s390|s390x)
-    ARCH="S390"
-    ;;
-  parisc|parisc64)
-    ARCH="PARISC"
-    ;;
-  ia64)
-    ARCH="IA64"
-    ;;
-  *)
-    ARCH="$(echo $host_cpu | tr a-z A-Z)"
-    ;;
+    i*86)
+        ARCH="X86"
+        AS="yasm"
+        ASFLAGS="$ASFLAGS -O2"
+        if [[ "$asm" == auto && "$CFLAGS" != *-march* ]]; then
+            CFLAGS="$CFLAGS -march=i686"
+        fi
+        if [[ "$asm" == auto && "$CFLAGS" != *-mfpmath* ]]; then
+            CFLAGS="$CFLAGS -mfpmath=sse -msse"
+        fi
+        if [ "$SYS" = MACOSX ]; then
+            ASFLAGS="$ASFLAGS -f macho -DPREFIX"
+        elif [ "$SYS" = MINGW ]; then
+            ASFLAGS="$ASFLAGS -f win32 -DPREFIX"
+            LDFLAGS="$LDFLAGS -Wl,--large-address-aware"
+        else
+            ASFLAGS="$ASFLAGS -f elf"
+        fi
+        ;;
+    x86_64)
+        ARCH="X86_64"
+        AS="yasm"
+        if [ "$SYS" = MACOSX ]; then
+            ASFLAGS="$ASFLAGS -f macho64 -m amd64 -DPIC -DPREFIX"
+            if cc_check '' "-arch x86_64"; then
+                CFLAGS="$CFLAGS -arch x86_64"
+                LDFLAGS="$LDFLAGS -arch x86_64"
+            fi
+        elif [ "$SYS" = MINGW ]; then
+            ASFLAGS="$ASFLAGS -f win32 -m amd64"
+            cc_check "" "-S" && grep -q "_main:" conftest && ASFLAGS="$ASFLAGS -DPREFIX"
+        else
+            ASFLAGS="$ASFLAGS -f elf -m amd64"
+        fi
+        ;;
+    powerpc|powerpc64)
+        ARCH="PPC"
+        if [ $asm = auto ] ; then
+            define HAVE_ALTIVEC
+            AS="${AS-${cross_prefix}gcc}"
+            if [ $SYS = MACOSX ] ; then
+                CFLAGS="$CFLAGS -faltivec -fastf -mcpu=G4"
+            else
+                CFLAGS="$CFLAGS -maltivec -mabi=altivec"
+                define HAVE_ALTIVEC_H
+            fi
+        fi
+        ;;
+    sparc)
+        ARCH="SPARC"
+        case $(uname -m) in
+            sun4u|sun4v)
+                if [ $asm = auto ]; then
+                    ARCH="UltraSPARC"
+                    if ! echo $CFLAGS | grep -Eq '\-mcpu' ; then
+                        CFLAGS="$CFLAGS -mcpu=ultrasparc"
+                        LDFLAGS="$LDFLAGS -mcpu=ultrasparc"
+                    fi
+                    AS="${AS-${cross_prefix}as}"
+                    ASFLAGS="$ASFLAGS -xarch=v8plusa"
+                fi
+                ;;
+        esac
+        ;;
+    mips|mipsel|mips64|mips64el)
+        ARCH="MIPS"
+        ;;
+    arm*)
+        ARCH="ARM"
+        if [ "$SYS" = MACOSX ] ; then
+            AS="${AS-extras/gas-preprocessor.pl $CC}"
+            ASFLAGS="$ASFLAGS -DPREFIX -DPIC"  # apple's ld doesn't support movw/movt relocations at all
+            # build for armv7 by default
+            if ! echo $CFLAGS | grep -Eq '\-arch' ; then
+                CFLAGS="$CFLAGS -arch armv7"
+                LDFLAGS="$LDFLAGS -arch armv7"
+            fi
+        else
+            AS="${AS-${cross_prefix}gcc}"
+        fi
+        ;;
+    s390|s390x)
+        ARCH="S390"
+        ;;
+    parisc|parisc64)
+        ARCH="PARISC"
+        ;;
+    ia64)
+        ARCH="IA64"
+        ;;
+    *)
+        ARCH="$(echo $host_cpu | tr a-z A-Z)"
+        ;;
 esac
 
 log_msg "x264 configure script"
@@ -417,15 +471,15 @@ if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" -o
 fi
 
 if [ $asm = auto -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
-    if ! as_check "lzcnt eax, eax" ; then
+    if ! as_check "vpaddw xmm0, xmm0, xmm0" ; then
         VER=`($AS --version || echo no assembler) 2>$DEVNULL | head -n 1`
         echo "Found $VER"
-        echo "Minimum version is yasm-0.6.2"
+        echo "Minimum version is yasm-0.7.0"
         echo "If you really want to compile without asm, configure with --disable-asm."
         exit 1
     fi
     if ! cc_check '' '' '__asm__("pabsw %xmm0, %xmm0");' ; then
-        VER=`(as --version || echo no gnu as) 2>$DEVNULL | head -n 1`
+        VER=`(${cross_prefix}as --version || echo no gnu as) 2>$DEVNULL | head -n 1`
         echo "Found $VER"
         echo "Minimum version is binutils-2.17"
         echo "Your compiler can't handle inline SSSE3 asm."
@@ -456,101 +510,141 @@ fi
 define ARCH_$ARCH
 define SYS_$SYS
 
-echo "int i = 0x42494745; double f = 0x1.0656e6469616ep+102;" > conftest.c
+echo "int i[2] = {0x42494745,0}; double f[2] = {0x1.0656e6469616ep+102,0};" > conftest.c
 $CC $CFLAGS conftest.c -c -o conftest.o 2>$DEVNULL || die "endian test failed"
-if grep -q BIGE conftest.o && grep -q FPendian conftest.o ; then
+if (${cross_prefix}strings -a conftest.o | grep -q BIGE) && (${cross_prefix}strings -a conftest.o | grep -q FPendian) ; then
     define WORDS_BIGENDIAN
-elif !(grep -q EGIB conftest.o && grep -q naidnePF conftest.o) ; then
+elif !(${cross_prefix}strings -a conftest.o | grep -q EGIB && ${cross_prefix}strings -a conftest.o | grep -q naidnePF) ; then
     die "endian test failed"
 fi
 
 # autodetect options that weren't forced nor disabled
 
+# pthread-win32 is lgpl, prevent its use if --disable-gpl is specified and targeting windows
+[ "$SYS" = "MINGW" -a "$gpl" = "no" -a "$thread" = "auto" ] && thread="win32"
+
 libpthread=""
-if test "$pthread" = "auto" ; then
-    pthread="no"
+if [ "$thread" = "auto" ]; then
+    thread="no"
     case $SYS in
         BEOS)
-            pthread="yes"
+            thread="beos"
+            define HAVE_BEOSTHREAD
             ;;
         MINGW)
             if cc_check pthread.h -lpthread "pthread_create(0,0,0,0);" ; then
-                pthread="yes"
+                thread="posix"
                 libpthread="-lpthread"
             elif cc_check pthread.h -lpthreadGC2 "pthread_create(0,0,0,0);" ; then
-                pthread="yes"
+                thread="posix"
                 libpthread="-lpthreadGC2"
             elif cc_check pthread.h "-lpthreadGC2 -lwsock32 -DPTW32_STATIC_LIB" "pthread_create(0,0,0,0);" ; then
-                pthread="yes"
+                thread="posix"
                 libpthread="-lpthreadGC2 -lwsock32"
                 define PTW32_STATIC_LIB
             elif cc_check pthread.h "-lpthreadGC2 -lws2_32 -DPTW32_STATIC_LIB" "pthread_create(0,0,0,0);" ; then
-                pthread="yes"
+                thread="posix"
                 libpthread="-lpthreadGC2 -lws2_32"
                 define PTW32_STATIC_LIB
+            else
+                # default to native threading if pthread-win32 is unavailable
+                thread="win32"
             fi
             ;;
         OPENBSD)
-            cc_check pthread.h -pthread && pthread="yes" && libpthread="-pthread"
+            cc_check pthread.h -pthread && thread="posix" && libpthread="-pthread"
             ;;
         *)
-            cc_check pthread.h -lpthread && pthread="yes" && libpthread="-lpthread"
+            cc_check pthread.h -lpthread && thread="posix" && libpthread="-lpthread"
             ;;
     esac
 fi
-if test "$pthread" = "yes" ; then
-    define HAVE_PTHREAD
+if [ "$thread" = "posix" ]; then
     LDFLAGS="$LDFLAGS $libpthread"
+    define HAVE_POSIXTHREAD
 fi
+if [ "$thread" = "win32" ]; then
+    if [ "$SYS" = "MINGW" ]; then
+        define HAVE_WIN32THREAD
+    else
+        thread="no"
+    fi
+fi
+[ "$thread" != "no" ] && define HAVE_THREAD
 
 if cc_check "math.h" "-Werror" "return log2f(2);" ; then
     define HAVE_LOG2F
 fi
 
-if [ "$vis" = "yes" ] && cc_check "X11/Xlib.h" "-L/usr/X11R6/lib -lX11" "XOpenDisplay( 0 );" ; then
-    LDFLAGS="-L/usr/X11R6/lib -lX11 $LDFLAGS"
-    define HAVE_VISUALIZE
-else
-    vis="no"
+if [ "$vis" = "yes" ] ; then
+    save_CFLAGS="$CFLAGS"
+    CFLAGS="$CFLAGS -I/usr/X11R6/include"
+    if cc_check "X11/Xlib.h" "-L/usr/X11R6/lib -lX11" "XOpenDisplay(0);" ; then
+        LDFLAGS="-L/usr/X11R6/lib -lX11 $LDFLAGS"
+        define HAVE_VISUALIZE
+    else
+        vis="no"
+        CFLAGS="$save_CFLAGS"
+   fi
+fi
+
+if [ "$swscale" = "auto" ] ; then
+    swscale="no"
+    if ${cross_prefix}pkg-config --exists libswscale 2>$DEVNULL; then
+        SWSCALE_LIBS="$SWSCALE_LIBS $(${cross_prefix}pkg-config --libs libswscale)"
+        SWSCALE_CFLAGS="$SWSCALE_CFLAGS $(${cross_prefix}pkg-config --cflags libswscale)"
+    fi
+    [ -z "$SWSCALE_LIBS" ] && SWSCALE_LIBS="-lswscale -lavutil"
+
+    error="swscale must be at least version 0.9.0"
+    if cc_check "libswscale/swscale.h" "$SWSCALE_CFLAGS $SWSCALE_LIBS" "sws_getContext(0,0,0,0,0,0,0,0,0,0);" ; then
+        if cpp_check "libswscale/swscale.h" "$SWSCALE_CFLAGS" "LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)" "$error"; then
+            # we use colorspaces that were defined in libavutil r19775
+            if cc_check "libavutil/pixfmt.h" "$SWSCALE_CFLAGS" "enum PixelFormat pixfmt = PIX_FMT_YUV422P16LE;" ; then
+                swscale="yes"
+            else
+                echo "Warning: libavutil is too old, update to ffmpeg r19775+"
+            fi
+        else
+            echo "Warning: ${error}"
+        fi
+    fi
 fi
 
 if [ "$lavf" = "auto" ] ; then
     lavf="no"
     if ${cross_prefix}pkg-config --exists libavformat libavcodec libswscale 2>$DEVNULL; then
-        LAVF_LIBS="$LAVF_LIBS $(${cross_prefix}pkg-config --libs libavformat libavcodec libswscale)"
-        LAVF_CFLAGS="$LAVF_CFLAGS $(${cross_prefix}pkg-config --cflags libavformat libavcodec libswscale)"
+        LAVF_LIBS="$LAVF_LIBS $(${cross_prefix}pkg-config --libs libavformat libavcodec libavutil libswscale)"
+        LAVF_CFLAGS="$LAVF_CFLAGS $(${cross_prefix}pkg-config --cflags libavformat libavcodec libavutil libswscale)"
     fi
     if [ -z "$LAVF_LIBS" -a -z "$LAVF_CFLAGS" ]; then
-        LAVF_LIBS="-lavformat -lswscale"
-        for lib in -lpostproc -lavcodec -lavutil -lm -lz -lbz2 $libpthread -lavifil32; do
+        LAVF_LIBS="-lavformat"
+        for lib in -lpostproc -lavcodec -lavcore -lswscale -lavutil -lm -lz -lbz2 $libpthread -lavifil32; do
             cc_check "" $lib && LAVF_LIBS="$LAVF_LIBS $lib"
         done
     fi
     LAVF_LIBS="-L. $LAVF_LIBS"
-    if cc_check libavformat/avformat.h "$LAVF_CFLAGS $LAVF_LIBS" && \
-       cc_check libswscale/swscale.h "$LAVF_CFLAGS $LAVF_LIBS" ; then
-        # avcodec_decode_video2 is currently the most recently added function that we use; it was added in r18351
-        if cc_check libavformat/avformat.h "$LAVF_CFLAGS $LAVF_LIBS" "avcodec_decode_video2( NULL, NULL, NULL, NULL );" ; then
-            lavf="yes"
-            define HAVE_LAVF
+    if cc_check libavformat/avformat.h "$LAVF_CFLAGS $LAVF_LIBS" "avcodec_decode_video2(0,0,0,0);" ; then
+        # libvautil/pixdesc.h included the private header intreadwrite.h until r21854
+        if cc_check libavutil/pixdesc.h "$LAVF_CFLAGS $LAVF_LIBS" ; then
+            if [ "$swscale" = "yes" ]; then
+                lavf="yes"
+            else
+                echo "Warning: libavformat is not supported without swscale support"
+            fi
         else
-            echo "Warning: libavformat is too old, update to ffmpeg r18351+"
+            echo "Warning: libavutil is too old, update to ffmpeg r21854+"
         fi
     fi
 fi
 
 if [ "$ffms" = "auto" ] ; then
-    ffms_major="2"; ffms_minor="13"; ffms_micro="1"; ffms_bump="0"
-
+    ffms_major="2"; ffms_minor="14"; ffms_micro="0"; ffms_bump="0"
     ffms="no"
-    [ $ffms_micro -gt 0 -o $ffms_bump -gt 0 ] && vmicro=".$ffms_micro"
-    [ $ffms_bump -gt 0 ] && vbump=".$ffms_bump"
-    if ${cross_prefix}pkg-config --atleast-version="$ffms_major.$ffms_minor$vmicro$vbump" ffms2 2>$DEVNULL; then
+
+    if ${cross_prefix}pkg-config --exists ffms2 2>$DEVNULL; then
         FFMS2_LIBS="$FFMS2_LIBS $(${cross_prefix}pkg-config --libs ffms2)"
         FFMS2_CFLAGS="$FFMS2_CFLAGS $(${cross_prefix}pkg-config --cflags ffms2)"
-        api_check="no"
-    else
-        api_check="yes"
     fi
     [ -z "$FFMS2_LIBS" ] && FFMS2_LIBS="-lffms2"
 
@@ -561,25 +655,31 @@ if [ "$ffms" = "auto" ] ; then
         FFMS2_LIBS="$FFMS2_LIBS -lstdc++ $LAVF_LIBS"
     fi
 
-    if [ $api_check = "yes" -a $ffms = "yes" ]; then
-        log_check "whether ffms2 version is at least $ffms_major.$ffms_minor$vmicro$vbump"
-        $CC $CFLAGS $FFMS2_CFLAGS -c -o conftest -x c - >$DEVNULL 2>&1 <<EOF
-#include <ffms.h>
-#if FFMS_VERSION < (($ffms_major << 24) | ($ffms_minor << 16) | ($ffms_micro << 8) | $ffms_bump)
-#error Requires ffms2 version 2.13.1
-#endif
-EOF
-        [ $? = 0 ] && log_ok || { ffms="no"; log_fail; }
+    error="ffms must be at least version $ffms_major.$ffms_minor.$ffms_micro.$ffms_bump"
+    if [ $ffms = "yes" ] && ! cpp_check "ffms.h" "$FFMS2_CFLAGS" "FFMS_VERSION >= (($ffms_major << 24) | ($ffms_minor << 16) | ($ffms_micro << 8) | $ffms_bump)" "$error"; then
+       ffms="no"
+       echo "Warning: $error"
+    fi
+    if [ "$ffms" = "yes" -a "$swscale" = "no" ]; then
+        echo "Warning: ffms is not supported without swscale support"
+        ffms="no"
     fi
 fi
 
-if [ "$ffms" = "yes" ]; then
-    LDFLAGSCLI="$FFMS2_LIBS $LDFLAGSCLI"
-    [ -n "$FFMS2_CFLAGS" ] && CFLAGS="$CFLAGS $FFMS2_CFLAGS"
-    define HAVE_FFMS
-elif [ "$lavf" = "yes" ]; then
-    LDFLAGSCLI="$LAVF_LIBS $LDFLAGSCLI"
-    [ -n "$LAVF_CFLAGS" ] && CFLAGS="$CFLAGS $LAVF_CFLAGS"
+if [ "$swscale" = "yes" ]; then
+    LDFLAGSCLI="$SWSCALE_LIBS $LDFLAGSCLI"
+    CFLAGS="$CFLAGS $SWSCALE_CFLAGS"
+    define HAVE_SWSCALE
+    if [ "$lavf" = "yes" ]; then
+        LDFLAGSCLI="$LAVF_LIBS $LDFLAGSCLI"
+        CFLAGS="$CFLAGS $LAVF_CFLAGS"
+        define HAVE_LAVF
+    fi
+    if [ "$ffms" = "yes" ]; then
+        LDFLAGSCLI="$FFMS2_LIBS $LDFLAGSCLI"
+        CFLAGS="$CFLAGS $FFMS2_CFLAGS"
+        define HAVE_FFMS
+    fi
 fi
 
 GPAC_LIBS="-lgpac_static"
@@ -601,16 +701,12 @@ if [ "$gpac" = "yes" ] ; then
     if cc_check gpac/isomedia.h "-Werror $GPAC_LIBS" "gf_malloc(1); gf_free(NULL);" ; then
         define HAVE_GF_MALLOC
     fi
-    LDFLAGSCLI="$LDFLAGSCLI $GPAC_LIBS"
+    LDFLAGSCLI="$GPAC_LIBS $LDFLAGSCLI"
 fi
 
 if [ "$avs" = "auto" ] ; then
-    avs=no
-    if [ $SYS = MINGW ] && cc_check avisynth_c.h ; then
-        avs="yes"
-        define HAVE_AVS
-        define HAVE_AVISYNTH_C_H
-    elif [ $SYS = MINGW ] && cc_check extras/avisynth_c.h ; then
+    avs="no"
+    if [ $SYS = MINGW ] && cc_check extras/avisynth_c.h ; then
         avs="yes"
         define HAVE_AVS
     fi
@@ -642,6 +738,11 @@ if cc_check '' -fno-tree-vectorize ; then
     CFLAGS="$CFLAGS -fno-tree-vectorize"
 fi
 
+if [ $SYS = MINGW -a $ARCH = X86 ] ; then
+    # workaround gcc/ld bug with alignment of static variables/arrays that are initialized to zero
+    cc_check '' -fno-zero-initialized-in-bss && CFLAGS="$CFLAGS -fno-zero-initialized-in-bss"
+fi
+
 if cc_check "stdio.h" "" "fseeko(stdin,0,0);" ; then
     define fseek fseeko
     define ftell ftello
@@ -655,12 +756,27 @@ if cc_check '' -Wshadow ; then
 fi
 
 if [ "$bit_depth" -gt "8" ]; then
-    define X264_HIGH_BIT_DEPTH
+    define HIGH_BIT_DEPTH
+    ASFLAGS="$ASFLAGS -DHIGH_BIT_DEPTH"
 fi
 
-define BIT_DEPTH $bit_depth
+ASFLAGS="$ASFLAGS -DBIT_DEPTH=$bit_depth"
+
+[ $gpl = yes ] && define HAVE_GPL && x264_gpl=1 || x264_gpl=0
+
+#define undefined vars as 0
+for var in $CONFIG_HAVE; do
+    grep -q "HAVE_$var 1" config.h || define HAVE_$var 0
+done
 
 rm -f conftest*
+
+# generate exported config file
+
+cat > x264_config.h << EOF
+#define X264_BIT_DEPTH $bit_depth
+#define X264_GPL       $x264_gpl
+EOF
 
 # generate config files
 
@@ -682,7 +798,6 @@ STRIP=$STRIP
 AS=$AS
 ASFLAGS=$ASFLAGS
 EXE=$EXE
-VIS=$vis
 HAVE_GETOPT_LONG=$HAVE_GETOPT_LONG
 DEVNULL=$DEVNULL
 EOF
@@ -726,6 +841,11 @@ Libs: $pclibs
 Cflags: -I$includedir
 EOF
 
+filters="crop select_every"
+gpl_filters=""
+[ $swscale = yes ] && filters="resize $filters"
+[ $gpl = yes ] && filters="$filters $gpl_filters"
+
 cat > conftest.log <<EOF
 Platform:   $ARCH
 System:     $SYS
@@ -734,7 +854,9 @@ avs:        $avs
 lavf:       $lavf
 ffms:       $ffms
 gpac:       $gpac
-pthread:    $pthread
+gpl:        $gpl
+thread:     $thread
+filters:    $filters
 debug:      $debug
 gprof:      $gprof
 PIC:        $pic

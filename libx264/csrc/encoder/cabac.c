@@ -1,7 +1,7 @@
 /*****************************************************************************
- * cabac.c: h264 encoder library
+ * cabac.c: cabac bitstream writing
  *****************************************************************************
- * Copyright (C) 2003-2008 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -20,6 +20,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #include "common/common.h"
@@ -262,9 +265,9 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
     if( i_dqp != 0 )
     {
         int val = i_dqp <= 0 ? (-2*i_dqp) : (2*i_dqp - 1);
-        /* dqp is interpreted modulo (QP_MAX+1) */
-        if( val >= QP_MAX && val != QP_MAX+1 )
-            val = 2*QP_MAX+1 - val;
+        /* dqp is interpreted modulo (QP_MAX_SPEC+1) */
+        if( val >= QP_MAX_SPEC && val != QP_MAX_SPEC+1 )
+            val = 2*QP_MAX_SPEC+1 - val;
         do
         {
             x264_cabac_encode_decision( cb, 60 + ctx, 1 );
@@ -462,7 +465,7 @@ static inline void x264_cabac_mb8x8_mvd( x264_t *h, x264_cabac_t *cb, int i )
     }
 }
 
-/* i_ctxBlockCat: 0-> DC 16x16  i_idx = 0
+/* ctx_block_cat: 0-> DC 16x16  i_idx = 0
  *                1-> AC 16x16  i_idx = luma4x4idx
  *                2-> Luma4x4   i_idx = luma4x4idx
  *                3-> DC Chroma i_idx = iCbCr
@@ -551,11 +554,11 @@ static const uint8_t coeff_abs_level_transition[2][8] = {
 static const uint8_t count_cat_m1[5] = {15, 14, 15, 3, 14};
 
 #if !RDO_SKIP_BS
-static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBlockCat, dctcoef *l )
+static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l )
 {
-    const int i_ctx_sig = significant_coeff_flag_offset[h->mb.b_interlaced][i_ctxBlockCat];
-    const int i_ctx_last = last_coeff_flag_offset[h->mb.b_interlaced][i_ctxBlockCat];
-    const int i_ctx_level = coeff_abs_level_m1_offset[i_ctxBlockCat];
+    const int i_ctx_sig = significant_coeff_flag_offset[h->mb.b_interlaced][ctx_block_cat];
+    const int i_ctx_last = last_coeff_flag_offset[h->mb.b_interlaced][ctx_block_cat];
+    const int i_ctx_level = coeff_abs_level_m1_offset[ctx_block_cat];
     const uint8_t *sig_offset = significant_coeff_flag_offset_8x8[h->mb.b_interlaced];
     int i_coeff_abs_m1[64];
     int i_coeff_sign[64];
@@ -564,7 +567,7 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
     int node_ctx = 0;
     int i = 0;
 
-    i_last = h->quantf.coeff_last[i_ctxBlockCat](l);
+    i_last = h->quantf.coeff_last[ctx_block_cat](l);
 
 #define WRITE_SIGMAP( l8x8 )\
     while(1)\
@@ -595,14 +598,14 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
         }\
     }
 
-    if( i_ctxBlockCat == DCT_LUMA_8x8 )
+    if( ctx_block_cat == DCT_LUMA_8x8 )
     {
         const int i_count_m1 = 63;
         WRITE_SIGMAP( 1 )
     }
     else
     {
-        const int i_count_m1 = count_cat_m1[i_ctxBlockCat];
+        const int i_count_m1 = count_cat_m1[ctx_block_cat];
         WRITE_SIGMAP( 0 )
     }
 
@@ -645,20 +648,20 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBl
  * this is slightly incorrect because the sigmap is not reversible
  * (contexts are repeated).  However, there is nearly no quality penalty
  * for this (~0.001db) and the speed boost (~30%) is worth it. */
-static void ALWAYS_INLINE block_residual_write_cabac_internal( x264_t *h, x264_cabac_t *cb, int i_ctxBlockCat, dctcoef *l, int b_8x8 )
+static void ALWAYS_INLINE block_residual_write_cabac_internal( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l, int b_8x8 )
 {
-    const int i_ctx_sig = significant_coeff_flag_offset[h->mb.b_interlaced][i_ctxBlockCat];
-    const int i_ctx_last = last_coeff_flag_offset[h->mb.b_interlaced][i_ctxBlockCat];
-    const int i_ctx_level = coeff_abs_level_m1_offset[i_ctxBlockCat];
+    const int i_ctx_sig = significant_coeff_flag_offset[h->mb.b_interlaced][ctx_block_cat];
+    const int i_ctx_last = last_coeff_flag_offset[h->mb.b_interlaced][ctx_block_cat];
+    const int i_ctx_level = coeff_abs_level_m1_offset[ctx_block_cat];
     const uint8_t *sig_offset = significant_coeff_flag_offset_8x8[h->mb.b_interlaced];
     int i_last, i_coeff_abs, ctx, node_ctx;
 
-    i_last = h->quantf.coeff_last[i_ctxBlockCat](l);
+    i_last = h->quantf.coeff_last[ctx_block_cat](l);
 
     i_coeff_abs = abs(l[i_last]);
     ctx = coeff_abs_level1_ctx[0] + i_ctx_level;
 
-    if( i_last != (b_8x8 ? 63 : count_cat_m1[i_ctxBlockCat]) )
+    if( i_last != (b_8x8 ? 63 : count_cat_m1[ctx_block_cat]) )
     {
         x264_cabac_encode_decision( cb, i_ctx_sig + (b_8x8?sig_offset[i_last]:i_last), 1 );
         x264_cabac_encode_decision( cb, i_ctx_last + (b_8x8?last_coeff_flag_offset_8x8[i_last]:i_last), 1 );
@@ -730,19 +733,19 @@ static void block_residual_write_cabac_8x8( x264_t *h, x264_cabac_t *cb, dctcoef
 {
     block_residual_write_cabac_internal( h, cb, DCT_LUMA_8x8, l, 1 );
 }
-static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int i_ctxBlockCat, dctcoef *l )
+static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l )
 {
-    block_residual_write_cabac_internal( h, cb, i_ctxBlockCat, l, 0 );
+    block_residual_write_cabac_internal( h, cb, ctx_block_cat, l, 0 );
 }
 #endif
 
-#define block_residual_write_cabac_cbf( h, cb, i_ctxBlockCat, i_idx, l, b_intra )\
+#define block_residual_write_cabac_cbf( h, cb, ctx_block_cat, i_idx, l, b_intra )\
 {\
-    int ctxidxinc = x264_cabac_mb_cbf_ctxidxinc( h, i_ctxBlockCat, i_idx, b_intra );\
+    int ctxidxinc = x264_cabac_mb_cbf_ctxidxinc( h, ctx_block_cat, i_idx, b_intra );\
     if( h->mb.cache.non_zero_count[x264_scan8[i_idx]] )\
     {\
         x264_cabac_encode_decision( cb, ctxidxinc, 1 );\
-        block_residual_write_cabac( h, cb, i_ctxBlockCat, l );\
+        block_residual_write_cabac( h, cb, ctx_block_cat, l );\
     }\
     else\
         x264_cabac_encode_decision( cb, ctxidxinc, 0 );\
@@ -772,7 +775,7 @@ void x264_macroblock_write_cabac( x264_t *h, x264_cabac_t *cb )
 
         for( int i = 0; i < 256; i++ )
             bs_write( &s, BIT_DEPTH, h->mb.pic.p_fenc[0][i] );
-        for( int ch = 0; ch < 2; ch++ )
+        for( int ch = 1; ch < 3; ch++ )
             for( int i = 0; i < 8; i++ )
                 for( int j = 0; j < 8; j++ )
                     bs_write( &s, BIT_DEPTH, h->mb.pic.p_fenc[ch][i*FENC_STRIDE+j] );

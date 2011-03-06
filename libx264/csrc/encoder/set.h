@@ -1,7 +1,7 @@
 /*****************************************************************************
- * set.h: h264 encoder
+ * set.h: header writing
  *****************************************************************************
- * Copyright (C) 2003-2008 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -19,6 +19,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #ifndef X264_ENCODER_SET_H
@@ -33,6 +36,8 @@ int  x264_sei_version_write( x264_t *h, bs_t *s );
 int  x264_validate_levels( x264_t *h, int verbose );
 void x264_sei_buffering_period_write( x264_t *h, bs_t *s );
 void x264_sei_pic_timing_write( x264_t *h, bs_t *s );
+void x264_sei_frame_packing_write( x264_t *h, bs_t *s );
+void x264_sei_write( bs_t *s, uint8_t *payload, int payload_size, int payload_type );
 void x264_filler_write( x264_t *h, bs_t *s, int filler );
 
 #endif

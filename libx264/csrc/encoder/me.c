@@ -1,7 +1,7 @@
 /*****************************************************************************
- * me.c: h264 encoder library (Motion Estimation)
+ * me.c: motion estimation
  *****************************************************************************
- * Copyright (C) 2003-2008 x264 project
+ * Copyright (C) 2003-2011 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -20,6 +20,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02111, USA.
+ *
+ * This program is also available under a commercial proprietary license.
+ * For more information, contact us at licensing@x264.com.
  *****************************************************************************/
 
 #include "common/common.h"
@@ -296,7 +299,7 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
         }
 
         case X264_ME_HEX:
-            {
+        {
     me_hex2:
             /* hexagon search, radius 2 */
     #if 0
@@ -580,21 +583,19 @@ void x264_me_search_ref( x264_t *h, x264_me_t *m, int16_t (*mvc)[2], int i_mvc, 
 #if 0
             /* plain old exhaustive search */
             for( int my = min_y; my <= max_y; my++ )
-                for( int mx = min_x; mx <= max_x; mx++ )
+                for( int mx = min_x; mx < min_x + width; mx++ )
                     COST_MV( mx, my );
 #else
             /* successive elimination by comparing DC before a full SAD,
              * because sum(abs(diff)) >= abs(diff(sum)). */
             uint16_t *sums_base = m->integral;
-            /* due to a GCC bug on some platforms (win32?), zero[] may not actually be aligned.
-             * this is not a problem because it is not used for any SSE instructions. */
-            ALIGNED_16( static pixel zero[8*FENC_STRIDE] );
+            ALIGNED_16( static pixel zero[8*FENC_STRIDE] ) = {0};
             ALIGNED_ARRAY_16( int, enc_dc,[4] );
             int sad_size = i_pixel <= PIXEL_8x8 ? PIXEL_8x8 : PIXEL_4x4;
             int delta = x264_pixel_size[sad_size].w;
             int16_t *xs = h->scratch_buffer;
             int xn;
-            uint16_t *cost_fpel_mvx = h->cost_mv_fpel[x264_lambda_tab[h->mb.i_qp]][-m->mvp[0]&3] + (-m->mvp[0]>>2);
+            uint16_t *cost_fpel_mvx = h->cost_mv_fpel[h->mb.i_qp][-m->mvp[0]&3] + (-m->mvp[0]>>2);
 
             h->pixf.sad_x4[sad_size]( zero, p_fenc, p_fenc+delta,
                 p_fenc+delta*FENC_STRIDE, p_fenc+delta+delta*FENC_STRIDE,
@@ -789,18 +790,17 @@ if( b_refine_qpel || (dir^1) != odir ) \
              + p_cost_mvx[ mx ] + p_cost_mvy[ my ]; \
     if( b_chroma_me && cost < bcost ) \
     { \
-        h->mc.mc_chroma( pix, 8, m->p_fref[4], m->i_stride[1], mx, my + mvy_offset, bw>>1, bh>>1 ); \
+        h->mc.mc_chroma( pix, pix+8, 16, m->p_fref[4], m->i_stride[1], mx, my + mvy_offset, bw>>1, bh>>1 ); \
         if( m->weight[1].weightfn ) \
-            m->weight[1].weightfn[x264_pixel_size[i_pixel].w>>3]( pix, 8, pix, 8, \
+            m->weight[1].weightfn[x264_pixel_size[i_pixel].w>>3]( pix, 16, pix, 16, \
                                                                   &m->weight[1], x264_pixel_size[i_pixel].h>>1 ); \
-        cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[1], FENC_STRIDE, pix, 8 ); \
+        cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[1], FENC_STRIDE, pix, 16 ); \
         if( cost < bcost ) \
         { \
-            h->mc.mc_chroma( pix, 8, m->p_fref[5], m->i_stride[1], mx, my + mvy_offset, bw>>1, bh>>1 ); \
             if( m->weight[2].weightfn ) \
-                m->weight[2].weightfn[x264_pixel_size[i_pixel].w>>3]( pix, 8, pix, 8, \
+                m->weight[2].weightfn[x264_pixel_size[i_pixel].w>>3]( pix+8, 16, pix+8, 16, \
                                                                       &m->weight[2], x264_pixel_size[i_pixel].h>>1 ); \
-            cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[2], FENC_STRIDE, pix, 8 ); \
+            cost += h->pixf.mbcmp[i_pixel+3]( m->p_fenc[2], FENC_STRIDE, pix+8, 16 ); \
         } \
     } \
     COPY4_IF_LT( bcost, cost, bmx, mx, bmy, my, bdir, dir ); \
@@ -923,10 +923,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     stride[list][i] = bw;\
     src[list][i] = h->mc.get_ref( pixy_buf[list][i], &stride[list][i], m->p_fref, m->i_stride[0], mvx, mvy, bw, bh, weight_none );\
     if( rd )\
-    {\
-        h->mc.mc_chroma( pixu_buf[list][i], 8, m->p_fref[4], m->i_stride[1], mvx, mvy + mv##list##y_offset, bw>>1, bh>>1 );\
-        h->mc.mc_chroma( pixv_buf[list][i], 8, m->p_fref[5], m->i_stride[1], mvx, mvy + mv##list##y_offset, bw>>1, bh>>1 );\
-    }\
+        h->mc.mc_chroma( pixu_buf[list][i], pixv_buf[list][i], 8, m->p_fref[4], m->i_stride[1], mvx, mvy + mv##list##y_offset, bw>>1, bh>>1 );\
 }
 
 #define SATD_THRESH 17/16
@@ -946,8 +943,8 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
     const int bw = x264_pixel_size[i_pixel].w;
     const int bh = x264_pixel_size[i_pixel].h;
     ALIGNED_ARRAY_16( pixel, pixy_buf,[2],[9][16*16] );
-    ALIGNED_ARRAY_8( pixel, pixu_buf,[2],[9][8*8] );
-    ALIGNED_ARRAY_8( pixel, pixv_buf,[2],[9][8*8] );
+    ALIGNED_ARRAY_16( pixel, pixu_buf,[2],[9][8*8] );
+    ALIGNED_ARRAY_16( pixel, pixv_buf,[2],[9][8*8] );
     pixel *src[2][9];
     pixel *pix  = &h->mb.pic.p_fdec[0][8*x + 8*y*FDEC_STRIDE];
     pixel *pixu = &h->mb.pic.p_fdec[1][4*x + 4*y*FDEC_STRIDE];
@@ -1112,8 +1109,13 @@ void x264_me_refine_bidir_rd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_wei
         M32( cache_mv ) = pack16to32_mask(mx,my); \
         if( m->i_pixel <= PIXEL_8x8 ) \
         { \
-            h->mc.mc_chroma( pixu, FDEC_STRIDE, m->p_fref[4], m->i_stride[1], mx, my + mvy_offset, bw>>1, bh>>1 ); \
-            h->mc.mc_chroma( pixv, FDEC_STRIDE, m->p_fref[5], m->i_stride[1], mx, my + mvy_offset, bw>>1, bh>>1 ); \
+            h->mc.mc_chroma( pixu, pixv, FDEC_STRIDE, m->p_fref[4], m->i_stride[1], mx, my + mvy_offset, bw>>1, bh>>1 ); \
+            if( m->weight[1].weightfn ) \
+                m->weight[1].weightfn[x264_pixel_size[i_pixel].w>>3]( pixu, FDEC_STRIDE, pixu, FDEC_STRIDE, \
+                                                                      &m->weight[1], x264_pixel_size[i_pixel].h>>1 ); \
+            if( m->weight[2].weightfn ) \
+                m->weight[2].weightfn[x264_pixel_size[i_pixel].w>>3]( pixv, FDEC_STRIDE, pixv, FDEC_STRIDE, \
+                                                                      &m->weight[2], x264_pixel_size[i_pixel].h>>1 ); \
         } \
         cost = x264_rd_cost_part( h, i_lambda2, i4, m->i_pixel ); \
         COPY4_IF_LT( bcost, cost, bmx, mx, bmy, my, dir, do_dir?mdir:dir ); \
