@@ -27,8 +27,10 @@
  */
 
 //#define DEBUG
+//#define ASSERT_LEVEL 2
 
 #include "libavutil/audioconvert.h"
+#include "libavutil/avassert.h"
 #include "libavutil/crc.h"
 #include "avcodec.h"
 #include "put_bits.h"
@@ -426,6 +428,7 @@ static void extract_exponents(AC3EncodeContext *s)
                         e = 24;
                         coef[i] = 0;
                     }
+                    av_assert2(e >= 0);
                 }
                 exp[i] = e;
             }
@@ -648,16 +651,19 @@ static void group_exponents(AC3EncodeContext *s)
                 exp1   = p[0];
                 p     += group_size;
                 delta0 = exp1 - exp0 + 2;
+                av_assert2(delta0 >= 0 && delta0 <= 4);
 
                 exp0   = exp1;
                 exp1   = p[0];
                 p     += group_size;
                 delta1 = exp1 - exp0 + 2;
+                av_assert2(delta1 >= 0 && delta1 <= 4);
 
                 exp0   = exp1;
                 exp1   = p[0];
                 p     += group_size;
                 delta2 = exp1 - exp0 + 2;
+                av_assert2(delta2 >= 0 && delta2 <= 4);
 
                 block->grouped_exp[ch][i] = ((delta0 * 5 + delta1) * 5) + delta2;
             }
@@ -945,6 +951,7 @@ static int cbr_bit_allocation(AC3EncodeContext *s)
     int snr_offset, snr_incr;
 
     bits_left = 8 * s->frame_size - (s->frame_bits + s->exponent_bits);
+    av_assert2(bits_left >= 0);
 
     snr_offset = s->coarse_snr_offset << 4;
 
@@ -1101,7 +1108,7 @@ static inline int sym_quant(int c, int e, int levels)
         v = (v + 1) >> 1;
         v = (levels >> 1) - v;
     }
-    assert(v >= 0 && v < levels);
+    av_assert2(v >= 0 && v < levels);
     return v;
 }
 
@@ -1123,7 +1130,7 @@ static inline int asym_quant(int c, int e, int qbits)
     m = (1 << (qbits-1));
     if (v >= m)
         v = m - 1;
-    assert(v >= -m);
+    av_assert2(v >= -m);
     return v & ((1 << qbits)-1);
 }
 
@@ -1436,10 +1443,11 @@ static void output_frame_end(AC3EncodeContext *s)
     frame_size_58 = ((s->frame_size >> 2) + (s->frame_size >> 4)) << 1;
 
     /* pad the remainder of the frame with zeros */
+    av_assert2(s->frame_size * 8 - put_bits_count(&s->pb) >= 18);
     flush_put_bits(&s->pb);
     frame = s->pb.buf;
     pad_bytes = s->frame_size - (put_bits_ptr(&s->pb) - frame) - 2;
-    assert(pad_bytes >= 0);
+    av_assert2(pad_bytes >= 0);
     if (pad_bytes > 0)
         memset(put_bits_ptr(&s->pb), 0, pad_bytes);
 

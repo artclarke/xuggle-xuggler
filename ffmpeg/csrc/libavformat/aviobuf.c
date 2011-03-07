@@ -246,7 +246,7 @@ int64_t url_ftell(AVIOContext *s)
 }
 #endif
 
-int64_t url_fsize(AVIOContext *s)
+int64_t avio_size(AVIOContext *s)
 {
     int64_t size;
 
@@ -370,6 +370,10 @@ int url_fclose(AVIOContext *s)
 int64_t url_fseek(AVIOContext *s, int64_t offset, int whence)
 {
     return avio_seek(s, offset, whence);
+}
+int64_t url_fsize(AVIOContext *s)
+{
+    return avio_size(s);
 }
 #endif
 
@@ -541,6 +545,7 @@ int avio_r8(AVIOContext *s)
     return 0;
 }
 
+#if FF_API_OLD_AVIO
 int url_fgetc(AVIOContext *s)
 {
     if (s->buf_ptr >= s->buf_end)
@@ -549,6 +554,7 @@ int url_fgetc(AVIOContext *s)
         return *s->buf_ptr++;
     return URL_EOF;
 }
+#endif
 
 int avio_read(AVIOContext *s, unsigned char *buf, int size)
 {
@@ -915,26 +921,28 @@ int url_fprintf(AVIOContext *s, const char *fmt, ...)
 }
 #endif //CONFIG_MUXERS
 
+#if FF_API_OLD_AVIO
 char *url_fgets(AVIOContext *s, char *buf, int buf_size)
 {
     int c;
     char *q;
 
-    c = url_fgetc(s);
-    if (c == EOF)
+    c = avio_r8(s);
+    if (url_feof(s))
         return NULL;
     q = buf;
     for(;;) {
-        if (c == EOF || c == '\n')
+        if (url_feof(s) || c == '\n')
             break;
         if ((q - buf) < buf_size - 1)
             *q++ = c;
-        c = url_fgetc(s);
+        c = avio_r8(s);
     }
     if (buf_size > 0)
         *q = '\0';
     return buf;
 }
+#endif
 
 int url_fget_max_packet_size(AVIOContext *s)
 {

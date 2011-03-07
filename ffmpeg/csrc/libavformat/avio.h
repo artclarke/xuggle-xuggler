@@ -281,6 +281,8 @@ int64_t av_url_read_seek(URLContext *h, int stream_index,
  */
 #define AVSEEK_FORCE 0x20000
 
+#define URL_PROTOCOL_FLAG_NESTED_SCHEME 1 /*< The protocol name can be the first part of a nested protocol scheme */
+
 typedef struct URLProtocol {
     const char *name;
     int (*url_open)(URLContext *h, const char *url, int flags);
@@ -295,6 +297,7 @@ typedef struct URLProtocol {
     int (*url_get_file_handle)(URLContext *h);
     int priv_data_size;
     const AVClass *priv_data_class;
+    int flags;
 } URLProtocol;
 
 #if FF_API_REGISTER_PROTOCOL
@@ -423,6 +426,9 @@ attribute_deprecated int url_fclose(AVIOContext *s);
 attribute_deprecated int64_t url_fseek(AVIOContext *s, int64_t offset, int whence);
 attribute_deprecated int url_fskip(AVIOContext *s, int64_t offset);
 attribute_deprecated int64_t url_ftell(AVIOContext *s);
+attribute_deprecated int64_t url_fsize(AVIOContext *s);
+#define URL_EOF (-1)
+attribute_deprecated int url_fgetc(AVIOContext *s);
 /**
  * @}
  */
@@ -471,6 +477,12 @@ int avio_put_str16le(AVIOContext *s, const char *str);
 int64_t avio_seek(AVIOContext *s, int64_t offset, int whence);
 
 /**
+ * Skip given number of bytes forward
+ * @return new position or AVERROR.
+ */
+#define avio_skip(s, offset) avio_seek(s, offset, SEEK_CUR)
+
+/**
  * ftell() equivalent for AVIOContext.
  * @return position or AVERROR.
  */
@@ -480,7 +492,7 @@ int64_t avio_seek(AVIOContext *s, int64_t offset, int whence);
  * Get the filesize.
  * @return filesize or AVERROR
  */
-int64_t url_fsize(AVIOContext *s);
+int64_t avio_size(AVIOContext *s);
 
 /**
  * feof() equivalent for AVIOContext.
@@ -494,10 +506,6 @@ int av_url_read_fpause(AVIOContext *h, int pause);
 int64_t av_url_read_fseek(AVIOContext *h, int stream_index,
                           int64_t timestamp, int flags);
 
-#define URL_EOF (-1)
-/** @note return URL_EOF (-1) if EOF */
-int url_fgetc(AVIOContext *s);
-
 /** @warning currently size is limited */
 #ifdef __GNUC__
 int url_fprintf(AVIOContext *s, const char *fmt, ...) __attribute__ ((__format__ (__printf__, 2, 3)));
@@ -505,9 +513,11 @@ int url_fprintf(AVIOContext *s, const char *fmt, ...) __attribute__ ((__format__
 int url_fprintf(AVIOContext *s, const char *fmt, ...);
 #endif
 
+#if FF_API_OLD_AVIO
 /** @note unlike fgets, the EOL character is not returned and a whole
     line is parsed. return NULL if first char read was EOF */
-char *url_fgets(AVIOContext *s, char *buf, int buf_size);
+attribute_deprecated char *url_fgets(AVIOContext *s, char *buf, int buf_size);
+#endif
 
 void put_flush_packet(AVIOContext *s);
 
