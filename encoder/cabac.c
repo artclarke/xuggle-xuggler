@@ -510,11 +510,13 @@ static int ALWAYS_INLINE x264_cabac_mb_cbf_ctxidxinc( x264_t *h, int i_cat, int 
 }
 
 
-static const uint16_t significant_coeff_flag_offset[2][6] = {
+static const uint16_t significant_coeff_flag_offset[2][6] =
+{
     { 105, 120, 134, 149, 152, 402 },
     { 277, 292, 306, 321, 324, 436 }
 };
-static const uint16_t last_coeff_flag_offset[2][6] = {
+static const uint16_t last_coeff_flag_offset[2][6] =
+{
     { 166, 181, 195, 210, 213, 417 },
     { 338, 353, 367, 382, 385, 451 }
 };
@@ -532,7 +534,8 @@ static const uint8_t significant_coeff_flag_offset_8x8[2][63] =
     9, 9,10,10, 8,11,12,11, 9, 9,10,10, 8,13,13, 9,
     9,10,10, 8,13,13, 9, 9,10,10,14,14,14,14,14
 }};
-static const uint8_t last_coeff_flag_offset_8x8[63] = {
+static const uint8_t last_coeff_flag_offset_8x8[63] =
+{
     0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
     2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
     3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,

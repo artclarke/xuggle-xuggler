@@ -61,14 +61,16 @@ int quiet = 0;
 #define MAX_FUNCS 1000  // just has to be big enough to hold all the existing functions
 #define MAX_CPUS 10     // number of different combinations of cpu flags
 
-typedef struct {
+typedef struct
+{
     void *pointer; // just for detecting duplicates
     uint32_t cpu;
     uint32_t cycles;
     uint32_t den;
 } bench_t;
 
-typedef struct {
+typedef struct
+{
     char *name;
     bench_t vers[MAX_CPUS];
 } bench_func_t;

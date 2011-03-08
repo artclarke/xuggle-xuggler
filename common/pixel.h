@@ -47,10 +47,12 @@ enum
     PIXEL_2x2   = 9,
 };
 
-static const struct {
+static const struct
+{
     int w;
     int h;
-} x264_pixel_size[7] = {
+} x264_pixel_size[7] =
+{
     { 16, 16 },
     { 16,  8 }, {  8, 16 },
     {  8,  8 },
@@ -58,7 +60,8 @@ static const struct {
     {  4,  4 }
 };
 
-static const uint8_t x264_size2pixel[5][5] = {
+static const uint8_t x264_size2pixel[5][5] =
+{
     { 0, },
     { 0, PIXEL_4x4, PIXEL_8x4, 0, 0 },
     { 0, PIXEL_4x8, PIXEL_8x8, 0, PIXEL_16x8 },

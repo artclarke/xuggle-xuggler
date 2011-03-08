@@ -387,7 +387,8 @@ void x264_rdo_init( void )
     }
 }
 
-typedef struct {
+typedef struct
+{
     int64_t score;
     int level_idx; // index into level_tree[]
     uint8_t cabac_state[10]; //just the contexts relevant to coding abs_level_m1
@@ -435,7 +436,8 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
     // (# of coefs) * (# of ctx) * (# of levels tried) = 1024
     // we don't need to keep all of those: (# of coefs) * (# of ctx) would be enough,
     // but it takes more time to remove dead states than you gain in reduced memory.
-    struct {
+    struct
+    {
         uint16_t abs_level;
         uint16_t next;
     } level_tree[64*8*2];

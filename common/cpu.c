@@ -45,7 +45,8 @@
 #include <machine/cpu.h>
 #endif
 
-const x264_cpu_name_t x264_cpu_names[] = {
+const x264_cpu_name_t x264_cpu_names[] =
+{
     {"Altivec", X264_CPU_ALTIVEC},
 //  {"MMX",     X264_CPU_MMX}, // we don't support asm on mmx1 cpus anymore
     {"MMX2",    X264_CPU_MMX|X264_CPU_MMXEXT},

@@ -126,7 +126,8 @@ static const char * const muxer_names[] =
 static const char * const pulldown_names[] = { "none", "22", "32", "64", "double", "triple", "euro", 0 };
 static const char * const log_level_names[] = { "none", "error", "warning", "info", "debug", 0 };
 
-typedef struct{
+typedef struct
+{
     int mod;
     uint8_t pattern[24];
     float fps_factor;

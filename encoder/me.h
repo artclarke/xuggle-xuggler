@@ -55,7 +55,8 @@ typedef struct
     ALIGNED_4( int16_t mv[2] );
 } ALIGNED_16( x264_me_t );
 
-typedef struct {
+typedef struct
+{
     int sad;
     int16_t mv[2];
 } mvsad_t;

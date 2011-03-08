@@ -385,7 +385,8 @@ typedef struct x264_param_t
 
     /* Cropping Rectangle parameters: added to those implicitly defined by
        non-mod16 video resolutions. */
-    struct {
+    struct
+    {
         unsigned int i_left;
         unsigned int i_top;
         unsigned int i_right;
@@ -480,7 +481,8 @@ void x264_nal_encode( x264_t *h, uint8_t *dst, x264_nal_t *nal );
  * H.264 level restriction information
  ****************************************************************************/
 
-typedef struct {
+typedef struct
+{
     int level_idc;
     int mbps;        /* max macroblock processing rate (macroblocks/sec) */
     int frame_size;  /* max frame size (macroblocks) */
