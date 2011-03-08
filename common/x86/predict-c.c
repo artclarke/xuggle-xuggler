@@ -191,10 +191,10 @@ static void x264_predict_16x16_p_ssse3( uint8_t *src )
     int H, V;
 #if HIGH_BIT_DEPTH
     asm (
-        "movdqu        -2+%1, %%xmm1 \n"
-        "movdqa        16+%1, %%xmm0 \n"
-        "pmaddwd          %2, %%xmm0 \n"
-        "pmaddwd          %3, %%xmm1 \n"
+        "movdqu           %1, %%xmm1 \n"
+        "movdqa           %2, %%xmm0 \n"
+        "pmaddwd          %3, %%xmm0 \n"
+        "pmaddwd          %4, %%xmm1 \n"
         "paddd        %%xmm1, %%xmm0 \n"
         "movhlps      %%xmm0, %%xmm1 \n"
         "paddd        %%xmm1, %%xmm0 \n"
@@ -202,15 +202,16 @@ static void x264_predict_16x16_p_ssse3( uint8_t *src )
         "paddd        %%xmm1, %%xmm0 \n"
         "movd         %%xmm0, %0     \n"
         :"=r"(H)
-        :"m"(src[-FDEC_STRIDE]), "m"(*pw_12345678), "m"(*pw_m87654321)
+        :"m"(src[-FDEC_STRIDE-1]), "m"(src[-FDEC_STRIDE+8]),
+         "m"(*pw_12345678), "m"(*pw_m87654321)
     );
 #else
     asm (
         "movq           %1, %%mm1 \n"
-        "movq         8+%1, %%mm0 \n"
-        "palignr $7, -8+%1, %%mm1 \n"
-        "pmaddubsw      %2, %%mm0 \n"
-        "pmaddubsw      %3, %%mm1 \n"
+        "movq           %2, %%mm0 \n"
+        "palignr $7,    %3, %%mm1 \n"
+        "pmaddubsw      %4, %%mm0 \n"
+        "pmaddubsw      %5, %%mm1 \n"
         "paddw       %%mm1, %%mm0 \n"
         "pshufw $14, %%mm0, %%mm1 \n"
         "paddw       %%mm1, %%mm0 \n"
@@ -219,7 +220,8 @@ static void x264_predict_16x16_p_ssse3( uint8_t *src )
         "movd        %%mm0, %0    \n"
         "movsx         %w0, %0    \n"
         :"=r"(H)
-        :"m"(src[-FDEC_STRIDE]), "m"(*pb_12345678), "m"(*pb_m87654321)
+        :"m"(src[-FDEC_STRIDE]), "m"(src[-FDEC_STRIDE+8]),
+         "m"(src[-FDEC_STRIDE-8]), "m"(*pb_12345678), "m"(*pb_m87654321)
     );
 #endif
     V = 8 * ( src[15*FDEC_STRIDE-1] - src[-1*FDEC_STRIDE-1] )
