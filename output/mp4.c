@@ -30,8 +30,10 @@
 #if HAVE_GF_MALLOC
 #undef malloc
 #undef free
+#undef realloc
 #define malloc gf_malloc
 #define free gf_free
+#define realloc gf_realloc
 #endif
 
 typedef struct
@@ -49,6 +51,7 @@ typedef struct
     int i_delay_frames;
     int b_dts_compress;
     int i_dts_compress_multiplier;
+    int i_data_size;
 } mp4_hnd_t;
 
 static void recompute_bitrate_mp4( GF_ISOFile *p_file, int i_track )
@@ -233,10 +236,27 @@ static int set_param( hnd_t handle, x264_param_t *p_param )
         gf_isom_set_track_layout_info( p_mp4->p_file, p_mp4->i_track, dw, dh, 0, 0, 0 );
     }
 
-    p_mp4->p_sample->data = malloc( p_param->i_width * p_param->i_height * 3 / 2 );
+    p_mp4->i_data_size = p_param->i_width * p_param->i_height * 3 / 2;
+    p_mp4->p_sample->data = malloc( p_mp4->i_data_size );
     if( !p_mp4->p_sample->data )
+    {
+        p_mp4->i_data_size = 0;
         return -1;
+    }
 
+    return 0;
+}
+
+static int check_buffer( mp4_hnd_t *p_mp4, int needed_size )
+{
+    if( needed_size > p_mp4->i_data_size )
+    {
+        void *ptr = realloc( p_mp4->p_sample->data, needed_size );
+        if( !ptr )
+            return -1;
+        p_mp4->p_sample->data = ptr;
+        p_mp4->i_data_size = needed_size;
+    }
     return 0;
 }
 
@@ -284,6 +304,8 @@ static int write_headers( hnd_t handle, x264_nal_t *p_nal )
 
     // SEI
 
+    if( check_buffer( p_mp4, p_mp4->p_sample->dataLength + sei_size ) )
+        return -1;
     memcpy( p_mp4->p_sample->data + p_mp4->p_sample->dataLength, sei, sei_size );
     p_mp4->p_sample->dataLength += sei_size;
 
@@ -296,6 +318,8 @@ static int write_frame( hnd_t handle, uint8_t *p_nalu, int i_size, x264_picture_
     int64_t dts;
     int64_t cts;
 
+    if( check_buffer( p_mp4, p_mp4->p_sample->dataLength + i_size ) )
+        return -1;
     memcpy( p_mp4->p_sample->data + p_mp4->p_sample->dataLength, p_nalu, i_size );
     p_mp4->p_sample->dataLength += i_size;
 
