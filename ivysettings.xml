@@ -61,6 +61,7 @@ using the library and what you like or don't like about it.
         <artifact pattern="http://red5.googlecode.com/svn/repository/[organisation]/[artifact](-[revision]).[ext]" />
       </url>   
       <url name="mavenrepo">
+        <artifact pattern="http://repo1.maven.org/maven2/[artifact]/[artifact]/[revision]/[artifact](-[revision]).[ext]" />
         <artifact pattern="http://repo1.maven.org/maven/[artifact]/jars/[artifact](-[revision]).[ext]" />
         <artifact pattern="http://repo1.maven.org/maven/[organisation]/[artifact]/jars/[artifact](-[revision]).[ext]" />
       </url>   
