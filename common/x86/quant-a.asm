@@ -7,6 +7,7 @@
 ;*          Jason Garrett-Glaser <darkshikari@gmail.com>
 ;*          Christian Heine <sennindemokrit@gmx.net>
 ;*          Oskar Arvidsson <oskar@irock.se>
+;*          Henrik Gramner <hengar-6@student.ltu.se>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -69,12 +70,18 @@ decimate_mask_table4:
     db  9,13,9,12,12,16,9,13,12,16,13,16,16,20,7,10,9,13,10,13,13,17,9,13,12,16
     db 13,16,16,20,10,13,13,17,13,16,16,20,13,17,16,20,17,20,20,24
 
+chroma_dc_dct_mask_mmx: dw 0, 0,-1,-1, 0, 0,-1,-1
+chroma_dc_dmf_mask_mmx: dw 0, 0,-1,-1, 0,-1,-1, 0
+chroma_dc_dct_mask:     dw 1, 1,-1,-1, 1, 1,-1,-1
+chroma_dc_dmf_mask:     dw 1, 1,-1,-1, 1,-1,-1, 1
+
 SECTION .text
 
 cextern pb_1
 cextern pw_1
 cextern pd_1
 cextern pb_01
+cextern pd_1024
 
 %macro QUANT_DC_START_MMX 0
     movd       m6, r1m     ; mf
@@ -117,12 +124,18 @@ cextern pb_01
     psignw     %1, %2
 %endmacro
 
-%macro PSIGND_MMX 2
+%macro PSIGND_MMX 2-3
+%if %0==3
+    mova        %1, %2
+    pxor        %1, %3
+    psubd       %1, %3
+%else
     pxor        %1, %2
     psubd       %1, %2
+%endif
 %endmacro
 
-%macro PSIGND_SSSE3 2
+%macro PSIGND_SSSE3 2+
     psignd      %1, %2
 %endmacro
 
@@ -746,6 +759,126 @@ DEQUANT_DC sse2  , w
 INIT_AVX
 DEQUANT_DC avx   , w
 %endif
+
+; t4 is eax for return value.
+%ifdef ARCH_X86_64
+    DECLARE_REG_TMP 0,1,2,3,6,4  ; Identical for both Windows and *NIX
+%else
+    DECLARE_REG_TMP 4,1,2,3,0,5
+%endif
+
+;-----------------------------------------------------------------------------
+; x264_optimize_chroma_dc( dctcoef dct[4], int dequant_mf )
+;-----------------------------------------------------------------------------
+
+; %2 == 1 for sse2 or ssse3, 0 for sse4/avx
+%macro OPTIMIZE_CHROMA_DC 2
+%assign %%regs 4+%2
+%ifndef ARCH_X86_64
+    %assign %%regs %%regs+1      ; t0-t4 are volatile on x86-64
+%endif
+cglobal optimize_chroma_dc_%1, 0,%%regs,7
+    movifnidn t0, r0mp
+    movd      m2, r1m
+    movq      m1, [t0]
+%if %2
+    pxor      m4, m4
+%else ; sse4, avx
+    pcmpeqb   m4, m4
+    pslld     m4, 11
+%endif
+%ifidn %1, sse2
+    mova      m3, [chroma_dc_dct_mask_mmx]
+    mova      m5, [chroma_dc_dmf_mask_mmx]
+%else
+    mova      m3, [chroma_dc_dct_mask]
+    mova      m5, [chroma_dc_dmf_mask]
+%endif
+    pshuflw   m2, m2, 0
+    pshufd    m0, m1, 00010001b  ;  1  0  3  2  1  0  3  2
+    punpcklqdq m2, m2
+    punpcklqdq m1, m1            ;  3  2  1  0  3  2  1  0
+    mova      m6, [pd_1024]      ; 32<<5, elements are shifted 5 bits to the left
+    PSIGNW    m0, m3             ; -1 -0  3  2 -1 -0  3  2
+    PSIGNW    m2, m5             ;  +  -  -  +  -  -  +  +
+    paddw     m0, m1             ; -1+3 -0+2  1+3  0+2 -1+3 -0+2  1+3  0+2
+    pmaddwd   m0, m2             ;  0-1-2+3  0-1+2-3  0+1-2-3  0+1+2+3  * dmf
+    punpcklwd m1, m1
+    psrad     m2, 16             ;  +  -  -  +
+    mov      t1d, 3
+    paddd     m0, m6
+    xor      t4d, t4d
+%ifidn %1, sse2
+    psrad     m1, 31             ; has to be 0 or -1 in order for PSIGND_MMX to work correctly
+%endif
+%if %2
+    mova      m6, m0
+    SWAP       0, 6
+    psrad     m6, 11
+    pcmpeqd   m6, m4
+    pmovmskb t5d, m6
+    cmp      t5d, 0xffff
+%else ; sse4, avx
+    ptest     m0, m4
+%endif
+    jz .ret                      ; if the DC coefficients already round to zero, terminate early
+    mova      m3, m0
+.outer_loop:
+    movsx    t3d, word [t0+2*t1] ; dct[coeff]
+    pshufd    m6, m1, 11111111b
+    pshufd    m1, m1, 10010000b  ; move the next element to high dword
+    PSIGND    m5, m2, m6
+    test     t3d, t3d
+    jz .loop_end
+.outer_loop_0:
+    mov      t2d, t3d
+    sar      t3d, 31
+    or       t3d, 1
+.inner_loop:
+    psubd     m3, m5             ; coeff -= sign
+    pxor      m6, m0, m3
+%if %2
+    psrad     m6, 11
+    pcmpeqd   m6, m4
+    pmovmskb t5d, m6
+    cmp      t5d, 0xffff
+%else ; sse4, avx
+    ptest     m6, m4
+%endif
+    jz .round_coeff
+    paddd     m3, m5             ; coeff += sign
+    mov      t4d, 1
+.loop_end:
+    dec      t1d
+    jz .last_coeff
+    pshufd    m2, m2, 01111000b  ;  -  +  -  +  /  -  -  +  +
+    jg .outer_loop
+.ret:
+    REP_RET
+.round_coeff:
+    sub      t2d, t3d
+    mov [t0+2*t1], t2w
+    jnz .inner_loop
+    jmp .loop_end
+.last_coeff:
+    movsx    t3d, word [t0]
+    punpcklqdq m2, m2            ;  +  +  +  +
+    PSIGND    m5, m2, m1
+    test     t3d, t3d
+    jnz .outer_loop_0
+    REP_RET
+%endmacro
+
+INIT_XMM
+%define PSIGNW PSIGNW_MMX
+%define PSIGND PSIGND_MMX
+OPTIMIZE_CHROMA_DC sse2, 1
+%define PSIGNW PSIGNW_SSSE3
+%define PSIGND PSIGND_SSSE3
+OPTIMIZE_CHROMA_DC ssse3, 1
+OPTIMIZE_CHROMA_DC sse4, 0
+INIT_AVX
+OPTIMIZE_CHROMA_DC avx, 0
 
 %ifdef HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------

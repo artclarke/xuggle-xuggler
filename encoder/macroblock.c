@@ -273,59 +273,19 @@ static void x264_mb_encode_i16x16( x264_t *h, int i_qp )
         h->dctf.add16x16_idct_dc( p_dst, dct_dc4x4 );
 }
 
-static inline int idct_dequant_round_2x2_dc( dctcoef ref[4], dctcoef dct[4], int dequant_mf[6][16], int i_qp )
-{
-    dctcoef out[4];
-    idct_dequant_2x2_dconly( out, dct, dequant_mf, i_qp );
-    return ((ref[0] ^ (out[0]+32))
-          | (ref[1] ^ (out[1]+32))
-          | (ref[2] ^ (out[2]+32))
-          | (ref[3] ^ (out[3]+32))) >> 6;
-}
-
 /* Round down coefficients losslessly in DC-only chroma blocks.
  * Unlike luma blocks, this can't be done with a lookup table or
  * other shortcut technique because of the interdependencies
  * between the coefficients due to the chroma DC transform. */
-static inline int x264_mb_optimize_chroma_dc( x264_t *h, int b_inter, int i_qp, dctcoef dct2x2[4] )
+static ALWAYS_INLINE int x264_mb_optimize_chroma_dc( x264_t *h, dctcoef dct2x2[4], int dequant_mf[6][16], int i_qp )
 {
-    dctcoef dct2x2_orig[4];
-    int coeff, nz;
+    int dmf = dequant_mf[i_qp%6][0] << i_qp/6;
 
     /* If the QP is too high, there's no benefit to rounding optimization. */
-    if( h->dequant4_mf[CQM_4IC + b_inter][i_qp%6][0] << (i_qp/6) > 32*64 )
+    if( dmf > 32*64 )
         return 1;
 
-    idct_dequant_2x2_dconly( dct2x2_orig, dct2x2, h->dequant4_mf[CQM_4IC + b_inter], i_qp );
-    dct2x2_orig[0] += 32;
-    dct2x2_orig[1] += 32;
-    dct2x2_orig[2] += 32;
-    dct2x2_orig[3] += 32;
-
-    /* If the DC coefficients already round to zero, terminate early. */
-    if( !((dct2x2_orig[0]|dct2x2_orig[1]|dct2x2_orig[2]|dct2x2_orig[3])>>6) )
-        return 0;
-
-    /* Start with the highest frequency coefficient... is this the best option? */
-    for( nz = 0, coeff = h->quantf.coeff_last[DCT_CHROMA_DC]( dct2x2 ); coeff >= 0; coeff-- )
-    {
-        int level = dct2x2[coeff];
-        int sign = level>>31 | 1; /* dct2x2[coeff] < 0 ? -1 : 1 */
-
-        while( level )
-        {
-            dct2x2[coeff] = level - sign;
-            if( idct_dequant_round_2x2_dc( dct2x2_orig, dct2x2, h->dequant4_mf[CQM_4IC + b_inter], i_qp ) )
-            {
-                nz = 1;
-                dct2x2[coeff] = level;
-                break;
-            }
-            level -= sign;
-        }
-    }
-
-    return nz;
+    return h->quantf.optimize_chroma_dc( dct2x2, dmf );
 }
 
 void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp )
@@ -370,7 +330,7 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp )
 
                     if( nz_dc )
                     {
-                        if( !x264_mb_optimize_chroma_dc( h, b_inter, i_qp, dct2x2 ) )
+                        if( !x264_mb_optimize_chroma_dc( h, dct2x2, h->dequant4_mf[CQM_4IC + b_inter], i_qp ) )
                             continue;
                         h->mb.cache.non_zero_count[x264_scan8[25]+ch] = 1;
                         zigzag_scan_2x2_dc( h->dct.chroma_dc[ch], dct2x2 );
@@ -446,7 +406,7 @@ void x264_mb_encode_8x8_chroma( x264_t *h, int b_inter, int i_qp )
             h->mb.cache.non_zero_count[x264_scan8[16+3]+24*ch] = 0;
             if( !nz_dc ) /* Whole block is empty */
                 continue;
-            if( !x264_mb_optimize_chroma_dc( h, b_inter, i_qp, dct2x2 ) )
+            if( !x264_mb_optimize_chroma_dc( h, dct2x2, h->dequant4_mf[CQM_4IC + b_inter], i_qp  ) )
             {
                 h->mb.cache.non_zero_count[x264_scan8[25]+ch] = 0;
                 continue;

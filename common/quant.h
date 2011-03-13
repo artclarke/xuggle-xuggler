@@ -38,6 +38,8 @@ typedef struct
     void (*dequant_4x4)( dctcoef dct[16], int dequant_mf[6][16], int i_qp );
     void (*dequant_4x4_dc)( dctcoef dct[16], int dequant_mf[6][16], int i_qp );
 
+    int (*optimize_chroma_dc)( dctcoef dct[4], int dequant_mf );
+
     void (*denoise_dct)( dctcoef *dct, uint32_t *sum, udctcoef *offset, int size );
 
     int (*decimate_score15)( dctcoef *dct );
