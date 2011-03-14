@@ -2057,7 +2057,12 @@ static int x264_slice_write( x264_t *h )
             if( h->mb.b_adaptive_mbaff )
             {
                 if( !(i_mb_y&1) )
-                    h->mb.b_interlaced = 1;
+                {
+                    /* FIXME: VSAD is fast but fairly poor at choosing the best interlace type. */
+                    int stride = h->fenc->i_stride[0];
+                    pixel *fenc = h->fenc->plane[0] + 16 * (i_mb_x + i_mb_y * stride);
+                    h->mb.b_interlaced = x264_field_vsad( h, fenc, stride );
+                }
                 x264_zigzag_init( h->param.cpu, &h->zigzagf, h->mb.b_interlaced );
             }
             h->mb.field[mb_xy] = h->mb.b_interlaced;

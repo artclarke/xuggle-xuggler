@@ -126,5 +126,6 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf );
 void x264_pixel_ssd_nv12( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height, uint64_t *ssd_u, uint64_t *ssd_v );
 uint64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height );
 float x264_pixel_ssim_wxh( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height, void *buf );
+int x264_field_vsad( x264_t *h, pixel *fenc, int stride );
 
 #endif

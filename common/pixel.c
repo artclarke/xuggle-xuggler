@@ -650,6 +650,16 @@ int pixel_vsad( pixel *src, int stride )
     return score;
 }
 
+int x264_field_vsad( x264_t *h, pixel *fenc, int stride )
+{
+    int score_field, score_frame;
+    score_frame  = h->pixf.vsad( fenc,           stride );
+    score_frame += h->pixf.vsad( fenc+16*stride, stride );
+    score_field  = h->pixf.vsad( fenc,           stride*2 );
+    score_field += h->pixf.vsad( fenc+stride,    stride*2 );
+    return (score_field < score_frame);
+}
+
 /****************************************************************************
  * successive elimination
  ****************************************************************************/
