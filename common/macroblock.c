@@ -1177,8 +1177,9 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
             uint8_t skipbp;
             x264_macroblock_cache_skip( h, 0, 0, 4, 4, 0 );
             skipbp = (h->mb.i_neighbour & MB_LEFT) ? h->mb.skipbp[left[0]] : 0;
-            h->mb.cache.skip[x264_scan8[0] - 1] = skipbp & 0x2;
-            h->mb.cache.skip[x264_scan8[8] - 1] = skipbp & 0x8;
+            h->mb.cache.skip[x264_scan8[0] - 1] = (skipbp >> (1+(left_index_table->mv[0]&~1))) & 1;
+            skipbp = (h->mb.i_neighbour & MB_LEFT) ? h->mb.skipbp[left[1]] : 0;
+            h->mb.cache.skip[x264_scan8[8] - 1] = (skipbp >> (1+(left_index_table->mv[2]&~1))) & 1;
             skipbp = (h->mb.i_neighbour & MB_TOP) ? h->mb.skipbp[top] : 0;
             h->mb.cache.skip[x264_scan8[0] - 8] = skipbp & 0x4;
             h->mb.cache.skip[x264_scan8[4] - 8] = skipbp & 0x8;
