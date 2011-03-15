@@ -290,15 +290,6 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
 {
     int8_t ref[2];
     ALIGNED_ARRAY_8( int16_t, mv,[2],[2] );
-    const int8_t *l1ref0 = &h->fref[1][0]->ref[0][h->mb.i_b8_xy];
-    const int8_t *l1ref1 = &h->fref[1][0]->ref[1][h->mb.i_b8_xy];
-    const int16_t (*l1mv[2])[2] = { (const int16_t (*)[2]) &h->fref[1][0]->mv[0][h->mb.i_b4_xy],
-                                    (const int16_t (*)[2]) &h->fref[1][0]->mv[1][h->mb.i_b4_xy] };
-    const int type_col = h->fref[1][0]->mb_type[h->mb.i_mb_xy];
-    const int partition_col = h->fref[1][0]->mb_partition[h->mb.i_mb_xy];
-
-    h->mb.i_partition = partition_col;
-
     for( int i_list = 0; i_list < 2; i_list++ )
     {
         int     i_refa = h->mb.cache.ref[i_list][X264_SCAN8_0 - 1];
@@ -343,6 +334,50 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
         ref[i_list] = i_ref;
     }
 
+    int mb_x = h->mb.i_mb_x;
+    int mb_y = h->mb.i_mb_y;
+    int mb_xy = h->mb.i_mb_xy;
+    int type_col[2] = { h->fref[1][0]->mb_type[mb_xy], h->fref[1][0]->mb_type[mb_xy] };
+    int partition_col[2] = { h->fref[1][0]->mb_partition[mb_xy], h->fref[1][0]->mb_partition[mb_xy] };
+    h->mb.i_partition = partition_col[0];
+    if( h->sh.b_mbaff && h->fref[1][0]->field[mb_xy] != h->mb.b_interlaced )
+    {
+        if( h->mb.b_interlaced )
+        {
+            mb_y = h->mb.i_mb_y&~1;
+            mb_xy = mb_x + h->mb.i_mb_stride * mb_y;
+            type_col[0] = h->fref[1][0]->mb_type[mb_xy];
+            type_col[1] = h->fref[1][0]->mb_type[mb_xy + h->mb.i_mb_stride];
+            partition_col[0] = h->fref[1][0]->mb_partition[mb_xy];
+            partition_col[1] = h->fref[1][0]->mb_partition[mb_xy + h->mb.i_mb_stride];
+
+            if( (IS_INTRA(type_col[0]) || partition_col[0] == D_16x16) &&
+                (IS_INTRA(type_col[1]) || partition_col[1] == D_16x16) &&
+                partition_col[0] != D_8x8 )
+                h->mb.i_partition = D_16x8;
+            else
+                h->mb.i_partition = D_8x8;
+        }
+        else
+        {
+            int cur_poc = h->fdec->i_poc + h->fdec->i_delta_poc[h->mb.b_interlaced&h->mb.i_mb_y&1];
+            int col_parity = abs(h->fref[1][0]->i_poc + h->fref[1][0]->i_delta_poc[0] - cur_poc)
+                          >= abs(h->fref[1][0]->i_poc + h->fref[1][0]->i_delta_poc[1] - cur_poc);
+            mb_y = (h->mb.i_mb_y&~1) + col_parity;
+            mb_xy = mb_x + h->mb.i_mb_stride * mb_y;
+            type_col[0] = type_col[1] = h->fref[1][0]->mb_type[mb_xy];
+            partition_col[0] = partition_col[1] = h->fref[1][0]->mb_partition[mb_xy];
+            h->mb.i_partition = partition_col[0];
+        }
+    }
+    int i_mb_4x4 = 4 * (h->mb.i_b4_stride*mb_y + mb_x);
+    int i_mb_8x8 = 2 * (h->mb.i_b8_stride*mb_y + mb_x);
+
+    int8_t *l1ref0 = &h->fref[1][0]->ref[0][i_mb_8x8];
+    int8_t *l1ref1 = &h->fref[1][0]->ref[1][i_mb_8x8];
+    int16_t (*l1mv[2])[2] = { (int16_t (*)[2]) &h->fref[1][0]->mv[0][i_mb_4x4],
+                              (int16_t (*)[2]) &h->fref[1][0]->mv[1][i_mb_4x4] };
+
     if( (M16( ref ) & 0x8080) == 0x8080 ) /* if( ref[0] < 0 && ref[1] < 0 ) */
     {
         x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, 0 );
@@ -362,24 +397,31 @@ static int x264_mb_predict_mv_direct16x16_spatial( x264_t *h )
         return 0;
     }
 
-    if( !M64( mv ) || IS_INTRA( type_col ) || (ref[0]&&ref[1]) )
+    if( !M64( mv ) || (ref[0]&&ref[1]) )
         return 1;
 
     /* Don't do any checks other than the ones we have to, based
      * on the size of the colocated partitions.
      * Depends on the enum order: D_8x8, D_16x8, D_8x16, D_16x16 */
-    int max_i8 = (D_16x16 - partition_col) + 1;
-    int step = (partition_col == D_16x8) + 1;
-    int width = 4 >> ((D_16x16 - partition_col)&1);
-    int height = 4 >> ((D_16x16 - partition_col)>>1);
+    int max_i8 = (D_16x16 - h->mb.i_partition) + 1;
+    int step = (h->mb.i_partition == D_16x8) + 1;
+    int width = 4 >> ((D_16x16 - h->mb.i_partition)&1);
+    int height = 4 >> ((D_16x16 - h->mb.i_partition)>>1);
 
     /* col_zero_flag */
     for( int i8 = 0; i8 < max_i8; i8 += step )
     {
         const int x8 = i8&1;
         const int y8 = i8>>1;
-        const int o8 = x8 + y8 * h->mb.i_b8_stride;
-        const int o4 = 3*(x8 + y8 * h->mb.i_b4_stride);
+        int ypart = (h->sh.b_mbaff && h->fref[1][0]->field[mb_xy] != h->mb.b_interlaced) ?
+                    h->mb.b_interlaced ? y8*6 : 2*(h->mb.i_mb_y&1) + y8 :
+                    3*y8;
+        int o8 = x8 + (ypart>>1) * h->mb.i_b8_stride;
+        int o4 = 3*x8 + ypart * h->mb.i_b4_stride;
+
+        if( IS_INTRA( type_col[y8] ) )
+            continue;
+
         int idx;
         if( l1ref0[o8] == 0 )
             idx = 0;
