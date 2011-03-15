@@ -777,9 +777,9 @@ struct x264_t
         int     i_chroma_lambda2_offset;
 
         /* B_direct and weighted prediction */
-        int16_t dist_scale_factor_buf[2][X264_REF_MAX*2][4];
+        int16_t dist_scale_factor_buf[2][2][X264_REF_MAX*2][4];
         int16_t (*dist_scale_factor)[4];
-        int8_t bipred_weight_buf[2][X264_REF_MAX*2][4];
+        int8_t bipred_weight_buf[2][2][X264_REF_MAX*2][4];
         int8_t (*bipred_weight)[4];
         /* maps fref1[0]'s ref indices into the current list0 */
 #define map_col_to_list0(col) h->mb.map_col_to_list0[(col)+2]
