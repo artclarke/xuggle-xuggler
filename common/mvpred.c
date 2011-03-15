@@ -182,50 +182,95 @@ void x264_mb_predict_mv_pskip( x264_t *h, int16_t mv[2] )
 
 static int x264_mb_predict_mv_direct16x16_temporal( x264_t *h )
 {
-    int i_mb_4x4 = 16 * h->mb.i_mb_stride * h->mb.i_mb_y + 4 * h->mb.i_mb_x;
-    int i_mb_8x8 =  4 * h->mb.i_mb_stride * h->mb.i_mb_y + 2 * h->mb.i_mb_x;
-    const int type_col = h->fref[1][0]->mb_type[h->mb.i_mb_xy];
-    const int partition_col = h->fref[1][0]->mb_partition[h->mb.i_mb_xy];
+    int mb_x = h->mb.i_mb_x;
+    int mb_y = h->mb.i_mb_y;
+    int mb_xy = h->mb.i_mb_xy;
+    int type_col[2] = { h->fref[1][0]->mb_type[mb_xy], h->fref[1][0]->mb_type[mb_xy] };
+    int partition_col[2] = { h->fref[1][0]->mb_partition[mb_xy], h->fref[1][0]->mb_partition[mb_xy] };
+    int preshift = h->mb.b_interlaced;
+    int postshift = h->mb.b_interlaced;
+    int offset = 1;
+    int yshift = 1;
+    h->mb.i_partition = partition_col[0];
+    if( h->param.b_interlaced && h->fref[1][0]->field[mb_xy] != h->mb.b_interlaced )
+    {
+        if( h->mb.b_interlaced )
+        {
+            mb_y = h->mb.i_mb_y&~1;
+            mb_xy = mb_x + h->mb.i_mb_stride * mb_y;
+            type_col[0] = h->fref[1][0]->mb_type[mb_xy];
+            type_col[1] = h->fref[1][0]->mb_type[mb_xy + h->mb.i_mb_stride];
+            partition_col[0] = h->fref[1][0]->mb_partition[mb_xy];
+            partition_col[1] = h->fref[1][0]->mb_partition[mb_xy + h->mb.i_mb_stride];
+            preshift = 0;
+            yshift = 0;
+
+            if( (IS_INTRA(type_col[0]) || partition_col[0] == D_16x16) &&
+                (IS_INTRA(type_col[1]) || partition_col[1] == D_16x16) &&
+                partition_col[0] != D_8x8 )
+                h->mb.i_partition = D_16x8;
+            else
+                h->mb.i_partition = D_8x8;
+        }
+        else
+        {
+            int cur_poc = h->fdec->i_poc + h->fdec->i_delta_poc[h->mb.b_interlaced&h->mb.i_mb_y&1];
+            int col_parity = abs(h->fref[1][0]->i_poc + h->fref[1][0]->i_delta_poc[0] - cur_poc)
+                          >= abs(h->fref[1][0]->i_poc + h->fref[1][0]->i_delta_poc[1] - cur_poc);
+            mb_y = (h->mb.i_mb_y&~1) + col_parity;
+            mb_xy = mb_x + h->mb.i_mb_stride * mb_y;
+            type_col[0] = type_col[1] = h->fref[1][0]->mb_type[mb_xy];
+            partition_col[0] = partition_col[1] = h->fref[1][0]->mb_partition[mb_xy];
+            preshift = 1;
+            yshift = 2;
+            h->mb.i_partition = partition_col[0];
+        }
+        offset = 0;
+    }
+    int i_mb_4x4 = 16 * h->mb.i_mb_stride * mb_y + 4 * mb_x;
+    int i_mb_8x8 =  4 * h->mb.i_mb_stride * mb_y + 2 * mb_x;
 
     x264_macroblock_cache_ref( h, 0, 0, 4, 4, 1, 0 );
-
-    h->mb.i_partition = partition_col;
-
-    if( IS_INTRA( type_col ) )
-    {
-        x264_macroblock_cache_ref( h, 0, 0, 4, 4, 0, 0 );
-        x264_macroblock_cache_mv(  h, 0, 0, 4, 4, 0, 0 );
-        x264_macroblock_cache_mv(  h, 0, 0, 4, 4, 1, 0 );
-        return 1;
-    }
 
     /* Don't do any checks other than the ones we have to, based
      * on the size of the colocated partitions.
      * Depends on the enum order: D_8x8, D_16x8, D_8x16, D_16x16 */
-    int max_i8 = (D_16x16 - partition_col) + 1;
-    int step = (partition_col == D_16x8) + 1;
-    int width = 4 >> ((D_16x16 - partition_col)&1);
-    int height = 4 >> ((D_16x16 - partition_col)>>1);
-
+    int max_i8 = (D_16x16 - h->mb.i_partition) + 1;
+    int step = (h->mb.i_partition == D_16x8) + 1;
+    int width = 4 >> ((D_16x16 - h->mb.i_partition)&1);
+    int height = 4 >> ((D_16x16 - h->mb.i_partition)>>1);
     for( int i8 = 0; i8 < max_i8; i8 += step )
     {
         int x8 = i8&1;
         int y8 = i8>>1;
-        int i_part_8x8 = i_mb_8x8 + x8 + y8 * h->mb.i_b8_stride;
+        int ypart = (h->sh.b_mbaff && h->fref[1][0]->field[mb_xy] != h->mb.b_interlaced) ?
+                    h->mb.b_interlaced ? y8*6 : 2*(h->mb.i_mb_y&1) + y8 :
+                    3*y8;
+
+        if( IS_INTRA( type_col[y8] ) )
+        {
+            x264_macroblock_cache_ref( h, 2*x8, 2*y8, width, height, 0, 0 );
+            x264_macroblock_cache_mv(  h, 2*x8, 2*y8, width, height, 0, 0 );
+            x264_macroblock_cache_mv(  h, 2*x8, 2*y8, width, height, 1, 0 );
+            continue;
+        }
+
+        int i_part_8x8 = i_mb_8x8 + x8 + (ypart>>1) * h->mb.i_b8_stride;
         int i_ref1_ref = h->fref[1][0]->ref[0][i_part_8x8];
-        int i_ref = (map_col_to_list0(i_ref1_ref>>h->sh.b_mbaff) << h->sh.b_mbaff) + (i_ref1_ref&h->sh.b_mbaff);
+        int i_ref = (map_col_to_list0(i_ref1_ref>>preshift) << postshift) + (offset&i_ref1_ref&h->mb.b_interlaced);
 
         if( i_ref >= 0 )
         {
             int dist_scale_factor = h->mb.dist_scale_factor[i_ref][0];
-            int16_t *mv_col = h->fref[1][0]->mv[0][i_mb_4x4 + 3*x8 + 3*y8 * h->mb.i_b4_stride];
+            int16_t *mv_col = h->fref[1][0]->mv[0][i_mb_4x4 + 3*x8 + ypart * h->mb.i_b4_stride];
+            int16_t mv_y = (mv_col[1]<<yshift)/2;
             int l0x = ( dist_scale_factor * mv_col[0] + 128 ) >> 8;
-            int l0y = ( dist_scale_factor * mv_col[1] + 128 ) >> 8;
-            if( h->param.i_threads > 1 && (l0y > h->mb.mv_max_spel[1] || l0y-mv_col[1] > h->mb.mv_max_spel[1]) )
+            int l0y = ( dist_scale_factor * mv_y + 128 ) >> 8;
+            if( h->param.i_threads > 1 && (l0y > h->mb.mv_max_spel[1] || l0y-mv_y > h->mb.mv_max_spel[1]) )
                 return 0;
             x264_macroblock_cache_ref( h, 2*x8, 2*y8, width, height, 0, i_ref );
             x264_macroblock_cache_mv( h, 2*x8, 2*y8, width, height, 0, pack16to32_mask(l0x, l0y) );
-            x264_macroblock_cache_mv( h, 2*x8, 2*y8, width, height, 1, pack16to32_mask(l0x-mv_col[0], l0y-mv_col[1]) );
+            x264_macroblock_cache_mv( h, 2*x8, 2*y8, width, height, 1, pack16to32_mask(l0x-mv_col[0], l0y-mv_y) );
         }
         else
         {
