@@ -354,9 +354,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
     int b_interlaced = h->sh.b_mbaff;
     int qp_thresh = 15 - X264_MIN( h->sh.i_alpha_c0_offset, h->sh.i_beta_offset ) - X264_MAX( 0, h->pps->i_chroma_qp_index_offset );
     int stridey   = h->fdec->i_stride[0];
-    int stride2y  = stridey << b_interlaced;
     int strideuv  = h->fdec->i_stride[1];
-    int stride2uv = strideuv << b_interlaced;
 
     for( int mb_x = 0; mb_x < h->mb.i_mb_width; mb_x += (~b_interlaced | mb_y)&1, mb_y ^= b_interlaced )
     {
@@ -370,12 +368,14 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
 
         pixel *pixy = h->fdec->plane[0] + 16*mb_y*stridey  + 16*mb_x;
         pixel *pixuv = h->fdec->plane[1] + 8*mb_y*strideuv + 16*mb_x;
-        if( mb_y & b_interlaced )
+        if( mb_y & h->mb.b_interlaced )
         {
             pixy -= 15*stridey;
             pixuv -= 7*strideuv;
         }
 
+        int stride2y  = stridey << h->mb.b_interlaced;
+        int stride2uv = strideuv << h->mb.b_interlaced;
         int qp = h->mb.qp[mb_xy];
         int qpc = h->chroma_qp_table[qp];
         int first_edge_only = h->mb.type[mb_xy] == P_SKIP || qp <= qp_thresh;
