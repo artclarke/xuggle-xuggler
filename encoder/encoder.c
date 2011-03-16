@@ -1745,7 +1745,10 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
     int b_measure_quality = 1;
     int min_y = mb_y - (1 << h->sh.b_mbaff);
     int b_start = min_y == h->i_threadslice_start;
-    int max_y = b_end ? h->i_threadslice_end : mb_y;
+    /* Even in interlaced mode, deblocking never modifies more than 4 pixels
+     * above each MB, as bS=4 doesn't happen for the top of interlaced mbpairs. */
+    int minpix_y = min_y*16 - 4 * !b_start;
+    int maxpix_y = mb_y*16 - 4 * !b_end;
     b_deblock &= b_hpel || h->param.psz_dump_yuv;
     if( h->param.b_sliced_threads && b_start && min_y && !b_inloop )
     {
@@ -1758,8 +1761,18 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
         return;
 
     if( b_deblock )
-        for( int y = min_y; y < max_y; y += (1 << h->sh.b_mbaff) )
+        for( int y = min_y; y < mb_y; y += (1 << h->sh.b_mbaff) )
             x264_frame_deblock_row( h, y );
+
+    /* FIXME: Prediction requires different borders for interlaced/progressive mc,
+     * but the actual image data is equivalent. For now, maintain this
+     * consistency by copying deblocked pixels between planes. */
+    if( h->param.b_interlaced )
+        for( int p = 0; p < 2; p++ )
+            for( int i = minpix_y>>p; i < maxpix_y>>p; i++ )
+                memcpy( h->fdec->plane_fld[p] + i*h->fdec->i_stride[p],
+                        h->fdec->plane[p]     + i*h->fdec->i_stride[p],
+                        h->mb.i_mb_width*16*sizeof(pixel) );
 
     if( b_hpel )
     {
@@ -1782,22 +1795,20 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
     if( h->i_thread_frames > 1 && h->fdec->b_kept_as_ref )
         x264_frame_cond_broadcast( h->fdec, mb_y*16 + (b_end ? 10000 : -(X264_THREAD_HEIGHT << h->sh.b_mbaff)) );
 
-    min_y = min_y*16 - 8 * !b_start;
-    max_y = b_end ? X264_MIN( h->i_threadslice_end*16 , h->param.i_height ) : mb_y*16 - 8;
-
     if( b_measure_quality )
     {
+        maxpix_y = X264_MIN( maxpix_y, h->param.i_height );
         if( h->param.analyse.b_psnr )
         {
             uint64_t ssd_y = x264_pixel_ssd_wxh( &h->pixf,
-                h->fdec->plane[0] + min_y * h->fdec->i_stride[0], h->fdec->i_stride[0],
-                h->fenc->plane[0] + min_y * h->fenc->i_stride[0], h->fenc->i_stride[0],
-                h->param.i_width, max_y-min_y );
+                h->fdec->plane[0] + minpix_y * h->fdec->i_stride[0], h->fdec->i_stride[0],
+                h->fenc->plane[0] + minpix_y * h->fenc->i_stride[0], h->fenc->i_stride[0],
+                h->param.i_width, maxpix_y-minpix_y );
             uint64_t ssd_u, ssd_v;
             x264_pixel_ssd_nv12( &h->pixf,
-                h->fdec->plane[1] + (min_y>>1) * h->fdec->i_stride[1], h->fdec->i_stride[1],
-                h->fenc->plane[1] + (min_y>>1) * h->fenc->i_stride[1], h->fenc->i_stride[1],
-                h->param.i_width>>1, (max_y-min_y)>>1, &ssd_u, &ssd_v );
+                h->fdec->plane[1] + (minpix_y>>1) * h->fdec->i_stride[1], h->fdec->i_stride[1],
+                h->fenc->plane[1] + (minpix_y>>1) * h->fenc->i_stride[1], h->fenc->i_stride[1],
+                h->param.i_width>>1, (maxpix_y-minpix_y)>>1, &ssd_u, &ssd_v );
             h->stat.frame.i_ssd[0] += ssd_y;
             h->stat.frame.i_ssd[1] += ssd_u;
             h->stat.frame.i_ssd[2] += ssd_v;
@@ -1808,12 +1819,12 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
             x264_emms();
             /* offset by 2 pixels to avoid alignment of ssim blocks with dct blocks,
              * and overlap by 4 */
-            min_y += b_start ? 2 : -6;
+            minpix_y += b_start ? 2 : -6;
             h->stat.frame.f_ssim +=
                 x264_pixel_ssim_wxh( &h->pixf,
-                    h->fdec->plane[0] + 2+min_y*h->fdec->i_stride[0], h->fdec->i_stride[0],
-                    h->fenc->plane[0] + 2+min_y*h->fenc->i_stride[0], h->fenc->i_stride[0],
-                    h->param.i_width-2, max_y-min_y, h->scratch_buffer );
+                    h->fdec->plane[0] + 2+minpix_y*h->fdec->i_stride[0], h->fdec->i_stride[0],
+                    h->fenc->plane[0] + 2+minpix_y*h->fenc->i_stride[0], h->fenc->i_stride[0],
+                    h->param.i_width-2, maxpix_y-minpix_y, h->scratch_buffer );
         }
     }
 }
