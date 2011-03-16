@@ -243,7 +243,7 @@ static void deblock_h_chroma_intra_c( pixel *pix, int stride, int alpha, int bet
 
 static void deblock_strength_c( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
                                 int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4], int mvy_limit,
-                                int bframe )
+                                int bframe, x264_t *h )
 {
     for( int dir = 0; dir < 2; dir++ )
     {
@@ -267,6 +267,47 @@ static void deblock_strength_c( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264
                 else
                     bs[dir][edge][i] = 0;
             }
+    }
+}
+void deblock_strength_mbaff_c( uint8_t nnz_cache[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
+                               int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4],
+                               int mvy_limit, int bframe, x264_t *h )
+{
+    int neighbour_field[2];
+    neighbour_field[0] = h->mb.i_mb_left_xy[0] >= 0 && h->mb.field[h->mb.i_mb_left_xy[0]];
+    neighbour_field[1] = h->mb.i_mb_top_xy >= 0 && h->mb.field[h->mb.i_mb_top_xy];
+    int intra_cur = IS_INTRA( h->mb.i_type );
+
+    if( !intra_cur )
+    {
+        for( int dir = 0; dir < 2; dir++ )
+        {
+            int edge_stride = dir ? 8 : 1;
+            int part_stride = dir ? 1 : 8;
+            for( int edge = 0; edge < 4; edge++ )
+            {
+                for( int i = 0, q = X264_SCAN8_0+edge*edge_stride; i < 4; i++, q += part_stride )
+                {
+                    int p = q - edge_stride;
+                    if( nnz_cache[q] || nnz_cache[p] )
+                    {
+                        bs[dir][edge][i] = 2;
+                    }
+                    else if( (edge == 0 && h->mb.b_interlaced != neighbour_field[dir]) ||
+                             ref[0][q] != ref[0][p] ||
+                             abs( mv[0][q][0] - mv[0][p][0] ) >= 4 ||
+                             abs( mv[0][q][1] - mv[0][p][1] ) >= mvy_limit ||
+                            (bframe && (ref[1][q] != ref[1][p] ||
+                             abs( mv[1][q][0] - mv[1][p][0] ) >= 4 ||
+                             abs( mv[1][q][1] - mv[1][p][1] ) >= mvy_limit )) )
+                    {
+                        bs[dir][edge][i] = 1;
+                    }
+                    else
+                        bs[dir][edge][i] = 0;
+                }
+            }
+        }
     }
 }
 
@@ -411,7 +452,7 @@ void x264_macroblock_deblock( x264_t *h )
         memset( bs, 3, 2*4*4*sizeof(uint8_t) );
     else
         h->loopf.deblock_strength( h->mb.cache.non_zero_count, h->mb.cache.ref, h->mb.cache.mv,
-                                   bs, 4 >> h->sh.b_mbaff, h->sh.i_type == SLICE_TYPE_B );
+                                   bs, 4 >> h->sh.b_mbaff, h->sh.i_type == SLICE_TYPE_B, h );
 
     int transform_8x8 = h->mb.b_transform_8x8;
     pixel *fdec = h->mb.pic.p_fdec[0];
@@ -454,16 +495,16 @@ void x264_deblock_h_chroma_intra_sse2( pixel *pix, int stride, int alpha, int be
 void x264_deblock_h_chroma_intra_avx ( pixel *pix, int stride, int alpha, int beta );
 void x264_deblock_strength_mmxext( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
                                    int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4],
-                                   int mvy_limit, int bframe );
+                                   int mvy_limit, int bframe, x264_t *h );
 void x264_deblock_strength_sse2  ( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
                                    int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4],
-                                   int mvy_limit, int bframe );
+                                   int mvy_limit, int bframe, x264_t *h );
 void x264_deblock_strength_ssse3 ( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
                                    int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4],
-                                   int mvy_limit, int bframe );
+                                   int mvy_limit, int bframe, x264_t *h );
 void x264_deblock_strength_avx   ( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
                                    int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][4][4],
-                                   int mvy_limit, int bframe );
+                                   int mvy_limit, int bframe, x264_t *h );
 #if ARCH_X86
 void x264_deblock_h_luma_mmxext( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 );
 void x264_deblock_v8_luma_mmxext( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 );
@@ -505,7 +546,7 @@ void x264_deblock_v_chroma_neon( uint8_t *, int, int, int, int8_t * );
 void x264_deblock_h_chroma_neon( uint8_t *, int, int, int, int8_t * );
 #endif
 
-void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
+void x264_deblock_init( int cpu, x264_deblock_function_t *pf, int b_mbaff )
 {
     pf->deblock_luma[1] = deblock_v_luma_c;
     pf->deblock_luma[0] = deblock_h_luma_c;
@@ -585,4 +626,6 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf )
    }
 #endif
 #endif // !HIGH_BIT_DEPTH
+
+    if( b_mbaff ) pf->deblock_strength = deblock_strength_mbaff_c;
 }

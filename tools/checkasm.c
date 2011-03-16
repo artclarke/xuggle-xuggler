@@ -1278,9 +1278,9 @@ static int check_deblock( int cpu_ref, int cpu_new )
     int alphas[36], betas[36];
     int8_t tcs[36][4];
 
-    x264_deblock_init( 0, &db_c );
-    x264_deblock_init( cpu_ref, &db_ref );
-    x264_deblock_init( cpu_new, &db_a );
+    x264_deblock_init( 0, &db_c, 0 );
+    x264_deblock_init( cpu_ref, &db_ref, 0 );
+    x264_deblock_init( cpu_new, &db_a, 0 );
 
     /* not exactly the real values of a,b,tc but close enough */
     for( int i = 35, a = 255, c = 250; i >= 0; i-- )

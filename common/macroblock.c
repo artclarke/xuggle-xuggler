@@ -1224,10 +1224,14 @@ void x264_macroblock_cache_load_neighbours_deblock( x264_t *h, int mb_x, int mb_
     }
 }
 
-void x264_macroblock_cache_load_deblock( x264_t *h )
+void x264_macroblock_deblock_strength( x264_t *h )
 {
+    uint8_t (*bs)[4][4] = h->deblock_strength[h->mb.i_mb_y&1][h->mb.i_mb_x];
     if( IS_INTRA( h->mb.type[h->mb.i_mb_xy] ) )
-        return;
+    {
+        memset( bs, 3, 2*4*4*sizeof(uint8_t) );
+        if( !h->sh.b_mbaff ) return;
+    }
 
     /* If we have multiple slices and we're deblocking on slice edges, we
      * have to reload neighbour data. */
@@ -1367,6 +1371,10 @@ void x264_macroblock_cache_load_deblock( x264_t *h )
             M32( &h->mb.cache.non_zero_count[x264_scan8[0]+8*3] ) = nnzbot;
         }
     }
+
+    int mvy_limit = 4 >> h->mb.b_interlaced;
+    h->loopf.deblock_strength( h->mb.cache.non_zero_count, h->mb.cache.ref, h->mb.cache.mv,
+                               bs, mvy_limit, h->sh.i_type == SLICE_TYPE_B, h );
 }
 
 static void ALWAYS_INLINE x264_macroblock_store_pic( x264_t *h, int mb_x, int mb_y, int i, int b_mbaff )
