@@ -205,32 +205,35 @@ static inline double qscale2bits( ratecontrol_entry_t *rce, double qscale )
            + rce->misc_bits;
 }
 
-static ALWAYS_INLINE uint32_t ac_energy_var( uint64_t sum_ssd, int shift, x264_frame_t *frame, int i )
+static ALWAYS_INLINE uint32_t ac_energy_var( uint64_t sum_ssd, int shift, x264_frame_t *frame, int i, int b_store )
 {
     uint32_t sum = sum_ssd;
     uint32_t ssd = sum_ssd >> 32;
-    frame->i_pixel_sum[i] += sum;
-    frame->i_pixel_ssd[i] += ssd;
+    if( b_store )
+    {
+        frame->i_pixel_sum[i] += sum;
+        frame->i_pixel_ssd[i] += ssd;
+    }
     return ssd - ((uint64_t)sum * sum >> shift);
 }
 
-static ALWAYS_INLINE uint32_t ac_energy_plane( x264_t *h, int mb_x, int mb_y, x264_frame_t *frame, int i )
+static ALWAYS_INLINE uint32_t ac_energy_plane( x264_t *h, int mb_x, int mb_y, x264_frame_t *frame, int i, int field, int b_store )
 {
     int w = i ? 8 : 16;
     int stride = frame->i_stride[i];
-    int offset = h->mb.b_interlaced
+    int offset = field
         ? 16 * mb_x + w * (mb_y&~1) * stride + (mb_y&1) * stride
         : 16 * mb_x + w * mb_y * stride;
-    stride <<= h->mb.b_interlaced;
+    stride <<= field;
     if( i )
     {
         ALIGNED_ARRAY_16( pixel, pix,[FENC_STRIDE*8] );
         h->mc.load_deinterleave_8x8x2_fenc( pix, frame->plane[1] + offset, stride );
-        return ac_energy_var( h->pixf.var[PIXEL_8x8]( pix, FENC_STRIDE ), 6, frame, 1 )
-             + ac_energy_var( h->pixf.var[PIXEL_8x8]( pix+FENC_STRIDE/2, FENC_STRIDE ), 6, frame, 2 );
+        return ac_energy_var( h->pixf.var[PIXEL_8x8]( pix, FENC_STRIDE ), 6, frame, 1, b_store )
+             + ac_energy_var( h->pixf.var[PIXEL_8x8]( pix+FENC_STRIDE/2, FENC_STRIDE ), 6, frame, 2, b_store );
     }
     else
-        return ac_energy_var( h->pixf.var[PIXEL_16x16]( frame->plane[0] + offset, stride ), 8, frame, 0 );
+        return ac_energy_var( h->pixf.var[PIXEL_16x16]( frame->plane[0] + offset, stride ), 8, frame, 0, b_store );
 }
 
 // Find the total AC energy of the block in all planes.
@@ -240,8 +243,23 @@ static NOINLINE uint32_t x264_ac_energy_mb( x264_t *h, int mb_x, int mb_y, x264_
      * and putting it after floating point ops.  As a result, we put the emms at the end of the
      * function and make sure that its always called before the float math.  Noinline makes
      * sure no reordering goes on. */
-    uint32_t var = ac_energy_plane( h, mb_x, mb_y, frame, 0 );
-    var         += ac_energy_plane( h, mb_x, mb_y, frame, 1 );
+    uint32_t var;
+    if( h->mb.b_adaptive_mbaff )
+    {
+        /* We don't know the super-MB mode we're going to pick yet, so
+         * simply try both and pick the lower of the two. */
+        uint32_t var_interlaced, var_progressive;
+        var_interlaced   = ac_energy_plane( h, mb_x, mb_y, frame, 0, 1, 1 );
+        var_interlaced  += ac_energy_plane( h, mb_x, mb_y, frame, 1, 1, 1 );
+        var_progressive  = ac_energy_plane( h, mb_x, mb_y, frame, 0, 0, 0 );
+        var_progressive += ac_energy_plane( h, mb_x, mb_y, frame, 1, 0, 0 );
+        var = X264_MIN( var_interlaced, var_progressive );
+    }
+    else
+    {
+        var  = ac_energy_plane( h, mb_x, mb_y, frame, 0, h->param.b_interlaced, 1 );
+        var += ac_energy_plane( h, mb_x, mb_y, frame, 1, h->param.b_interlaced, 1 );
+    }
     x264_emms();
     return var;
 }
