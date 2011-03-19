@@ -1883,6 +1883,7 @@ static int x264_slice_write( x264_t *h )
      * other inaccuracies. */
     int overhead_guess = (NALU_OVERHEAD - (h->param.b_annexb && h->out.i_nal)) + 1 + h->param.b_cabac + 5;
     int slice_max_size = h->param.i_slice_max_size > 0 ? (h->param.i_slice_max_size-overhead_guess)*8 : 0;
+    int back_up_bitstream = slice_max_size || (!h->param.b_cabac && h->sps->i_profile_idc < PROFILE_HIGH);
     int starting_bits = bs_pos(&h->out.bs);
     int b_deblock = h->sh.i_disable_deblocking_filter_idc != 1;
     int b_hpel = h->fdec->b_kept_as_ref;
@@ -1933,7 +1934,7 @@ static int x264_slice_write( x264_t *h )
         if( x264_bitstream_check_buffer( h ) )
             return -1;
 
-        if( slice_max_size )
+        if( back_up_bitstream )
         {
             mv_bits_bak = h->stat.frame.i_mv_bits;
             tex_bits_bak = h->stat.frame.i_tex_bits;
@@ -1963,6 +1964,7 @@ static int x264_slice_write( x264_t *h )
         x264_macroblock_analyse( h );
 
         /* encode this macroblock -> be careful it can change the mb type to P_SKIP if needed */
+reencode:
         x264_macroblock_encode( h );
 
         if( h->param.b_cabac )
@@ -1991,6 +1993,19 @@ static int x264_slice_write( x264_t *h )
                     i_skip = 0;
                 }
                 x264_macroblock_write_cavlc( h );
+                /* If there was a CAVLC level code overflow, try again at a higher QP. */
+                if( h->mb.b_overflow )
+                {
+                    h->mb.i_chroma_qp = h->chroma_qp_table[++h->mb.i_qp];
+                    h->mb.i_skip_intra = 0;
+                    h->mb.b_skip_mc = 0;
+                    h->mb.b_overflow = 0;
+                    h->out.bs = bs_bak;
+                    i_skip = i_skip_bak;
+                    h->stat.frame.i_mv_bits = mv_bits_bak;
+                    h->stat.frame.i_tex_bits = tex_bits_bak;
+                    goto reencode;
+                }
             }
         }
 

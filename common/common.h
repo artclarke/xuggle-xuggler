@@ -645,6 +645,7 @@ struct x264_t
         int b_reencode_mb;
         int ip_offset; /* Used by PIR to offset the quantizer of intra-refresh blocks. */
         int b_deblock_rdo;
+        int b_overflow; /* If CAVLC had a level code overflow during bitstream writing. */
 
         struct
         {
