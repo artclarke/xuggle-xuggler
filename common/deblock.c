@@ -119,6 +119,11 @@ static inline void deblock_luma_c( pixel *pix, int xstride, int ystride, int alp
             deblock_edge_luma_c( pix, xstride, alpha, beta, tc0[i] );
     }
 }
+static inline void deblock_v_luma_mbaff_c( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 )
+{
+    for( int d = 0; d < 8; d++, pix += stride )
+        deblock_edge_luma_c( pix, 1, alpha, beta, tc0[d>>1] );
+}
 static void deblock_v_luma_c( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 )
 {
     deblock_luma_c( pix, stride, 1, alpha, beta, tc0 );
@@ -156,6 +161,11 @@ static inline void deblock_chroma_c( pixel *pix, int xstride, int ystride, int a
         for( int e = 0; e < 2; e++, pix++ )
             deblock_edge_chroma_c( pix, xstride, alpha, beta, tc0[i] );
     }
+}
+static inline void deblock_v_chroma_mbaff_c( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 )
+{
+    for( int i = 0; i < 4; i++, pix += stride )
+        deblock_edge_chroma_c( pix, 2, alpha, beta, tc0[i] );
 }
 static void deblock_v_chroma_c( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 )
 {
@@ -210,6 +220,11 @@ static inline void deblock_luma_intra_c( pixel *pix, int xstride, int ystride, i
     for( int d = 0; d < 16; d++, pix += ystride )
         deblock_edge_luma_intra_c( pix, xstride, alpha, beta );
 }
+static inline void deblock_v_luma_intra_mbaff_c( pixel *pix, int ystride, int alpha, int beta )
+{
+    for( int d = 0; d < 8; d++, pix += ystride )
+        deblock_edge_luma_intra_c( pix, 1, alpha, beta );
+}
 static void deblock_v_luma_intra_c( pixel *pix, int stride, int alpha, int beta )
 {
     deblock_luma_intra_c( pix, stride, 1, alpha, beta );
@@ -237,6 +252,11 @@ static inline void deblock_chroma_intra_c( pixel *pix, int xstride, int ystride,
     for( int d = 0; d < (dir?16:8); d++, pix += ystride-2 )
     for( int e = 0; e < (dir?1:2); e++, pix++ )
         deblock_edge_chroma_intra_c( pix, xstride, alpha, beta );
+}
+static inline void deblock_v_chroma_intra_mbaff_c( pixel *pix, int stride, int alpha, int beta )
+{
+    for( int i = 0; i < 4; i++, pix += stride )
+        deblock_edge_chroma_intra_c( pix, 2, alpha, beta );
 }
 static void deblock_v_chroma_intra_c( pixel *pix, int stride, int alpha, int beta )
 {
@@ -275,6 +295,7 @@ static void deblock_strength_c( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264
             }
     }
 }
+
 void deblock_strength_mbaff_c( uint8_t nnz_cache[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
                                int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][8][4],
                                int mvy_limit, int bframe, x264_t *h )
