@@ -75,6 +75,37 @@ static const int8_t i_tc0_table[52+12*3][4] =
 #define tc0_table(x)   i_tc0_table[(x)+24]
 
 /* From ffmpeg */
+static ALWAYS_INLINE void deblock_edge_luma_c( pixel *pix, int xstride, int alpha, int beta, int8_t tc0 )
+{
+    int p2 = pix[-3*xstride];
+    int p1 = pix[-2*xstride];
+    int p0 = pix[-1*xstride];
+    int q0 = pix[ 0*xstride];
+    int q1 = pix[ 1*xstride];
+    int q2 = pix[ 2*xstride];
+
+    if( abs( p0 - q0 ) < alpha && abs( p1 - p0 ) < beta && abs( q1 - q0 ) < beta )
+    {
+        int tc = tc0;
+        int delta;
+        if( abs( p2 - p0 ) < beta )
+        {
+            if( tc0 )
+                pix[-2*xstride] = p1 + x264_clip3( (( p2 + ((p0 + q0 + 1) >> 1)) >> 1) - p1, -tc0, tc0 );
+            tc++;
+        }
+        if( abs( q2 - q0 ) < beta )
+        {
+            if( tc0 )
+                pix[ 1*xstride] = q1 + x264_clip3( (( q2 + ((p0 + q0 + 1) >> 1)) >> 1) - q1, -tc0, tc0 );
+            tc++;
+        }
+
+        delta = x264_clip3( (((q0 - p0 ) << 2) + (p1 - q1) + 4) >> 3, -tc, tc );
+        pix[-1*xstride] = x264_clip_pixel( p0 + delta );    /* p0' */
+        pix[ 0*xstride] = x264_clip_pixel( q0 - delta );    /* q0' */
+    }
+}
 static inline void deblock_luma_c( pixel *pix, int xstride, int ystride, int alpha, int beta, int8_t *tc0 )
 {
     for( int i = 0; i < 4; i++ )
@@ -84,38 +115,8 @@ static inline void deblock_luma_c( pixel *pix, int xstride, int ystride, int alp
             pix += 4*ystride;
             continue;
         }
-        for( int d = 0; d < 4; d++ )
-        {
-            int p2 = pix[-3*xstride];
-            int p1 = pix[-2*xstride];
-            int p0 = pix[-1*xstride];
-            int q0 = pix[ 0*xstride];
-            int q1 = pix[ 1*xstride];
-            int q2 = pix[ 2*xstride];
-
-            if( abs( p0 - q0 ) < alpha && abs( p1 - p0 ) < beta && abs( q1 - q0 ) < beta )
-            {
-                int tc = tc0[i];
-                int delta;
-                if( abs( p2 - p0 ) < beta )
-                {
-                    if( tc0[i] )
-                        pix[-2*xstride] = p1 + x264_clip3( (( p2 + ((p0 + q0 + 1) >> 1)) >> 1) - p1, -tc0[i], tc0[i] );
-                    tc++;
-                }
-                if( abs( q2 - q0 ) < beta )
-                {
-                    if( tc0[i] )
-                        pix[ 1*xstride] = q1 + x264_clip3( (( q2 + ((p0 + q0 + 1) >> 1)) >> 1) - q1, -tc0[i], tc0[i] );
-                    tc++;
-                }
-
-                delta = x264_clip3( (((q0 - p0 ) << 2) + (p1 - q1) + 4) >> 3, -tc, tc );
-                pix[-1*xstride] = x264_clip_pixel( p0 + delta );    /* p0' */
-                pix[ 0*xstride] = x264_clip_pixel( q0 - delta );    /* q0' */
-            }
-            pix += ystride;
-        }
+        for( int d = 0; d < 4; d++, pix += ystride )
+            deblock_edge_luma_c( pix, xstride, alpha, beta, tc0[i] );
     }
 }
 static void deblock_v_luma_c( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 )
@@ -127,6 +128,20 @@ static void deblock_h_luma_c( pixel *pix, int stride, int alpha, int beta, int8_
     deblock_luma_c( pix, 1, stride, alpha, beta, tc0 );
 }
 
+static ALWAYS_INLINE void deblock_edge_chroma_c( pixel *pix, int xstride, int alpha, int beta, int8_t tc )
+{
+    int p1 = pix[-2*xstride];
+    int p0 = pix[-1*xstride];
+    int q0 = pix[ 0*xstride];
+    int q1 = pix[ 1*xstride];
+
+    if( abs( p0 - q0 ) < alpha && abs( p1 - p0 ) < beta && abs( q1 - q0 ) < beta )
+    {
+        int delta = x264_clip3( (((q0 - p0 ) << 2) + (p1 - q1) + 4) >> 3, -tc, tc );
+        pix[-1*xstride] = x264_clip_pixel( p0 + delta );    /* p0' */
+        pix[ 0*xstride] = x264_clip_pixel( q0 - delta );    /* q0' */
+    }
+}
 static inline void deblock_chroma_c( pixel *pix, int xstride, int ystride, int alpha, int beta, int8_t *tc0 )
 {
     for( int i = 0; i < 4; i++ )
@@ -139,19 +154,7 @@ static inline void deblock_chroma_c( pixel *pix, int xstride, int ystride, int a
         }
         for( int d = 0; d < 2; d++, pix += ystride-2 )
         for( int e = 0; e < 2; e++, pix++ )
-        {
-            int p1 = pix[-2*xstride];
-            int p0 = pix[-1*xstride];
-            int q0 = pix[ 0*xstride];
-            int q1 = pix[ 1*xstride];
-
-            if( abs( p0 - q0 ) < alpha && abs( p1 - p0 ) < beta && abs( q1 - q0 ) < beta )
-            {
-                int delta = x264_clip3( (((q0 - p0 ) << 2) + (p1 - q1) + 4) >> 3, -tc, tc );
-                pix[-1*xstride] = x264_clip_pixel( p0 + delta );    /* p0' */
-                pix[ 0*xstride] = x264_clip_pixel( q0 - delta );    /* q0' */
-            }
-        }
+            deblock_edge_chroma_c( pix, xstride, alpha, beta, tc0[i] );
     }
 }
 static void deblock_v_chroma_c( pixel *pix, int stride, int alpha, int beta, int8_t *tc0 )
@@ -163,48 +166,49 @@ static void deblock_h_chroma_c( pixel *pix, int stride, int alpha, int beta, int
     deblock_chroma_c( pix, 2, stride, alpha, beta, tc0 );
 }
 
+static ALWAYS_INLINE void deblock_edge_luma_intra_c( pixel *pix, int xstride, int alpha, int beta )
+{
+    int p2 = pix[-3*xstride];
+    int p1 = pix[-2*xstride];
+    int p0 = pix[-1*xstride];
+    int q0 = pix[ 0*xstride];
+    int q1 = pix[ 1*xstride];
+    int q2 = pix[ 2*xstride];
+
+    if( abs( p0 - q0 ) < alpha && abs( p1 - p0 ) < beta && abs( q1 - q0 ) < beta )
+    {
+        if( abs( p0 - q0 ) < ((alpha >> 2) + 2) )
+        {
+            if( abs( p2 - p0 ) < beta ) /* p0', p1', p2' */
+            {
+                const int p3 = pix[-4*xstride];
+                pix[-1*xstride] = ( p2 + 2*p1 + 2*p0 + 2*q0 + q1 + 4 ) >> 3;
+                pix[-2*xstride] = ( p2 + p1 + p0 + q0 + 2 ) >> 2;
+                pix[-3*xstride] = ( 2*p3 + 3*p2 + p1 + p0 + q0 + 4 ) >> 3;
+            }
+            else /* p0' */
+                pix[-1*xstride] = ( 2*p1 + p0 + q1 + 2 ) >> 2;
+            if( abs( q2 - q0 ) < beta ) /* q0', q1', q2' */
+            {
+                const int q3 = pix[3*xstride];
+                pix[0*xstride] = ( p1 + 2*p0 + 2*q0 + 2*q1 + q2 + 4 ) >> 3;
+                pix[1*xstride] = ( p0 + q0 + q1 + q2 + 2 ) >> 2;
+                pix[2*xstride] = ( 2*q3 + 3*q2 + q1 + q0 + p0 + 4 ) >> 3;
+            }
+            else /* q0' */
+                pix[0*xstride] = ( 2*q1 + q0 + p1 + 2 ) >> 2;
+        }
+        else /* p0', q0' */
+        {
+            pix[-1*xstride] = ( 2*p1 + p0 + q1 + 2 ) >> 2;
+            pix[ 0*xstride] = ( 2*q1 + q0 + p1 + 2 ) >> 2;
+        }
+    }
+}
 static inline void deblock_luma_intra_c( pixel *pix, int xstride, int ystride, int alpha, int beta )
 {
-    for( int d = 0; d < 16; d++ )
-    {
-        int p2 = pix[-3*xstride];
-        int p1 = pix[-2*xstride];
-        int p0 = pix[-1*xstride];
-        int q0 = pix[ 0*xstride];
-        int q1 = pix[ 1*xstride];
-        int q2 = pix[ 2*xstride];
-
-        if( abs( p0 - q0 ) < alpha && abs( p1 - p0 ) < beta && abs( q1 - q0 ) < beta )
-        {
-            if(abs( p0 - q0 ) < ((alpha >> 2) + 2) )
-            {
-                if( abs( p2 - p0 ) < beta ) /* p0', p1', p2' */
-                {
-                    const int p3 = pix[-4*xstride];
-                    pix[-1*xstride] = ( p2 + 2*p1 + 2*p0 + 2*q0 + q1 + 4 ) >> 3;
-                    pix[-2*xstride] = ( p2 + p1 + p0 + q0 + 2 ) >> 2;
-                    pix[-3*xstride] = ( 2*p3 + 3*p2 + p1 + p0 + q0 + 4 ) >> 3;
-                }
-                else /* p0' */
-                    pix[-1*xstride] = ( 2*p1 + p0 + q1 + 2 ) >> 2;
-                if( abs( q2 - q0 ) < beta ) /* q0', q1', q2' */
-                {
-                    const int q3 = pix[3*xstride];
-                    pix[0*xstride] = ( p1 + 2*p0 + 2*q0 + 2*q1 + q2 + 4 ) >> 3;
-                    pix[1*xstride] = ( p0 + q0 + q1 + q2 + 2 ) >> 2;
-                    pix[2*xstride] = ( 2*q3 + 3*q2 + q1 + q0 + p0 + 4 ) >> 3;
-                }
-                else /* q0' */
-                    pix[0*xstride] = ( 2*q1 + q0 + p1 + 2 ) >> 2;
-            }
-            else /* p0', q0' */
-            {
-                pix[-1*xstride] = ( 2*p1 + p0 + q1 + 2 ) >> 2;
-                pix[ 0*xstride] = ( 2*q1 + q0 + p1 + 2 ) >> 2;
-            }
-        }
-        pix += ystride;
-    }
+    for( int d = 0; d < 16; d++, pix += ystride )
+        deblock_edge_luma_intra_c( pix, xstride, alpha, beta );
 }
 static void deblock_v_luma_intra_c( pixel *pix, int stride, int alpha, int beta )
 {
@@ -215,22 +219,24 @@ static void deblock_h_luma_intra_c( pixel *pix, int stride, int alpha, int beta 
     deblock_luma_intra_c( pix, 1, stride, alpha, beta );
 }
 
+static ALWAYS_INLINE void deblock_edge_chroma_intra_c( pixel *pix, int xstride, int alpha, int beta )
+{
+    int p1 = pix[-2*xstride];
+    int p0 = pix[-1*xstride];
+    int q0 = pix[ 0*xstride];
+    int q1 = pix[ 1*xstride];
+
+    if( abs( p0 - q0 ) < alpha && abs( p1 - p0 ) < beta && abs( q1 - q0 ) < beta )
+    {
+        pix[-1*xstride] = (2*p1 + p0 + q1 + 2) >> 2;   /* p0' */
+        pix[ 0*xstride] = (2*q1 + q0 + p1 + 2) >> 2;   /* q0' */
+    }
+}
 static inline void deblock_chroma_intra_c( pixel *pix, int xstride, int ystride, int alpha, int beta, int dir )
 {
     for( int d = 0; d < (dir?16:8); d++, pix += ystride-2 )
     for( int e = 0; e < (dir?1:2); e++, pix++ )
-    {
-        int p1 = pix[-2*xstride];
-        int p0 = pix[-1*xstride];
-        int q0 = pix[ 0*xstride];
-        int q1 = pix[ 1*xstride];
-
-        if( abs( p0 - q0 ) < alpha && abs( p1 - p0 ) < beta && abs( q1 - q0 ) < beta )
-        {
-            pix[-1*xstride] = (2*p1 + p0 + q1 + 2) >> 2;   /* p0' */
-            pix[ 0*xstride] = (2*q1 + q0 + p1 + 2) >> 2;   /* q0' */
-        }
-    }
+        deblock_edge_chroma_intra_c( pix, xstride, alpha, beta );
 }
 static void deblock_v_chroma_intra_c( pixel *pix, int stride, int alpha, int beta )
 {
