@@ -702,7 +702,7 @@ static void inline x264_macroblock_cache_load_neighbours( x264_t *h, int mb_x, i
         h->mb.i_mb_left_xy[1] = left[1];
         h->mb.i_mb_type_left[0] = h->mb.type[h->mb.i_mb_left_xy[0]];
         h->mb.i_mb_type_left[1] = h->mb.type[h->mb.i_mb_left_xy[1]];
-        if( h->mb.i_mb_xy > h->sh.i_first_mb )
+        if( h->mb.slice_table[left[0]] == h->sh.i_first_mb )
         {
             h->mb.i_neighbour |= MB_LEFT;
 
@@ -721,7 +721,7 @@ static void inline x264_macroblock_cache_load_neighbours( x264_t *h, int mb_x, i
             h->mb.i_mb_top_xy = top;
             h->mb.i_mb_top_y = top_y;
             h->mb.i_mb_type_top = h->mb.type[h->mb.i_mb_top_xy];
-            if( top >= h->sh.i_first_mb )
+            if( h->mb.slice_table[top] == h->sh.i_first_mb )
             {
                 h->mb.i_neighbour |= MB_TOP;
 
@@ -746,7 +746,7 @@ static void inline x264_macroblock_cache_load_neighbours( x264_t *h, int mb_x, i
             h->mb.i_mb_topleft_xy = h->mb.i_mb_stride*topleft_y + mb_x - 1;
             h->mb.i_mb_topleft_y = topleft_y;
             h->mb.i_mb_type_topleft = h->mb.type[h->mb.i_mb_topleft_xy];
-            if( h->mb.i_mb_topleft_xy >= h->sh.i_first_mb )
+            if( h->mb.slice_table[h->mb.i_mb_topleft_xy] == h->sh.i_first_mb )
             {
                 h->mb.i_neighbour |= MB_TOPLEFT;
 
@@ -761,7 +761,7 @@ static void inline x264_macroblock_cache_load_neighbours( x264_t *h, int mb_x, i
             h->mb.i_mb_topright_xy = h->mb.i_mb_stride*topright_y + mb_x + 1;
             h->mb.i_mb_topright_y = topright_y;
             h->mb.i_mb_type_topright = h->mb.type[h->mb.i_mb_topright_xy];
-            if( h->mb.i_mb_topright_xy >= h->sh.i_first_mb )
+            if( h->mb.slice_table[h->mb.i_mb_topright_xy] == h->sh.i_first_mb )
             {
                 h->mb.i_neighbour |= MB_TOPRIGHT;
 

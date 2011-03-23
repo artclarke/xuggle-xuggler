@@ -181,8 +181,10 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
 {
     if( sh->b_mbaff )
     {
-        assert( sh->i_first_mb % (2*sh->sps->i_mb_width) == 0 );
-        bs_write_ue( s, sh->i_first_mb >> 1 );
+        int first_x = sh->i_first_mb % sh->sps->i_mb_width;
+        int first_y = sh->i_first_mb / sh->sps->i_mb_width;
+        assert( (first_y&1) == 0 );
+        bs_write_ue( s, (2*first_x + sh->sps->i_mb_width*(first_y&~1) + (first_y&1)) >> 1 );
     }
     else
         bs_write_ue( s, sh->i_first_mb );
@@ -574,11 +576,6 @@ static int x264_validate_parameters( x264_t *h, int b_open )
     {
         x264_log( h, X264_LOG_WARNING, "interlaced + slice-max-size is not implemented\n" );
         h->param.i_slice_max_size = 0;
-    }
-    if( h->param.b_interlaced && h->param.i_slice_max_mbs )
-    {
-        x264_log( h, X264_LOG_WARNING, "interlaced + slice-max-mbs is not implemented\n" );
-        h->param.i_slice_max_mbs = 0;
     }
     h->param.i_slice_max_size = X264_MAX( h->param.i_slice_max_size, 0 );
     h->param.i_slice_max_mbs = X264_MAX( h->param.i_slice_max_mbs, 0 );
@@ -2021,8 +2018,9 @@ static int x264_slice_write( x264_t *h )
     i_mb_x = h->sh.i_first_mb % h->mb.i_mb_width;
     i_skip = 0;
 
-    while( (mb_xy = i_mb_x + i_mb_y * h->mb.i_mb_width) <= h->sh.i_last_mb )
+    while( 1 )
     {
+        mb_xy = i_mb_x + i_mb_y * h->mb.i_mb_width;
         int mb_spos = bs_pos(&h->out.bs) + x264_cabac_pos(&h->cabac);
 
         if( x264_bitstream_check_buffer( h ) )
@@ -2233,6 +2231,9 @@ reencode:
 
         x264_ratecontrol_mb( h, mb_size );
 
+        if( mb_xy == h->sh.i_last_mb )
+            break;
+
         if( h->sh.b_mbaff )
         {
             i_mb_x += i_mb_y & 1;
@@ -2317,11 +2318,24 @@ static void *x264_slices_write( x264_t *h )
     /* init stats */
     memset( &h->stat.frame, 0, sizeof(h->stat.frame) );
     h->mb.b_reencode_mb = 0;
-    while( h->sh.i_first_mb <= last_thread_mb )
+    while( h->sh.i_first_mb + h->sh.b_mbaff*h->mb.i_mb_stride <= last_thread_mb )
     {
         h->sh.i_last_mb = last_thread_mb;
         if( h->param.i_slice_max_mbs )
-            h->sh.i_last_mb = h->sh.i_first_mb + h->param.i_slice_max_mbs - 1;
+        {
+            if( h->sh.b_mbaff )
+            {
+                // convert first to mbaff form, add slice-max-mbs, then convert back to normal form
+                int last_mbaff = 2*(h->sh.i_first_mb % h->mb.i_mb_width)
+                    + h->mb.i_mb_width*(h->sh.i_first_mb / h->mb.i_mb_width)
+                    + h->param.i_slice_max_mbs - 1;
+                int last_x = (last_mbaff % (2*h->mb.i_mb_width))/2;
+                int last_y = (last_mbaff / (2*h->mb.i_mb_width))*2 + 1;
+                h->sh.i_last_mb = last_x + h->mb.i_mb_stride*last_y;
+            }
+            else
+                h->sh.i_last_mb = h->sh.i_first_mb + h->param.i_slice_max_mbs - 1;
+        }
         else if( h->param.i_slice_count && !h->param.b_sliced_threads )
         {
             int height = h->mb.i_mb_height >> h->param.b_interlaced;
@@ -2333,6 +2347,9 @@ static void *x264_slices_write( x264_t *h )
         if( x264_stack_align( x264_slice_write, h ) )
             return (void *)-1;
         h->sh.i_first_mb = h->sh.i_last_mb + 1;
+        // if i_first_mb is not the last mb in a row then go to the next mb in MBAFF order
+        if( h->sh.b_mbaff && h->sh.i_first_mb % h->mb.i_mb_width )
+            h->sh.i_first_mb -= h->mb.i_mb_stride;
     }
 
 #if HAVE_VISUALIZE
