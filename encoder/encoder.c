@@ -572,11 +572,6 @@ static int x264_validate_parameters( x264_t *h, int b_open )
         h->param.rc.i_vbv_max_bitrate = 0;
     }
 
-    if( h->param.b_interlaced && h->param.i_slice_max_size )
-    {
-        x264_log( h, X264_LOG_WARNING, "interlaced + slice-max-size is not implemented\n" );
-        h->param.i_slice_max_size = 0;
-    }
     h->param.i_slice_max_size = X264_MAX( h->param.i_slice_max_size, 0 );
     h->param.i_slice_max_mbs = X264_MAX( h->param.i_slice_max_mbs, 0 );
 
@@ -2026,7 +2021,7 @@ static int x264_slice_write( x264_t *h )
         if( x264_bitstream_check_buffer( h ) )
             return -1;
 
-        if( back_up_bitstream )
+        if( back_up_bitstream && (!h->sh.b_mbaff || (i_mb_y&1) == 0) )
         {
             mv_bits_bak = h->stat.frame.i_mv_bits;
             tex_bits_bak = h->stat.frame.i_tex_bits;
@@ -2151,7 +2146,16 @@ reencode:
                         i_skip = i_skip_bak;
                     }
                     h->mb.b_reencode_mb = 1;
-                    h->sh.i_last_mb = mb_xy-1;
+                    if( h->sh.b_mbaff )
+                    {
+                        // set to bottom of previous mbpair
+                        if( i_mb_x )
+                            h->sh.i_last_mb = mb_xy-1+h->mb.i_mb_stride*(!(i_mb_y&1));
+                        else
+                            h->sh.i_last_mb = (i_mb_y-2+!(i_mb_y&1))*h->mb.i_mb_stride + h->mb.i_mb_width - 1;
+                    }
+                    else
+                        h->sh.i_last_mb = mb_xy-1;
                     break;
                 }
                 else
