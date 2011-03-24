@@ -74,6 +74,8 @@ static void sigint_handler( int a )
     b_ctrl_c = 1;
 }
 
+static char UNUSED originalCTitle[200] = "";
+
 typedef struct {
     int b_progress;
     int i_seek;
@@ -262,6 +264,8 @@ int main( int argc, char **argv )
     _setmode(_fileno(stdout), _O_BINARY);
 #endif
 
+    GetConsoleTitle( originalCTitle, sizeof(originalCTitle) );
+
     /* Parse command line */
     if( parse( argc, argv, &param, &opt ) < 0 )
         ret = -1;
@@ -283,6 +287,8 @@ int main( int argc, char **argv )
         fclose( opt.tcfile_out );
     if( opt.qpfile )
         fclose( opt.qpfile );
+
+    SetConsoleTitle( originalCTitle );
 
     return ret;
 }
@@ -1644,9 +1650,6 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
     double  duration;
     double  pulldown_pts = 0;
     int     retval = 0;
-    char    UNUSED originalCTitle[200] = "";
-
-    GetConsoleTitle( originalCTitle, sizeof(originalCTitle) );
 
     opt->b_progress &= param->i_log_level < X264_LOG_DEBUG;
 
@@ -1804,8 +1807,6 @@ fail:
         fprintf( stderr, "encoded %d frames, %.2f fps, %.2f kb/s\n", i_frame_output, fps,
                  (double) i_file * 8 / ( 1000 * duration ) );
     }
-
-    SetConsoleTitle( originalCTitle );
 
     return retval;
 }
