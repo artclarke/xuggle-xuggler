@@ -100,7 +100,11 @@ cc_check() {
             log_check "for $1"
         fi
     elif [ -z "$1" ]; then
-        log_check "whether $CC supports $3"
+        if [ -z "$2" ]; then
+            log_check "whether $CC supports $3"
+        else
+            log_check "whether $CC supports $3 with $2"
+        fi
     else
         log_check "for $3 in $1";
     fi
@@ -558,10 +562,12 @@ log_msg ""
 cc_check || die "No working C compiler found."
 
 if [ $compiler != ICL ]; then
-    if cc_check '' -std=gnu99 ; then
+    if cc_check '' -std=gnu99 'for( int i = 0; i < 9; i++ );' ; then
         CFLAGS="$CFLAGS -std=gnu99"
-    elif cc_check '' -std=c99 ; then
+    elif cc_check '' -std=c99 'for( int i = 0; i < 9; i++ );' ; then
         CFLAGS="$CFLAGS -std=c99 -D_POSIX_C_SOURCE=200112L -D_BSD_SOURCE"
+    elif ! cc_check '' '' 'for( int i = 0; i < 9; i++ );' ; then
+        die "C99 compiler is needed for compilation."
     fi
 fi
 
