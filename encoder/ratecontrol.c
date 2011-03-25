@@ -1335,7 +1335,7 @@ static double predict_row_size( x264_t *h, int y, double qp )
 static double row_bits_so_far( x264_t *h, int y )
 {
     double bits = 0;
-    for( int i = h->i_threadslice_start; i <= y; i++ )
+    for( int i = h->i_threadslice_start+h->sh.b_mbaff; i <= y; i+=(h->sh.b_mbaff+1) )
         bits += h->fdec->i_row_bits[i];
     return bits;
 }
@@ -1343,7 +1343,7 @@ static double row_bits_so_far( x264_t *h, int y )
 static double predict_row_size_sum( x264_t *h, int y, double qp )
 {
     double bits = row_bits_so_far(h, y);
-    for( int i = y+1; i < h->i_threadslice_end; i++ )
+    for( int i = y+1+h->sh.b_mbaff; i < h->i_threadslice_end; i+=(1+h->sh.b_mbaff) )
         bits += predict_row_size( h, i, qp );
     return bits;
 }
@@ -1357,8 +1357,16 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     x264_emms();
 
     h->fdec->i_row_bits[y] += bits;
-    rc->qpa_rc += rc->qpm;
-    rc->qpa_aq += h->mb.i_qp;
+    if( h->sh.b_mbaff )
+    {
+        rc->qpa_rc += rc->qpm*2.0f;
+        rc->qpa_aq += h->mb.i_qp + h->mb.i_last_qp;
+    }
+    else
+    {
+        rc->qpa_rc += rc->qpm;
+        rc->qpa_aq += h->mb.i_qp;
+    }
 
     if( h->mb.i_mb_x != h->mb.i_mb_width - 1 || !rc->b_vbv )
         return;
@@ -1383,7 +1391,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
         /* B-frames shouldn't use lower QP than their reference frames. */
         if( h->sh.i_type == SLICE_TYPE_B )
         {
-            qp_min = X264_MAX( qp_min, X264_MAX( h->fref[0][0]->f_row_qp[y+1], h->fref[1][0]->f_row_qp[y+1] ) );
+            qp_min = X264_MAX( qp_min, X264_MAX( h->fref[0][0]->f_row_qp[y+1+h->sh.b_mbaff], h->fref[1][0]->f_row_qp[y+1+h->sh.b_mbaff] ) );
             rc->qpm = X264_MAX( rc->qpm, qp_min );
         }
 
