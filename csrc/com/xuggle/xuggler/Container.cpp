@@ -689,7 +689,7 @@ namespace com { namespace xuggle { namespace xuggler
         throw std::runtime_error("could not write header for container");
 
       // force a flush.
-      put_flush_packet(mFormatContext->pb);
+      avio_flush(mFormatContext->pb);
       // and remember that a writeTrailer is needed
       mNeedTrailerWrite = true;
     }
@@ -728,7 +728,7 @@ namespace com { namespace xuggle { namespace xuggler
         retval = av_write_trailer(mFormatContext);
         if (retval == 0)
         {
-          put_flush_packet(mFormatContext->pb);
+          avio_flush(mFormatContext->pb);
         }
       } else {
         VS_LOG_WARN("writeTrailer() with no matching call to writeHeader()");
@@ -1052,7 +1052,7 @@ namespace com { namespace xuggle { namespace xuggler
         throw std::runtime_error("no format context allocated");
 
       // Do the flush
-      put_flush_packet(mFormatContext->pb);
+      avio_flush(mFormatContext->pb);
       retval = 0;
     }
     catch (std::exception & e)
