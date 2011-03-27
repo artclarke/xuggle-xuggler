@@ -60,22 +60,24 @@ else
 fi
 
 # This is the string that valgrind outputs if no leaks are found
-VS_MEMCHECK_NOLEAK_STRING="All heap blocks were freed -- no leaks are possible."
+VS_MEMCHECK_NOLEAK_STRING="All heap blocks were freed -- no leaks are possible"
 
 TIME_NOW=`date +"%Y-%m-%d %H:%M:%S"`
 echo "$TIME_NOW Logging memcheck output to $VS_MEMCHECK_LOGFILE for: $*"
 echo "$TIME_NOW Logging memcheck output to $VS_MEMCHECK_LOGFILE for: $*" > $VS_MEMCHECK_LOGFILE
 
 process_status(){
-  if [ $1 -ne 0 ]; then
+  ERROR_CODE=$1
+  if [ ${ERROR_CODE} -ne 0 ]; then
     echo "FAIL!!!!"
     cat $VS_MEMCHECK_LOGFILE
     echo "FAIL!!!! see $VS_MEMCHECK_LOGFILE"
-    exit -1;
+    exit 255;
   fi
 }
 check_leaks(){
-  if [ $1 -ne 0 ]; then
+  ERROR_CODE=$1
+  if [ ${ERROR_CODE} -ne 0 ]; then
 # if Valgrind did not say no leaks are possible, make sure all
 # leaks are suppressed
     echo -n "Ensuring no unsuppressed leaks"
