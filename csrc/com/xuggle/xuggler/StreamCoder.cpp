@@ -85,16 +85,11 @@ StreamCoder::reset()
 
   mAutomaticallyStampPacketsForStream = true;
   mOpened = false;
-  if (mCodecContext && (!mStream || mDirection != DECODING))
+  if (mCodecContext && !mStream)
   {
-    // Don't free if we're decoding; the Container
-    // will do that.
+    // Don't free if we're attached to a Stream.
+    // The Container will do that.
     av_free(mCodecContext);
-    if (mStream)
-    {
-      AVStream* avStream = mStream->getAVStream();
-      avStream->codec = 0;
-    }
   }
   mCodecContext = 0;
   // We do not refcount the stream

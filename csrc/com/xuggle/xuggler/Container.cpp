@@ -69,7 +69,7 @@ namespace com { namespace xuggle { namespace xuggler
   {
     reset();
     if (mFormatContext)
-      av_free(mFormatContext);
+      avformat_free_context(mFormatContext);
     VS_LOG_TRACE("Destroyed container: %p", this);
   }
 
@@ -284,7 +284,8 @@ namespace com { namespace xuggle { namespace xuggler
       }
     } else {
       // kill the old context
-      av_free(mFormatContext);
+      if (mFormatContext)
+        avformat_free_context(mFormatContext);
       mFormatContext = avformat_alloc_context();
       if (!mFormatContext)
         throw std::bad_alloc();
@@ -325,7 +326,7 @@ namespace com { namespace xuggle { namespace xuggler
         strncpy(mFormatContext->filename, url, sizeof(mFormatContext->filename)-1);
       } else {
         // failed to open; kill the context.
-        av_free(mFormatContext);
+        avformat_free_context(mFormatContext);
         // and make a new one
         mFormatContext = avformat_alloc_context();
         if (!mFormatContext)
@@ -459,8 +460,7 @@ namespace com { namespace xuggle { namespace xuggler
       } else
       {
         retval = avio_close(mFormatContext->pb);
-        av_metadata_free(&mFormatContext->metadata);
-        av_free(mFormatContext);
+        avformat_free_context(mFormatContext);
         mFormatContext = 0;
       }
       mIsOpened = false;

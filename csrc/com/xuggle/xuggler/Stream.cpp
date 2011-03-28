@@ -58,21 +58,12 @@ namespace com { namespace xuggle { namespace xuggler
   {
     VS_ASSERT("should be a valid object", getCurrentRefCount() >= 1);
     mMetaData.reset();
-    if (mStream && mDirection == OUTBOUND)
-    {
-      // when outbound we manage our AVStream context;
-      // when inbound, FFMPEG cleans up after itself.
-      if (mStream->parser) {
-        av_parser_close(mStream->parser);
-        av_free_packet(&mStream->cur_pkt);
-      }
-      av_metadata_free(&mStream->metadata);
-      av_free(mStream->index_entries);
-      av_free(mStream->priv_data);
-      av_free(mStream);
-    }
-    mStream = 0;
+    // As of recent (March 2011) builds of FFmpeg, Stream objects
+    // are cleaned up by the new avformat_free_context method in the
+    // Container, so the outbound check for freeing memory is no
+    // longer required.
     VS_REF_RELEASE(mCoder);
+    mStream = 0;
     // We don't keep a reference to the container to avoid a ref-count loop
     // and so we don't release.
     mContainer = 0;
