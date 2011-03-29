@@ -424,9 +424,9 @@ static ALWAYS_INLINE int x264_cabac_mb_mvd_cpn( x264_t *h, x264_cabac_t *cb, int
         x264_cabac_encode_bypass( cb, mvd >> 31 );
     }
 #endif
-    /* Since we don't need to keep track of MVDs larger than 33, just cap the value.
+    /* Since we don't need to keep track of MVDs larger than 66, just cap the value.
      * This lets us store MVDs as 8-bit values instead of 16-bit. */
-    return X264_MIN( i_abs, 33 );
+    return X264_MIN( i_abs, 66 );
 }
 
 static NOINLINE uint16_t x264_cabac_mb_mvd( x264_t *h, x264_cabac_t *cb, int i_list, int idx, int width )
