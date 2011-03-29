@@ -1138,6 +1138,35 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
         }
     }
 
+    if( h->param.b_cabac )
+    {
+        int left_xy, top_xy;
+        if( h->sh.b_mbaff )
+        {
+            /* Neighbours here are calculated based on field_decoding_flag */
+            int mb_xy = mb_x + (mb_y&~1)*h->mb.i_mb_stride;
+            left_xy = mb_xy - 1;
+            if( (mb_y&1) && mb_x > 0 && h->mb.field_decoding_flag == h->mb.field[left_xy] )
+                left_xy += h->mb.i_mb_stride;
+            if( h->mb.field_decoding_flag )
+            {
+                top_xy = mb_xy - h->mb.i_mb_stride;
+                if( !(mb_y&1) && top_xy >= 0 && h->mb.slice_table[top_xy] == h->sh.i_first_mb && h->mb.field[top_xy] )
+                    top_xy -= h->mb.i_mb_stride;
+            }
+            else
+                top_xy = mb_x + (mb_y-1)*h->mb.i_mb_stride;
+        }
+        else
+        {
+            left_xy = h->mb.i_mb_left_xy[0];
+            top_xy = h->mb.i_mb_top_xy;
+        }
+
+        h->mb.cache.i_neighbour_skip =   (mb_x >  0 && h->mb.slice_table[left_xy] == h->sh.i_first_mb && !IS_SKIP( h->mb.type[left_xy] ))
+                                     + (top_xy >= 0 && h->mb.slice_table[top_xy]  == h->sh.i_first_mb && !IS_SKIP( h->mb.type[top_xy] ));
+    }
+
     /* load skip */
     if( h->sh.i_type == SLICE_TYPE_B )
     {

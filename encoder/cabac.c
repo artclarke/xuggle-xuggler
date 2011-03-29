@@ -296,9 +296,9 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
 #if !RDO_SKIP_BS
 void x264_cabac_mb_skip( x264_t *h, int b_skip )
 {
-    int ctx = ((h->mb.i_neighbour & MB_LEFT) && !IS_SKIP( h->mb.i_mb_type_left[0] ))
-            + ((h->mb.i_neighbour & MB_TOP) && !IS_SKIP( h->mb.i_mb_type_top ))
-            + (h->sh.i_type == SLICE_TYPE_P ? 11 : 24);
+    int ctx = h->mb.cache.i_neighbour_skip + 11;
+    if( h->sh.i_type != SLICE_TYPE_P )
+       ctx += 13;
     x264_cabac_encode_decision( &h->cabac, ctx, b_skip );
 }
 #endif
@@ -351,7 +351,7 @@ static void x264_cabac_mb_ref( x264_t *h, x264_cabac_t *cb, int i_list, int idx 
     const int i8 = x264_scan8[idx];
     const int i_refa = h->mb.cache.ref[i_list][i8 - 1];
     const int i_refb = h->mb.cache.ref[i_list][i8 - 8];
-    int ctx  = 0;
+    int ctx = 0;
 
     if( i_refa > 0 && !h->mb.cache.skip[i8 - 1] )
         ctx++;
