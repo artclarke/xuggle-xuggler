@@ -746,6 +746,10 @@ struct x264_t
             /* neighbor CBPs */
             int     i_cbp_top;
             int     i_cbp_left;
+
+            /* extra data required for mbaff in mv prediction */
+            int16_t topright_mv[2][3][2];
+            int8_t  topright_ref[2][3];
         } cache;
 
         /* */

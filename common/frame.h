@@ -72,13 +72,16 @@ typedef struct x264_frame
     int     i_width_lowres;
     int     i_lines_lowres;
     pixel *plane[2];
+    pixel *plane_fld[2];
     pixel *filtered[4]; /* plane[0], H, V, HV */
+    pixel *filtered_fld[4];
     pixel *lowres[4]; /* half-size copy of input frame: Orig, H, V, HV */
     uint16_t *integral;
 
     /* for unrestricted mv we allocate more data than needed
      * allocated data are stored in buffer */
     pixel *buffer[4];
+    pixel *buffer_fld[4];
     pixel *buffer_lowres[4];
 
     x264_weight_t weight[X264_REF_MAX][3]; /* [ref_index][plane] */

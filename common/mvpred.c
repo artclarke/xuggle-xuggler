@@ -38,12 +38,33 @@ void x264_mb_predict_mv( x264_t *h, int i_list, int idx, int i_width, int16_t mv
     int     i_refc = h->mb.cache.ref[i_list][i8 - 8 + i_width];
     int16_t *mv_c  = h->mb.cache.mv[i_list][i8 - 8 + i_width];
 
+    // Partitions not yet reached in scan order are unavailable.
     if( (idx&3) >= 2 + (i_width&1) || i_refc == -2 )
     {
         i_refc = h->mb.cache.ref[i_list][i8 - 8 - 1];
         mv_c   = h->mb.cache.mv[i_list][i8 - 8 - 1];
-    }
 
+        if( h->sh.b_mbaff
+            && h->mb.cache.ref[i_list][x264_scan8[0]-1] != -2
+            && h->mb.b_interlaced != h->mb.field[h->mb.i_mb_left_xy[0]] )
+        {
+            if( idx == 2 )
+            {
+                mv_c = h->mb.cache.topright_mv[i_list][0];
+                i_refc = h->mb.cache.topright_ref[i_list][0];
+            }
+            else if( idx == 8 )
+            {
+                mv_c = h->mb.cache.topright_mv[i_list][1];
+                i_refc = h->mb.cache.topright_ref[i_list][1];
+            }
+            else if( idx == 10 )
+            {
+                mv_c = h->mb.cache.topright_mv[i_list][2];
+                i_refc = h->mb.cache.topright_ref[i_list][2];
+            }
+        }
+    }
     if( h->mb.i_partition == D_16x8 )
     {
         if( idx == 0 )

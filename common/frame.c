@@ -100,20 +100,35 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
 
     CHECKED_MALLOC( frame->buffer[1], chroma_plane_size * sizeof(pixel) );
     frame->plane[1] = frame->buffer[1] + frame->i_stride[1] * i_padv/2 + PADH;
+    if( h->param.b_interlaced )
+    {
+        CHECKED_MALLOC( frame->buffer_fld[1], chroma_plane_size * sizeof(pixel) );
+        frame->plane_fld[1] = frame->buffer_fld[1] + frame->i_stride[1] * i_padv/2 + PADH;
+    }
 
     /* all 4 luma planes allocated together, since the cacheline split code
      * requires them to be in-phase wrt cacheline alignment. */
     if( h->param.analyse.i_subpel_refine && b_fdec )
     {
+        /* FIXME: Don't allocate both buffers in non-adaptive MBAFF. */
         CHECKED_MALLOC( frame->buffer[0], 4*luma_plane_size * sizeof(pixel) );
+        if( h->param.b_interlaced )
+            CHECKED_MALLOC( frame->buffer_fld[0], 4*luma_plane_size * sizeof(pixel) );
         for( int i = 0; i < 4; i++ )
+        {
             frame->filtered[i] = frame->buffer[0] + i*luma_plane_size + frame->i_stride[0] * i_padv + PADH;
+            frame->filtered_fld[i] = frame->buffer_fld[0] + i*luma_plane_size + frame->i_stride[0] * i_padv + PADH;
+        }
         frame->plane[0] = frame->filtered[0];
+        frame->plane_fld[0] = frame->filtered_fld[0];
     }
     else
     {
         CHECKED_MALLOC( frame->buffer[0], luma_plane_size * sizeof(pixel) );
+        if( h->param.b_interlaced )
+            CHECKED_MALLOC( frame->buffer_fld[0], luma_plane_size * sizeof(pixel) );
         frame->filtered[0] = frame->plane[0] = frame->buffer[0] + frame->i_stride[0] * i_padv + PADH;
+        frame->filtered_fld[0] = frame->plane_fld[0] = frame->buffer_fld[0] + frame->i_stride[0] * i_padv + PADH;
     }
 
     frame->b_duplicate = 0;
@@ -200,7 +215,10 @@ void x264_frame_delete( x264_frame_t *frame )
     if( !frame->b_duplicate )
     {
         for( int i = 0; i < 4; i++ )
+        {
             x264_free( frame->buffer[i] );
+            x264_free( frame->buffer_fld[i] );
+        }
         for( int i = 0; i < 4; i++ )
             x264_free( frame->buffer_lowres[i] );
         for( int i = 0; i < X264_BFRAME_MAX+2; i++ )
@@ -363,16 +381,25 @@ void x264_frame_expand_border( x264_t *h, x264_frame_t *frame, int mb_y, int b_e
         int padh = PADH;
         int padv = PADV >> !!i;
         // buffer: 2 chroma, 3 luma (rounded to 4) because deblocking goes beyond the top of the mb
-        pixel *pix = frame->plane[i] + X264_MAX(0, (16*mb_y-4)*stride >> !!i);
         if( b_end && !b_start )
             height += 4 >> (!!i + h->sh.b_mbaff);
+        pixel *pix;
         if( h->sh.b_mbaff )
         {
+            // border samples for each field are extended separately
+            pix = frame->plane_fld[i] + X264_MAX(0, (16*mb_y-4)*stride >> !!i);
             plane_expand_border( pix, stride*2, width, height, padh, padv, b_start, b_end, i );
             plane_expand_border( pix+stride, stride*2, width, height, padh, padv, b_start, b_end, i );
+
+            height = (b_end ? 16*(h->mb.i_mb_height - mb_y) : 32) >> !!i;
+            if( b_end && !b_start )
+                height += 4 >> (!!i);
+            pix = frame->plane[i] + X264_MAX(0, (16*mb_y-4)*stride >> !!i);
+            plane_expand_border( pix, stride, width, height, padh, padv, b_start, b_end, i );
         }
         else
         {
+            pix = frame->plane[i] + X264_MAX(0, (16*mb_y-4)*stride >> !!i);
             plane_expand_border( pix, stride, width, height, padh, padv, b_start, b_end, i );
         }
     }
@@ -392,14 +419,16 @@ void x264_frame_expand_border_filtered( x264_t *h, x264_frame_t *frame, int mb_y
     for( int i = 1; i < 4; i++ )
     {
         // buffer: 8 luma, to match the hpel filter
-        pixel *pix = frame->filtered[i] + (16*mb_y - (8 << h->sh.b_mbaff)) * stride - 4;
+        pixel *pix;
         if( h->sh.b_mbaff )
         {
+            pix = frame->filtered_fld[i] + (16*mb_y - 16) * stride - 4;
             plane_expand_border( pix, stride*2, width, height, padh, padv, b_start, b_end, 0 );
             plane_expand_border( pix+stride, stride*2, width, height, padh, padv, b_start, b_end, 0 );
         }
-        else
-            plane_expand_border( pix, stride, width, height, padh, padv, b_start, b_end, 0 );
+
+        pix = frame->filtered[i] + (16*mb_y - 8) * stride - 4;
+        plane_expand_border( pix, stride, width, height << h->sh.b_mbaff, padh, padv, b_start, b_end, 0 );
     }
 }
 

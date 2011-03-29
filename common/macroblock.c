@@ -541,15 +541,28 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x
             else
                 h->mb.pic.p_fdec[0][-1+j*FDEC_STRIDE] = plane_fdec[-1+j*i_stride2];
     }
+    pixel *plane_src, **filtered_src;
     for( int j = 0; j < h->mb.pic.i_fref[0]; j++ )
     {
-        h->mb.pic.p_fref[0][j][i?4:0] = &h->fref[0][j >> b_interlaced]->plane[i][ref_pix_offset[j&1]];
+        // Interpolate between pixels in same field.
+        if( h->mb.b_interlaced )
+        {
+            plane_src = h->fref[0][j>>1]->plane_fld[i];
+            filtered_src = h->fref[0][j>>1]->filtered_fld;
+        }
+        else
+        {
+            plane_src = h->fref[0][j]->plane[i];
+            filtered_src = h->fref[0][j]->filtered;
+        }
+        h->mb.pic.p_fref[0][j][i?4:0] = plane_src + ref_pix_offset[j&1];
+
         if( !i )
         {
             for( int k = 1; k < 4; k++ )
-                h->mb.pic.p_fref[0][j][k] = &h->fref[0][j >> b_interlaced]->filtered[k][ref_pix_offset[j&1]];
+                h->mb.pic.p_fref[0][j][k] = filtered_src[k] + ref_pix_offset[j&1];
             if( h->sh.weight[j][0].weightfn )
-                h->mb.pic.p_fref_w[j] = &h->fenc->weighted[j >> b_interlaced][ref_pix_offset[j&1]];
+                h->mb.pic.p_fref_w[j] = &h->fenc->weighted[j >> h->mb.b_interlaced][ref_pix_offset[j&1]];
             else
                 h->mb.pic.p_fref_w[j] = h->mb.pic.p_fref[0][j][0];
         }
@@ -557,10 +570,21 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x
     if( h->sh.i_type == SLICE_TYPE_B )
         for( int j = 0; j < h->mb.pic.i_fref[1]; j++ )
         {
-            h->mb.pic.p_fref[1][j][i?4:0] = &h->fref[1][j >> b_interlaced]->plane[i][ref_pix_offset[j&1]];
+            if( h->mb.b_interlaced )
+            {
+                plane_src = h->fref[1][j>>1]->plane_fld[i];
+                filtered_src = h->fref[1][j>>1]->filtered_fld;
+            }
+            else
+            {
+                plane_src = h->fref[1][j]->plane[i];
+                filtered_src = h->fref[1][j]->filtered;
+            }
+            h->mb.pic.p_fref[1][j][i?4:0] = plane_src + ref_pix_offset[j&1];
+
             if( !i )
                 for( int k = 1; k < 4; k++ )
-                    h->mb.pic.p_fref[1][j][k] = &h->fref[1][j >> b_interlaced]->filtered[k][ref_pix_offset[j&1]];
+                    h->mb.pic.p_fref[1][j][k] = filtered_src[k] + ref_pix_offset[j&1];
         }
 }
 
@@ -807,7 +831,9 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
 
     if( h->mb.i_neighbour & MB_LEFT )
     {
-        h->mb.cache.i_cbp_left = cbp[left[0]];
+        const int16_t top_luma = (cbp[left[0]] >> (left_index_table->mv[0]&(~1))) & 2;
+        const int16_t bot_luma = (cbp[left[1]] >> (left_index_table->mv[2]&(~1))) & 2;
+        h->mb.cache.i_cbp_left = (cbp[left[0]] & 0xfff0) | (bot_luma<<2) | top_luma;
 
         /* load intra4x4 */
         h->mb.cache.intra4x4_pred_mode[x264_scan8[0 ] - 1] = i4x4[left[0]][left_index_table->intra[0]];
@@ -859,8 +885,8 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
         h->mb.pic.i_fref[0] = h->i_ref[0] << h->mb.b_interlaced;
         h->mb.pic.i_fref[1] = h->i_ref[1] << h->mb.b_interlaced;
         h->mb.cache.i_neighbour_interlaced =
-            !!(h->mb.i_neighbour & MB_LEFT)
-          + !!(h->mb.i_neighbour & MB_TOP);
+            !!(h->mb.i_neighbour & MB_LEFT && h->mb.field[left[0]])
+          + !!(h->mb.i_neighbour & MB_TOP && h->mb.field[top]);
     }
 
     if( !h->param.b_interlaced )
@@ -897,8 +923,17 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
         int i8 = x264_scan8[0] - 1 - 1*8;
         if( h->mb.i_neighbour & MB_TOPLEFT )
         {
-            h->mb.cache.ref[l][i8] = ref[top_8x8 - 1];
-            CP32( h->mb.cache.mv[l][i8], mv[top_4x4 - 1] );
+            int ir = 2*(s8x8*h->mb.i_mb_topleft_y + mb_x-1)+1+s8x8;
+            int iv = 4*(s4x4*h->mb.i_mb_topleft_y + mb_x-1)+3+3*s4x4;
+            if( h->mb.topleft_partition )
+            {
+                /* Take motion vector from the middle of macroblock instead of
+                 * the bottom right as usual. */
+                iv -= 2*s4x4;
+                ir -= s8x8;
+            }
+            h->mb.cache.ref[l][i8] = ref[ir];
+            CP32( h->mb.cache.mv[l][i8], mv[iv] );
         }
         else
         {
@@ -924,8 +959,8 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
         i8 = x264_scan8[0] + 4 - 1*8;
         if( h->mb.i_neighbour & MB_TOPRIGHT )
         {
-            h->mb.cache.ref[l][i8] = ref[top_8x8 + 2];
-            CP32( h->mb.cache.mv[l][i8], mv[top_4x4 + 4] );
+            h->mb.cache.ref[l][i8] = ref[2*(s8x8*h->mb.i_mb_topright_y + (mb_x+1))+s8x8];
+            CP32( h->mb.cache.mv[l][i8], mv[4*(s4x4*h->mb.i_mb_topright_y + (mb_x+1))+3*s4x4] );
         }
         else
              h->mb.cache.ref[l][i8] = -2;
@@ -933,17 +968,15 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
         i8 = x264_scan8[0] - 1;
         if( h->mb.i_neighbour & MB_LEFT )
         {
-            const int ir = h->mb.i_b8_xy - 1;
-            const int iv = h->mb.i_b4_xy - 1;
-            h->mb.cache.ref[l][i8+0*8] =
-            h->mb.cache.ref[l][i8+1*8] = ref[ir + 0*s8x8];
-            h->mb.cache.ref[l][i8+2*8] =
-            h->mb.cache.ref[l][i8+3*8] = ref[ir + 1*s8x8];
+            h->mb.cache.ref[l][i8+0*8] = ref[h->mb.left_b8[0] + 1 + s8x8*left_index_table->ref[0]];
+            h->mb.cache.ref[l][i8+1*8] = ref[h->mb.left_b8[0] + 1 + s8x8*left_index_table->ref[1]];
+            h->mb.cache.ref[l][i8+2*8] = ref[h->mb.left_b8[1] + 1 + s8x8*left_index_table->ref[2]];
+            h->mb.cache.ref[l][i8+3*8] = ref[h->mb.left_b8[1] + 1 + s8x8*left_index_table->ref[3]];
 
-            CP32( h->mb.cache.mv[l][i8+0*8], mv[iv + 0*s4x4] );
-            CP32( h->mb.cache.mv[l][i8+1*8], mv[iv + 1*s4x4] );
-            CP32( h->mb.cache.mv[l][i8+2*8], mv[iv + 2*s4x4] );
-            CP32( h->mb.cache.mv[l][i8+3*8], mv[iv + 3*s4x4] );
+            CP32( h->mb.cache.mv[l][i8+0*8], mv[h->mb.left_b4[0] + 3 + s4x4*left_index_table->mv[0]] );
+            CP32( h->mb.cache.mv[l][i8+1*8], mv[h->mb.left_b4[0] + 3 + s4x4*left_index_table->mv[1]] );
+            CP32( h->mb.cache.mv[l][i8+2*8], mv[h->mb.left_b4[1] + 3 + s4x4*left_index_table->mv[2]] );
+            CP32( h->mb.cache.mv[l][i8+3*8], mv[h->mb.left_b4[1] + 3 + s4x4*left_index_table->mv[3]] );
         }
         else
         {
@@ -951,6 +984,39 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
             {
                 h->mb.cache.ref[l][i8+i*8] = -2;
                 M32( h->mb.cache.mv[l][i8+i*8] ) = 0;
+            }
+        }
+
+        /* Extra logic for top right mv in mbaff.
+         * . . . d  . . a .
+         * . . . e  . . . .
+         * . . . f  b . c .
+         * . . . .  . . . .
+         *
+         * If the top right of the 4x4 partitions labeled a, b and c in the
+         * above diagram do not exist, but the entries d, e and f exist (in
+         * the macroblock to the left) then use those instead.
+         */
+        if( h->sh.b_mbaff && (h->mb.i_neighbour & MB_LEFT) )
+        {
+            if( h->mb.b_interlaced && !h->mb.field[h->mb.i_mb_xy-1] )
+            {
+                h->mb.cache.topright_ref[l][0] = ref[h->mb.left_b8[0] + 1 + s8x8*0];
+                h->mb.cache.topright_ref[l][1] = ref[h->mb.left_b8[0] + 1 + s8x8*1];
+                h->mb.cache.topright_ref[l][2] = ref[h->mb.left_b8[1] + 1 + s8x8*0];
+                CP32( h->mb.cache.topright_mv[l][0], mv[h->mb.left_b4[0] + 3 + s4x4*(left_index_table->mv[0]+1)] );
+                CP32( h->mb.cache.topright_mv[l][1], mv[h->mb.left_b4[0] + 3 + s4x4*(left_index_table->mv[1]+1)] );
+                CP32( h->mb.cache.topright_mv[l][2], mv[h->mb.left_b4[1] + 3 + s4x4*(left_index_table->mv[2]+1)] );
+            }
+            else if( !h->mb.b_interlaced && h->mb.field[h->mb.i_mb_xy-1] )
+            {
+                // Looking at the bottom field so always take the bottom macroblock of the pair.
+                h->mb.cache.topright_ref[l][0] = ref[h->mb.left_b8[0] + 1 + s8x8*2 + s8x8*left_index_table->ref[0]];
+                h->mb.cache.topright_ref[l][1] = ref[h->mb.left_b8[0] + 1 + s8x8*2 + s8x8*left_index_table->ref[0]];
+                h->mb.cache.topright_ref[l][2] = ref[h->mb.left_b8[0] + 1 + s8x8*2 + s8x8*left_index_table->ref[2]];
+                CP32( h->mb.cache.topright_mv[l][0], mv[h->mb.left_b4[0] + 3 + s4x4*4 + s4x4*left_index_table->mv[0]] );
+                CP32( h->mb.cache.topright_mv[l][1], mv[h->mb.left_b4[0] + 3 + s4x4*4 + s4x4*left_index_table->mv[1]] );
+                CP32( h->mb.cache.topright_mv[l][2], mv[h->mb.left_b4[0] + 3 + s4x4*4 + s4x4*left_index_table->mv[2]] );
             }
         }
 
@@ -962,16 +1028,84 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
             else
                 M64( h->mb.cache.mvd[l][x264_scan8[0] - 8] ) = 0;
 
-            if( h->mb.i_neighbour & MB_LEFT )
+            if( h->mb.cache.ref[l][x264_scan8[0]-1] >= 0 )
             {
                 CP16( h->mb.cache.mvd[l][x264_scan8[0 ] - 1], mvd[left[0]][left_index_table->intra[0]] );
                 CP16( h->mb.cache.mvd[l][x264_scan8[2 ] - 1], mvd[left[0]][left_index_table->intra[1]] );
+            }
+            else
+            {
+                M16( h->mb.cache.mvd[l][x264_scan8[0]-1+0*8] ) = 0;
+                M16( h->mb.cache.mvd[l][x264_scan8[0]-1+1*8] ) = 0;
+            }
+            if( h->mb.cache.ref[l][x264_scan8[0]-1+2*8] >=0 )
+            {
                 CP16( h->mb.cache.mvd[l][x264_scan8[8 ] - 1], mvd[left[1]][left_index_table->intra[2]] );
                 CP16( h->mb.cache.mvd[l][x264_scan8[10] - 1], mvd[left[1]][left_index_table->intra[3]] );
             }
             else
-                for( int i = 0; i < 4; i++ )
-                    M16( h->mb.cache.mvd[l][x264_scan8[0]-1+i*8] ) = 0;
+            {
+                M16( h->mb.cache.mvd[l][x264_scan8[0]-1+2*8] ) = 0;
+                M16( h->mb.cache.mvd[l][x264_scan8[0]-1+3*8] ) = 0;
+            }
+        }
+
+        /* If motion vectors are cached from frame macroblocks but this
+         * macroblock is a field macroblock then the motion vector must be
+         * halved. Similarly, motion vectors from field macroblocks are doubled. */
+        if( h->sh.b_mbaff )
+        {
+#define MAP_MVS\
+                if( FIELD_DIFFERENT(h->mb.i_mb_topleft_xy) )\
+                    MAP_F2F(mv, ref, x264_scan8[0] - 1 - 1*8)\
+                if( FIELD_DIFFERENT(top) )\
+                {\
+                    MAP_F2F(mv, ref, x264_scan8[0] + 0 - 1*8)\
+                    MAP_F2F(mv, ref, x264_scan8[0] + 1 - 1*8)\
+                    MAP_F2F(mv, ref, x264_scan8[0] + 2 - 1*8)\
+                    MAP_F2F(mv, ref, x264_scan8[0] + 3 - 1*8)\
+                }\
+                if( FIELD_DIFFERENT(h->mb.i_mb_topright_xy) )\
+                    MAP_F2F(mv, ref, x264_scan8[0] + 4 - 1*8)\
+                if( FIELD_DIFFERENT(left[0]) )\
+                {\
+                    MAP_F2F(mv, ref, x264_scan8[0] - 1 + 0*8)\
+                    MAP_F2F(mv, ref, x264_scan8[0] - 1 + 1*8)\
+                    MAP_F2F(mv, ref, x264_scan8[0] - 1 + 2*8)\
+                    MAP_F2F(mv, ref, x264_scan8[0] - 1 + 3*8)\
+                    MAP_F2F(topright_mv, topright_ref, 0)\
+                    MAP_F2F(topright_mv, topright_ref, 1)\
+                    MAP_F2F(topright_mv, topright_ref, 2)\
+                }
+
+            if( h->mb.b_interlaced )
+            {
+#define FIELD_DIFFERENT(macroblock) (macroblock >= 0 && !h->mb.field[macroblock])
+#define MAP_F2F(varmv, varref, index)\
+                if( h->mb.cache.varref[l][index] >= 0 )\
+                {\
+                    h->mb.cache.varref[l][index] <<= 1;\
+                    h->mb.cache.varmv[l][index][1] /= 2;\
+                    h->mb.cache.mvd[l][index][1] >>= 1;\
+                }
+                MAP_MVS
+#undef MAP_F2F
+#undef FIELD_DIFFERENT
+            }
+            else
+            {
+#define FIELD_DIFFERENT(macroblock) (macroblock >= 0 && h->mb.field[macroblock])
+#define MAP_F2F(varmv, varref, index)\
+                if( h->mb.cache.varref[l][index] >= 0 )\
+                {\
+                    h->mb.cache.varref[l][index] >>= 1;\
+                    h->mb.cache.varmv[l][index][1] <<= 1;\
+                    h->mb.cache.mvd[l][index][1] <<= 1;\
+                }
+                MAP_MVS
+#undef MAP_F2F
+#undef FIELD_DIFFERENT
+            }
         }
     }
 
