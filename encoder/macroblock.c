@@ -569,13 +569,8 @@ void x264_macroblock_encode( x264_t *h )
         return;
     }
 
-    if( h->sh.b_mbaff
-        && h->mb.i_mb_xy == h->sh.i_first_mb + h->mb.i_mb_stride
-        && IS_SKIP(h->mb.type[h->sh.i_first_mb]) )
+    if( !h->mb.b_allow_skip )
     {
-        /* The first skip is predicted to be a frame mb pair.
-         * We don't yet support the aff part of mbaff, so force it to non-skip
-         * so that we can pick the aff flag. */
         b_force_no_skip = 1;
         if( IS_SKIP(h->mb.i_type) )
         {

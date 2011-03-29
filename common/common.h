@@ -618,6 +618,7 @@ struct x264_t
         int     i_mb_topright_y;
         x264_left_table_t *left_index_table;
         int     topleft_partition;
+        int     b_allow_skip;
 
         /**** thread synchronization ends here ****/
         /* subsequent variables are either thread-local or constant,

@@ -1109,6 +1109,31 @@ void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y )
         }
     }
 
+    /* Check whether skip here would cause decoder to predict interlace mode incorrectly.
+     * FIXME: It might be better to change the interlace type rather than forcing a skip to be non-skip. */
+    h->mb.b_allow_skip = 1;
+    if( h->sh.b_mbaff )
+    {
+        if( (mb_y&1) && IS_SKIP(h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride]) )
+        {
+            if( h->mb.i_neighbour & MB_LEFT )
+            {
+                if( h->mb.field[h->mb.i_mb_xy - 1] != h->mb.b_interlaced )
+                    h->mb.b_allow_skip = 0;
+            }
+            else if( h->mb.i_neighbour & MB_TOP )
+            {
+                if( h->mb.field[h->mb.i_mb_top_xy] != h->mb.b_interlaced )
+                    h->mb.b_allow_skip = 0;
+            }
+            else // Frame mb pair is predicted
+            {
+                if( h->mb.b_interlaced )
+                    h->mb.b_allow_skip = 0;
+            }
+        }
+    }
+
     /* load skip */
     if( h->sh.i_type == SLICE_TYPE_B )
     {
