@@ -80,6 +80,15 @@ static ALWAYS_INLINE void x264_macroblock_cache_rect( void *dst, int w, int h, i
     {
         /* height 1, width 16 doesn't occur */
         assert( h != 1 );
+#if HAVE_VECTOREXT && defined(__SSE__)
+        v4si v16 = {v,v,v,v};
+
+        M128( d+s*0+0 ) = (__m128)v16;
+        M128( d+s*1+0 ) = (__m128)v16;
+        if( h == 2 ) return;
+        M128( d+s*2+0 ) = (__m128)v16;
+        M128( d+s*3+0 ) = (__m128)v16;
+#else
         if( WORD_SIZE == 8 )
         {
             do
@@ -103,6 +112,7 @@ static ALWAYS_INLINE void x264_macroblock_cache_rect( void *dst, int w, int h, i
                 d += s;
             } while( --h );
         }
+#endif
     }
     else
         assert(0);

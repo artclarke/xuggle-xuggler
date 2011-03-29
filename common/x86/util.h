@@ -154,6 +154,9 @@ static void ALWAYS_INLINE x264_predictor_roundclip_mmxext( int16_t (*dst)[2], in
 #define M128_ZERO ((__m128){0,0,0,0})
 #define x264_union128_t x264_union128_sse_t
 typedef union { __m128 i; uint64_t a[2]; uint32_t b[4]; uint16_t c[8]; uint8_t d[16]; } MAY_ALIAS x264_union128_sse_t;
+#if HAVE_VECTOREXT
+typedef uint32_t v4si __attribute__((vector_size (16)));
+#endif
 #endif
 
 #endif
