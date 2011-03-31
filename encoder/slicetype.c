@@ -1653,7 +1653,7 @@ int x264_rc_analyse_slice( x264_t *h )
         int ip_factor = 256 * h->param.rc.f_ip_factor; /* fix8 */
         for( int y = 0; y < h->mb.i_mb_height; y++ )
         {
-            int mb_xy = y * h->mb.i_mb_stride;
+            int mb_xy = y * h->mb.i_mb_stride + h->fdec->i_pir_start_col;
             for( int x = h->fdec->i_pir_start_col; x <= h->fdec->i_pir_end_col; x++, mb_xy++ )
             {
                 int intra_cost = (h->fenc->i_intra_cost[mb_xy] * ip_factor + 128) >> 8;
