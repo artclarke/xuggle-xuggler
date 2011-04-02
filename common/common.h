@@ -863,7 +863,9 @@ struct x264_t
     /* Buffers that are allocated per-thread even in sliced threads. */
     void *scratch_buffer; /* for any temporary storage that doesn't want repeated malloc */
     pixel *intra_border_backup[5][2]; /* bottom pixels of the previous mb row, used for intra prediction after the framebuffer has been deblocked */
-    uint8_t (*deblock_strength[2])[2][4][4];
+    /* Deblock strength values are stored for each 4x4 partition. In MBAFF
+     * there are four extra values that need to be stored, located in [4][i]. */
+    uint8_t (*deblock_strength[2])[2][8][4];
 
     /* CPU functions dependents */
     x264_predict_t      predict_16x16[4+3];

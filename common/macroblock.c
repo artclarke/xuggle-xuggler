@@ -1242,10 +1242,11 @@ void x264_macroblock_cache_load_neighbours_deblock( x264_t *h, int mb_x, int mb_
 
 void x264_macroblock_deblock_strength( x264_t *h )
 {
-    uint8_t (*bs)[4][4] = h->deblock_strength[h->mb.i_mb_y&1][h->mb.i_mb_x];
+    uint8_t (*bs)[8][4] = h->deblock_strength[h->mb.i_mb_y&1][h->mb.i_mb_x];
     if( IS_INTRA( h->mb.type[h->mb.i_mb_xy] ) )
     {
-        memset( bs, 3, 2*4*4*sizeof(uint8_t) );
+        memset( bs[0], 3, 4*4*sizeof(uint8_t) );
+        memset( bs[1], 3, 4*4*sizeof(uint8_t) );
         if( !h->sh.b_mbaff ) return;
     }
 

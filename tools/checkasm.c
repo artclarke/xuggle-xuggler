@@ -1335,7 +1335,8 @@ static int check_deblock( int cpu_ref, int cpu_new )
             ALIGNED_ARRAY_16( uint8_t, nnz, [X264_SCAN8_SIZE] );
             ALIGNED_4( int8_t ref[2][X264_SCAN8_LUMA_SIZE] );
             ALIGNED_ARRAY_16( int16_t, mv, [2],[X264_SCAN8_LUMA_SIZE][2] );
-            ALIGNED_ARRAY_16( uint8_t, bs, [2],[2][4][4] );
+            ALIGNED_ARRAY_16( uint8_t, bs, [2],[2][8][4] );
+            memset( bs, 99, sizeof(bs) );
             for( int j = 0; j < X264_SCAN8_SIZE; j++ )
                 nnz[j] = ((rand()&7) == 7) * rand() & 0xf;
             for( int j = 0; j < 2; j++ )
@@ -1346,8 +1347,8 @@ static int check_deblock( int cpu_ref, int cpu_new )
                         mv[j][k][l] = ((rand()&7) != 7) ? (rand()&7) - 3 : (rand()&1023) - 512;
                 }
             set_func_name( "deblock_strength" );
-            call_c( db_c.deblock_strength, nnz, ref, mv, bs[0], 2<<(i&1), ((i>>1)&1) );
-            call_a( db_a.deblock_strength, nnz, ref, mv, bs[1], 2<<(i&1), ((i>>1)&1) );
+            call_c( db_c.deblock_strength, nnz, ref, mv, bs[0], 2<<(i&1), ((i>>1)&1), NULL );
+            call_a( db_a.deblock_strength, nnz, ref, mv, bs[1], 2<<(i&1), ((i>>1)&1), NULL );
             if( memcmp( bs[0], bs[1], sizeof(bs[0]) ) )
             {
                 ok = 0;

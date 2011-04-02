@@ -1963,7 +1963,7 @@ DEBLOCK_CHROMA_INTRA mmxext
 %define ref r1+scan8start
 %define mv  r2+scan8start*4
 %define bs0 r3
-%define bs1 r3+16
+%define bs1 r3+32
 
 %macro LOAD_BYTES_MMX 1
     movd      m2, [%1+8*0-1]
