@@ -137,7 +137,7 @@ typedef union { x264_uint128_t i; uint64_t a[2]; uint32_t b[4]; uint16_t c[8]; u
 #define X264_SCAN8_LUMA_SIZE (5*8)
 #define X264_SCAN8_0 (4+1*8)
 
-static const int x264_scan8[16+2*4+3] =
+static const unsigned x264_scan8[16+2*4+3] =
 {
     /* Luma */
     4+1*8, 5+1*8, 4+2*8, 5+2*8,

@@ -195,7 +195,7 @@ int x264_cqm_init( x264_t *h )
             int dct8x8 = cat == 1;
             int size = dct8x8 ? 64 : 16;
             udctcoef *nr_offset = h->nr_offset_emergency[q][cat];
-            /* Denoise chroma first (due to h264's chroma QP offset, then luma, then DC. */
+            /* Denoise chroma first (due to h264's chroma QP offset), then luma, then DC. */
             int dc_threshold =    (QP_MAX-QP_MAX_SPEC)*2/3;
             int luma_threshold =  (QP_MAX-QP_MAX_SPEC)*2/3;
             int chroma_threshold = 0;
