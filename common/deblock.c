@@ -336,6 +336,120 @@ void deblock_strength_mbaff_c( uint8_t nnz_cache[X264_SCAN8_SIZE], int8_t ref[2]
             }
         }
     }
+
+    if( h->mb.i_neighbour & MB_LEFT )
+    {
+        if( h->mb.field[h->mb.i_mb_left_xy[0]] != h->mb.b_interlaced )
+        {
+            static const uint8_t offset[2][2][8] = {
+                {   { 0, 0, 0, 0, 1, 1, 1, 1 },
+                    { 2, 2, 2, 2, 3, 3, 3, 3 }, },
+                {   { 0, 1, 2, 3, 0, 1, 2, 3 },
+                    { 0, 1, 2, 3, 0, 1, 2, 3 }, }
+            };
+            uint8_t bS[8];
+
+            if( intra_cur )
+                memset( bS, 4, 8 );
+            else
+            {
+                const uint8_t *off = offset[h->mb.b_interlaced][h->mb.i_mb_y&1];
+                uint8_t (*nnz)[24] = h->mb.non_zero_count;
+
+                for( int i = 0; i < 8; i++ )
+                {
+                    int left = h->mb.i_mb_left_xy[h->mb.b_interlaced ? i>>2 : i&1];
+                    int nnz_this = h->mb.cache.non_zero_count[x264_scan8[0]+8*(i>>1)];
+                    int nnz_left = nnz[left][3 + 4*off[i]];
+                    if( !h->param.b_cabac && h->pps->b_transform_8x8_mode )
+                    {
+                        int j = off[i]&~1;
+                        if( h->mb.mb_transform_size[left] )
+                            nnz_left = !!(M16( &nnz[left][2+4*j] ) | M16( &nnz[left][2+4*(1+j)] ));
+                    }
+                    if( IS_INTRA( h->mb.type[left] ) )
+                        bS[i] = 4;
+                    else if( nnz_left || nnz_this )
+                        bS[i] = 2;
+                    else // As left is different interlaced.
+                        bS[i] = 1;
+                }
+            }
+
+            if( h->mb.b_interlaced )
+            {
+                for( int i = 0; i < 4; i++ ) bs[0][0][i] = bS[i];
+                for( int i = 0; i < 4; i++ ) bs[0][4][i] = bS[4+i];
+            }
+            else
+            {
+                for( int i = 0; i < 4; i++ ) bs[0][0][i] = bS[2*i];
+                for( int i = 0; i < 4; i++ ) bs[0][4][i] = bS[1+2*i];
+            }
+        }
+    }
+
+    if( h->mb.i_neighbour & MB_TOP )
+    {
+        if( !(h->mb.i_mb_y&1) && !h->mb.b_interlaced && h->mb.field[h->mb.i_mb_top_xy] )
+        {
+            /* Need to filter both fields (even for frame macroblocks).
+             * Filter top two rows using the top macroblock of the above
+             * pair and then the bottom one. */
+            int mbn_xy = h->mb.i_mb_xy - 2 * h->mb.i_mb_stride;
+            uint32_t nnz_cur[4];
+            nnz_cur[0] = h->mb.cache.non_zero_count[x264_scan8[0]+0];
+            nnz_cur[1] = h->mb.cache.non_zero_count[x264_scan8[0]+1];
+            nnz_cur[2] = h->mb.cache.non_zero_count[x264_scan8[0]+2];
+            nnz_cur[3] = h->mb.cache.non_zero_count[x264_scan8[0]+3];
+            /* Munge NNZ for cavlc + 8x8dct */
+            if( !h->param.b_cabac && h->pps->b_transform_8x8_mode &&
+                h->mb.mb_transform_size[h->mb.i_mb_xy] )
+            {
+                int nnz0 = M16( &h->mb.cache.non_zero_count[x264_scan8[ 0]] ) | M16( &h->mb.cache.non_zero_count[x264_scan8[ 2]] );
+                int nnz1 = M16( &h->mb.cache.non_zero_count[x264_scan8[ 4]] ) | M16( &h->mb.cache.non_zero_count[x264_scan8[ 6]] );
+                nnz_cur[0] = nnz_cur[1] = !!nnz0;
+                nnz_cur[2] = nnz_cur[3] = !!nnz1;
+            }
+
+            for( int j = 0; j < 2; j++, mbn_xy += h->mb.i_mb_stride )
+            {
+                int mbn_intra = IS_INTRA( h->mb.type[mbn_xy] );
+                uint8_t (*nnz)[24] = h->mb.non_zero_count;
+
+                uint32_t nnz_top[4];
+                nnz_top[0] = nnz[mbn_xy][3*4+0];
+                nnz_top[1] = nnz[mbn_xy][3*4+1];
+                nnz_top[2] = nnz[mbn_xy][3*4+2];
+                nnz_top[3] = nnz[mbn_xy][3*4+3];
+
+                if( !h->param.b_cabac && h->pps->b_transform_8x8_mode &&
+                    (h->mb.i_neighbour & MB_TOP) && h->mb.mb_transform_size[mbn_xy] )
+                {
+                    int nnz_top0 = M16( &nnz[mbn_xy][8] ) | M16( &nnz[mbn_xy][12] );
+                    int nnz_top1 = M16( &nnz[mbn_xy][10] ) | M16( &nnz[mbn_xy][14] );
+                    nnz_top[0] = nnz_top[1] = nnz_top0 ? 0x0101 : 0;
+                    nnz_top[2] = nnz_top[3] = nnz_top1 ? 0x0101 : 0;
+                }
+
+                uint8_t bS[4];
+                if( intra_cur || mbn_intra )
+                    M32( bS ) = 0x03030303;
+                else
+                {
+                    for( int i = 0; i < 4; i++ )
+                    {
+                        if( nnz_cur[i] || nnz_top[i] )
+                            bS[i] = 2;
+                        else
+                            bS[i] = 1;
+                    }
+                }
+                for( int i = 0; i < 4; i++ )
+                    bs[1][4*j][i] = bS[i];
+            }
+        }
+    }
 }
 
 static inline void deblock_edge( x264_t *h, pixel *pix, int i_stride, uint8_t bS[4], int i_qp, int b_chroma, x264_deblock_inter_t pf_inter )
@@ -415,16 +529,59 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
 
         if( h->mb.i_neighbour & MB_LEFT )
         {
-            int qpl = h->mb.qp[h->mb.i_mb_left_xy[0]];
-            int qp_left = (qp + qpl + 1) >> 1;
-            int qpc_left = (h->chroma_qp_table[qp] + h->chroma_qp_table[qpl] + 1) >> 1;
-            int intra_left = IS_INTRA( h->mb.type[h->mb.i_mb_left_xy[0]] );
-            if( intra_cur || intra_left )
-                FILTER( _intra, 0, 0, qp_left, qpc_left );
-            else
-                FILTER(       , 0, 0, qp_left, qpc_left );
-        }
+            if( b_interlaced && h->mb.field[h->mb.i_mb_left_xy[0]] != h->mb.b_interlaced )
+            {
+                int luma_qp[2];
+                int chroma_qp[2];
+                int left_qp[2];
+                int current_qp = h->mb.qp[mb_xy];
+                left_qp[0] = h->mb.qp[h->mb.i_mb_left_xy[0]];
+                luma_qp[0] = (current_qp + left_qp[0] + 1) >> 1;
+                chroma_qp[0] = (h->chroma_qp_table[current_qp] + h->chroma_qp_table[left_qp[0]] + 1) >> 1;
+                if( bs[0][0][0] == 4)
+                {
+                    deblock_edge_intra( h, pixy,      2*stridey,  bs[0][0], luma_qp[0],   0, deblock_v_luma_intra_mbaff_c );
+                    deblock_edge_intra( h, pixuv,     2*strideuv, bs[0][0], chroma_qp[0], 1, deblock_v_chroma_intra_mbaff_c );
+                    deblock_edge_intra( h, pixuv + 1, 2*strideuv, bs[0][0], chroma_qp[0], 1, deblock_v_chroma_intra_mbaff_c );
+                }
+                else
+                {
+                    deblock_edge( h, pixy,      2*stridey,  bs[0][0], luma_qp[0],   0, deblock_v_luma_mbaff_c );
+                    deblock_edge( h, pixuv,     2*strideuv, bs[0][0], chroma_qp[0], 1, deblock_v_chroma_mbaff_c );
+                    deblock_edge( h, pixuv + 1, 2*strideuv, bs[0][0], chroma_qp[0], 1, deblock_v_chroma_mbaff_c );
+                }
 
+                int offy = h->mb.b_interlaced ? 4 : 0;
+                int offuv = h->mb.b_interlaced ? 3 : 0;
+                left_qp[1] = h->mb.qp[h->mb.i_mb_left_xy[1]];
+                luma_qp[1] = (current_qp + left_qp[1] + 1) >> 1;
+                chroma_qp[1] = (h->chroma_qp_table[current_qp] + h->chroma_qp_table[left_qp[1]] + 1) >> 1;
+                if( bs[0][4][0] == 4)
+                {
+                    deblock_edge_intra( h, pixy      + (stridey<<offy),   2*stridey,  bs[0][4], luma_qp[1],   0, deblock_v_luma_intra_mbaff_c );
+                    deblock_edge_intra( h, pixuv     + (strideuv<<offuv), 2*strideuv, bs[0][4], chroma_qp[1], 1, deblock_v_chroma_intra_mbaff_c );
+                    deblock_edge_intra( h, pixuv + 1 + (strideuv<<offuv), 2*strideuv, bs[0][4], chroma_qp[1], 1, deblock_v_chroma_intra_mbaff_c );
+                }
+                else
+                {
+                    deblock_edge( h, pixy      + (stridey<<offy),   2*stridey,  bs[0][4], luma_qp[1],   0, deblock_v_luma_mbaff_c );
+                    deblock_edge( h, pixuv     + (strideuv<<offuv), 2*strideuv, bs[0][4], chroma_qp[1], 1, deblock_v_chroma_mbaff_c );
+                    deblock_edge( h, pixuv + 1 + (strideuv<<offuv), 2*strideuv, bs[0][4], chroma_qp[1], 1, deblock_v_chroma_mbaff_c );
+                }
+            }
+            else
+            {
+                int qpl = h->mb.qp[h->mb.i_mb_xy-1];
+                int qp_left = (qp + qpl + 1) >> 1;
+                int qpc_left = (h->chroma_qp_table[qp] + h->chroma_qp_table[qpl] + 1) >> 1;
+                int intra_left = IS_INTRA( h->mb.type[h->mb.i_mb_xy-1] );
+
+                if( intra_cur || intra_left )
+                    FILTER( _intra, 0, 0, qp_left, qpc_left );
+                else
+                    FILTER(       , 0, 0, qp_left, qpc_left );
+            }
+        }
         if( !first_edge_only )
         {
             if( !transform_8x8 ) FILTER( , 0, 1, qp, qpc );
@@ -434,17 +591,39 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
 
         if( h->mb.i_neighbour & MB_TOP )
         {
-            int qpt = h->mb.qp[h->mb.i_mb_top_xy];
-            int qp_top = (qp + qpt + 1) >> 1;
-            int qpc_top = (h->chroma_qp_table[qp] + h->chroma_qp_table[qpt] + 1) >> 1;
-            int intra_top = IS_INTRA( h->mb.type[h->mb.i_mb_top_xy] );
-            if( ~b_interlaced & (intra_cur | intra_top) )
-                FILTER( _intra, 1, 0, qp_top, qpc_top );
+            if( b_interlaced && !(mb_y&1) && !h->mb.b_interlaced && h->mb.field[h->mb.i_mb_top_xy] )
+            {
+                int mbn_xy = mb_xy - 2 * h->mb.i_mb_stride;
+
+                for(int j=0; j<2; j++, mbn_xy += h->mb.i_mb_stride)
+                {
+                    int qpt = h->mb.qp[mbn_xy];
+                    int qp_top = (qp + qpt + 1) >> 1;
+                    int qpc_top = (h->chroma_qp_table[qp] + h->chroma_qp_table[qpt] + 1) >> 1;
+
+                    // deblock the first horizontal edge of the even rows, then the first horizontal edge of the odd rows
+                    deblock_edge( h, pixy      + j*stridey,  2* stridey, bs[1][4*j], qp_top,  0, deblock_v_luma_c );
+                    deblock_edge( h, pixuv     + j*strideuv, 2*strideuv, bs[1][4*j], qpc_top, 1, deblock_v_chroma_c );
+                }
+            }
             else
             {
-                if( intra_top )
-                    M32( bs[1][0] ) = 0x03030303;
-                FILTER(       , 1, 0, qp_top, qpc_top );
+                int qpt = h->mb.qp[h->mb.i_mb_top_xy];
+                int qp_top = (qp + qpt + 1) >> 1;
+                int qpc_top = (h->chroma_qp_table[qp] + h->chroma_qp_table[qpt] + 1) >> 1;
+                int intra_top = IS_INTRA( h->mb.type[h->mb.i_mb_top_xy] );
+
+                if( (!b_interlaced || (!h->mb.b_interlaced && !h->mb.field[h->mb.i_mb_top_xy]))
+                    && (intra_cur || intra_top) )
+                {
+                    FILTER( _intra, 1, 0, qp_top, qpc_top );
+                }
+                else
+                {
+                    if( intra_top )
+                        M32( bs[1][0] ) = 0x03030303;
+                    FILTER(       , 1, 0, qp_top, qpc_top );
+                }
             }
         }
 

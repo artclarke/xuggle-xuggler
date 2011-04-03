@@ -1252,7 +1252,7 @@ void x264_macroblock_deblock_strength( x264_t *h )
 
     /* If we have multiple slices and we're deblocking on slice edges, we
      * have to reload neighbour data. */
-    if( h->sh.i_first_mb && h->sh.i_disable_deblocking_filter_idc != 2 )
+    if( h->sh.b_mbaff || (h->sh.i_first_mb && h->sh.i_disable_deblocking_filter_idc != 2) )
     {
         int old_neighbour = h->mb.i_neighbour;
         int mb_x = h->mb.i_mb_x;
