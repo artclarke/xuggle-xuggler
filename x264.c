@@ -269,6 +269,9 @@ int main( int argc, char **argv )
     if( parse( argc, argv, &param, &opt ) < 0 )
         ret = -1;
 
+    /* Restore title; it can be changed by input modules */
+    SetConsoleTitle( originalCTitle );
+
     /* Control-C handler */
     signal( SIGINT, sigint_handler );
 
@@ -1397,6 +1400,8 @@ generic_option:
     info.sar_height = param->vui.i_sar_height;
     info.tff        = param->b_tff;
     info.vfr        = param->b_vfr_input;
+
+    input_opt.progress = opt->b_progress;
 
     if( select_input( demuxer, demuxername, input_filename, &opt->hin, &info, &input_opt ) )
         return -1;

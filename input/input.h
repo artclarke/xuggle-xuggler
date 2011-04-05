@@ -40,6 +40,7 @@ typedef struct
     int bit_depth;
     char *timebase;
     int seek;
+    int progress;
 } cli_input_opt_t;
 
 /* properties of the source given by the demuxer */

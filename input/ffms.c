@@ -85,8 +85,13 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     }
     if( !idx )
     {
-        idx = FFMS_MakeIndex( psz_filename, 0, 0, NULL, NULL, 0, update_progress, &h->time, &e );
-        fprintf( stderr, "                                            \r" );
+        if( opt->progress )
+        {
+            idx = FFMS_MakeIndex( psz_filename, 0, 0, NULL, NULL, 0, update_progress, &h->time, &e );
+            fprintf( stderr, "                                            \r" );
+        }
+        else
+            idx = FFMS_MakeIndex( psz_filename, 0, 0, NULL, NULL, 0, NULL, NULL, &e );
         FAIL_IF_ERROR( !idx, "could not create index\n" )
         if( opt->index_file && FFMS_WriteIndex( opt->index_file, idx, &e ) )
             x264_cli_log( "ffms", X264_LOG_WARNING, "could not write index file\n" );
