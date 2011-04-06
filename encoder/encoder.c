@@ -1665,6 +1665,10 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
     h->i_ref[0] = X264_MIN( h->i_ref[0], h->frames.i_max_ref0 );
     h->i_ref[0] = X264_MIN( h->i_ref[0], h->param.i_frame_reference ); // if reconfig() has lowered the limit
 
+    /* For Blu-ray compliance, don't reference frames outside of the minigop. */
+    if( IS_X264_TYPE_B( h->fenc->i_type ) && h->param.b_bluray_compat )
+        h->i_ref[0] = X264_MIN( h->i_ref[0], IS_X264_TYPE_B( h->fref[0][0]->i_type ) + 1 );
+
     /* add duplicates */
     if( h->fenc->i_type == X264_TYPE_P )
     {
@@ -1877,6 +1881,12 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_global_qp )
         {
             h->sh.b_num_ref_idx_override = 1;
         }
+    }
+
+    if( h->fenc->i_type == X264_TYPE_BREF && h->param.b_bluray_compat && h->sh.i_mmco_command_count )
+    {
+        h->b_sh_backup = 1;
+        h->sh_backup = h->sh;
     }
 
     h->fdec->i_frame_num = h->sh.i_frame_num;
@@ -2770,6 +2780,17 @@ int     x264_encoder_encode( x264_t *h,
     {
         x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
         x264_sei_pic_timing_write( h, &h->out.bs );
+        if( x264_nal_end( h ) )
+            return -1;
+        overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD - (h->param.b_annexb && h->out.i_nal-1);
+    }
+
+    /* As required by Blu-ray. */
+    if( !IS_X264_TYPE_B( h->fenc->i_type ) && h->b_sh_backup )
+    {
+        h->b_sh_backup = 0;
+        x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
+        x264_sei_dec_ref_pic_marking_write( h, &h->out.bs );
         if( x264_nal_end( h ) )
             return -1;
         overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD - (h->param.b_annexb && h->out.i_nal-1);

@@ -551,7 +551,6 @@ void x264_sei_recovery_point_write( x264_t *h, bs_t *s, int recovery_frame_cnt )
     bs_flush( &q );
 
     x264_sei_write( s, tmp_buf, bs_pos( &q ) / 8, SEI_RECOVERY_POINT );
-
 }
 
 int x264_sei_version_write( x264_t *h, bs_t *s )
@@ -687,6 +686,38 @@ void x264_filler_write( x264_t *h, bs_t *s, int filler )
 
     bs_rbsp_trailing( s );
     bs_flush( s );
+}
+
+void x264_sei_dec_ref_pic_marking_write( x264_t *h, bs_t *s )
+{
+    x264_slice_header_t *sh = &h->sh_backup;
+    bs_t q;
+    uint8_t tmp_buf[100];
+    bs_init( &q, tmp_buf, 100 );
+
+    bs_realign( &q );
+
+    /* We currently only use this for repeating B-refs, as required by Blu-ray. */
+    bs_write1( &q, 0 );                 //original_idr_flag
+    bs_write_ue( &q, sh->i_frame_num ); //original_frame_num
+    if( !h->sps->b_frame_mbs_only )
+        bs_write1( &q, 0 );             //original_field_pic_flag
+
+    bs_write1( &q, sh->i_mmco_command_count > 0 );
+    if( sh->i_mmco_command_count > 0 )
+    {
+        for( int i = 0; i < sh->i_mmco_command_count; i++ )
+        {
+            bs_write_ue( &q, 1 );
+            bs_write_ue( &q, sh->mmco[i].i_difference_of_pic_nums - 1 );
+        }
+        bs_write_ue( &q, 0 );
+    }
+
+    bs_align_10( &q );
+    bs_flush( &q );
+
+    x264_sei_write( s, tmp_buf, bs_pos( &q ) / 8, SEI_DEC_REF_PIC_MARKING );
 }
 
 const x264_level_t x264_levels[] =

@@ -310,6 +310,7 @@ enum sei_payload_type_e
     SEI_USER_DATA_REGISTERED   = 4,
     SEI_USER_DATA_UNREGISTERED = 5,
     SEI_RECOVERY_POINT         = 6,
+    SEI_DEC_REF_PIC_MARKING    = 7,
     SEI_FRAME_PACKING          = 45,
 };
 
@@ -472,6 +473,10 @@ struct x264_t
 
     /* Slice header */
     x264_slice_header_t sh;
+
+    /* Slice header backup, for SEI_DEC_REF_PIC_MARKING */
+    int b_sh_backup;
+    x264_slice_header_t sh_backup;
 
     /* cabac context */
     x264_cabac_t    cabac;
