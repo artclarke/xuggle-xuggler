@@ -1828,7 +1828,8 @@ static int update_vbv( x264_t *h, int bits )
 
     if( h->sps->vui.hrd.b_cbr_hrd && rct->buffer_fill_final > buffer_size )
     {
-        filler = ceil( (rct->buffer_fill_final - buffer_size) / (8. * h->sps->vui.i_time_scale) );
+        int64_t scale = (int64_t)h->sps->vui.i_time_scale * 8;
+        filler = (rct->buffer_fill_final - buffer_size + scale - 1) / scale;
         bits = X264_MAX( (FILLER_OVERHEAD - h->param.b_annexb), filler ) * 8;
         rct->buffer_fill_final -= (uint64_t)bits * h->sps->vui.i_time_scale;
     }
