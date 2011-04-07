@@ -735,7 +735,8 @@ int x264_ratecontrol_new( x264_t *h )
             CMP_OPT_FIRST_PASS( "bframes", h->param.i_bframe );
             CMP_OPT_FIRST_PASS( "b_pyramid", h->param.i_bframe_pyramid );
             CMP_OPT_FIRST_PASS( "intra_refresh", h->param.b_intra_refresh );
-            CMP_OPT_FIRST_PASS( "open_gop", h->param.i_open_gop );
+            CMP_OPT_FIRST_PASS( "open_gop", h->param.b_open_gop );
+            CMP_OPT_FIRST_PASS( "bluray_compat", h->param.b_bluray_compat );
 
             if( (p = strstr( opts, "keyint=" )) )
             {
@@ -1208,8 +1209,7 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp, int overhead )
 
         int mincr = l->mincr;
 
-        /* Blu-ray requires this */
-        if( l->level_idc == 41 && h->param.i_nal_hrd )
+        if( h->param.b_bluray_compat )
             mincr = 4;
 
         /* High 10 doesn't require minCR, so just set the maximum to a large value. */

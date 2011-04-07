@@ -541,11 +541,7 @@ static void help( x264_param_t *defaults, int longhelp )
         "                                  - strict: Strictly hierarchical pyramid\n"
         "                                  - normal: Non-strict (not Blu-ray compatible)\n",
         strtable_lookup( x264_b_pyramid_names, defaults->i_bframe_pyramid ) );
-    H1( "      --open-gop <string>     Use recovery points to close GOPs [none]\n"
-        "                                  - none: closed GOPs only\n"
-        "                                  - normal: standard open GOPs\n"
-        "                                            (not Blu-ray compatible)\n"
-        "                                  - bluray: Blu-ray-compatible open GOPs\n"
+    H1( "      --open-gop              Use recovery points to close GOPs\n"
         "                              Only available with b-frames\n" );
     H1( "      --no-cabac              Disable CABAC\n" );
     H1( "  -r, --ref <integer>         Number of reference frames [%d]\n", defaults->i_frame_reference );
@@ -741,6 +737,7 @@ static void help( x264_param_t *defaults, int longhelp )
     H0( "      --seek <integer>        First frame to encode\n" );
     H0( "      --frames <integer>      Maximum number of frames to encode\n" );
     H0( "      --level <string>        Specify level (as defined by Annex A)\n" );
+    H1( "      --bluray-compat         Enable compatibility hacks for Blu-ray support\n" );
     H1( "\n" );
     H1( "  -v, --verbose               Print stats for each frame\n" );
     H1( "      --no-progress           Don't show the progress indicator while encoding\n" );
@@ -831,7 +828,8 @@ static struct option long_options[] =
     { "no-b-adapt",        no_argument, NULL, 0 },
     { "b-bias",      required_argument, NULL, 0 },
     { "b-pyramid",   required_argument, NULL, 0 },
-    { "open-gop",    required_argument, NULL, 0 },
+    { "open-gop",          no_argument, NULL, 0 },
+    { "bluray-compat",     no_argument, NULL, 0 },
     { "min-keyint",  required_argument, NULL, 'i' },
     { "keyint",      required_argument, NULL, 'I' },
     { "intra-refresh",     no_argument, NULL, 0 },

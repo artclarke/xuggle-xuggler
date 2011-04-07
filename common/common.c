@@ -621,6 +621,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         else
             p->i_level_idc = atoi(value);
     }
+    OPT("bluray-compat")
+        p->b_bluray_compat = atobool(value);
     OPT("sar")
     {
         b_error = ( 2 != sscanf( value, "%d:%d", &p->vui.i_sar_width, &p->vui.i_sar_height ) &&
@@ -705,14 +707,7 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         }
     }
     OPT("open-gop")
-    {
-        b_error |= parse_enum( value, x264_open_gop_names, &p->i_open_gop );
-        if( b_error )
-        {
-            b_error = 0;
-            p->i_open_gop = atoi(value);
-        }
-    }
+        p->b_open_gop = atobool(value);
     OPT("nf")
         p->b_deblocking_filter = !atobool(value);
     OPT2("filter", "deblock")
@@ -1240,6 +1235,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
     s += sprintf( s, " nr=%d", p->analyse.i_noise_reduction );
     s += sprintf( s, " decimate=%d", p->analyse.b_dct_decimate );
     s += sprintf( s, " interlaced=%s", p->b_interlaced ? p->b_tff ? "tff" : "bff" : p->b_fake_interlaced ? "fake" : "0" );
+    s += sprintf( s, " bluray_compat=%d", p->b_bluray_compat );
 
     s += sprintf( s, " constrained_intra=%d", p->b_constrained_intra );
 
@@ -1248,7 +1244,7 @@ char *x264_param2string( x264_param_t *p, int b_res )
     {
         s += sprintf( s, " b_pyramid=%d b_adapt=%d b_bias=%d direct=%d weightb=%d open_gop=%d",
                       p->i_bframe_pyramid, p->i_bframe_adaptive, p->i_bframe_bias,
-                      p->analyse.i_direct_mv_pred, p->analyse.b_weighted_bipred, p->i_open_gop );
+                      p->analyse.i_direct_mv_pred, p->analyse.b_weighted_bipred, p->b_open_gop );
     }
     s += sprintf( s, " weightp=%d", p->analyse.i_weighted_pred > 0 ? p->analyse.i_weighted_pred : 0 );
 

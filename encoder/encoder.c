@@ -595,6 +595,21 @@ static int x264_validate_parameters( x264_t *h )
             h->param.i_slice_count = 0;
     }
 
+    if( h->param.b_bluray_compat )
+    {
+        h->param.i_bframe_pyramid = X264_MIN( X264_B_PYRAMID_STRICT, h->param.i_bframe_pyramid );
+        h->param.i_bframe = X264_MIN( h->param.i_bframe, 3 );
+        h->param.b_aud = 1;
+        h->param.i_nal_hrd = X264_MAX( h->param.i_nal_hrd, X264_NAL_HRD_VBR );
+        h->param.i_slice_max_size = 0;
+        h->param.i_slice_max_mbs = 0;
+        h->param.b_intra_refresh = 0;
+        h->param.i_frame_reference = X264_MIN( h->param.i_frame_reference, 6 );
+        h->param.i_dpb_size = X264_MIN( h->param.i_dpb_size, 6 );
+        /* Due to the proliferation of broken players that don't handle dupes properly. */
+        h->param.analyse.i_weighted_pred = X264_MIN( h->param.analyse.i_weighted_pred, X264_WEIGHTP_SIMPLE );
+    }
+
     h->param.i_frame_reference = x264_clip3( h->param.i_frame_reference, 1, X264_REF_MAX );
     h->param.i_dpb_size = x264_clip3( h->param.i_dpb_size, 1, X264_REF_MAX );
     if( h->param.i_scenecut_threshold < 0 )
@@ -605,7 +620,6 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.i_direct_mv_pred = X264_DIRECT_PRED_SPATIAL;
     }
     h->param.i_bframe = x264_clip3( h->param.i_bframe, 0, X264_MIN( X264_BFRAME_MAX, h->param.i_keyint_max-1 ) );
-    h->param.i_open_gop = x264_clip3( h->param.i_open_gop, X264_OPEN_GOP_NONE, X264_OPEN_GOP_BLURAY );
     h->param.i_bframe_bias = x264_clip3( h->param.i_bframe_bias, -90, 100 );
     if( h->param.i_bframe <= 1 )
         h->param.i_bframe_pyramid = X264_B_PYRAMID_NONE;
@@ -615,7 +629,7 @@ static int x264_validate_parameters( x264_t *h )
         h->param.i_bframe_adaptive = X264_B_ADAPT_NONE;
         h->param.analyse.i_direct_mv_pred = 0;
         h->param.analyse.b_weighted_bipred = 0;
-        h->param.i_open_gop = X264_OPEN_GOP_NONE;
+        h->param.b_open_gop = 0;
     }
     if( h->param.b_intra_refresh && h->param.i_bframe_pyramid == X264_B_PYRAMID_NORMAL )
     {
@@ -628,10 +642,10 @@ static int x264_validate_parameters( x264_t *h )
         h->param.i_frame_reference = 1;
         h->param.i_dpb_size = 1;
     }
-    if( h->param.b_intra_refresh && h->param.i_open_gop )
+    if( h->param.b_intra_refresh && h->param.b_open_gop )
     {
         x264_log( h, X264_LOG_WARNING, "intra-refresh is not compatible with open-gop\n" );
-        h->param.i_open_gop = X264_OPEN_GOP_NONE;
+        h->param.b_open_gop = 0;
     }
     float fps = h->param.i_fps_num > 0 && h->param.i_fps_den > 0 ? (float) h->param.i_fps_num / h->param.i_fps_den : 25.0;
     if( h->param.i_keyint_min == X264_KEYINT_MIN_AUTO )
@@ -867,6 +881,7 @@ static int x264_validate_parameters( x264_t *h )
     BOOLIFY( b_vfr_input );
     BOOLIFY( b_pic_struct );
     BOOLIFY( b_fake_interlaced );
+    BOOLIFY( b_open_gop );
     BOOLIFY( analyse.b_transform_8x8 );
     BOOLIFY( analyse.b_weighted_bipred );
     BOOLIFY( analyse.b_chroma_me );
@@ -2557,7 +2572,7 @@ int     x264_encoder_encode( x264_t *h,
         i_nal_ref_idc = NAL_PRIORITY_HIGH; /* Not completely true but for now it is (as all I/P are kept as ref)*/
         h->sh.i_type = SLICE_TYPE_I;
         x264_reference_hierarchy_reset( h );
-        if( h->param.i_open_gop )
+        if( h->param.b_open_gop )
             h->frames.i_poc_last_open_gop = h->fenc->b_keyframe ? h->fenc->i_poc : -1;
     }
     else if( h->fenc->i_type == X264_TYPE_P )
@@ -2732,7 +2747,7 @@ int     x264_encoder_encode( x264_t *h,
 
         if( h->fenc->i_type != X264_TYPE_IDR )
         {
-            int time_to_recovery = h->param.i_open_gop ? 0 : X264_MIN( h->mb.i_mb_width - 1, h->param.i_keyint_max ) + h->param.i_bframe - 1;
+            int time_to_recovery = h->param.b_open_gop ? 0 : X264_MIN( h->mb.i_mb_width - 1, h->param.i_keyint_max ) + h->param.i_bframe - 1;
             x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
             x264_sei_recovery_point_write( h, &h->out.bs, time_to_recovery );
             if( x264_nal_end( h ) )

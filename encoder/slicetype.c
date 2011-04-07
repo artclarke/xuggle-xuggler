@@ -1377,7 +1377,7 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
         {
             frames[i]->i_type = X264_TYPE_I;
             reset_start = X264_MIN( reset_start, i+1 );
-            if( h->param.i_open_gop == X264_OPEN_GOP_BLURAY )
+            if( h->param.b_open_gop && h->param.b_bluray_compat )
                 while( IS_X264_TYPE_B( frames[i-1]->i_type ) )
                     i--;
         }
@@ -1465,25 +1465,25 @@ void x264_slicetype_decide( x264_t *h )
         }
 
         if( frm->i_type == X264_TYPE_KEYFRAME )
-            frm->i_type = h->param.i_open_gop ? X264_TYPE_I : X264_TYPE_IDR;
+            frm->i_type = h->param.b_open_gop ? X264_TYPE_I : X264_TYPE_IDR;
 
         /* Limit GOP size */
         if( (!h->param.b_intra_refresh || frm->i_frame == 0) && frm->i_frame - h->lookahead->i_last_keyframe >= h->param.i_keyint_max )
         {
             if( frm->i_type == X264_TYPE_AUTO || frm->i_type == X264_TYPE_I )
-                frm->i_type = h->param.i_open_gop && h->lookahead->i_last_keyframe >= 0 ? X264_TYPE_I : X264_TYPE_IDR;
+                frm->i_type = h->param.b_open_gop && h->lookahead->i_last_keyframe >= 0 ? X264_TYPE_I : X264_TYPE_IDR;
             int warn = frm->i_type != X264_TYPE_IDR;
-            if( warn && h->param.i_open_gop )
+            if( warn && h->param.b_open_gop )
                 warn &= frm->i_type != X264_TYPE_I;
             if( warn )
                 x264_log( h, X264_LOG_WARNING, "specified frame type (%d) at %d is not compatible with keyframe interval\n", frm->i_type, frm->i_frame );
         }
         if( frm->i_type == X264_TYPE_I && frm->i_frame - h->lookahead->i_last_keyframe >= h->param.i_keyint_min )
         {
-            if( h->param.i_open_gop )
+            if( h->param.b_open_gop )
             {
                 h->lookahead->i_last_keyframe = frm->i_frame; // Use display order
-                if( h->param.i_open_gop == X264_OPEN_GOP_BLURAY )
+                if( h->param.b_bluray_compat )
                     h->lookahead->i_last_keyframe -= bframes; // Use bluray order
                 frm->b_keyframe = 1;
             }
