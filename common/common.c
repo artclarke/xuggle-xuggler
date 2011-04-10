@@ -1160,7 +1160,7 @@ REDUCE_FRACTION( x264_reduce_fraction64, uint64_t )
 char *x264_slurp_file( const char *filename )
 {
     int b_error = 0;
-    int i_size;
+    size_t i_size;
     char *buf;
     FILE *fh = fopen( filename, "rb" );
     if( !fh )

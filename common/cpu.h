@@ -56,7 +56,7 @@ int x264_stack_align( void (*func)(), ... );
 typedef struct
 {
     const char name[16];
-    int flags;
+    uint32_t flags;
 } x264_cpu_name_t;
 extern const x264_cpu_name_t x264_cpu_names[];
 

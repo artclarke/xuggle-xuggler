@@ -1135,8 +1135,7 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int
     int bmx = m->mv[0];
     int bmy = m->mv[1];
     int omx, omy, pmx, pmy;
-    unsigned bsatd;
-    int satd;
+    int satd, bsatd;
     int dir = -2;
     int i8 = i4>>2;
     uint16_t amvd;

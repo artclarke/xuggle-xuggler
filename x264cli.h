@@ -34,7 +34,7 @@
 
 typedef void *hnd_t;
 
-static inline int64_t gcd( int64_t a, int64_t b )
+static inline uint64_t gcd( uint64_t a, uint64_t b )
 {
     while( 1 )
     {
@@ -46,7 +46,7 @@ static inline int64_t gcd( int64_t a, int64_t b )
     }
 }
 
-static inline int64_t lcm( int64_t a, int64_t b )
+static inline uint64_t lcm( uint64_t a, uint64_t b )
 {
     return ( a / gcd( a, b ) ) * b;
 }

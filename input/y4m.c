@@ -201,7 +201,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
 
 static int read_frame_internal( cli_pic_t *pic, y4m_hnd_t *h )
 {
-    int slen = strlen( Y4M_FRAME_MAGIC );
+    size_t slen = strlen( Y4M_FRAME_MAGIC );
     int i = 0;
     char header[16];
 

@@ -328,11 +328,11 @@ static void print_csp_names( int longhelp )
     printf( "\n" );
     printf( "                              - valid csps for `lavf' demuxer:\n" );
     printf( INDENT );
-    int line_len = strlen( INDENT );
+    size_t line_len = strlen( INDENT );
     for( enum PixelFormat i = PIX_FMT_NONE+1; i < PIX_FMT_NB; i++ )
     {
         const char *pfname = av_pix_fmt_descriptors[i].name;
-        int name_len = strlen( pfname );
+        size_t name_len = strlen( pfname );
         if( line_len + name_len > (80 - strlen( ", " )) )
         {
             printf( "\n" INDENT );
