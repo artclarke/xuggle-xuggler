@@ -67,8 +67,6 @@ intel_cflags() {
             [ "$arg" = -Wall ] && arg=-w0
         fi
 
-        # Intel Compiler on Mac OS X does not allow pre -msse3
-        [ $SYS = MACOSX -a \( "$arg" = -mia32 -o "$arg" = -msse -o "$arg" = -msse2 \) ] && arg=
         [ -n "$arg" ] && echo -n "$arg "
     done
 }
@@ -346,7 +344,6 @@ if [[ $host_os = mingw* || $host_os = cygwin* ]]; then
     if [[ `basename "$CC"` = icl* ]]; then
         # Windows Intel Compiler creates dependency generation with absolute Windows paths, Cygwin's make does not support Windows paths.
         [[ $host_os = cygwin* ]] && die "Windows Intel Compiler support requires MSYS"
-        ARCHPRE="-arch:"
         compiler=ICL
         CFLAGS="$CFLAGS -Qstd=c99 -nologo -Qms0 -DHAVE_STRING_H -Iextras"
         QPRE="-Q"
@@ -357,7 +354,6 @@ if [[ $host_os = mingw* || $host_os = cygwin* ]]; then
 else
     if [[ `basename "$CC"` = icc* ]]; then
         AR="xiar"
-        ARCHPRE="-m"
         compiler=ICC
         QPRE="-"
     fi
@@ -441,12 +437,6 @@ case $host_cpu in
                 CFLAGS="$CFLAGS -mfpmath=sse -msse"
             fi
         else
-            # Intel Compiler >= 11 generally defaults to SSE2 optimization. -msse is also deprecated for -mia32
-            if cpp_check "" "" "__INTEL_COMPILER >= 1100" \
-             && ! (echo $CFLAGS | grep -Eiq "(${ARCHPRE}ia32|${ARCHPRE}sse|${ARCHPRE}ssse3|${ARCHPRE}avx)") \
-             && [[ "$CFLAGS" != *${QPRE}x* ]]; then
-                CFLAGS="$CFLAGS ${ARCHPRE}ia32"
-            fi
             # icc on linux has various degrees of mod16 stack support
             if [ $SYS = LINUX ]; then
                 # < 11 is completely incapable of keeping a mod16 stack
