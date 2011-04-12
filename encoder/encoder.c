@@ -705,6 +705,36 @@ static int x264_validate_parameters( x264_t *h )
     }
     h->param.analyse.i_chroma_qp_offset = x264_clip3(h->param.analyse.i_chroma_qp_offset, -12, 12);
     h->param.analyse.i_trellis = x264_clip3( h->param.analyse.i_trellis, 0, 2 );
+
+    if( h->param.i_log_level < X264_LOG_INFO )
+    {
+        h->param.analyse.b_psnr = 0;
+        h->param.analyse.b_ssim = 0;
+    }
+    /* Warn users trying to measure PSNR/SSIM with psy opts on. */
+    if( h->param.analyse.b_psnr || h->param.analyse.b_ssim )
+    {
+        char *s = NULL;
+
+        if( h->param.analyse.b_psy )
+        {
+            s = h->param.analyse.b_psnr ? "psnr" : "ssim";
+            x264_log( h, X264_LOG_WARNING, "--%s used with psy on: results will be invalid!\n", s );
+        }
+        else if( !h->param.rc.i_aq_mode && h->param.analyse.b_ssim )
+        {
+            x264_log( h, X264_LOG_WARNING, "--ssim used with AQ off: results will be invalid!\n" );
+            s = "ssim";
+        }
+        else if(  h->param.rc.i_aq_mode && h->param.analyse.b_psnr )
+        {
+            x264_log( h, X264_LOG_WARNING, "--psnr used with AQ on: results will be invalid!\n" );
+            s = "psnr";
+        }
+        if( s )
+            x264_log( h, X264_LOG_WARNING, "--tune %s should be used if attempting to benchmark %s!\n", s, s );
+    }
+
     if( !h->param.analyse.b_psy )
     {
         h->param.analyse.f_psy_rd = 0;
@@ -804,12 +834,6 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.f_complexity_blur = 0;
 
     h->param.i_sps_id &= 31;
-
-    if( h->param.i_log_level < X264_LOG_INFO )
-    {
-        h->param.analyse.b_psnr = 0;
-        h->param.analyse.b_ssim = 0;
-    }
 
     if( h->param.b_interlaced )
         h->param.b_pic_struct = 1;
