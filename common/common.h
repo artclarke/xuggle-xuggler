@@ -857,7 +857,7 @@ struct x264_t
 // included at the end because it needs x264_t
 #include "macroblock.h"
 
-#if HAVE_MMX
+#if ARCH_X86 || ARCH_X86_64
 #include "x86/util.h"
 #endif
 

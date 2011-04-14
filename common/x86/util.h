@@ -27,11 +27,19 @@
 #ifndef X264_X86_UTIL_H
 #define X264_X86_UTIL_H
 
-#if HAVE_X86_INLINE_ASM
-
 #ifdef __SSE__
 #include <xmmintrin.h>
+
+#undef M128_ZERO
+#define M128_ZERO ((__m128){0,0,0,0})
+#define x264_union128_t x264_union128_sse_t
+typedef union { __m128 i; uint64_t a[2]; uint32_t b[4]; uint16_t c[8]; uint8_t d[16]; } MAY_ALIAS x264_union128_sse_t;
+#if HAVE_VECTOREXT
+typedef uint32_t v4si __attribute__((vector_size (16)));
 #endif
+#endif // __SSE__
+
+#if HAVE_X86_INLINE_ASM && HAVE_MMX
 
 #define x264_median_mv x264_median_mv_mmxext
 static ALWAYS_INLINE void x264_median_mv_mmxext( int16_t *dst, int16_t *a, int16_t *b, int16_t *c )
@@ -148,16 +156,6 @@ static void ALWAYS_INLINE x264_predictor_roundclip_mmxext( int16_t (*dst)[2], in
         :"g"(mv_min), "g"(mv_max), "m"(pw_2), "r"(dst), "r"(mvc), "m"(M64( mvc ))
     );
 }
-
-#ifdef __SSE__
-#undef M128_ZERO
-#define M128_ZERO ((__m128){0,0,0,0})
-#define x264_union128_t x264_union128_sse_t
-typedef union { __m128 i; uint64_t a[2]; uint32_t b[4]; uint16_t c[8]; uint8_t d[16]; } MAY_ALIAS x264_union128_sse_t;
-#if HAVE_VECTOREXT
-typedef uint32_t v4si __attribute__((vector_size (16)));
-#endif
-#endif
 
 #endif
 
