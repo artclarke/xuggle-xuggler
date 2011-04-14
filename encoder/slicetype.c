@@ -1258,6 +1258,8 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
      * more RD-optimal. */
     if( (h->param.analyse.b_psy && h->param.rc.b_mb_tree) || vbv_lookahead )
         num_frames = framecnt;
+    else if( h->param.b_open_gop && num_frames < framecnt )
+        num_frames++;
     else if( num_frames == 0 )
     {
         frames[1]->i_type = X264_TYPE_I;
@@ -1280,10 +1282,10 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
             if( num_frames > 1 )
             {
                 char best_paths[X264_BFRAME_MAX+1][X264_LOOKAHEAD_MAX] = {"","P"};
-                int best_path_index = (num_frames-1) % (X264_BFRAME_MAX+1);
+                int best_path_index = num_frames % (X264_BFRAME_MAX+1);
 
                 /* Perform the frametype analysis. */
-                for( int j = 2; j < num_frames; j++ )
+                for( int j = 2; j <= num_frames; j++ )
                     x264_slicetype_path( h, &a, frames, j, best_paths );
 
                 num_bframes = strspn( best_paths[best_path_index], "B" );
