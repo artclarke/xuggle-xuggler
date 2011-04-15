@@ -608,6 +608,8 @@ static int x264_validate_parameters( x264_t *h )
         h->param.i_dpb_size = X264_MIN( h->param.i_dpb_size, 6 );
         /* Due to the proliferation of broken players that don't handle dupes properly. */
         h->param.analyse.i_weighted_pred = X264_MIN( h->param.analyse.i_weighted_pred, X264_WEIGHTP_SIMPLE );
+        if( h->param.b_fake_interlaced )
+            h->param.b_pic_struct = 1;
     }
 
     h->param.i_frame_reference = x264_clip3( h->param.i_frame_reference, 1, X264_REF_MAX );
