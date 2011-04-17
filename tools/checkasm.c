@@ -546,7 +546,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_dct_function_t dct_ref;
     x264_dct_function_t dct_asm;
     x264_quant_function_t qf;
-    int ret = 0, ok, used_asm, interlace;
+    int ret = 0, ok, used_asm, interlace = 0;
     ALIGNED_16( dctcoef dct1[16][16] );
     ALIGNED_16( dctcoef dct2[16][16] );
     ALIGNED_16( dctcoef dct4[16][16] );
@@ -711,21 +711,21 @@ static int check_dct( int cpu_ref, int cpu_new )
     TEST_DCTDC( idct4x4dc );
 #undef TEST_DCTDC
 
-    x264_zigzag_function_t zigzag_c;
-    x264_zigzag_function_t zigzag_ref;
-    x264_zigzag_function_t zigzag_asm;
+    x264_zigzag_function_t zigzag_c[2];
+    x264_zigzag_function_t zigzag_ref[2];
+    x264_zigzag_function_t zigzag_asm[2];
 
     ALIGNED_16( dctcoef level1[64] );
     ALIGNED_16( dctcoef level2[64] );
 
 #define TEST_ZIGZAG_SCAN( name, t1, t2, dct, size ) \
-    if( zigzag_asm.name != zigzag_ref.name ) \
+    if( zigzag_asm[interlace].name != zigzag_ref[interlace].name ) \
     { \
         set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" ); \
         used_asm = 1; \
         memcpy(dct, buf1, size*sizeof(dctcoef)); \
-        call_c( zigzag_c.name, t1, dct ); \
-        call_a( zigzag_asm.name, t2, dct ); \
+        call_c( zigzag_c[interlace].name, t1, dct ); \
+        call_a( zigzag_asm[interlace].name, t2, dct ); \
         if( memcmp( t1, t2, size*sizeof(dctcoef) ) ) \
         { \
             ok = 0; \
@@ -734,26 +734,26 @@ static int check_dct( int cpu_ref, int cpu_new )
     }
 
 #define TEST_ZIGZAG_SUB( name, t1, t2, size ) \
-    if( zigzag_asm.name != zigzag_ref.name ) \
+    if( zigzag_asm[interlace].name != zigzag_ref[interlace].name ) \
     { \
         int nz_a, nz_c; \
         set_func_name( "zigzag_"#name"_%s", interlace?"field":"frame" ); \
         used_asm = 1; \
         memcpy( pbuf3, pbuf1, 16*FDEC_STRIDE * sizeof(pixel) ); \
         memcpy( pbuf4, pbuf1, 16*FDEC_STRIDE * sizeof(pixel) ); \
-        nz_c = call_c1( zigzag_c.name, t1, pbuf2, pbuf3 ); \
-        nz_a = call_a1( zigzag_asm.name, t2, pbuf2, pbuf4 ); \
+        nz_c = call_c1( zigzag_c[interlace].name, t1, pbuf2, pbuf3 ); \
+        nz_a = call_a1( zigzag_asm[interlace].name, t2, pbuf2, pbuf4 ); \
         if( memcmp( t1, t2, size*sizeof(dctcoef) ) || memcmp( pbuf3, pbuf4, 16*FDEC_STRIDE*sizeof(pixel) ) || nz_c != nz_a ) \
         { \
             ok = 0; \
             fprintf( stderr, #name " [FAILED]\n" ); \
         } \
-        call_c2( zigzag_c.name, t1, pbuf2, pbuf3 ); \
-        call_a2( zigzag_asm.name, t2, pbuf2, pbuf4 ); \
+        call_c2( zigzag_c[interlace].name, t1, pbuf2, pbuf3 ); \
+        call_a2( zigzag_asm[interlace].name, t2, pbuf2, pbuf4 ); \
     }
 
 #define TEST_ZIGZAG_SUBAC( name, t1, t2 ) \
-    if( zigzag_asm.name != zigzag_ref.name ) \
+    if( zigzag_asm[interlace].name != zigzag_ref[interlace].name ) \
     { \
         int nz_a, nz_c; \
         dctcoef dc_a, dc_c; \
@@ -768,8 +768,8 @@ static int check_dct( int cpu_ref, int cpu_new )
                 memcpy( pbuf3 + j*FDEC_STRIDE, (i?pbuf1:pbuf2) + j*FENC_STRIDE, 4 * sizeof(pixel) ); \
                 memcpy( pbuf4 + j*FDEC_STRIDE, (i?pbuf1:pbuf2) + j*FENC_STRIDE, 4 * sizeof(pixel) ); \
             } \
-            nz_c = call_c1( zigzag_c.name, t1, pbuf2, pbuf3, &dc_c ); \
-            nz_a = call_a1( zigzag_asm.name, t2, pbuf2, pbuf4, &dc_a ); \
+            nz_c = call_c1( zigzag_c[interlace].name, t1, pbuf2, pbuf3, &dc_c ); \
+            nz_a = call_a1( zigzag_asm[interlace].name, t2, pbuf2, pbuf4, &dc_a ); \
             if( memcmp( t1+1, t2+1, 15*sizeof(dctcoef) ) || memcmp( pbuf3, pbuf4, 16*FDEC_STRIDE * sizeof(pixel) ) || nz_c != nz_a || dc_c != dc_a ) \
             { \
                 ok = 0; \
@@ -777,12 +777,12 @@ static int check_dct( int cpu_ref, int cpu_new )
                 break; \
             } \
         } \
-        call_c2( zigzag_c.name, t1, pbuf2, pbuf3, &dc_c ); \
-        call_a2( zigzag_asm.name, t2, pbuf2, pbuf4, &dc_a ); \
+        call_c2( zigzag_c[interlace].name, t1, pbuf2, pbuf3, &dc_c ); \
+        call_a2( zigzag_asm[interlace].name, t2, pbuf2, pbuf4, &dc_a ); \
     }
 
 #define TEST_INTERLEAVE( name, t1, t2, dct, size ) \
-    if( zigzag_asm.name != zigzag_ref.name ) \
+    if( zigzag_asm[interlace].name != zigzag_ref[interlace].name ) \
     { \
         for( int j = 0; j < 100; j++ ) \
         { \
@@ -792,8 +792,8 @@ static int check_dct( int cpu_ref, int cpu_new )
             for( int i = 0; i < size; i++ ) \
                 dct[i] = rand()&0x1F ? 0 : dct[i]; \
             memcpy(buf3, buf4, 10); \
-            call_c( zigzag_c.name, t1, dct, buf3 ); \
-            call_a( zigzag_asm.name, t2, dct, buf4 ); \
+            call_c( zigzag_c[interlace].name, t1, dct, buf3 ); \
+            call_a( zigzag_asm[interlace].name, t2, dct, buf4 ); \
             if( memcmp( t1, t2, size*sizeof(dctcoef) ) || memcmp( buf3, buf4, 10 ) ) \
             { \
                 ok = 0; \
@@ -801,33 +801,23 @@ static int check_dct( int cpu_ref, int cpu_new )
         } \
     }
 
-    interlace = 0;
-    x264_zigzag_init( 0, &zigzag_c, 0 );
-    x264_zigzag_init( cpu_ref, &zigzag_ref, 0 );
-    x264_zigzag_init( cpu_new, &zigzag_asm, 0 );
-
-    ok = 1; used_asm = 0;
-    TEST_ZIGZAG_SCAN( scan_8x8, level1, level2, (void*)dct1, 64 );
-    TEST_ZIGZAG_SCAN( scan_4x4, level1, level2, dct1[0], 16  );
-    TEST_ZIGZAG_SUB( sub_4x4, level1, level2, 16 );
-    TEST_ZIGZAG_SUBAC( sub_4x4ac, level1, level2 );
-    report( "zigzag_frame :" );
-
-    interlace = 1;
-    x264_zigzag_init( 0, &zigzag_c, 1 );
-    x264_zigzag_init( cpu_ref, &zigzag_ref, 1 );
-    x264_zigzag_init( cpu_new, &zigzag_asm, 1 );
-
-    ok = 1; used_asm = 0;
-    TEST_ZIGZAG_SCAN( scan_8x8, level1, level2, (void*)dct1, 64 );
-    TEST_ZIGZAG_SCAN( scan_4x4, level1, level2, dct1[0], 16  );
-    TEST_ZIGZAG_SUB( sub_4x4, level1, level2, 16 );
-    TEST_ZIGZAG_SUBAC( sub_4x4ac, level1, level2 );
-    report( "zigzag_field :" );
+    x264_zigzag_init( 0, &zigzag_c[0], &zigzag_c[1] );
+    x264_zigzag_init( cpu_ref, &zigzag_ref[0], &zigzag_ref[1] );
+    x264_zigzag_init( cpu_new, &zigzag_asm[0], &zigzag_asm[1] );
 
     ok = 1; used_asm = 0;
     TEST_INTERLEAVE( interleave_8x8_cavlc, level1, level2, dct1[0], 64 );
     report( "zigzag_interleave :" );
+
+    for( interlace = 0; interlace <= 1; interlace++ )
+    {
+        ok = 1; used_asm = 0;
+        TEST_ZIGZAG_SCAN( scan_8x8, level1, level2, (void*)dct1, 64 );
+        TEST_ZIGZAG_SCAN( scan_4x4, level1, level2, dct1[0], 16  );
+        TEST_ZIGZAG_SUB( sub_4x4, level1, level2, 16 );
+        TEST_ZIGZAG_SUBAC( sub_4x4ac, level1, level2 );
+        report( interlace ? "zigzag_field :" : "zigzag_frame :" );
+    }
 #undef TEST_ZIGZAG_SCAN
 #undef TEST_ZIGZAG_SUB
 

@@ -1088,7 +1088,8 @@ x264_t *x264_encoder_open( x264_param_t *param )
         x264_cavlc_init();
     x264_pixel_init( h->param.cpu, &h->pixf );
     x264_dct_init( h->param.cpu, &h->dctf );
-    x264_zigzag_init( h->param.cpu, &h->zigzagf, h->param.b_interlaced );
+    x264_zigzag_init( h->param.cpu, &h->zigzagf_progressive, &h->zigzagf_interlaced );
+    memcpy( &h->zigzagf, h->param.b_interlaced ? &h->zigzagf_interlaced : &h->zigzagf_progressive, sizeof(h->zigzagf) );
     x264_mc_init( h->param.cpu, &h->mc );
     x264_quant_init( h, h->param.cpu, &h->quantf );
     x264_deblock_init( h->param.cpu, &h->loopf, h->param.b_interlaced );
@@ -2056,8 +2057,8 @@ static int x264_slice_write( x264_t *h )
                     int stride = h->fenc->i_stride[0];
                     pixel *fenc = h->fenc->plane[0] + 16 * (i_mb_x + i_mb_y * stride);
                     h->mb.b_interlaced = x264_field_vsad( h, fenc, stride );
+                    memcpy( &h->zigzagf, h->mb.b_interlaced ? &h->zigzagf_interlaced : &h->zigzagf_progressive, sizeof(h->zigzagf) );
                 }
-                x264_zigzag_init( h->param.cpu, &h->zigzagf, h->mb.b_interlaced );
             }
             h->mb.field[mb_xy] = h->mb.b_interlaced;
         }

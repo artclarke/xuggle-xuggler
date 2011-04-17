@@ -878,6 +878,8 @@ struct x264_t
     x264_mc_functions_t   mc;
     x264_dct_function_t   dctf;
     x264_zigzag_function_t zigzagf;
+    x264_zigzag_function_t zigzagf_interlaced;
+    x264_zigzag_function_t zigzagf_progressive;
     x264_quant_function_t quantf;
     x264_deblock_function_t loopf;
     x264_bitstream_function_t bsf;
