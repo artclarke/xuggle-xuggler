@@ -847,10 +847,11 @@ void x264_cabac_encode_decision_c( x264_cabac_t *cb, int i_ctx, int b )
     x264_cabac_encode_renorm( cb );
 }
 
+/* Note: b is negated for this function */
 void x264_cabac_encode_bypass_c( x264_cabac_t *cb, int b )
 {
     cb->i_low <<= 1;
-    cb->i_low += -b & cb->i_range;
+    cb->i_low += b & cb->i_range;
     cb->i_queue += 1;
     x264_cabac_putbyte( cb );
 }
