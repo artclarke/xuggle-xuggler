@@ -1688,7 +1688,14 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
 {
     x264_ratecontrol_t *rcc= h->rc;
     x264_zone_t *zone = get_zone( h, frame_num );
-    double q = pow( rce->blurred_complexity, 1 - rcc->qcompress );
+    double q;
+    if( h->param.rc.b_mb_tree )
+    {
+        double timescale = (double)h->sps->vui.i_num_units_in_tick / h->sps->vui.i_time_scale;
+        q = pow( BASE_FRAME_DURATION / CLIP_DURATION(rce->i_duration * timescale), 1 - h->param.rc.f_qcompress );
+    }
+    else
+        q = pow( rce->blurred_complexity, 1 - rcc->qcompress );
 
     // avoid NaN's in the rc_eq
     if( !isfinite(q) || rce->tex_bits + rce->mv_bits == 0 )
@@ -2199,6 +2206,7 @@ static float rate_estimate_qscale( x264_t *h )
             rce.s_count = 0;
             rce.qscale = 1;
             rce.pict_type = pict_type;
+            rce.i_duration = h->fenc->i_duration;
 
             if( h->param.rc.i_rc_method == X264_RC_CRF )
             {

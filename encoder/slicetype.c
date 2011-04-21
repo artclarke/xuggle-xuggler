@@ -752,8 +752,7 @@ static int x264_slicetype_frame_cost_recalculate( x264_t *h, x264_frame_t **fram
 
 static void x264_macroblock_tree_finish( x264_t *h, x264_frame_t *frame, float average_duration, int ref0_distance )
 {
-    int fps_factor_intra     = round( CLIP_DURATION(frame->f_duration) / BASE_FRAME_DURATION * 256 );
-    int fps_factor_propagate = round( CLIP_DURATION( average_duration) / BASE_FRAME_DURATION * 256 );
+    int fps_factor = round( CLIP_DURATION(average_duration) / CLIP_DURATION(frame->f_duration) * 256 );
     float weightdelta = 0.0;
     if( ref0_distance && frame->f_weighted_cost_delta[ref0_distance-1] > 0 )
         weightdelta = (1.0 - frame->f_weighted_cost_delta[ref0_distance-1]);
@@ -764,11 +763,10 @@ static void x264_macroblock_tree_finish( x264_t *h, x264_frame_t *frame, float a
     for( int mb_index = 0; mb_index < h->mb.i_mb_count; mb_index++ )
     {
         int intra_cost = (frame->i_intra_cost[mb_index] * frame->i_inv_qscale_factor[mb_index] + 128) >> 8;
-        int intra_cost_scaled = (intra_cost * fps_factor_intra + 128) >> 8;
         if( intra_cost )
         {
-            int propagate_cost = (frame->i_propagate_cost[mb_index] * fps_factor_propagate + 128) >> 8;
-            float log2_ratio = x264_log2(intra_cost_scaled + propagate_cost) - x264_log2(intra_cost) + weightdelta;
+            int propagate_cost = (frame->i_propagate_cost[mb_index] * fps_factor + 128) >> 8;
+            float log2_ratio = x264_log2(intra_cost + propagate_cost) - x264_log2(intra_cost) + weightdelta;
             frame->f_qp_offset[mb_index] = frame->f_qp_offset_aq[mb_index] - strength * log2_ratio;
         }
     }
