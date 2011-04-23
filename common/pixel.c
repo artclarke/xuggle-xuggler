@@ -641,6 +641,14 @@ float x264_pixel_ssim_wxh( x264_pixel_function_t *pf,
     return ssim;
 }
 
+int pixel_vsad( pixel *src, int stride )
+{
+    int score = 0;
+    for( int i = 1; i < 16; i++, src += stride )
+        for( int j = 0; j < 16; j++ )
+            score += abs(src[j] - src[j+stride]);
+    return score;
+}
 
 /****************************************************************************
  * successive elimination
@@ -746,6 +754,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
     pixf->ssim_4x4x2_core = ssim_4x4x2_core;
     pixf->ssim_end4 = ssim_end4;
     pixf->var2_8x8 = pixel_var2_8x8;
+    pixf->vsad = pixel_vsad;
 
     pixf->intra_sad_x3_4x4    = x264_intra_sad_x3_4x4;
     pixf->intra_satd_x3_4x4   = x264_intra_satd_x3_4x4;
@@ -873,6 +882,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         pixf->intra_sa8d_x3_8x8 = x264_intra_sa8d_x3_8x8_mmxext;
         pixf->ssim_4x4x2_core  = x264_pixel_ssim_4x4x2_core_mmxext;
         pixf->var2_8x8 = x264_pixel_var2_8x8_mmxext;
+        pixf->vsad = x264_pixel_vsad_mmxext;
 
         if( cpu&X264_CPU_CACHELINE_32 )
         {
@@ -921,6 +931,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         pixf->intra_sa8d_x3_8x8 = x264_intra_sa8d_x3_8x8_sse2;
 #endif
         pixf->var2_8x8 = x264_pixel_var2_8x8_sse2;
+        pixf->vsad = x264_pixel_vsad_sse2;
     }
 
     if( (cpu&X264_CPU_SSE2) && !(cpu&X264_CPU_SSE2_IS_SLOW) )
