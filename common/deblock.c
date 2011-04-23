@@ -305,7 +305,7 @@ static inline void deblock_edge_intra( x264_t *h, pixel *pix, int i_stride, uint
 void x264_frame_deblock_row( x264_t *h, int mb_y )
 {
     int b_interlaced = h->sh.b_mbaff;
-    int qp_thresh = 15 - X264_MIN( h->sh.i_alpha_c0_offset, h->sh.i_beta_offset ) - X264_MAX( 0, h->param.analyse.i_chroma_qp_offset );
+    int qp_thresh = 15 - X264_MIN( h->sh.i_alpha_c0_offset, h->sh.i_beta_offset ) - X264_MAX( 0, h->pps->i_chroma_qp_index_offset );
     int stridey   = h->fdec->i_stride[0];
     int stride2y  = stridey << b_interlaced;
     int strideuv  = h->fdec->i_stride[1];
@@ -401,7 +401,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
  */
 void x264_macroblock_deblock( x264_t *h )
 {
-    int qp_thresh = 15 - X264_MIN( h->sh.i_alpha_c0_offset, h->sh.i_beta_offset ) - X264_MAX( 0, h->param.analyse.i_chroma_qp_offset );
+    int qp_thresh = 15 - X264_MIN( h->sh.i_alpha_c0_offset, h->sh.i_beta_offset ) - X264_MAX( 0, h->pps->i_chroma_qp_index_offset );
     int qp = h->mb.i_qp;
     if( qp <= qp_thresh || h->mb.i_type == P_SKIP )
         return;
