@@ -780,12 +780,12 @@ if [ "$swscale" = "yes" ]; then
     fi
 fi
 
-GPAC_LIBS="-lgpac_static"
-if [ $SYS = WINDOWS ]; then
-    GPAC_LIBS="$GPAC_LIBS -lwinmm"
-fi
 if [ "$gpac" = "auto" ] ; then
     gpac="no"
+    cc_check "" -lz && GPAC_LIBS="-lgpac_static -lz" || GPAC_LIBS="-lgpac_static"
+    if [ "$SYS" = "WINDOWS" ] ; then
+        GPAC_LIBS="$GPAC_LIBS -lwinmm"
+    fi
     if cc_check gpac/isomedia.h "$GPAC_LIBS" ; then
         if cc_check gpac/isomedia.h "$GPAC_LIBS" "gf_isom_set_pixel_aspect_ratio(0,0,0,0,0);" ; then
             gpac="yes"
