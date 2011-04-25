@@ -1894,6 +1894,7 @@ static int check_cabac( int cpu_ref, int cpu_new )
     int ret = 0, ok, used_asm = 1;
     if( cpu_ref || run_cabac_decision_c == run_cabac_decision_asm )
         return 0;
+    x264_cabac_init();
 
     set_func_name( "cabac_encode_decision" );
     memcpy( buf4, buf3, 0x1000 );
