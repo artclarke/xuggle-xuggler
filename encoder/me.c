@@ -814,7 +814,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     const uint16_t *p_cost_mvy = m->p_cost_mv - m->mvp[1];
     const int i_pixel = m->i_pixel;
     const int b_chroma_me = h->mb.b_chroma_me && i_pixel <= PIXEL_8x8;
-    const int mvy_offset = h->mb.b_interlaced & m->i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
+    const int mvy_offset = MB_INTERLACED & m->i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
 
     ALIGNED_ARRAY_16( pixel, pix,[64*18] ); // really 17x17x2, but round up for alignment
 
@@ -951,8 +951,8 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
     pixel *pixv = &h->mb.pic.p_fdec[2][4*x + 4*y*FDEC_STRIDE];
     int ref0 = h->mb.cache.ref[0][s8];
     int ref1 = h->mb.cache.ref[1][s8];
-    const int mv0y_offset = h->mb.b_interlaced & ref0 ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
-    const int mv1y_offset = h->mb.b_interlaced & ref1 ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
+    const int mv0y_offset = MB_INTERLACED & ref0 ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
+    const int mv1y_offset = MB_INTERLACED & ref1 ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
     int stride[2][9];
     int bm0x = m0->mv[0];
     int bm0y = m0->mv[1];
@@ -1129,7 +1129,7 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int
     const int bw = x264_pixel_size[m->i_pixel].w;
     const int bh = x264_pixel_size[m->i_pixel].h;
     const int i_pixel = m->i_pixel;
-    const int mvy_offset = h->mb.b_interlaced & m->i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
+    const int mvy_offset = MB_INTERLACED & m->i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
 
     uint64_t bcost = COST_MAX64;
     int bmx = m->mv[0];

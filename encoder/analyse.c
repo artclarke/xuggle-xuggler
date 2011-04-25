@@ -340,7 +340,7 @@ void x264_analyse_weight_frame( x264_t *h, int end )
         {
             x264_frame_t *frame = h->fref[0][j];
             int width = frame->i_width[0] + 2*PADH;
-            int i_padv = PADV << h->param.b_interlaced;
+            int i_padv = PADV << PARAM_INTERLACED;
             int offset, height;
             pixel *src = frame->filtered[0] - frame->i_stride[0]*i_padv - PADH;
             height = X264_MIN( 16 + end + i_padv, h->fref[0][j]->i_lines[0] + i_padv*2 ) - h->fenc->i_lines_weighted;
@@ -461,14 +461,14 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int qp )
         }
         h->mb.mv_min_fpel[0] = (h->mb.mv_min_spel[0]>>2) + i_fpel_border;
         h->mb.mv_max_fpel[0] = (h->mb.mv_max_spel[0]>>2) - i_fpel_border;
-        if( h->mb.i_mb_x == 0 && !(h->mb.i_mb_y & h->param.b_interlaced) )
+        if( h->mb.i_mb_x == 0 && !(h->mb.i_mb_y & PARAM_INTERLACED) )
         {
-            int mb_y = h->mb.i_mb_y >> h->sh.b_mbaff;
+            int mb_y = h->mb.i_mb_y >> SLICE_MBAFF;
             int thread_mvy_range = i_fmv_range;
 
             if( h->i_thread_frames > 1 )
             {
-                int pix_y = (h->mb.i_mb_y | h->param.b_interlaced) * 16;
+                int pix_y = (h->mb.i_mb_y | PARAM_INTERLACED) * 16;
                 int thresh = pix_y + h->param.analyse.i_mv_range_thread;
                 for( int i = (h->sh.i_type == SLICE_TYPE_B); i >= 0; i-- )
                     for( int j = 0; j < h->i_ref[i]; j++ )
@@ -479,13 +479,13 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int qp )
 
                 if( h->param.b_deterministic )
                     thread_mvy_range = h->param.analyse.i_mv_range_thread;
-                if( h->param.b_interlaced )
+                if( PARAM_INTERLACED )
                     thread_mvy_range >>= 1;
 
                 x264_analyse_weight_frame( h, pix_y + thread_mvy_range );
             }
 
-            if( h->param.b_interlaced )
+            if( PARAM_INTERLACED )
             {
                 /* 0 == top progressive, 1 == bot progressive, 2 == interlaced */
                 for( int i = 0; i < 3; i++ )
@@ -512,9 +512,9 @@ static void x264_mb_analyse_init( x264_t *h, x264_mb_analysis_t *a, int qp )
                 h->mb.mv_max_fpel[1] = (h->mb.mv_max_spel[1]>>2) - i_fpel_border;
             }
         }
-        if( h->param.b_interlaced )
+        if( PARAM_INTERLACED )
         {
-            int i = h->mb.b_interlaced ? 2 : h->mb.i_mb_y&1;
+            int i = MB_INTERLACED ? 2 : h->mb.i_mb_y&1;
             h->mb.mv_min[1] = h->mb.mv_miny_row[i];
             h->mb.mv_max[1] = h->mb.mv_maxy_row[i];
             h->mb.mv_min_spel[1] = h->mb.mv_miny_spel_row[i];
@@ -1613,7 +1613,7 @@ static int x264_mb_analyse_inter_p4x4_chroma( x264_t *h, x264_mb_analysis_t *a, 
     const int or = 8*(i8x8&1) + 2*(i8x8&2)*i_stride;
     const int oe = 4*(i8x8&1) + 2*(i8x8&2)*FENC_STRIDE;
     const int i_ref = a->l0.me8x8[i8x8].i_ref;
-    const int mvy_offset = h->mb.b_interlaced & i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
+    const int mvy_offset = MB_INTERLACED & i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
     x264_weight_t *weight = h->sh.weight[i_ref];
 
     // FIXME weight can be done on 4x4 blocks even if mc is smaller
@@ -1770,8 +1770,8 @@ static ALWAYS_INLINE int x264_analyse_bi_chroma( x264_t *h, x264_mb_analysis_t *
 
 #define COST_BI_CHROMA( m0, m1, width, height ) \
 { \
-    l0_mvy_offset = h->mb.b_interlaced & m0.i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0; \
-    l1_mvy_offset = h->mb.b_interlaced & m1.i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0; \
+    l0_mvy_offset = MB_INTERLACED & m0.i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0; \
+    l1_mvy_offset = MB_INTERLACED & m1.i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0; \
     h->mc.mc_chroma( pix[0], pix[1], 8, m0.p_fref[4], m0.i_stride[1], m0.mv[0], m0.mv[1] + l0_mvy_offset, width, height ); \
     h->mc.mc_chroma( pix[2], pix[3], 8, m1.p_fref[4], m1.i_stride[1], m1.mv[0], m1.mv[1] + l1_mvy_offset, width, height ); \
     h->mc.avg[i_pixel+3]( bi[0], 8, pix[0], 8, pix[2], 8, h->mb.bipred_weight[m0.i_ref][m1.i_ref] ); \
@@ -1955,18 +1955,18 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
             ALIGNED_ARRAY_16( pixel, pixuv, [2],[8*FENC_STRIDE] );
             ALIGNED_ARRAY_16( pixel, bi, [8*FENC_STRIDE] );
 
-            if( h->mb.b_interlaced & a->l0.bi16x16.i_ref )
+            if( MB_INTERLACED & a->l0.bi16x16.i_ref )
             {
-                int l0_mvy_offset = h->mb.b_interlaced & a->l0.bi16x16.i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
+                int l0_mvy_offset = MB_INTERLACED & a->l0.bi16x16.i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
                 h->mc.mc_chroma( pixuv[0], pixuv[0]+8, FENC_STRIDE, h->mb.pic.p_fref[0][a->l0.bi16x16.i_ref][4],
                                  h->mb.pic.i_stride[1], 0, 0 + l0_mvy_offset, 8, 8 );
             }
             else
                 h->mc.load_deinterleave_8x8x2_fenc( pixuv[0], h->mb.pic.p_fref[0][a->l0.bi16x16.i_ref][4], h->mb.pic.i_stride[1] );
 
-            if( h->mb.b_interlaced & a->l1.bi16x16.i_ref )
+            if( MB_INTERLACED & a->l1.bi16x16.i_ref )
             {
-                int l1_mvy_offset = h->mb.b_interlaced & a->l1.bi16x16.i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
+                int l1_mvy_offset = MB_INTERLACED & a->l1.bi16x16.i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
                 h->mc.mc_chroma( pixuv[1], pixuv[1]+8, FENC_STRIDE, h->mb.pic.p_fref[1][a->l1.bi16x16.i_ref][4],
                                  h->mb.pic.i_stride[1], 0, 0 + l1_mvy_offset, 8, 8 );
             }
@@ -3705,8 +3705,8 @@ static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a  )
             int ref = h->mb.cache.ref[l][x264_scan8[0]];
             if( ref < 0 )
                 continue;
-            completed = h->fref[l][ ref >> h->mb.b_interlaced ]->orig->i_lines_completed;
-            if( (h->mb.cache.mv[l][x264_scan8[15]][1] >> (2 - h->mb.b_interlaced)) + h->mb.i_mb_y*16 > completed )
+            completed = h->fref[l][ ref >> MB_INTERLACED ]->orig->i_lines_completed;
+            if( (h->mb.cache.mv[l][x264_scan8[15]][1] >> (2 - MB_INTERLACED)) + h->mb.i_mb_y*16 > completed )
             {
                 x264_log( h, X264_LOG_WARNING, "internal error (MV out of thread range)\n");
                 x264_log( h, X264_LOG_DEBUG, "mb type: %d \n", h->mb.i_type);

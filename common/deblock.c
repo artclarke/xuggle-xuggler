@@ -320,7 +320,7 @@ void deblock_strength_mbaff_c( uint8_t nnz_cache[X264_SCAN8_SIZE], int8_t ref[2]
                     {
                         bs[dir][edge][i] = 2;
                     }
-                    else if( (edge == 0 && h->mb.b_interlaced != neighbour_field[dir]) ||
+                    else if( (edge == 0 && MB_INTERLACED != neighbour_field[dir]) ||
                              ref[0][q] != ref[0][p] ||
                              abs( mv[0][q][0] - mv[0][p][0] ) >= 4 ||
                              abs( mv[0][q][1] - mv[0][p][1] ) >= mvy_limit ||
@@ -339,7 +339,7 @@ void deblock_strength_mbaff_c( uint8_t nnz_cache[X264_SCAN8_SIZE], int8_t ref[2]
 
     if( h->mb.i_neighbour & MB_LEFT )
     {
-        if( h->mb.field[h->mb.i_mb_left_xy[0]] != h->mb.b_interlaced )
+        if( h->mb.field[h->mb.i_mb_left_xy[0]] != MB_INTERLACED )
         {
             static const uint8_t offset[2][2][8] = {
                 {   { 0, 0, 0, 0, 1, 1, 1, 1 },
@@ -353,12 +353,12 @@ void deblock_strength_mbaff_c( uint8_t nnz_cache[X264_SCAN8_SIZE], int8_t ref[2]
                 memset( bS, 4, 8 );
             else
             {
-                const uint8_t *off = offset[h->mb.b_interlaced][h->mb.i_mb_y&1];
+                const uint8_t *off = offset[MB_INTERLACED][h->mb.i_mb_y&1];
                 uint8_t (*nnz)[24] = h->mb.non_zero_count;
 
                 for( int i = 0; i < 8; i++ )
                 {
-                    int left = h->mb.i_mb_left_xy[h->mb.b_interlaced ? i>>2 : i&1];
+                    int left = h->mb.i_mb_left_xy[MB_INTERLACED ? i>>2 : i&1];
                     int nnz_this = h->mb.cache.non_zero_count[x264_scan8[0]+8*(i>>1)];
                     int nnz_left = nnz[left][3 + 4*off[i]];
                     if( !h->param.b_cabac && h->pps->b_transform_8x8_mode )
@@ -376,7 +376,7 @@ void deblock_strength_mbaff_c( uint8_t nnz_cache[X264_SCAN8_SIZE], int8_t ref[2]
                 }
             }
 
-            if( h->mb.b_interlaced )
+            if( MB_INTERLACED )
             {
                 for( int i = 0; i < 4; i++ ) bs[0][0][i] = bS[i];
                 for( int i = 0; i < 4; i++ ) bs[0][4][i] = bS[4+i];
@@ -391,7 +391,7 @@ void deblock_strength_mbaff_c( uint8_t nnz_cache[X264_SCAN8_SIZE], int8_t ref[2]
 
     if( h->mb.i_neighbour & MB_TOP )
     {
-        if( !(h->mb.i_mb_y&1) && !h->mb.b_interlaced && h->mb.field[h->mb.i_mb_top_xy] )
+        if( !(h->mb.i_mb_y&1) && !MB_INTERLACED && h->mb.field[h->mb.i_mb_top_xy] )
         {
             /* Need to filter both fields (even for frame macroblocks).
              * Filter top two rows using the top macroblock of the above
@@ -486,8 +486,8 @@ static inline void deblock_edge_intra( x264_t *h, pixel *pix, int i_stride, uint
 
 void x264_frame_deblock_row( x264_t *h, int mb_y )
 {
-    int b_interlaced = h->sh.b_mbaff;
-    int qp_thresh = 15 - X264_MIN( h->sh.i_alpha_c0_offset, h->sh.i_beta_offset ) - X264_MAX( 0, h->pps->i_chroma_qp_index_offset );
+    int b_interlaced = SLICE_MBAFF;
+    int qp_thresh = 15 - X264_MIN( h->sh.i_alpha_c0_offset, h->sh.i_beta_offset ) - X264_MAX( 0, h->param.analyse.i_chroma_qp_offset );
     int stridey   = h->fdec->i_stride[0];
     int strideuv  = h->fdec->i_stride[1];
 
@@ -503,14 +503,14 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
 
         pixel *pixy = h->fdec->plane[0] + 16*mb_y*stridey  + 16*mb_x;
         pixel *pixuv = h->fdec->plane[1] + 8*mb_y*strideuv + 16*mb_x;
-        if( mb_y & h->mb.b_interlaced )
+        if( mb_y & MB_INTERLACED )
         {
             pixy -= 15*stridey;
             pixuv -= 7*strideuv;
         }
 
-        int stride2y  = stridey << h->mb.b_interlaced;
-        int stride2uv = strideuv << h->mb.b_interlaced;
+        int stride2y  = stridey << MB_INTERLACED;
+        int stride2uv = strideuv << MB_INTERLACED;
         int qp = h->mb.qp[mb_xy];
         int qpc = h->chroma_qp_table[qp];
         int first_edge_only = h->mb.type[mb_xy] == P_SKIP || qp <= qp_thresh;
@@ -529,7 +529,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
 
         if( h->mb.i_neighbour & MB_LEFT )
         {
-            if( b_interlaced && h->mb.field[h->mb.i_mb_left_xy[0]] != h->mb.b_interlaced )
+            if( b_interlaced && h->mb.field[h->mb.i_mb_left_xy[0]] != MB_INTERLACED )
             {
                 int luma_qp[2];
                 int chroma_qp[2];
@@ -551,8 +551,8 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                     deblock_edge( h, pixuv + 1, 2*strideuv, bs[0][0], chroma_qp[0], 1, deblock_v_chroma_mbaff_c );
                 }
 
-                int offy = h->mb.b_interlaced ? 4 : 0;
-                int offuv = h->mb.b_interlaced ? 3 : 0;
+                int offy = MB_INTERLACED ? 4 : 0;
+                int offuv = MB_INTERLACED ? 3 : 0;
                 left_qp[1] = h->mb.qp[h->mb.i_mb_left_xy[1]];
                 luma_qp[1] = (current_qp + left_qp[1] + 1) >> 1;
                 chroma_qp[1] = (h->chroma_qp_table[current_qp] + h->chroma_qp_table[left_qp[1]] + 1) >> 1;
@@ -591,7 +591,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
 
         if( h->mb.i_neighbour & MB_TOP )
         {
-            if( b_interlaced && !(mb_y&1) && !h->mb.b_interlaced && h->mb.field[h->mb.i_mb_top_xy] )
+            if( b_interlaced && !(mb_y&1) && !MB_INTERLACED && h->mb.field[h->mb.i_mb_top_xy] )
             {
                 int mbn_xy = mb_xy - 2 * h->mb.i_mb_stride;
 
@@ -613,7 +613,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                 int qpc_top = (h->chroma_qp_table[qp] + h->chroma_qp_table[qpt] + 1) >> 1;
                 int intra_top = IS_INTRA( h->mb.type[h->mb.i_mb_top_xy] );
 
-                if( (!b_interlaced || (!h->mb.b_interlaced && !h->mb.field[h->mb.i_mb_top_xy]))
+                if( (!b_interlaced || (!MB_INTERLACED && !h->mb.field[h->mb.i_mb_top_xy]))
                     && (intra_cur || intra_top) )
                 {
                     FILTER( _intra, 1, 0, qp_top, qpc_top );
@@ -658,7 +658,7 @@ void x264_macroblock_deblock( x264_t *h )
         memset( bs, 3, 2*8*4*sizeof(uint8_t) );
     else
         h->loopf.deblock_strength( h->mb.cache.non_zero_count, h->mb.cache.ref, h->mb.cache.mv,
-                                   bs, 4 >> h->sh.b_mbaff, h->sh.i_type == SLICE_TYPE_B, h );
+                                   bs, 4 >> SLICE_MBAFF, h->sh.i_type == SLICE_TYPE_B, h );
 
     int transform_8x8 = h->mb.b_transform_8x8;
     pixel *fdec = h->mb.pic.p_fdec[0];

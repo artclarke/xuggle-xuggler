@@ -513,7 +513,7 @@ void x264_predict_lossless_8x8_chroma( x264_t *h, int i_mode )
 
 void x264_predict_lossless_4x4( x264_t *h, pixel *p_dst, int idx, int i_mode )
 {
-    int stride = h->fenc->i_stride[0] << h->mb.b_interlaced;
+    int stride = h->fenc->i_stride[0] << MB_INTERLACED;
     pixel *p_src = h->mb.pic.p_fenc_plane[0] + block_idx_x[idx]*4 + block_idx_y[idx]*4 * stride;
 
     if( i_mode == I_PRED_4x4_V )
@@ -526,7 +526,7 @@ void x264_predict_lossless_4x4( x264_t *h, pixel *p_dst, int idx, int i_mode )
 
 void x264_predict_lossless_8x8( x264_t *h, pixel *p_dst, int idx, int i_mode, pixel edge[33] )
 {
-    int stride = h->fenc->i_stride[0] << h->mb.b_interlaced;
+    int stride = h->fenc->i_stride[0] << MB_INTERLACED;
     pixel *p_src = h->mb.pic.p_fenc_plane[0] + (idx&1)*8 + (idx>>1)*8*stride;
 
     if( i_mode == I_PRED_8x8_V )
@@ -539,7 +539,7 @@ void x264_predict_lossless_8x8( x264_t *h, pixel *p_dst, int idx, int i_mode, pi
 
 void x264_predict_lossless_16x16( x264_t *h, int i_mode )
 {
-    int stride = h->fenc->i_stride[0] << h->mb.b_interlaced;
+    int stride = h->fenc->i_stride[0] << MB_INTERLACED;
     if( i_mode == I_PRED_16x16_V )
         h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fdec[0], FDEC_STRIDE, h->mb.pic.p_fenc_plane[0]-stride, stride, 16 );
     else if( i_mode == I_PRED_16x16_H )

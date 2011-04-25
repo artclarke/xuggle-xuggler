@@ -257,8 +257,8 @@ static NOINLINE uint32_t x264_ac_energy_mb( x264_t *h, int mb_x, int mb_y, x264_
     }
     else
     {
-        var  = ac_energy_plane( h, mb_x, mb_y, frame, 0, h->param.b_interlaced, 1 );
-        var += ac_energy_plane( h, mb_x, mb_y, frame, 1, h->param.b_interlaced, 1 );
+        var  = ac_energy_plane( h, mb_x, mb_y, frame, 0, PARAM_INTERLACED, 1 );
+        var += ac_energy_plane( h, mb_x, mb_y, frame, 1, PARAM_INTERLACED, 1 );
     }
     x264_emms();
     return var;
@@ -1335,7 +1335,7 @@ static double predict_row_size( x264_t *h, int y, double qp )
 static double row_bits_so_far( x264_t *h, int y )
 {
     double bits = 0;
-    for( int i = h->i_threadslice_start+h->sh.b_mbaff; i <= y; i+=(h->sh.b_mbaff+1) )
+    for( int i = h->i_threadslice_start+SLICE_MBAFF; i <= y; i+=(SLICE_MBAFF+1) )
         bits += h->fdec->i_row_bits[i];
     return bits;
 }
@@ -1343,7 +1343,7 @@ static double row_bits_so_far( x264_t *h, int y )
 static double predict_row_size_sum( x264_t *h, int y, double qp )
 {
     double bits = row_bits_so_far(h, y);
-    for( int i = y+1+h->sh.b_mbaff; i < h->i_threadslice_end; i+=(1+h->sh.b_mbaff) )
+    for( int i = y+1+SLICE_MBAFF; i < h->i_threadslice_end; i+=(1+SLICE_MBAFF) )
         bits += predict_row_size( h, i, qp );
     return bits;
 }
@@ -1357,7 +1357,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     x264_emms();
 
     h->fdec->i_row_bits[y] += bits;
-    if( h->sh.b_mbaff )
+    if( SLICE_MBAFF )
     {
         rc->qpa_rc += rc->qpm*2.0f;
         rc->qpa_aq += h->mb.i_qp + h->mb.i_last_qp;
@@ -1391,7 +1391,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
         /* B-frames shouldn't use lower QP than their reference frames. */
         if( h->sh.i_type == SLICE_TYPE_B )
         {
-            qp_min = X264_MAX( qp_min, X264_MAX( h->fref[0][0]->f_row_qp[y+1+h->sh.b_mbaff], h->fref[1][0]->f_row_qp[y+1+h->sh.b_mbaff] ) );
+            qp_min = X264_MAX( qp_min, X264_MAX( h->fref[0][0]->f_row_qp[y+1+SLICE_MBAFF], h->fref[1][0]->f_row_qp[y+1+SLICE_MBAFF] ) );
             rc->qpm = X264_MAX( rc->qpm, qp_min );
         }
 
@@ -1585,7 +1585,7 @@ int x264_ratecontrol_end( x264_t *h, int bits, int *filler )
         for( int i = 0; i < (use_old_stats ? rc->rce->refs : h->i_ref[0]); i++ )
         {
             int refcount = use_old_stats         ? rc->rce->refcount[i]
-                         : h->param.b_interlaced ? h->stat.frame.i_mb_count_ref[0][i*2]
+                         : PARAM_INTERLACED      ? h->stat.frame.i_mb_count_ref[0][i*2]
                                                  + h->stat.frame.i_mb_count_ref[0][i*2+1]
                          :                         h->stat.frame.i_mb_count_ref[0][i];
             if( fprintf( rc->p_stat_file_out, "%d ", refcount ) < 0 )

@@ -102,7 +102,7 @@ static void x264_slice_header_init( x264_t *h, x264_slice_header_t *sh,
 
     sh->i_frame_num = i_frame;
 
-    sh->b_mbaff = h->param.b_interlaced;
+    sh->b_mbaff = PARAM_INTERLACED;
     sh->b_field_pic = 0;    /* no field support for now */
     sh->b_bottom_field = 0; /* not yet used */
 
@@ -419,6 +419,16 @@ static int x264_validate_parameters( x264_t *h, int b_open )
         return -1;
     }
 
+#if HAVE_INTERLACED
+    h->param.b_interlaced = !!PARAM_INTERLACED;
+#else
+    if( h->param.b_interlaced )
+    {
+        x264_log( h, X264_LOG_ERROR, "not compiled with interlaced support\n" );
+        return -1;
+    }
+#endif
+
     if( (h->param.crop_rect.i_left + h->param.crop_rect.i_right ) >= h->param.i_width ||
         (h->param.crop_rect.i_top  + h->param.crop_rect.i_bottom) >= h->param.i_height )
     {
@@ -575,8 +585,7 @@ static int x264_validate_parameters( x264_t *h, int b_open )
     h->param.i_slice_max_size = X264_MAX( h->param.i_slice_max_size, 0 );
     h->param.i_slice_max_mbs = X264_MAX( h->param.i_slice_max_mbs, 0 );
 
-    h->param.b_interlaced = !!h->param.b_interlaced;
-    int max_slices = (h->param.i_height+((16<<h->param.b_interlaced)-1))/(16<<h->param.b_interlaced);
+    int max_slices = (h->param.i_height+((16<<PARAM_INTERLACED)-1))/(16<<PARAM_INTERLACED);
     if( h->param.b_sliced_threads )
         h->param.i_slice_count = x264_clip3( h->param.i_threads, 0, max_slices );
     else
@@ -797,14 +806,14 @@ static int x264_validate_parameters( x264_t *h, int b_open )
             }
         }
         if( h->param.analyse.i_mv_range <= 0 )
-            h->param.analyse.i_mv_range = l->mv_range >> h->param.b_interlaced;
+            h->param.analyse.i_mv_range = l->mv_range >> PARAM_INTERLACED;
         else
-            h->param.analyse.i_mv_range = x264_clip3(h->param.analyse.i_mv_range, 32, 512 >> h->param.b_interlaced);
+            h->param.analyse.i_mv_range = x264_clip3(h->param.analyse.i_mv_range, 32, 512 >> PARAM_INTERLACED);
     }
 
     h->param.analyse.i_weighted_pred = x264_clip3( h->param.analyse.i_weighted_pred, X264_WEIGHTP_NONE, X264_WEIGHTP_SMART );
 
-    if( h->param.b_interlaced )
+    if( PARAM_INTERLACED )
     {
         if( h->param.analyse.i_me_method >= X264_ME_ESA )
         {
@@ -853,7 +862,7 @@ static int x264_validate_parameters( x264_t *h, int b_open )
 
     h->param.i_sps_id &= 31;
 
-    if( h->param.b_interlaced )
+    if( PARAM_INTERLACED )
         h->param.b_pic_struct = 1;
 
     h->param.i_nal_hrd = x264_clip3( h->param.i_nal_hrd, X264_NAL_HRD_NONE, X264_NAL_HRD_CBR );
@@ -1030,7 +1039,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
     /* Adaptive MBAFF and subme 0 are not supported as we require halving motion
      * vectors during prediction, resulting in hpel mvs.
      * The chosen solution is to make MBAFF non-adaptive in this case. */
-    h->mb.b_adaptive_mbaff = h->param.b_interlaced && h->param.analyse.i_subpel_refine;
+    h->mb.b_adaptive_mbaff = PARAM_INTERLACED && h->param.analyse.i_subpel_refine;
 
     /* Init frames. */
     if( h->param.i_bframe_adaptive == X264_B_ADAPT_TRELLIS && !h->param.rc.b_stat_read )
@@ -1089,10 +1098,10 @@ x264_t *x264_encoder_open( x264_param_t *param )
     x264_pixel_init( h->param.cpu, &h->pixf );
     x264_dct_init( h->param.cpu, &h->dctf );
     x264_zigzag_init( h->param.cpu, &h->zigzagf_progressive, &h->zigzagf_interlaced );
-    memcpy( &h->zigzagf, h->param.b_interlaced ? &h->zigzagf_interlaced : &h->zigzagf_progressive, sizeof(h->zigzagf) );
+    memcpy( &h->zigzagf, PARAM_INTERLACED ? &h->zigzagf_interlaced : &h->zigzagf_progressive, sizeof(h->zigzagf) );
     x264_mc_init( h->param.cpu, &h->mc );
     x264_quant_init( h, h->param.cpu, &h->quantf );
-    x264_deblock_init( h->param.cpu, &h->loopf, h->param.b_interlaced );
+    x264_deblock_init( h->param.cpu, &h->loopf, PARAM_INTERLACED );
     x264_bitstream_init( h->param.cpu, &h->bsf );
     x264_dct_init_weights();
 
@@ -1545,7 +1554,7 @@ static void x264_weighted_pred_init( x264_t *h )
     // and duplicates of that frame.
     h->fenc->i_lines_weighted = 0;
 
-    for( int i_ref = 0; i_ref < (h->i_ref[0] << h->sh.b_mbaff); i_ref++ )
+    for( int i_ref = 0; i_ref < (h->i_ref[0] << SLICE_MBAFF); i_ref++ )
         for( int i = 0; i < 3; i++ )
             h->sh.weight[i_ref][i].weightfn = NULL;
 
@@ -1553,7 +1562,7 @@ static void x264_weighted_pred_init( x264_t *h )
     if( h->sh.i_type != SLICE_TYPE_P || h->param.analyse.i_weighted_pred <= 0 )
         return;
 
-    int i_padv = PADV << h->param.b_interlaced;
+    int i_padv = PADV << PARAM_INTERLACED;
     int denom = -1;
     int weightplane[2] = { 0, 0 };
     int buffer_next = 0;
@@ -1736,7 +1745,7 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
     int b_deblock = h->sh.i_disable_deblocking_filter_idc != 1;
     int b_end = mb_y == h->i_threadslice_end;
     int b_measure_quality = 1;
-    int min_y = mb_y - (1 << h->sh.b_mbaff);
+    int min_y = mb_y - (1 << SLICE_MBAFF);
     int b_start = min_y == h->i_threadslice_start;
     /* Even in interlaced mode, deblocking never modifies more than 4 pixels
      * above each MB, as bS=4 doesn't happen for the top of interlaced mbpairs. */
@@ -1748,19 +1757,19 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
         b_deblock = 0;         /* We already deblocked on the inloop pass. */
         b_measure_quality = 0; /* We already measured quality on the inloop pass. */
     }
-    if( mb_y & h->sh.b_mbaff )
+    if( mb_y & SLICE_MBAFF )
         return;
     if( min_y < h->i_threadslice_start )
         return;
 
     if( b_deblock )
-        for( int y = min_y; y < mb_y; y += (1 << h->sh.b_mbaff) )
+        for( int y = min_y; y < mb_y; y += (1 << SLICE_MBAFF) )
             x264_frame_deblock_row( h, y );
 
     /* FIXME: Prediction requires different borders for interlaced/progressive mc,
      * but the actual image data is equivalent. For now, maintain this
      * consistency by copying deblocked pixels between planes. */
-    if( h->param.b_interlaced )
+    if( PARAM_INTERLACED )
         for( int p = 0; p < 2; p++ )
             for( int i = minpix_y>>p; i < maxpix_y>>p; i++ )
                 memcpy( h->fdec->plane_fld[p] + i*h->fdec->i_stride[p],
@@ -1778,7 +1787,7 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
         }
     }
 
-    if( h->sh.b_mbaff )
+    if( SLICE_MBAFF )
         for( int i = 0; i < 2; i++ )
         {
             XCHG( pixel *, h->intra_border_backup[0][i], h->intra_border_backup[3][i] );
@@ -1786,7 +1795,7 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
         }
 
     if( h->i_thread_frames > 1 && h->fdec->b_kept_as_ref )
-        x264_frame_cond_broadcast( h->fdec, mb_y*16 + (b_end ? 10000 : -(X264_THREAD_HEIGHT << h->sh.b_mbaff)) );
+        x264_frame_cond_broadcast( h->fdec, mb_y*16 + (b_end ? 10000 : -(X264_THREAD_HEIGHT << SLICE_MBAFF)) );
 
     if( b_measure_quality )
     {
@@ -1931,7 +1940,7 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_global_qp )
     if( h->sps->i_poc_type == 0 )
     {
         h->sh.i_poc = h->fdec->i_poc;
-        if( h->param.b_interlaced )
+        if( PARAM_INTERLACED )
         {
             h->sh.i_delta_poc_bottom = h->param.b_tff ? 1 : -1;
             h->sh.i_poc += h->sh.i_delta_poc_bottom == -1;
@@ -2023,7 +2032,7 @@ static int x264_slice_write( x264_t *h )
         if( x264_bitstream_check_buffer( h ) )
             return -1;
 
-        if( back_up_bitstream && (!h->sh.b_mbaff || (i_mb_y&1) == 0) )
+        if( back_up_bitstream && (!SLICE_MBAFF || (i_mb_y&1) == 0) )
         {
             mv_bits_bak = h->stat.frame.i_mv_bits;
             tex_bits_bak = h->stat.frame.i_tex_bits;
@@ -2047,7 +2056,7 @@ static int x264_slice_write( x264_t *h )
         if( i_mb_x == 0 && !h->mb.b_reencode_mb )
             x264_fdec_filter_row( h, i_mb_y, 1 );
 
-        if( h->param.b_interlaced )
+        if( PARAM_INTERLACED )
         {
             if( h->mb.b_adaptive_mbaff )
             {
@@ -2057,10 +2066,10 @@ static int x264_slice_write( x264_t *h )
                     int stride = h->fenc->i_stride[0];
                     pixel *fenc = h->fenc->plane[0] + 16 * (i_mb_x + i_mb_y * stride);
                     h->mb.b_interlaced = x264_field_vsad( h, fenc, stride );
-                    memcpy( &h->zigzagf, h->mb.b_interlaced ? &h->zigzagf_interlaced : &h->zigzagf_progressive, sizeof(h->zigzagf) );
+                    memcpy( &h->zigzagf, MB_INTERLACED ? &h->zigzagf_interlaced : &h->zigzagf_progressive, sizeof(h->zigzagf) );
                 }
             }
-            h->mb.field[mb_xy] = h->mb.b_interlaced;
+            h->mb.field[mb_xy] = MB_INTERLACED;
         }
 
         /* load cache */
@@ -2074,7 +2083,7 @@ reencode:
 
         if( h->param.b_cabac )
         {
-            if( mb_xy > h->sh.i_first_mb && !(h->sh.b_mbaff && (i_mb_y&1)) )
+            if( mb_xy > h->sh.i_first_mb && !(SLICE_MBAFF && (i_mb_y&1)) )
                 x264_cabac_encode_terminal( &h->cabac );
 
             if( IS_SKIP( h->mb.i_type ) )
@@ -2148,7 +2157,7 @@ reencode:
                         i_skip = i_skip_bak;
                     }
                     h->mb.b_reencode_mb = 1;
-                    if( h->sh.b_mbaff )
+                    if( SLICE_MBAFF )
                     {
                         // set to bottom of previous mbpair
                         if( i_mb_x )
@@ -2235,7 +2244,7 @@ reencode:
         if( b_deblock )
             x264_macroblock_deblock_strength( h );
 
-        if( h->sh.b_mbaff )
+        if( SLICE_MBAFF )
         {
             /* update ratecontrol per-mbpair in MBAFF */
             if( i_mb_y&1 )
@@ -2247,7 +2256,7 @@ reencode:
         if( mb_xy == h->sh.i_last_mb )
             break;
 
-        if( h->sh.b_mbaff )
+        if( SLICE_MBAFF )
         {
             i_mb_x += i_mb_y & 1;
             i_mb_y ^= i_mb_x < h->mb.i_mb_width;
@@ -2331,12 +2340,12 @@ static void *x264_slices_write( x264_t *h )
     /* init stats */
     memset( &h->stat.frame, 0, sizeof(h->stat.frame) );
     h->mb.b_reencode_mb = 0;
-    while( h->sh.i_first_mb + h->sh.b_mbaff*h->mb.i_mb_stride <= last_thread_mb )
+    while( h->sh.i_first_mb + SLICE_MBAFF*h->mb.i_mb_stride <= last_thread_mb )
     {
         h->sh.i_last_mb = last_thread_mb;
         if( h->param.i_slice_max_mbs )
         {
-            if( h->sh.b_mbaff )
+            if( SLICE_MBAFF )
             {
                 // convert first to mbaff form, add slice-max-mbs, then convert back to normal form
                 int last_mbaff = 2*(h->sh.i_first_mb % h->mb.i_mb_width)
@@ -2351,8 +2360,8 @@ static void *x264_slices_write( x264_t *h )
         }
         else if( h->param.i_slice_count && !h->param.b_sliced_threads )
         {
-            int height = h->mb.i_mb_height >> h->param.b_interlaced;
-            int width = h->mb.i_mb_width << h->param.b_interlaced;
+            int height = h->mb.i_mb_height >> PARAM_INTERLACED;
+            int width = h->mb.i_mb_width << PARAM_INTERLACED;
             i_slice_num++;
             h->sh.i_last_mb = (height * i_slice_num + h->param.i_slice_count/2) / h->param.i_slice_count * width - 1;
         }
@@ -2361,7 +2370,7 @@ static void *x264_slices_write( x264_t *h )
             return (void *)-1;
         h->sh.i_first_mb = h->sh.i_last_mb + 1;
         // if i_first_mb is not the last mb in a row then go to the next mb in MBAFF order
-        if( h->sh.b_mbaff && h->sh.i_first_mb % h->mb.i_mb_width )
+        if( SLICE_MBAFF && h->sh.i_first_mb % h->mb.i_mb_width )
             h->sh.i_first_mb -= h->mb.i_mb_stride;
     }
 
@@ -2387,9 +2396,9 @@ static int x264_threaded_slices_write( x264_t *h )
             t->param = h->param;
             memcpy( &t->i_frame, &h->i_frame, offsetof(x264_t, rc) - offsetof(x264_t, i_frame) );
         }
-        int height = h->mb.i_mb_height >> h->param.b_interlaced;
-        t->i_threadslice_start = ((height *  i    + h->param.i_slice_count/2) / h->param.i_threads) << h->param.b_interlaced;
-        t->i_threadslice_end   = ((height * (i+1) + h->param.i_slice_count/2) / h->param.i_threads) << h->param.b_interlaced;
+        int height = h->mb.i_mb_height >> PARAM_INTERLACED;
+        t->i_threadslice_start = ((height *  i    + h->param.i_slice_count/2) / h->param.i_threads) << PARAM_INTERLACED;
+        t->i_threadslice_end   = ((height * (i+1) + h->param.i_slice_count/2) / h->param.i_threads) << PARAM_INTERLACED;
         t->sh.i_first_mb = t->i_threadslice_start * h->mb.i_mb_width;
         t->sh.i_last_mb  =   t->i_threadslice_end * h->mb.i_mb_width - 1;
     }
@@ -2415,7 +2424,7 @@ static int x264_threaded_slices_write( x264_t *h )
     for( int i = 1; i < h->param.i_threads; i++ )
     {
         x264_fdec_filter_row( h->thread[i], h->thread[i]->i_threadslice_start + 1, 0 );
-        if( h->sh.b_mbaff )
+        if( SLICE_MBAFF )
             x264_fdec_filter_row( h->thread[i], h->thread[i]->i_threadslice_start + 2, 0 );
     }
 
@@ -2555,7 +2564,11 @@ int     x264_encoder_encode( x264_t *h,
 
         if( fenc->i_pic_struct == PIC_STRUCT_AUTO )
         {
+#if HAVE_INTERLACED
             int b_interlaced = fenc->param ? fenc->param->b_interlaced : h->param.b_interlaced;
+#else
+            int b_interlaced = 0;
+#endif
             if( b_interlaced )
             {
                 int b_tff = fenc->param ? fenc->param->b_tff : h->param.b_tff;

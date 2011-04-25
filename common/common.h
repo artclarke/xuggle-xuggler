@@ -92,6 +92,16 @@ do {\
 #include <assert.h>
 #include <limits.h>
 
+#if HAVE_INTERLACED
+#   define MB_INTERLACED h->mb.b_interlaced
+#   define SLICE_MBAFF h->sh.b_mbaff
+#   define PARAM_INTERLACED h->param.b_interlaced
+#else
+#   define MB_INTERLACED 0
+#   define SLICE_MBAFF 0
+#   define PARAM_INTERLACED 0
+#endif
+
 /* Unions for type-punning.
  * Mn: load or store n bits, aligned, native-endian
  * CPn: copy n bits, aligned, native-endian

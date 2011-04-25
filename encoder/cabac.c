@@ -75,8 +75,8 @@ static void x264_cabac_field_decoding_flag( x264_t *h, x264_cabac_t *cb )
             && h->mb.slice_table[h->mb.i_mb_top_mbpair_xy] == h->sh.i_first_mb
             && h->mb.field[h->mb.i_mb_top_mbpair_xy]);
 
-    x264_cabac_encode_decision_noup( cb, 70 + ctx, h->mb.b_interlaced );
-    h->mb.field_decoding_flag = h->mb.b_interlaced;
+    x264_cabac_encode_decision_noup( cb, 70 + ctx, MB_INTERLACED );
+    h->mb.field_decoding_flag = MB_INTERLACED;
 }
 #endif
 
@@ -85,7 +85,7 @@ static void x264_cabac_mb_type( x264_t *h, x264_cabac_t *cb )
     const int i_mb_type = h->mb.i_type;
 
 #if !RDO_SKIP_BS
-    if( h->sh.b_mbaff &&
+    if( SLICE_MBAFF &&
         (!(h->mb.i_mb_y & 1) || IS_SKIP(h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride])) )
     {
         x264_cabac_field_decoding_flag( h, cb );
@@ -575,9 +575,9 @@ static const uint8_t count_cat_m1[5] = {15, 14, 15, 3, 14};
 #if !RDO_SKIP_BS
 static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l )
 {
-    const uint8_t *sig_offset = significant_coeff_flag_offset_8x8[h->mb.b_interlaced];
-    int ctx_sig = significant_coeff_flag_offset[h->mb.b_interlaced][ctx_block_cat];
-    int ctx_last = last_coeff_flag_offset[h->mb.b_interlaced][ctx_block_cat];
+    const uint8_t *sig_offset = significant_coeff_flag_offset_8x8[MB_INTERLACED];
+    int ctx_sig = significant_coeff_flag_offset[MB_INTERLACED][ctx_block_cat];
+    int ctx_last = last_coeff_flag_offset[MB_INTERLACED][ctx_block_cat];
     int ctx_level = coeff_abs_level_m1_offset[ctx_block_cat];
     int coeff_idx = -1, node_ctx = 0, last;
     int coeffs[64];
@@ -661,9 +661,9 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int ctx_blo
  * for this (~0.001db) and the speed boost (~30%) is worth it. */
 static void ALWAYS_INLINE block_residual_write_cabac_internal( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l, int b_8x8 )
 {
-    const uint8_t *sig_offset = significant_coeff_flag_offset_8x8[h->mb.b_interlaced];
-    int ctx_sig = significant_coeff_flag_offset[h->mb.b_interlaced][ctx_block_cat];
-    int ctx_last = last_coeff_flag_offset[h->mb.b_interlaced][ctx_block_cat];
+    const uint8_t *sig_offset = significant_coeff_flag_offset_8x8[MB_INTERLACED];
+    int ctx_sig = significant_coeff_flag_offset[MB_INTERLACED][ctx_block_cat];
+    int ctx_last = last_coeff_flag_offset[MB_INTERLACED][ctx_block_cat];
     int ctx_level = coeff_abs_level_m1_offset[ctx_block_cat];
     int last = h->quantf.coeff_last[ctx_block_cat]( l );
     int coeff_abs = abs(l[last]);
