@@ -2073,7 +2073,10 @@ static int x264_slice_write( x264_t *h )
         }
 
         /* load cache */
-        x264_macroblock_cache_load( h, i_mb_x, i_mb_y );
+        if( SLICE_MBAFF )
+            x264_macroblock_cache_load_interlaced( h, i_mb_x, i_mb_y );
+        else
+            x264_macroblock_cache_load_progressive( h, i_mb_x, i_mb_y );
 
         x264_macroblock_analyse( h );
 
