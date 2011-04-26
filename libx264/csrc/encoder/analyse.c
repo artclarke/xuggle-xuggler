@@ -276,7 +276,18 @@ static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a );
 static uint16_t x264_cost_ref[QP_MAX+1][3][33];
 static UNUSED x264_pthread_mutex_t cost_ref_mutex = X264_PTHREAD_MUTEX_INITIALIZER;
 
-int x264_analyse_init_costs( x264_t *h, int qp )
+float *x264_analyse_prepare_costs( x264_t *h )
+{
+    float *logs = x264_malloc( (2*4*2048+1)*sizeof(float) );
+    if( !logs )
+        return NULL;
+    logs[0] = 0.718f;
+    for( int i = 1; i <= 2*4*2048; i++ )
+        logs[i] = log2f(i+1)*2 + 1.718f;
+    return logs;
+}
+
+int x264_analyse_init_costs( x264_t *h, float *logs, int qp )
 {
     int lambda = x264_lambda_tab[qp];
     if( h->cost_mv[qp] )
@@ -287,7 +298,7 @@ int x264_analyse_init_costs( x264_t *h, int qp )
     for( int i = 0; i <= 2*4*2048; i++ )
     {
         h->cost_mv[qp][-i] =
-        h->cost_mv[qp][i]  = X264_MIN( lambda * (log2f(i+1)*2 + 0.718f + !!i) + .5f, (1<<16)-1 );
+        h->cost_mv[qp][i]  = X264_MIN( lambda * logs[i] + .5f, (1<<16)-1 );
     }
     x264_pthread_mutex_lock( &cost_ref_mutex );
     for( int i = 0; i < 3; i++ )

@@ -381,15 +381,15 @@ static void x264_encoder_thread_init( x264_t *h )
  *
  ****************************************************************************/
 
-static int x264_validate_parameters( x264_t *h )
+static int x264_validate_parameters( x264_t *h, int b_open )
 {
 #if HAVE_MMX
 #ifdef __SSE__
-    if( !(x264_cpu_detect() & X264_CPU_SSE) )
+    if( b_open && !(x264_cpu_detect() & X264_CPU_SSE) )
     {
         x264_log( h, X264_LOG_ERROR, "your cpu does not support SSE1, but x264 was compiled with asm support\n");
 #else
-    if( !(x264_cpu_detect() & X264_CPU_MMXEXT) )
+    if( b_open && !(x264_cpu_detect() & X264_CPU_MMXEXT) )
     {
         x264_log( h, X264_LOG_ERROR, "your cpu does not support MMXEXT, but x264 was compiled with asm support\n");
 #endif
@@ -455,23 +455,10 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.i_weighted_pred = 0;
     }
 
-    if( h->param.b_interlaced )
-    {
-        if( h->param.analyse.i_me_method >= X264_ME_ESA )
-        {
-            x264_log( h, X264_LOG_WARNING, "interlace + me=esa is not implemented\n" );
-            h->param.analyse.i_me_method = X264_ME_UMH;
-        }
-        if( h->param.analyse.i_weighted_pred > 0 )
-        {
-            x264_log( h, X264_LOG_WARNING, "interlace + weightp is not implemented\n" );
-            h->param.analyse.i_weighted_pred = X264_WEIGHTP_NONE;
-        }
-    }
-
     h->param.i_frame_packing = x264_clip3( h->param.i_frame_packing, -1, 5 );
 
     /* Detect default ffmpeg settings and terminate with an error. */
+    if( b_open )
     {
         int score = 0;
         score += h->param.analyse.i_me_range == 0;
@@ -500,7 +487,11 @@ static int x264_validate_parameters( x264_t *h )
         return -1;
     }
     h->param.rc.f_rf_constant = x264_clip3f( h->param.rc.f_rf_constant, -QP_BD_OFFSET, 51 );
+    h->param.rc.f_rf_constant_max = x264_clip3f( h->param.rc.f_rf_constant_max, -QP_BD_OFFSET, 51 );
     h->param.rc.i_qp_constant = x264_clip3( h->param.rc.i_qp_constant, 0, QP_MAX );
+    h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 0, 10 );
+    h->param.rc.f_ip_factor = X264_MAX( h->param.rc.f_ip_factor, 0.01f );
+    h->param.rc.f_pb_factor = X264_MAX( h->param.rc.f_pb_factor, 0.01f );
     if( h->param.rc.i_rc_method == X264_RC_CRF )
     {
         h->param.rc.i_qp_constant = h->param.rc.f_rf_constant + QP_BD_OFFSET;
@@ -536,9 +527,15 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.i_qp_max = x264_clip3( (int)(X264_MAX3( qp_p, qp_i, qp_b ) + .999), 0, QP_MAX );
         h->param.rc.i_aq_mode = 0;
         h->param.rc.b_mb_tree = 0;
+        h->param.rc.i_bitrate = 0;
     }
     h->param.rc.i_qp_max = x264_clip3( h->param.rc.i_qp_max, 0, QP_MAX );
     h->param.rc.i_qp_min = x264_clip3( h->param.rc.i_qp_min, 0, h->param.rc.i_qp_max );
+    h->param.rc.i_qp_step = x264_clip3( h->param.rc.i_qp_step, 0, QP_MAX );
+    h->param.rc.i_bitrate = X264_MAX( h->param.rc.i_bitrate, 0 );
+    h->param.rc.i_vbv_buffer_size = X264_MAX( h->param.rc.i_vbv_buffer_size, 0 );
+    h->param.rc.i_vbv_max_bitrate = X264_MAX( h->param.rc.i_vbv_max_bitrate, 0 );
+    h->param.rc.f_vbv_buffer_init = X264_MAX( h->param.rc.f_vbv_buffer_init, 0 );
     if( h->param.rc.i_vbv_buffer_size )
     {
         if( h->param.rc.i_rc_method == X264_RC_CQP )
@@ -573,6 +570,22 @@ static int x264_validate_parameters( x264_t *h )
         h->param.rc.i_vbv_max_bitrate = 0;
     }
 
+    h->param.b_interlaced = !!h->param.b_interlaced;
+    int max_slices = (h->param.i_height+((16<<h->param.b_interlaced)-1))/(16<<h->param.b_interlaced);
+    if( h->param.b_sliced_threads )
+    {
+        h->param.i_slice_count = x264_clip3( h->param.i_threads, 0, max_slices );
+        h->param.i_slice_max_size = 0;
+        h->param.i_slice_max_mbs = 0;
+    }
+    else
+    {
+        h->param.i_slice_count = x264_clip3( h->param.i_slice_count, 0, max_slices );
+        h->param.i_slice_max_size = X264_MAX( h->param.i_slice_max_size, 0 );
+        h->param.i_slice_max_mbs = X264_MAX( h->param.i_slice_max_mbs, 0 );
+        if( h->param.i_slice_max_mbs || h->param.i_slice_max_size )
+            h->param.i_slice_count = 0;
+    }
     if( h->param.b_interlaced && h->param.i_slice_max_size )
     {
         x264_log( h, X264_LOG_WARNING, "interlaced + slice-max-size is not implemented\n" );
@@ -582,17 +595,6 @@ static int x264_validate_parameters( x264_t *h )
     {
         x264_log( h, X264_LOG_WARNING, "interlaced + slice-max-mbs is not implemented\n" );
         h->param.i_slice_max_mbs = 0;
-    }
-    int max_slices = (h->param.i_height+((16<<h->param.b_interlaced)-1))/(16<<h->param.b_interlaced);
-    if( h->param.b_sliced_threads )
-        h->param.i_slice_count = x264_clip3( h->param.i_threads, 0, max_slices );
-    else
-    {
-        h->param.i_slice_count = x264_clip3( h->param.i_slice_count, 0, max_slices );
-        h->param.i_slice_max_size = X264_MAX( h->param.i_slice_max_size, 0 );
-        h->param.i_slice_max_mbs = X264_MAX( h->param.i_slice_max_mbs, 0 );
-        if( h->param.i_slice_max_mbs || h->param.i_slice_max_size )
-            h->param.i_slice_count = 0;
     }
 
     if( h->param.b_bluray_compat )
@@ -608,12 +610,15 @@ static int x264_validate_parameters( x264_t *h )
         h->param.i_dpb_size = X264_MIN( h->param.i_dpb_size, 6 );
         /* Due to the proliferation of broken players that don't handle dupes properly. */
         h->param.analyse.i_weighted_pred = X264_MIN( h->param.analyse.i_weighted_pred, X264_WEIGHTP_SIMPLE );
+        if( h->param.b_fake_interlaced )
+            h->param.b_pic_struct = 1;
     }
 
     h->param.i_frame_reference = x264_clip3( h->param.i_frame_reference, 1, X264_REF_MAX );
     h->param.i_dpb_size = x264_clip3( h->param.i_dpb_size, 1, X264_REF_MAX );
     if( h->param.i_scenecut_threshold < 0 )
         h->param.i_scenecut_threshold = 0;
+    h->param.analyse.i_direct_mv_pred = x264_clip3( h->param.analyse.i_direct_mv_pred, X264_DIRECT_PRED_NONE, X264_DIRECT_PRED_AUTO );
     if( !h->param.analyse.i_subpel_refine && h->param.analyse.i_direct_mv_pred > X264_DIRECT_PRED_SPATIAL )
     {
         x264_log( h, X264_LOG_WARNING, "subme=0 + direct=temporal is not supported\n" );
@@ -624,6 +629,7 @@ static int x264_validate_parameters( x264_t *h )
     if( h->param.i_bframe <= 1 )
         h->param.i_bframe_pyramid = X264_B_PYRAMID_NONE;
     h->param.i_bframe_pyramid = x264_clip3( h->param.i_bframe_pyramid, X264_B_PYRAMID_NONE, X264_B_PYRAMID_NORMAL );
+    h->param.i_bframe_adaptive = x264_clip3( h->param.i_bframe_adaptive, X264_B_ADAPT_NONE, X264_B_ADAPT_TRELLIS );
     if( !h->param.i_bframe )
     {
         h->param.i_bframe_adaptive = X264_B_ADAPT_NONE;
@@ -705,7 +711,6 @@ static int x264_validate_parameters( x264_t *h )
     if( h->param.analyse.i_me_method == X264_ME_TESA &&
         (h->mb.b_lossless || h->param.analyse.i_subpel_refine <= 1) )
         h->param.analyse.i_me_method = X264_ME_ESA;
-    h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 0, 10 );
     h->param.analyse.b_mixed_references = h->param.analyse.b_mixed_references && h->param.i_frame_reference > 1;
     h->param.analyse.inter &= X264_ANALYSE_PSUB16x16|X264_ANALYSE_PSUB8x8|X264_ANALYSE_BSUB16x16|
                               X264_ANALYSE_I4x4|X264_ANALYSE_I8x8;
@@ -719,6 +724,10 @@ static int x264_validate_parameters( x264_t *h )
     }
     h->param.analyse.i_chroma_qp_offset = x264_clip3(h->param.analyse.i_chroma_qp_offset, -12, 12);
     h->param.analyse.i_trellis = x264_clip3( h->param.analyse.i_trellis, 0, 2 );
+    h->param.rc.i_aq_mode = x264_clip3( h->param.rc.i_aq_mode, 0, 2 );
+    h->param.rc.f_aq_strength = x264_clip3f( h->param.rc.f_aq_strength, 0, 3 );
+    if( h->param.rc.f_aq_strength == 0 )
+        h->param.rc.i_aq_mode = 0;
 
     if( h->param.i_log_level < X264_LOG_INFO )
     {
@@ -726,7 +735,7 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.b_ssim = 0;
     }
     /* Warn users trying to measure PSNR/SSIM with psy opts on. */
-    if( h->param.analyse.b_psnr || h->param.analyse.b_ssim )
+    if( b_open && (h->param.analyse.b_psnr || h->param.analyse.b_ssim) )
     {
         char *s = NULL;
 
@@ -754,28 +763,18 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.f_psy_rd = 0;
         h->param.analyse.f_psy_trellis = 0;
     }
-    if( !h->param.analyse.i_trellis )
-        h->param.analyse.f_psy_trellis = 0;
     h->param.analyse.f_psy_rd = x264_clip3f( h->param.analyse.f_psy_rd, 0, 10 );
     h->param.analyse.f_psy_trellis = x264_clip3f( h->param.analyse.f_psy_trellis, 0, 10 );
-    if( h->param.analyse.i_subpel_refine < 6 )
-        h->param.analyse.f_psy_rd = 0;
-    h->mb.i_psy_rd = FIX8( h->param.analyse.f_psy_rd );
+    h->mb.i_psy_rd = h->param.analyse.i_subpel_refine >= 6 ? FIX8( h->param.analyse.f_psy_rd ) : 0;
+    h->mb.i_psy_trellis = h->param.analyse.i_trellis ? FIX8( h->param.analyse.f_psy_trellis / 4 ) : 0;
     /* Psy RDO increases overall quantizers to improve the quality of luma--this indirectly hurts chroma quality */
     /* so we lower the chroma QP offset to compensate */
-    /* This can be triggered repeatedly on multiple calls to parameter_validate, but since encoding
-     * uses the pps chroma qp offset not the param chroma qp offset, this is not a problem. */
-    if( h->mb.i_psy_rd )
+    if( b_open && h->mb.i_psy_rd )
         h->param.analyse.i_chroma_qp_offset -= h->param.analyse.f_psy_rd < 0.25 ? 1 : 2;
-    h->mb.i_psy_trellis = FIX8( h->param.analyse.f_psy_trellis / 4 );
     /* Psy trellis has a similar effect. */
-    if( h->mb.i_psy_trellis )
+    if( b_open && h->mb.i_psy_trellis )
         h->param.analyse.i_chroma_qp_offset -= h->param.analyse.f_psy_trellis < 0.25 ? 1 : 2;
     h->param.analyse.i_chroma_qp_offset = x264_clip3(h->param.analyse.i_chroma_qp_offset, -12, 12);
-    h->param.rc.i_aq_mode = x264_clip3( h->param.rc.i_aq_mode, 0, 2 );
-    h->param.rc.f_aq_strength = x264_clip3f( h->param.rc.f_aq_strength, 0, 3 );
-    if( h->param.rc.f_aq_strength == 0 )
-        h->param.rc.i_aq_mode = 0;
     /* MB-tree requires AQ to be on, even if the strength is zero. */
     if( !h->param.rc.i_aq_mode && h->param.rc.b_mb_tree )
     {
@@ -816,6 +815,21 @@ static int x264_validate_parameters( x264_t *h )
     }
 
     h->param.analyse.i_weighted_pred = x264_clip3( h->param.analyse.i_weighted_pred, X264_WEIGHTP_NONE, X264_WEIGHTP_SMART );
+
+    if( h->param.b_interlaced )
+    {
+        if( h->param.analyse.i_me_method >= X264_ME_ESA )
+        {
+            x264_log( h, X264_LOG_WARNING, "interlace + me=esa is not implemented\n" );
+            h->param.analyse.i_me_method = X264_ME_UMH;
+        }
+        if( h->param.analyse.i_weighted_pred > 0 )
+        {
+            x264_log( h, X264_LOG_WARNING, "interlace + weightp is not implemented\n" );
+            h->param.analyse.i_weighted_pred = X264_WEIGHTP_NONE;
+        }
+    }
+
     if( !h->param.analyse.i_weighted_pred && h->param.rc.b_mb_tree && h->param.analyse.b_psy )
         h->param.analyse.i_weighted_pred = X264_WEIGHTP_FAKE;
 
@@ -842,6 +856,8 @@ static int x264_validate_parameters( x264_t *h )
         h->param.analyse.i_mv_range_thread = r2;
     }
 
+    if( h->param.rc.f_rate_tolerance < 0 )
+        h->param.rc.f_rate_tolerance = 0;
     if( h->param.rc.f_qblur < 0 )
         h->param.rc.f_qblur = 0;
     if( h->param.rc.f_complexity_blur < 0 )
@@ -851,6 +867,8 @@ static int x264_validate_parameters( x264_t *h )
 
     if( h->param.b_interlaced )
         h->param.b_pic_struct = 1;
+
+    h->param.i_nal_hrd = x264_clip3( h->param.i_nal_hrd, X264_NAL_HRD_NONE, X264_NAL_HRD_CBR );
 
     if( h->param.i_nal_hrd && !h->param.rc.i_vbv_buffer_size )
     {
@@ -879,9 +897,12 @@ static int x264_validate_parameters( x264_t *h )
     BOOLIFY( b_repeat_headers );
     BOOLIFY( b_annexb );
     BOOLIFY( b_vfr_input );
+    BOOLIFY( b_pulldown );
+    BOOLIFY( b_tff );
     BOOLIFY( b_pic_struct );
     BOOLIFY( b_fake_interlaced );
     BOOLIFY( b_open_gop );
+    BOOLIFY( b_bluray_compat );
     BOOLIFY( analyse.b_transform_8x8 );
     BOOLIFY( analyse.b_weighted_bipred );
     BOOLIFY( analyse.b_chroma_me );
@@ -974,7 +995,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
         goto fail;
     }
 
-    if( x264_validate_parameters( h ) < 0 )
+    if( x264_validate_parameters( h, 1 ) < 0 )
         goto fail;
 
     if( h->param.psz_cqm_file )
@@ -1069,8 +1090,10 @@ x264_t *x264_encoder_open( x264_param_t *param )
     x264_predict_8x8c_init( h->param.cpu, h->predict_8x8c );
     x264_predict_8x8_init( h->param.cpu, h->predict_8x8, &h->predict_8x8_filter );
     x264_predict_4x4_init( h->param.cpu, h->predict_4x4 );
-    if( !h->param.b_cabac )
-        x264_init_vlc_tables();
+    if( h->param.b_cabac )
+        x264_cabac_init();
+    else
+        x264_cavlc_init();
     x264_pixel_init( h->param.cpu, &h->pixf );
     x264_dct_init( h->param.cpu, &h->dctf );
     x264_zigzag_init( h->param.cpu, &h->zigzagf, h->param.b_interlaced );
@@ -1102,11 +1125,15 @@ x264_t *x264_encoder_open( x264_param_t *param )
         p += sprintf( p, " none!" );
     x264_log( h, X264_LOG_INFO, "%s\n", buf );
 
-    for( qp = X264_MIN( h->param.rc.i_qp_min, QP_MAX_SPEC ); qp <= h->param.rc.i_qp_max; qp++ )
-        if( x264_analyse_init_costs( h, qp ) )
-            goto fail;
-    if( x264_analyse_init_costs( h, X264_LOOKAHEAD_QP ) )
+    float *logs = x264_analyse_prepare_costs( h );
+    if( !logs )
         goto fail;
+    for( qp = X264_MIN( h->param.rc.i_qp_min, QP_MAX_SPEC ); qp <= h->param.rc.i_qp_max; qp++ )
+        if( x264_analyse_init_costs( h, logs, qp ) )
+            goto fail;
+    if( x264_analyse_init_costs( h, logs, X264_LOOKAHEAD_QP ) )
+        goto fail;
+    x264_free( logs );
 
     static const uint16_t cost_mv_correct[7] = { 24, 47, 95, 189, 379, 757, 1515 };
     /* Checks for known miscompilation issues. */
@@ -1305,7 +1332,7 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
 
     mbcmp_init( h );
 
-    int ret = x264_validate_parameters( h );
+    int ret = x264_validate_parameters( h, 0 );
 
     /* Supported reconfiguration options (1-pass only):
      * vbv-maxrate

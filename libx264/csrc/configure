@@ -724,15 +724,14 @@ if [ "$lavf" = "auto" ] ; then
     fi
     LAVF_LIBS="-L. $LAVF_LIBS"
     if cc_check libavformat/avformat.h "$LAVF_CFLAGS $LAVF_LIBS" "avcodec_decode_video2(0,0,0,0);" ; then
-        # libvautil/pixdesc.h included the private header intreadwrite.h until r21854
-        if cc_check libavutil/pixdesc.h "$LAVF_CFLAGS $LAVF_LIBS" ; then
+        if cpp_check libavcodec/avcodec.h "$LAVF_CFLAGS $LAVF_LIBS" "LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52,64,0)" ; then
             if [ "$swscale" = "yes" ]; then
                 lavf="yes"
             else
                 echo "Warning: libavformat is not supported without swscale support"
             fi
         else
-            echo "Warning: libavutil is too old, update to ffmpeg r21854+"
+            echo "Warning: libavcodec is too old, update to ffmpeg r22735+"
         fi
     fi
 fi
@@ -781,12 +780,12 @@ if [ "$swscale" = "yes" ]; then
     fi
 fi
 
-GPAC_LIBS="-lgpac_static"
-if [ $SYS = WINDOWS ]; then
-    GPAC_LIBS="$GPAC_LIBS -lwinmm"
-fi
 if [ "$gpac" = "auto" ] ; then
     gpac="no"
+    cc_check "" -lz && GPAC_LIBS="-lgpac_static -lz" || GPAC_LIBS="-lgpac_static"
+    if [ "$SYS" = "WINDOWS" ] ; then
+        GPAC_LIBS="$GPAC_LIBS -lwinmm"
+    fi
     if cc_check gpac/isomedia.h "$GPAC_LIBS" ; then
         if cc_check gpac/isomedia.h "$GPAC_LIBS" "gf_isom_set_pixel_aspect_ratio(0,0,0,0,0);" ; then
             gpac="yes"

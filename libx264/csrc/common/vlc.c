@@ -695,7 +695,7 @@ const vlc_t x264_run_before[7][16] =
 
 vlc_large_t x264_level_token[7][LEVEL_TABLE_SIZE];
 
-void x264_init_vlc_tables( void )
+void x264_cavlc_init( void )
 {
     for( int i_suffix = 0; i_suffix < 7; i_suffix++ )
         for( int16_t level = -LEVEL_TABLE_SIZE/2; level < LEVEL_TABLE_SIZE/2; level++ )

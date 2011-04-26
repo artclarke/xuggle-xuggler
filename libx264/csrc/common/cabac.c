@@ -753,24 +753,29 @@ const uint16_t x264_cabac_entropy[128] =
     FIX8(0.9285), FIX8(1.0752), FIX8(1.0000), FIX8(1.0000)
 };
 
+uint8_t x264_cabac_contexts[4][QP_MAX_SPEC+1][460];
+
+void x264_cabac_init( void )
+{
+    for( int i = 0; i < 4; i++ )
+    {
+        const int8_t (*cabac_context_init)[460][2] = i == 0 ? &x264_cabac_context_init_I
+                                                            : &x264_cabac_context_init_PB[i-1];
+        for( int qp = 0; qp <= QP_MAX_SPEC; qp++ )
+            for( int j = 0; j < 460; j++ )
+            {
+                int state = x264_clip3( (((*cabac_context_init)[j][0] * qp) >> 4) + (*cabac_context_init)[j][1], 1, 126 );
+                x264_cabac_contexts[i][qp][j] = (X264_MIN( state, 127-state ) << 1) | (state >> 6);
+            }
+    }
+}
 
 /*****************************************************************************
  *
  *****************************************************************************/
 void x264_cabac_context_init( x264_cabac_t *cb, int i_slice_type, int i_qp, int i_model )
 {
-    const int8_t (*cabac_context_init)[460][2];
-
-    if( i_slice_type == SLICE_TYPE_I )
-        cabac_context_init = &x264_cabac_context_init_I;
-    else
-        cabac_context_init = &x264_cabac_context_init_PB[i_model];
-
-    for( int i = 0; i < 460; i++ )
-    {
-        int state = x264_clip3( (((*cabac_context_init)[i][0] * i_qp) >> 4) + (*cabac_context_init)[i][1], 1, 126 );
-        cb->state[i] = (X264_MIN( state, 127-state ) << 1) | (state >> 6);
-    }
+    memcpy( cb->state, x264_cabac_contexts[i_slice_type == SLICE_TYPE_I ? 0 : i_model + 1][i_qp], 460 );
 }
 
 void x264_cabac_encode_init_core( x264_cabac_t *cb )
@@ -847,10 +852,11 @@ void x264_cabac_encode_decision_c( x264_cabac_t *cb, int i_ctx, int b )
     x264_cabac_encode_renorm( cb );
 }
 
+/* Note: b is negated for this function */
 void x264_cabac_encode_bypass_c( x264_cabac_t *cb, int b )
 {
     cb->i_low <<= 1;
-    cb->i_low += -b & cb->i_range;
+    cb->i_low += b & cb->i_range;
     cb->i_queue += 1;
     x264_cabac_putbyte( cb );
 }

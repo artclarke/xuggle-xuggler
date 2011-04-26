@@ -108,7 +108,6 @@ cglobal cabac_encode_decision_asm, 0,7
 cglobal cabac_encode_bypass_asm, 0,3
     movifnidn  t0, r0mp
     movifnidn t3d, r1m
-    neg       t3d
     mov       t8d, [t0+cb.low]
     and       t3d, [t0+cb.range]
     lea       t8d, [t8*2+t3]
