@@ -145,6 +145,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
             return -1;
         sscanf( opt->resolution, "%dx%d", &param->width, &param->height );
         param->pix_fmt = opt->colorspace ? av_get_pix_fmt( opt->colorspace ) : PIX_FMT_YUV420P;
+        FAIL_IF_ERROR( param->pix_fmt == PIX_FMT_NONE, "unsupported colorspace: %s\n", opt->colorspace );
     }
 
     /* specify the input format. this is helpful when lavf fails to guess */
