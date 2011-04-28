@@ -10,6 +10,8 @@ version <next>:
 - libxvid aspect pickiness fixed
 - Frame multithreaded decoding
 - Lots of deprecated API cruft removed
+- fft and imdct optimizations for AVX (Sandy Bridge) processors
+- showinfo filter added
 
 
 version 0.7_beta1:
