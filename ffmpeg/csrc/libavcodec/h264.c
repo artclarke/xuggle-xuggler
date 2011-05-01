@@ -153,10 +153,6 @@ const uint8_t *ff_h264_decode_nal(H264Context *h, const uint8_t *src, int *dst_l
     h->nal_unit_type= src[0]&0x1F;
 
     src++; length--;
-#if 0
-    for(i=0; i<length; i++)
-        printf("%2X ", src[i]);
-#endif
 
 #if HAVE_FAST_UNALIGNED
 # if HAVE_FAST_64BIT
@@ -3054,7 +3050,8 @@ static int decode_nal_units(H264Context *h, const uint8_t *buf, int buf_size){
             init_get_bits(&s->gb, ptr, bit_length);
             ff_h264_decode_seq_parameter_set(h);
 
-            if(s->flags& CODEC_FLAG_LOW_DELAY)
+            if(s->flags& CODEC_FLAG_LOW_DELAY ||
+              (h->sps.bitstream_restriction_flag && !h->sps.num_reorder_frames))
                 s->low_delay=1;
 
             if(avctx->has_b_frames < 2)
