@@ -203,6 +203,7 @@ StreamCoderTest :: testSetCodec()
   encodec = ICodec::findEncodingCodecByName("libmp3lame");
 
   VS_TUT_ENSURE("could not find libmp3lame encoder", codec);
+  coder->setSampleRate(22050);
   coder->setCodec(encodec.value());
   codec = coder->getCodec();
   VS_TUT_ENSURE_EQUALS("should allow wrong direction", codec.value(), encodec.value());
