@@ -25,6 +25,7 @@
  * @author Michael Niedermayer <michaelni@gmx.at>
  */
 
+#include "libavutil/avassert.h"
 #include "internal.h"
 #include "dsputil.h"
 #include "avcodec.h"
@@ -476,7 +477,7 @@ static void print_long_term(H264Context *h) {
 
 void ff_generate_sliding_window_mmcos(H264Context *h) {
     MpegEncContext * const s = &h->s;
-    assert(h->long_ref_count + h->short_ref_count <= h->sps.ref_frame_count);
+    av_assert0(h->long_ref_count + h->short_ref_count <= h->sps.ref_frame_count);
 
     h->mmco_index= 0;
     if(h->short_ref_count && h->long_ref_count + h->short_ref_count == h->sps.ref_frame_count &&
@@ -621,7 +622,7 @@ int ff_h264_execute_ref_pic_marking(H264Context *h, MMCO *mmco, int mmco_count){
         }
     }
 
-    if (h->long_ref_count + h->short_ref_count > h->sps.ref_frame_count){
+    if (h->long_ref_count + h->short_ref_count > FFMAX(h->sps.ref_frame_count, 1)){
 
         /* We have too many reference frames, probably due to corrupted
          * stream. Need to discard one frame. Prevents overrun of the
@@ -629,7 +630,7 @@ int ff_h264_execute_ref_pic_marking(H264Context *h, MMCO *mmco, int mmco_count){
          */
         av_log(h->s.avctx, AV_LOG_ERROR,
                "number of reference frames exceeds max (probably "
-               "corrupt input), discarding one\n");
+               "corrupt input), discarding one long:%d short:%d max:%d\n", h->long_ref_count, h->short_ref_count, h->sps.ref_frame_count);
 
         if (h->long_ref_count && !h->short_ref_count) {
             for (i = 0; i < 16; ++i)

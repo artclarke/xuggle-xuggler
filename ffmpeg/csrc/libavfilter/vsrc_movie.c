@@ -230,7 +230,6 @@ static int movie_get_frame(AVFilterLink *outlink)
     while ((ret = av_read_frame(movie->format_ctx, &pkt)) >= 0) {
         // Is this a packet from the video stream?
         if (pkt.stream_index == movie->stream_index) {
-            movie->codec_ctx->reordered_opaque = pkt.pos;
             avcodec_decode_video2(movie->codec_ctx, movie->frame, &frame_decoded, &pkt);
 
             if (frame_decoded) {
@@ -247,9 +246,9 @@ static int movie_get_frame(AVFilterLink *outlink)
                 movie->picref->pts = movie->frame->pkt_pts == AV_NOPTS_VALUE ?
                     movie->frame->pkt_dts : movie->frame->pkt_pts;
 
-                movie->picref->pos                    = movie->frame->reordered_opaque;
-                movie->picref->video->pixel_aspect = st->sample_aspect_ratio.num ?
-                    st->sample_aspect_ratio : movie->codec_ctx->sample_aspect_ratio;
+                movie->picref->pos                    = movie->frame->pkt_pos;
+                if (!movie->frame->sample_aspect_ratio.num)
+                    movie->picref->video->sample_aspect_ratio = st->sample_aspect_ratio;
                 movie->picref->video->interlaced      = movie->frame->interlaced_frame;
                 movie->picref->video->top_field_first = movie->frame->top_field_first;
                 movie->picref->video->key_frame       = movie->frame->key_frame;
@@ -259,7 +258,8 @@ static int movie_get_frame(AVFilterLink *outlink)
                         movie->file_name, movie->picref->pts,
                         (double)movie->picref->pts * av_q2d(st->time_base),
                         movie->picref->pos,
-                        movie->picref->video->pixel_aspect.num, movie->picref->video->pixel_aspect.den);
+                        movie->picref->video->sample_aspect_ratio.num,
+                        movie->picref->video->sample_aspect_ratio.den);
                 // We got it. Free the packet since we are returning
                 av_free_packet(&pkt);
 

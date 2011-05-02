@@ -1004,6 +1004,20 @@ typedef struct AVPanScan{
      * - decoding: set by libavcodec, read by user.\
      */\
     int64_t best_effort_timestamp;\
+\
+    /**\
+     * reordered pos from the last AVPacket that has been input into the decoder\
+     * - encoding: unused\
+     * - decoding: Read by user.\
+     */\
+    int64_t pkt_pos;\
+\
+    /**\
+     * reordered sample aspect ratio for the video frame, 0/1 if unknown\unspecified
+     * - encoding: unused\
+     * - decoding: Read by user.\
+     */\
+    AVRational sample_aspect_ratio;\
 
 
 #define FF_QSCALE_TYPE_MPEG1 0

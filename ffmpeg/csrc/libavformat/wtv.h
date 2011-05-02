@@ -1,6 +1,6 @@
 /*
- * Memory buffer source filter
- * Copyright (c) 2008 Vitor Sessak
+ * Windows Television (WTV)
+ * Copyright (c) 2010-2011 Peter Ross <pross@xvid.org>
  *
  * This file is part of FFmpeg.
  *
@@ -19,23 +19,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AVFILTER_VSRC_BUFFER_H
-#define AVFILTER_VSRC_BUFFER_H
+#ifndef AVFORMAT_WTV_H
+#define AVFORMAT_WTV_H
 
-/**
- * @file
- * memory buffer source API for video
- */
+#include "riff.h"
+#include "asf.h"
 
-#include "libavcodec/avcodec.h" /* AVFrame */
-#include "avfilter.h"
+#define WTV_SECTOR_BITS    12
+#define WTV_SECTOR_SIZE    (1 << WTV_SECTOR_BITS)
+#define WTV_BIGSECTOR_BITS 18
 
-int av_vsrc_buffer_add_frame(AVFilterContext *buffer_filter, AVFrame *frame,
-                             int64_t pts);
-
-int av_vsrc_buffer_add_frame2(AVFilterContext *buffer_filter, AVFrame *frame,
-                              int64_t pts, int width,
-                              int height, enum PixelFormat  pix_fmt,
-                              const char *sws_param);
-
-#endif /* AVFILTER_VSRC_BUFFER_H */
+extern const ff_asf_guid ff_dir_entry_guid;
+extern const ff_asf_guid ff_wtv_guid;
+extern const ff_asf_guid ff_timestamp_guid;
+extern const ff_asf_guid ff_data_guid;
+extern const ff_asf_guid ff_stream_guid;
+extern const ff_asf_guid ff_mediatype_audio;
+extern const ff_asf_guid ff_mediatype_video;
+extern const ff_asf_guid ff_format_none;
+extern const AVCodecGuid ff_video_guids[];
+#endif /* AVFORMAT_WTV_H */
