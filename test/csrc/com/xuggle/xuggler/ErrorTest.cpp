@@ -49,7 +49,7 @@ ErrorTest :: ~ErrorTest()
 void
 ErrorTest :: testErrorCreation()
 {
-  RefPointer<IError> error = IError::make(AVERROR_IO);
+  RefPointer<IError> error = IError::make(AVERROR(EIO));
   
   VS_TUT_ENSURE("made error", error);
   
@@ -69,7 +69,7 @@ ErrorTest :: testErrorCreation()
   VS_TUT_ENSURE("got description", description && *description);
 
   VS_TUT_ENSURE_EQUALS("should map correctly", 
-      AVERROR_IO,
+      AVERROR(EIO),
       error->getErrorNumber());
   
 }
