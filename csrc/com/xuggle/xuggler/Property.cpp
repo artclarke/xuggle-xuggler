@@ -99,7 +99,7 @@ namespace com { namespace xuggle { namespace xuggler {
   double
   Property :: getDefaultAsDouble()
   {
-    return mOption ? mOption->default_val: 0;
+    return mOption ? mOption->default_val.dbl: 0.0;
   }
   
   int32_t

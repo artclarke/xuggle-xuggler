@@ -42,14 +42,14 @@ struct ErrorMappingTable {
 } ;
 
 static struct ErrorMappingTable sErrorMappingTable[] = {
-    { AVERROR_IO,           IError::ERROR_IO },
-    { AVERROR_NUMEXPECTED,  IError::ERROR_NUMEXPECTED },
-    { AVERROR_INVALIDDATA,  IError::ERROR_INVALIDDATA },
-    { AVERROR_NOMEM,        IError::ERROR_NOMEM },
-    { AVERROR_NOFMT,        IError::ERROR_NOFMT },
-    { AVERROR_NOTSUPP,      IError::ERROR_NOTSUPPORTED },
-    { AVERROR_NOENT,        IError::ERROR_NOENT },
-    { AVERROR_EOF,          IError::ERROR_EOF },
+    { AVERROR(EIO),         IError::ERROR_IO },
+    { AVERROR(EDOM),        IError::ERROR_NUMEXPECTED },
+    { AVERROR(EINVAL),      IError::ERROR_INVALIDDATA },
+    { AVERROR(ENOMEM),      IError::ERROR_NOMEM },
+    { AVERROR(EILSEQ),      IError::ERROR_NOFMT },
+    { AVERROR(ENOSYS),      IError::ERROR_NOTSUPPORTED },
+    { AVERROR(ENOENT),      IError::ERROR_NOENT },
+    { AVERROR(EPIPE),       IError::ERROR_EOF },
     { AVERROR_PATCHWELCOME, IError::ERROR_PATCHWELCOME },
     { AVERROR(EAGAIN),      IError::ERROR_AGAIN },
     { AVERROR(ERANGE),      IError::ERROR_RANGE },
@@ -168,7 +168,7 @@ Error :: errorNumberToType(int32_t errNo)
 int32_t
 Error :: typeToErrorNumber(Type type)
 {
-  int32_t retval = AVERROR_UNKNOWN;
+  int32_t retval = AVERROR(EINVAL);
   int i = 0;
   for(; i < sErrorMappingTableSize; i++)
   {
@@ -179,7 +179,7 @@ Error :: typeToErrorNumber(Type type)
     }
   }
   if (i >= sErrorMappingTableSize) {
-    retval = AVERROR_UNKNOWN;
+    retval = AVERROR(EINVAL);
   }
   return retval;
 }

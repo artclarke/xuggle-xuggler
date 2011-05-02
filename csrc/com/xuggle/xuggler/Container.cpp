@@ -19,6 +19,9 @@
 
 #include <stdexcept>
 
+// Temporarily turn off deprecation warnings in FFmpeg
+#define attribute_deprecated
+
 // for strncpy
 #include <cstring>
 
@@ -1143,7 +1146,7 @@ namespace com { namespace xuggle { namespace xuggler
     // null terminate the buffer to ensure strlen below doesn't
     // overrun
     bytes[bufSize-1]=0;
-    int32_t ret = avf_sdp_create(&mFormatContext, 1, bytes, bufSize-1);
+    int32_t ret = av_sdp_create(&mFormatContext, 1, bytes, bufSize-1);
 
     if (ret < 0)
     {

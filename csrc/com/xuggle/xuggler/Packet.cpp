@@ -104,7 +104,7 @@ namespace com { namespace xuggle { namespace xuggler
   bool
   Packet :: isKeyPacket()
   {
-    return (mPacket ? mPacket->flags & PKT_FLAG_KEY : false);
+    return (mPacket ? mPacket->flags & AV_PKT_FLAG_KEY : false);
   }
 
   void
@@ -113,7 +113,7 @@ namespace com { namespace xuggle { namespace xuggler
     if (mPacket)
     {
       if (bKeyPacket)
-        mPacket->flags |= PKT_FLAG_KEY;
+        mPacket->flags |= AV_PKT_FLAG_KEY;
       else
         mPacket->flags = 0;
     }

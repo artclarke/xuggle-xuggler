@@ -435,6 +435,6 @@ namespace com { namespace xuggle { namespace xuggler
   VideoPicture :: setPictureType(IVideoPicture::PictType type)
   {
     if (mFrame)
-      mFrame->pict_type = (int) type;
+      mFrame->pict_type = (enum AVPictureType) type;
   }
 }}}

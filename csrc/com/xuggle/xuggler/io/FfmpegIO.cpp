@@ -24,6 +24,12 @@
 #include <com/xuggle/xuggler/io/FfmpegIncludes.h>
 #include <com/xuggle/xuggler/io/URLProtocolManager.h>
 
+extern "C"
+{
+  // FFmpeg deprecated this,b ut we still need it.  Very dangerous
+  // this.  Should replace with right API when it returns.
+  int ffurl_register_protocol(URLProtocol *protocol, int size);
+}
 using namespace com::xuggle::ferry;
 using namespace com::xuggle::xuggler::io;
 
@@ -57,7 +63,7 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1registerProto
     URLProtocolManager* mgr = new URLProtocolManager(protoName, aProtoMgr);
 
     URLProtocol* proto = mgr->getURLProtocol();
-    retval = av_register_protocol2(proto, sizeof(URLProtocolWrapper));
+    retval = ffurl_register_protocol(proto, sizeof(URLProtocolWrapper));
 
     jenv->ReleaseStringUTFChars(aProtoName, protoName);
     protoName = NULL;
@@ -71,7 +77,7 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1registerProto
 JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1open(
     JNIEnv * jenv, jclass, jobject handle, jstring url, jint flags)
 {
-  URLContext*handleVal= NULL;
+  AVIOContext*handleVal= NULL;
   const char *nativeURL= NULL;
   jint retval = -1;
 
@@ -80,7 +86,7 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1open(
   {
     try
     {
-      retval = url_open(&handleVal, nativeURL, flags);
+      retval = avio_open(&handleVal, nativeURL, flags);
     }
     catch(std::exception & e)
     {
@@ -119,16 +125,16 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1open(
 JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1read(
     JNIEnv *jenv, jclass, jobject handle, jbyteArray javaBuf, jint buflen)
 {
-  URLContext*handleVal= NULL;
+  AVIOContext*handleVal= NULL;
 
   jint retval = -1;
 
-  handleVal = (URLContext*)JNIHelper::sGetPointer(handle);
+  handleVal = (AVIOContext*)JNIHelper::sGetPointer(handle);
 
   jbyte *byteArray = jenv->GetByteArrayElements(javaBuf, NULL);
   try
   {
-    retval = url_read(handleVal, (unsigned char*)byteArray, buflen);
+    retval = avio_read(handleVal, (unsigned char*)byteArray, buflen);
   }
   catch(std::exception & e)
   {
@@ -157,16 +163,17 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1read(
 JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1write(
     JNIEnv *jenv, jclass, jobject handle, jbyteArray javaBuf, jint buflen)
 {
-  URLContext*handleVal= NULL;
+  AVIOContext*handleVal= NULL;
 
   jint retval = -1;
 
-  handleVal = (URLContext*)JNIHelper::sGetPointer(handle);
+  handleVal = (AVIOContext*)JNIHelper::sGetPointer(handle);
 
   jbyte *byteArray = jenv->GetByteArrayElements(javaBuf, NULL);
   try
   {
-    retval = url_write(handleVal, (unsigned char*)byteArray, buflen);
+    avio_write(handleVal, (unsigned char*)byteArray, buflen);
+    retval = buflen;
   }
   catch(std::exception & e)
   {
@@ -195,14 +202,14 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1write(
 JNIEXPORT jlong JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1seek(
     JNIEnv *jenv, jclass, jobject handle, jlong position, jint whence)
 {
-  URLContext*handleVal= NULL;
+  AVIOContext*handleVal= NULL;
 
   jint retval = -1;
 
-  handleVal = (URLContext*)JNIHelper::sGetPointer(handle);
+  handleVal = (AVIOContext*)JNIHelper::sGetPointer(handle);
   try
   {
-    retval = url_seek(handleVal, position, whence);
+    retval = avio_seek(handleVal, position, whence);
   }
   catch(std::exception & e)
   {
@@ -230,14 +237,14 @@ JNIEXPORT jlong JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1seek(
 JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1close(
     JNIEnv *jenv, jclass, jobject handle)
 {
-  URLContext*handleVal= NULL;
+  AVIOContext*handleVal= NULL;
 
   jint retval = -1;
 
-  handleVal = (URLContext*)JNIHelper::sGetPointer(handle);
+  handleVal = (AVIOContext*)JNIHelper::sGetPointer(handle);
   try
   {
-    retval = url_close(handleVal);
+    retval = avio_close(handleVal);
   }
   catch(std::exception & e)
   {
