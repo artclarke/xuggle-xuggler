@@ -1381,7 +1381,7 @@ static int queue_picture(VideoState *is, AVFrame *src_frame, double pts1, int64_
 
 #if defined(DEBUG_SYNC) && 0
     printf("frame_type=%c clock=%0.3f pts=%0.3f\n",
-           av_get_pict_type_char(src_frame->pict_type), pts, pts1);
+           av_get_picture_type_char(src_frame->pict_type), pts, pts1);
 #endif
 
     /* wait until we have space to put a new picture */
@@ -2381,10 +2381,18 @@ static int read_thread(void *arg)
     ap->height= frame_height;
     ap->time_base= (AVRational){1, 25};
     ap->pix_fmt = frame_pix_fmt;
+    ic->flags |= AVFMT_FLAG_PRIV_OPT;
 
-    set_context_opts(ic, avformat_opts, AV_OPT_FLAG_DECODING_PARAM, NULL);
 
     err = av_open_input_file(&ic, is->filename, is->iformat, 0, ap);
+    if (err >= 0) {
+        set_context_opts(ic, avformat_opts, AV_OPT_FLAG_DECODING_PARAM, NULL);
+        err = av_demuxer_open(ic, ap);
+        if(err < 0){
+            avformat_free_context(ic);
+            ic= NULL;
+        }
+    }
     if (err < 0) {
         print_error(is->filename, err);
         ret = -1;
