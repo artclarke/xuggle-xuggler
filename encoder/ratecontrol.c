@@ -459,6 +459,11 @@ void x264_ratecontrol_init_reconfigurable( x264_t *h, int b_init )
 
     if( h->param.rc.i_vbv_max_bitrate > 0 && h->param.rc.i_vbv_buffer_size > 0 )
     {
+        /* We don't support changing the ABR bitrate right now,
+           so if the stream starts as CBR, keep it CBR. */
+        if( rc->b_vbv_min_rate )
+            h->param.rc.i_vbv_max_bitrate = h->param.rc.i_bitrate;
+
         if( h->param.rc.i_vbv_buffer_size < (int)(h->param.rc.i_vbv_max_bitrate / rc->fps) )
         {
             h->param.rc.i_vbv_buffer_size = h->param.rc.i_vbv_max_bitrate / rc->fps;
@@ -466,17 +471,10 @@ void x264_ratecontrol_init_reconfigurable( x264_t *h, int b_init )
                       h->param.rc.i_vbv_buffer_size );
         }
 
-        /* We don't support changing the ABR bitrate right now,
-           so if the stream starts as CBR, keep it CBR. */
-        if( rc->b_vbv_min_rate )
-            h->param.rc.i_vbv_max_bitrate = h->param.rc.i_bitrate;
-
         int vbv_buffer_size = h->param.rc.i_vbv_buffer_size * 1000;
         int vbv_max_bitrate = h->param.rc.i_vbv_max_bitrate * 1000;
 
         /* Init HRD */
-        h->sps->vui.hrd.i_bit_rate_unscaled = vbv_max_bitrate;
-        h->sps->vui.hrd.i_cpb_size_unscaled = vbv_buffer_size;
         if( h->param.i_nal_hrd && b_init )
         {
             h->sps->vui.hrd.i_cpb_cnt = 1;
@@ -521,7 +519,11 @@ void x264_ratecontrol_init_reconfigurable( x264_t *h, int b_init )
             x264_log( h, X264_LOG_WARNING, "VBV parameters cannot be changed when NAL HRD is in use\n" );
             return;
         }
+        h->sps->vui.hrd.i_bit_rate_unscaled = vbv_max_bitrate;
+        h->sps->vui.hrd.i_cpb_size_unscaled = vbv_buffer_size;
 
+        if( rc->b_vbv_min_rate )
+            rc->bitrate = h->param.rc.i_bitrate * 1000.;
         rc->buffer_rate = vbv_max_bitrate / rc->fps;
         rc->vbv_max_rate = vbv_max_bitrate;
         rc->buffer_size = vbv_buffer_size;
@@ -2392,13 +2394,14 @@ void x264_thread_sync_ratecontrol( x264_t *cur, x264_t *prev, x264_t *next )
         COPY(prev_zone);
         COPY(qpbuf_pos);
         /* these vars can be updated by x264_ratecontrol_init_reconfigurable */
-        COPY(buffer_rate);
+        COPY(bitrate);
         COPY(buffer_size);
+        COPY(buffer_rate);
+        COPY(vbv_max_rate);
         COPY(single_frame_vbv);
         COPY(cbr_decay);
-        COPY(b_vbv_min_rate);
         COPY(rate_factor_constant);
-        COPY(bitrate);
+        COPY(rate_factor_max_increment);
 #undef COPY
     }
     if( cur != next )

@@ -1308,22 +1308,17 @@ int x264_encoder_reconfig( x264_t *h, x264_param_t *param )
     if( h->param.rc.i_vbv_max_bitrate > 0 && h->param.rc.i_vbv_buffer_size > 0 &&
           param->rc.i_vbv_max_bitrate > 0 &&   param->rc.i_vbv_buffer_size > 0 )
     {
+        rc_reconfig |= h->param.rc.i_vbv_max_bitrate != param->rc.i_vbv_max_bitrate;
+        rc_reconfig |= h->param.rc.i_vbv_buffer_size != param->rc.i_vbv_buffer_size;
+        rc_reconfig |= h->param.rc.i_bitrate != param->rc.i_bitrate;
         COPY( rc.i_vbv_max_bitrate );
         COPY( rc.i_vbv_buffer_size );
         COPY( rc.i_bitrate );
-        rc_reconfig = 1;
     }
-    if( h->param.rc.f_rf_constant != param->rc.f_rf_constant )
-    {
-        COPY( rc.f_rf_constant );
-        rc_reconfig = 1;
-    }
-    if( h->param.rc.f_rf_constant_max != param->rc.f_rf_constant_max )
-    {
-        COPY( rc.f_rf_constant_max );
-        rc_reconfig = 1;
-    }
-
+    rc_reconfig |= h->param.rc.f_rf_constant != param->rc.f_rf_constant;
+    rc_reconfig |= h->param.rc.f_rf_constant_max != param->rc.f_rf_constant_max;
+    COPY( rc.f_rf_constant );
+    COPY( rc.f_rf_constant_max );
 #undef COPY
 
     mbcmp_init( h );
@@ -2264,6 +2259,7 @@ static void x264_thread_sync_context( x264_t *dst, x264_t *src )
     memcpy( &dst->i_frame, &src->i_frame, offsetof(x264_t, mb.type) - offsetof(x264_t, i_frame) );
     dst->param = src->param;
     dst->stat = src->stat;
+    dst->pixf = src->pixf;
 }
 
 static void x264_thread_sync_stat( x264_t *dst, x264_t *src )
