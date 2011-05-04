@@ -532,10 +532,10 @@ static int x264_validate_parameters( x264_t *h, int b_open )
     h->param.rc.i_qp_max = x264_clip3( h->param.rc.i_qp_max, 0, QP_MAX );
     h->param.rc.i_qp_min = x264_clip3( h->param.rc.i_qp_min, 0, h->param.rc.i_qp_max );
     h->param.rc.i_qp_step = x264_clip3( h->param.rc.i_qp_step, 0, QP_MAX );
-    h->param.rc.i_bitrate = X264_MAX( h->param.rc.i_bitrate, 0 );
-    h->param.rc.i_vbv_buffer_size = X264_MAX( h->param.rc.i_vbv_buffer_size, 0 );
-    h->param.rc.i_vbv_max_bitrate = X264_MAX( h->param.rc.i_vbv_max_bitrate, 0 );
-    h->param.rc.f_vbv_buffer_init = X264_MAX( h->param.rc.f_vbv_buffer_init, 0 );
+    h->param.rc.i_bitrate = x264_clip3( h->param.rc.i_bitrate, 0, 2000000 );
+    h->param.rc.i_vbv_buffer_size = x264_clip3( h->param.rc.i_vbv_buffer_size, 0, 2000000 );
+    h->param.rc.i_vbv_max_bitrate = x264_clip3( h->param.rc.i_vbv_max_bitrate, 0, 2000000 );
+    h->param.rc.f_vbv_buffer_init = x264_clip3f( h->param.rc.f_vbv_buffer_init, 0, 2000000 );
     if( h->param.rc.i_vbv_buffer_size )
     {
         if( h->param.rc.i_rc_method == X264_RC_CQP )
@@ -701,8 +701,7 @@ static int x264_validate_parameters( x264_t *h, int b_open )
     if( h->param.analyse.i_me_method < X264_ME_DIA ||
         h->param.analyse.i_me_method > X264_ME_TESA )
         h->param.analyse.i_me_method = X264_ME_HEX;
-    if( h->param.analyse.i_me_range < 4 )
-        h->param.analyse.i_me_range = 4;
+    h->param.analyse.i_me_range = x264_clip3( h->param.analyse.i_me_range, 4, 1024 );
     if( h->param.analyse.i_me_range > 16 && h->param.analyse.i_me_method <= X264_ME_HEX )
         h->param.analyse.i_me_range = 16;
     if( h->param.analyse.i_me_method == X264_ME_TESA &&
