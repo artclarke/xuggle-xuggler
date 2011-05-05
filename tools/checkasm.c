@@ -1276,6 +1276,44 @@ static int check_mc( int cpu_ref, int cpu_new )
         report( "mbtree propagate :" );
     }
 
+    if( mc_a.memcpy_aligned != mc_ref.memcpy_aligned )
+    {
+        set_func_name( "memcpy_aligned" );
+        ok = 1; used_asm = 1;
+        for( int size = 16; size < 256; size += 16 )
+        {
+            memset( buf4, 0xAA, size + 1 );
+            call_c( mc_c.memcpy_aligned, buf3, buf1, size );
+            call_a( mc_a.memcpy_aligned, buf4, buf1, size );
+            if( memcmp( buf3, buf4, size ) || buf4[size] != 0xAA )
+            {
+                ok = 0;
+                fprintf( stderr, "memcpy_aligned FAILED: size=%d\n", size );
+                break;
+            }
+        }
+        report( "memcpy aligned :" );
+    }
+
+    if( mc_a.memzero_aligned != mc_ref.memzero_aligned )
+    {
+        set_func_name( "memzero_aligned" );
+        ok = 1; used_asm = 1;
+        for( int size = 128; size < 1024; size += 128 )
+        {
+            memset( buf4, 0xAA, size + 1 );
+            call_c( mc_c.memzero_aligned, buf3, size );
+            call_a( mc_a.memzero_aligned, buf4, size );
+            if( memcmp( buf3, buf4, size ) || buf4[size] != 0xAA )
+            {
+                ok = 0;
+                fprintf( stderr, "memzero_aligned FAILED: size=%d\n", size );
+                break;
+            }
+        }
+        report( "memzero aligned :" );
+    }
+
     return ret;
 }
 

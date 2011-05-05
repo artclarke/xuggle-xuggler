@@ -106,17 +106,21 @@ function memcpy_aligned_\dstalign\()_\srcalign\()_neon
     vst1.64     {d0-d1}, [r3,:r3align]!
 32: // n is a multiple of 32
     tst         r2, #32
-    beq         64f
+    beq         640f
     sub         r2, #32
     vld1.64     {d0-d3}, [r1,:r1align]!
     vst1.64     {d0-d3}, [r3,:r3align]!
-64: // n is a multiple of 64
+640: // n is a multiple of 64
+    cmp         r2, #0
+    beq         1f
+64:
     subs        r2, #64
     vld1.64     {d0-d3}, [r1,:r1align]!
     vld1.64     {d4-d7}, [r1,:r1align]!
     vst1.64     {d0-d3}, [r3,:r3align]!
     vst1.64     {d4-d7}, [r3,:r3align]!
     bgt         64b
+1:   // end
 .if \srcalign == 8 && \dstalign == 8
     vld1.64     {d0}, [r1,:64]!
     vst1.64     {d0}, [r3,:64]!

@@ -1128,7 +1128,7 @@ PLANE_DEINTERLEAVE ssse3
 %endif
 
 ; These functions are not general-use; not only do the SSE ones require aligned input,
-; but they also will fail if given a non-mod16 size or a size less than 64.
+; but they also will fail if given a non-mod16 size.
 ; memzero SSE will fail for non-mod128.
 
 ;-----------------------------------------------------------------------------
@@ -1136,12 +1136,15 @@ PLANE_DEINTERLEAVE ssse3
 ;-----------------------------------------------------------------------------
 cglobal memcpy_aligned_mmx, 3,3
     test r2d, 16
-    jz .copy32
+    jz .copy32start
     sub r2d, 16
     movq mm0, [r1 + r2 + 0]
     movq mm1, [r1 + r2 + 8]
     movq [r0 + r2 + 0], mm0
     movq [r0 + r2 + 8], mm1
+.copy32start
+    test r2d, r2d
+    jz .ret
 .copy32:
     sub r2d, 32
     movq mm0, [r1 + r2 +  0]
@@ -1153,6 +1156,7 @@ cglobal memcpy_aligned_mmx, 3,3
     movq [r0 + r2 + 16], mm2
     movq [r0 + r2 + 24], mm3
     jg .copy32
+.ret
     REP_RET
 
 ;-----------------------------------------------------------------------------
@@ -1166,12 +1170,15 @@ cglobal memcpy_aligned_sse2, 3,3
     movdqa [r0 + r2], xmm0
 .copy32:
     test r2d, 32
-    jz .copy64
+    jz .copy64start
     sub r2d, 32
     movdqa xmm0, [r1 + r2 +  0]
     movdqa [r0 + r2 +  0], xmm0
     movdqa xmm1, [r1 + r2 + 16]
     movdqa [r0 + r2 + 16], xmm1
+.copy64start
+    test r2d, r2d
+    jz .ret
 .copy64:
     sub r2d, 64
     movdqa xmm0, [r1 + r2 +  0]
@@ -1183,6 +1190,7 @@ cglobal memcpy_aligned_sse2, 3,3
     movdqa xmm3, [r1 + r2 + 48]
     movdqa [r0 + r2 + 48], xmm3
     jg .copy64
+.ret:
     REP_RET
 
 ;-----------------------------------------------------------------------------
