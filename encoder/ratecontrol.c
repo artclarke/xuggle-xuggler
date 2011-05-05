@@ -1720,10 +1720,11 @@ static double get_qscale(x264_t *h, ratecontrol_entry_t *rce, double rate_factor
     return q;
 }
 
-static double get_diff_limited_q(x264_t *h, ratecontrol_entry_t *rce, double q)
+static double get_diff_limited_q(x264_t *h, ratecontrol_entry_t *rce, double q, int frame_num)
 {
     x264_ratecontrol_t *rcc = h->rc;
     const int pict_type = rce->pict_type;
+    x264_zone_t *zone = get_zone( h, frame_num );
 
     // force I/B quants as a function of P quants
     const double last_p_q    = rcc->last_qscale_for[SLICE_TYPE_P];
@@ -1784,6 +1785,15 @@ static double get_diff_limited_q(x264_t *h, ratecontrol_entry_t *rce, double q)
         rcc->accum_p_qp   = mask * (qscale2qp( q ) + rcc->accum_p_qp);
         rcc->accum_p_norm = mask * (1 + rcc->accum_p_norm);
     }
+
+    if( zone )
+    {
+        if( zone->b_force_qp )
+            q = qp2qscale( zone->i_qp );
+        else
+            q /= zone->f_bitrate_factor;
+    }
+
     return q;
 }
 
@@ -2662,14 +2672,14 @@ static int init_pass2( x264_t *h )
         /* find qscale */
         for( int i = 0; i < rcc->num_entries; i++ )
         {
-            qscale[i] = get_qscale( h, &rcc->entry[i], rate_factor, i );
+            qscale[i] = get_qscale( h, &rcc->entry[i], rate_factor, -1 );
             rcc->last_qscale_for[rcc->entry[i].pict_type] = qscale[i];
         }
 
         /* fixed I/B qscale relative to P */
         for( int i = rcc->num_entries-1; i >= 0; i-- )
         {
-            qscale[i] = get_diff_limited_q( h, &rcc->entry[i], qscale[i] );
+            qscale[i] = get_diff_limited_q( h, &rcc->entry[i], qscale[i], i );
             assert(qscale[i] >= 0);
         }
 
