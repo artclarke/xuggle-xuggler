@@ -1271,7 +1271,7 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp, int overhead )
 
     rc->qpa_rc =
     rc->qpa_aq = 0;
-    rc->qp = x264_clip3( (int)(q + 0.5), 0, QP_MAX );
+    rc->qp = x264_clip3( q + 0.5f, 0, QP_MAX );
     h->fdec->f_qp_avg_rc =
     h->fdec->f_qp_avg_aq =
     rc->qpm = q;
@@ -1435,7 +1435,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
 int x264_ratecontrol_qp( x264_t *h )
 {
     x264_emms();
-    return x264_clip3( h->rc->qpm + .5, h->param.rc.i_qp_min, h->param.rc.i_qp_max );
+    return x264_clip3( h->rc->qpm + 0.5f, h->param.rc.i_qp_min, h->param.rc.i_qp_max );
 }
 
 int x264_ratecontrol_mb_qp( x264_t *h )
@@ -1451,7 +1451,7 @@ int x264_ratecontrol_mb_qp( x264_t *h )
             qp_offset *= (QP_MAX - qp) / (QP_MAX - QP_MAX_SPEC);
         qp += qp_offset;
     }
-    return x264_clip3( qp + .5, h->param.rc.i_qp_min, h->param.rc.i_qp_max );
+    return x264_clip3( qp + 0.5f, h->param.rc.i_qp_min, h->param.rc.i_qp_max );
 }
 
 /* In 2pass, force the same frame types as in the 1st pass */
