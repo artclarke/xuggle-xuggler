@@ -331,23 +331,56 @@ int x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
 static void ALWAYS_INLINE pixel_memset( pixel *dst, pixel *src, int len, int size )
 {
     uint8_t *dstp = (uint8_t*)dst;
-    if( size == 1 )
-        memset(dst, *src, len);
-    else if( size == 2 )
+    uint8_t  v1 = *src;
+    uint16_t v2 = size == 1 ? v1 + (v1 <<  8) : M16( src );
+    uint32_t v4 = size <= 2 ? v2 + (v2 << 16) : M32( src );
+    int i = 0;
+    len *= size;
+
+    /* Align the input pointer if it isn't already */
+    if( (intptr_t)dstp & (WORD_SIZE - 1) )
     {
-        int v = M16( src );
-        for( int i = 0; i < len; i++ )
-            M16( dstp+i*2 ) = v;
+        if( size <= 2 && ((intptr_t)dstp & 3) )
+        {
+            if( size == 1 && ((intptr_t)dstp & 1) )
+                dstp[i++] = v1;
+            if( (intptr_t)dstp & 2 )
+            {
+                M16( dstp+i ) = v2;
+                i += 2;
+            }
+        }
+        if( WORD_SIZE == 8 && (intptr_t)dstp & 4 )
+        {
+            M32( dstp+i ) = v4;
+            i += 4;
+        }
     }
-    else if( size == 4 )
+
+    /* Main copy loop */
+    if( WORD_SIZE == 8 )
     {
-        int v = M32( src );
-        for( int i = 0; i < len; i++ )
-            M32( dstp+i*4 ) = v;
+        uint64_t v8 = v4 + ((uint64_t)v4<<32);
+        for( ; i < len - 7; i+=8 )
+            M64( dstp+i ) = v8;
+    }
+    for( ; i < len - 3; i+=4 )
+        M32( dstp+i ) = v4;
+
+    /* Finish up the last few bytes */
+    if( size <= 2 )
+    {
+        if( i < len - 1 )
+        {
+            M16( dstp+i ) = v2;
+            i += 2;
+        }
+        if( size == 1 && i != len )
+            dstp[i] = v1;
     }
 }
 
-static void plane_expand_border( pixel *pix, int i_stride, int i_width, int i_height, int i_padh, int i_padv, int b_pad_top, int b_pad_bottom, int b_chroma )
+static void ALWAYS_INLINE plane_expand_border( pixel *pix, int i_stride, int i_width, int i_height, int i_padh, int i_padv, int b_pad_top, int b_pad_bottom, int b_chroma )
 {
 #define PPIXEL(x, y) ( pix + (x) + (y)*i_stride )
     for( int y = 0; y < i_height; y++ )
