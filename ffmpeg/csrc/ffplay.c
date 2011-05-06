@@ -1644,7 +1644,7 @@ static int input_init(AVFilterContext *ctx, const char *args, void *opaque)
     codec->opaque = ctx;
     if((codec->codec->capabilities & CODEC_CAP_DR1)
     ) {
-        codec->flags |= CODEC_FLAG_EMU_EDGE;
+        av_assert0(codec->flags & CODEC_FLAG_EMU_EDGE);
         priv->use_dr1 = 1;
         codec->get_buffer     = input_get_buffer;
         codec->release_buffer = input_release_buffer;
@@ -1831,6 +1831,7 @@ static int video_thread(void *arg)
 #else
         ret = get_video_frame(is, frame, &pts_int, &pkt);
         pos = pkt.pos;
+        av_free_packet(&pkt);
 #endif
 
         if (ret < 0) goto the_end;
@@ -1841,9 +1842,7 @@ static int video_thread(void *arg)
         pts = pts_int*av_q2d(is->video_st->time_base);
 
         ret = queue_picture(is, frame, pts, pos);
-#if !CONFIG_AVFILTER
-        av_free_packet(&pkt);
-#endif
+
         if (ret < 0)
             goto the_end;
 
@@ -2206,6 +2205,9 @@ static int stream_component_open(VideoState *is, int stream_index)
     avctx->thread_count= thread_count;
 
     set_context_opts(avctx, avcodec_opts[avctx->codec_type], 0, codec);
+
+    if(codec->capabilities & CODEC_CAP_DR1)
+        avctx->flags |= CODEC_FLAG_EMU_EDGE;
 
     if (!codec ||
         avcodec_open(avctx, codec) < 0)
