@@ -25,6 +25,7 @@
 #include "libavutil/rational.h"
 #include "libavutil/audioconvert.h"
 #include "libavutil/imgutils.h"
+#include "libavutil/avassert.h"
 #include "avfilter.h"
 #include "internal.h"
 
@@ -69,14 +70,47 @@ AVFilterBufferRef *avfilter_ref_buffer(AVFilterBufferRef *ref, int pmask)
     return ret;
 }
 
+static void store_in_pool(AVFilterBufferRef *ref)
+{
+    int i;
+    AVFilterPool *pool= ref->buf->priv;
+
+    av_assert0(ref->buf->data[0]);
+
+    if(pool->count == POOL_SIZE){
+        AVFilterBufferRef *ref1= pool->pic[0];
+        av_freep(&ref1->video);
+        av_freep(&ref1->audio);
+        av_freep(&ref1->buf->data[0]);
+        av_freep(&ref1->buf);
+        av_free(ref1);
+        memmove(&pool->pic[0], &pool->pic[1], sizeof(void*)*(POOL_SIZE-1));
+        pool->count--;
+        pool->pic[POOL_SIZE-1] = NULL;
+    }
+
+    for(i=0; i<POOL_SIZE; i++){
+        if(!pool->pic[i]){
+            pool->pic[i]= ref;
+            pool->count++;
+            break;
+        }
+    }
+}
+
 void avfilter_unref_buffer(AVFilterBufferRef *ref)
 {
     if (!ref)
         return;
-    if (!(--ref->buf->refcount))
+    if (!(--ref->buf->refcount)){
+        if(!ref->buf->free){
+            store_in_pool(ref);
+            return;
+        }
         ref->buf->free(ref->buf);
-    av_free(ref->video);
-    av_free(ref->audio);
+    }
+    av_freep(&ref->video);
+    av_freep(&ref->audio);
     av_free(ref);
 }
 

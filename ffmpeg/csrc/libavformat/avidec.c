@@ -1002,6 +1002,23 @@ resync:
                 e= &st->index_entries[index];
 
                 if(index >= 0 && e->timestamp == ast->frame_offset){
+                    if (index == st->nb_index_entries-1){
+                        int key=1;
+                        int i;
+                        uint32_t state=-1;
+                        for(i=0; i<FFMIN(size,256); i++){
+                            if(st->codec->codec_id == CODEC_ID_MPEG4){
+                                if(state == 0x1B6){
+                                    key= !(pkt->data[i]&0xC0);
+                                    break;
+                                }
+                            }else
+                                break;
+                            state= (state<<8) + pkt->data[i];
+                        }
+                        if(!key)
+                            e->flags &= ~AVINDEX_KEYFRAME;
+                    }
                     if (e->flags & AVINDEX_KEYFRAME)
                         pkt->flags |= AV_PKT_FLAG_KEY;
                 }
@@ -1286,7 +1303,7 @@ static int avi_read_seek(AVFormatContext *s, int stream_index, int64_t timestamp
 {
     AVIContext *avi = s->priv_data;
     AVStream *st;
-    int i, index;
+    int i, index, j;
     int64_t pos, pos_min;
     AVIStream *ast;
 
@@ -1350,6 +1367,22 @@ static int avi_read_seek(AVFormatContext *s, int stream_index, int64_t timestamp
             index=0;
         ast2->seek_pos= st2->index_entries[index].pos;
         pos_min= FFMIN(pos_min,ast2->seek_pos);
+    }
+    for(i = 0; i < s->nb_streams; i++) {
+        AVStream *st2 = s->streams[i];
+        AVIStream *ast2 = st2->priv_data;
+
+        if (ast2->sub_ctx || st2->nb_index_entries <= 0)
+            continue;
+
+        index = av_index_search_timestamp(
+                st2,
+                av_rescale_q(timestamp, st->time_base, st2->time_base) * FFMAX(ast2->sample_size, 1),
+                flags | AVSEEK_FLAG_BACKWARD);
+        if(index<0)
+            index=0;
+        while(index>0 && st2->index_entries[index-1].pos >= pos_min)
+            index--;
         ast2->frame_offset = st2->index_entries[index].timestamp;
     }
 
