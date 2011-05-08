@@ -1,7 +1,4 @@
 /*
- * Memory buffer source filter
- * Copyright (c) 2008 Vitor Sessak
- *
  * This file is part of FFmpeg.
  *
  * FFmpeg is free software; you can redistribute it and/or
@@ -19,20 +16,27 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AVFILTER_VSRC_BUFFER_H
-#define AVFILTER_VSRC_BUFFER_H
-
 /**
  * @file
- * memory buffer source API for video
+ * libavcodec/libavfilter gluing utilities
  */
 
-#include "libavcodec/avcodec.h" /* AVFrame */
-#include "avfilter.h"
+#include "avcodec.h"
 
-int av_vsrc_buffer_add_frame(AVFilterContext *buffer_filter, AVFrame *frame);
+void avfilter_copy_frame_props(AVFilterBufferRef *dst, const AVFrame *src)
+{
+    dst->pts    = src->pts;
+    dst->pos    = src->pkt_pos;
+    dst->format = src->format;
 
-int av_vsrc_buffer_add_frame2(AVFilterContext *buffer_filter, AVFrame *frame,
-                              const char *sws_param);
-
-#endif /* AVFILTER_VSRC_BUFFER_H */
+    switch (dst->type) {
+    case AVMEDIA_TYPE_VIDEO:
+        dst->video->w                   = src->width;
+        dst->video->h                   = src->height;
+        dst->video->sample_aspect_ratio = src->sample_aspect_ratio;
+        dst->video->interlaced          = src->interlaced_frame;
+        dst->video->top_field_first     = src->top_field_first;
+        dst->video->key_frame           = src->key_frame;
+        dst->video->pict_type           = src->pict_type;
+    }
+}

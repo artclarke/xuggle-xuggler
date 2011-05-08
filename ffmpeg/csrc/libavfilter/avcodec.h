@@ -1,7 +1,4 @@
 /*
- * Memory buffer source filter
- * Copyright (c) 2008 Vitor Sessak
- *
  * This file is part of FFmpeg.
  *
  * FFmpeg is free software; you can redistribute it and/or
@@ -19,20 +16,25 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AVFILTER_VSRC_BUFFER_H
-#define AVFILTER_VSRC_BUFFER_H
+#ifndef AVFILTER_AVCODEC_H
+#define AVFILTER_AVCODEC_H
 
 /**
  * @file
- * memory buffer source API for video
+ * libavcodec/libavfilter gluing utilities
+ *
+ * This should be included in an application ONLY if the installed
+ * libavfilter has been compiled with libavcodec support, otherwise
+ * symbols defined below will not be available.
  */
 
-#include "libavcodec/avcodec.h" /* AVFrame */
+#include "libavcodec/avcodec.h" // AVFrame
 #include "avfilter.h"
 
-int av_vsrc_buffer_add_frame(AVFilterContext *buffer_filter, AVFrame *frame);
+/**
+ * Copy the frame properties of src to dst, without copying the actual
+ * image data.
+ */
+void avfilter_copy_frame_props(AVFilterBufferRef *dst, const AVFrame *src);
 
-int av_vsrc_buffer_add_frame2(AVFilterContext *buffer_filter, AVFrame *frame,
-                              const char *sws_param);
-
-#endif /* AVFILTER_VSRC_BUFFER_H */
+#endif /* AVFILTER_AVCODEC_H */

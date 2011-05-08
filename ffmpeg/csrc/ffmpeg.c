@@ -50,6 +50,7 @@
 #include "libavformat/ffm.h" // not public API
 
 #if CONFIG_AVFILTER
+# include "libavfilter/avcodec.h"
 # include "libavfilter/avfilter.h"
 # include "libavfilter/avfiltergraph.h"
 # include "libavfilter/vsrc_buffer.h"
@@ -284,7 +285,7 @@ typedef struct AVOutputStream {
     AVBitStreamFilterContext *bitstream_filters;
     /* video only */
     int video_resample;
-    AVFrame pict_tmp;      /* temporary image for resampling */
+    AVFrame resample_frame;              /* temporary frame for image resampling */
     struct SwsContext *img_resample_ctx; /* for image resampling */
     int resample_height;
     int resample_width;
@@ -1145,8 +1146,8 @@ static void do_video_out(AVFormatContext *s,
                          AVFrame *in_picture,
                          int *frame_size)
 {
-    int nb_frames, i, ret, resample_changed;
-    AVFrame *final_picture, *formatted_picture, *resampling_dst;
+    int nb_frames, i, ret, av_unused resample_changed;
+    AVFrame *final_picture, *formatted_picture;
     AVCodecContext *enc, *dec;
     double sync_ipts;
 
@@ -1191,8 +1192,8 @@ static void do_video_out(AVFormatContext *s,
 
     formatted_picture = in_picture;
     final_picture = formatted_picture;
-    resampling_dst = &ost->pict_tmp;
 
+#if !CONFIG_AVFILTER
     resample_changed = ost->resample_width   != dec->width  ||
                        ost->resample_height  != dec->height ||
                        ost->resample_pix_fmt != dec->pix_fmt;
@@ -1203,32 +1204,40 @@ static void do_video_out(AVFormatContext *s,
                ist->file_index, ist->index,
                ost->resample_width, ost->resample_height, avcodec_get_pix_fmt_name(ost->resample_pix_fmt),
                dec->width         , dec->height         , avcodec_get_pix_fmt_name(dec->pix_fmt));
-        if(!ost->video_resample)
-            ffmpeg_exit(1);
+        ost->resample_width   = dec->width;
+        ost->resample_height  = dec->height;
+        ost->resample_pix_fmt = dec->pix_fmt;
     }
 
-#if !CONFIG_AVFILTER
+    ost->video_resample = dec->width   != enc->width  ||
+                          dec->height  != enc->height ||
+                          dec->pix_fmt != enc->pix_fmt;
+
     if (ost->video_resample) {
-        final_picture = &ost->pict_tmp;
-        if (resample_changed) {
+        final_picture = &ost->resample_frame;
+        if (!ost->img_resample_ctx || resample_changed) {
+            /* initialize the destination picture */
+            if (!ost->resample_frame.data[0]) {
+                avcodec_get_frame_defaults(&ost->resample_frame);
+                if (avpicture_alloc((AVPicture *)&ost->resample_frame, enc->pix_fmt,
+                                    enc->width, enc->height)) {
+                    fprintf(stderr, "Cannot allocate temp picture, check pix fmt\n");
+                    ffmpeg_exit(1);
+                }
+            }
             /* initialize a new scaler context */
             sws_freeContext(ost->img_resample_ctx);
             sws_flags = av_get_int(sws_opts, "sws_flags", NULL);
-            ost->img_resample_ctx = sws_getContext(
-                ist->st->codec->width,
-                ist->st->codec->height,
-                ist->st->codec->pix_fmt,
-                ost->st->codec->width,
-                ost->st->codec->height,
-                ost->st->codec->pix_fmt,
-                sws_flags, NULL, NULL, NULL);
+            ost->img_resample_ctx = sws_getContext(dec->width, dec->height, dec->pix_fmt,
+                                                   enc->width, enc->height, enc->pix_fmt,
+                                                   sws_flags, NULL, NULL, NULL);
             if (ost->img_resample_ctx == NULL) {
                 fprintf(stderr, "Cannot get resampling context\n");
                 ffmpeg_exit(1);
             }
         }
         sws_scale(ost->img_resample_ctx, formatted_picture->data, formatted_picture->linesize,
-              0, ost->resample_height, resampling_dst->data, resampling_dst->linesize);
+                  0, ost->resample_height, ost->resample_frame.data, ost->resample_frame.linesize);
     }
 #endif
 
@@ -1639,11 +1648,9 @@ static int output_packet(AVInputStream *ist, int ist_index,
                 if (ost->input_video_filter && ost->source_index == ist_index) {
                     if (!picture.sample_aspect_ratio.num)
                         picture.sample_aspect_ratio = ist->st->sample_aspect_ratio;
+                    picture.pts = ist->pts;
                     // add it to be filtered
-                    av_vsrc_buffer_add_frame2(ost->input_video_filter, &picture,
-                                             ist->pts,
-                                             ist->st->codec->width, ist->st->codec->height,
-                                             ist->st->codec->pix_fmt, ""); //TODO user setable params
+                    av_vsrc_buffer_add_frame2(ost->input_video_filter, &picture, ""); //TODO user setable params
                 }
             }
         }
@@ -2289,27 +2296,6 @@ static int transcode(AVFormatContext **output_files,
                                       codec->height  != icodec->height ||
                                       codec->pix_fmt != icodec->pix_fmt;
                 if (ost->video_resample) {
-#if !CONFIG_AVFILTER
-                    avcodec_get_frame_defaults(&ost->pict_tmp);
-                    if(avpicture_alloc((AVPicture*)&ost->pict_tmp, codec->pix_fmt,
-                                         codec->width, codec->height)) {
-                        fprintf(stderr, "Cannot allocate temp picture, check pix fmt\n");
-                        ffmpeg_exit(1);
-                    }
-                    sws_flags = av_get_int(sws_opts, "sws_flags", NULL);
-                    ost->img_resample_ctx = sws_getContext(
-                        icodec->width,
-                        icodec->height,
-                            icodec->pix_fmt,
-                            codec->width,
-                            codec->height,
-                            codec->pix_fmt,
-                            sws_flags, NULL, NULL, NULL);
-                    if (ost->img_resample_ctx == NULL) {
-                        fprintf(stderr, "Cannot get resampling context\n");
-                        ffmpeg_exit(1);
-                    }
-#endif
                     codec->bits_per_raw_sample= frame_bits_per_raw_sample;
                 }
                 ost->resample_height = icodec->height;
@@ -2801,7 +2787,7 @@ static int transcode(AVFormatContext **output_files,
                 av_fifo_free(ost->fifo); /* works even if fifo is not
                                              initialized but set to zero */
                 av_freep(&ost->st->codec->subtitle_header);
-                av_free(ost->pict_tmp.data[0]);
+                av_free(ost->resample_frame.data[0]);
                 av_free(ost->forced_kf_pts);
                 if (ost->video_resample)
                     sws_freeContext(ost->img_resample_ctx);

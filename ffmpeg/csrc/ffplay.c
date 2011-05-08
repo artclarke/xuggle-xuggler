@@ -40,6 +40,7 @@
 #include "libavcodec/avfft.h"
 
 #if CONFIG_AVFILTER
+# include "libavfilter/avcodec.h"
 # include "libavfilter/avfilter.h"
 # include "libavfilter/avfiltergraph.h"
 #endif
@@ -1686,9 +1687,9 @@ static int input_request_frame(AVFilterLink *link)
     }
     av_free_packet(&pkt);
 
+    avfilter_copy_frame_props(picref, priv->frame);
     picref->pts = pts;
-    picref->pos = priv->frame->pkt_pos;
-    picref->video->sample_aspect_ratio = priv->frame->sample_aspect_ratio;
+
     avfilter_start_frame(link, picref);
     avfilter_draw_slice(link, 0, link->h, 1);
     avfilter_end_frame(link);
@@ -2190,6 +2191,9 @@ static int stream_component_open(VideoState *is, int stream_index)
     }
 
     codec = avcodec_find_decoder(avctx->codec_id);
+    if (!codec)
+        return -1;
+
     avctx->debug_mv = debug_mv;
     avctx->debug = debug;
     avctx->workaround_bugs = workaround_bugs;
@@ -2209,8 +2213,7 @@ static int stream_component_open(VideoState *is, int stream_index)
     if(codec->capabilities & CODEC_CAP_DR1)
         avctx->flags |= CODEC_FLAG_EMU_EDGE;
 
-    if (!codec ||
-        avcodec_open(avctx, codec) < 0)
+    if (avcodec_open(avctx, codec) < 0)
         return -1;
 
     /* prepare audio output */
