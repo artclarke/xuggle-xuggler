@@ -654,13 +654,20 @@ int x264_field_vsad( x264_t *h, int mb_x, int mb_y )
 {
     int score_field, score_frame;
     int stride = h->fenc->i_stride[0];
+    int mb_stride = h->mb.i_mb_stride;
     pixel *fenc = h->fenc->plane[0] + 16 * (mb_x + mb_y * stride);
+    int mb_xy = mb_x + mb_y*mb_stride;
 
     /* We don't want to analyze pixels outside the frame, as it gives inaccurate results. */
     int mbpair_height = X264_MIN( h->param.i_height - mb_y * 16, 32 );
     score_frame  = h->pixf.vsad( fenc,          stride, mbpair_height );
     score_field  = h->pixf.vsad( fenc,        stride*2, mbpair_height >> 1 );
     score_field += h->pixf.vsad( fenc+stride, stride*2, mbpair_height >> 1 );
+
+    if( mb_x > 0 )
+        score_field += 512 - h->mb.field[mb_xy        -1]*1024;
+    if( mb_y > 0 )
+        score_field += 512 - h->mb.field[mb_xy-mb_stride]*1024;
 
     return (score_field < score_frame);
 }
