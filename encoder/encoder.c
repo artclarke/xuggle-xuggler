@@ -2194,9 +2194,10 @@ reencode:
         h->stat.frame.i_mb_count[h->mb.i_type]++;
 
         int b_intra = IS_INTRA( h->mb.i_type );
+        int b_skip = IS_SKIP( h->mb.i_type );
         if( h->param.i_log_level >= X264_LOG_INFO || h->param.rc.b_stat_write )
         {
-            if( !b_intra && !IS_SKIP( h->mb.i_type ) && !IS_DIRECT( h->mb.i_type ) )
+            if( !b_intra && !b_skip && !IS_DIRECT( h->mb.i_type ) )
             {
                 if( h->mb.i_partition != D_8x8 )
                         h->stat.frame.i_mb_partition[h->mb.i_partition] += 4;
@@ -2241,6 +2242,7 @@ reencode:
                         h->stat.frame.i_mb_pred_mode[2][h->mb.cache.intra4x4_pred_mode[x264_scan8[i]]]++;
                 h->stat.frame.i_mb_pred_mode[3][x264_mb_pred_mode8x8c_fix[h->mb.i_chroma_pred_mode]]++;
             }
+            h->stat.frame.i_mb_field[b_intra?0:b_skip?2:1] += MB_INTERLACED;
         }
 
         /* calculate deblock strength values (actual deblocking is done per-row along with hpel) */
@@ -3078,6 +3080,8 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
         for( int i_list = 0; i_list < 2; i_list++ )
             for( int i = 0; i < X264_REF_MAX*2; i++ )
                 h->stat.i_mb_count_ref[h->sh.i_type][i_list][i] += h->stat.frame.i_mb_count_ref[i_list][i];
+    for( int i = 0; i < 3; i++ )
+        h->stat.i_mb_field[i] += h->stat.frame.i_mb_field[i];
     if( h->sh.i_type == SLICE_TYPE_P && h->param.analyse.i_weighted_pred >= X264_WEIGHTP_SIMPLE )
     {
         h->stat.i_wpred[0] += !!h->sh.weight[0][0].weightfn;
@@ -3347,14 +3351,29 @@ void    x264_encoder_close  ( x264_t *h )
         int64_t i_intra = i_i8x8 + SUM3b( h->stat.i_mb_count, I_4x4 )
                                  + SUM3b( h->stat.i_mb_count, I_16x16 );
         int64_t i_all_intra = i_intra + SUM3b( h->stat.i_mb_count, I_PCM);
+        int64_t i_skip = SUM3b( h->stat.i_mb_count, P_SKIP )
+                       + SUM3b( h->stat.i_mb_count, B_SKIP );
         const int i_count = h->stat.i_frame_count[SLICE_TYPE_I] +
                             h->stat.i_frame_count[SLICE_TYPE_P] +
                             h->stat.i_frame_count[SLICE_TYPE_B];
+        int64_t i_mb_count = (int64_t)i_count * h->mb.i_mb_count;
+        int64_t i_inter = i_mb_count - i_skip - i_intra;
         const double duration = h->stat.f_frame_duration[SLICE_TYPE_I] +
                                 h->stat.f_frame_duration[SLICE_TYPE_P] +
                                 h->stat.f_frame_duration[SLICE_TYPE_B];
-        int64_t i_mb_count = (int64_t)i_count * h->mb.i_mb_count;
         float f_bitrate = SUM3(h->stat.i_frame_size) / duration / 125;
+
+        if( PARAM_INTERLACED )
+        {
+            char *fieldstats = buf;
+            fieldstats[0] = 0;
+            if( i_inter )
+                fieldstats += sprintf( fieldstats, " inter:%.1f%%", h->stat.i_mb_field[1] * 100.0 / i_inter );
+            if( i_skip )
+                fieldstats += sprintf( fieldstats, " skip:%.1f%%", h->stat.i_mb_field[2] * 100.0 / i_skip );
+            x264_log( h, X264_LOG_INFO, "field mbs: intra: %.1f%%%s\n",
+                      h->stat.i_mb_field[0] * 100.0 / i_intra, buf );
+        }
 
         if( h->pps->b_transform_8x8_mode )
         {
