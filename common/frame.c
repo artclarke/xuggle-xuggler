@@ -464,6 +464,22 @@ void x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame )
     }
 }
 
+void x264_expand_border_mbpair( x264_t *h, int mb_x, int mb_y )
+{
+    for( int i = 0; i < h->fenc->i_plane; i++ )
+    {
+        int stride = h->fenc->i_stride[i];
+        int height = h->param.i_height >> !!i;
+        int pady = (h->mb.i_mb_height * 16 - h->param.i_height) >> !!i;
+        int mbsize = (16>>!!i);
+        pixel *fenc = h->fenc->plane[i] + mbsize * mb_x;
+        for( int y = height; y < height + pady; y++ )
+            memcpy( fenc + y*stride,
+                    fenc + (height-1)*stride,
+                    mbsize * sizeof(pixel) );
+    }
+}
+
 /* threading */
 void x264_frame_cond_broadcast( x264_frame_t *frame, int i_lines_completed )
 {

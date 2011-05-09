@@ -2063,10 +2063,10 @@ static int x264_slice_write( x264_t *h )
                 if( !(i_mb_y&1) )
                 {
                     /* FIXME: VSAD is fast but fairly poor at choosing the best interlace type. */
-                    int stride = h->fenc->i_stride[0];
-                    pixel *fenc = h->fenc->plane[0] + 16 * (i_mb_x + i_mb_y * stride);
-                    h->mb.b_interlaced = x264_field_vsad( h, fenc, stride );
+                    h->mb.b_interlaced = x264_field_vsad( h, i_mb_x, i_mb_y );
                     memcpy( &h->zigzagf, MB_INTERLACED ? &h->zigzagf_interlaced : &h->zigzagf_progressive, sizeof(h->zigzagf) );
+                    if( !MB_INTERLACED && (i_mb_y+2) == h->mb.i_mb_height )
+                        x264_expand_border_mbpair( h, i_mb_x, i_mb_y );
                 }
             }
             h->mb.field[mb_xy] = MB_INTERLACED;

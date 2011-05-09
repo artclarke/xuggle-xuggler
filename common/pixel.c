@@ -641,22 +641,27 @@ float x264_pixel_ssim_wxh( x264_pixel_function_t *pf,
     return ssim;
 }
 
-int pixel_vsad( pixel *src, int stride )
+int pixel_vsad( pixel *src, int stride, int height )
 {
     int score = 0;
-    for( int i = 1; i < 16; i++, src += stride )
+    for( int i = 1; i < height; i++, src += stride )
         for( int j = 0; j < 16; j++ )
             score += abs(src[j] - src[j+stride]);
     return score;
 }
 
-int x264_field_vsad( x264_t *h, pixel *fenc, int stride )
+int x264_field_vsad( x264_t *h, int mb_x, int mb_y )
 {
     int score_field, score_frame;
-    score_frame  = h->pixf.vsad( fenc,           stride );
-    score_frame += h->pixf.vsad( fenc+16*stride, stride );
-    score_field  = h->pixf.vsad( fenc,           stride*2 );
-    score_field += h->pixf.vsad( fenc+stride,    stride*2 );
+    int stride = h->fenc->i_stride[0];
+    pixel *fenc = h->fenc->plane[0] + 16 * (mb_x + mb_y * stride);
+
+    /* We don't want to analyze pixels outside the frame, as it gives inaccurate results. */
+    int mbpair_height = X264_MIN( h->param.i_height - mb_y * 16, 32 );
+    score_frame  = h->pixf.vsad( fenc,          stride, mbpair_height );
+    score_field  = h->pixf.vsad( fenc,        stride*2, mbpair_height >> 1 );
+    score_field += h->pixf.vsad( fenc+stride, stride*2, mbpair_height >> 1 );
+
     return (score_field < score_frame);
 }
 

@@ -2857,10 +2857,14 @@ intra_analysis:
         }
         else
         {
+            int skip_invalid = h->i_thread_frames > 1 && h->mb.cache.pskip_mv[1] > h->mb.mv_max_spel[1];
+            /* If the current macroblock is off the frame, just skip it. */
+            if( HAVE_INTERLACED && !MB_INTERLACED && h->mb.i_mb_y * 16 >= h->param.i_height && !skip_invalid )
+                b_skip = 1;
             /* Fast P_SKIP detection */
-            if( h->param.analyse.b_fast_pskip )
+            else if( h->param.analyse.b_fast_pskip )
             {
-                if( h->i_thread_frames > 1 && h->mb.cache.pskip_mv[1] > h->mb.mv_max_spel[1] )
+                if( skip_invalid )
                     // FIXME don't need to check this if the reference frame is done
                     {}
                 else if( h->param.analyse.i_subpel_refine >= 3 )
@@ -3187,7 +3191,10 @@ intra_analysis:
         {
             if( !h->mb.b_direct_auto_write )
                 x264_mb_mc( h );
-            if( analysis.i_mbrd )
+            /* If the current macroblock is off the frame, just skip it. */
+            if( HAVE_INTERLACED && !MB_INTERLACED && h->mb.i_mb_y * 16 >= h->param.i_height )
+                b_skip = 1;
+            else if( analysis.i_mbrd )
             {
                 i_bskip_cost = ssd_mb( h );
                 /* 6 = minimum cavlc cost of a non-skipped MB */

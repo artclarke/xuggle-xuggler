@@ -278,54 +278,60 @@ cglobal pixel_sad_8x16_sse2, 4,4
 
 %ifndef ARCH_X86_64
 INIT_MMX
-cglobal pixel_vsad_mmxext, 2,3
-    mova      m0, [r0+0]
+cglobal pixel_vsad_mmxext, 3,3
+    mova      m0, [r0]
     mova      m1, [r0+8]
-    mova      m2, [r0+r1+0]
+    mova      m2, [r0+r1]
     mova      m3, [r0+r1+8]
     lea       r0, [r0+r1*2]
     psadbw    m0, m2
     psadbw    m1, m3
-    mov      r2d, 7
+    paddw     m0, m1
+    sub      r2d, 2
+    je .end
 .loop:
-    mova      m4, [r0+0]
+    mova      m4, [r0]
     mova      m5, [r0+8]
+    mova      m6, [r0+r1]
+    mova      m7, [r0+r1+8]
+    lea       r0, [r0+r1*2]
     psadbw    m2, m4
     psadbw    m3, m5
+    psadbw    m4, m6
+    psadbw    m5, m7
     paddw     m0, m2
-    paddw     m1, m3
-    mova      m2, [r0+r1+0]
-    mova      m3, [r0+r1+8]
-    lea       r0, [r0+r1*2]
-    psadbw    m4, m2
-    psadbw    m5, m3
+    paddw     m0, m3
     paddw     m0, m4
-    paddw     m1, m5
-    dec      r2d
+    paddw     m0, m5
+    mova      m2, m6
+    mova      m3, m7
+    sub      r2d, 2
     jg .loop
-    paddw     m0, m1
+.end:
     movd     eax, m0
     RET
 %endif
 
 INIT_XMM
-cglobal pixel_vsad_sse2, 2,2
-    mova      m1, [r0]
-%assign i 1
-%rep 15
-    mova      m2, [r0+r1*(i&1)]
-%if i&1
+cglobal pixel_vsad_sse2, 3,3
+    mova      m0, [r0]
+    mova      m1, [r0+r1]
     lea       r0, [r0+r1*2]
-%endif
+    psadbw    m0, m1
+    sub      r2d, 2
+    je .end
+.loop:
+    mova      m2, [r0]
+    mova      m3, [r0+r1]
+    lea       r0, [r0+r1*2]
     psadbw    m1, m2
-%if i>1
+    psadbw    m2, m3
     paddw     m0, m1
-%else
-    SWAP       0, 1
-%endif
-    SWAP       1, 2
-%assign i i+1
-%endrep
+    paddw     m0, m2
+    mova      m1, m3
+    sub      r2d, 2
+    jg .loop
+.end:
     movhlps   m1, m0
     paddw     m0, m1
     movd     eax, m0
