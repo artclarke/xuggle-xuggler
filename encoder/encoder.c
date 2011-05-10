@@ -570,22 +570,6 @@ static int x264_validate_parameters( x264_t *h, int b_open )
         h->param.rc.i_vbv_max_bitrate = 0;
     }
 
-    h->param.b_interlaced = !!h->param.b_interlaced;
-    int max_slices = (h->param.i_height+((16<<h->param.b_interlaced)-1))/(16<<h->param.b_interlaced);
-    if( h->param.b_sliced_threads )
-    {
-        h->param.i_slice_count = x264_clip3( h->param.i_threads, 0, max_slices );
-        h->param.i_slice_max_size = 0;
-        h->param.i_slice_max_mbs = 0;
-    }
-    else
-    {
-        h->param.i_slice_count = x264_clip3( h->param.i_slice_count, 0, max_slices );
-        h->param.i_slice_max_size = X264_MAX( h->param.i_slice_max_size, 0 );
-        h->param.i_slice_max_mbs = X264_MAX( h->param.i_slice_max_mbs, 0 );
-        if( h->param.i_slice_max_mbs || h->param.i_slice_max_size )
-            h->param.i_slice_count = 0;
-    }
     if( h->param.b_interlaced && h->param.i_slice_max_size )
     {
         x264_log( h, X264_LOG_WARNING, "interlaced + slice-max-size is not implemented\n" );
@@ -595,6 +579,19 @@ static int x264_validate_parameters( x264_t *h, int b_open )
     {
         x264_log( h, X264_LOG_WARNING, "interlaced + slice-max-mbs is not implemented\n" );
         h->param.i_slice_max_mbs = 0;
+    }
+    h->param.i_slice_max_size = X264_MAX( h->param.i_slice_max_size, 0 );
+    h->param.i_slice_max_mbs = X264_MAX( h->param.i_slice_max_mbs, 0 );
+
+    h->param.b_interlaced = !!h->param.b_interlaced;
+    int max_slices = (h->param.i_height+((16<<h->param.b_interlaced)-1))/(16<<h->param.b_interlaced);
+    if( h->param.b_sliced_threads )
+        h->param.i_slice_count = x264_clip3( h->param.i_threads, 0, max_slices );
+    else
+    {
+        h->param.i_slice_count = x264_clip3( h->param.i_slice_count, 0, max_slices );
+        if( h->param.i_slice_max_mbs || h->param.i_slice_max_size )
+            h->param.i_slice_count = 0;
     }
 
     if( h->param.b_bluray_compat )
