@@ -1156,8 +1156,8 @@ x264_t *x264_encoder_open( x264_param_t *param )
         * ( h->param.rc.i_rc_method == X264_RC_ABR ? pow( 0.95, h->param.rc.i_qp_min )
           : pow( 0.95, h->param.rc.i_qp_constant ) * X264_MAX( 1, h->param.rc.f_ip_factor )));
 
-    CHECKED_MALLOC( h->nal_buffer, h->out.i_bitstream * 3/2 + 4 );
     h->nal_buffer_size = h->out.i_bitstream * 3/2 + 4;
+    CHECKED_MALLOC( h->nal_buffer, h->nal_buffer_size );
 
     if( h->param.i_threads > 1 &&
         x264_threadpool_init( &h->threadpool, h->param.i_threads, (void*)x264_encoder_thread_init, h ) )
@@ -1402,9 +1402,11 @@ static int x264_encoder_encapsulate_nals( x264_t *h, int start )
         nal_size += h->out.nal[i].i_payload;
 
     /* Worst-case NAL unit escaping: reallocate the buffer if it's too small. */
-    if( h->nal_buffer_size < nal_size * 3/2 + h->out.i_nal * 4 )
+    int necessary_size = nal_size * 3/2 + h->out.i_nal * 4;
+    if( h->nal_buffer_size < necessary_size )
     {
-        uint8_t *buf = x264_malloc( nal_size * 2 + h->out.i_nal * 4 );
+        h->nal_buffer_size = necessary_size * 2;
+        uint8_t *buf = x264_malloc( h->nal_buffer_size );
         if( !buf )
             return -1;
         if( previous_nal_size )
@@ -1459,6 +1461,8 @@ int x264_encoder_headers( x264_t *h, x264_nal_t **pp_nal, int *pi_nal )
         return -1;
 
     frame_size = x264_encoder_encapsulate_nals( h, 0 );
+    if( frame_size < 0 )
+        return -1;
 
     /* now set output*/
     *pi_nal = h->out.i_nal;
@@ -2906,6 +2910,8 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     }
 
     int frame_size = x264_encoder_encapsulate_nals( h, 0 );
+    if( frame_size < 0 )
+        return -1;
 
     /* Set output picture properties */
     pic_out->i_type = h->fenc->i_type;
@@ -2959,6 +2965,8 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
         if( x264_nal_end( h ) )
             return -1;
         int total_size = x264_encoder_encapsulate_nals( h, h->out.i_nal-1 );
+        if( total_size < 0 )
+            return -1;
         frame_size += total_size;
         filler -= total_size;
     }
