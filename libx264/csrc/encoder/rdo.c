@@ -205,8 +205,8 @@ static ALWAYS_INLINE void x264_copy_cabac_part( x264_t *h, x264_cabac_t *cb, int
 
     /* Really should be 15 bytes, but rounding up a byte saves some
      * instructions and is faster, and copying extra data doesn't hurt. */
-    COPY_CABAC_PART( significant_coeff_flag_offset[h->mb.b_interlaced][cat], 16 );
-    COPY_CABAC_PART( last_coeff_flag_offset[h->mb.b_interlaced][cat], 16 );
+    COPY_CABAC_PART( significant_coeff_flag_offset[MB_INTERLACED][cat], 16 );
+    COPY_CABAC_PART( last_coeff_flag_offset[MB_INTERLACED][cat], 16 );
     COPY_CABAC_PART( coeff_abs_level_m1_offset[cat], 10 );
     cb->f8_bits_encoded = 0;
 }
@@ -426,7 +426,7 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
     trellis_node_t *nodes_cur = nodes[0];
     trellis_node_t *nodes_prev = nodes[1];
     trellis_node_t *bnode;
-    const int b_interlaced = h->mb.b_interlaced;
+    const int b_interlaced = MB_INTERLACED;
     uint8_t *cabac_state_sig = &h->cabac.state[ significant_coeff_flag_offset[b_interlaced][ctx_block_cat] ];
     uint8_t *cabac_state_last = &h->cabac.state[ last_coeff_flag_offset[b_interlaced][ctx_block_cat] ];
     const int f = 1 << 15; // no deadzone
@@ -841,12 +841,12 @@ int x264_quant_dc_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
     if( h->param.b_cabac )
         return quant_trellis_cabac( h, dct,
             h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
-            NULL, ctx_block_cat==DCT_CHROMA_DC ? x264_zigzag_scan2 : x264_zigzag_scan4[h->mb.b_interlaced],
+            NULL, ctx_block_cat==DCT_CHROMA_DC ? x264_zigzag_scan2 : x264_zigzag_scan4[MB_INTERLACED],
             ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, 1, ctx_block_cat==DCT_CHROMA_DC ? 4 : 16, 0 );
 
     return quant_trellis_cavlc( h, dct,
         h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
-        NULL, ctx_block_cat==DCT_CHROMA_DC ? x264_zigzag_scan2 : x264_zigzag_scan4[h->mb.b_interlaced],
+        NULL, ctx_block_cat==DCT_CHROMA_DC ? x264_zigzag_scan2 : x264_zigzag_scan4[MB_INTERLACED],
         ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, 1, ctx_block_cat==DCT_CHROMA_DC ? 4 : 16, 0, 0 );
 }
 
@@ -857,14 +857,14 @@ int x264_quant_4x4_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
     if( h->param.b_cabac )
         return quant_trellis_cabac( h, dct,
             h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
-            x264_dct4_weight2_zigzag[h->mb.b_interlaced],
-            x264_zigzag_scan4[h->mb.b_interlaced],
+            x264_dct4_weight2_zigzag[MB_INTERLACED],
+            x264_zigzag_scan4[MB_INTERLACED],
             ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, 0, 16, idx );
 
     return quant_trellis_cavlc( h, dct,
             h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
-            x264_dct4_weight2_zigzag[h->mb.b_interlaced],
-            x264_zigzag_scan4[h->mb.b_interlaced],
+            x264_dct4_weight2_zigzag[MB_INTERLACED],
+            x264_zigzag_scan4[MB_INTERLACED],
             ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, 0, 16, idx, 0 );
 }
 
@@ -875,8 +875,8 @@ int x264_quant_8x8_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
     {
         return quant_trellis_cabac( h, dct,
             h->quant8_mf[i_quant_cat][i_qp], h->unquant8_mf[i_quant_cat][i_qp],
-            x264_dct8_weight2_zigzag[h->mb.b_interlaced],
-            x264_zigzag_scan8[h->mb.b_interlaced],
+            x264_dct8_weight2_zigzag[MB_INTERLACED],
+            x264_zigzag_scan8[MB_INTERLACED],
             DCT_LUMA_8x8, h->mb.i_trellis_lambda2[0][b_intra], 0, 0, 64, idx );
     }
 
@@ -886,8 +886,8 @@ int x264_quant_8x8_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
     {
         int nz = quant_trellis_cavlc( h, dct,
             h->quant8_mf[i_quant_cat][i_qp], h->unquant8_mf[i_quant_cat][i_qp],
-            x264_dct8_weight2_zigzag[h->mb.b_interlaced],
-            x264_zigzag_scan8[h->mb.b_interlaced],
+            x264_dct8_weight2_zigzag[MB_INTERLACED],
+            x264_zigzag_scan8[MB_INTERLACED],
             DCT_LUMA_4x4, h->mb.i_trellis_lambda2[0][b_intra], 0, 0, 16, idx*4+i, 1 );
         /* Set up nonzero count for future calls */
         h->mb.cache.non_zero_count[x264_scan8[idx*4+i]] = nz;

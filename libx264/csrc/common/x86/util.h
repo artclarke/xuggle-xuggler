@@ -100,11 +100,13 @@ static ALWAYS_INLINE uint16_t x264_cabac_mvd_sum_mmxext(uint8_t *mvdleft, uint8_
 {
     static const uint64_t pb_2    = 0x0202020202020202ULL;
     static const uint64_t pb_32   = 0x2020202020202020ULL;
+    static const uint64_t pb_33   = 0x2121212121212121ULL;
     int amvd;
     asm(
         "movd         %1, %%mm0 \n"
         "movd         %2, %%mm1 \n"
-        "paddb     %%mm1, %%mm0 \n"
+        "paddusb   %%mm1, %%mm0 \n"
+        "pminub       %5, %%mm0 \n"
         "pxor      %%mm2, %%mm2 \n"
         "movq      %%mm0, %%mm1 \n"
         "pcmpgtb      %3, %%mm0 \n"
@@ -114,7 +116,7 @@ static ALWAYS_INLINE uint16_t x264_cabac_mvd_sum_mmxext(uint8_t *mvdleft, uint8_
         "movd      %%mm2, %0    \n"
         :"=r"(amvd)
         :"m"(M16( mvdleft )),"m"(M16( mvdtop )),
-         "m"(pb_2),"m"(pb_32)
+         "m"(pb_2),"m"(pb_32),"m"(pb_33)
     );
     return amvd;
 }

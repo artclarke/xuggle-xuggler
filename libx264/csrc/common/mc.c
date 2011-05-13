@@ -511,18 +511,17 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 
 void x264_frame_filter( x264_t *h, x264_frame_t *frame, int mb_y, int b_end )
 {
-    const int b_interlaced = h->sh.b_mbaff;
-    const int stride = frame->i_stride[0] << b_interlaced;
+    const int b_interlaced = PARAM_INTERLACED;
+    int stride = frame->i_stride[0];
     const int width = frame->i_width[0];
-    int start = (mb_y*16 >> b_interlaced) - 8; // buffer = 4 for deblock + 3 for 6tap, rounded to 8
-    int height = ((b_end ? frame->i_lines[0] : mb_y*16) >> b_interlaced) + 8;
+    int start = mb_y*16 - 8; // buffer = 4 for deblock + 3 for 6tap, rounded to 8
+    int height = (b_end ? frame->i_lines[0] + 16*PARAM_INTERLACED : (mb_y+b_interlaced)*16) + 8;
     int offs = start*stride - 8; // buffer = 3 for 6tap, aligned to 8 for simd
 
     if( mb_y & b_interlaced )
         return;
 
-    for( int y = 0; y <= b_interlaced; y++, offs += frame->i_stride[0] )
-    {
+    if( !b_interlaced || h->mb.b_adaptive_mbaff )
         h->mc.hpel_filter(
             frame->filtered[1] + offs,
             frame->filtered[2] + offs,
@@ -530,6 +529,24 @@ void x264_frame_filter( x264_t *h, x264_frame_t *frame, int mb_y, int b_end )
             frame->plane[0] + offs,
             stride, width + 16, height - start,
             h->scratch_buffer );
+
+    if( b_interlaced )
+    {
+        /* MC must happen between pixels in the same field. */
+        stride = frame->i_stride[0] << 1;
+        start = (mb_y*16 >> 1) - 8;
+        int height_fld = ((b_end ? frame->i_lines[0] : mb_y*16) >> 1) + 8;
+        offs = start*stride - 8;
+        for( int i = 0; i < 2; i++, offs += frame->i_stride[0] )
+        {
+            h->mc.hpel_filter(
+                frame->filtered_fld[1] + offs,
+                frame->filtered_fld[2] + offs,
+                frame->filtered_fld[3] + offs,
+                frame->plane_fld[0] + offs,
+                stride, width + 16, height_fld - start,
+                h->scratch_buffer );
+        }
     }
 
     /* generate integral image:

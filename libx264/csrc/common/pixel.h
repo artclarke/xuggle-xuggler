@@ -82,6 +82,7 @@ typedef struct
     x264_pixel_cmp_x3_t fpelcmp_x3[7];
     x264_pixel_cmp_x4_t fpelcmp_x4[7];
     x264_pixel_cmp_t sad_aligned[7]; /* Aligned SAD for mbcmp */
+    int (*vsad)( pixel *, int, int );
     int (*var2_8x8)( pixel *, int, pixel *, int, int * );
 
     uint64_t (*var[4])( pixel *pix, int stride );
@@ -125,5 +126,6 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf );
 void x264_pixel_ssd_nv12( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height, uint64_t *ssd_u, uint64_t *ssd_v );
 uint64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height );
 float x264_pixel_ssim_wxh( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height, void *buf );
+int x264_field_vsad( x264_t *h, int mb_x, int mb_y );
 
 #endif

@@ -1103,9 +1103,9 @@ static int x264_slicetype_path_cost( x264_t *h, x264_mb_analysis_t *a, x264_fram
 /* Uses strings due to the fact that the speed of the control functions is
    negligible compared to the cost of running slicetype_frame_cost, and because
    it makes debugging easier. */
-static void x264_slicetype_path( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, int length, char (*best_paths)[X264_LOOKAHEAD_MAX] )
+static void x264_slicetype_path( x264_t *h, x264_mb_analysis_t *a, x264_frame_t **frames, int length, char (*best_paths)[X264_LOOKAHEAD_MAX+1] )
 {
-    char paths[2][X264_LOOKAHEAD_MAX];
+    char paths[2][X264_LOOKAHEAD_MAX+1];
     int num_paths = X264_MIN( h->param.i_bframe+1, length );
     int best_cost = COST_MAX;
     int idx = 0;
@@ -1279,7 +1279,7 @@ void x264_slicetype_analyse( x264_t *h, int keyframe )
         {
             if( num_frames > 1 )
             {
-                char best_paths[X264_BFRAME_MAX+1][X264_LOOKAHEAD_MAX] = {"","P"};
+                char best_paths[X264_BFRAME_MAX+1][X264_LOOKAHEAD_MAX+1] = {"","P"};
                 int best_path_index = num_frames % (X264_BFRAME_MAX+1);
 
                 /* Perform the frametype analysis. */

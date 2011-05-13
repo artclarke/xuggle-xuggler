@@ -138,6 +138,8 @@ float x264_pixel_ssim_end4_avx( int sum0[5][4], int sum1[5][4], int width );
 int  x264_pixel_var2_8x8_mmxext( pixel *, int, pixel *, int, int * );
 int  x264_pixel_var2_8x8_sse2( pixel *, int, pixel *, int, int * );
 int  x264_pixel_var2_8x8_ssse3( uint8_t *, int, uint8_t *, int, int * );
+int  x264_pixel_vsad_mmxext( pixel *src, int stride, int height );
+int  x264_pixel_vsad_sse2( pixel *src, int stride, int height );
 
 #define DECL_ADS( size, suffix ) \
 int x264_pixel_ads##size##_##suffix( int enc_dc[size], uint16_t *sums, int delta,\

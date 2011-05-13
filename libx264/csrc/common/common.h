@@ -92,6 +92,16 @@ do {\
 #include <assert.h>
 #include <limits.h>
 
+#if HAVE_INTERLACED
+#   define MB_INTERLACED h->mb.b_interlaced
+#   define SLICE_MBAFF h->sh.b_mbaff
+#   define PARAM_INTERLACED h->param.b_interlaced
+#else
+#   define MB_INTERLACED 0
+#   define SLICE_MBAFF 0
+#   define PARAM_INTERLACED 0
+#endif
+
 /* Unions for type-punning.
  * Mn: load or store n bits, aligned, native-endian
  * CPn: copy n bits, aligned, native-endian
@@ -394,6 +404,15 @@ typedef struct x264_lookahead_t
 
 typedef struct x264_ratecontrol_t   x264_ratecontrol_t;
 
+typedef struct x264_left_table_t
+{
+    uint8_t intra[4];
+    uint8_t nnz[4];
+    uint8_t nnz_chroma[4];
+    uint8_t mv[4];
+    uint8_t ref[4];
+} x264_left_table_t;
+
 struct x264_t
 {
     /* encoder parameters */
@@ -555,6 +574,8 @@ struct x264_t
         int     i_mb_stride;
         int     i_b8_stride;
         int     i_b4_stride;
+        int     left_b8[2];
+        int     left_b4[2];
 
         /* Current index */
         int     i_mb_x;
@@ -574,17 +595,24 @@ struct x264_t
         int     i_psy_trellis; /* Psy trellis strength--fixed point value*/
 
         int     b_interlaced;
+        int     b_adaptive_mbaff; /* MBAFF+subme 0 requires non-adaptive MBAFF i.e. all field mbs */
 
         /* Allowed qpel MV range to stay within the picture + emulated edge pixels */
         int     mv_min[2];
         int     mv_max[2];
+        int     mv_miny_row[3]; /* 0 == top progressive, 1 == bot progressive, 2 == interlaced */
+        int     mv_maxy_row[3];
         /* Subpel MV range for motion search.
          * same mv_min/max but includes levels' i_mv_range. */
         int     mv_min_spel[2];
         int     mv_max_spel[2];
+        int     mv_miny_spel_row[3];
+        int     mv_maxy_spel_row[3];
         /* Fullpel MV range for motion search */
         int     mv_min_fpel[2];
         int     mv_max_fpel[2];
+        int     mv_miny_fpel_row[3];
+        int     mv_maxy_fpel_row[3];
 
         /* neighboring MBs */
         unsigned int i_neighbour;
@@ -593,14 +621,22 @@ struct x264_t
         unsigned int i_neighbour_intra;     /* for constrained intra pred */
         unsigned int i_neighbour_frame;     /* ignoring slice boundaries */
         int     i_mb_type_top;
-        int     i_mb_type_left;
+        int     i_mb_type_left[2];
         int     i_mb_type_topleft;
         int     i_mb_type_topright;
         int     i_mb_prev_xy;
-        int     i_mb_left_xy;
+        int     i_mb_left_xy[2];
         int     i_mb_top_xy;
         int     i_mb_topleft_xy;
         int     i_mb_topright_xy;
+        int     i_mb_top_y;
+        int     i_mb_topleft_y;
+        int     i_mb_topright_y;
+        x264_left_table_t *left_index_table;
+        int     i_mb_top_mbpair_xy;
+        int     topleft_partition;
+        int     b_allow_skip;
+        int     field_decoding_flag;
 
         /**** thread synchronization ends here ****/
         /* subsequent variables are either thread-local or constant,
@@ -623,6 +659,7 @@ struct x264_t
         int8_t  *mb_transform_size;         /* transform_size_8x8_flag of each mb */
         uint16_t *slice_table;              /* sh->first_mb of the slice that the indexed mb is part of
                                              * NOTE: this will fail on resolutions above 2^16 MBs... */
+        uint8_t *field;
 
          /* buffer for weighted versions of the reference frames */
         pixel *p_weight_buf[X264_REF_MAX];
@@ -723,11 +760,15 @@ struct x264_t
 
             /* number of neighbors (top and left) that used 8x8 dct */
             int     i_neighbour_transform_size;
-            int     i_neighbour_interlaced;
+            int     i_neighbour_skip;
 
             /* neighbor CBPs */
             int     i_cbp_top;
             int     i_cbp_left;
+
+            /* extra data required for mbaff in mv prediction */
+            int16_t topright_mv[2][3][2];
+            int8_t  topright_ref[2][3];
         } cache;
 
         /* */
@@ -746,9 +787,9 @@ struct x264_t
         int     i_chroma_lambda2_offset;
 
         /* B_direct and weighted prediction */
-        int16_t dist_scale_factor_buf[2][X264_REF_MAX*2][4];
+        int16_t dist_scale_factor_buf[2][2][X264_REF_MAX*2][4];
         int16_t (*dist_scale_factor)[4];
-        int8_t bipred_weight_buf[2][X264_REF_MAX*2][4];
+        int8_t bipred_weight_buf[2][2][X264_REF_MAX*2][4];
         int8_t (*bipred_weight)[4];
         /* maps fref1[0]'s ref indices into the current list0 */
 #define map_col_to_list0(col) h->mb.map_col_to_list0[(col)+2]
@@ -783,6 +824,7 @@ struct x264_t
             int i_mb_partition[17];
             int i_mb_cbp[6];
             int i_mb_pred_mode[4][13];
+            int i_mb_field[3];
             /* Adaptive direct mv pred */
             int i_direct_score[2];
             /* Metrics */
@@ -812,6 +854,7 @@ struct x264_t
         int64_t i_mb_count_ref[2][2][X264_REF_MAX*2];
         int64_t i_mb_cbp[6];
         int64_t i_mb_pred_mode[4][13];
+        int64_t i_mb_field[3];
         /* */
         int     i_direct_score[2];
         int     i_direct_frames[2];
@@ -831,8 +874,10 @@ struct x264_t
 
     /* Buffers that are allocated per-thread even in sliced threads. */
     void *scratch_buffer; /* for any temporary storage that doesn't want repeated malloc */
-    pixel *intra_border_backup[2][2]; /* bottom pixels of the previous mb row, used for intra prediction after the framebuffer has been deblocked */
-    uint8_t (*deblock_strength[2])[2][4][4];
+    pixel *intra_border_backup[5][2]; /* bottom pixels of the previous mb row, used for intra prediction after the framebuffer has been deblocked */
+    /* Deblock strength values are stored for each 4x4 partition. In MBAFF
+     * there are four extra values that need to be stored, located in [4][i]. */
+    uint8_t (*deblock_strength[2])[2][8][4];
 
     /* CPU functions dependents */
     x264_predict_t      predict_16x16[4+3];
@@ -845,6 +890,8 @@ struct x264_t
     x264_mc_functions_t   mc;
     x264_dct_function_t   dctf;
     x264_zigzag_function_t zigzagf;
+    x264_zigzag_function_t zigzagf_interlaced;
+    x264_zigzag_function_t zigzagf_progressive;
     x264_quant_function_t quantf;
     x264_deblock_function_t loopf;
     x264_bitstream_function_t bsf;

@@ -66,20 +66,36 @@ static inline void x264_cabac_mb_type_intra( x264_t *h, x264_cabac_t *cb, int i_
     }
 }
 
+#if !RDO_SKIP_BS
+static void x264_cabac_field_decoding_flag( x264_t *h, x264_cabac_t *cb )
+{
+    int ctx = 0;
+    ctx += h->mb.field_decoding_flag & !!h->mb.i_mb_x;
+    ctx += (h->mb.i_mb_top_mbpair_xy >= 0
+            && h->mb.slice_table[h->mb.i_mb_top_mbpair_xy] == h->sh.i_first_mb
+            && h->mb.field[h->mb.i_mb_top_mbpair_xy]);
+
+    x264_cabac_encode_decision_noup( cb, 70 + ctx, MB_INTERLACED );
+    h->mb.field_decoding_flag = MB_INTERLACED;
+}
+#endif
+
 static void x264_cabac_mb_type( x264_t *h, x264_cabac_t *cb )
 {
     const int i_mb_type = h->mb.i_type;
 
-    if( h->sh.b_mbaff &&
+#if !RDO_SKIP_BS
+    if( SLICE_MBAFF &&
         (!(h->mb.i_mb_y & 1) || IS_SKIP(h->mb.type[h->mb.i_mb_xy - h->mb.i_mb_stride])) )
     {
-        x264_cabac_encode_decision_noup( cb, 70 + h->mb.cache.i_neighbour_interlaced, h->mb.b_interlaced );
+        x264_cabac_field_decoding_flag( h, cb );
     }
+#endif
 
     if( h->sh.i_type == SLICE_TYPE_I )
     {
         int ctx = 0;
-        if( (h->mb.i_neighbour & MB_LEFT) && h->mb.i_mb_type_left != I_4x4 )
+        if( (h->mb.i_neighbour & MB_LEFT) && h->mb.i_mb_type_left[0] != I_4x4 )
             ctx++;
         if( (h->mb.i_neighbour & MB_TOP) && h->mb.i_mb_type_top != I_4x4 )
             ctx++;
@@ -113,7 +129,7 @@ static void x264_cabac_mb_type( x264_t *h, x264_cabac_t *cb )
     else //if( h->sh.i_type == SLICE_TYPE_B )
     {
         int ctx = 0;
-        if( (h->mb.i_neighbour & MB_LEFT) && h->mb.i_mb_type_left != B_SKIP && h->mb.i_mb_type_left != B_DIRECT )
+        if( (h->mb.i_neighbour & MB_LEFT) && h->mb.i_mb_type_left[0] != B_SKIP && h->mb.i_mb_type_left[0] != B_DIRECT )
             ctx++;
         if( (h->mb.i_neighbour & MB_TOP) && h->mb.i_mb_type_top != B_SKIP && h->mb.i_mb_type_top != B_DIRECT )
             ctx++;
@@ -198,7 +214,7 @@ static void x264_cabac_mb_intra_chroma_pred_mode( x264_t *h, x264_cabac_t *cb )
     int       ctx = 0;
 
     /* No need to test for I4x4 or I_16x16 as cache_save handle that */
-    if( (h->mb.i_neighbour & MB_LEFT) && h->mb.chroma_pred_mode[h->mb.i_mb_left_xy] != 0 )
+    if( (h->mb.i_neighbour & MB_LEFT) && h->mb.chroma_pred_mode[h->mb.i_mb_left_xy[0]] != 0 )
         ctx++;
     if( (h->mb.i_neighbour & MB_TOP) && h->mb.chroma_pred_mode[h->mb.i_mb_top_xy] != 0 )
         ctx++;
@@ -280,9 +296,9 @@ static void x264_cabac_mb_qp_delta( x264_t *h, x264_cabac_t *cb )
 #if !RDO_SKIP_BS
 void x264_cabac_mb_skip( x264_t *h, int b_skip )
 {
-    int ctx = ((h->mb.i_neighbour & MB_LEFT) && !IS_SKIP( h->mb.i_mb_type_left ))
-            + ((h->mb.i_neighbour & MB_TOP) && !IS_SKIP( h->mb.i_mb_type_top ))
-            + (h->sh.i_type == SLICE_TYPE_P ? 11 : 24);
+    int ctx = h->mb.cache.i_neighbour_skip + 11;
+    if( h->sh.i_type != SLICE_TYPE_P )
+       ctx += 13;
     x264_cabac_encode_decision( &h->cabac, ctx, b_skip );
 }
 #endif
@@ -335,7 +351,7 @@ static void x264_cabac_mb_ref( x264_t *h, x264_cabac_t *cb, int i_list, int idx 
     const int i8 = x264_scan8[idx];
     const int i_refa = h->mb.cache.ref[i_list][i8 - 1];
     const int i_refb = h->mb.cache.ref[i_list][i8 - 8];
-    int ctx  = 0;
+    int ctx = 0;
 
     if( i_refa > 0 && !h->mb.cache.skip[i8 - 1] )
         ctx++;
@@ -408,9 +424,9 @@ static ALWAYS_INLINE int x264_cabac_mb_mvd_cpn( x264_t *h, x264_cabac_t *cb, int
         x264_cabac_encode_bypass( cb, mvd >> 31 );
     }
 #endif
-    /* Since we don't need to keep track of MVDs larger than 33, just cap the value.
+    /* Since we don't need to keep track of MVDs larger than 66, just cap the value.
      * This lets us store MVDs as 8-bit values instead of 16-bit. */
-    return X264_MIN( i_abs, 33 );
+    return X264_MIN( i_abs, 66 );
 }
 
 static NOINLINE uint16_t x264_cabac_mb_mvd( x264_t *h, x264_cabac_t *cb, int i_list, int idx, int width )
@@ -559,9 +575,9 @@ static const uint8_t count_cat_m1[5] = {15, 14, 15, 3, 14};
 #if !RDO_SKIP_BS
 static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l )
 {
-    const uint8_t *sig_offset = significant_coeff_flag_offset_8x8[h->mb.b_interlaced];
-    int ctx_sig = significant_coeff_flag_offset[h->mb.b_interlaced][ctx_block_cat];
-    int ctx_last = last_coeff_flag_offset[h->mb.b_interlaced][ctx_block_cat];
+    const uint8_t *sig_offset = significant_coeff_flag_offset_8x8[MB_INTERLACED];
+    int ctx_sig = significant_coeff_flag_offset[MB_INTERLACED][ctx_block_cat];
+    int ctx_last = last_coeff_flag_offset[MB_INTERLACED][ctx_block_cat];
     int ctx_level = coeff_abs_level_m1_offset[ctx_block_cat];
     int coeff_idx = -1, node_ctx = 0, last;
     int coeffs[64];
@@ -645,9 +661,9 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int ctx_blo
  * for this (~0.001db) and the speed boost (~30%) is worth it. */
 static void ALWAYS_INLINE block_residual_write_cabac_internal( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l, int b_8x8 )
 {
-    const uint8_t *sig_offset = significant_coeff_flag_offset_8x8[h->mb.b_interlaced];
-    int ctx_sig = significant_coeff_flag_offset[h->mb.b_interlaced][ctx_block_cat];
-    int ctx_last = last_coeff_flag_offset[h->mb.b_interlaced][ctx_block_cat];
+    const uint8_t *sig_offset = significant_coeff_flag_offset_8x8[MB_INTERLACED];
+    int ctx_sig = significant_coeff_flag_offset[MB_INTERLACED][ctx_block_cat];
+    int ctx_last = last_coeff_flag_offset[MB_INTERLACED][ctx_block_cat];
     int ctx_level = coeff_abs_level_m1_offset[ctx_block_cat];
     int last = h->quantf.coeff_last[ctx_block_cat]( l );
     int coeff_abs = abs(l[last]);

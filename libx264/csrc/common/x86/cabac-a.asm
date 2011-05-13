@@ -35,13 +35,13 @@ cextern cabac_renorm_shift
 
 ; t3 must be ecx, since it's used for shift.
 %ifdef WIN64
-    DECLARE_REG_TMP 3,1,2,0,4,5,6,10,2
+    DECLARE_REG_TMP 3,1,2,0,4,5,6,2
     %define pointer resq
 %elifdef ARCH_X86_64
-    DECLARE_REG_TMP 0,1,2,3,4,5,6,10,6
+    DECLARE_REG_TMP 0,1,2,3,4,5,6,6
     %define pointer resq
 %else
-    DECLARE_REG_TMP 0,4,2,1,3,5,6,2,2
+    DECLARE_REG_TMP 0,4,2,1,3,5,6,2
     %define pointer resd
 %endif
 
@@ -75,21 +75,21 @@ cglobal cabac_encode_decision_asm, 0,7
     movifnidn t0,  r0mp
     movifnidn t1d, r1m
     mov   t5d, [t0+cb.range]
-    movzx t4d, byte [t0+cb.state+t1]
+    movzx t6d, byte [t0+cb.state+t1]
+    mov   t4d, ~1
     mov   t3d, t5d
-    mov   t6d, t4d
+    and   t4d, t6d
     shr   t5d, 6
-    shr   t4d, 1
     movifnidn t2d, r2m
-    LOAD_GLOBAL t5d, cabac_range_lps-4, t5, t4*4
+    LOAD_GLOBAL t5d, cabac_range_lps-4, t5, t4*2
     LOAD_GLOBAL t4d, cabac_transition, t2, t6*2
     and   t6d, 1
     sub   t3d, t5d
     cmp   t6d, t2d
     mov   t6d, [t0+cb.low]
-    lea   t7,  [t6+t3]
+    lea    t2, [t6+t3]
     cmovne t3d, t5d
-    cmovne t6d, t7d
+    cmovne t6d, t2d
     mov   [t0+cb.state+t1], t4b
 ;cabac_encode_renorm
     mov   t4d, t3d
@@ -108,9 +108,9 @@ cglobal cabac_encode_decision_asm, 0,7
 cglobal cabac_encode_bypass_asm, 0,3
     movifnidn  t0, r0mp
     movifnidn t3d, r1m
-    mov       t8d, [t0+cb.low]
+    mov       t7d, [t0+cb.low]
     and       t3d, [t0+cb.range]
-    lea       t8d, [t8*2+t3]
+    lea       t7d, [t7*2+t3]
     mov       t3d, [t0+cb.queue]
     inc       t3d
 %ifdef UNIX64 ; .putbyte compiles to nothing but a jmp
@@ -118,12 +118,12 @@ cglobal cabac_encode_bypass_asm, 0,3
 %else
     jge .putbyte
 %endif
-    mov   [t0+cb.low], t8d
+    mov   [t0+cb.low], t7d
     mov   [t0+cb.queue], t3d
     RET
 .putbyte:
     PROLOGUE 0,7
-    movifnidn t6d, t8d
+    movifnidn t6d, t7d
     jmp cabac_putbyte
 
 cglobal cabac_encode_terminal_asm, 0,3
@@ -162,7 +162,7 @@ cabac_putbyte:
     mov   t5d, [t0+cb.bytes_outstanding]
     cmp   t2b, 0xff ; FIXME is a 32bit op faster?
     jz    .postpone
-    mov   t1,  [t0+cb.p]
+    mov    t1, [t0+cb.p]
     add   [t1-1], dh ; t2h
     dec   dh
 .loop_outstanding:

@@ -135,9 +135,13 @@ OBJCLI = $(SRCCLI:%.c=%.o)
 OBJSO = $(SRCSO:%.c=%.o)
 DEP  = depend
 
-.PHONY: all default fprofiled clean distclean install uninstall dox test testclean
+.PHONY: all default fprofiled clean distclean install uninstall dox test testclean lib-static lib-shared cli install-lib-dev install-lib-static install-lib-shared install-cli
 
-default: $(DEP) x264$(EXE)
+default: $(DEP)
+
+cli: x264$(EXE)
+lib-static: $(LIBX264)
+lib-shared: $(SONAME)
 
 $(LIBX264): .depend $(OBJS) $(OBJASM)
 	$(AR)$@ $(OBJS) $(OBJASM)
@@ -146,8 +150,8 @@ $(LIBX264): .depend $(OBJS) $(OBJASM)
 $(SONAME): .depend $(OBJS) $(OBJASM) $(OBJSO)
 	$(LD)$@ $(OBJS) $(OBJASM) $(OBJSO) $(SOFLAGS) $(LDFLAGS)
 
-x264$(EXE): $(OBJCLI) $(LIBX264)
-	$(LD)$@ $+ $(LDFLAGSCLI) $(LDFLAGS)
+x264$(EXE): .depend $(OBJCLI) $(CLI_LIBX264)
+	$(LD)$@ $(OBJCLI) $(CLI_LIBX264) $(LDFLAGSCLI) $(LDFLAGS)
 
 checkasm: tools/checkasm.o $(LIBX264)
 	$(LD)$@ $+ $(LDFLAGS)
@@ -207,17 +211,23 @@ distclean: clean
 	rm -f config.mak x264_config.h config.h config.log x264.pc x264.def
 	rm -rf test/
 
-install: x264$(EXE) $(SONAME)
+install-cli: cli
 	install -d $(DESTDIR)$(bindir)
+	install x264$(EXE) $(DESTDIR)$(bindir)
+
+install-lib-dev:
 	install -d $(DESTDIR)$(includedir)
 	install -d $(DESTDIR)$(libdir)
 	install -d $(DESTDIR)$(libdir)/pkgconfig
 	install -m 644 x264.h $(DESTDIR)$(includedir)
 	install -m 644 x264_config.h $(DESTDIR)$(includedir)
-	install -m 644 $(LIBX264) $(DESTDIR)$(libdir)
 	install -m 644 x264.pc $(DESTDIR)$(libdir)/pkgconfig
-	install x264$(EXE) $(DESTDIR)$(bindir)
+
+install-lib-static: lib-static install-lib-dev
+	install -m 644 $(LIBX264) $(DESTDIR)$(libdir)
 	$(if $(RANLIB), $(RANLIB) $(DESTDIR)$(libdir)/$(LIBX264))
+
+install-lib-shared: lib-shared install-lib-dev
 ifeq ($(SYS),WINDOWS)
 	$(if $(SONAME), install -m 755 $(SONAME) $(DESTDIR)$(bindir))
 else

@@ -7,6 +7,10 @@ Usage: ./configure [options]
 available options:
 
   --help                   print this message
+  --disable-cli            disables cli
+  --system-libx264         use system libx264 instead of internal
+  --enable-shared          build shared library
+  --enable-static          build static library
   --disable-avs            disables avisynth support (windows only)
   --disable-lavf           disables libavformat support
   --disable-ffms           disables ffmpegsource support
@@ -16,11 +20,12 @@ available options:
   --enable-win32thread     use win32threads (windows only)
   --disable-swscale        disables swscale support
   --disable-asm            disables platform-specific assembly optimizations
-  --enable-debug           adds -g, doesn't strip
-  --enable-gprof           adds -pg, doesn't strip
+  --disable-interlaced     disables interlaced encoding support
+  --enable-debug           adds -g
+  --enable-gprof           adds -pg
+  --enable-strip           adds -s
   --enable-visualize       enables visualization (X11 only)
   --enable-pic             build position-independent code
-  --enable-shared          build shared library
   --bit-depth=BIT_DEPTH    sets output bit depth (8-10), default 8
   --extra-asflags=EASFLAGS add EASFLAGS to ASFLAGS
   --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS
@@ -197,6 +202,10 @@ libdir='${exec_prefix}/lib'
 includedir='${prefix}/include'
 DEVNULL='/dev/null'
 
+cli="yes"
+cli_libx264="internal"
+shared="no"
+static="no"
 avs="auto"
 lavf="auto"
 ffms="auto"
@@ -205,11 +214,12 @@ gpl="yes"
 thread="auto"
 swscale="auto"
 asm="auto"
+interlaced="yes"
 debug="no"
 gprof="no"
+strip="no"
 pic="no"
 vis="no"
-shared="no"
 bit_depth="8"
 compiler="GNU"
 
@@ -223,7 +233,7 @@ cross_prefix=""
 EXE=""
 
 # list of all preprocessor HAVE values we can define
-CONFIG_HAVE="MALLOC_H ALTIVEC ALTIVEC_H MMX ARMV6 ARMV6T2 NEON BEOSTHREAD POSIXTHREAD WIN32THREAD THREAD LOG2F VISUALIZE SWSCALE LAVF FFMS GPAC GF_MALLOC AVS GPL VECTOREXT"
+CONFIG_HAVE="MALLOC_H ALTIVEC ALTIVEC_H MMX ARMV6 ARMV6T2 NEON BEOSTHREAD POSIXTHREAD WIN32THREAD THREAD LOG2F VISUALIZE SWSCALE LAVF FFMS GPAC GF_MALLOC AVS GPL VECTOREXT INTERLACED"
 
 # parse options
 
@@ -245,8 +255,23 @@ for opt do
         --includedir=*)
             includedir="$optarg"
             ;;
+        --disable-cli)
+            cli="no"
+            ;;
+        --system-libx264)
+            cli_libx264="system"
+            ;;
+        --enable-shared)
+            shared="yes"
+            ;;
+        --enable-static)
+            static="yes"
+            ;;
         --disable-asm)
             asm="no"
+            ;;
+        --disable-interlaced)
+            interlaced="no"
             ;;
         --disable-avs)
             avs="no"
@@ -289,11 +314,11 @@ for opt do
             LDFLAGS="$LDFLAGS -pg"
             gprof="yes"
             ;;
+        --enable-strip)
+            strip="yes"
+            ;;
         --enable-pic)
             pic="yes"
-            ;;
-        --enable-shared)
-            shared="yes"
             ;;
         --enable-visualize)
             vis="yes"
@@ -321,6 +346,8 @@ for opt do
             ;;
     esac
 done
+
+[ "$cli" = "no" -a "$shared" = "no" -a "$static" = "no" ] && die "Nothing to build. Enable cli, shared or static."
 
 CC="${CC-${cross_prefix}gcc}"
 AR="${AR-${cross_prefix}ar}"
@@ -821,7 +848,11 @@ if [ "$pic" = "yes" ] ; then
 fi
 
 if [ "$debug" != "yes" -a "$gprof" != "yes" ]; then
-    CFLAGS="$CFLAGS -s -fomit-frame-pointer"
+    CFLAGS="$CFLAGS -fomit-frame-pointer"
+fi
+
+if [ "$strip" = "yes" ]; then
+    CFLAGS="$CFLAGS -s"
     LDFLAGS="$LDFLAGS -s"
 fi
 
@@ -867,6 +898,8 @@ fi
 ASFLAGS="$ASFLAGS -DBIT_DEPTH=$bit_depth"
 
 [ $gpl = yes ] && define HAVE_GPL && x264_gpl=1 || x264_gpl=0
+
+[ $interlaced = yes ] && define HAVE_INTERLACED && x264_interlaced=1 || x264_interlaced=0
 
 #define undefined vars as 0
 for var in $CONFIG_HAVE; do
@@ -917,8 +950,9 @@ rm -f conftest*
 # generate exported config file
 
 cat > x264_config.h << EOF
-#define X264_BIT_DEPTH $bit_depth
-#define X264_GPL       $x264_gpl
+#define X264_BIT_DEPTH  $bit_depth
+#define X264_GPL        $x264_gpl
+#define X264_INTERLACED $x264_interlaced
 EOF
 
 # generate config files
@@ -937,7 +971,6 @@ DEPMM=$DEPMM
 DEPMT=$DEPMT
 LD=$LD
 LDFLAGS=$LDFLAGS
-LDFLAGSCLI=$LDFLAGSCLI
 LIBX264=$LIBX264
 AR=$AR
 RANLIB=$RANLIB
@@ -956,6 +989,11 @@ EOF
 if [ $compiler = ICL ]; then
     echo '%.o: %.c' >> config.mak
     echo '	$(CC) $(CFLAGS) -c -Fo$@ $<' >> config.mak
+fi
+
+if [ "$cli" = "yes" ]; then
+    echo 'default: cli' >> config.mak
+    echo 'install: install-cli' >> config.mak
 fi
 
 if [ "$shared" = "yes" ]; then
@@ -986,8 +1024,29 @@ if [ "$shared" = "yes" ]; then
         echo "SONAME=libx264.so.$API" >> config.mak
         echo 'SOFLAGS=-shared -Wl,-soname,$(SONAME)' >> config.mak
     fi
-    echo 'default: $(SONAME)' >> config.mak
+    echo 'default: lib-shared' >> config.mak
+    echo 'install: install-lib-shared' >> config.mak
 fi
+
+if [ "$static" = "yes" ]; then
+    echo 'default: lib-static' >> config.mak
+    echo 'install: install-lib-static' >> config.mak
+fi
+
+if [ "$cli_libx264" = "system" ] ; then
+    if [ "$shared" = "yes" ]; then
+        CLI_LIBX264='$(SONAME)'
+    elif ${cross_prefix}pkg-config --exists x264 2>/dev/null; then
+        LDFLAGSCLI="$LDFLAGSCLI $(${cross_prefix}pkg-config --libs x264)"
+        CLI_LIBX264=
+    else
+        die "Can not find system libx264"
+    fi
+else
+    CLI_LIBX264='$(LIBX264)'
+fi
+echo "LDFLAGSCLI = $LDFLAGSCLI" >> config.mak
+echo "CLI_LIBX264 = $CLI_LIBX264" >> config.mak
 
 ./version.sh >> config.h
 
@@ -1014,7 +1073,12 @@ gpl_filters=""
 cat > conftest.log <<EOF
 Platform:   $ARCH
 System:     $SYS
+cli:        $cli
+libx264:    $cli_libx264
+shared:     $shared
+static:     $static
 asm:        $asm
+interlaced: $interlaced
 avs:        $avs
 lavf:       $lavf
 ffms:       $ffms
@@ -1024,8 +1088,8 @@ thread:     $thread
 filters:    $filters
 debug:      $debug
 gprof:      $gprof
+strip:      $strip
 PIC:        $pic
-shared:     $shared
 visualize:  $vis
 bit depth:  $bit_depth
 EOF

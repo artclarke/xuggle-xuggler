@@ -746,123 +746,117 @@ static void zigzag_interleave_8x8_cavlc( dctcoef *dst, dctcoef *src, uint8_t *nn
     }
 }
 
-void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf, int b_interlaced )
+void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf_progressive, x264_zigzag_function_t *pf_interlaced )
 {
-    if( b_interlaced )
-    {
-        pf->scan_8x8   = zigzag_scan_8x8_field;
-        pf->scan_4x4   = zigzag_scan_4x4_field;
-        pf->sub_8x8    = zigzag_sub_8x8_field;
-        pf->sub_4x4    = zigzag_sub_4x4_field;
-        pf->sub_4x4ac  = zigzag_sub_4x4ac_field;
+    pf_interlaced->scan_8x8   = zigzag_scan_8x8_field;
+    pf_progressive->scan_8x8  = zigzag_scan_8x8_frame;
+    pf_interlaced->scan_4x4   = zigzag_scan_4x4_field;
+    pf_progressive->scan_4x4  = zigzag_scan_4x4_frame;
+    pf_interlaced->sub_8x8    = zigzag_sub_8x8_field;
+    pf_progressive->sub_8x8   = zigzag_sub_8x8_frame;
+    pf_interlaced->sub_4x4    = zigzag_sub_4x4_field;
+    pf_progressive->sub_4x4   = zigzag_sub_4x4_frame;
+    pf_interlaced->sub_4x4ac  = zigzag_sub_4x4ac_field;
+    pf_progressive->sub_4x4ac = zigzag_sub_4x4ac_frame;
+
 #if HIGH_BIT_DEPTH
 #if HAVE_MMX
-        if( cpu&X264_CPU_SSE2 )
-            pf->scan_4x4 = x264_zigzag_scan_4x4_field_sse2;
-        if( cpu&X264_CPU_SSE4 )
-            pf->scan_8x8 = x264_zigzag_scan_8x8_field_sse4;
-        if( cpu&X264_CPU_AVX )
-            pf->scan_8x8 = x264_zigzag_scan_8x8_field_avx;
-#endif // HAVE_MMX
-#else
-#if HAVE_MMX
-        if( cpu&X264_CPU_MMXEXT )
-        {
-            pf->scan_4x4 = x264_zigzag_scan_4x4_field_mmxext;
-            pf->scan_8x8 = x264_zigzag_scan_8x8_field_mmxext;
-        }
-        if( cpu&X264_CPU_SSSE3 )
-        {
-            pf->sub_4x4  = x264_zigzag_sub_4x4_field_ssse3;
-            pf->sub_4x4ac= x264_zigzag_sub_4x4ac_field_ssse3;
-        }
-        if( cpu&X264_CPU_AVX )
-        {
-            pf->sub_4x4  = x264_zigzag_sub_4x4_field_avx;
-#if ARCH_X86_64
-            pf->sub_4x4ac= x264_zigzag_sub_4x4ac_field_avx;
-#endif
-        }
-#endif // HAVE_MMX
-#if HAVE_ALTIVEC
-        if( cpu&X264_CPU_ALTIVEC )
-            pf->scan_4x4   = x264_zigzag_scan_4x4_field_altivec;
-#endif
-#endif // HIGH_BIT_DEPTH
+    if( cpu&X264_CPU_SSE2 )
+    {
+        pf_interlaced->scan_4x4  = x264_zigzag_scan_4x4_field_sse2;
+        pf_progressive->scan_4x4 = x264_zigzag_scan_4x4_frame_sse2;
+        pf_progressive->scan_8x8 = x264_zigzag_scan_8x8_frame_sse2;
     }
-    else
-    {
-        pf->scan_8x8   = zigzag_scan_8x8_frame;
-        pf->scan_4x4   = zigzag_scan_4x4_frame;
-        pf->sub_8x8    = zigzag_sub_8x8_frame;
-        pf->sub_4x4    = zigzag_sub_4x4_frame;
-        pf->sub_4x4ac  = zigzag_sub_4x4ac_frame;
-#if HIGH_BIT_DEPTH
-#if HAVE_MMX
-        if( cpu&X264_CPU_SSE2 )
-        {
-            pf->scan_4x4 = x264_zigzag_scan_4x4_frame_sse2;
-            pf->scan_8x8 = x264_zigzag_scan_8x8_frame_sse2;
-        }
+    if( cpu&X264_CPU_SSE4 )
+        pf_interlaced->scan_8x8 = x264_zigzag_scan_8x8_field_sse4;
+    if( cpu&X264_CPU_AVX )
+        pf_interlaced->scan_8x8 = x264_zigzag_scan_8x8_field_avx;
 #if ARCH_X86_64
-        if( cpu&X264_CPU_AVX )
-        {
-            pf->scan_4x4 = x264_zigzag_scan_4x4_frame_avx;
-            pf->scan_8x8 = x264_zigzag_scan_8x8_frame_avx;
-        }
+    if( cpu&X264_CPU_AVX )
+    {
+        pf_progressive->scan_4x4 = x264_zigzag_scan_4x4_frame_avx;
+        pf_progressive->scan_8x8 = x264_zigzag_scan_8x8_frame_avx;
+    }
 #endif // ARCH_X86_64
 #endif // HAVE_MMX
 #else
 #if HAVE_MMX
-        if( cpu&X264_CPU_MMX )
-            pf->scan_4x4 = x264_zigzag_scan_4x4_frame_mmx;
-        if( cpu&X264_CPU_MMXEXT )
-            pf->scan_8x8 = x264_zigzag_scan_8x8_frame_mmxext;
-        if( cpu&X264_CPU_SSE2_IS_FAST )
-            pf->scan_8x8 = x264_zigzag_scan_8x8_frame_sse2;
-        if( cpu&X264_CPU_SSSE3 )
-        {
-            pf->sub_4x4  = x264_zigzag_sub_4x4_frame_ssse3;
-            pf->sub_4x4ac= x264_zigzag_sub_4x4ac_frame_ssse3;
-            pf->scan_8x8 = x264_zigzag_scan_8x8_frame_ssse3;
-            if( cpu&X264_CPU_SHUFFLE_IS_FAST )
-                pf->scan_4x4 = x264_zigzag_scan_4x4_frame_ssse3;
-        }
-        if( cpu&X264_CPU_AVX )
-        {
-            pf->sub_4x4  = x264_zigzag_sub_4x4_frame_avx;
+    if( cpu&X264_CPU_MMX )
+        pf_progressive->scan_4x4 = x264_zigzag_scan_4x4_frame_mmx;
+    if( cpu&X264_CPU_MMXEXT )
+    {
+        pf_interlaced->scan_4x4  = x264_zigzag_scan_4x4_field_mmxext;
+        pf_interlaced->scan_8x8  = x264_zigzag_scan_8x8_field_mmxext;
+        pf_progressive->scan_8x8 = x264_zigzag_scan_8x8_frame_mmxext;
+    }
+    if( cpu&X264_CPU_SSE2_IS_FAST )
+        pf_progressive->scan_8x8 = x264_zigzag_scan_8x8_frame_sse2;
+    if( cpu&X264_CPU_SSSE3 )
+    {
+        pf_interlaced->sub_4x4   = x264_zigzag_sub_4x4_field_ssse3;
+        pf_progressive->sub_4x4  = x264_zigzag_sub_4x4_frame_ssse3;
+        pf_interlaced->sub_4x4ac = x264_zigzag_sub_4x4ac_field_ssse3;
+        pf_progressive->sub_4x4ac= x264_zigzag_sub_4x4ac_frame_ssse3;
+        pf_progressive->scan_8x8 = x264_zigzag_scan_8x8_frame_ssse3;
+        if( cpu&X264_CPU_SHUFFLE_IS_FAST )
+            pf_progressive->scan_4x4 = x264_zigzag_scan_4x4_frame_ssse3;
+    }
+    if( cpu&X264_CPU_AVX )
+    {
+        pf_interlaced->sub_4x4   = x264_zigzag_sub_4x4_field_avx;
+        pf_progressive->sub_4x4  = x264_zigzag_sub_4x4_frame_avx;
 #if ARCH_X86_64
-            pf->sub_4x4ac= x264_zigzag_sub_4x4ac_frame_avx;
+        pf_interlaced->sub_4x4ac = x264_zigzag_sub_4x4ac_field_avx;
+        pf_progressive->sub_4x4ac= x264_zigzag_sub_4x4ac_frame_avx;
 #endif
-            if( cpu&X264_CPU_SHUFFLE_IS_FAST )
-                pf->scan_4x4 = x264_zigzag_scan_4x4_frame_avx;
-        }
+        if( cpu&X264_CPU_SHUFFLE_IS_FAST )
+            pf_progressive->scan_4x4 = x264_zigzag_scan_4x4_frame_avx;
+    }
 #endif // HAVE_MMX
 #if HAVE_ALTIVEC
-        if( cpu&X264_CPU_ALTIVEC )
-            pf->scan_4x4   = x264_zigzag_scan_4x4_frame_altivec;
+    if( cpu&X264_CPU_ALTIVEC )
+    {
+        pf_interlaced->scan_4x4  = x264_zigzag_scan_4x4_field_altivec;
+        pf_progressive->scan_4x4 = x264_zigzag_scan_4x4_frame_altivec;
+    }
 #endif
 #if HAVE_ARMV6
-        if( cpu&X264_CPU_NEON )
-            pf->scan_4x4 = x264_zigzag_scan_4x4_frame_neon;
+    if( cpu&X264_CPU_NEON )
+        pf_progressive->scan_4x4 = x264_zigzag_scan_4x4_frame_neon;
 #endif
 #endif // HIGH_BIT_DEPTH
-    }
 
-    pf->interleave_8x8_cavlc = zigzag_interleave_8x8_cavlc;
+    pf_interlaced->interleave_8x8_cavlc =
+    pf_progressive->interleave_8x8_cavlc = zigzag_interleave_8x8_cavlc;
 #if HAVE_MMX
 #if HIGH_BIT_DEPTH
     if( cpu&X264_CPU_SSE2 )
-        pf->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_sse2;
+    {
+        pf_interlaced->interleave_8x8_cavlc =
+        pf_progressive->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_sse2;
+    }
     if( cpu&X264_CPU_AVX )
-        pf->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_avx;
+    {
+        pf_interlaced->interleave_8x8_cavlc =
+        pf_progressive->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_avx;
+    }
 #else
     if( cpu&X264_CPU_MMX )
-        pf->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_mmx;
+    {
+        pf_interlaced->interleave_8x8_cavlc =
+        pf_progressive->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_mmx;
+    }
     if( cpu&X264_CPU_SHUFFLE_IS_FAST )
-        pf->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_sse2;
+    {
+        pf_interlaced->interleave_8x8_cavlc =
+        pf_progressive->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_sse2;
+    }
+
     if( cpu&X264_CPU_AVX )
-        pf->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_avx;
+    {
+        pf_interlaced->interleave_8x8_cavlc =
+        pf_progressive->interleave_8x8_cavlc = x264_zigzag_interleave_8x8_cavlc_avx;
+    }
 #endif // HIGH_BIT_DEPTH
 #endif
 }
