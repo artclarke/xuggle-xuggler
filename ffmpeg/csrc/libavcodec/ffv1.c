@@ -973,6 +973,7 @@ static av_cold int encode_init(AVCodecContext *avctx)
 
     avctx->coded_frame= &s->picture;
     switch(avctx->pix_fmt){
+    case PIX_FMT_YUV420P9:
     case PIX_FMT_YUV420P10:
     case PIX_FMT_YUV422P10:
         s->packed_at_lsb = 1;
@@ -1402,8 +1403,14 @@ static void decode_plane(FFV1Context *s, uint8_t *src, int w, int h, int stride,
             }
         }else{
             decode_line(s, w, sample, plane_index, s->avctx->bits_per_raw_sample);
-            for(x=0; x<w; x++){
-                ((uint16_t*)(src + stride*y))[x]= sample[1][x] << (16 - s->avctx->bits_per_raw_sample);
+            if(s->packed_at_lsb){
+                for(x=0; x<w; x++){
+                    ((uint16_t*)(src + stride*y))[x]= sample[1][x];
+                }
+            }else{
+                for(x=0; x<w; x++){
+                    ((uint16_t*)(src + stride*y))[x]= sample[1][x] << (16 - s->avctx->bits_per_raw_sample);
+                }
             }
         }
 //STOP_TIMER("decode-line")}
@@ -1618,7 +1625,25 @@ static int read_header(FFV1Context *f){
                 av_log(f->avctx, AV_LOG_ERROR, "format not supported\n");
                 return -1;
             }
-        }else{
+        }else if(f->avctx->bits_per_raw_sample==9) {
+            switch(16*f->chroma_h_shift + f->chroma_v_shift){
+            case 0x00: f->avctx->pix_fmt= PIX_FMT_YUV444P16; break;
+            case 0x10: f->avctx->pix_fmt= PIX_FMT_YUV422P16; break;
+            case 0x11: f->avctx->pix_fmt= PIX_FMT_YUV420P9 ; f->packed_at_lsb=1; break;
+            default:
+                av_log(f->avctx, AV_LOG_ERROR, "format not supported\n");
+                return -1;
+            }
+        }else if(f->avctx->bits_per_raw_sample==10) {
+            switch(16*f->chroma_h_shift + f->chroma_v_shift){
+            case 0x00: f->avctx->pix_fmt= PIX_FMT_YUV444P16; break;
+            case 0x10: f->avctx->pix_fmt= PIX_FMT_YUV422P10; f->packed_at_lsb=1; break;
+            case 0x11: f->avctx->pix_fmt= PIX_FMT_YUV420P10; f->packed_at_lsb=1; break;
+            default:
+                av_log(f->avctx, AV_LOG_ERROR, "format not supported\n");
+                return -1;
+            }
+        }else {
             switch(16*f->chroma_h_shift + f->chroma_v_shift){
             case 0x00: f->avctx->pix_fmt= PIX_FMT_YUV444P16; break;
             case 0x10: f->avctx->pix_fmt= PIX_FMT_YUV422P16; break;
@@ -1655,6 +1680,7 @@ static int read_header(FFV1Context *f){
     for(j=0; j<f->slice_count; j++){
         FFV1Context *fs= f->slice_context[j];
         fs->ac= f->ac;
+        fs->packed_at_lsb= f->packed_at_lsb;
 
         if(f->version >= 2){
             fs->slice_x     = get_symbol(c, state, 0)   *f->width ;
@@ -1822,7 +1848,7 @@ AVCodec ff_ffv1_encoder = {
     encode_frame,
     common_end,
     .capabilities = CODEC_CAP_SLICE_THREADS,
-    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_YUV444P, PIX_FMT_YUV422P, PIX_FMT_YUV411P, PIX_FMT_YUV410P, PIX_FMT_RGB32, PIX_FMT_YUV420P16, PIX_FMT_YUV422P16, PIX_FMT_YUV444P16, PIX_FMT_YUV420P10, PIX_FMT_YUV422P10, PIX_FMT_NONE},
+    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_YUV444P, PIX_FMT_YUV422P, PIX_FMT_YUV411P, PIX_FMT_YUV410P, PIX_FMT_RGB32, PIX_FMT_YUV420P16, PIX_FMT_YUV422P16, PIX_FMT_YUV444P16, PIX_FMT_YUV420P9, PIX_FMT_YUV420P10, PIX_FMT_YUV422P10, PIX_FMT_NONE},
     .long_name= NULL_IF_CONFIG_SMALL("FFmpeg video codec #1"),
 };
 #endif
