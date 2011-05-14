@@ -351,6 +351,10 @@ int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
         pic->pkt_pos = -1;
     }
     pic->reordered_opaque= s->reordered_opaque;
+    pic->sample_aspect_ratio = s->sample_aspect_ratio;
+    pic->width               = s->width;
+    pic->height              = s->height;
+    pic->format              = s->pix_fmt;
 
     if(s->debug&FF_DEBUG_BUFFERS)
         av_log(s, AV_LOG_DEBUG, "default_get_buffer called on pic %p, %d buffers used\n", pic, s->internal_buffer_count);
@@ -739,6 +743,8 @@ int attribute_align_arg avcodec_decode_video2(AVCodecContext *avctx, AVFrame *pi
             ret = avctx->codec->decode(avctx, picture, got_picture_ptr,
                               avpkt);
             picture->pkt_dts= avpkt->dts;
+
+            if(!avctx->has_b_frames){
             picture->pkt_pos= avpkt->pos;
             if (!picture->sample_aspect_ratio.num)
                 picture->sample_aspect_ratio = avctx->sample_aspect_ratio;
@@ -748,6 +754,7 @@ int attribute_align_arg avcodec_decode_video2(AVCodecContext *avctx, AVFrame *pi
                 picture->height = avctx->height;
             if (picture->format == PIX_FMT_NONE)
                 picture->format = avctx->pix_fmt;
+            }
         }
 
         emms_c(); //needed to avoid an emms_c() call before every return;
