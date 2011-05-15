@@ -362,11 +362,26 @@ uint16_t dither_scale[15][16]={
 static av_always_inline void yuv2yuvX16inC_template(const int16_t *lumFilter, const int16_t **lumSrc, int lumFilterSize,
                                                     const int16_t *chrFilter, const int16_t **chrSrc, int chrFilterSize,
                                                     const int16_t **alpSrc, uint16_t *dest, uint16_t *uDest, uint16_t *vDest, uint16_t *aDest,
-                                                    int dstW, int chrDstW, int big_endian)
+                                                    int dstW, int chrDstW, int big_endian, int output_bits)
 {
     //FIXME Optimize (just quickly written not optimized..)
     int i;
+    int shift = 11 + 16 - output_bits;
 
+#define output_pixel(pos, val) \
+    if (big_endian) { \
+        if (output_bits == 16) { \
+            AV_WB16(pos, av_clip_uint16(val >> shift)); \
+        } else { \
+            AV_WB16(pos, av_clip_uintp2(val >> shift, output_bits)); \
+        } \
+    } else { \
+        if (output_bits == 16) { \
+            AV_WL16(pos, av_clip_uint16(val >> shift)); \
+        } else { \
+            AV_WL16(pos, av_clip_uintp2(val >> shift, output_bits)); \
+        } \
+    }
     for (i = 0; i < dstW; i++) {
         int val = 1 << 10;
         int j;
@@ -374,11 +389,7 @@ static av_always_inline void yuv2yuvX16inC_template(const int16_t *lumFilter, co
         for (j = 0; j < lumFilterSize; j++)
             val += lumSrc[j][i] * lumFilter[j];
 
-        if (big_endian) {
-            AV_WB16(&dest[i], av_clip_uint16(val >> 11));
-        } else {
-            AV_WL16(&dest[i], av_clip_uint16(val >> 11));
-        }
+        output_pixel(&dest[i], val);
     }
 
     if (uDest) {
@@ -392,13 +403,8 @@ static av_always_inline void yuv2yuvX16inC_template(const int16_t *lumFilter, co
                 v += chrSrc[j][i + VOFW] * chrFilter[j];
             }
 
-            if (big_endian) {
-                AV_WB16(&uDest[i], av_clip_uint16(u >> 11));
-                AV_WB16(&vDest[i], av_clip_uint16(v >> 11));
-            } else {
-                AV_WL16(&uDest[i], av_clip_uint16(u >> 11));
-                AV_WL16(&vDest[i], av_clip_uint16(v >> 11));
-            }
+            output_pixel(&uDest[i], u);
+            output_pixel(&vDest[i], v);
         }
     }
 
@@ -410,11 +416,7 @@ static av_always_inline void yuv2yuvX16inC_template(const int16_t *lumFilter, co
             for (j = 0; j < lumFilterSize; j++)
                 val += alpSrc[j][i] * lumFilter[j];
 
-            if (big_endian) {
-                AV_WB16(&aDest[i], av_clip_uint16(val >> 11));
-            } else {
-                AV_WL16(&aDest[i], av_clip_uint16(val >> 11));
-            }
+            output_pixel(&aDest[i], val);
         }
     }
 }
@@ -481,13 +483,13 @@ static inline void yuv2yuvX16inC(const int16_t *lumFilter, const int16_t **lumSr
                                    chrFilter, chrSrc, chrFilterSize,
                                    alpSrc,
                                    dest, uDest, vDest, aDest,
-                                   dstW, chrDstW, 1);
+                                   dstW, chrDstW, 1, 16);
         } else {
             yuv2yuvX16inC_template(lumFilter, lumSrc, lumFilterSize,
                                    chrFilter, chrSrc, chrFilterSize,
                                    alpSrc,
                                    dest, uDest, vDest, aDest,
-                                   dstW, chrDstW, 0);
+                                   dstW, chrDstW, 0, 16);
         }
     }
 }

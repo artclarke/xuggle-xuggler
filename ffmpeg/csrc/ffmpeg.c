@@ -2567,7 +2567,7 @@ static int transcode(AVFormatContext **output_files,
 
     if (!using_stdin) {
         if(verbose >= 0)
-            fprintf(stderr, "Press [q] to stop encoding\n");
+            fprintf(stderr, "Press [q] to stop, [?] for help\n");
         avio_set_interrupt_cb(decode_interrupt_cb);
     }
     term_init();
@@ -2591,6 +2591,50 @@ static int transcode(AVFormatContext **output_files,
             key = read_key();
             if (key == 'q')
                 break;
+            if (key == '+') verbose++;
+            if (key == '-') verbose--;
+            if (key == 's') qp_hist     ^= 1;
+            if (key == 'h'){
+                if (do_hex_dump){
+                    do_hex_dump = do_pkt_dump = 0;
+                } else if(do_pkt_dump){
+                    do_hex_dump = 1;
+                } else
+                    do_pkt_dump = 1;
+                av_log_set_level(AV_LOG_DEBUG);
+            }
+            if (key == 'd' || key == 'D'){
+                int debug=0;
+                if(key == 'D') {
+                    ist = ist_table[0];
+                    debug = ist->st->codec->debug<<1;
+                    if(!debug) debug = 1;
+                    while(debug & (FF_DEBUG_DCT_COEFF|FF_DEBUG_VIS_QP|FF_DEBUG_VIS_MB_TYPE)) //unsupported, would just crash
+                        debug += debug;
+                }else
+                    scanf("%d", &debug);
+                for(i=0;i<nb_istreams;i++) {
+                    ist = ist_table[i];
+                    ist->st->codec->debug = debug;
+                }
+                for(i=0;i<nb_ostreams;i++) {
+                    ost = ost_table[i];
+                    ost->st->codec->debug = debug;
+                }
+                if(debug) av_log_set_level(AV_LOG_DEBUG);
+                fprintf(stderr,"debug=%d\n", debug);
+            }
+            if (key == '?'){
+                fprintf(stderr, "key    function\n"
+                                "?      show this help\n"
+                                "+      increase verbosity\n"
+                                "-      decrease verbosity\n"
+                                "D      cycle through available debug modes\n"
+                                "h      dump packets/hex press to cycle through the 3 states\n"
+                                "q      quit\n"
+                                "s      Show QP histogram\n"
+                );
+            }
         }
 
         /* select the stream that we must read now by looking at the

@@ -36,7 +36,6 @@
 #include "os_support.h"
 #include "url.h"
 #include <pthread.h>
-#include <sys/resource.h>
 #include <sys/time.h>
 
 #ifndef IPV6_ADD_MEMBERSHIP
@@ -534,7 +533,7 @@ static int udp_read(URLContext *h, uint8_t *buf, int size)
     fd_set rfds;
     struct timeval tv;
 
-    if (s->circular_buffer_thread) {
+    if (s->fifo) {
 
         do {
             avail = av_fifo_size(s->fifo);
