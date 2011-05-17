@@ -140,6 +140,8 @@ void x264_integral_init8v_sse2( uint16_t *sum8, int stride );
 void x264_integral_init4v_ssse3( uint16_t *sum8, uint16_t *sum4, int stride );
 void x264_mbtree_propagate_cost_sse2( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
                                       uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
+void x264_mbtree_propagate_cost_avx( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
+                                     uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
 
 #define MC_CHROMA(cpu)\
 void x264_mc_chroma_##cpu( pixel *dstu, pixel *dstv, int i_dst,\
@@ -728,4 +730,8 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     if( !(cpu&X264_CPU_STACK_MOD4) )
         pf->mc_chroma = x264_mc_chroma_avx;
 #endif // HIGH_BIT_DEPTH
+
+    if( !(cpu&X264_CPU_AVX) )
+        return;
+    pf->mbtree_propagate_cost = x264_mbtree_propagate_cost_avx;
 }

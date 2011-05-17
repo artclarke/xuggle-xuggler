@@ -342,7 +342,7 @@ int x264_macroblock_thread_allocate( x264_t *h, int b_lookahead )
             ((me_range*2+24) * sizeof(int16_t) + (me_range+4) * (me_range+1) * 4 * sizeof(mvsad_t));
         scratch_size = X264_MAX3( buf_hpel, buf_ssim, buf_tesa );
     }
-    int buf_mbtree = h->param.rc.b_mb_tree * ((h->mb.i_mb_width+3)&~3) * sizeof(int);
+    int buf_mbtree = h->param.rc.b_mb_tree * ((h->mb.i_mb_width+7)&~7) * sizeof(int);
     scratch_size = X264_MAX( scratch_size, buf_mbtree );
     if( scratch_size )
         CHECKED_MALLOC( h->scratch_buffer, scratch_size );

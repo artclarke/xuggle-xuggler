@@ -1255,8 +1255,8 @@ static int check_mc( int cpu_ref, int cpu_new )
             int *dstc = dsta+400;
             uint16_t *prop = (uint16_t*)buf1;
             uint16_t *intra = (uint16_t*)buf4;
-            uint16_t *inter = intra+100;
-            uint16_t *qscale = inter+100;
+            uint16_t *inter = intra+128;
+            uint16_t *qscale = inter+128;
             uint16_t *rnd = (uint16_t*)buf2;
             x264_emms();
             for( int j = 0; j < 100; j++ )

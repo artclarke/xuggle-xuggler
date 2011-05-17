@@ -179,7 +179,7 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
                     CHECKED_MALLOCZERO( frame->lowres_mvs[j][i], 2*h->mb.i_mb_count*sizeof(int16_t) );
                     CHECKED_MALLOC( frame->lowres_mv_costs[j][i], h->mb.i_mb_count*sizeof(int) );
                 }
-            CHECKED_MALLOC( frame->i_propagate_cost, (i_mb_count+3) * sizeof(uint16_t) );
+            CHECKED_MALLOC( frame->i_propagate_cost, (i_mb_count+7) * sizeof(uint16_t) );
             for( int j = 0; j <= h->param.i_bframe+1; j++ )
                 for( int i = 0; i <= h->param.i_bframe+1; i++ )
                     CHECKED_MALLOC( frame->lowres_costs[j][i], (i_mb_count+3) * sizeof(uint16_t) );
