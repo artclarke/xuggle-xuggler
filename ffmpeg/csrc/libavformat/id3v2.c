@@ -1,5 +1,4 @@
 /*
- * ID3v2 header parser
  * Copyright (c) 2003 Fabrice Bellard
  *
  * This file is part of FFmpeg.
@@ -17,6 +16,14 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+/**
+ * @file
+ * ID3v2 header parser
+ *
+ * Specifications available at:
+ * http://id3.org/Developer_Information
  */
 
 #include "id3v2.h"
@@ -248,6 +255,8 @@ static void ff_id3v2_parse(AVFormatContext *s, int len, uint8_t version, uint8_t
         next = avio_tell(s->pb) + tlen;
 
         if (tflags & ID3v2_FLAG_DATALEN) {
+            if (tlen < 4)
+                break;
             avio_rb32(s->pb);
             tlen -= 4;
         }

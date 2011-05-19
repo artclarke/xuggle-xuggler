@@ -312,6 +312,13 @@ the input video.
 Use the option "-filters" to show all the available filters (including
 also sources and sinks).
 
+@item -x264opts @var{option}
+Allows you to set any x264 option, see x264 manual for a list.
+@example
+ffmpeg -i foo.mpg -vcodec libx264 -x264opts keyint=123:min-keyint=20 -an out.mkv
+@end example
+
+
 @end table
 
 @section Advanced Video Options
@@ -402,7 +409,10 @@ and the following constants are available:
 @end table
 
 @item -rc_override @var{override}
-rate control override for specific intervals
+Rate control override for specific intervals, formated as "int,int,int"
+list separated with slashes. Two first values are the beginning and
+end frame numbers, last one is quantizer to use if positive, or quality
+factor if negative.
 @item -me_method @var{method}
 Set motion estimation method to @var{method}.
 Available methods are (from lowest to best quality):
