@@ -37,4 +37,21 @@
  */
 void avfilter_copy_frame_props(AVFilterBufferRef *dst, const AVFrame *src);
 
+/**
+ * Create and return a picref reference from the data and properties
+ * contained in frame.
+ *
+ * @param perms permissions to assign to the new buffer reference
+ */
+AVFilterBufferRef *avfilter_get_video_buffer_ref_from_frame(const AVFrame *frame, int perms);
+
+/**
+ * Add frame data to buffer_src.
+ *
+ * @param buffer_src pointer to a buffer source context
+ * @return >= 0 in case of success, a negative AVERROR code in case of
+ * failure
+ */
+int av_vsrc_buffer_add_frame(AVFilterContext *buffer_src, const AVFrame *frame);
+
 #endif /* AVFILTER_AVCODEC_H */

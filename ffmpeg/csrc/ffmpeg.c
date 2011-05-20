@@ -1648,8 +1648,8 @@ static int output_packet(AVInputStream *ist, int ist_index,
                     if (!picture.sample_aspect_ratio.num)
                         picture.sample_aspect_ratio = ist->st->sample_aspect_ratio;
                     picture.pts = ist->pts;
-                    // add it to be filtered
-                    av_vsrc_buffer_add_frame2(ost->input_video_filter, &picture, ""); //TODO user setable params
+
+                    av_vsrc_buffer_add_frame(ost->input_video_filter, &picture);
                 }
             }
         }
