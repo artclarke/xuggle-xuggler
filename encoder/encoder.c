@@ -335,8 +335,9 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
 static int x264_bitstream_check_buffer( x264_t *h )
 {
     uint8_t *bs_bak = h->out.p_bitstream;
-    if( (h->param.b_cabac && (h->cabac.p_end - h->cabac.p < 2500)) ||
-        (h->out.bs.p_end - h->out.bs.p < 2500) )
+    int max_mb_size = 2500 << SLICE_MBAFF;
+    if( (h->param.b_cabac && (h->cabac.p_end - h->cabac.p < max_mb_size)) ||
+        (h->out.bs.p_end - h->out.bs.p < max_mb_size) )
     {
         h->out.i_bitstream += 100000;
         CHECKED_MALLOC( h->out.p_bitstream, h->out.i_bitstream );
@@ -2029,27 +2030,30 @@ static int x264_slice_write( x264_t *h )
         mb_xy = i_mb_x + i_mb_y * h->mb.i_mb_width;
         int mb_spos = bs_pos(&h->out.bs) + x264_cabac_pos(&h->cabac);
 
-        if( x264_bitstream_check_buffer( h ) )
-            return -1;
-
-        if( back_up_bitstream && (!SLICE_MBAFF || (i_mb_y&1) == 0) )
+        if( !(i_mb_y & SLICE_MBAFF) )
         {
-            mv_bits_bak = h->stat.frame.i_mv_bits;
-            tex_bits_bak = h->stat.frame.i_tex_bits;
-            /* We don't need the contexts because flushing the CABAC encoder has no context
-             * dependency and macroblocks are only re-encoded in the case where a slice is
-             * ended (and thus the content of all contexts are thrown away). */
-            if( h->param.b_cabac )
+            if( x264_bitstream_check_buffer( h ) )
+                return -1;
+
+            if( back_up_bitstream )
             {
-                memcpy( &cabac_bak, &h->cabac, offsetof(x264_cabac_t, f8_bits_encoded) );
-                /* x264's CABAC writer modifies the previous byte during carry, so it has to be
-                 * backed up. */
-                cabac_prevbyte_bak = h->cabac.p[-1];
-            }
-            else
-            {
-                bs_bak = h->out.bs;
-                i_skip_bak = i_skip;
+                mv_bits_bak = h->stat.frame.i_mv_bits;
+                tex_bits_bak = h->stat.frame.i_tex_bits;
+                /* We don't need the contexts because flushing the CABAC encoder has no context
+                 * dependency and macroblocks are only re-encoded in the case where a slice is
+                 * ended (and thus the content of all contexts are thrown away). */
+                if( h->param.b_cabac )
+                {
+                    memcpy( &cabac_bak, &h->cabac, offsetof(x264_cabac_t, f8_bits_encoded) );
+                    /* x264's CABAC writer modifies the previous byte during carry, so it has to be
+                     * backed up. */
+                    cabac_prevbyte_bak = h->cabac.p[-1];
+                }
+                else
+                {
+                    bs_bak = h->out.bs;
+                    i_skip_bak = i_skip;
+                }
             }
         }
 
