@@ -106,23 +106,9 @@ StreamCoder::make(Direction direction, IStreamCoder* aCoder)
     if (!codecCtx)
       throw std::bad_alloc();
 
-    // set encoding defaults
-    int32_t flags = 0;
-    if (direction == IStreamCoder::ENCODING)
-      flags |= AV_OPT_FLAG_ENCODING_PARAM;
-    else
-      flags |= AV_OPT_FLAG_DECODING_PARAM;
-
-    av_opt_set_defaults2(codecCtx, flags, flags);
-
     retval = StreamCoder::make();
     if (retval)
     {
-      // In FFmpeg r20623 they started defaulting the sample
-      // format to NONE, but Xuggler uses assume S16, so we
-      // override that.
-      if (codecCtx->sample_fmt == SAMPLE_FMT_NONE)
-        codecCtx->sample_fmt = SAMPLE_FMT_S16;
       retval->mCodecContext = codecCtx;
       retval->mDirection = direction;
       retval->mStream = 0;
@@ -139,18 +125,17 @@ StreamCoder::make(Direction direction, IStreamCoder* aCoder)
         struct AVCodecContext* codec = retval->mCodecContext;
         struct AVCodecContext* icodec = coder->mCodecContext;
 
-        codec->codec_id = icodec->codec_id;
-        codec->codec_type = icodec->codec_type;
+        avcodec_copy_context(codec, icodec);
+        // In FFmpeg r20623 they started defaulting the sample
+        // format to NONE, but Xuggler uses assume S16, so we
+        // override that.
+        if (codec->sample_fmt == SAMPLE_FMT_NONE)
+          codec->sample_fmt = SAMPLE_FMT_S16;
 
-        codec->codec_tag = icodec->codec_tag;
-        codec->bit_rate = icodec->bit_rate;
-        codec->extradata = icodec->extradata;
-        codec->extradata_size = icodec->extradata_size;
         RefPointer<IStream> stream = coder->getStream();
         RefPointer<IRational> streamBase = stream ? stream->getTimeBase() : 0;
         double base = streamBase ? streamBase->getDouble() : 0;
 
-        codec->time_base = icodec->time_base;
         if (base && av_q2d(icodec->time_base) * icodec->ticks_per_frame > base
             && base < 1.0 / 1000)
         {
@@ -168,30 +153,16 @@ StreamCoder::make(Direction direction, IStreamCoder* aCoder)
         switch (codec->codec_type)
         {
         case AVMEDIA_TYPE_AUDIO:
-          codec->channel_layout = icodec->channel_layout;
-          codec->sample_rate = icodec->sample_rate;
-          codec->channels = icodec->channels;
-          codec->frame_size = icodec->frame_size;
-          codec->block_align = icodec->block_align;
           if (codec->block_align == 1 && codec->codec_id == CODEC_ID_MP3)
             codec->block_align = 0;
           if (codec->codec_id == CODEC_ID_AC3)
             codec->block_align = 0;
           break;
-        case AVMEDIA_TYPE_VIDEO:
-          codec->pix_fmt = icodec->pix_fmt;
-          codec->width = icodec->width;
-          codec->height = icodec->height;
-          codec->has_b_frames = icodec->has_b_frames;
-          break;
-        case AVMEDIA_TYPE_SUBTITLE:
-          codec->width = icodec->width;
-          codec->height = icodec->height;
-          break;
         default:
-          throw std::runtime_error("Unsupported codec type for copy");
           break;
         }
+        // set the codec to the codec_id
+        retval->setCodec(aCoder->getCodec());
       }
       else
       {
