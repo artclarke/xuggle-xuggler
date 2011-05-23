@@ -35,6 +35,10 @@ extern "C"
 # endif
 #endif
 
+// Sigh; the latest FFmpeg puts in a deprecated statement
+// in an enum which just will not compile with most GCC
+// versions.  So we unset it here.
+#define attribute_deprecated
 #include <libavutil/avutil.h>
 #include <libavformat/avformat.h>
 }

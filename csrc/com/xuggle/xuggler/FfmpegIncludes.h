@@ -23,7 +23,7 @@
 extern "C"
 {
 // Hack here to get rid of deprecation compilation warnings
-//#define attribute_deprecated
+#define attribute_deprecated
 
 // WARNING: This is GCC specific and is to fix a build issue
 // in FFmpeg where UINT64_C is not always defined.  The
