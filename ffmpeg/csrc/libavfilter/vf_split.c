@@ -1,6 +1,5 @@
 /*
- * Video splitter
- * copyright (c) 2007 Bobby Bingham
+ * Copyright (c) 2007 Bobby Bingham
  *
  * This file is part of FFmpeg.
  *
@@ -19,33 +18,38 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+/**
+ * @file
+ * Video splitter
+ */
+
 #include "avfilter.h"
 
-static void start_frame(AVFilterLink *link, AVFilterBufferRef *picref)
+static void start_frame(AVFilterLink *inlink, AVFilterBufferRef *picref)
 {
-    avfilter_start_frame(link->dst->outputs[0],
+    avfilter_start_frame(inlink->dst->outputs[0],
                          avfilter_ref_buffer(picref, ~AV_PERM_WRITE));
-    avfilter_start_frame(link->dst->outputs[1],
+    avfilter_start_frame(inlink->dst->outputs[1],
                          avfilter_ref_buffer(picref, ~AV_PERM_WRITE));
 }
 
-static void end_frame(AVFilterLink *link)
+static void draw_slice(AVFilterLink *inlink, int y, int h, int slice_dir)
 {
-    avfilter_end_frame(link->dst->outputs[0]);
-    avfilter_end_frame(link->dst->outputs[1]);
-
-    avfilter_unref_buffer(link->cur_buf);
+    avfilter_draw_slice(inlink->dst->outputs[0], y, h, slice_dir);
+    avfilter_draw_slice(inlink->dst->outputs[1], y, h, slice_dir);
 }
 
-static void draw_slice(AVFilterLink *link, int y, int h, int slice_dir)
+static void end_frame(AVFilterLink *inlink)
 {
-    avfilter_draw_slice(link->dst->outputs[0], y, h, slice_dir);
-    avfilter_draw_slice(link->dst->outputs[1], y, h, slice_dir);
+    avfilter_end_frame(inlink->dst->outputs[0]);
+    avfilter_end_frame(inlink->dst->outputs[1]);
+
+    avfilter_unref_buffer(inlink->cur_buf);
 }
 
-AVFilter avfilter_vf_split =
-{
+AVFilter avfilter_vf_split = {
     .name      = "split",
+    .description = NULL_IF_CONFIG_SMALL("Pass on the input to two outputs."),
 
     .inputs    = (AVFilterPad[]) {{ .name            = "default",
                                     .type            = AVMEDIA_TYPE_VIDEO,
@@ -54,10 +58,9 @@ AVFilter avfilter_vf_split =
                                     .draw_slice      = draw_slice,
                                     .end_frame       = end_frame, },
                                   { .name = NULL}},
-    .outputs   = (AVFilterPad[]) {{ .name            = "default",
+    .outputs   = (AVFilterPad[]) {{ .name            = "output1",
                                     .type            = AVMEDIA_TYPE_VIDEO, },
-                                  { .name            = "default2",
+                                  { .name            = "output2",
                                     .type            = AVMEDIA_TYPE_VIDEO, },
                                   { .name = NULL}},
 };
-
