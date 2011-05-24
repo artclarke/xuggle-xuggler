@@ -443,6 +443,7 @@ int x264_param_apply_profile( x264_param_t *param, const char *profile )
         param->analyse.b_transform_8x8 = 0;
         param->b_cabac = 0;
         param->i_cqm_preset = X264_CQM_FLAT;
+        param->psz_cqm_file = NULL;
         param->i_bframe = 0;
         param->analyse.i_weighted_pred = X264_WEIGHTP_NONE;
         if( param->b_interlaced )
@@ -460,6 +461,7 @@ int x264_param_apply_profile( x264_param_t *param, const char *profile )
     {
         param->analyse.b_transform_8x8 = 0;
         param->i_cqm_preset = X264_CQM_FLAT;
+        param->psz_cqm_file = NULL;
     }
     else if( !strcasecmp( profile, "high" ) || !strcasecmp( profile, "high10" ) )
     {
