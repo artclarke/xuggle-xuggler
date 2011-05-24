@@ -154,6 +154,7 @@ x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
         }
         CHECKED_MALLOC( frame->i_row_bits, i_lines/16 * sizeof(int) );
         CHECKED_MALLOC( frame->f_row_qp, i_lines/16 * sizeof(float) );
+        CHECKED_MALLOC( frame->f_row_qscale, i_lines/16 * sizeof(float) );
         if( h->param.analyse.i_me_method >= X264_ME_ESA )
         {
             CHECKED_MALLOC( frame->buffer[3],
@@ -239,6 +240,7 @@ void x264_frame_delete( x264_frame_t *frame )
         x264_free( frame->i_inv_qscale_factor );
         x264_free( frame->i_row_bits );
         x264_free( frame->f_row_qp );
+        x264_free( frame->f_row_qscale );
         x264_free( frame->field );
         x264_free( frame->mb_type );
         x264_free( frame->mb_partition );
