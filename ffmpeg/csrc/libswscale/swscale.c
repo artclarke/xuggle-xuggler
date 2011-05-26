@@ -60,8 +60,10 @@ untested special converters
 #include "swscale.h"
 #include "swscale_internal.h"
 #include "rgb2rgb.h"
+#include "libavutil/avassert.h"
 #include "libavutil/intreadwrite.h"
 #include "libavutil/x86_cpu.h"
+#include "libavutil/cpu.h"
 #include "libavutil/avutil.h"
 #include "libavutil/mathematics.h"
 #include "libavutil/bswap.h"
@@ -70,10 +72,6 @@ untested special converters
 #undef MOVNTQ
 #undef PAVGB
 
-//#undef HAVE_MMX2
-//#define HAVE_AMD3DNOW
-//#undef HAVE_MMX
-//#undef ARCH_X86
 #define DITHER1XBPP
 
 #define isPacked(x)         (       \
@@ -120,63 +118,6 @@ optimize BGR24 & BGR32
 add BGR4 output support
 write special BGR->BGR scaler
 */
-
-#if ARCH_X86
-DECLARE_ASM_CONST(8, uint64_t, bF8)=       0xF8F8F8F8F8F8F8F8LL;
-DECLARE_ASM_CONST(8, uint64_t, bFC)=       0xFCFCFCFCFCFCFCFCLL;
-DECLARE_ASM_CONST(8, uint64_t, w10)=       0x0010001000100010LL;
-DECLARE_ASM_CONST(8, uint64_t, w02)=       0x0002000200020002LL;
-DECLARE_ASM_CONST(8, uint64_t, bm00001111)=0x00000000FFFFFFFFLL;
-DECLARE_ASM_CONST(8, uint64_t, bm00000111)=0x0000000000FFFFFFLL;
-DECLARE_ASM_CONST(8, uint64_t, bm11111000)=0xFFFFFFFFFF000000LL;
-DECLARE_ASM_CONST(8, uint64_t, bm01010101)=0x00FF00FF00FF00FFLL;
-
-const DECLARE_ALIGNED(8, uint64_t, ff_dither4)[2] = {
-        0x0103010301030103LL,
-        0x0200020002000200LL,};
-
-const DECLARE_ALIGNED(8, uint64_t, ff_dither8)[2] = {
-        0x0602060206020602LL,
-        0x0004000400040004LL,};
-
-DECLARE_ASM_CONST(8, uint64_t, b16Mask)=   0x001F001F001F001FLL;
-DECLARE_ASM_CONST(8, uint64_t, g16Mask)=   0x07E007E007E007E0LL;
-DECLARE_ASM_CONST(8, uint64_t, r16Mask)=   0xF800F800F800F800LL;
-DECLARE_ASM_CONST(8, uint64_t, b15Mask)=   0x001F001F001F001FLL;
-DECLARE_ASM_CONST(8, uint64_t, g15Mask)=   0x03E003E003E003E0LL;
-DECLARE_ASM_CONST(8, uint64_t, r15Mask)=   0x7C007C007C007C00LL;
-
-DECLARE_ALIGNED(8, const uint64_t, ff_M24A)         = 0x00FF0000FF0000FFLL;
-DECLARE_ALIGNED(8, const uint64_t, ff_M24B)         = 0xFF0000FF0000FF00LL;
-DECLARE_ALIGNED(8, const uint64_t, ff_M24C)         = 0x0000FF0000FF0000LL;
-
-#ifdef FAST_BGR2YV12
-DECLARE_ALIGNED(8, const uint64_t, ff_bgr2YCoeff)   = 0x000000210041000DULL;
-DECLARE_ALIGNED(8, const uint64_t, ff_bgr2UCoeff)   = 0x0000FFEEFFDC0038ULL;
-DECLARE_ALIGNED(8, const uint64_t, ff_bgr2VCoeff)   = 0x00000038FFD2FFF8ULL;
-#else
-DECLARE_ALIGNED(8, const uint64_t, ff_bgr2YCoeff)   = 0x000020E540830C8BULL;
-DECLARE_ALIGNED(8, const uint64_t, ff_bgr2UCoeff)   = 0x0000ED0FDAC23831ULL;
-DECLARE_ALIGNED(8, const uint64_t, ff_bgr2VCoeff)   = 0x00003831D0E6F6EAULL;
-#endif /* FAST_BGR2YV12 */
-DECLARE_ALIGNED(8, const uint64_t, ff_bgr2YOffset)  = 0x1010101010101010ULL;
-DECLARE_ALIGNED(8, const uint64_t, ff_bgr2UVOffset) = 0x8080808080808080ULL;
-DECLARE_ALIGNED(8, const uint64_t, ff_w1111)        = 0x0001000100010001ULL;
-
-DECLARE_ASM_CONST(8, uint64_t, ff_bgr24toY1Coeff) = 0x0C88000040870C88ULL;
-DECLARE_ASM_CONST(8, uint64_t, ff_bgr24toY2Coeff) = 0x20DE4087000020DEULL;
-DECLARE_ASM_CONST(8, uint64_t, ff_rgb24toY1Coeff) = 0x20DE0000408720DEULL;
-DECLARE_ASM_CONST(8, uint64_t, ff_rgb24toY2Coeff) = 0x0C88408700000C88ULL;
-DECLARE_ASM_CONST(8, uint64_t, ff_bgr24toYOffset) = 0x0008400000084000ULL;
-
-DECLARE_ASM_CONST(8, uint64_t, ff_bgr24toUV)[2][4] = {
-    {0x38380000DAC83838ULL, 0xECFFDAC80000ECFFULL, 0xF6E40000D0E3F6E4ULL, 0x3838D0E300003838ULL},
-    {0xECFF0000DAC8ECFFULL, 0x3838DAC800003838ULL, 0x38380000D0E33838ULL, 0xF6E4D0E30000F6E4ULL},
-};
-
-DECLARE_ASM_CONST(8, uint64_t, ff_bgr24toUVOffset)= 0x0040400000404000ULL;
-
-#endif /* ARCH_X86 */
 
 DECLARE_ALIGNED(8, static const uint8_t, dither_2x2_4)[2][8]={
 {  1,   3,   1,   3,   1,   3,   1,   3, },
@@ -421,50 +362,6 @@ static av_always_inline void yuv2yuvX16inC_template(const int16_t *lumFilter, co
     }
 }
 
-static av_always_inline void yuv2yuvXNinC_template(const int16_t *lumFilter, const int16_t **lumSrc, int lumFilterSize,
-                                                   const int16_t *chrFilter, const int16_t **chrSrc, int chrFilterSize,
-                                                   const int16_t **alpSrc, uint16_t *dest, uint16_t *uDest, uint16_t *vDest, uint16_t *aDest,
-                                                   int dstW, int chrDstW, int big_endian, int depth)
-{
-    //FIXME Optimize (just quickly written not optimized..)
-    int i;
-
-    for (i = 0; i < dstW; i++) {
-        int val = 1 << (26-depth);
-        int j;
-
-        for (j = 0; j < lumFilterSize; j++)
-            val += lumSrc[j][i] * lumFilter[j];
-
-        if (big_endian) {
-            AV_WB16(&dest[i], av_clip(val >> (27-depth), 0, (1<<depth)-1));
-        } else {
-            AV_WL16(&dest[i], av_clip(val >> (27-depth), 0, (1<<depth)-1));
-        }
-    }
-
-    if (uDest) {
-        for (i = 0; i < chrDstW; i++) {
-            int u = 1 << (26-depth);
-            int v = 1 << (26-depth);
-            int j;
-
-            for (j = 0; j < chrFilterSize; j++) {
-                u += chrSrc[j][i       ] * chrFilter[j];
-                v += chrSrc[j][i + VOFW] * chrFilter[j];
-            }
-
-            if (big_endian) {
-                AV_WB16(&uDest[i], av_clip(u >> (27-depth), 0, (1<<depth)-1));
-                AV_WB16(&vDest[i], av_clip(v >> (27-depth), 0, (1<<depth)-1));
-            } else {
-                AV_WL16(&uDest[i], av_clip(u >> (27-depth), 0, (1<<depth)-1));
-                AV_WL16(&vDest[i], av_clip(v >> (27-depth), 0, (1<<depth)-1));
-            }
-        }
-    }
-}
-
 static inline void yuv2yuvX16inC(const int16_t *lumFilter, const int16_t **lumSrc, int lumFilterSize,
                                  const int16_t *chrFilter, const int16_t **chrSrc, int chrFilterSize,
                                  const int16_t **alpSrc, uint16_t *dest, uint16_t *uDest, uint16_t *vDest, uint16_t *aDest, int dstW, int chrDstW,
@@ -472,7 +369,7 @@ static inline void yuv2yuvX16inC(const int16_t *lumFilter, const int16_t **lumSr
 {
     if (isNBPS(dstFormat)) {
         const int depth = av_pix_fmt_descriptors[dstFormat].comp[0].depth_minus1+1;
-        yuv2yuvXNinC_template(lumFilter, lumSrc, lumFilterSize,
+        yuv2yuvX16inC_template(lumFilter, lumSrc, lumFilterSize,
                               chrFilter, chrSrc, chrFilterSize,
                               alpSrc,
                               dest, uDest, vDest, aDest,
@@ -1362,162 +1259,58 @@ static inline void monoblack2Y(uint8_t *dst, const uint8_t *src, long width, uin
 
 //Note: we have C, MMX, MMX2, 3DNOW versions, there is no 3DNOW+MMX2 one
 //Plain C versions
-#if CONFIG_RUNTIME_CPUDETECT
-#  define COMPILE_C 1
-#  if   ARCH_X86
-#    define COMPILE_MMX     1
-#    define COMPILE_MMX2    1
-#    define COMPILE_3DNOW   1
-#  elif ARCH_PPC
-#    define COMPILE_ALTIVEC HAVE_ALTIVEC
-#  endif
-#else /* CONFIG_RUNTIME_CPUDETECT */
-#  if   ARCH_X86
-#    if   HAVE_MMX2
-#      define COMPILE_MMX2  1
-#    elif HAVE_AMD3DNOW
-#      define COMPILE_3DNOW 1
-#    elif HAVE_MMX
-#      define COMPILE_MMX   1
-#    else
-#      define COMPILE_C     1
-#    endif
-#  elif ARCH_PPC && HAVE_ALTIVEC
-#    define COMPILE_ALTIVEC 1
-#  else
-#    define COMPILE_C       1
-#  endif
-#endif
 
-#ifndef COMPILE_C
-#  define COMPILE_C 0
-#endif
-#ifndef COMPILE_MMX
-#  define COMPILE_MMX 0
-#endif
-#ifndef COMPILE_MMX2
-#  define COMPILE_MMX2 0
-#endif
-#ifndef COMPILE_3DNOW
-#  define COMPILE_3DNOW 0
-#endif
-#ifndef COMPILE_ALTIVEC
-#  define COMPILE_ALTIVEC 0
-#endif
-
-#define COMPILE_TEMPLATE_MMX 0
 #define COMPILE_TEMPLATE_MMX2 0
-#define COMPILE_TEMPLATE_AMD3DNOW 0
 #define COMPILE_TEMPLATE_ALTIVEC 0
 
-#if COMPILE_C
-#define RENAME(a) a ## _C
 #include "swscale_template.c"
-#endif
 
-#if COMPILE_ALTIVEC
+#if HAVE_ALTIVEC
 #undef RENAME
 #undef COMPILE_TEMPLATE_ALTIVEC
 #define COMPILE_TEMPLATE_ALTIVEC 1
 #define RENAME(a) a ## _altivec
-#include "swscale_template.c"
+#include "ppc/swscale_template.c"
 #endif
 
-#if ARCH_X86
-
 //MMX versions
-#if COMPILE_MMX
+#if HAVE_MMX
 #undef RENAME
-#undef COMPILE_TEMPLATE_MMX
 #undef COMPILE_TEMPLATE_MMX2
-#undef COMPILE_TEMPLATE_AMD3DNOW
-#define COMPILE_TEMPLATE_MMX 1
 #define COMPILE_TEMPLATE_MMX2 0
-#define COMPILE_TEMPLATE_AMD3DNOW 0
 #define RENAME(a) a ## _MMX
-#include "swscale_template.c"
+#include "x86/swscale_template.c"
 #endif
 
 //MMX2 versions
-#if COMPILE_MMX2
+#if HAVE_MMX2
 #undef RENAME
-#undef COMPILE_TEMPLATE_MMX
 #undef COMPILE_TEMPLATE_MMX2
-#undef COMPILE_TEMPLATE_AMD3DNOW
-#define COMPILE_TEMPLATE_MMX 1
 #define COMPILE_TEMPLATE_MMX2 1
-#define COMPILE_TEMPLATE_AMD3DNOW 0
 #define RENAME(a) a ## _MMX2
-#include "swscale_template.c"
+#include "x86/swscale_template.c"
 #endif
-
-//3DNOW versions
-#if COMPILE_3DNOW
-#undef RENAME
-#undef COMPILE_TEMPLATE_MMX
-#undef COMPILE_TEMPLATE_MMX2
-#undef COMPILE_TEMPLATE_AMD3DNOW
-#define COMPILE_TEMPLATE_MMX 1
-#define COMPILE_TEMPLATE_MMX2 0
-#define COMPILE_TEMPLATE_AMD3DNOW 1
-#define RENAME(a) a ## _3DNow
-#include "swscale_template.c"
-#endif
-
-#endif //ARCH_X86
 
 SwsFunc ff_getSwsFunc(SwsContext *c)
 {
-#if CONFIG_RUNTIME_CPUDETECT
-    int flags = c->flags;
+    int cpu_flags = av_get_cpu_flags();
 
-#if ARCH_X86
-    // ordered per speed fastest first
-    if (flags & SWS_CPU_CAPS_MMX2) {
-        sws_init_swScale_MMX2(c);
-        return swScale_MMX2;
-    } else if (flags & SWS_CPU_CAPS_3DNOW) {
-        sws_init_swScale_3DNow(c);
-        return swScale_3DNow;
-    } else if (flags & SWS_CPU_CAPS_MMX) {
+    sws_init_swScale_c(c);
+
+#if HAVE_MMX
+    if (cpu_flags & AV_CPU_FLAG_MMX)
         sws_init_swScale_MMX(c);
-        return swScale_MMX;
-    } else {
-        sws_init_swScale_C(c);
-        return swScale_C;
-    }
-
-#else
-#if COMPILE_ALTIVEC
-    if (flags & SWS_CPU_CAPS_ALTIVEC) {
+#endif
+#if HAVE_MMX2
+    if (cpu_flags & AV_CPU_FLAG_MMX2)
+        sws_init_swScale_MMX2(c);
+#endif
+#if HAVE_ALTIVEC
+    if (cpu_flags & AV_CPU_FLAG_ALTIVEC)
         sws_init_swScale_altivec(c);
-        return swScale_altivec;
-    } else {
-        sws_init_swScale_C(c);
-        return swScale_C;
-    }
 #endif
-    sws_init_swScale_C(c);
-    return swScale_C;
-#endif /* ARCH_X86 */
-#else //CONFIG_RUNTIME_CPUDETECT
-#if   COMPILE_TEMPLATE_MMX2
-    sws_init_swScale_MMX2(c);
-    return swScale_MMX2;
-#elif COMPILE_TEMPLATE_AMD3DNOW
-    sws_init_swScale_3DNow(c);
-    return swScale_3DNow;
-#elif COMPILE_TEMPLATE_MMX
-    sws_init_swScale_MMX(c);
-    return swScale_MMX;
-#elif COMPILE_TEMPLATE_ALTIVEC
-    sws_init_swScale_altivec(c);
-    return swScale_altivec;
-#else
-    sws_init_swScale_C(c);
-    return swScale_C;
-#endif
-#endif //!CONFIG_RUNTIME_CPUDETECT
+
+    return swScale_c;
 }
 
 static void copyPlane(const uint8_t *src, int srcStride,
@@ -2012,23 +1805,6 @@ static int planarCopyWrapper(SwsContext *c, const uint8_t* src[], int srcStride[
     return srcSliceH;
 }
 
-int ff_hardcodedcpuflags(void)
-{
-    int flags = 0;
-#if   COMPILE_TEMPLATE_MMX2
-    flags |= SWS_CPU_CAPS_MMX|SWS_CPU_CAPS_MMX2;
-#elif COMPILE_TEMPLATE_AMD3DNOW
-    flags |= SWS_CPU_CAPS_MMX|SWS_CPU_CAPS_3DNOW;
-#elif COMPILE_TEMPLATE_MMX
-    flags |= SWS_CPU_CAPS_MMX;
-#elif COMPILE_TEMPLATE_ALTIVEC
-    flags |= SWS_CPU_CAPS_ALTIVEC;
-#elif ARCH_BFIN
-    flags |= SWS_CPU_CAPS_BFIN;
-#endif
-    return flags;
-}
-
 void ff_get_unscaled_swscale(SwsContext *c)
 {
     const enum PixelFormat srcFormat = c->srcFormat;
@@ -2112,8 +1888,8 @@ void ff_get_unscaled_swscale(SwsContext *c)
     if(srcFormat == PIX_FMT_UYVY422 && dstFormat == PIX_FMT_YUV422P)
         c->swScale= uyvyToYuv422Wrapper;
 
-#if COMPILE_ALTIVEC
-    if ((c->flags & SWS_CPU_CAPS_ALTIVEC) &&
+#if HAVE_ALTIVEC
+    if ((av_get_cpu_flags() & AV_CPU_FLAG_ALTIVEC) &&
         !(c->flags & SWS_BITEXACT) &&
         srcFormat == PIX_FMT_YUV420P) {
         // unscaled YV12 -> packed YUV, we want speed
@@ -2143,8 +1919,7 @@ void ff_get_unscaled_swscale(SwsContext *c)
             c->swScale= planarCopyWrapper;
     }
 #if ARCH_BFIN
-    if (flags & SWS_CPU_CAPS_BFIN)
-        ff_bfin_get_unscaled_swscale (c);
+    ff_bfin_get_unscaled_swscale (c);
 #endif
 }
 
