@@ -228,17 +228,20 @@ typedef struct AVProbeData {
 
 typedef struct AVFormatParameters {
     AVRational time_base;
-    int sample_rate;
-    int channels;
+#if FF_API_FORMAT_PARAMETERS
+    attribute_deprecated int sample_rate;
+    attribute_deprecated int channels;
+#endif
     int width;
     int height;
     enum PixelFormat pix_fmt;
-    int channel; /**< Used to select DV channel. */
-    const char *standard; /**< TV standard, NTSC, PAL, SECAM */
-    unsigned int mpeg2ts_raw:1;  /**< Force raw MPEG-2 transport stream output, if possible. */
-    unsigned int mpeg2ts_compute_pcr:1; /**< Compute exact PCR for each transport
-                                            stream packet (only meaningful if
-                                            mpeg2ts_raw is TRUE). */
+#if FF_API_FORMAT_PARAMETERS
+    attribute_deprecated int channel; /**< Used to select DV channel. */
+    attribute_deprecated const char *standard; /**< deprecated, use demuxer-specific options instead. */
+    attribute_deprecated unsigned int mpeg2ts_raw:1;  /**< deprecated, use mpegtsraw demuxer */
+    /**< deprecated, use mpegtsraw demuxer-specific options instead */
+    attribute_deprecated unsigned int mpeg2ts_compute_pcr:1;
+#endif
     unsigned int initial_pause:1;       /**< Do not begin to play the stream
                                             immediately (RTSP only). */
     unsigned int prealloced_context:1;
@@ -259,6 +262,9 @@ typedef struct AVFormatParameters {
 #define AVFMT_NOSTREAMS     0x1000 /**< Format does not require any streams */
 #define AVFMT_NOBINSEARCH   0x2000 /**< Format does not allow to fallback to binary search via read_timestamp */
 #define AVFMT_NOGENSEARCH   0x4000 /**< Format does not allow to fallback to generic search */
+#define AVFMT_TS_NONSTRICT  0x8000 /**< Format does not require strictly
+                                          increasing timestamps, but they must
+                                          still be monotonic */
 
 typedef struct AVOutputFormat {
     const char *name;
@@ -824,6 +830,11 @@ typedef struct AVFormatContext {
      * - decoding: Unused.
      */
     int64_t start_time_realtime;
+
+    /**
+     * decoding: number of frames used to probe fps
+     */
+    int fps_probe_size;
 } AVFormatContext;
 
 typedef struct AVPacketList {
