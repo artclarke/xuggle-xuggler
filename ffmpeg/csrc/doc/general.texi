@@ -762,12 +762,6 @@ performance on systems without hardware floating point support).
 
 Using a cross-compiler is preferred for various reasons.
 
-@subsection DJGPP
-
-FFmpeg cannot be compiled because of broken system headers, add
-@code{--extra-cflags=-U__STRICT_ANSI__} to the configure options as a
-workaround.
-
 @section OS/2
 
 For information about compiling FFmpeg on OS/2 see
@@ -842,18 +836,6 @@ are listed below:
 
 FFmpeg automatically passes @code{-fno-common} to the compiler to work around
 a GCC bug (see @url{http://gcc.gnu.org/bugzilla/show_bug.cgi?id=37216}).
-
-Within the MSYS shell, configure and make with:
-
-@example
-./configure --enable-memalign-hack
-make
-make install
-@end example
-
-This will install @file{ffmpeg.exe} along with many other development files
-to @file{/usr/local}. You may specify another install path using the
-@code{--prefix} option in @file{configure}.
 
 Notes:
 

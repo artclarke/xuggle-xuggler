@@ -19,13 +19,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "avdevice.h"
+
+#if FF_API_V4L
+
 #undef __STRICT_ANSI__ //workaround due to broken kernel headers
 #include "config.h"
 #include "libavutil/rational.h"
 #include "libavutil/imgutils.h"
 #include "libavutil/log.h"
 #include "libavutil/opt.h"
-#include "libavformat/avformat.h"
 #include "libavcodec/dsputil.h"
 #include <unistd.h>
 #include <fcntl.h>
@@ -36,6 +39,7 @@
 #include <linux/videodev.h>
 #include <time.h>
 #include <strings.h>
+#include "avdevice.h"
 
 typedef struct {
     AVClass *class;
@@ -82,6 +86,8 @@ static int grab_read_header(AVFormatContext *s1, AVFormatParameters *ap)
     struct video_picture pict;
     int j;
     int vformat_num = FF_ARRAY_ELEMS(video_formats);
+
+    av_log(s1, AV_LOG_WARNING, "V4L input device is deprecated and will be removed in the next release.");
 
     if (ap->time_base.den <= 0) {
         av_log(s1, AV_LOG_ERROR, "Wrong time base (%d)\n", ap->time_base.den);
@@ -374,3 +380,4 @@ AVInputFormat ff_v4l_demuxer = {
     .flags = AVFMT_NOFILE,
     .priv_class = &v4l_class,
 };
+#endif  /* FF_API_V4L */

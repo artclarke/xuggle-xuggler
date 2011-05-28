@@ -176,6 +176,7 @@ static av_cold int X264_close(AVCodecContext *avctx)
     av_free(x4->level);
     av_free(x4->stats);
     av_free(x4->weightp);
+    av_free(x4->x264opts);
 
     return 0;
 }
@@ -200,7 +201,7 @@ static void check_default_settings(AVCodecContext *avctx)
     if (score >= 5) {
         av_log(avctx, AV_LOG_ERROR, "Default settings detected, using medium profile\n");
         x4->preset = av_strdup("medium");
-        if (avctx->bit_rate == 200*100)
+        if (avctx->bit_rate == 200*1000)
             avctx->crf = 23;
     }
 }
@@ -228,7 +229,6 @@ static av_cold int X264_init(AVCodecContext *avctx)
     x4->params.i_bframe_adaptive = avctx->b_frame_strategy;
     x4->params.i_bframe_bias     = avctx->bframebias;
     x4->params.i_bframe_pyramid  = avctx->flags2 & CODEC_FLAG2_BPYRAMID ? X264_B_PYRAMID_NORMAL : X264_B_PYRAMID_NONE;
-    avctx->has_b_frames          = avctx->flags2 & CODEC_FLAG2_BPYRAMID ? 2 : !!avctx->max_b_frames;
 
     x4->params.i_keyint_min = avctx->keyint_min;
     if (x4->params.i_keyint_min > x4->params.i_keyint_max)

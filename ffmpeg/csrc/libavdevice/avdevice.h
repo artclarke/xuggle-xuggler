@@ -20,6 +20,7 @@
 #define AVDEVICE_AVDEVICE_H
 
 #include "libavutil/avutil.h"
+#include "libavformat/avformat.h"
 
 #define LIBAVDEVICE_VERSION_MAJOR 53
 #define LIBAVDEVICE_VERSION_MINOR  0
@@ -32,6 +33,10 @@
                                            LIBAVDEVICE_VERSION_MINOR, \
                                            LIBAVDEVICE_VERSION_MICRO)
 #define LIBAVDEVICE_BUILD       LIBAVDEVICE_VERSION_INT
+
+#ifndef FF_API_V4L
+#define FF_API_V4L              (LIBAVDEVICE_VERSION_MAJOR < 54)
+#endif
 
 /**
  * Return the LIBAVDEVICE_VERSION_INT constant.
