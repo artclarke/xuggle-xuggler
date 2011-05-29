@@ -2129,6 +2129,9 @@ static float rate_estimate_qscale( x264_t *h )
             rcc->frame_size_planned = qscale2bits( &rce, qp2qscale( q ) );
         else
             rcc->frame_size_planned = predict_size( rcc->pred_b_from_p, qp2qscale( q ), h->fref[1][h->i_ref[1]-1]->i_satd );
+        /* Limit planned size by MinCR */
+        if( rcc->b_vbv )
+            rcc->frame_size_planned = X264_MIN( rcc->frame_size_planned, rcc->frame_size_maximum );
         h->rc->frame_size_estimated = rcc->frame_size_planned;
 
         /* For row SATDs */
@@ -2320,6 +2323,9 @@ static float rate_estimate_qscale( x264_t *h )
         /* Always use up the whole VBV in this case. */
         if( rcc->single_frame_vbv )
             rcc->frame_size_planned = rcc->buffer_rate;
+        /* Limit planned size by MinCR */
+        if( rcc->b_vbv )
+            rcc->frame_size_planned = X264_MIN( rcc->frame_size_planned, rcc->frame_size_maximum );
         h->rc->frame_size_estimated = rcc->frame_size_planned;
         return q;
     }
