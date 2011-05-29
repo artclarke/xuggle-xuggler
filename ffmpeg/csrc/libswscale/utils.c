@@ -175,7 +175,6 @@ const char *sws_format_name(enum PixelFormat format)
 
 static double getSplineCoeff(double a, double b, double c, double d, double dist)
 {
-//    printf("%f %f %f %f %f\n", a,b,c,d,dist);
     if (dist<=1.0) return ((d*dist + c)*dist + b)*dist +a;
     else           return getSplineCoeff(        0.0,
                                           b+ 2.0*c + 3.0*d,
@@ -799,6 +798,7 @@ int sws_init_context(SwsContext *c, SwsFilter *srcFilter, SwsFilter *dstFilter)
         av_log(NULL, AV_LOG_ERROR, "swScaler: Compile-time maximum width is "AV_STRINGIFY(VOFW)" change VOF/VOFW and recompile\n");
         return AVERROR(EINVAL);
     }
+    FF_ALLOC_OR_GOTO(c, c->formatConvBuffer, FFALIGN(srcW*2+78, 16) * 2, fail);
 
     if (!dstFilter) dstFilter= &dummyFilter;
     if (!srcFilter) srcFilter= &dummyFilter;
@@ -1523,6 +1523,7 @@ void sws_freeContext(SwsContext *c)
 #endif /* HAVE_MMX */
 
     av_freep(&c->yuvTable);
+    av_freep(&c->formatConvBuffer);
 
     av_free(c);
 }

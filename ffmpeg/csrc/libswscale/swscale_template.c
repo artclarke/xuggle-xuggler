@@ -49,29 +49,15 @@ static inline void yuv2yuv1_c(SwsContext *c, const int16_t *lumSrc,
     int i;
     for (i=0; i<dstW; i++) {
         int val= (lumSrc[i]+64)>>7;
-
-        if (val&256) {
-            if (val<0) val=0;
-            else       val=255;
-        }
-
-        dest[i]= val;
+        dest[i]= av_clip_uint8(val);
     }
 
     if (uDest)
         for (i=0; i<chrDstW; i++) {
             int u=(chrSrc[i       ]+64)>>7;
             int v=(chrSrc[i + VOFW]+64)>>7;
-
-            if ((u|v)&256) {
-                if (u<0)        u=0;
-                else if (u>255) u=255;
-                if (v<0)        v=0;
-                else if (v>255) v=255;
-            }
-
-            uDest[i]= u;
-            vDest[i]= v;
+            uDest[i]= av_clip_uint8(u);
+            vDest[i]= av_clip_uint8(v);
         }
 
     if (CONFIG_SWSCALE_ALPHA && aDest)
@@ -126,11 +112,6 @@ static inline void yuv2packed1_c(SwsContext *c, const uint16_t *buf0,
 
     const uint16_t *buf1= buf0; //FIXME needed for RGB1/BGR1
     const int yalpha= 4096; //FIXME ...
-
-    if (flags&SWS_FULL_CHR_H_INT) {
-        c->yuv2packed2(c, buf0, buf0, uvbuf0, uvbuf1, abuf0, abuf0, dest, dstW, 0, uvalpha, y);
-        return;
-    }
 
     if (uvalpha < 2048) {
         YSCALE_YUV_2_ANYRGB_C(YSCALE_YUV_2_RGB1_C, YSCALE_YUV_2_PACKED1_C(void,0), YSCALE_YUV_2_GRAY16_1_C, YSCALE_YUV_2_MONO2_C)
@@ -352,9 +333,7 @@ static inline void hScale_c(int16_t *dst, int dstW, const uint8_t *src,
         int j;
         int srcPos= filterPos[i];
         int val=0;
-        //printf("filterPos: %d\n", filterPos[i]);
         for (j=0; j<filterSize; j++) {
-            //printf("filter: %d, src: %d\n", filter[i], src[srcPos + j]);
             val += ((int)src[srcPos + j])*filter[filterSize*i + j];
         }
         //filter += hFilterSize;
@@ -497,9 +476,10 @@ inline static void hcscale_c(SwsContext *c, uint16_t *dst, long dstWidth,
     src2 += c->chrSrcOffset;
 
     if (c->chrToYV12) {
-        c->chrToYV12(formatConvBuffer, formatConvBuffer+VOFW, src1, src2, srcW, pal);
+        uint8_t *buf2 = formatConvBuffer + FFALIGN(srcW*2+78, 16);
+        c->chrToYV12(formatConvBuffer, buf2, src1, src2, srcW, pal);
         src1= formatConvBuffer;
-        src2= formatConvBuffer+VOFW;
+        src2= buf2;
     }
 
     if (c->hScale16) {

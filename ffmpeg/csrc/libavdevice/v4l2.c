@@ -1,14 +1,6 @@
 /*
- * Video4Linux2 grab interface
  * Copyright (c) 2000,2001 Fabrice Bellard
  * Copyright (c) 2006 Luca Abeni
- *
- * Part of this file is based on the V4L2 video capture example
- * (http://v4l2spec.bytesex.org/v4l2spec/capture.c)
- *
- * Thanks to Michael Niedermayer for providing the mapping between
- * V4L2_PIX_FMT_* and PIX_FMT_*
- *
  *
  * This file is part of FFmpeg.
  *
@@ -25,6 +17,17 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+/**
+ * @file
+ * Video4Linux2 grab interface
+ *
+ * Part of this file is based on the V4L2 video capture example
+ * (http://v4l2spec.bytesex.org/v4l2spec/capture.c)
+ *
+ * Thanks to Michael Niedermayer for providing the mapping between
+ * V4L2_PIX_FMT_* and PIX_FMT_*
  */
 
 #undef __STRICT_ANSI__ //workaround due to broken kernel headers
@@ -117,7 +120,6 @@ static int device_open(AVFormatContext *ctx, uint32_t *capabilities)
     if (fd < 0) {
         av_log(ctx, AV_LOG_ERROR, "Cannot open video device %s : %s\n",
                  ctx->filename, strerror(errno));
-
         return AVERROR(errno);
     }
 
@@ -133,13 +135,11 @@ static int device_open(AVFormatContext *ctx, uint32_t *capabilities)
         av_log(ctx, AV_LOG_ERROR, "ioctl(VIDIOC_QUERYCAP): %s\n",
                  strerror(errno));
         close(fd);
-
         return AVERROR(err);
     }
     if ((cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) == 0) {
         av_log(ctx, AV_LOG_ERROR, "Not a video capture device\n");
         close(fd);
-
         return AVERROR(ENODEV);
     }
     *capabilities = cap.capabilities;
@@ -251,27 +251,23 @@ static int mmap_init(AVFormatContext *ctx)
         } else {
             av_log(ctx, AV_LOG_ERROR, "ioctl(VIDIOC_REQBUFS)\n");
         }
-
         return AVERROR(errno);
     }
 
     if (req.count < 2) {
         av_log(ctx, AV_LOG_ERROR, "Insufficient buffer memory\n");
-
         return AVERROR(ENOMEM);
     }
     s->buffers = req.count;
     s->buf_start = av_malloc(sizeof(void *) * s->buffers);
     if (s->buf_start == NULL) {
         av_log(ctx, AV_LOG_ERROR, "Cannot allocate buffer pointers\n");
-
         return AVERROR(ENOMEM);
     }
     s->buf_len = av_malloc(sizeof(unsigned int) * s->buffers);
     if (s->buf_len == NULL) {
         av_log(ctx, AV_LOG_ERROR, "Cannot allocate buffer sizes\n");
         av_free(s->buf_start);
-
         return AVERROR(ENOMEM);
     }
 
@@ -285,7 +281,6 @@ static int mmap_init(AVFormatContext *ctx)
         res = ioctl(s->fd, VIDIOC_QUERYBUF, &buf);
         if (res < 0) {
             av_log(ctx, AV_LOG_ERROR, "ioctl(VIDIOC_QUERYBUF)\n");
-
             return AVERROR(errno);
         }
 
@@ -299,7 +294,6 @@ static int mmap_init(AVFormatContext *ctx)
                         PROT_READ | PROT_WRITE, MAP_SHARED, s->fd, buf.m.offset);
         if (s->buf_start[i] == MAP_FAILED) {
             av_log(ctx, AV_LOG_ERROR, "mmap: %s\n", strerror(errno));
-
             return AVERROR(errno);
         }
     }
@@ -353,7 +347,6 @@ static int mmap_read_frame(AVFormatContext *ctx, AVPacket *pkt)
     if (res < 0) {
         if (errno == EAGAIN) {
             pkt->size = 0;
-
             return AVERROR(EAGAIN);
         }
         av_log(ctx, AV_LOG_ERROR, "ioctl(VIDIOC_DQBUF): %s\n", strerror(errno));
@@ -363,7 +356,6 @@ static int mmap_read_frame(AVFormatContext *ctx, AVPacket *pkt)
     assert (buf.index < s->buffers);
     if (s->frame_size > 0 && buf.bytesused != s->frame_size) {
         av_log(ctx, AV_LOG_ERROR, "The v4l2 frame is %d bytes, but %d bytes are expected\n", buf.bytesused, s->frame_size);
-
         return AVERROR_INVALIDDATA;
     }
 
@@ -411,7 +403,6 @@ static int mmap_start(AVFormatContext *ctx)
         res = ioctl(s->fd, VIDIOC_QBUF, &buf);
         if (res < 0) {
             av_log(ctx, AV_LOG_ERROR, "ioctl(VIDIOC_QBUF): %s\n", strerror(errno));
-
             return AVERROR(errno);
         }
     }
@@ -420,7 +411,6 @@ static int mmap_start(AVFormatContext *ctx)
     res = ioctl(s->fd, VIDIOC_STREAMON, &type);
     if (res < 0) {
         av_log(ctx, AV_LOG_ERROR, "ioctl(VIDIOC_STREAMON): %s\n", strerror(errno));
-
         return AVERROR(errno);
     }
 
@@ -654,7 +644,6 @@ static int v4l2_read_header(AVFormatContext *s1, AVFormatParameters *ap)
     }
     if (res < 0) {
         close(s->fd);
-
         res = AVERROR(EIO);
         goto out;
     }
@@ -715,9 +704,10 @@ static int v4l2_read_close(AVFormatContext *s1)
 
 #define OFFSET(x) offsetof(struct video_data, x)
 #define DEC AV_OPT_FLAG_DECODING_PARAM
+
 static const AVOption options[] = {
-    { "standard", "", offsetof(struct video_data, standard), FF_OPT_TYPE_STRING, {.str = "NTSC" }, 0, 0, AV_OPT_FLAG_DECODING_PARAM },
-    { "channel",  "", offsetof(struct video_data, channel),  FF_OPT_TYPE_INT,    {.dbl = 0 }, 0, INT_MAX, AV_OPT_FLAG_DECODING_PARAM },
+    { "standard", "", OFFSET(standard), FF_OPT_TYPE_STRING, {.str = NULL }, 0, 0, AV_OPT_FLAG_DECODING_PARAM },
+    { "channel",  "", OFFSET(channel),  FF_OPT_TYPE_INT,    {.dbl = 0 }, 0, INT_MAX, AV_OPT_FLAG_DECODING_PARAM },
     { "video_size", "A string describing frame size, such as 640x480 or hd720.", OFFSET(video_size), FF_OPT_TYPE_STRING, {.str = NULL}, 0, 0, DEC },
     { NULL },
 };

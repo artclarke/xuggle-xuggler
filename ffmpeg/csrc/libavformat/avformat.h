@@ -607,6 +607,13 @@ typedef struct AVStream {
     int codec_info_nb_frames;
 
     /**
+     * Stream Identifier
+     * This is the MPEG-TS stream identifier +1
+     * 0 means unknown
+     */
+    int stream_identifier;
+
+    /**
      * Stream informations used internally by av_find_stream_info()
      */
 #define MAX_STD_TIMEBASES (60*12+5)
@@ -640,6 +647,10 @@ typedef struct AVProgram {
     unsigned int   *stream_index;
     unsigned int   nb_stream_indexes;
     AVMetadata *metadata;
+
+    int program_num;
+    int pmt_pid;
+    int pcr_pid;
 } AVProgram;
 
 #define AVFMTCTX_NOHEADER      0x0001 /**< signal that no header is present
@@ -837,6 +848,12 @@ typedef struct AVFormatContext {
      * decoding: number of frames used to probe fps
      */
     int fps_probe_size;
+
+    /**
+     * Transport stream id.
+     * This will be moved into demuxer private options. Thus no API/ABI compatibility
+     */
+    int ts_id;
 } AVFormatContext;
 
 typedef struct AVPacketList {
