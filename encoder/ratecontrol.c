@@ -1256,11 +1256,7 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp, int overhead )
     if( h->sh.i_type != SLICE_TYPE_B )
         rc->bframes = h->fenc->i_bframes;
 
-    if( i_force_qp != X264_QP_AUTO )
-    {
-        q = i_force_qp - 1;
-    }
-    else if( rc->b_abr )
+    if( rc->b_abr )
     {
         q = qscale2qp( rate_estimate_qscale( h ) );
     }
@@ -1284,6 +1280,8 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp, int overhead )
                 q -= 6*log2f( zone->f_bitrate_factor );
         }
     }
+    if( i_force_qp != X264_QP_AUTO )
+        q = i_force_qp - 1;
 
     q = x264_clip3f( q, h->param.rc.i_qp_min, h->param.rc.i_qp_max );
 
