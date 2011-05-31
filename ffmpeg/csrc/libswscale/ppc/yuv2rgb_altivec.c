@@ -95,6 +95,7 @@ adjustment.
 #include "libswscale/swscale.h"
 #include "libswscale/swscale_internal.h"
 #include "libavutil/cpu.h"
+#include "libavutil/pixdesc.h"
 
 #undef PROFILE_THE_BEAST
 #undef INC_SCALING
@@ -718,7 +719,7 @@ ff_yuv2packedX_altivec(SwsContext *c, const int16_t *lumFilter,
                 static int printed_error_message;
                 if (!printed_error_message) {
                     av_log(c, AV_LOG_ERROR, "altivec_yuv2packedX doesn't support %s output\n",
-                           sws_format_name(c->dstFormat));
+                           av_get_pix_fmt_name(c->dstFormat));
                     printed_error_message=1;
                 }
                 return;
@@ -793,7 +794,7 @@ ff_yuv2packedX_altivec(SwsContext *c, const int16_t *lumFilter,
         default:
             /* Unreachable, I think. */
             av_log(c, AV_LOG_ERROR, "altivec_yuv2packedX doesn't support %s output\n",
-                   sws_format_name(c->dstFormat));
+                   av_get_pix_fmt_name(c->dstFormat));
             return;
         }
 

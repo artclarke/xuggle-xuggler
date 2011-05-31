@@ -153,10 +153,9 @@ static int device_init(AVFormatContext *ctx, int *width, int *height, uint32_t p
 {
     struct video_data *s = ctx->priv_data;
     int fd = s->fd;
-    struct v4l2_format fmt;
+    struct v4l2_format fmt = {0};
     int res;
 
-    memset(&fmt, 0, sizeof(struct v4l2_format));
     fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     fmt.fmt.pix.width = *width;
     fmt.fmt.pix.height = *height;
@@ -239,10 +238,9 @@ static enum CodecID fmt_v4l2codec(uint32_t v4l2_fmt)
 static int mmap_init(AVFormatContext *ctx)
 {
     struct video_data *s = ctx->priv_data;
-    struct v4l2_requestbuffers req;
+    struct v4l2_requestbuffers req = {0};
     int i, res;
 
-    memset(&req, 0, sizeof(struct v4l2_requestbuffers));
     req.count = desired_video_buffers;
     req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     req.memory = V4L2_MEMORY_MMAP;
@@ -274,9 +272,8 @@ static int mmap_init(AVFormatContext *ctx)
     }
 
     for (i = 0; i < req.count; i++) {
-        struct v4l2_buffer buf;
+        struct v4l2_buffer buf = {0};
 
-        memset(&buf, 0, sizeof(struct v4l2_buffer));
         buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buf.memory = V4L2_MEMORY_MMAP;
         buf.index = i;
@@ -310,7 +307,7 @@ static int read_init(AVFormatContext *ctx)
 
 static void mmap_release_buffer(AVPacket *pkt)
 {
-    struct v4l2_buffer buf;
+    struct v4l2_buffer buf = {0};
     int res, fd;
     struct buff_data *buf_descriptor = pkt->priv;
 
@@ -318,7 +315,6 @@ static void mmap_release_buffer(AVPacket *pkt)
          return;
     }
 
-    memset(&buf, 0, sizeof(struct v4l2_buffer));
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
     buf.index = buf_descriptor->index;
@@ -336,11 +332,10 @@ static void mmap_release_buffer(AVPacket *pkt)
 static int mmap_read_frame(AVFormatContext *ctx, AVPacket *pkt)
 {
     struct video_data *s = ctx->priv_data;
-    struct v4l2_buffer buf;
+    struct v4l2_buffer buf = {0};
     struct buff_data *buf_descriptor;
     int res;
 
-    memset(&buf, 0, sizeof(struct v4l2_buffer));
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     buf.memory = V4L2_MEMORY_MMAP;
 
@@ -355,7 +350,7 @@ static int mmap_read_frame(AVFormatContext *ctx, AVPacket *pkt)
 
         return AVERROR(errno);
     }
-    assert (buf.index < s->buffers);
+    assert(buf.index < s->buffers);
     if (s->frame_size > 0 && buf.bytesused != s->frame_size) {
         av_log(ctx, AV_LOG_ERROR, "The v4l2 frame is %d bytes, but %d bytes are expected\n", buf.bytesused, s->frame_size);
         return AVERROR_INVALIDDATA;
@@ -395,9 +390,8 @@ static int mmap_start(AVFormatContext *ctx)
     int i, res;
 
     for (i = 0; i < s->buffers; i++) {
-        struct v4l2_buffer buf;
+        struct v4l2_buffer buf = {0};
 
-        memset(&buf, 0, sizeof(struct v4l2_buffer));
         buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buf.memory = V4L2_MEMORY_MMAP;
         buf.index  = i;
@@ -439,11 +433,11 @@ static void mmap_close(struct video_data *s)
 static int v4l2_set_parameters(AVFormatContext *s1, AVFormatParameters *ap)
 {
     struct video_data *s = s1->priv_data;
-    struct v4l2_input input;
-    struct v4l2_standard standard;
-    struct v4l2_streamparm streamparm = { 0 };
+    struct v4l2_input input = {0};
+    struct v4l2_standard standard = {0};
+    struct v4l2_streamparm streamparm = {0};
     struct v4l2_fract *tpf = &streamparm.parm.capture.timeperframe;
-    int i;
+    int i, ret;
 
     streamparm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
@@ -453,7 +447,6 @@ static int v4l2_set_parameters(AVFormatContext *s1, AVFormatParameters *ap)
 #endif
 
     /* set tv video input */
-    memset (&input, 0, sizeof (input));
     input.index = s->channel;
     if (ioctl(s->fd, VIDIOC_ENUMINPUT, &input) < 0) {
         av_log(s1, AV_LOG_ERROR, "The V4L2 driver ioctl enum input failed:\n");
@@ -479,18 +472,15 @@ static int v4l2_set_parameters(AVFormatContext *s1, AVFormatParameters *ap)
         av_log(s1, AV_LOG_DEBUG, "The V4L2 driver set standard: %s\n",
                s->standard);
         /* set tv standard */
-        memset (&standard, 0, sizeof (standard));
-        for(i=0;;i++) {
+        for (i = 0;; i++) {
             standard.index = i;
-            if (ioctl(s->fd, VIDIOC_ENUMSTD, &standard) < 0) {
-                av_log(s1, AV_LOG_ERROR, "The V4L2 driver ioctl set standard(%s) failed\n",
-                       s->standard);
-                return AVERROR(EIO);
-            }
-
-            if (!strcasecmp(standard.name, s->standard)) {
+            ret = ioctl(s->fd, VIDIOC_ENUMSTD, &standard);
+            if (ret < 0 || !strcasecmp(standard.name, s->standard))
                 break;
-            }
+        }
+        if (ret < 0) {
+            av_log(s1, AV_LOG_ERROR, "Unknown standard '%s'\n", s->standard);
+            return ret;
         }
 
         av_log(s1, AV_LOG_DEBUG, "The V4L2 driver set standard: %s, id: %"PRIu64"\n",

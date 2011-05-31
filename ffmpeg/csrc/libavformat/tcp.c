@@ -45,7 +45,7 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
     char buf[256];
     int ret;
     socklen_t optlen;
-    int timeout = 100;
+    int timeout = 50;
     char hostname[1024],proto[1024],path[1024];
     char portstr[10];
 
@@ -97,7 +97,6 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
     }
 
     if (ret < 0) {
-        int timeout=50;
         struct pollfd p = {fd, POLLOUT, 0};
         ret = ff_neterrno();
         if (ret == AVERROR(EINTR)) {
@@ -120,12 +119,6 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
             ret = poll(&p, 1, 100);
             if (ret > 0)
                 break;
-            if(!--timeout){
-                av_log(NULL, AV_LOG_ERROR,
-                    "TCP open %s:%d timeout\n",
-                    hostname, port);
-                goto fail;
-            }
         }
         if (ret <= 0) {
             ret = AVERROR(ETIMEDOUT);
