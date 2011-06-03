@@ -41,9 +41,8 @@ static int full_check( video_info_t *info, x264_param_t *param )
 #if HAVE_SWSCALE
 #undef DECLARE_ALIGNED
 #include <libswscale/swscale.h>
-
-/* this function is not a part of the swscale API but is defined in swscale_internal.h */
-const char *sws_format_name( enum PixelFormat format );
+#include <libavutil/opt.h>
+#include <libavutil/pixdesc.h>
 
 typedef struct
 {
@@ -61,10 +60,11 @@ typedef struct
     int buffer_allocated;
     int dst_csp;
     struct SwsContext *ctx;
-    int ctx_flags;
+    uint32_t ctx_flags;
     /* state of swapping chroma planes pre and post resize */
     int pre_swap_chroma;
     int post_swap_chroma;
+    int variable_input; /* input is capable of changing properties */
     frame_prop_t dst;   /* desired output properties */
     frame_prop_t scale; /* properties of the SwsContext input */
 } resizer_hnd_t;
@@ -96,16 +96,6 @@ static void help( int longhelp )
             "            - method: use resizer method [\"bicubic\"]\n"
             "               - fastbilinear, bilinear, bicubic, experimental, point,\n"
             "               - area, bicublin, gauss, sinc, lanczos, spline\n" );
-}
-
-static uint32_t convert_cpu_to_flag( uint32_t cpu )
-{
-    uint32_t swscale_cpu = 0;
-    if( cpu & X264_CPU_ALTIVEC )
-        swscale_cpu |= SWS_CPU_CAPS_ALTIVEC;
-    if( cpu & X264_CPU_MMXEXT )
-        swscale_cpu |= SWS_CPU_CAPS_MMX | SWS_CPU_CAPS_MMX2;
-    return swscale_cpu;
 }
 
 static uint32_t convert_method_to_flag( const char *name )
@@ -348,6 +338,54 @@ static int handle_opts( const char **optlist, char **opts, video_info_t *info, r
     return 0;
 }
 
+static int x264_init_sws_context( resizer_hnd_t *h )
+{
+    if( !h->ctx )
+    {
+        h->ctx = sws_alloc_context();
+        if( !h->ctx )
+            return -1;
+
+        /* set flags that will not change */
+        av_set_int( h->ctx, "sws_flags",  h->ctx_flags );
+        av_set_int( h->ctx, "dstw",       h->dst.width );
+        av_set_int( h->ctx, "dsth",       h->dst.height );
+        av_set_int( h->ctx, "dst_format", h->dst.pix_fmt );
+        av_set_int( h->ctx, "dst_range",  0 ); /* FIXME: use the correct full range value */
+    }
+
+    av_set_int( h->ctx, "srcw",       h->scale.width );
+    av_set_int( h->ctx, "srch",       h->scale.height );
+    av_set_int( h->ctx, "src_format", h->scale.pix_fmt );
+    av_set_int( h->ctx, "src_range",  0 ); /* FIXME: use the correct full range value */
+
+    /* FIXME: use the correct full range values
+     * FIXME: use the correct matrix coefficients (only YUV -> RGB conversions are supported) */
+    sws_setColorspaceDetails( h->ctx, sws_getCoefficients( SWS_CS_DEFAULT ), 0,
+                              sws_getCoefficients( SWS_CS_DEFAULT ), 0, 0, 1<<16, 1<<16 );
+
+    return sws_init_context( h->ctx, NULL, NULL ) < 0;
+}
+
+static int check_resizer( resizer_hnd_t *h, cli_pic_t *in, int frame )
+{
+    frame_prop_t input_prop = { in->img.width, in->img.height, convert_csp_to_pix_fmt( in->img.csp ) };
+    if( !memcmp( &input_prop, &h->scale, sizeof(frame_prop_t) ) )
+        return 0;
+    /* also warn if the resizer was initialized after the first frame */
+    if( h->ctx || frame )
+        x264_cli_log( NAME, X264_LOG_WARNING, "stream properties changed at pts %"PRId64"\n", in->pts );
+    h->scale = input_prop;
+    if( !h->buffer_allocated )
+    {
+        if( x264_cli_pic_alloc( &h->buffer, h->dst_csp, h->dst.width, h->dst.height ) )
+            return -1;
+        h->buffer_allocated = 1;
+    }
+    FAIL_IF_ERROR( x264_init_sws_context( h ), "swscale init failed\n" )
+    return 0;
+}
+
 static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x264_param_t *param, char *opt_string )
 {
     /* if called for normalizing the csp to known formats and the format is not unknown, exit */
@@ -372,6 +410,8 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
         h->dst.height = info->height;
         if( !strcmp( opt_string, "normcsp" ) )
         {
+            /* only in normalization scenarios is the input capable of changing properties */
+            h->variable_input = 1;
             h->dst_csp = pick_closest_supported_csp( info->csp );
             /* now fix the catch-all i420 choice if it does not allow for the current input resolution dimensions. */
             if( h->dst_csp == X264_CSP_I420 && info->width&1 )
@@ -388,11 +428,10 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
         h->dst.width  = param->i_width;
         h->dst.height = param->i_height;
     }
-    uint32_t method = convert_method_to_flag( x264_otos( x264_get_option( optlist[5], opts ), "" ) );
+    h->ctx_flags = convert_method_to_flag( x264_otos( x264_get_option( optlist[5], opts ), "" ) );
     x264_free_string_array( opts );
 
-    h->ctx_flags = convert_cpu_to_flag( param->cpu ) | method;
-    if( method != SWS_FAST_BILINEAR )
+    if( h->ctx_flags != SWS_FAST_BILINEAR )
         h->ctx_flags |= SWS_FULL_CHR_H_INT | SWS_FULL_CHR_H_INP | SWS_ACCURATE_RND;
     h->dst.pix_fmt = convert_csp_to_pix_fmt( h->dst_csp );
     h->scale = h->dst;
@@ -408,13 +447,13 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
 
     /* confirm swscale can support this conversion */
     FAIL_IF_ERROR( src_pix_fmt == PIX_FMT_NONE && src_pix_fmt_inv != PIX_FMT_NONE,
-                   "input colorspace %s with bit depth %d is not supported\n", sws_format_name( src_pix_fmt_inv ),
+                   "input colorspace %s with bit depth %d is not supported\n", av_get_pix_fmt_name( src_pix_fmt_inv ),
                    info->csp & X264_CSP_HIGH_DEPTH ? 16 : 8 );
-    FAIL_IF_ERROR( !sws_isSupportedInput( src_pix_fmt ), "input colorspace %s is not supported\n", sws_format_name( src_pix_fmt ) )
+    FAIL_IF_ERROR( !sws_isSupportedInput( src_pix_fmt ), "input colorspace %s is not supported\n", av_get_pix_fmt_name( src_pix_fmt ) )
     FAIL_IF_ERROR( h->dst.pix_fmt == PIX_FMT_NONE && dst_pix_fmt_inv != PIX_FMT_NONE,
-                   "input colorspace %s with bit depth %d is not supported\n", sws_format_name( dst_pix_fmt_inv ),
+                   "input colorspace %s with bit depth %d is not supported\n", av_get_pix_fmt_name( dst_pix_fmt_inv ),
                    h->dst_csp & X264_CSP_HIGH_DEPTH ? 16 : 8 );
-    FAIL_IF_ERROR( !sws_isSupportedOutput( h->dst.pix_fmt ), "output colorspace %s is not supported\n", sws_format_name( h->dst.pix_fmt ) )
+    FAIL_IF_ERROR( !sws_isSupportedOutput( h->dst.pix_fmt ), "output colorspace %s is not supported\n", av_get_pix_fmt_name( h->dst.pix_fmt ) )
     FAIL_IF_ERROR( h->dst.height != info->height && info->interlaced,
                    "swscale is not compatible with interlaced vertical resizing\n" )
     /* confirm that the desired resolution meets the colorspace requirements */
@@ -426,8 +465,17 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
         x264_cli_log( NAME, X264_LOG_INFO, "resizing to %dx%d\n", h->dst.width, h->dst.height );
     if( h->dst.pix_fmt != src_pix_fmt )
         x264_cli_log( NAME, X264_LOG_WARNING, "converting from %s to %s\n",
-                      sws_format_name( src_pix_fmt ), sws_format_name( h->dst.pix_fmt ) );
+                      av_get_pix_fmt_name( src_pix_fmt ), av_get_pix_fmt_name( h->dst.pix_fmt ) );
     h->dst_csp |= info->csp & X264_CSP_VFLIP; // preserve vflip
+
+    /* if the input is not variable, initialize the context */
+    if( !h->variable_input )
+    {
+        cli_pic_t input_pic = {{info->csp, info->width, info->height, 0}, 0};
+        if( check_resizer( h, &input_pic, 0 ) )
+            return -1;
+    }
+
     /* finished initing, overwrite values */
     info->csp    = h->dst_csp;
     info->width  = h->dst.width;
@@ -441,35 +489,12 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
     return 0;
 }
 
-static int check_resizer( resizer_hnd_t *h, cli_pic_t *in )
-{
-    frame_prop_t input_prop = { in->img.width, in->img.height, convert_csp_to_pix_fmt( in->img.csp ) };
-    if( !memcmp( &input_prop, &h->scale, sizeof(frame_prop_t) ) )
-        return 0;
-    if( h->ctx )
-    {
-        sws_freeContext( h->ctx );
-        x264_cli_log( NAME, X264_LOG_WARNING, "stream properties changed at pts %"PRId64"\n", in->pts );
-    }
-    h->scale = input_prop;
-    if( !h->buffer_allocated )
-    {
-        if( x264_cli_pic_alloc( &h->buffer, h->dst_csp, h->dst.width, h->dst.height ) )
-            return -1;
-        h->buffer_allocated = 1;
-    }
-    h->ctx = sws_getContext( h->scale.width, h->scale.height, h->scale.pix_fmt, h->dst.width,
-                             h->dst.height, h->dst.pix_fmt, h->ctx_flags, NULL, NULL, NULL );
-    FAIL_IF_ERROR( !h->ctx, "swscale init failed\n" )
-    return 0;
-}
-
 static int get_frame( hnd_t handle, cli_pic_t *output, int frame )
 {
     resizer_hnd_t *h = handle;
     if( h->prev_filter.get_frame( h->prev_hnd, output, frame ) )
         return -1;
-    if( check_resizer( h, output ) )
+    if( h->variable_input && check_resizer( h, output, frame ) )
         return -1;
     if( h->pre_swap_chroma )
         XCHG( uint8_t*, output->img.plane[1], output->img.plane[2] );

@@ -722,17 +722,11 @@ if [ "$swscale" = "auto" ] ; then
     fi
     [ -z "$SWSCALE_LIBS" ] && SWSCALE_LIBS="-lswscale -lavutil"
 
-    error="swscale must be at least version 0.9.0"
-    if cc_check "libswscale/swscale.h" "$SWSCALE_CFLAGS $SWSCALE_LIBS" "sws_getContext(0,0,0,0,0,0,0,0,0,0);" ; then
-        if cpp_check "libswscale/swscale.h" "$SWSCALE_CFLAGS" "LIBSWSCALE_VERSION_INT >= AV_VERSION_INT(0,9,0)" "$error"; then
-            # we use colorspaces that were defined in libavutil r19775
-            if cc_check "libavutil/pixfmt.h" "$SWSCALE_CFLAGS" "enum PixelFormat pixfmt = PIX_FMT_YUV422P16LE;" ; then
-                swscale="yes"
-            else
-                echo "Warning: libavutil is too old, update to ffmpeg r19775+"
-            fi
+    if cc_check "libswscale/swscale.h" "$SWSCALE_CFLAGS $SWSCALE_LIBS" "sws_init_context(0,0,0);" ; then
+        if cc_check "libavutil/pixdesc.h" "$SWSCALE_CFLAGS $SWSCALE_LIBS" "av_get_pix_fmt_name(0);" ; then
+            swscale="yes"
         else
-            echo "Warning: ${error}"
+            echo "Warning: av_get_pix_fmt_name is missing from libavutil, update for swscale support"
         fi
     fi
 fi
