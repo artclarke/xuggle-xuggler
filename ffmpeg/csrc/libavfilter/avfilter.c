@@ -77,8 +77,8 @@ static void store_in_pool(AVFilterBufferRef *ref)
 
     av_assert0(ref->buf->data[0]);
 
-    if(pool->count == POOL_SIZE){
-        AVFilterBufferRef *ref1= pool->pic[0];
+    if (pool->count == POOL_SIZE) {
+        AVFilterBufferRef *ref1 = pool->pic[0];
         av_freep(&ref1->video);
         av_freep(&ref1->audio);
         av_freep(&ref1->buf->data[0]);
@@ -89,9 +89,9 @@ static void store_in_pool(AVFilterBufferRef *ref)
         pool->pic[POOL_SIZE-1] = NULL;
     }
 
-    for(i=0; i<POOL_SIZE; i++){
-        if(!pool->pic[i]){
-            pool->pic[i]= ref;
+    for (i = 0; i < POOL_SIZE; i++) {
+        if (!pool->pic[i]) {
+            pool->pic[i] = ref;
             pool->count++;
             break;
         }
@@ -102,8 +102,8 @@ void avfilter_unref_buffer(AVFilterBufferRef *ref)
 {
     if (!ref)
         return;
-    if (!(--ref->buf->refcount)){
-        if(!ref->buf->free){
+    if (!(--ref->buf->refcount)) {
+        if (!ref->buf->free) {
             store_in_pool(ref);
             return;
         }
@@ -163,6 +163,31 @@ int avfilter_link(AVFilterContext *src, unsigned srcpad,
     link->format  = -1;
 
     return 0;
+}
+
+void avfilter_link_free(AVFilterLink **link)
+{
+    if (!*link)
+        return;
+
+    if ((*link)->pool) {
+        int i;
+        for (i = 0; i < POOL_SIZE; i++) {
+            if ((*link)->pool->pic[i]) {
+                AVFilterBufferRef *picref = (*link)->pool->pic[i];
+                /* free buffer: picrefs stored in the pool are not
+                 * supposed to contain a free callback */
+                av_freep(&picref->buf->data[0]);
+                av_freep(&picref->buf);
+
+                av_freep(&picref->audio);
+                av_freep(&picref->video);
+                av_freep(&picref);
+            }
+        }
+        av_freep(&(*link)->pool);
+    }
+    av_freep(link);
 }
 
 int avfilter_insert_filter(AVFilterLink *link, AVFilterContext *filt,
@@ -683,7 +708,7 @@ void avfilter_free(AVFilterContext *filter)
             avfilter_formats_unref(&link->in_formats);
             avfilter_formats_unref(&link->out_formats);
         }
-        av_freep(&link);
+        avfilter_link_free(&link);
     }
     for (i = 0; i < filter->output_count; i++) {
         if ((link = filter->outputs[i])) {
@@ -692,7 +717,7 @@ void avfilter_free(AVFilterContext *filter)
             avfilter_formats_unref(&link->in_formats);
             avfilter_formats_unref(&link->out_formats);
         }
-        av_freep(&link);
+        avfilter_link_free(&link);
     }
 
     av_freep(&filter->name);
