@@ -1242,7 +1242,7 @@ static void do_video_out(AVFormatContext *s,
             }
         }
         sws_scale(ost->img_resample_ctx, formatted_picture->data, formatted_picture->linesize,
-                  0, ost->resample_height, ost->resample_frame.data, ost->resample_frame.linesize);
+              0, ost->resample_height, final_picture->data, final_picture->linesize);
     }
 #endif
 
@@ -1379,7 +1379,8 @@ static void print_report(AVFormatContext **output_files,
     int64_t total_size;
     AVCodecContext *enc;
     int frame_number, vid, i;
-    double bitrate, ti1, pts;
+    double bitrate;
+    int64_t pts = INT64_MAX;
     static int64_t last_time = -1;
     static int qp_histogram[52];
 
@@ -1404,7 +1405,6 @@ static void print_report(AVFormatContext **output_files,
         total_size= avio_tell(oc->pb);
 
     buf[0] = '\0';
-    ti1 = 1e10;
     vid = 0;
     for(i=0;i<nb_ostreams;i++) {
         float q = -1;
@@ -1455,19 +1455,28 @@ static void print_report(AVFormatContext **output_files,
             vid = 1;
         }
         /* compute min output value */
-        pts = (double)ost->st->pts.val * av_q2d(ost->st->time_base);
-        if ((pts < ti1) && (pts > 0))
-            ti1 = pts;
+        pts = FFMIN(pts, av_rescale_q(ost->st->pts.val,
+                                      ost->st->time_base, AV_TIME_BASE_Q));
     }
-    if (ti1 < 0.01)
-        ti1 = 0.01;
 
     if (verbose > 0 || is_last_report) {
-        bitrate = (double)(total_size * 8) / ti1 / 1000.0;
+        int hours, mins, secs, us;
+        secs = pts / AV_TIME_BASE;
+        us = pts % AV_TIME_BASE;
+        mins = secs / 60;
+        secs %= 60;
+        hours = mins / 60;
+        mins %= 60;
+
+        bitrate = pts ? total_size * 8 / (pts / 1000.0) : 0;
 
         snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
-            "size=%8.0fkB time=%0.2f bitrate=%6.1fkbits/s",
-            (double)total_size / 1024, ti1, bitrate);
+                 "size=%8.0fkB time=", total_size / 1024.0);
+        snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
+                 "%02d:%02d:%02d.%02d ", hours, mins, secs,
+                 (100 * us) / AV_TIME_BASE);
+        snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
+                 "bitrate=%6.1fkbits/s", bitrate);
 
         if (nb_frames_dup || nb_frames_drop)
           snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf), " dup=%d drop=%d",
@@ -3714,7 +3723,6 @@ static void new_audio_stream(AVFormatContext *oc, int file_idx)
 static void new_data_stream(AVFormatContext *oc, int file_idx)
 {
     AVStream *st;
-    AVOutputStream *ost av_unused;
     AVCodec *codec=NULL;
     AVCodecContext *data_enc;
 
@@ -3723,7 +3731,7 @@ static void new_data_stream(AVFormatContext *oc, int file_idx)
         fprintf(stderr, "Could not alloc stream\n");
         ffmpeg_exit(1);
     }
-    ost = new_output_stream(oc, file_idx);
+    new_output_stream(oc, file_idx);
     data_enc = st->codec;
     output_codecs = grow_array(output_codecs, sizeof(*output_codecs), &nb_output_codecs, nb_output_codecs + 1);
     if (!data_stream_copy) {
@@ -3854,6 +3862,11 @@ static void opt_output_file(const char *filename)
     int input_has_video, input_has_audio, input_has_subtitle, input_has_data;
     AVFormatParameters params, *ap = &params;
     AVOutputFormat *file_oformat;
+
+    if(nb_output_files >= FF_ARRAY_ELEMS(output_files)){
+        fprintf(stderr, "Too many output files\n");
+        ffmpeg_exit(1);
+    }
 
     if (!strcmp(filename, "-"))
         filename = "pipe:";

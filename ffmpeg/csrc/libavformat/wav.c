@@ -323,7 +323,7 @@ static int wav_read_header(AVFormatContext *s,
         if (avio_rl32(pb) != MKTAG('d', 's', '6', '4'))
             return -1;
         size = avio_rl32(pb);
-        if (size < 16)
+        if (size < 24)
             return -1;
         avio_rl64(pb); /* RIFF size */
         data_size = avio_rl64(pb);
@@ -334,7 +334,7 @@ static int wav_read_header(AVFormatContext *s,
                    data_size, sample_count);
             return AVERROR_INVALIDDATA;
         }
-        avio_skip(pb, size - 16); /* skip rest of ds64 chunk */
+        avio_skip(pb, size - 24); /* skip rest of ds64 chunk */
     }
 
     for (;;) {
