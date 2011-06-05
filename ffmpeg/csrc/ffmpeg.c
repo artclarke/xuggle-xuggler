@@ -1208,8 +1208,8 @@ static void do_video_out(AVFormatContext *s,
         av_log(NULL, AV_LOG_INFO,
                "Input stream #%d.%d frame changed from size:%dx%d fmt:%s to size:%dx%d fmt:%s\n",
                ist->file_index, ist->st->index,
-               ost->resample_width, ost->resample_height, avcodec_get_pix_fmt_name(ost->resample_pix_fmt),
-               dec->width         , dec->height         , avcodec_get_pix_fmt_name(dec->pix_fmt));
+               ost->resample_width, ost->resample_height, av_get_pix_fmt_name(ost->resample_pix_fmt),
+               dec->width         , dec->height         , av_get_pix_fmt_name(dec->pix_fmt));
         ost->resample_width   = dec->width;
         ost->resample_height  = dec->height;
         ost->resample_pix_fmt = dec->pix_fmt;
@@ -4180,7 +4180,7 @@ static int opt_target(const char *opt, const char *arg)
 
     if(!strcmp(arg, "vcd")) {
         opt_codec("vcodec", "mpeg1video");
-        opt_codec("vcodec", "mp2");
+        opt_codec("acodec", "mp2");
         opt_format("f", "vcd");
 
         opt_frame_size("s", norm == PAL ? "352x288" : "352x240");
@@ -4230,7 +4230,7 @@ static int opt_target(const char *opt, const char *arg)
     } else if(!strcmp(arg, "dvd")) {
 
         opt_codec("vcodec", "mpeg2video");
-        opt_codec("vcodec", "ac3");
+        opt_codec("acodec", "ac3");
         opt_format("f", "dvd");
 
         opt_frame_size("vcodec", norm == PAL ? "720x576" : "720x480");
