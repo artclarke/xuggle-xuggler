@@ -1331,7 +1331,7 @@ static float predict_row_size( x264_t *h, int y, float qscale )
 static int row_bits_so_far( x264_t *h, int y )
 {
     int bits = 0;
-    for( int i = h->i_threadslice_start+SLICE_MBAFF; i <= y; i+=(SLICE_MBAFF+1) )
+    for( int i = h->i_threadslice_start; i <= y; i++ )
         bits += h->fdec->i_row_bits[i];
     return bits;
 }
@@ -1340,7 +1340,7 @@ static float predict_row_size_sum( x264_t *h, int y, float qp )
 {
     float qscale = qp2qscale( qp );
     float bits = row_bits_so_far( h, y );
-    for( int i = y+1+SLICE_MBAFF; i < h->i_threadslice_end; i+=(1+SLICE_MBAFF) )
+    for( int i = y+1; i < h->i_threadslice_end; i++ )
         bits += predict_row_size( h, i, qscale );
     return bits;
 }
@@ -1356,14 +1356,12 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
 
     h->fdec->i_row_bits[y] += bits;
     rc->qpa_aq += h->mb.i_qp;
-    if( SLICE_MBAFF )
-        rc->qpa_aq += h->mb.i_last_qp;
 
     if( h->mb.i_mb_x != h->mb.i_mb_width - 1 )
         return;
 
     x264_emms();
-    rc->qpa_rc += rc->qpm * (h->mb.i_mb_width << SLICE_MBAFF);
+    rc->qpa_rc += rc->qpm * h->mb.i_mb_width;
 
     if( !rc->b_vbv )
         return;
@@ -1375,6 +1373,10 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
     update_predictor( rc->row_pred[0], qscale, h->fdec->i_row_satd[y], h->fdec->i_row_bits[y] );
     if( h->sh.i_type == SLICE_TYPE_P && rc->qpm < h->fref[0][0]->f_row_qp[y] )
         update_predictor( rc->row_pred[1], qscale, h->fdec->i_row_satds[0][0][y], h->fdec->i_row_bits[y] );
+
+    /* update ratecontrol per-mbpair in MBAFF */
+    if( SLICE_MBAFF && !(y&1) )
+        return;
 
     /* tweak quality based on difference from predicted size */
     if( y < h->i_threadslice_end-1 )
@@ -1390,7 +1392,7 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
         /* B-frames shouldn't use lower QP than their reference frames. */
         if( h->sh.i_type == SLICE_TYPE_B )
         {
-            qp_min = X264_MAX( qp_min, X264_MAX( h->fref[0][0]->f_row_qp[y+1+SLICE_MBAFF], h->fref[1][0]->f_row_qp[y+1+SLICE_MBAFF] ) );
+            qp_min = X264_MAX( qp_min, X264_MAX( h->fref[0][0]->f_row_qp[y+1], h->fref[1][0]->f_row_qp[y+1] ) );
             rc->qpm = X264_MAX( rc->qpm, qp_min );
         }
 

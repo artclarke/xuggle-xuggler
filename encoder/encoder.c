@@ -2023,7 +2023,6 @@ static int x264_slice_write( x264_t *h )
     i_mb_y = h->sh.i_first_mb / h->mb.i_mb_width;
     i_mb_x = h->sh.i_first_mb % h->mb.i_mb_width;
     i_skip = 0;
-    int mb_size[2];
 
     while( 1 )
     {
@@ -2131,7 +2130,7 @@ reencode:
         }
 
         int total_bits = bs_pos(&h->out.bs) + x264_cabac_pos(&h->cabac);
-        mb_size[i_mb_y&1] = total_bits - mb_spos;
+        int mb_size = total_bits - mb_spos;
 
         if( slice_max_size )
         {
@@ -2253,14 +2252,7 @@ reencode:
         if( b_deblock )
             x264_macroblock_deblock_strength( h );
 
-        if( SLICE_MBAFF )
-        {
-            /* update ratecontrol per-mbpair in MBAFF */
-            if( i_mb_y&1 )
-                x264_ratecontrol_mb( h, mb_size[0]+mb_size[1] );
-        }
-        else
-            x264_ratecontrol_mb( h, mb_size[i_mb_y&1] );
+        x264_ratecontrol_mb( h, mb_size );
 
         if( mb_xy == h->sh.i_last_mb )
             break;
