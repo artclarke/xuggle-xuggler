@@ -339,7 +339,7 @@ static int opt_format(const char *opt, const char *arg)
     return 0;
 }
 
-static void opt_input_file(const char *arg)
+static int opt_input_file(const char *opt, const char *arg)
 {
     if (input_filename) {
         fprintf(stderr, "Argument '%s' provided as input filename, but '%s' was already specified.\n",
@@ -349,6 +349,7 @@ static void opt_input_file(const char *arg)
     if (!strcmp(arg, "-"))
         arg = "pipe:";
     input_filename = arg;
+    return 0;
 }
 
 static void show_help(void)
@@ -384,6 +385,7 @@ static const OptionDef options[] = {
     { "show_packets", OPT_BOOL, {(void*)&do_show_packets}, "show packets info" },
     { "show_streams", OPT_BOOL, {(void*)&do_show_streams}, "show streams info" },
     { "default", HAS_ARG | OPT_AUDIO | OPT_VIDEO | OPT_EXPERT, {(void*)opt_default}, "generic catch all option", "" },
+    { "i", HAS_ARG, {(void *)opt_input_file}, "read specified file", "input_file"},
     { NULL, },
 };
 
