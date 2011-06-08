@@ -1219,6 +1219,8 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp, int overhead )
     if( rc->b_vbv )
     {
         memset( h->fdec->i_row_bits, 0, h->mb.i_mb_height * sizeof(int) );
+        memset( h->fdec->f_row_qp, 0, h->mb.i_mb_height * sizeof(float) );
+        memset( h->fdec->f_row_qscale, 0, h->mb.i_mb_height * sizeof(float) );
         rc->row_pred = &rc->row_preds[h->sh.i_type];
         rc->buffer_rate = h->fenc->i_cpb_duration * rc->vbv_max_rate * h->sps->vui.i_num_units_in_tick / h->sps->vui.i_time_scale;
         update_vbv_plan( h, overhead );
@@ -1310,6 +1312,7 @@ static float predict_row_size( x264_t *h, int y, float qscale )
     {
         if( h->sh.i_type == SLICE_TYPE_P
             && h->fref[0][0]->i_type == h->fdec->i_type
+            && h->fref[0][0]->f_row_qscale[y] > 0
             && h->fref[0][0]->i_row_satd[y] > 0
             && (abs(h->fref[0][0]->i_row_satd[y] - h->fdec->i_row_satd[y]) < h->fdec->i_row_satd[y]/2))
         {
@@ -1457,6 +1460,8 @@ void x264_ratecontrol_mb( x264_t *h, int bits )
 
         h->rc->frame_size_estimated = b1 - size_of_other_slices;
     }
+    else
+        h->rc->frame_size_estimated = predict_row_size_sum( h, y, rc->qpm );
 }
 
 int x264_ratecontrol_qp( x264_t *h )
@@ -1917,7 +1922,7 @@ static void update_vbv_plan( x264_t *h, int overhead )
             double bits = t->rc->frame_size_planned;
             if( !t->b_thread_active )
                 continue;
-            bits  = X264_MAX(bits, t->rc->frame_size_estimated);
+            bits = X264_MAX(bits, t->rc->frame_size_estimated);
             rcc->buffer_fill -= bits;
             rcc->buffer_fill = X264_MAX( rcc->buffer_fill, 0 );
             rcc->buffer_fill += t->rc->buffer_rate;
@@ -2163,7 +2168,7 @@ static float rate_estimate_qscale( x264_t *h )
                         double bits = t->rc->frame_size_planned;
                         if( !t->b_thread_active )
                             continue;
-                        bits  = X264_MAX(bits, t->rc->frame_size_estimated);
+                        bits = X264_MAX(bits, t->rc->frame_size_estimated);
                         predicted_bits += (int64_t)bits;
                     }
                 }
