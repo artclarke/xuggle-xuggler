@@ -79,15 +79,15 @@ typedef struct MOVParseTableEntry {
 
 static const MOVParseTableEntry mov_default_parse_table[];
 
-static int mov_metadata_track_or_disc_number(MOVContext *c, AVIOContext *pb, unsigned len, const char *type)
+static int mov_metadata_trkn(MOVContext *c, AVIOContext *pb, unsigned len)
 {
     char buf[16];
 
     avio_rb16(pb); // unknown
     snprintf(buf, sizeof(buf), "%d", avio_rb16(pb));
-    av_metadata_set2(&c->fc->metadata, type, buf, 0);
+    av_metadata_set2(&c->fc->metadata, "track", buf, 0);
 
-    avio_rb16(pb); // total tracks/discs
+    avio_rb16(pb); // total tracks
 
     return 0;
 }
@@ -138,7 +138,7 @@ static int mov_read_udta_string(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     const char *key = NULL;
     uint16_t str_size, langcode = 0;
     uint32_t data_type = 0;
-    int (*parse)(MOVContext*, AVIOContext*, unsigned, const char *) = NULL;
+    int (*parse)(MOVContext*, AVIOContext*, unsigned) = NULL;
 
     switch (atom.type) {
     case MKTAG(0xa9,'n','a','m'): key = "title";     break;
@@ -164,9 +164,7 @@ static int mov_read_udta_string(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     case MKTAG( 't','v','e','n'): key = "episode_id";break;
     case MKTAG( 't','v','n','n'): key = "network";   break;
     case MKTAG( 't','r','k','n'): key = "track";
-        parse = mov_metadata_track_or_disc_number; break;
-    case MKTAG( 'd','i','s','k'): key = "disc";
-        parse = mov_metadata_track_or_disc_number; break;
+        parse = mov_metadata_trkn; break;
     }
 
     if (c->itunes_metadata && atom.size > 8) {
@@ -201,7 +199,7 @@ static int mov_read_udta_string(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     str_size = FFMIN3(sizeof(str)-1, str_size, atom.size);
 
     if (parse)
-        parse(c, pb, str_size, key);
+        parse(c, pb, str_size);
     else {
         if (data_type == 3 || (data_type == 0 && langcode < 0x800)) { // MAC Encoded
             mov_read_mac_string(c, pb, str_size, str, sizeof(str));
@@ -433,7 +431,7 @@ static int mov_read_hdlr(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 {
     AVStream *st;
     uint32_t type;
-    uint32_t av_unused ctype;
+    uint32_t ctype;
 
     if (c->fc->nb_streams < 1) // meta before first trak
         return 0;
@@ -469,21 +467,21 @@ static int mov_read_hdlr(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 int ff_mov_read_esds(AVFormatContext *fc, AVIOContext *pb, MOVAtom atom)
 {
     AVStream *st;
-    int tag;
+    int tag, len;
 
     if (fc->nb_streams < 1)
         return 0;
     st = fc->streams[fc->nb_streams-1];
 
     avio_rb32(pb); /* version + flags */
-    ff_mp4_read_descr(fc, pb, &tag);
+    len = ff_mp4_read_descr(fc, pb, &tag);
     if (tag == MP4ESDescrTag) {
         avio_rb16(pb); /* ID */
         avio_r8(pb); /* priority */
     } else
         avio_rb16(pb); /* ID */
 
-    ff_mp4_read_descr(fc, pb, &tag);
+    len = ff_mp4_read_descr(fc, pb, &tag);
     if (tag == MP4DecConfigDescrTag)
         ff_mp4_read_dec_config_descr(fc, st, pb);
     return 0;
@@ -720,7 +718,7 @@ static int mov_read_enda(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         return 0;
     st = c->fc->streams[c->fc->nb_streams-1];
 
-    little_endian = avio_rb16(pb) & 0xFF;
+    little_endian = avio_rb16(pb);
     av_dlog(c->fc, "enda %d\n", little_endian);
     if (little_endian == 1) {
         switch (st->codec->codec_id) {
@@ -1032,6 +1030,7 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
                 unsigned int color_start, color_count, color_end;
                 unsigned char r, g, b;
 
+                st->codec->palctrl = av_malloc(sizeof(*st->codec->palctrl));
                 if (color_greyscale) {
                     int color_index, color_dec;
                     /* compute the greyscale palette */
@@ -1041,7 +1040,7 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
                     color_dec = 256 / (color_count - 1);
                     for (j = 0; j < color_count; j++) {
                         r = g = b = color_index;
-                        sc->palette[j] =
+                        st->codec->palctrl->palette[j] =
                             (r << 16) | (g << 8) | (b);
                         color_index -= color_dec;
                         if (color_index < 0)
@@ -1062,7 +1061,7 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
                         r = color_table[j * 3 + 0];
                         g = color_table[j * 3 + 1];
                         b = color_table[j * 3 + 2];
-                        sc->palette[j] =
+                        st->codec->palctrl->palette[j] =
                             (r << 16) | (g << 8) | (b);
                     }
                 } else {
@@ -1084,12 +1083,12 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
                             avio_r8(pb);
                             b = avio_r8(pb);
                             avio_r8(pb);
-                            sc->palette[j] =
+                            st->codec->palctrl->palette[j] =
                                 (r << 16) | (g << 8) | (b);
                         }
                     }
                 }
-                sc->has_palette = 1;
+                st->codec->palctrl->palette_changed = 1;
             }
         } else if(st->codec->codec_type==AVMEDIA_TYPE_AUDIO) {
             int bits_per_sample, flags;
@@ -1529,7 +1528,7 @@ static void mov_build_index(MOVContext *mov, AVStream *st)
         int rescaled = sc->time_offset < 0 ? av_rescale(sc->time_offset, sc->time_scale, mov->time_scale) : sc->time_offset;
         current_dts = -rescaled;
         if (sc->ctts_data && sc->stts_data &&
-            sc->ctts_data[0].duration / FFMAX(sc->stts_data[0].duration, 1) > 16) {
+            sc->ctts_data[0].duration / sc->stts_data[0].duration > 16) {
             /* more than 16 frames delay, dts are likely wrong
                this happens with files created by iMovie */
             sc->wrong_dts = 1;
@@ -1691,13 +1690,13 @@ static void mov_build_index(MOVContext *mov, AVStream *st)
     }
 }
 
-static int mov_open_dref(AVIOContext **pb, const char *src, MOVDref *ref)
+static int mov_open_dref(AVIOContext **pb, char *src, MOVDref *ref)
 {
     /* try relative path, we do not try the absolute because it can leak information about our
        system to an attacker */
     if (ref->nlvl_to > 0 && ref->nlvl_from > 0) {
         char filename[1024];
-        const char *src_path;
+        char *src_path;
         int i, l;
 
         /* find a source dir */
@@ -1726,7 +1725,7 @@ static int mov_open_dref(AVIOContext **pb, const char *src, MOVDref *ref)
 
             av_strlcat(filename, ref->path + l + 1, 1024);
 
-            if (!avio_open(pb, filename, AVIO_FLAG_READ))
+            if (!avio_open(pb, filename, AVIO_RDONLY))
                 return 0;
         }
     }
@@ -2467,17 +2466,6 @@ static int mov_read_packet(AVFormatContext *s, AVPacket *pkt)
         ret = av_get_packet(sc->pb, pkt, sample->size);
         if (ret < 0)
             return ret;
-        if (sc->has_palette) {
-            uint8_t *pal;
-
-            pal = av_packet_new_side_data(pkt, AV_PKT_DATA_PALETTE, AVPALETTE_SIZE);
-            if (!pal) {
-                av_log(mov->fc, AV_LOG_ERROR, "Cannot append palette to packet\n");
-            } else {
-                memcpy(pal, sc->palette, AVPALETTE_SIZE);
-                sc->has_palette = 0;
-            }
-        }
 #if CONFIG_DV_DEMUXER
         if (mov->dv_demux && sc->dv_audio_container) {
             dv_produce_packet(mov->dv_demux, pkt, pkt->data, pkt->size, pkt->pos);

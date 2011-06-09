@@ -819,12 +819,20 @@ static av_cold int svq3_decode_init(AVCodecContext *avctx)
     avctx->pix_fmt = avctx->codec->pix_fmts[0];
 
     if (!s->context_initialized) {
+        s->width  = avctx->width;
+        s->height = avctx->height;
         h->chroma_qp[0] = h->chroma_qp[1] = 4;
 
-        svq3->halfpel_flag  = 1;
+        svq3->halfpel_flag = 1;
         svq3->thirdpel_flag = 1;
-        svq3->unknown_flag  = 0;
+        svq3->unknown_flag = 0;
 
+        if (MPV_common_init(s) < 0)
+            return -1;
+
+        h->b_stride = 4*s->mb_width;
+
+        ff_h264_alloc_tables(h);
 
         /* prowl for the "SEQH" marker in the extradata */
         extradata = (unsigned char *)avctx->extradata;
@@ -912,16 +920,6 @@ static av_cold int svq3_decode_init(AVCodecContext *avctx)
 #endif
             }
         }
-
-        s->width  = avctx->width;
-        s->height = avctx->height;
-
-        if (MPV_common_init(s) < 0)
-            return -1;
-
-        h->b_stride = 4*s->mb_width;
-
-        ff_h264_alloc_tables(h);
     }
 
     return 0;
@@ -982,6 +980,14 @@ static int svq3_decode_frame(AVCodecContext *avctx,
     /* Skip B-frames if we do not have reference frames. */
     if (s->last_picture_ptr == NULL && s->pict_type == AV_PICTURE_TYPE_B)
         return 0;
+#if FF_API_HURRY_UP
+    /* Skip B-frames if we are in a hurry. */
+    if (avctx->hurry_up && s->pict_type == FF_B_TYPE)
+        return 0;
+    /* Skip everything if we are in a hurry >= 5. */
+    if (avctx->hurry_up >= 5)
+        return 0;
+#endif
     if (  (avctx->skip_frame >= AVDISCARD_NONREF && s->pict_type == AV_PICTURE_TYPE_B)
         ||(avctx->skip_frame >= AVDISCARD_NONKEY && s->pict_type != AV_PICTURE_TYPE_I)
         || avctx->skip_frame >= AVDISCARD_ALL)

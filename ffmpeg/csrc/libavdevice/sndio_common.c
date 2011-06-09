@@ -22,7 +22,7 @@
 #include <stdint.h>
 #include <sndio.h>
 
-#include "avdevice.h"
+#include "libavformat/avformat.h"
 
 #include "sndio_common.h"
 

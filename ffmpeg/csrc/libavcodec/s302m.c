@@ -29,7 +29,7 @@ static int s302m_parse_frame_header(AVCodecContext *avctx, const uint8_t *buf,
                                     int buf_size)
 {
     uint32_t h;
-    int frame_size, channels, bits;
+    int frame_size, channels, id, bits;
 
     if (buf_size <= AES3_HEADER_LEN) {
         av_log(avctx, AV_LOG_ERROR, "frame is too short\n");
@@ -48,6 +48,7 @@ static int s302m_parse_frame_header(AVCodecContext *avctx, const uint8_t *buf,
     h = AV_RB32(buf);
     frame_size =  (h >> 16) & 0xffff;
     channels   = ((h >> 14) & 0x0003) * 2 +  2;
+    id         =  (h >>  6) & 0x00ff;
     bits       = ((h >>  4) & 0x0003) * 4 + 16;
 
     if (AES3_HEADER_LEN + frame_size != buf_size || bits > 24) {
@@ -107,7 +108,7 @@ static int s302m_decode_frame(AVCodecContext *avctx, void *data,
             *o++ = (av_reverse[buf[6] & 0xf0] << 28) |
                    (av_reverse[buf[5]]        << 20) |
                    (av_reverse[buf[4]]        << 12) |
-                   (av_reverse[buf[3] & 0x0f] <<  4);
+                   (av_reverse[buf[3] & 0x0f] <<  8);
             buf += 7;
         }
         *data_size = (uint8_t*) o - (uint8_t*) data;
@@ -130,7 +131,7 @@ static int s302m_decode_frame(AVCodecContext *avctx, void *data,
                     av_reverse[buf[0]];
             *o++ = (av_reverse[buf[4] & 0xf0] << 12) |
                    (av_reverse[buf[3]]        <<  4) |
-                   (av_reverse[buf[2]]        >>  4);
+                    av_reverse[buf[2] & 0x0f];
             buf += 5;
         }
         *data_size = (uint8_t*) o - (uint8_t*) data;

@@ -24,7 +24,6 @@
  * Interface to libmp3lame for mp3 encoding.
  */
 
-#include "libavutil/intreadwrite.h"
 #include "avcodec.h"
 #include "mpegaudio.h"
 #include <lame/lame.h>

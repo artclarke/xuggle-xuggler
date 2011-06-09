@@ -120,6 +120,14 @@ void ff_bink_idct_put_c(uint8_t *dest, int linesize, DCTELEM *block);
 void ff_ea_idct_put_c(uint8_t *dest, int linesize, DCTELEM *block);
 
 /* 1/2^n downscaling functions from imgconvert.c */
+#if LIBAVCODEC_VERSION_MAJOR < 53
+/**
+ * @deprecated Use av_image_copy_plane() instead.
+ */
+attribute_deprecated
+void ff_img_copy_plane(uint8_t *dst, int dst_wrap, const uint8_t *src, int src_wrap, int width, int height);
+#endif
+
 void ff_shrink22(uint8_t *dst, int dst_wrap, const uint8_t *src, int src_wrap, int width, int height);
 void ff_shrink44(uint8_t *dst, int dst_wrap, const uint8_t *src, int src_wrap, int width, int height);
 void ff_shrink88(uint8_t *dst, int dst_wrap, const uint8_t *src, int src_wrap, int width, int height);
@@ -628,6 +636,13 @@ static inline int get_penalty_factor(int lambda, int lambda2, int type){
     }
 }
 
+/**
+ * Empty mmx state.
+ * this must be called between any dsp function and float/double code.
+ * for example sin(); dsp->idct_put(); emms_c(); cos()
+ */
+#define emms_c()
+
 void dsputil_init_alpha(DSPContext* c, AVCodecContext *avctx);
 void dsputil_init_arm(DSPContext* c, AVCodecContext *avctx);
 void dsputil_init_bfin(DSPContext* c, AVCodecContext *avctx);
@@ -645,9 +660,22 @@ void ff_intrax8dsp_init(DSPContext* c, AVCodecContext *avctx);
 void ff_mlp_init(DSPContext* c, AVCodecContext *avctx);
 void ff_mlp_init_x86(DSPContext* c, AVCodecContext *avctx);
 
+#if HAVE_MMX
 
-#if ARCH_ARM
+#undef emms_c
 
+static inline void emms(void)
+{
+    __asm__ volatile ("emms;":::"memory");
+}
+
+#define emms_c() \
+{\
+    if(av_get_cpu_flags() & AV_CPU_FLAG_MMX)\
+        emms();\
+}
+
+#elif ARCH_ARM
 
 #if HAVE_NEON
 #   define STRIDE_ALIGN 16
@@ -686,6 +714,11 @@ void ff_mlp_init_x86(DSPContext* c, AVCodecContext *avctx);
 #else
 #   define LOCAL_ALIGNED_16(t, v, ...) LOCAL_ALIGNED(16, t, v, __VA_ARGS__)
 #endif
+
+/* PSNR */
+void get_psnr(uint8_t *orig_image[3], uint8_t *coded_image[3],
+              int orig_linesize[3], int coded_linesize,
+              AVCodecContext *avctx);
 
 #define WRAPPER8_16(name8, name16)\
 static int name16(void /*MpegEncContext*/ *s, uint8_t *dst, uint8_t *src, int stride, int h){\

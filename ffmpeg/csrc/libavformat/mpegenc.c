@@ -1078,8 +1078,10 @@ retry:
                 best_dts= pkt_desc->dts;
         }
 
-        av_dlog(ctx, "bumping scr, scr:%f, dts:%f\n",
-                scr / 90000.0, best_dts / 90000.0);
+#if 0
+        av_log(ctx, AV_LOG_DEBUG, "bumping scr, scr:%f, dts:%f\n",
+               scr/90000.0, best_dts/90000.0);
+#endif
         if(best_dts == INT64_MAX)
             return 0;
 

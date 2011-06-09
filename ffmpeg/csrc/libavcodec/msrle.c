@@ -26,6 +26,9 @@
  *   http://www.pcisys.net/~melanson/codecs/
  *
  * The MS RLE decoder outputs PAL8 colorspace data.
+ *
+ * Note that this decoder expects the palette colors from the end of the
+ * BITMAPINFO header passed through palctrl.
  */
 
 #include <stdio.h>
@@ -43,7 +46,6 @@ typedef struct MsrleContext {
     const unsigned char *buf;
     int size;
 
-    uint32_t pal[256];
 } MsrleContext;
 
 static av_cold int msrle_decode_init(AVCodecContext *avctx)
@@ -93,16 +95,13 @@ static int msrle_decode_frame(AVCodecContext *avctx,
         return -1;
     }
 
-    if (avctx->bits_per_coded_sample > 1 && avctx->bits_per_coded_sample <= 8) {
-        const uint8_t *pal = av_packet_get_side_data(avpkt, AV_PKT_DATA_PALETTE, NULL);
-
-        if (pal) {
-            s->frame.palette_has_changed = 1;
-            memcpy(s->pal, pal, AVPALETTE_SIZE);
-        }
-
+    if (s->avctx->palctrl) {
         /* make the palette available */
-        memcpy(s->frame.data[1], s->pal, AVPALETTE_SIZE);
+        memcpy(s->frame.data[1], s->avctx->palctrl->palette, AVPALETTE_SIZE);
+        if (s->avctx->palctrl->palette_changed) {
+            s->frame.palette_has_changed = 1;
+            s->avctx->palctrl->palette_changed = 0;
+        }
     }
 
     /* FIXME how to correctly detect RLE ??? */

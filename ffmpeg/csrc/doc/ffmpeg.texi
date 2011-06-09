@@ -402,10 +402,7 @@ and the following constants are available:
 @end table
 
 @item -rc_override @var{override}
-Rate control override for specific intervals, formated as "int,int,int"
-list separated with slashes. Two first values are the beginning and
-end frame numbers, last one is quantizer to use if positive, or quality
-factor if negative.
+rate control override for specific intervals
 @item -me_method @var{method}
 Set motion estimation method to @var{method}.
 Available methods are (from lowest to best quality):
@@ -816,7 +813,6 @@ following rules:
 First ffmpeg searches for a file named @var{arg}.ffpreset in the
 directories @file{$FFMPEG_DATADIR} (if set), and @file{$HOME/.ffmpeg}, and in
 the datadir defined at configuration time (usually @file{PREFIX/share/ffmpeg})
-or in a @file{ffpresets} folder along the executable on win32,
 in that order. For example, if the argument is @code{libx264-max}, it will
 search for the file @file{libx264-max.ffpreset}.
 
@@ -1046,7 +1042,6 @@ file to which you want to add them.
 @c man end EXAMPLES
 
 @include eval.texi
-@include decoders.texi
 @include encoders.texi
 @include demuxers.texi
 @include muxers.texi

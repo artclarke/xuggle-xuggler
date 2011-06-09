@@ -30,10 +30,6 @@
 
 #include "psymodel.h"
 
-typedef struct AACEncOptions {
-    int stereo_mode;
-} AACEncOptions;
-
 struct AACEncContext;
 
 typedef struct AACCoefficientsEncoder {
@@ -52,8 +48,6 @@ extern AACCoefficientsEncoder ff_aac_coders[];
  * AAC encoder context
  */
 typedef struct AACEncContext {
-    AVClass *av_class;
-    AACEncOptions options;                       ///< encoding options
     PutBitContext pb;
     FFTContext mdct1024;                         ///< long (1024 samples) frame transform context
     FFTContext mdct128;                          ///< short (128 samples) frame transform context

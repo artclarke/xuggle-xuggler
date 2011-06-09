@@ -35,6 +35,17 @@
 #include "libavutil/intreadwrite.h"
 #include "avformat.h"
 
+/* debugging support: #define DEBUG_IPMOVIE as non-zero to see extremely
+ * verbose information about the demux process */
+#define DEBUG_IPMOVIE 0
+
+#if DEBUG_IPMOVIE
+#undef printf
+#define debug_ipmovie printf
+#else
+static inline void debug_ipmovie(const char *format, ...) { }
+#endif
+
 #define CHUNK_PREAMBLE_SIZE 4
 #define OPCODE_PREAMBLE_SIZE 4
 
@@ -86,8 +97,6 @@ typedef struct IPMVEContext {
     unsigned int video_width;
     unsigned int video_height;
     int64_t video_pts;
-    uint32_t     palette[256];
-    int          has_palette;
 
     unsigned int audio_bits;
     unsigned int audio_channels;
@@ -106,6 +115,8 @@ typedef struct IPMVEContext {
     int decode_map_chunk_size;
 
     int64_t next_chunk_offset;
+
+    AVPaletteControl palette_control;
 
 } IPMVEContext;
 
@@ -139,8 +150,8 @@ static int load_ipmovie_packet(IPMVEContext *s, AVIOContext *pb,
             s->audio_frame_count +=
                 (s->audio_chunk_size - 6) / s->audio_channels;
 
-        av_dlog(NULL, "sending audio frame with pts %"PRId64" (%d audio frames)\n",
-                pkt->pts, s->audio_frame_count);
+        debug_ipmovie("sending audio frame with pts %"PRId64" (%d audio frames)\n",
+            pkt->pts, s->audio_frame_count);
 
         chunk_type = CHUNK_VIDEO;
 
@@ -150,17 +161,6 @@ static int load_ipmovie_packet(IPMVEContext *s, AVIOContext *pb,
 
         if (av_new_packet(pkt, s->decode_map_chunk_size + s->video_chunk_size))
             return CHUNK_NOMEM;
-
-        if (s->has_palette) {
-            uint8_t *pal;
-
-            pal = av_packet_new_side_data(pkt, AV_PKT_DATA_PALETTE,
-                                          AVPALETTE_SIZE);
-            if (pal) {
-                memcpy(pal, s->palette, AVPALETTE_SIZE);
-                s->has_palette = 0;
-            }
-        }
 
         pkt->pos= s->decode_map_chunk_offset;
         avio_seek(pb, s->decode_map_chunk_offset, SEEK_SET);
@@ -184,7 +184,8 @@ static int load_ipmovie_packet(IPMVEContext *s, AVIOContext *pb,
         pkt->stream_index = s->video_stream_index;
         pkt->pts = s->video_pts;
 
-        av_dlog(NULL, "sending video frame with pts %"PRId64"\n", pkt->pts);
+        debug_ipmovie("sending video frame with pts %"PRId64"\n",
+            pkt->pts);
 
         s->video_pts += s->frame_pts_inc;
 
@@ -232,36 +233,36 @@ static int process_ipmovie_chunk(IPMVEContext *s, AVIOContext *pb,
     chunk_size = AV_RL16(&chunk_preamble[0]);
     chunk_type = AV_RL16(&chunk_preamble[2]);
 
-    av_dlog(NULL, "chunk type 0x%04X, 0x%04X bytes: ", chunk_type, chunk_size);
+    debug_ipmovie("chunk type 0x%04X, 0x%04X bytes: ", chunk_type, chunk_size);
 
     switch (chunk_type) {
 
     case CHUNK_INIT_AUDIO:
-        av_dlog(NULL, "initialize audio\n");
+        debug_ipmovie("initialize audio\n");
         break;
 
     case CHUNK_AUDIO_ONLY:
-        av_dlog(NULL, "audio only\n");
+        debug_ipmovie("audio only\n");
         break;
 
     case CHUNK_INIT_VIDEO:
-        av_dlog(NULL, "initialize video\n");
+        debug_ipmovie("initialize video\n");
         break;
 
     case CHUNK_VIDEO:
-        av_dlog(NULL, "video (and audio)\n");
+        debug_ipmovie("video (and audio)\n");
         break;
 
     case CHUNK_SHUTDOWN:
-        av_dlog(NULL, "shutdown\n");
+        debug_ipmovie("shutdown\n");
         break;
 
     case CHUNK_END:
-        av_dlog(NULL, "end\n");
+        debug_ipmovie("end\n");
         break;
 
     default:
-        av_dlog(NULL, "invalid chunk\n");
+        debug_ipmovie("invalid chunk\n");
         chunk_type = CHUNK_BAD;
         break;
 
@@ -287,29 +288,29 @@ static int process_ipmovie_chunk(IPMVEContext *s, AVIOContext *pb,
         chunk_size -= OPCODE_PREAMBLE_SIZE;
         chunk_size -= opcode_size;
         if (chunk_size < 0) {
-            av_dlog(NULL, "chunk_size countdown just went negative\n");
+            debug_ipmovie("chunk_size countdown just went negative\n");
             chunk_type = CHUNK_BAD;
             break;
         }
 
-        av_dlog(NULL, "  opcode type %02X, version %d, 0x%04X bytes: ",
-                opcode_type, opcode_version, opcode_size);
+        debug_ipmovie("  opcode type %02X, version %d, 0x%04X bytes: ",
+            opcode_type, opcode_version, opcode_size);
         switch (opcode_type) {
 
         case OPCODE_END_OF_STREAM:
-            av_dlog(NULL, "end of stream\n");
+            debug_ipmovie("end of stream\n");
             avio_skip(pb, opcode_size);
             break;
 
         case OPCODE_END_OF_CHUNK:
-            av_dlog(NULL, "end of chunk\n");
+            debug_ipmovie("end of chunk\n");
             avio_skip(pb, opcode_size);
             break;
 
         case OPCODE_CREATE_TIMER:
-            av_dlog(NULL, "create timer\n");
+            debug_ipmovie("create timer\n");
             if ((opcode_version > 0) || (opcode_size > 6)) {
-                av_dlog(NULL, "bad create_timer opcode\n");
+                debug_ipmovie("bad create_timer opcode\n");
                 chunk_type = CHUNK_BAD;
                 break;
             }
@@ -319,15 +320,14 @@ static int process_ipmovie_chunk(IPMVEContext *s, AVIOContext *pb,
                 break;
             }
             s->frame_pts_inc = ((uint64_t)AV_RL32(&scratch[0])) * AV_RL16(&scratch[4]);
-            av_dlog(NULL, "  %.2f frames/second (timer div = %d, subdiv = %d)\n",
-                    1000000.0 / s->frame_pts_inc, AV_RL32(&scratch[0]),
-                    AV_RL16(&scratch[4]));
+            debug_ipmovie("  %.2f frames/second (timer div = %d, subdiv = %d)\n",
+                1000000.0/s->frame_pts_inc, AV_RL32(&scratch[0]), AV_RL16(&scratch[4]));
             break;
 
         case OPCODE_INIT_AUDIO_BUFFERS:
-            av_dlog(NULL, "initialize audio buffers\n");
+            debug_ipmovie("initialize audio buffers\n");
             if ((opcode_version > 1) || (opcode_size > 10)) {
-                av_dlog(NULL, "bad init_audio_buffers opcode\n");
+                debug_ipmovie("bad init_audio_buffers opcode\n");
                 chunk_type = CHUNK_BAD;
                 break;
             }
@@ -349,22 +349,23 @@ static int process_ipmovie_chunk(IPMVEContext *s, AVIOContext *pb,
                 s->audio_type = CODEC_ID_PCM_S16LE;
             else
                 s->audio_type = CODEC_ID_PCM_U8;
-            av_dlog(NULL, "audio: %d bits, %d Hz, %s, %s format\n",
-                    s->audio_bits, s->audio_sample_rate,
-                    (s->audio_channels == 2) ? "stereo" : "mono",
-                    (s->audio_type == CODEC_ID_INTERPLAY_DPCM) ?
-                    "Interplay audio" : "PCM");
+            debug_ipmovie("audio: %d bits, %d Hz, %s, %s format\n",
+                s->audio_bits,
+                s->audio_sample_rate,
+                (s->audio_channels == 2) ? "stereo" : "mono",
+                (s->audio_type == CODEC_ID_INTERPLAY_DPCM) ?
+                "Interplay audio" : "PCM");
             break;
 
         case OPCODE_START_STOP_AUDIO:
-            av_dlog(NULL, "start/stop audio\n");
+            debug_ipmovie("start/stop audio\n");
             avio_skip(pb, opcode_size);
             break;
 
         case OPCODE_INIT_VIDEO_BUFFERS:
-            av_dlog(NULL, "initialize video buffers\n");
+            debug_ipmovie("initialize video buffers\n");
             if ((opcode_version > 2) || (opcode_size > 8)) {
-                av_dlog(NULL, "bad init_video_buffers opcode\n");
+                debug_ipmovie("bad init_video_buffers opcode\n");
                 chunk_type = CHUNK_BAD;
                 break;
             }
@@ -380,8 +381,8 @@ static int process_ipmovie_chunk(IPMVEContext *s, AVIOContext *pb,
             } else {
                 s->video_bpp = 16;
             }
-            av_dlog(NULL, "video resolution: %d x %d\n",
-                    s->video_width, s->video_height);
+            debug_ipmovie("video resolution: %d x %d\n",
+                s->video_width, s->video_height);
             break;
 
         case OPCODE_UNKNOWN_06:
@@ -391,17 +392,17 @@ static int process_ipmovie_chunk(IPMVEContext *s, AVIOContext *pb,
         case OPCODE_UNKNOWN_13:
         case OPCODE_UNKNOWN_14:
         case OPCODE_UNKNOWN_15:
-            av_dlog(NULL, "unknown (but documented) opcode %02X\n", opcode_type);
+            debug_ipmovie("unknown (but documented) opcode %02X\n", opcode_type);
             avio_skip(pb, opcode_size);
             break;
 
         case OPCODE_SEND_BUFFER:
-            av_dlog(NULL, "send buffer\n");
+            debug_ipmovie("send buffer\n");
             avio_skip(pb, opcode_size);
             break;
 
         case OPCODE_AUDIO_FRAME:
-            av_dlog(NULL, "audio frame\n");
+            debug_ipmovie("audio frame\n");
 
             /* log position and move on for now */
             s->audio_chunk_offset = avio_tell(pb);
@@ -410,26 +411,26 @@ static int process_ipmovie_chunk(IPMVEContext *s, AVIOContext *pb,
             break;
 
         case OPCODE_SILENCE_FRAME:
-            av_dlog(NULL, "silence frame\n");
+            debug_ipmovie("silence frame\n");
             avio_skip(pb, opcode_size);
             break;
 
         case OPCODE_INIT_VIDEO_MODE:
-            av_dlog(NULL, "initialize video mode\n");
+            debug_ipmovie("initialize video mode\n");
             avio_skip(pb, opcode_size);
             break;
 
         case OPCODE_CREATE_GRADIENT:
-            av_dlog(NULL, "create gradient\n");
+            debug_ipmovie("create gradient\n");
             avio_skip(pb, opcode_size);
             break;
 
         case OPCODE_SET_PALETTE:
-            av_dlog(NULL, "set palette\n");
+            debug_ipmovie("set palette\n");
             /* check for the logical maximum palette size
              * (3 * 256 + 4 bytes) */
             if (opcode_size > 0x304) {
-                av_dlog(NULL, "demux_ipmovie: set_palette opcode too large\n");
+                debug_ipmovie("demux_ipmovie: set_palette opcode too large\n");
                 chunk_type = CHUNK_BAD;
                 break;
             }
@@ -443,7 +444,7 @@ static int process_ipmovie_chunk(IPMVEContext *s, AVIOContext *pb,
             last_color = first_color + AV_RL16(&scratch[2]) - 1;
             /* sanity check (since they are 16 bit values) */
             if ((first_color > 0xFF) || (last_color > 0xFF)) {
-                av_dlog(NULL, "demux_ipmovie: set_palette indexes out of range (%d -> %d)\n",
+                debug_ipmovie("demux_ipmovie: set_palette indexes out of range (%d -> %d)\n",
                     first_color, last_color);
                 chunk_type = CHUNK_BAD;
                 break;
@@ -455,18 +456,19 @@ static int process_ipmovie_chunk(IPMVEContext *s, AVIOContext *pb,
                 r = scratch[j++] * 4;
                 g = scratch[j++] * 4;
                 b = scratch[j++] * 4;
-                s->palette[i] = (r << 16) | (g << 8) | (b);
+                s->palette_control.palette[i] = (r << 16) | (g << 8) | (b);
             }
-            s->has_palette = 1;
+            /* indicate a palette change */
+            s->palette_control.palette_changed = 1;
             break;
 
         case OPCODE_SET_PALETTE_COMPRESSED:
-            av_dlog(NULL, "set palette compressed\n");
+            debug_ipmovie("set palette compressed\n");
             avio_skip(pb, opcode_size);
             break;
 
         case OPCODE_SET_DECODING_MAP:
-            av_dlog(NULL, "set decoding map\n");
+            debug_ipmovie("set decoding map\n");
 
             /* log position and move on for now */
             s->decode_map_chunk_offset = avio_tell(pb);
@@ -475,7 +477,7 @@ static int process_ipmovie_chunk(IPMVEContext *s, AVIOContext *pb,
             break;
 
         case OPCODE_VIDEO_DATA:
-            av_dlog(NULL, "set video data\n");
+            debug_ipmovie("set video data\n");
 
             /* log position and move on for now */
             s->video_chunk_offset = avio_tell(pb);
@@ -484,7 +486,7 @@ static int process_ipmovie_chunk(IPMVEContext *s, AVIOContext *pb,
             break;
 
         default:
-            av_dlog(NULL, "*** unknown opcode type\n");
+            debug_ipmovie("*** unknown opcode type\n");
             chunk_type = CHUNK_BAD;
             break;
 
@@ -570,6 +572,9 @@ static int ipmovie_read_header(AVFormatContext *s,
     st->codec->width = ipmovie->video_width;
     st->codec->height = ipmovie->video_height;
     st->codec->bits_per_coded_sample = ipmovie->video_bpp;
+
+    /* palette considerations */
+    st->codec->palctrl = &ipmovie->palette_control;
 
     if (ipmovie->audio_type) {
         st = av_new_stream(s, 0);

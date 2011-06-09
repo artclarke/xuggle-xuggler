@@ -32,23 +32,9 @@
 #include "libavcodec/put_bits.h"
 #include "internal.h"
 #include "libavutil/avstring.h"
-#include "libavutil/opt.h"
 
 #undef NDEBUG
 #include <assert.h>
-
-static const AVOption options[] = {
-    { "movflags", "MOV muxer flags", offsetof(MOVMuxContext, flags), FF_OPT_TYPE_FLAGS, {.dbl = 0}, INT_MIN, INT_MAX, AV_OPT_FLAG_ENCODING_PARAM, "movflags" },
-    { "rtphint", "Add RTP hint tracks", 0, FF_OPT_TYPE_CONST, {.dbl = FF_MOV_FLAG_RTP_HINT}, INT_MIN, INT_MAX, AV_OPT_FLAG_ENCODING_PARAM, "movflags" },
-    { NULL },
-};
-
-static const AVClass mov_muxer_class = {
-    .class_name = "MOV/3GP/MP4/3G2 muxer",
-    .item_name  = av_default_item_name,
-    .option     = options,
-    .version    = LIBAVUTIL_VERSION_INT,
-};
 
 //FIXME support 64 bit variant with wide placeholders
 static int64_t updateSize(AVIOContext *pb, int64_t pos)
@@ -1288,49 +1274,20 @@ static int mov_write_tapt_tag(AVIOContext *pb, MOVTrack *track)
 // This box seems important for the psp playback ... without it the movie seems to hang
 static int mov_write_edts_tag(AVIOContext *pb, MOVTrack *track)
 {
-    int64_t duration = av_rescale_rnd(track->trackDuration, MOV_TIMESCALE,
-                                      track->timescale, AV_ROUND_UP);
-    int version = duration < INT32_MAX ? 0 : 1;
-    int entry_size, entry_count, size;
-    int64_t delay, start_ct = track->cluster[0].cts;
-    delay = av_rescale_rnd(track->cluster[0].dts + start_ct, MOV_TIMESCALE,
-                           track->timescale, AV_ROUND_DOWN);
-    version |= delay < INT32_MAX ? 0 : 1;
-
-    entry_size = (version == 1) ? 20 : 12;
-    entry_count = 1 + (delay > 0);
-    size = 24 + entry_count * entry_size;
-
-    /* write the atom data */
-    avio_wb32(pb, size);
+    avio_wb32(pb, 0x24); /* size  */
     ffio_wfourcc(pb, "edts");
-    avio_wb32(pb, size - 8);
+    avio_wb32(pb, 0x1c); /* size  */
     ffio_wfourcc(pb, "elst");
-    avio_w8(pb, version);
-    avio_wb24(pb, 0); /* flags */
+    avio_wb32(pb, 0x0);
+    avio_wb32(pb, 0x1);
 
-    avio_wb32(pb, entry_count);
-    if (delay > 0) { /* add an empty edit to delay presentation */
-        if (version == 1) {
-            avio_wb64(pb, delay);
-            avio_wb64(pb, -1);
-        } else {
-            avio_wb32(pb, delay);
-            avio_wb32(pb, -1);
-        }
-        avio_wb32(pb, 0x00010000);
-    }
+    /* duration   ... doesn't seem to effect psp */
+    avio_wb32(pb, av_rescale_rnd(track->trackDuration, MOV_TIMESCALE,
+                                track->timescale, AV_ROUND_UP));
 
-    /* duration */
-    if (version == 1) {
-        avio_wb64(pb, duration);
-        avio_wb64(pb, start_ct);
-    } else {
-        avio_wb32(pb, duration);
-        avio_wb32(pb, start_ct);
-    }
+    avio_wb32(pb, track->cluster[0].cts); /* first pts is cts since dts is 0 */
     avio_wb32(pb, 0x00010000);
-    return size;
+    return 0x24;
 }
 
 static int mov_write_tref_tag(AVIOContext *pb, MOVTrack *track)
@@ -1362,12 +1319,12 @@ static int mov_write_uuid_tag_psp(AVIOContext *pb, MOVTrack *mov)
     return 0x34;
 }
 
-static int mov_write_udta_sdp(AVIOContext *pb, AVFormatContext *ctx, int index)
+static int mov_write_udta_sdp(AVIOContext *pb, AVCodecContext *ctx, int index)
 {
     char buf[1000] = "";
     int len;
 
-    ff_sdp_write_media(buf, sizeof(buf), ctx->streams[0]->codec, NULL, NULL, 0, 0, ctx->flags);
+    ff_sdp_write_media(buf, sizeof(buf), ctx, NULL, NULL, 0, 0);
     av_strlcatf(buf, sizeof(buf), "a=control:streamid=%d\r\n", index);
     len = strlen(buf);
 
@@ -1387,7 +1344,7 @@ static int mov_write_trak_tag(AVIOContext *pb, MOVTrack *track, AVStream *st)
     avio_wb32(pb, 0); /* size */
     ffio_wfourcc(pb, "trak");
     mov_write_tkhd_tag(pb, track, st);
-    if (track->mode == MODE_PSP || track->flags & MOV_TRACK_CTTS || track->cluster[0].dts)
+    if (track->mode == MODE_PSP || track->flags & MOV_TRACK_CTTS)
         mov_write_edts_tag(pb, track);  // PSP Movies require edts box
     if (track->tref_tag)
         mov_write_tref_tag(pb, track);
@@ -1395,7 +1352,7 @@ static int mov_write_trak_tag(AVIOContext *pb, MOVTrack *track, AVStream *st)
     if (track->mode == MODE_PSP)
         mov_write_uuid_tag_psp(pb,track);  // PSP Movies require this uuid box
     if (track->tag == MKTAG('r','t','p',' '))
-        mov_write_udta_sdp(pb, track->rtp_ctx, track->trackID);
+        mov_write_udta_sdp(pb, track->rtp_ctx->streams[0]->codec, track->trackID);
     if (track->enc->codec_type == AVMEDIA_TYPE_VIDEO && track->mode == MODE_MOV) {
         double sample_aspect_ratio = av_q2d(st->sample_aspect_ratio);
         if (0.0 != sample_aspect_ratio && 1.0 != sample_aspect_ratio)
@@ -2168,15 +2125,7 @@ static int mov_write_header(AVFormatContext *s)
     if (mov->mode & (MODE_MOV|MODE_IPOD) && s->nb_chapters)
         mov->chapter_track = mov->nb_streams++;
 
-#if FF_API_FLAG_RTP_HINT
     if (s->flags & AVFMT_FLAG_RTP_HINT) {
-        av_log(s, AV_LOG_WARNING, "The RTP_HINT flag is deprecated, enable it "
-                                  "via the -movflags rtphint muxer option "
-                                  "instead.\n");
-        mov->flags |= FF_MOV_FLAG_RTP_HINT;
-    }
-#endif
-    if (mov->flags & FF_MOV_FLAG_RTP_HINT) {
         /* Add hint tracks for each audio and video stream */
         hint_track = mov->nb_streams;
         for (i = 0; i < s->nb_streams; i++) {
@@ -2272,7 +2221,7 @@ static int mov_write_header(AVFormatContext *s)
     if (mov->chapter_track)
         mov_create_chapter_track(s, mov->chapter_track);
 
-    if (mov->flags & FF_MOV_FLAG_RTP_HINT) {
+    if (s->flags & AVFMT_FLAG_RTP_HINT) {
         /* Initialize the hint tracks for each audio and video stream */
         for (i = 0; i < s->nb_streams; i++) {
             AVStream *st = s->streams[i];
@@ -2349,7 +2298,6 @@ AVOutputFormat ff_mov_muxer = {
     mov_write_trailer,
     .flags = AVFMT_GLOBALHEADER,
     .codec_tag = (const AVCodecTag* const []){codec_movvideo_tags, codec_movaudio_tags, 0},
-    .priv_class = &mov_muxer_class,
 };
 #endif
 #if CONFIG_TGP_MUXER
@@ -2366,7 +2314,6 @@ AVOutputFormat ff_tgp_muxer = {
     mov_write_trailer,
     .flags = AVFMT_GLOBALHEADER,
     .codec_tag = (const AVCodecTag* const []){codec_3gp_tags, 0},
-    .priv_class = &mov_muxer_class,
 };
 #endif
 #if CONFIG_MP4_MUXER
@@ -2383,7 +2330,6 @@ AVOutputFormat ff_mp4_muxer = {
     mov_write_trailer,
     .flags = AVFMT_GLOBALHEADER,
     .codec_tag = (const AVCodecTag* const []){ff_mp4_obj_type, 0},
-    .priv_class = &mov_muxer_class,
 };
 #endif
 #if CONFIG_PSP_MUXER
@@ -2400,7 +2346,6 @@ AVOutputFormat ff_psp_muxer = {
     mov_write_trailer,
     .flags = AVFMT_GLOBALHEADER,
     .codec_tag = (const AVCodecTag* const []){ff_mp4_obj_type, 0},
-    .priv_class = &mov_muxer_class,
 };
 #endif
 #if CONFIG_TG2_MUXER
@@ -2417,7 +2362,6 @@ AVOutputFormat ff_tg2_muxer = {
     mov_write_trailer,
     .flags = AVFMT_GLOBALHEADER,
     .codec_tag = (const AVCodecTag* const []){codec_3gp_tags, 0},
-    .priv_class = &mov_muxer_class,
 };
 #endif
 #if CONFIG_IPOD_MUXER
@@ -2434,6 +2378,5 @@ AVOutputFormat ff_ipod_muxer = {
     mov_write_trailer,
     .flags = AVFMT_GLOBALHEADER,
     .codec_tag = (const AVCodecTag* const []){codec_ipod_tags, 0},
-    .priv_class = &mov_muxer_class,
 };
 #endif

@@ -19,19 +19,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "dct32.h"
-#include "mathops.h"
-
-#if DCT32_FLOAT
-#   define dct32 ff_dct32_float
+#ifdef DCT32_FLOAT
 #   define FIXHR(x)       ((float)(x))
 #   define MULH3(x, y, s) ((s)*(y)*(x))
 #   define INTFLOAT float
-#else
-#   define dct32 ff_dct32_fixed
-#   define FIXHR(a)       ((int)((a) * (1LL<<32) + 0.5))
-#   define MULH3(x, y, s) MULH((s)*(x), y)
-#   define INTFLOAT int
 #endif
 
 
@@ -112,7 +103,7 @@
 #define ADD(a, b) val##a += val##b
 
 /* DCT32 without 1/sqrt(2) coef zero scaling. */
-void dct32(INTFLOAT *out, const INTFLOAT *tab)
+static void dct32(INTFLOAT *out, const INTFLOAT *tab)
 {
     INTFLOAT tmp0, tmp1;
 

@@ -12,6 +12,7 @@ set -e
 eval do_$test=y
 
 rm -f "$logfile"
+rm -f "$benchfile"
 
 do_video_filter() {
     label=$1

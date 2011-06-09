@@ -767,8 +767,7 @@ pp_mode *pp_get_mode_by_name_and_quality(const char *name, int quality)
     ppMode->maxClippedThreshold= 0.01;
     ppMode->error=0;
 
-    memset(temp, 0, GET_MODE_BUFFER_SIZE);
-    av_strlcpy(temp, name, GET_MODE_BUFFER_SIZE - 1);
+    av_strlcpy(temp, name, GET_MODE_BUFFER_SIZE);
 
     av_log(NULL, AV_LOG_DEBUG, "pp: %s\n", name);
 
@@ -819,11 +818,12 @@ pp_mode *pp_get_mode_by_name_and_quality(const char *name, int quality)
                 int plen;
                 int spaceLeft;
 
-                p--, *p=',';
+                if(p==NULL) p= temp, *p=0;      //last filter
+                else p--, *p=',';               //not last filter
 
                 plen= strlen(p);
                 spaceLeft= p - temp + plen;
-                if(spaceLeft + newlen  >= GET_MODE_BUFFER_SIZE - 1){
+                if(spaceLeft + newlen  >= GET_MODE_BUFFER_SIZE){
                     ppMode->error++;
                     break;
                 }

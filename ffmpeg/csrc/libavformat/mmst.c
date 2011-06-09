@@ -152,7 +152,7 @@ static int send_command_packet(MMSTContext *mmst)
     return 0;
 }
 
-static void mms_put_utf16(MMSContext *mms, const uint8_t *src)
+static void mms_put_utf16(MMSContext *mms, uint8_t *src)
 {
     AVIOContext bic;
     int size = mms->write_out_ptr - mms->out_buffer;
@@ -523,7 +523,7 @@ static int mms_open(URLContext *h, const char *uri, int flags)
 
     // establish tcp connection.
     ff_url_join(tcpname, sizeof(tcpname), "tcp", NULL, mmst->host, port, NULL);
-    err = ffurl_open(&mms->mms_hd, tcpname, AVIO_FLAG_READ_WRITE);
+    err = ffurl_open(&mms->mms_hd, tcpname, AVIO_RDWR);
     if (err)
         goto fail;
 

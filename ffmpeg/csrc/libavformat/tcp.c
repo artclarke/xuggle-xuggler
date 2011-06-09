@@ -45,7 +45,6 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
     char buf[256];
     int ret;
     socklen_t optlen;
-    int timeout = 50;
     char hostname[1024],proto[1024],path[1024];
     char portstr[10];
 
@@ -58,9 +57,6 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
     if (p) {
         if (av_find_info_tag(buf, sizeof(buf), "listen", p))
             listen_socket = 1;
-        if (av_find_info_tag(buf, sizeof(buf), "timeout", p)) {
-            timeout = strtol(buf, NULL, 10);
-        }
     }
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
@@ -68,7 +64,7 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
     snprintf(portstr, sizeof(portstr), "%d", port);
     ret = getaddrinfo(hostname, portstr, &hints, &ai);
     if (ret) {
-        av_log(h, AV_LOG_ERROR,
+        av_log(NULL, AV_LOG_ERROR,
                "Failed to resolve hostname %s: %s\n",
                hostname, gai_strerror(ret));
         return AVERROR(EIO);
@@ -77,7 +73,6 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
     cur_ai = ai;
 
  restart:
-    ret = AVERROR(EIO);
     fd = socket(cur_ai->ai_family, cur_ai->ai_socktype, cur_ai->ai_protocol);
     if (fd < 0)
         goto fail;
@@ -89,29 +84,29 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
         fd1 = accept(fd, NULL, NULL);
         closesocket(fd);
         fd = fd1;
-        ff_socket_nonblock(fd, 1);
     } else {
  redo:
-        ff_socket_nonblock(fd, 1);
         ret = connect(fd, cur_ai->ai_addr, cur_ai->ai_addrlen);
     }
 
+    ff_socket_nonblock(fd, 1);
+
     if (ret < 0) {
+        int timeout=50;
         struct pollfd p = {fd, POLLOUT, 0};
-        ret = ff_neterrno();
-        if (ret == AVERROR(EINTR)) {
+        if (ff_neterrno() == AVERROR(EINTR)) {
             if (url_interrupt_cb()) {
                 ret = AVERROR_EXIT;
                 goto fail1;
             }
             goto redo;
         }
-        if (ret != AVERROR(EINPROGRESS) &&
-            ret != AVERROR(EAGAIN))
+        if (ff_neterrno() != AVERROR(EINPROGRESS) &&
+            ff_neterrno() != AVERROR(EAGAIN))
             goto fail;
 
         /* wait until we are connected or until abort */
-        while(timeout--) {
+        for(;;) {
             if (url_interrupt_cb()) {
                 ret = AVERROR_EXIT;
                 goto fail1;
@@ -119,19 +114,21 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
             ret = poll(&p, 1, 100);
             if (ret > 0)
                 break;
+            if(!--timeout){
+                av_log(NULL, AV_LOG_ERROR,
+                    "TCP open %s:%d timeout\n",
+                    hostname, port);
+                goto fail;
+            }
         }
-        if (ret <= 0) {
-            ret = AVERROR(ETIMEDOUT);
-            goto fail;
-        }
+
         /* test error */
         optlen = sizeof(ret);
         getsockopt (fd, SOL_SOCKET, SO_ERROR, &ret, &optlen);
         if (ret != 0) {
-            av_log(h, AV_LOG_ERROR,
+            av_log(NULL, AV_LOG_ERROR,
                    "TCP connection to %s:%d failed: %s\n",
                    hostname, port, strerror(ret));
-            ret = AVERROR(ret);
             goto fail;
         }
     }
@@ -154,6 +151,7 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
             closesocket(fd);
         goto restart;
     }
+    ret = AVERROR(EIO);
  fail1:
     if (fd >= 0)
         closesocket(fd);

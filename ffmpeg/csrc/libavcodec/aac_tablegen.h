@@ -20,8 +20,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AVCODEC_AAC_TABLEGEN_H
-#define AVCODEC_AAC_TABLEGEN_H
+#ifndef AAC_TABLEGEN_H
+#define AAC_TABLEGEN_H
 
 #include "aac_tablegen_decl.h"
 
@@ -40,4 +40,4 @@ void ff_aac_tableinit(void)
 }
 #endif /* CONFIG_HARDCODED_TABLES */
 
-#endif /* AVCODEC_AAC_TABLEGEN_H */
+#endif /* AAC_TABLEGEN_H */

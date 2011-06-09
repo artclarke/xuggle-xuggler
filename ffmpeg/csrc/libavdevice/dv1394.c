@@ -30,14 +30,14 @@
 #include <time.h>
 #include <strings.h>
 
-#include "libavutil/log.h"
-#include "libavutil/opt.h"
-#include "avdevice.h"
+#include "libavformat/avformat.h"
+
+#undef DV1394_DEBUG
+
 #include "libavformat/dv.h"
 #include "dv1394.h"
 
 struct dv1394_data {
-    AVClass *class;
     int fd;
     int channel;
     int format;
@@ -90,17 +90,15 @@ static int dv1394_read_header(AVFormatContext * context, AVFormatParameters * ap
     if (!dv->dv_demux)
         goto failed;
 
-#if FF_API_FORMAT_PARAMETERS
-    if (ap->standard) {
-       if (!strcasecmp(ap->standard, "pal"))
-           dv->format = DV1394_PAL;
-       else
-           dv->format = DV1394_NTSC;
-    }
+    if (ap->standard && !strcasecmp(ap->standard, "pal"))
+        dv->format = DV1394_PAL;
+    else
+        dv->format = DV1394_NTSC;
 
     if (ap->channel)
         dv->channel = ap->channel;
-#endif
+    else
+        dv->channel = DV1394_DEFAULT_CHANNEL;
 
     /* Open and initialize DV1394 device */
     dv->fd = open(context->filename, O_RDONLY);
@@ -174,13 +172,15 @@ restart_poll:
             av_log(context, AV_LOG_ERROR, "Failed to get status: %s\n", strerror(errno));
             return AVERROR(EIO);
         }
-        av_dlog(context, "DV1394: status\n"
+#ifdef DV1394_DEBUG
+        av_log(context, AV_LOG_DEBUG, "DV1394: status\n"
                 "\tactive_frame\t%d\n"
                 "\tfirst_clear_frame\t%d\n"
                 "\tn_clear_frames\t%d\n"
                 "\tdropped_frames\t%d\n",
                 s.active_frame, s.first_clear_frame,
                 s.n_clear_frames, s.dropped_frames);
+#endif
 
         dv->avail = s.n_clear_frames;
         dv->index = s.first_clear_frame;
@@ -195,8 +195,10 @@ restart_poll:
         }
     }
 
-    av_dlog(context, "index %d, avail %d, done %d\n", dv->index, dv->avail,
+#ifdef DV1394_DEBUG
+    av_log(context, AV_LOG_DEBUG, "index %d, avail %d, done %d\n", dv->index, dv->avail,
             dv->done);
+#endif
 
     size = dv_produce_packet(dv->dv_demux, pkt,
                              dv->ring + (dv->index * DV1394_PAL_FRAME_SIZE),
@@ -225,21 +227,6 @@ static int dv1394_close(AVFormatContext * context)
     return 0;
 }
 
-static const AVOption options[] = {
-    { "standard", "", offsetof(struct dv1394_data, format), FF_OPT_TYPE_INT, {.dbl = DV1394_NTSC}, DV1394_PAL, DV1394_NTSC, AV_OPT_FLAG_DECODING_PARAM, "standard" },
-    { "PAL",      "", 0, FF_OPT_TYPE_CONST, {.dbl = DV1394_PAL},   0, 0, AV_OPT_FLAG_DECODING_PARAM, "standard" },
-    { "NTSC",     "", 0, FF_OPT_TYPE_CONST, {.dbl = DV1394_NTSC},  0, 0, AV_OPT_FLAG_DECODING_PARAM, "standard" },
-    { "channel",  "", offsetof(struct dv1394_data, channel), FF_OPT_TYPE_INT, {.dbl = DV1394_DEFAULT_CHANNEL}, 0, INT_MAX, AV_OPT_FLAG_DECODING_PARAM },
-    { NULL },
-};
-
-static const AVClass dv1394_class = {
-    .class_name = "DV1394 indev",
-    .item_name  = av_default_item_name,
-    .option     = options,
-    .version    = LIBAVUTIL_VERSION_INT,
-};
-
 AVInputFormat ff_dv1394_demuxer = {
     .name           = "dv1394",
     .long_name      = NULL_IF_CONFIG_SMALL("DV1394 A/V grab"),
@@ -247,6 +234,5 @@ AVInputFormat ff_dv1394_demuxer = {
     .read_header    = dv1394_read_header,
     .read_packet    = dv1394_read_packet,
     .read_close     = dv1394_close,
-    .flags          = AVFMT_NOFILE,
-    .priv_class     = &dv1394_class,
+    .flags          = AVFMT_NOFILE
 };

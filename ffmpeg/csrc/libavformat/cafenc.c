@@ -134,11 +134,7 @@ static int caf_write_header(AVFormatContext *s)
     avio_wb32(pb, enc->channels);                     //< mChannelsPerFrame
     avio_wb32(pb, enc->bits_per_coded_sample);        //< mBitsPerChannel
 
-    if (enc->channel_layout) {
-        ffio_wfourcc(pb, "chan");
-        avio_wb64(pb, 12);
-        ff_mov_write_chan(pb, enc->channel_layout);
-    }
+    ff_mov_write_chan(s, enc->channel_layout, "chan");
 
     ffio_wfourcc(pb, "data"); //< Audio Data chunk
     caf->data = avio_tell(pb);

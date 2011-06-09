@@ -85,6 +85,7 @@ static int sol_channels(int magic, int type)
 static int sol_read_header(AVFormatContext *s,
                           AVFormatParameters *ap)
 {
+    int size;
     unsigned int magic,tag;
     AVIOContext *pb = s->pb;
     unsigned int id, channels, rate, type;
@@ -98,7 +99,7 @@ static int sol_read_header(AVFormatContext *s,
         return -1;
     rate = avio_rl16(pb);
     type = avio_r8(pb);
-    avio_skip(pb, 4); /* size */
+    size = avio_rl32(pb);
     if (magic != 0x0B8D)
         avio_r8(pb); /* newer SOLs contain padding byte */
 

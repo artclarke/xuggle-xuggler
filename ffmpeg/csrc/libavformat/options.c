@@ -49,12 +49,8 @@ static const AVOption options[]={
 {"nofillin", "do not fill in missing values that can be exactly calculated", 0, FF_OPT_TYPE_CONST, {.dbl = AVFMT_FLAG_NOFILLIN }, INT_MIN, INT_MAX, D, "fflags"},
 {"noparse", "disable AVParsers, this needs nofillin too", 0, FF_OPT_TYPE_CONST, {.dbl = AVFMT_FLAG_NOPARSE }, INT_MIN, INT_MAX, D, "fflags"},
 {"igndts", "ignore dts", 0, FF_OPT_TYPE_CONST, {.dbl = AVFMT_FLAG_IGNDTS }, INT_MIN, INT_MAX, D, "fflags"},
-#if FF_API_FLAG_RTP_HINT
-{"rtphint", "add rtp hinting (deprecated, use the -movflags rtphint option instead)", 0, FF_OPT_TYPE_CONST, {.dbl = AVFMT_FLAG_RTP_HINT }, INT_MIN, INT_MAX, E, "fflags"},
-#endif
+{"rtphint", "add rtp hinting", 0, FF_OPT_TYPE_CONST, {.dbl = AVFMT_FLAG_RTP_HINT }, INT_MIN, INT_MAX, E, "fflags"},
 {"sortdts", "try to interleave outputted packets by dts", 0, FF_OPT_TYPE_CONST, {.dbl = AVFMT_FLAG_SORT_DTS }, INT_MIN, INT_MAX, D, "fflags"},
-{"keepside", "dont merge side data", 0, FF_OPT_TYPE_CONST, {.dbl = AVFMT_FLAG_KEEP_SIDE_DATA }, INT_MIN, INT_MAX, D, "fflags"},
-{"latm", "enable RTP MP4A-LATM payload", 0, FF_OPT_TYPE_CONST, {.dbl = AVFMT_FLAG_MP4A_LATM }, INT_MIN, INT_MAX, E, "fflags"},
 {"analyzeduration", "how many microseconds are analyzed to estimate duration", OFFSET(max_analyze_duration), FF_OPT_TYPE_INT, {.dbl = 5*AV_TIME_BASE }, 0, INT_MAX, D},
 {"cryptokey", "decryption key", OFFSET(key), FF_OPT_TYPE_BINARY, {.dbl = 0}, 0, 0, D},
 {"indexmem", "max memory used for timestamp index (per stream)", OFFSET(max_index_size), FF_OPT_TYPE_INT, {.dbl = 1<<20 }, 0, INT_MAX, D},
@@ -62,7 +58,6 @@ static const AVOption options[]={
 {"fdebug", "print specific debug info", OFFSET(debug), FF_OPT_TYPE_FLAGS, {.dbl = DEFAULT }, 0, INT_MAX, E|D, "fdebug"},
 {"ts", NULL, 0, FF_OPT_TYPE_CONST, {.dbl = FF_FDEBUG_TS }, INT_MIN, INT_MAX, E|D, "fdebug"},
 {"max_delay", "maximum muxing or demuxing delay in microseconds", OFFSET(max_delay), FF_OPT_TYPE_INT, {.dbl = DEFAULT }, 0, INT_MAX, E|D},
-{"fpsprobesize", "number of frames used to probe fps", OFFSET(fps_probe_size), FF_OPT_TYPE_INT, -1, -1, INT_MAX-1, D},
 {NULL},
 };
 
@@ -94,3 +89,10 @@ AVFormatContext *avformat_alloc_context(void)
     avformat_get_context_defaults(ic);
     return ic;
 }
+
+#if FF_API_ALLOC_FORMAT_CONTEXT
+AVFormatContext *av_alloc_format_context(void)
+{
+    return avformat_alloc_context();
+}
+#endif

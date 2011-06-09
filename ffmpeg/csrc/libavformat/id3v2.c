@@ -1,4 +1,5 @@
 /*
+ * ID3v2 header parser
  * Copyright (c) 2003 Fabrice Bellard
  *
  * This file is part of FFmpeg.
@@ -16,14 +17,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with FFmpeg; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
- */
-
-/**
- * @file
- * ID3v2 header parser
- *
- * Specifications available at:
- * http://id3.org/Developer_Information
  */
 
 #include "id3v2.h"
@@ -228,7 +221,7 @@ static void ff_id3v2_parse(AVFormatContext *s, int len, uint8_t version, uint8_t
         avio_skip(s->pb, get_size(s->pb, 4));
 
     while (len >= taghdrlen) {
-        unsigned int tflags = 0;
+        unsigned int tflags;
         int tunsync = 0;
 
         if (isv34) {
@@ -245,7 +238,7 @@ static void ff_id3v2_parse(AVFormatContext *s, int len, uint8_t version, uint8_t
             tag[3] = 0;
             tlen = avio_rb24(s->pb);
         }
-        if (tlen > (1<<28) || !tlen)
+        if (tlen > (1<<28))
             break;
         len -= taghdrlen + tlen;
 
@@ -255,8 +248,6 @@ static void ff_id3v2_parse(AVFormatContext *s, int len, uint8_t version, uint8_t
         next = avio_tell(s->pb) + tlen;
 
         if (tflags & ID3v2_FLAG_DATALEN) {
-            if (tlen < 4)
-                break;
             avio_rb32(s->pb);
             tlen -= 4;
         }
@@ -268,10 +259,6 @@ static void ff_id3v2_parse(AVFormatContext *s, int len, uint8_t version, uint8_t
             if (unsync || tunsync) {
                 int i, j;
                 av_fast_malloc(&buffer, &buffer_size, tlen);
-                if (!buffer) {
-                    av_log(s, AV_LOG_ERROR, "Failed to alloc %d bytes\n", tlen);
-                    goto seek;
-                }
                 for (i = 0, j = 0; i < tlen; i++, j++) {
                     buffer[j] = avio_r8(s->pb);
                     if (j > 0 && !buffer[j] && buffer[j - 1] == 0xff) {
@@ -292,7 +279,6 @@ static void ff_id3v2_parse(AVFormatContext *s, int len, uint8_t version, uint8_t
             break;
         }
         /* Skip to end of tag */
-seek:
         avio_seek(s->pb, next, SEEK_SET);
     }
 

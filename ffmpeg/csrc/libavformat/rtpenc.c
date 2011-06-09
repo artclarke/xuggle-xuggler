@@ -404,10 +404,7 @@ static int rtp_write_packet(AVFormatContext *s1, AVPacket *pkt)
         ff_rtp_send_mpegvideo(s1, pkt->data, size);
         break;
     case CODEC_ID_AAC:
-        if (s1->flags & AVFMT_FLAG_MP4A_LATM)
-            ff_rtp_send_latm(s1, pkt->data, size);
-        else
-            ff_rtp_send_aac(s1, pkt->data, size);
+        ff_rtp_send_aac(s1, pkt->data, size);
         break;
     case CODEC_ID_AMR_NB:
     case CODEC_ID_AMR_WB:

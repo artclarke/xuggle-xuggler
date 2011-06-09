@@ -48,7 +48,7 @@ static int volatile entangled_thread_counter=0;
 static int (*ff_lockmgr_cb)(void **mutex, enum AVLockOp op);
 static void *codec_mutex;
 
-void *av_fast_realloc(void *ptr, unsigned int *size, size_t min_size)
+void *av_fast_realloc(void *ptr, unsigned int *size, FF_INTERNALC_MEM_TYPE min_size)
 {
     if(min_size < *size)
         return ptr;
@@ -64,7 +64,7 @@ void *av_fast_realloc(void *ptr, unsigned int *size, size_t min_size)
     return ptr;
 }
 
-void av_fast_malloc(void *ptr, unsigned int *size, size_t min_size)
+void av_fast_malloc(void *ptr, unsigned int *size, FF_INTERNALC_MEM_TYPE min_size)
 {
     void **p = ptr;
     if (min_size < *size)
@@ -94,6 +94,13 @@ void avcodec_register(AVCodec *codec)
     codec->next = NULL;
 }
 
+#if LIBAVCODEC_VERSION_MAJOR < 53
+void register_avcodec(AVCodec *codec)
+{
+    avcodec_register(codec);
+}
+#endif
+
 unsigned avcodec_get_edge_width(void)
 {
     return EDGE_WIDTH;
@@ -115,7 +122,7 @@ typedef struct InternalBuffer{
     enum PixelFormat pix_fmt;
 }InternalBuffer;
 
-#define INTERNAL_BUFFER_SIZE (32+1)
+#define INTERNAL_BUFFER_SIZE 32
 
 void avcodec_align_dimensions2(AVCodecContext *s, int *width, int *height, int linesize_align[4]){
     int w_align= 1;
@@ -218,6 +225,12 @@ void avcodec_align_dimensions(AVCodecContext *s, int *width, int *height){
     align = FFMAX3(align, linesize_align[1], linesize_align[2]);
     *width=FFALIGN(*width, align);
 }
+
+#if LIBAVCODEC_VERSION_MAJOR < 53
+int avcodec_check_dimensions(void *av_log_ctx, unsigned int w, unsigned int h){
+    return av_image_check_size(w, h, 0, av_log_ctx);
+}
+#endif
 
 int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
     int i;
@@ -563,7 +576,7 @@ int attribute_align_arg avcodec_open(AVCodecContext *avctx, AVCodec *codec)
         }
     }
 
-    if (avctx->codec->max_lowres < avctx->lowres || avctx->lowres < 0) {
+    if (avctx->codec->max_lowres < avctx->lowres) {
         av_log(avctx, AV_LOG_ERROR, "The maximum value for lowres supported by the decoder is %d\n",
                avctx->codec->max_lowres);
         ret = AVERROR(EINVAL);
@@ -723,6 +736,22 @@ static int64_t guess_correct_pts(AVCodecContext *ctx,
     return pts;
 }
 
+#if FF_API_VIDEO_OLD
+int attribute_align_arg avcodec_decode_video(AVCodecContext *avctx, AVFrame *picture,
+                         int *got_picture_ptr,
+                         const uint8_t *buf, int buf_size)
+{
+    AVPacket avpkt;
+    av_init_packet(&avpkt);
+    avpkt.data = buf;
+    avpkt.size = buf_size;
+    // HACK for CorePNG to decode as normal PNG by default
+    avpkt.flags = AV_PKT_FLAG_KEY;
+
+    return avcodec_decode_video2(avctx, picture, got_picture_ptr, &avpkt);
+}
+#endif
+
 int attribute_align_arg avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
                          int *got_picture_ptr,
                          AVPacket *avpkt)
@@ -733,9 +762,9 @@ int attribute_align_arg avcodec_decode_video2(AVCodecContext *avctx, AVFrame *pi
     if((avctx->coded_width||avctx->coded_height) && av_image_check_size(avctx->coded_width, avctx->coded_height, 0, avctx))
         return -1;
 
+    avctx->pkt = avpkt;
+
     if((avctx->codec->capabilities & CODEC_CAP_DELAY) || avpkt->size || (avctx->active_thread_type&FF_THREAD_FRAME)){
-        av_packet_split_side_data(avpkt);
-        avctx->pkt = avpkt;
         if (HAVE_PTHREADS && avctx->active_thread_type&FF_THREAD_FRAME)
              ret = ff_thread_decode_frame(avctx, picture, got_picture_ptr,
                                           avpkt);
@@ -746,8 +775,6 @@ int attribute_align_arg avcodec_decode_video2(AVCodecContext *avctx, AVFrame *pi
 
             if(!avctx->has_b_frames){
             picture->pkt_pos= avpkt->pos;
-            }
-            //FIXME these should be under if(!avctx->has_b_frames)
             if (!picture->sample_aspect_ratio.num)
                 picture->sample_aspect_ratio = avctx->sample_aspect_ratio;
             if (!picture->width)
@@ -756,6 +783,7 @@ int attribute_align_arg avcodec_decode_video2(AVCodecContext *avctx, AVFrame *pi
                 picture->height = avctx->height;
             if (picture->format == PIX_FMT_NONE)
                 picture->format = avctx->pix_fmt;
+            }
         }
 
         emms_c(); //needed to avoid an emms_c() call before every return;
@@ -772,6 +800,20 @@ int attribute_align_arg avcodec_decode_video2(AVCodecContext *avctx, AVFrame *pi
 
     return ret;
 }
+
+#if FF_API_AUDIO_OLD
+int attribute_align_arg avcodec_decode_audio2(AVCodecContext *avctx, int16_t *samples,
+                         int *frame_size_ptr,
+                         const uint8_t *buf, int buf_size)
+{
+    AVPacket avpkt;
+    av_init_packet(&avpkt);
+    avpkt.data = buf;
+    avpkt.size = buf_size;
+
+    return avcodec_decode_audio3(avctx, samples, frame_size_ptr, &avpkt);
+}
+#endif
 
 int attribute_align_arg avcodec_decode_audio3(AVCodecContext *avctx, int16_t *samples,
                          int *frame_size_ptr,
@@ -801,6 +843,20 @@ int attribute_align_arg avcodec_decode_audio3(AVCodecContext *avctx, int16_t *sa
     }
     return ret;
 }
+
+#if FF_API_SUBTITLE_OLD
+int avcodec_decode_subtitle(AVCodecContext *avctx, AVSubtitle *sub,
+                            int *got_sub_ptr,
+                            const uint8_t *buf, int buf_size)
+{
+    AVPacket avpkt;
+    av_init_packet(&avpkt);
+    avpkt.data = buf;
+    avpkt.size = buf_size;
+
+    return avcodec_decode_subtitle2(avctx, sub, got_sub_ptr, &avpkt);
+}
+#endif
 
 int avcodec_decode_subtitle2(AVCodecContext *avctx, AVSubtitle *sub,
                             int *got_sub_ptr,
@@ -858,9 +914,6 @@ av_cold int avcodec_close(AVCodecContext *avctx)
         avctx->codec->close(avctx);
     avcodec_default_free_buffers(avctx);
     avctx->coded_frame = NULL;
-    if (avctx->codec && avctx->codec->priv_class)
-        av_opt_free(avctx->priv_data);
-    av_opt_free(avctx);
     av_freep(&avctx->priv_data);
     if(avctx->codec && avctx->codec->encode)
         av_freep(&avctx->extradata);
@@ -907,18 +960,14 @@ AVCodec *avcodec_find_encoder_by_name(const char *name)
 
 AVCodec *avcodec_find_decoder(enum CodecID id)
 {
-    AVCodec *p, *experimental=NULL;
+    AVCodec *p;
     p = first_avcodec;
     while (p) {
-        if (p->decode != NULL && p->id == id) {
-            if (p->capabilities & CODEC_CAP_EXPERIMENTAL && !experimental) {
-                experimental = p;
-            } else
-                return p;
-        }
+        if (p->decode != NULL && p->id == id)
+            return p;
         p = p->next;
     }
-    return experimental;
+    return NULL;
 }
 
 AVCodec *avcodec_find_decoder_by_name(const char *name)
@@ -1015,7 +1064,7 @@ void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
         if (enc->pix_fmt != PIX_FMT_NONE) {
             snprintf(buf + strlen(buf), buf_size - strlen(buf),
                      ", %s",
-                     av_get_pix_fmt_name(enc->pix_fmt));
+                     avcodec_get_pix_fmt_name(enc->pix_fmt));
         }
         if (enc->width) {
             snprintf(buf + strlen(buf), buf_size - strlen(buf),
@@ -1234,6 +1283,20 @@ unsigned int av_xiphlacing(unsigned char *s, unsigned int v)
     return n;
 }
 
+#if LIBAVCODEC_VERSION_MAJOR < 53
+#include "libavutil/parseutils.h"
+
+int av_parse_video_frame_size(int *width_ptr, int *height_ptr, const char *str)
+{
+    return av_parse_video_size(width_ptr, height_ptr, str);
+}
+
+int av_parse_video_frame_rate(AVRational *frame_rate, const char *arg)
+{
+    return av_parse_video_rate(frame_rate, arg);
+}
+#endif
+
 int ff_match_2uint16(const uint16_t (*tab)[2], int size, int a, int b){
     int i;
     for(i=0; i<size && !(tab[i][0]==a && tab[i][1]==b); i++);
@@ -1350,4 +1413,12 @@ int avcodec_thread_init(AVCodecContext *s, int thread_count)
     s->thread_count = thread_count;
     return ff_thread_init(s);
 }
+
+void avcodec_thread_free(AVCodecContext *s)
+{
+#if HAVE_THREADS
+    ff_thread_free(s);
+#endif
+}
+
 #endif

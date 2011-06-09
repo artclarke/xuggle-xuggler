@@ -23,6 +23,9 @@ errfile="$datadir/$this.err"
 # various files
 ffmpeg="$target_exec ${target_path}/ffmpeg"
 tiny_psnr="tests/tiny_psnr"
+benchfile="$datadir/$this.bench"
+bench="$datadir/$this.bench.tmp"
+bench2="$datadir/$this.bench2.tmp"
 raw_src="${target_path}/$raw_src_dir/%02d.pgm"
 raw_dst="$datadir/$this.out.yuv"
 raw_ref="$datadir/$test_ref.ref.yuv"
@@ -32,7 +35,7 @@ pcm_ref="$datadir/$test_ref.ref.wav"
 crcfile="$datadir/$this.crc"
 target_crcfile="$target_datadir/$this.crc"
 
-cleanfiles="$raw_dst $pcm_dst $crcfile"
+cleanfiles="$raw_dst $pcm_dst $crcfile $bench $bench2"
 trap 'rm -f -- $cleanfiles' EXIT
 
 mkdir -p "$datadir"
@@ -53,7 +56,7 @@ echov(){
 FFMPEG_OPTS="-v 0 -y"
 COMMON_OPTS="-flags +bitexact -idct simple -sws_flags +accurate_rnd+bitexact"
 DEC_OPTS="$COMMON_OPTS -threads $threads"
-ENC_OPTS="$COMMON_OPTS -threads 1 -dct fastint"
+ENC_OPTS="$COMMON_OPTS -dct fastint"
 
 run_ffmpeg()
 {
@@ -66,7 +69,7 @@ do_ffmpeg()
     f="$1"
     shift
     set -- $* ${target_path}/$f
-    run_ffmpeg $*
+    run_ffmpeg -benchmark $* > $bench
     do_md5sum $f >> $logfile
     if [ $f = $raw_dst ] ; then
         $tiny_psnr $f $raw_ref >> $logfile
@@ -75,6 +78,8 @@ do_ffmpeg()
     else
         wc -c $f >> $logfile
     fi
+    expr "$(cat $bench)" : '.*utime=\(.*s\)' > $bench2
+    echo $(cat $bench2) $f >> $benchfile
 }
 
 do_ffmpeg_nomd5()
@@ -82,7 +87,7 @@ do_ffmpeg_nomd5()
     f="$1"
     shift
     set -- $* ${target_path}/$f
-    run_ffmpeg $*
+    run_ffmpeg -benchmark $* > $bench
     if [ $f = $raw_dst ] ; then
         $tiny_psnr $f $raw_ref >> $logfile
     elif [ $f = $pcm_dst ] ; then
@@ -90,6 +95,8 @@ do_ffmpeg_nomd5()
     else
         wc -c $f >> $logfile
     fi
+    expr "$(cat $bench)" : '.*utime=\(.*s\)' > $bench2
+    echo $(cat $bench2) $f >> $benchfile
 }
 
 do_ffmpeg_crc()
@@ -100,9 +107,18 @@ do_ffmpeg_crc()
     echo "$f $(cat $crcfile)" >> $logfile
 }
 
+do_ffmpeg_nocheck()
+{
+    f="$1"
+    shift
+    run_ffmpeg -benchmark $* > $bench
+    expr "$(cat $bench)" : '.*utime=\(.*s\)' > $bench2
+    echo $(cat $bench2) $f >> $benchfile
+}
+
 do_video_decoding()
 {
-    do_ffmpeg $raw_dst $DEC_OPTS $1 -i $target_path/$file -f rawvideo $ENC_OPTS -vsync 0 $2
+    do_ffmpeg $raw_dst $DEC_OPTS $1 -i $target_path/$file -f rawvideo $ENC_OPTS $2
 }
 
 do_video_encoding()

@@ -15,6 +15,7 @@ OBJS = allcodecs.o                                                      \
        fmtconvert.o                                                     \
        imgconvert.o                                                     \
        jrevdct.o                                                        \
+       opt.o                                                            \
        options.o                                                        \
        parser.o                                                         \
        raw.o                                                            \
@@ -28,7 +29,7 @@ OBJS-$(CONFIG_AANDCT)                  += aandcttab.o
 OBJS-$(CONFIG_AC3DSP)                  += ac3dsp.o
 OBJS-$(CONFIG_CRYSTALHD)               += crystalhd.o
 OBJS-$(CONFIG_ENCODERS)                += faandct.o jfdctfst.o jfdctint.o
-OBJS-$(CONFIG_DCT)                     += dct.o dct32_fixed.o dct32_float.o
+OBJS-$(CONFIG_DCT)                     += dct.o
 OBJS-$(CONFIG_DWT)                     += dwt.o
 OBJS-$(CONFIG_DXVA2)                   += dxva2.o
 FFT-OBJS-$(CONFIG_HARDCODED_TABLES)    += cos_tables.o cos_fixed_tables.o
@@ -41,9 +42,6 @@ OBJS-$(CONFIG_HUFFMAN)                 += huffman.o
 OBJS-$(CONFIG_LPC)                     += lpc.o
 OBJS-$(CONFIG_LSP)                     += lsp.o
 OBJS-$(CONFIG_MDCT)                    += mdct_fixed.o mdct_float.o
-OBJS-$(CONFIG_MPEGAUDIODSP)            += mpegaudiodsp.o                \
-                                          mpegaudiodsp_fixed.o          \
-                                          mpegaudiodsp_float.o
 RDFT-OBJS-$(CONFIG_HARDCODED_TABLES)   += sin_tables.o
 OBJS-$(CONFIG_RDFT)                    += rdft.o $(RDFT-OBJS-yes)
 OBJS-$(CONFIG_SINEWIN)                 += sinewin.o
@@ -127,7 +125,6 @@ OBJS-$(CONFIG_DVVIDEO_DECODER)         += dv.o dvdata.o
 OBJS-$(CONFIG_DVVIDEO_ENCODER)         += dv.o dvdata.o
 OBJS-$(CONFIG_DXA_DECODER)             += dxa.o
 OBJS-$(CONFIG_EAC3_DECODER)            += eac3dec.o eac3dec_data.o
-OBJS-$(CONFIG_EAC3_ENCODER)            += ac3enc_float.o ac3tab.o ac3.o kbdwin.o
 OBJS-$(CONFIG_EACMV_DECODER)           += eacmv.o
 OBJS-$(CONFIG_EAMAD_DECODER)           += eamad.o eaidct.o mpeg12.o \
                                           mpeg12data.o mpegvideo.o  \
@@ -140,7 +137,6 @@ OBJS-$(CONFIG_EATQI_DECODER)           += eatqi.o eaidct.o mpeg12.o \
 OBJS-$(CONFIG_EIGHTBPS_DECODER)        += 8bps.o
 OBJS-$(CONFIG_EIGHTSVX_EXP_DECODER)    += 8svx.o
 OBJS-$(CONFIG_EIGHTSVX_FIB_DECODER)    += 8svx.o
-OBJS-$(CONFIG_EIGHTSVX_RAW_DECODER)    += 8svx.o
 OBJS-$(CONFIG_ESCAPE124_DECODER)       += escape124.o
 OBJS-$(CONFIG_FFV1_DECODER)            += ffv1.o rangecoder.o
 OBJS-$(CONFIG_FFV1_ENCODER)            += ffv1.o rangecoder.o
@@ -193,8 +189,6 @@ OBJS-$(CONFIG_INDEO3_DECODER)          += indeo3.o
 OBJS-$(CONFIG_INDEO5_DECODER)          += indeo5.o ivi_common.o ivi_dsp.o
 OBJS-$(CONFIG_INTERPLAY_DPCM_DECODER)  += dpcm.o
 OBJS-$(CONFIG_INTERPLAY_VIDEO_DECODER) += interplayvideo.o
-OBJS-$(CONFIG_JPEG2000_DECODER)        += j2kdec.o mqcdec.o mqc.o j2k.o j2k_dwt.o
-#OBJS-$(CONFIG_JPEG2000_ENCODER)        += j2kenc.o mqcenc.o mqc.o j2k.o j2k_dwt.o
 OBJS-$(CONFIG_JPEGLS_DECODER)          += jpeglsdec.o jpegls.o \
                                           mjpegdec.o mjpeg.o
 OBJS-$(CONFIG_JPEGLS_ENCODER)          += jpeglsenc.o jpegls.o
@@ -270,6 +264,8 @@ OBJS-$(CONFIG_MPEG2VIDEO_ENCODER)      += mpeg12enc.o mpegvideo_enc.o \
                                           mpegvideo.o error_resilience.o
 OBJS-$(CONFIG_MPEG4_VAAPI_HWACCEL)     += vaapi_mpeg4.o
 OBJS-$(CONFIG_MSMPEG4V1_DECODER)       += msmpeg4.o msmpeg4data.o
+OBJS-$(CONFIG_MSMPEG4V1_ENCODER)       += msmpeg4.o msmpeg4data.o h263dec.o \
+                                          h263.o ituh263dec.o mpeg4videodec.o
 OBJS-$(CONFIG_MSMPEG4V2_DECODER)       += msmpeg4.o msmpeg4data.o h263dec.o \
                                           h263.o ituh263dec.o mpeg4videodec.o
 OBJS-$(CONFIG_MSMPEG4V2_ENCODER)       += msmpeg4.o msmpeg4data.o h263dec.o \
@@ -666,46 +662,48 @@ OBJS-$(!CONFIG_SMALL)                  += inverse.o
 
 -include $(SUBDIR)$(ARCH)/Makefile
 
-SKIPHEADERS                            += %_tablegen.h                  \
-                                          %_tables.h                    \
-                                          aac_tablegen_decl.h           \
-                                          fft-internal.h                \
-                                          tableprint.h                  \
-                                          $(ARCH)/vp56_arith.h
+SKIPHEADERS                             = %_tablegen.h
 SKIPHEADERS-$(CONFIG_DXVA2)            += dxva2.h dxva2_internal.h
 SKIPHEADERS-$(CONFIG_LIBDIRAC)         += libdirac.h
 SKIPHEADERS-$(CONFIG_LIBSCHROEDINGER)  += libschroedinger.h
 SKIPHEADERS-$(CONFIG_VAAPI)            += vaapi_internal.h
 SKIPHEADERS-$(CONFIG_VDPAU)            += vdpau.h
 SKIPHEADERS-$(CONFIG_XVMC)             += xvmc.h
+SKIPHEADERS                            += mpegaudio3.h
 
-TESTPROGS = cabac dct fft fft-fixed h264 iirfilter rangecoder snow
+EXAMPLES = api
+
+TESTPROGS = cabac dct eval fft fft-fixed h264 iirfilter rangecoder snow
 TESTPROGS-$(HAVE_MMX) += motion
 TESTOBJS = dctref.o
 
-HOSTPROGS = aac_tablegen aacps_tablegen cbrt_tablegen cos_tablegen      \
-            dv_tablegen motionpixels_tablegen mpegaudio_tablegen        \
-            pcm_tablegen qdm2_tablegen sinewin_tablegen
+HOSTPROGS = costablegen
 
 DIRS = alpha arm bfin mlib ppc ps2 sh4 sparc x86
 
-CLEANFILES = *_tables.c *_tables.h *_tablegen$(HOSTEXESUF)
+CLEANFILES = sin_tables.c cos_tables.c *_tables.h *_tablegen$(HOSTEXESUF)
 
 include $(SUBDIR)../subdir.mak
 
 $(SUBDIR)dct-test$(EXESUF): $(SUBDIR)dctref.o
 
-TRIG_TABLES  = cos cos_fixed sin
-TRIG_TABLES := $(TRIG_TABLES:%=$(SUBDIR)%_tables.c)
+$(SUBDIR)cos_tables.c: $(SUBDIR)costablegen$(HOSTEXESUF)
+	$(M)./$< > $@
 
-$(TRIG_TABLES): $(SUBDIR)%_tables.c: $(SUBDIR)cos_tablegen$(HOSTEXESUF)
-	$(M)./$< $* > $@
+$(SUBDIR)cos_fixed_tables.c: $(SUBDIR)costablegen$(HOSTEXESUF)
+	$(M)./$< cos fixed > $@
+
+$(SUBDIR)sin_tables.c: $(SUBDIR)costablegen$(HOSTEXESUF)
+	$(M)./$< sin > $@
 
 ifdef CONFIG_SMALL
 $(SUBDIR)%_tablegen$(HOSTEXESUF): HOSTCFLAGS += -DCONFIG_SMALL=1
 else
 $(SUBDIR)%_tablegen$(HOSTEXESUF): HOSTCFLAGS += -DCONFIG_SMALL=0
 endif
+
+$(SUBDIR)%_tablegen$(HOSTEXESUF): $(SUBDIR)%_tablegen.c $(SUBDIR)%_tablegen.h $(SUBDIR)tableprint.c
+	$(HOSTCC) $(HOSTCFLAGS) $(HOSTLDFLAGS) -o $@ $(filter %.c,$^) $(HOSTLIBS)
 
 GEN_HEADERS = cbrt_tables.h aacps_tables.h aac_tables.h dv_tables.h     \
               sinewin_tables.h mpegaudio_tables.h motionpixels_tables.h \

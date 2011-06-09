@@ -38,7 +38,9 @@
 #define SHORT_SEEK_THRESHOLD 4096
 
 static void fill_buffer(AVIOContext *s);
+#if !FF_API_URL_RESETBUF
 static int url_resetbuf(AVIOContext *s, int flags);
+#endif
 
 int ffio_init_context(AVIOContext *s,
                   unsigned char *buffer,
@@ -53,7 +55,7 @@ int ffio_init_context(AVIOContext *s,
     s->buffer_size = buffer_size;
     s->buf_ptr = buffer;
     s->opaque = opaque;
-    url_resetbuf(s, write_flag ? AVIO_FLAG_WRITE : AVIO_FLAG_READ);
+    url_resetbuf(s, write_flag ? AVIO_WRONLY : AVIO_RDONLY);
     s->write_packet = write_packet;
     s->read_packet = read_packet;
     s->seek = seek;
@@ -113,8 +115,6 @@ AVIOContext *avio_alloc_context(
                   int64_t (*seek)(void *opaque, int64_t offset, int whence))
 {
     AVIOContext *s = av_mallocz(sizeof(AVIOContext));
-    if (!s)
-        return NULL;
     ffio_init_context(s, buffer, buffer_size, write_flag, opaque,
                   read_packet, write_packet, seek);
     return s;
@@ -854,7 +854,7 @@ int ffio_fdopen(AVIOContext **s, URLContext *h)
     }
 
     if (ffio_init_context(*s, buffer, buffer_size,
-                      h->flags & AVIO_FLAG_WRITE, h,
+                      (h->flags & AVIO_WRONLY || h->flags & AVIO_RDWR), h,
                       (void*)ffurl_read, (void*)ffurl_write, (void*)ffurl_seek) < 0) {
         av_free(buffer);
         av_freep(s);
@@ -883,15 +883,24 @@ int ffio_set_buf_size(AVIOContext *s, int buf_size)
     s->buffer = buffer;
     s->buffer_size = buf_size;
     s->buf_ptr = buffer;
-    url_resetbuf(s, s->write_flag ? AVIO_FLAG_WRITE : AVIO_FLAG_READ);
+    url_resetbuf(s, s->write_flag ? AVIO_WRONLY : AVIO_RDONLY);
     return 0;
 }
 
+#if FF_API_URL_RESETBUF
+int url_resetbuf(AVIOContext *s, int flags)
+#else
 static int url_resetbuf(AVIOContext *s, int flags)
+#endif
 {
-    assert(flags == AVIO_FLAG_WRITE || flags == AVIO_FLAG_READ);
+#if FF_API_URL_RESETBUF
+    if (flags & AVIO_RDWR)
+        return AVERROR(EINVAL);
+#else
+    assert(flags == AVIO_WRONLY || flags == AVIO_RDONLY);
+#endif
 
-    if (flags & AVIO_FLAG_WRITE) {
+    if (flags & AVIO_WRONLY) {
         s->buf_end = s->buffer + s->buffer_size;
         s->write_flag = 1;
     } else {
@@ -1049,7 +1058,7 @@ int url_open_buf(AVIOContext **s, uint8_t *buf, int buf_size, int flags)
     if(!*s)
         return AVERROR(ENOMEM);
     ret = ffio_init_context(*s, buf, buf_size,
-                            flags & AVIO_FLAG_WRITE,
+                        (flags & AVIO_WRONLY || flags & AVIO_RDWR),
                         NULL, NULL, NULL, NULL);
     if(ret != 0)
         av_freep(s);

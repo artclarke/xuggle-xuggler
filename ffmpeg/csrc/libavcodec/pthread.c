@@ -55,7 +55,7 @@ typedef struct ThreadContext {
 } ThreadContext;
 
 /// Max number of frame buffers that can be allocated when using frame threads.
-#define MAX_BUFFERS (32+1)
+#define MAX_BUFFERS 32
 
 /**
  * Context used by codec threads and stored in their AVCodecContext thread_opaque.
@@ -380,6 +380,9 @@ static void update_context_from_user(AVCodecContext *dst, AVCodecContext *src)
     dst->release_buffer = src->release_buffer;
 
     dst->opaque   = src->opaque;
+#if FF_API_HURRY_UP
+    dst->hurry_up = src->hurry_up;
+#endif
     dst->dsp_mask = src->dsp_mask;
     dst->debug    = src->debug;
     dst->debug_mv = src->debug_mv;

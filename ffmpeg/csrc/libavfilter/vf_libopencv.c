@@ -26,7 +26,7 @@
 /* #define DEBUG */
 
 #include <opencv/cv.h>
-#include <opencv/cxcore.h>
+#include <opencv/cxtypes.h>
 #include "libavutil/avstring.h"
 #include "libavutil/file.h"
 #include "avfilter.h"
@@ -158,7 +158,7 @@ static int read_shape_from_file(int *cols, int *rows, int **values, const char *
         }
         w++;
     }
-    if (*rows > (SIZE_MAX / sizeof(int) / *cols)) {
+    if (*rows > (FF_INTERNAL_MEM_TYPE_MAX_VALUE / (sizeof(int)) / *cols)) {
         av_log(log_ctx, AV_LOG_ERROR, "File with size %dx%d is too big\n",
                *rows, *cols);
         return AVERROR_INVALIDDATA;

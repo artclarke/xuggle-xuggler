@@ -827,7 +827,7 @@ static int wma_decode_superframe(AVCodecContext *avctx,
         return 0;
     }
     if (buf_size < s->block_align)
-        return AVERROR(EINVAL);
+        return 0;
     buf_size = s->block_align;
 
     samples = data;

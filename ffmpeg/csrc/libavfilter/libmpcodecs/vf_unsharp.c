@@ -132,7 +132,7 @@ static int config( struct vf_instance *vf,
 
     int z, stepsX, stepsY;
     FilterParam *fp;
-    const char *effect;
+    char *effect;
 
     // allocate buffers
 

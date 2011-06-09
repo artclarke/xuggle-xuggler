@@ -382,7 +382,7 @@ static void uninit(struct vf_instance *vf)
 }
 
 static struct {
-        const char *name;
+        char *name;
         int (*func)(struct vf_priv_s *p, mp_image_t *new, mp_image_t *old);
         int needread;
 } anal_funcs[] = {

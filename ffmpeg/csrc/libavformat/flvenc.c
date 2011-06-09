@@ -440,7 +440,7 @@ static int flv_write_packet(AVFormatContext *s, AVPacket *pkt)
 
     av_free(data);
 
-    return pb->error;
+    return 0;
 }
 
 AVOutputFormat ff_flv_muxer = {

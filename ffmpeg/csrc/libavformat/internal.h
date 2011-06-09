@@ -26,12 +26,6 @@
 
 #define MAX_URL_SIZE 4096
 
-#ifdef DEBUG
-#    define hex_dump_debug(class, buf, size) av_hex_dump_log(class, AV_LOG_DEBUG, buf, size)
-#else
-#    define hex_dump_debug(class, buf, size)
-#endif
-
 typedef struct AVCodecTag {
     enum CodecID id;
     unsigned int tag;
@@ -83,6 +77,18 @@ void ff_read_frame_flush(AVFormatContext *s);
 /** Get the current time since NTP epoch in microseconds. */
 uint64_t ff_ntp_time(void);
 
+#if FF_API_URL_SPLIT
+/**
+ * @deprecated use av_url_split() instead
+ */
+void ff_url_split(char *proto, int proto_size,
+                  char *authorization, int authorization_size,
+                  char *hostname, int hostname_size,
+                  int *port_ptr,
+                  char *path, int path_size,
+                  const char *url);
+#endif
+
 /**
  * Assemble a URL string from components. This is the reverse operation
  * of av_url_split.
@@ -122,11 +128,10 @@ int ff_url_join(char *str, int size, const char *proto,
  * @param dest_type the destination address type, may be NULL
  * @param port the destination port of the media stream, 0 if unknown
  * @param ttl the time to live of the stream, 0 if not multicast
- * @param flags the AVFormatContext->flags, modifying the generated SDP
  */
 void ff_sdp_write_media(char *buff, int size, AVCodecContext *c,
                         const char *dest_addr, const char *dest_type,
-                        int port, int ttl, int flags);
+                        int port, int ttl);
 
 /**
  * Write a packet to another muxer than the one the user originally

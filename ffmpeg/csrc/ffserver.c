@@ -38,7 +38,7 @@
 #include "libavutil/lfg.h"
 #include "libavutil/random_seed.h"
 #include "libavutil/parseutils.h"
-#include "libavutil/opt.h"
+#include "libavcodec/opt.h"
 #include <stdarg.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -93,7 +93,9 @@ static const char *http_state[] = {
     "RTSP_SEND_PACKET",
 };
 
+#if !FF_API_MAX_STREAMS
 #define MAX_STREAMS 20
+#endif
 
 #define IOBUFFER_INIT_SIZE 8192
 
@@ -1760,7 +1762,7 @@ static int http_parse_request(HTTPContext *c)
                 }
             }
 
-#ifdef DEBUG
+#ifdef DEBUG_WMP
             http_log("\nGot request:\n%s\n", c->buffer);
 #endif
 
@@ -1790,7 +1792,7 @@ static int http_parse_request(HTTPContext *c)
         return 0;
     }
 
-#ifdef DEBUG
+#ifdef DEBUG_WMP
     if (strcmp(stream->filename + strlen(stream->filename) - 4, ".asf") == 0)
         http_log("\nGot request:\n%s\n", c->buffer);
 #endif
@@ -2229,11 +2231,11 @@ static int http_prepare_data(HTTPContext *c)
         av_metadata_set2(&c->fmt_ctx.metadata, "copyright", c->stream->copyright, 0);
         av_metadata_set2(&c->fmt_ctx.metadata, "title"    , c->stream->title    , 0);
 
-        c->fmt_ctx.streams = av_mallocz(sizeof(AVStream *) * c->stream->nb_streams);
-
         for(i=0;i<c->stream->nb_streams;i++) {
+            AVStream *st;
             AVStream *src;
-            c->fmt_ctx.streams[i] = av_mallocz(sizeof(AVStream));
+            st = av_mallocz(sizeof(AVStream));
+            c->fmt_ctx.streams[i] = st;
             /* if file or feed, then just take streams from FFStream struct */
             if (!c->stream->feed ||
                 c->stream->feed == c->stream)
@@ -2241,9 +2243,9 @@ static int http_prepare_data(HTTPContext *c)
             else
                 src = c->stream->feed->streams[c->stream->feed_streams[i]];
 
-            *(c->fmt_ctx.streams[i]) = *src;
-            c->fmt_ctx.streams[i]->priv_data = 0;
-            c->fmt_ctx.streams[i]->codec->frame_number = 0; /* XXX: should be done in
+            *st = *src;
+            st->priv_data = 0;
+            st->codec->frame_number = 0; /* XXX: should be done in
                                            AVStream, not in codec */
         }
         /* set output format parameters */
@@ -2938,9 +2940,11 @@ static int prepare_sdp_description(FFStream *stream, uint8_t **pbuffer,
         snprintf(avc->filename, 1024, "rtp://0.0.0.0");
     }
 
+#if !FF_API_MAX_STREAMS
     if (avc->nb_streams >= INT_MAX/sizeof(*avc->streams) ||
         !(avc->streams = av_malloc(avc->nb_streams * sizeof(*avc->streams))))
         goto sdp_done;
+#endif
     if (avc->nb_streams >= INT_MAX/sizeof(*avs) ||
         !(avs = av_malloc(avc->nb_streams * sizeof(*avs))))
         goto sdp_done;
@@ -2953,7 +2957,9 @@ static int prepare_sdp_description(FFStream *stream, uint8_t **pbuffer,
     av_sdp_create(&avc, 1, *pbuffer, 2048);
 
  sdp_done:
+#if !FF_API_MAX_STREAMS
     av_free(avc->streams);
+#endif
     av_metadata_free(&avc->metadata);
     av_free(avc);
     av_free(avs);
@@ -3274,6 +3280,7 @@ static void rtsp_cmd_pause(HTTPContext *c, const char *url, RTSPMessageHeader *h
 static void rtsp_cmd_teardown(HTTPContext *c, const char *url, RTSPMessageHeader *h)
 {
     HTTPContext *rtp_c;
+    char session_id[32];
 
     rtp_c = find_rtp_session_with_url(url, h->session_id);
     if (!rtp_c) {
@@ -3281,14 +3288,16 @@ static void rtsp_cmd_teardown(HTTPContext *c, const char *url, RTSPMessageHeader
         return;
     }
 
-    /* now everything is OK, so we can send the connection parameters */
-    rtsp_reply_header(c, RTSP_STATUS_OK);
-    /* session ID */
-    avio_printf(c->pb, "Session: %s\r\n", rtp_c->session_id);
-    avio_printf(c->pb, "\r\n");
+    av_strlcpy(session_id, rtp_c->session_id, sizeof(session_id));
 
     /* abort the session */
     close_connection(rtp_c);
+
+    /* now everything is OK, so we can send the connection parameters */
+    rtsp_reply_header(c, RTSP_STATUS_OK);
+    /* session ID */
+    avio_printf(c->pb, "Session: %s\r\n", session_id);
+    avio_printf(c->pb, "\r\n");
 }
 
 
@@ -3382,9 +3391,6 @@ static int rtp_new_av_stream(HTTPContext *c,
     if (!st)
         goto fail;
     ctx->nb_streams = 1;
-    ctx->streams = av_mallocz(sizeof(AVStream *) * ctx->nb_streams);
-    if (!ctx->streams)
-      goto fail;
     ctx->streams[0] = st;
 
     if (!c->stream->feed ||
@@ -3418,7 +3424,7 @@ static int rtp_new_av_stream(HTTPContext *c,
                      "rtp://%s:%d", ipaddr, ntohs(dest_addr->sin_port));
         }
 
-        if (url_open(&h, ctx->filename, AVIO_FLAG_WRITE) < 0)
+        if (url_open(&h, ctx->filename, AVIO_WRONLY) < 0)
             goto fail;
         c->rtp_handles[stream_index] = h;
         max_packet_size = url_get_max_packet_size(h);
@@ -3675,7 +3681,7 @@ static void build_feed_streams(void)
     for(feed = first_feed; feed != NULL; feed = feed->next_feed) {
         int fd;
 
-        if (avio_check(feed->feed_filename, AVIO_FLAG_READ) > 0) {
+        if (url_exist(feed->feed_filename)) {
             /* See if it matches */
             AVFormatContext *s;
             int matches = 0;
@@ -3748,7 +3754,7 @@ static void build_feed_streams(void)
                 unlink(feed->feed_filename);
             }
         }
-        if (avio_check(feed->feed_filename, AVIO_FLAG_WRITE) <= 0) {
+        if (!url_exist(feed->feed_filename)) {
             AVFormatContext s1 = {0}, *s = &s1;
 
             if (feed->readonly) {
@@ -3758,14 +3764,18 @@ static void build_feed_streams(void)
             }
 
             /* only write the header of the ffm file */
-            if (avio_open(&s->pb, feed->feed_filename, AVIO_FLAG_WRITE) < 0) {
+            if (avio_open(&s->pb, feed->feed_filename, AVIO_WRONLY) < 0) {
                 http_log("Could not open output feed file '%s'\n",
                          feed->feed_filename);
                 exit(1);
             }
             s->oformat = feed->fmt;
             s->nb_streams = feed->nb_streams;
-            s->streams = feed->streams;
+            for(i=0;i<s->nb_streams;i++) {
+                AVStream *st;
+                st = feed->streams[i];
+                s->streams[i] = st;
+            }
             av_set_parameters(s, NULL);
             if (av_write_header(s) < 0) {
                 http_log("Container doesn't supports the required parameters\n");

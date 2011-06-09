@@ -21,10 +21,7 @@
 #ifndef AVFORMAT_NETWORK_H
 #define AVFORMAT_NETWORK_H
 
-#include <errno.h>
-
 #include "config.h"
-#include "libavutil/error.h"
 #include "os_support.h"
 
 #if HAVE_WINSOCK2_H
@@ -36,8 +33,7 @@
 #define ECONNREFUSED    WSAECONNREFUSED
 #define EINPROGRESS     WSAEINPROGRESS
 
-static inline int ff_neterrno(void)
-{
+static inline int ff_neterrno() {
     int err = WSAGetLastError();
     switch (err) {
     case WSAEWOULDBLOCK:

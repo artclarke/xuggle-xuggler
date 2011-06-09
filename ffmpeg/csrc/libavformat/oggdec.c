@@ -193,17 +193,18 @@ static int ogg_read_page(AVFormatContext *s, int *str)
     AVIOContext *bc = s->pb;
     struct ogg *ogg = s->priv_data;
     struct ogg_stream *os;
-    int ret, i = 0;
+    int i = 0;
     int flags, nsegs;
     uint64_t gp;
     uint32_t serial;
+    uint32_t seq;
+    uint32_t crc;
     int size, idx;
     uint8_t sync[4];
     int sp = 0;
 
-    ret = avio_read (bc, sync, 4);
-    if (ret < 4)
-        return ret < 0 ? ret : AVERROR_EOF;
+    if (avio_read (bc, sync, 4) < 4)
+        return -1;
 
     do{
         int c;
@@ -215,22 +216,23 @@ static int ogg_read_page(AVFormatContext *s, int *str)
 
         c = avio_r8(bc);
         if (url_feof(bc))
-            return AVERROR_EOF;
+            return -1;
         sync[sp++ & 3] = c;
     }while (i++ < MAX_PAGE_SIZE);
 
     if (i >= MAX_PAGE_SIZE){
         av_log (s, AV_LOG_INFO, "ogg, can't find sync word\n");
-        return AVERROR_INVALIDDATA;
+        return -1;
     }
 
     if (avio_r8(bc) != 0)      /* version */
-        return AVERROR_INVALIDDATA;
+        return -1;
 
     flags = avio_r8(bc);
     gp = avio_rl64 (bc);
     serial = avio_rl32 (bc);
-    avio_skip(bc, 8); /* seq, crc */
+    seq = avio_rl32 (bc);
+    crc = avio_rl32 (bc);
     nsegs = avio_r8(bc);
 
     idx = ogg_find_stream (ogg, serial);
@@ -249,7 +251,7 @@ static int ogg_read_page(AVFormatContext *s, int *str)
             idx = ogg_new_stream(s, serial, 1);
         }
         if (idx < 0)
-            return idx;
+            return -1;
     }
 
     os = ogg->streams + idx;
@@ -258,9 +260,8 @@ static int ogg_read_page(AVFormatContext *s, int *str)
     if(os->psize > 0)
         ogg_new_buf(ogg, idx);
 
-    ret = avio_read (bc, os->segments, nsegs);
-    if (ret < nsegs)
-        return ret < 0 ? ret : AVERROR_EOF;
+    if (avio_read (bc, os->segments, nsegs) < nsegs)
+        return -1;
 
     os->nsegs = nsegs;
     os->segp = 0;
@@ -291,9 +292,8 @@ static int ogg_read_page(AVFormatContext *s, int *str)
         os->buf = nb;
     }
 
-    ret = avio_read (bc, os->buf + os->bufpos, size);
-    if (ret < size)
-        return ret < 0 ? ret : AVERROR_EOF;
+    if (avio_read (bc, os->buf + os->bufpos, size) < size)
+        return -1;
 
     os->bufpos += size;
     os->granule = gp;
@@ -309,32 +309,35 @@ static int ogg_packet(AVFormatContext *s, int *str, int *dstart, int *dsize,
                       int64_t *fpos)
 {
     struct ogg *ogg = s->priv_data;
-    int idx, i, ret;
+    int idx, i;
     struct ogg_stream *os;
     int complete = 0;
     int segp = 0, psize = 0;
 
-    av_dlog(s, "ogg_packet: curidx=%i\n", ogg->curidx);
+#if 0
+    av_log (s, AV_LOG_DEBUG, "ogg_packet: curidx=%i\n", ogg->curidx);
+#endif
 
     do{
         idx = ogg->curidx;
 
         while (idx < 0){
-            ret = ogg_read_page (s, &idx);
-            if (ret < 0)
-                return ret;
+            if (ogg_read_page (s, &idx) < 0)
+                return -1;
         }
 
         os = ogg->streams + idx;
 
-        av_dlog(s, "ogg_packet: idx=%d pstart=%d psize=%d segp=%d nsegs=%d\n",
+#if 0
+        av_log (s, AV_LOG_DEBUG,
+                "ogg_packet: idx=%d pstart=%d psize=%d segp=%d nsegs=%d\n",
                 idx, os->pstart, os->psize, os->segp, os->nsegs);
+#endif
 
         if (!os->codec){
             if (os->header < 0){
                 os->codec = ogg_find_codec (os->buf, os->bufpos);
                 if (!os->codec){
-                    av_log(s, AV_LOG_WARNING, "Codec not found\n");
                     os->header = 0;
                     return 0;
                 }
@@ -361,6 +364,11 @@ static int ogg_packet(AVFormatContext *s, int *str, int *dstart, int *dsize,
         }
     }while (!complete);
 
+#if 0
+    av_log (s, AV_LOG_DEBUG,
+            "ogg_packet: idx %i, frame size %i, start %i\n",
+            idx, os->psize, os->pstart);
+#endif
 
     if (os->granule == -1)
         av_log(s, AV_LOG_WARNING, "Page at %"PRId64" is missing granule\n", os->page_pos);
@@ -410,8 +418,6 @@ static int ogg_packet(AVFormatContext *s, int *str, int *dstart, int *dsize,
             *fpos = os->sync_pos;
         os->pstart += os->psize;
         os->psize = 0;
-        if(os->pstart == os->bufpos)
-            os->bufpos = os->pstart = 0;
         os->sync_pos = os->page_pos;
     }
 
@@ -433,15 +439,15 @@ static int ogg_packet(AVFormatContext *s, int *str, int *dstart, int *dsize,
 static int ogg_get_headers(AVFormatContext *s)
 {
     struct ogg *ogg = s->priv_data;
-    int ret;
 
     do{
-        ret = ogg_packet (s, NULL, NULL, NULL, NULL);
-        if (ret < 0)
-            return ret;
+        if (ogg_packet (s, NULL, NULL, NULL, NULL) < 0)
+            return -1;
     }while (!ogg->headers);
 
-    av_dlog(s, "found headers\n");
+#if 0
+    av_log (s, AV_LOG_DEBUG, "found headers\n");
+#endif
 
     return 0;
 }
@@ -497,12 +503,11 @@ static int ogg_get_length(AVFormatContext *s)
 static int ogg_read_header(AVFormatContext *s, AVFormatParameters *ap)
 {
     struct ogg *ogg = s->priv_data;
-    int ret, i;
+    int i;
     ogg->curidx = -1;
     //linear headers seek from start
-    ret = ogg_get_headers (s);
-    if (ret < 0){
-        return ret;
+    if (ogg_get_headers (s) < 0){
+        return -1;
     }
 
     for (i = 0; i < ogg->nstreams; i++)

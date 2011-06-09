@@ -54,7 +54,6 @@ typedef struct SmcContext {
     unsigned char color_quads[COLORS_PER_TABLE * CQUAD];
     unsigned char color_octets[COLORS_PER_TABLE * COCTET];
 
-    uint32_t pal[256];
 } SmcContext;
 
 #define GET_BLOCK_COUNT() \
@@ -111,7 +110,11 @@ static void smc_decode_stream(SmcContext *s)
     int color_octet_index = 0;
 
     /* make the palette available */
-    memcpy(s->frame.data[1], s->pal, AVPALETTE_SIZE);
+    memcpy(s->frame.data[1], s->avctx->palctrl->palette, AVPALETTE_SIZE);
+    if (s->avctx->palctrl->palette_changed) {
+        s->frame.palette_has_changed = 1;
+        s->avctx->palctrl->palette_changed = 0;
+    }
 
     chunk_size = AV_RB32(&s->buf[stream_ptr]) & 0x00FFFFFF;
     stream_ptr += 4;
@@ -438,7 +441,6 @@ static int smc_decode_frame(AVCodecContext *avctx,
     const uint8_t *buf = avpkt->data;
     int buf_size = avpkt->size;
     SmcContext *s = avctx->priv_data;
-    const uint8_t *pal = av_packet_get_side_data(avpkt, AV_PKT_DATA_PALETTE, NULL);
 
     s->buf = buf;
     s->size = buf_size;
@@ -449,11 +451,6 @@ static int smc_decode_frame(AVCodecContext *avctx,
     if (avctx->reget_buffer(avctx, &s->frame)) {
         av_log(s->avctx, AV_LOG_ERROR, "reget_buffer() failed\n");
         return -1;
-    }
-
-    if (pal) {
-        s->frame.palette_has_changed = 1;
-        memcpy(s->pal, pal, AVPALETTE_SIZE);
     }
 
     smc_decode_stream(s);

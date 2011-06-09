@@ -60,8 +60,6 @@ typedef struct TsccContext {
     unsigned char* decomp_buf;
     int height;
     z_stream zstream;
-
-    uint32_t pal[256];
 } CamtasiaContext;
 
 /*
@@ -75,6 +73,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPac
     int buf_size = avpkt->size;
     CamtasiaContext * const c = avctx->priv_data;
     const unsigned char *encoded = buf;
+    unsigned char *outptr;
     int zret; // Zlib return code
     int len = buf_size;
 
@@ -87,6 +86,8 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPac
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return -1;
     }
+
+    outptr = c->pic.data[0]; // Output image pointer
 
     zret = inflateReset(&(c->zstream));
     if (zret != Z_OK) {
@@ -110,13 +111,11 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size, AVPac
 
     /* make the palette available on the way out */
     if (c->avctx->pix_fmt == PIX_FMT_PAL8) {
-        const uint8_t *pal = av_packet_get_side_data(avpkt, AV_PKT_DATA_PALETTE, NULL);
-
-        if (pal) {
+        memcpy(c->pic.data[1], c->avctx->palctrl->palette, AVPALETTE_SIZE);
+        if (c->avctx->palctrl->palette_changed) {
             c->pic.palette_has_changed = 1;
-            memcpy(c->pal, pal, AVPALETTE_SIZE);
+            c->avctx->palctrl->palette_changed = 0;
         }
-        memcpy(c->pic.data[1], c->pal, AVPALETTE_SIZE);
     }
 
     *data_size = sizeof(AVFrame);

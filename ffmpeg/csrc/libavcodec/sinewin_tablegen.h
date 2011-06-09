@@ -20,9 +20,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#ifndef AVCODEC_SINEWIN_TABLEGEN_H
-#define AVCODEC_SINEWIN_TABLEGEN_H
-
 #include <assert.h>
 // do not use libavutil/libm.h since this is compiled both
 // for the host and the target and config.h is only valid for the target
@@ -61,5 +58,3 @@ av_cold void ff_init_ff_sine_windows(int index) {
     ff_sine_window_init(ff_sine_windows[index], 1 << index);
 #endif
 }
-
-#endif /* AVCODEC_SINEWIN_TABLEGEN_H */

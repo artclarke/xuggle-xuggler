@@ -31,4 +31,13 @@ static int dirac_probe(AVProbeData *p)
         return 0;
 }
 
-FF_DEF_RAWVIDEO_DEMUXER(dirac, "raw Dirac", dirac_probe, NULL, CODEC_ID_DIRAC)
+AVInputFormat ff_dirac_demuxer = {
+    "dirac",
+    NULL_IF_CONFIG_SMALL("raw Dirac"),
+    0,
+    dirac_probe,
+    ff_raw_video_read_header,
+    ff_raw_read_partial_packet,
+    .flags= AVFMT_GENERIC_INDEX,
+    .value = CODEC_ID_DIRAC,
+};

@@ -55,4 +55,13 @@ static int mpegvideo_probe(AVProbeData *p)
     return 0;
 }
 
-FF_DEF_RAWVIDEO_DEMUXER(mpegvideo, "raw MPEG video", mpegvideo_probe, NULL, CODEC_ID_MPEG1VIDEO)
+AVInputFormat ff_mpegvideo_demuxer = {
+    "mpegvideo",
+    NULL_IF_CONFIG_SMALL("raw MPEG video"),
+    0,
+    mpegvideo_probe,
+    ff_raw_video_read_header,
+    ff_raw_read_partial_packet,
+    .flags= AVFMT_GENERIC_INDEX,
+    .value = CODEC_ID_MPEG1VIDEO,
+};

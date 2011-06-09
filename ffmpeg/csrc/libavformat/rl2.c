@@ -80,6 +80,8 @@ static av_cold int rl2_read_header(AVFormatContext *s,
     unsigned int audio_frame_counter = 0;
     unsigned int video_frame_counter = 0;
     unsigned int back_size;
+    int data_size;
+    unsigned short encoding_method;
     unsigned short sound_rate;
     unsigned short rate;
     unsigned short channels;
@@ -96,14 +98,14 @@ static av_cold int rl2_read_header(AVFormatContext *s,
     avio_skip(pb,4);          /* skip FORM tag */
     back_size = avio_rl32(pb); /**< get size of the background frame */
     signature = avio_rb32(pb);
-    avio_skip(pb, 4);         /* data size */
+    data_size = avio_rb32(pb);
     frame_count = avio_rl32(pb);
 
     /* disallow back_sizes and frame_counts that may lead to overflows later */
     if(back_size > INT_MAX/2  || frame_count > INT_MAX / sizeof(uint32_t))
         return AVERROR_INVALIDDATA;
 
-    avio_skip(pb, 2);         /* encoding mentod */
+    encoding_method = avio_rl16(pb);
     sound_rate = avio_rl16(pb);
     rate = avio_rl16(pb);
     channels = avio_rl16(pb);

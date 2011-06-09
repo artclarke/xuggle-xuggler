@@ -846,14 +846,22 @@ static void msmpeg4_encode_dc(MpegEncContext * s, int level, int n, int *dir_ptr
     int pred, extquant;
     int extrabits = 0;
 
-    int16_t *dc_val;
-    pred = msmpeg4_pred_dc(s, n, &dc_val, dir_ptr);
+    if(s->msmpeg4_version==1){
+        int32_t *dc_val;
+        pred = msmpeg4v1_pred_dc(s, n, &dc_val);
 
-    /* update predictor */
-    if (n < 4) {
-        *dc_val = level * s->y_dc_scale;
-    } else {
-        *dc_val = level * s->c_dc_scale;
+        /* update predictor */
+        *dc_val= level;
+    }else{
+        int16_t *dc_val;
+        pred = msmpeg4_pred_dc(s, n, &dc_val, dir_ptr);
+
+        /* update predictor */
+        if (n < 4) {
+            *dc_val = level * s->y_dc_scale;
+        } else {
+            *dc_val = level * s->c_dc_scale;
+        }
     }
 
     /* do the prediction */
@@ -1528,7 +1536,9 @@ int msmpeg4_decode_ext_header(MpegEncContext * s, int buf_size)
     /* the alt_bitstream reader could read over the end so we need to check it */
     if(left>=length && left<length+8)
     {
-        skip_bits(&s->gb, 5); /* fps */
+        int fps;
+
+        fps= get_bits(&s->gb, 5);
         s->bit_rate= get_bits(&s->gb, 11)*1024;
         if(s->msmpeg4_version>=3)
             s->flipflop_rounding= get_bits1(&s->gb);

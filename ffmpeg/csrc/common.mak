@@ -12,6 +12,12 @@ vpath %.S   $(SRC_DIR)
 vpath %.asm $(SRC_DIR)
 vpath %.v   $(SRC_DIR)
 
+ifeq ($(SRC_DIR),$(SRC_PATH_BARE))
+BUILD_ROOT_REL = .
+else
+BUILD_ROOT_REL = ..
+endif
+
 ifndef V
 Q      = @
 ECHO   = printf "$(1)\t%s\n" $(2)
@@ -27,7 +33,7 @@ endif
 
 ALLFFLIBS = avcodec avdevice avfilter avformat avutil postproc swscale
 
-IFLAGS   := -I. -I$(SRC_PATH)
+IFLAGS   := -I$(BUILD_ROOT_REL) -I$(SRC_PATH)
 CPPFLAGS := $(IFLAGS) $(CPPFLAGS)
 CFLAGS   += $(ECFLAGS)
 YASMFLAGS += $(IFLAGS) -Pconfig.asm
@@ -45,6 +51,8 @@ HOSTCFLAGS += $(IFLAGS)
 %.ho: %.h
 	$(CC) $(CPPFLAGS) $(CFLAGS) -Wno-unused -c -o $@ -x c $<
 
+%$(EXESUF): %.c
+
 %.ver: %.v
 	$(Q)sed 's/$$MAJOR/$($(basename $(@F))_VERSION_MAJOR)/' $^ > $@
 
@@ -54,20 +62,30 @@ HOSTCFLAGS += $(IFLAGS)
 %.h:
 	@:
 
+install: install-libs install-headers
+install-libs: install-libs-yes
+
+uninstall: uninstall-libs uninstall-headers
+
+.PHONY: all depend dep *clean install* uninstall* examples testprogs
+
 # Disable suffix rules.  Most of the builtin rules are suffix rules,
 # so this saves some time on slow systems.
 .SUFFIXES:
 
+# Do not delete intermediate files from chains of implicit rules
+$(OBJS):
 endif
 
 OBJS-$(HAVE_MMX) +=  $(MMX-OBJS-yes)
 
+CFLAGS    += $(CFLAGS-yes)
 OBJS      += $(OBJS-yes)
 FFLIBS    := $(FFLIBS-yes) $(FFLIBS)
 TESTPROGS += $(TESTPROGS-yes)
 
 FFEXTRALIBS := $(addprefix -l,$(addsuffix $(BUILDSUF),$(FFLIBS))) $(EXTRALIBS)
-FFLDFLAGS   := $(addprefix -Llib,$(ALLFFLIBS)) $(LDFLAGS)
+FFLDFLAGS   := $(addprefix -L$(BUILD_ROOT)/lib,$(ALLFFLIBS)) $(LDFLAGS)
 
 EXAMPLES  := $(addprefix $(SUBDIR),$(addsuffix -example$(EXESUF),$(EXAMPLES)))
 OBJS      := $(addprefix $(SUBDIR),$(sort $(OBJS)))
@@ -76,7 +94,7 @@ TESTPROGS := $(addprefix $(SUBDIR),$(addsuffix -test$(EXESUF),$(TESTPROGS)))
 HOSTOBJS  := $(addprefix $(SUBDIR),$(addsuffix .o,$(HOSTPROGS)))
 HOSTPROGS := $(addprefix $(SUBDIR),$(addsuffix $(HOSTEXESUF),$(HOSTPROGS)))
 
-DEP_LIBS := $(foreach NAME,$(FFLIBS),lib$(NAME)/$($(CONFIG_SHARED:yes=S)LIBNAME))
+DEP_LIBS := $(foreach NAME,$(FFLIBS),$(BUILD_ROOT_REL)/lib$(NAME)/$($(CONFIG_SHARED:yes=S)LIBNAME))
 
 ALLHEADERS := $(subst $(SRC_DIR)/,$(SUBDIR),$(wildcard $(SRC_DIR)/*.h $(SRC_DIR)/$(ARCH)/*.h))
 SKIPHEADERS += $(addprefix $(ARCH)/,$(ARCH_HEADERS))

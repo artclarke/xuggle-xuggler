@@ -80,14 +80,11 @@ endef
 
 $(foreach D,$(FFLIBS),$(eval $(call DOSUBDIR,lib$(D))))
 
-ffplay.o: CFLAGS += $(SDL_CFLAGS)
 ffplay_g$(EXESUF): FF_EXTRALIBS += $(SDL_LIBS)
 ffserver_g$(EXESUF): FF_LDFLAGS += $(FFSERVERLDFLAGS)
 
 %_g$(EXESUF): %.o cmdutils.o $(FF_DEP_LIBS)
 	$(LD) $(FF_LDFLAGS) -o $@ $< cmdutils.o $(FF_EXTRALIBS)
-
-alltools: $(TOOLS)
 
 tools/%$(EXESUF): tools/%.o
 	$(LD) $(FF_LDFLAGS) -o $@ $< $(FF_EXTRALIBS)
@@ -97,6 +94,8 @@ tools/%.o: tools/%.c
 
 -include $(wildcard tools/*.d)
 -include $(wildcard tests/*.d)
+
+ffplay.o: CFLAGS += $(SDL_CFLAGS)
 
 VERSION_SH  = $(SRC_PATH_BARE)/version.sh
 GIT_LOG     = $(SRC_PATH_BARE)/.git/logs/HEAD
@@ -111,6 +110,8 @@ version.h .version:
 # force version.sh to run whenever version might have changed
 -include .version
 
+alltools: $(TOOLS)
+
 DOCS = $(addprefix doc/, developer.html faq.html general.html libavfilter.html) $(HTMLPAGES) $(MANPAGES) $(PODPAGES)
 
 documentation: $(DOCS)
@@ -122,7 +123,7 @@ TEXIDEP = awk '/^@include/ { printf "$@: $(@D)/%s\n", $$2 }' <$< >$(@:%=%.d)
 doc/%.html: TAG = HTML
 doc/%.html: doc/%.texi $(SRC_PATH_BARE)/doc/t2h.init
 	$(Q)$(TEXIDEP)
-	$(M)texi2html -monolithic --init-file $(SRC_PATH_BARE)/doc/t2h.init --output $@ $<
+	$(M)cd doc && texi2html -monolithic --init-file $(SRC_PATH_BARE)/doc/t2h.init $(<:doc/%=%)
 
 doc/%.pod: TAG = POD
 doc/%.pod: doc/%.texi
@@ -133,9 +134,7 @@ doc/%.1: TAG = MAN
 doc/%.1: doc/%.pod
 	$(M)pod2man --section=1 --center=" " --release=" " $< > $@
 
-install: install-libs install-headers $(INSTALL_TARGETS-yes)
-
-install-libs: install-libs-yes
+install: $(INSTALL_TARGETS-yes)
 
 install-progs: $(PROGS) $(INSTALL_PROGS_TARGETS-yes)
 	$(Q)mkdir -p "$(BINDIR)"
@@ -149,7 +148,7 @@ install-man: $(MANPAGES)
 	$(Q)mkdir -p "$(MANDIR)/man1"
 	$(INSTALL) -m 644 $(MANPAGES) "$(MANDIR)/man1"
 
-uninstall: uninstall-libs uninstall-headers uninstall-progs uninstall-data uninstall-man
+uninstall: uninstall-progs uninstall-data uninstall-man
 
 uninstall-progs:
 	$(RM) $(addprefix "$(BINDIR)/", $(ALLPROGS))
@@ -175,7 +174,7 @@ clean:: testclean
 
 distclean::
 	$(RM) $(DISTCLEANSUFFIXES)
-	$(RM) config.* .version version.h libavutil/avconfig.h
+	$(RM) version.h config.* libavutil/avconfig.h
 
 config:
 	$(SRC_PATH)/configure $(value FFMPEG_CONFIGURATION)
@@ -187,18 +186,25 @@ check: test
 fulltest test: codectest lavftest lavfitest seektest
 
 FFSERVER_REFFILE = $(SRC_PATH)/tests/ffserver.regression.ref
+SEEK_REFFILE     = $(SRC_PATH)/tests/seek.regression.ref
 
 codectest: fate-codec
 lavftest:  fate-lavf
 lavfitest: fate-lavfi
 seektest:  fate-seek
 
-AREF = fate-acodec-aref
-VREF = fate-vsynth1-vref fate-vsynth2-vref
+AREF = tests/data/acodec.ref.wav
+VREF = tests/data/vsynth1.ref.yuv
 REFS = $(AREF) $(VREF)
 
+$(REFS): TAG = GEN
+
 $(VREF): ffmpeg$(EXESUF) tests/vsynth1/00.pgm tests/vsynth2/00.pgm
+	$(M)$(SRC_PATH)/tests/codec-regression.sh vref vsynth1 tests/vsynth1 "$(TARGET_EXEC)" "$(TARGET_PATH)"
+	$(Q)$(SRC_PATH)/tests/codec-regression.sh vref vsynth2 tests/vsynth2 "$(TARGET_EXEC)" "$(TARGET_PATH)"
+
 $(AREF): ffmpeg$(EXESUF) tests/data/asynth1.sw
+	$(M)$(SRC_PATH)/tests/codec-regression.sh aref acodec tests/acodec "$(TARGET_EXEC)" "$(TARGET_PATH)"
 
 ffservertest: ffserver$(EXESUF) tests/vsynth1/00.pgm tests/data/asynth1.sw
 	@echo
@@ -209,15 +215,15 @@ ffservertest: ffserver$(EXESUF) tests/vsynth1/00.pgm tests/data/asynth1.sw
 
 tests/vsynth1/00.pgm: tests/videogen$(HOSTEXESUF)
 	@mkdir -p tests/vsynth1
-	$(M)./$< 'tests/vsynth1/'
+	$(M)$(BUILD_ROOT)/$< 'tests/vsynth1/'
 
 tests/vsynth2/00.pgm: tests/rotozoom$(HOSTEXESUF)
 	@mkdir -p tests/vsynth2
-	$(M)./$< 'tests/vsynth2/' $(SRC_PATH)/tests/lena.pnm
+	$(M)$(BUILD_ROOT)/$< 'tests/vsynth2/' $(SRC_PATH)/tests/lena.pnm
 
 tests/data/asynth1.sw: tests/audiogen$(HOSTEXESUF)
 	@mkdir -p tests/data
-	$(M)./$< $@
+	$(M)$(BUILD_ROOT)/$< $@
 
 tests/data/asynth1.sw tests/vsynth%/00.pgm: TAG = GEN
 
@@ -252,8 +258,8 @@ FATE = $(FATE_ACODEC)                                                   \
        $(FATE_LAVFI)                                                    \
        $(FATE_SEEK)                                                     \
 
-$(filter-out %-aref,$(FATE_ACODEC)): $(AREF)
-$(filter-out %-vref,$(FATE_VCODEC)): $(VREF)
+$(FATE_ACODEC): $(AREF)
+$(FATE_VCODEC): $(VREF)
 $(FATE_LAVF):   $(REFS)
 $(FATE_LAVFI):  $(REFS) tools/lavfi-showfiltfmts$(EXESUF)
 $(FATE_SEEK):   fate-codec fate-lavf tests/seek_test$(EXESUF)
@@ -294,5 +300,4 @@ $(FATE): ffmpeg$(EXESUF) $(FATE_UTILS:%=tests/%$(HOSTEXESUF))
 fate-list:
 	@printf '%s\n' $(sort $(FATE))
 
-.PHONY: all alltools *clean check config documentation examples install*
-.PHONY: *test testprogs uninstall*
+.PHONY: documentation *test regtest-* alltools check config

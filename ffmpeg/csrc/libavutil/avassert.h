@@ -63,4 +63,4 @@
 #define av_assert2(cond) ((void)0)
 #endif
 
-#endif /* AVUTIL_AVASSERT_H */
+#endif

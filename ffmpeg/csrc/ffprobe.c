@@ -23,7 +23,7 @@
 
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
-#include "libavutil/opt.h"
+#include "libavcodec/opt.h"
 #include "libavutil/pixdesc.h"
 #include "libavdevice/avdevice.h"
 #include "cmdutils.h"
@@ -329,17 +329,16 @@ static void show_usage(void)
     printf("\n");
 }
 
-static int opt_format(const char *opt, const char *arg)
+static void opt_format(const char *arg)
 {
     iformat = av_find_input_format(arg);
     if (!iformat) {
         fprintf(stderr, "Unknown input format: %s\n", arg);
-        return AVERROR(EINVAL);
+        exit(1);
     }
-    return 0;
 }
 
-static int opt_input_file(const char *opt, const char *arg)
+static void opt_input_file(const char *arg)
 {
     if (input_filename) {
         fprintf(stderr, "Argument '%s' provided as input filename, but '%s' was already specified.\n",
@@ -349,7 +348,6 @@ static int opt_input_file(const char *opt, const char *arg)
     if (!strcmp(arg, "-"))
         arg = "pipe:";
     input_filename = arg;
-    return 0;
 }
 
 static void show_help(void)
@@ -384,8 +382,7 @@ static const OptionDef options[] = {
     { "show_format",  OPT_BOOL, {(void*)&do_show_format} , "show format/container info" },
     { "show_packets", OPT_BOOL, {(void*)&do_show_packets}, "show packets info" },
     { "show_streams", OPT_BOOL, {(void*)&do_show_streams}, "show streams info" },
-    { "default", HAS_ARG | OPT_AUDIO | OPT_VIDEO | OPT_EXPERT, {(void*)opt_default}, "generic catch all option", "" },
-    { "i", HAS_ARG, {(void *)opt_input_file}, "read specified file", "input_file"},
+    { "default", OPT_FUNC2 | HAS_ARG | OPT_AUDIO | OPT_VIDEO | OPT_EXPERT, {(void*)opt_default}, "generic catch all option", "" },
     { NULL, },
 };
 

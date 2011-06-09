@@ -196,4 +196,4 @@ static inline int ff_mpeg4_pred_dc(MpegEncContext * s, int n, int level, int *di
 
     return ret;
 }
-#endif /* AVCODEC_MPEG4VIDEO_H */
+#endif

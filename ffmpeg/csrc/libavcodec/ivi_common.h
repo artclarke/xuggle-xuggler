@@ -33,6 +33,8 @@
 #include "get_bits.h"
 #include <stdint.h>
 
+#define IVI_DEBUG 0
+
 #define IVI_VLC_BITS 13 ///< max number of bits of the ivi's huffman codes
 
 /**
@@ -338,6 +340,7 @@ void ff_ivi_process_empty_tile(AVCodecContext *avctx, IVIBandDesc *band,
  */
 void ff_ivi_output_plane(IVIPlaneDesc *plane, uint8_t *dst, int dst_pitch);
 
+#if IVI_DEBUG
 /**
  *  Calculate band checksum from band data.
  */
@@ -347,5 +350,6 @@ uint16_t ivi_calc_band_checksum (IVIBandDesc *band);
  *  Verify that band data lies in range.
  */
 int ivi_check_band (IVIBandDesc *band, const uint8_t *ref, int pitch);
+#endif
 
 #endif /* AVCODEC_IVI_COMMON_H */

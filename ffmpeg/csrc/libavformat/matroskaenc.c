@@ -586,27 +586,6 @@ static int mkv_write_tracks(AVFormatContext *s)
                 // XXX: interlace flag?
                 put_ebml_uint (pb, MATROSKA_ID_VIDEOPIXELWIDTH , codec->width);
                 put_ebml_uint (pb, MATROSKA_ID_VIDEOPIXELHEIGHT, codec->height);
-
-                if ((tag = av_metadata_get(st->metadata, "stereo_mode", NULL, 0)) ||
-                    (tag = av_metadata_get( s->metadata, "stereo_mode", NULL, 0))) {
-                    // save stereo mode flag
-                    uint64_t st_mode = MATROSKA_VIDEO_STEREO_MODE_COUNT;
-
-                    for (j=0; j<MATROSKA_VIDEO_STEREO_MODE_COUNT; j++)
-                        if (!strcmp(tag->value, matroska_video_stereo_mode[j])){
-                            st_mode = j;
-                            break;
-                        }
-
-                    if ((mkv->mode == MODE_WEBM && st_mode > 3 && st_mode != 11)
-                        || st_mode >= MATROSKA_VIDEO_STEREO_MODE_COUNT) {
-                        av_log(s, AV_LOG_ERROR,
-                               "The specified stereo mode is not valid.\n");
-                        return AVERROR(EINVAL);
-                    } else
-                        put_ebml_uint(pb, MATROSKA_ID_VIDEOSTEREOMODE, st_mode);
-                }
-
                 if (st->sample_aspect_ratio.num) {
                     int d_width = codec->width*av_q2d(st->sample_aspect_ratio);
                     put_ebml_uint(pb, MATROSKA_ID_VIDEODISPLAYWIDTH , d_width);
@@ -752,7 +731,7 @@ static int mkv_write_tag(AVFormatContext *s, AVMetadata *m, unsigned int element
     end_ebml_master(s->pb, targets);
 
     while ((t = av_metadata_get(m, "", t, AV_METADATA_IGNORE_SUFFIX)))
-        if (strcasecmp(t->key, "title") && strcasecmp(t->key, "stereo_mode"))
+        if (strcasecmp(t->key, "title"))
             mkv_write_simpletag(s->pb, t);
 
     end_ebml_master(s->pb, tag);
@@ -1220,7 +1199,7 @@ AVOutputFormat ff_webm_muxer = {
     mkv_write_header,
     mkv_write_packet,
     mkv_write_trailer,
-    .flags = AVFMT_GLOBALHEADER | AVFMT_VARIABLE_FPS | AVFMT_TS_NONSTRICT,
+    .flags = AVFMT_GLOBALHEADER | AVFMT_VARIABLE_FPS,
 };
 #endif
 

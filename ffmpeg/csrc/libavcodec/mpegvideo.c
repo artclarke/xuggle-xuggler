@@ -316,7 +316,7 @@ int ff_alloc_picture(MpegEncContext *s, Picture *pic, int shared){
     s->prev_pict_types[0]= s->dropable ? AV_PICTURE_TYPE_B : s->pict_type;
     if(pic->age < PREV_PICT_TYPES_BUFFER_SIZE && s->prev_pict_types[pic->age] == AV_PICTURE_TYPE_B)
         pic->age= INT_MAX; // Skipped MBs in B-frames are quite rare in MPEG-1/2 and it is a bit tricky to skip them anyway.
-    pic->owner2 = NULL;
+    pic->owner2 = s;
 
     return 0;
 fail: //for the FF_ALLOCZ_OR_GOTO macro
@@ -527,7 +527,7 @@ int ff_mpeg_update_thread_context(AVCodecContext *dst, const AVCodecContext *src
         s->last_pict_type= s1->pict_type;
         if (s1->current_picture_ptr) s->last_lambda_for[s1->pict_type] = s1->current_picture_ptr->quality;
 
-        if(s1->pict_type!=FF_B_TYPE){
+        if(s1->pict_type!=AV_PICTURE_TYPE_B){
             s->last_non_b_pict_type= s1->pict_type;
         }
     }
@@ -586,7 +586,7 @@ av_cold int MPV_common_init(MpegEncContext *s)
         return -1;
     }
 
-    if((s->encoding || (s->avctx->active_thread_type & FF_THREAD_SLICE)) &&
+    if(s->avctx->active_thread_type&FF_THREAD_SLICE &&
        (s->avctx->thread_count > MAX_THREADS || (s->avctx->thread_count > s->mb_height && s->mb_height))){
         av_log(s->avctx, AV_LOG_ERROR, "too many threads\n");
         return -1;
@@ -745,7 +745,7 @@ av_cold int MPV_common_init(MpegEncContext *s)
     s->context_initialized = 1;
     s->thread_context[0]= s;
 
-    if (s->encoding || (HAVE_THREADS && s->avctx->active_thread_type&FF_THREAD_SLICE)) {
+    if (HAVE_THREADS && s->avctx->active_thread_type&FF_THREAD_SLICE) {
         threads = s->avctx->thread_count;
 
         for(i=1; i<threads; i++){
@@ -763,7 +763,6 @@ av_cold int MPV_common_init(MpegEncContext *s)
         if(init_duplicate_context(s, s) < 0) goto fail;
         s->start_mb_y = 0;
         s->end_mb_y   = s->mb_height;
-
     }
 
     return 0;
@@ -777,7 +776,7 @@ void MPV_common_end(MpegEncContext *s)
 {
     int i, j, k;
 
-    if (s->encoding || (HAVE_THREADS && s->avctx->active_thread_type&FF_THREAD_SLICE)) {
+    if (HAVE_THREADS && s->avctx->active_thread_type&FF_THREAD_SLICE) {
         for(i=0; i<s->avctx->thread_count; i++){
             free_duplicate_context(s->thread_context[i]);
         }
@@ -956,7 +955,7 @@ void ff_release_unused_pictures(MpegEncContext *s, int remove_current)
     /* release non reference frames */
     for(i=0; i<s->picture_count; i++){
         if(s->picture[i].data[0] && !s->picture[i].reference
-           && (!s->picture[i].owner2 || s->picture[i].owner2 == s)
+           && s->picture[i].owner2 == s
            && (remove_current || &s->picture[i] != s->current_picture_ptr)
            /*&& s->picture[i].type!=FF_BUFFER_TYPE_SHARED*/){
             free_frame_buffer(s, &s->picture[i]);
@@ -1138,6 +1137,9 @@ int MPV_frame_start(MpegEncContext *s, AVCodecContext *avctx)
         }
     }
 
+#if FF_API_HURRY_UP
+    s->hurry_up= s->avctx->hurry_up;
+#endif
     s->error_recognition= avctx->error_recognition;
 
     /* set dequantizer, we can't do it during init as it might change for mpeg4
@@ -1319,8 +1321,15 @@ void ff_print_debug_info(MpegEncContext *s, AVFrame *pict){
     if(s->avctx->debug&(FF_DEBUG_SKIP | FF_DEBUG_QP | FF_DEBUG_MB_TYPE)){
         int x,y;
 
-        av_log(s->avctx, AV_LOG_DEBUG, "New frame, type: %c\n",
-               av_get_picture_type_char(pict->pict_type));
+        av_log(s->avctx,AV_LOG_DEBUG,"New frame, type: ");
+        switch (pict->pict_type) {
+            case AV_PICTURE_TYPE_I: av_log(s->avctx,AV_LOG_DEBUG,"I\n"); break;
+            case AV_PICTURE_TYPE_P: av_log(s->avctx,AV_LOG_DEBUG,"P\n"); break;
+            case AV_PICTURE_TYPE_B: av_log(s->avctx,AV_LOG_DEBUG,"B\n"); break;
+            case AV_PICTURE_TYPE_S: av_log(s->avctx,AV_LOG_DEBUG,"S\n"); break;
+            case AV_PICTURE_TYPE_SI: av_log(s->avctx,AV_LOG_DEBUG,"SI\n"); break;
+            case AV_PICTURE_TYPE_SP: av_log(s->avctx,AV_LOG_DEBUG,"SP\n"); break;
+        }
         for(y=0; y<s->mb_height; y++){
             for(x=0; x<s->mb_width; x++){
                 if(s->avctx->debug&FF_DEBUG_SKIP){
@@ -1403,7 +1412,6 @@ void ff_print_debug_info(MpegEncContext *s, AVFrame *pict){
             pict->data[i]= s->visualization_buffer[i];
         }
         pict->type= FF_BUFFER_TYPE_COPY;
-        pict->opaque= NULL;
         ptr= pict->data[0];
         block_height = 16>>v_chroma_shift;
 
@@ -1717,10 +1725,8 @@ static av_always_inline void mpeg_motion_lowres(MpegEncContext *s,
     if(!CONFIG_GRAY || !(s->flags&CODEC_FLAG_GRAY)){
         uvsx= (uvsx << 2) >> lowres;
         uvsy= (uvsy << 2) >> lowres;
-        if(h >> s->chroma_y_shift){
-            pix_op[op_index](dest_cb, ptr_cb, uvlinesize, h >> s->chroma_y_shift, uvsx, uvsy);
-            pix_op[op_index](dest_cr, ptr_cr, uvlinesize, h >> s->chroma_y_shift, uvsx, uvsy);
-        }
+        pix_op[op_index](dest_cb, ptr_cb, uvlinesize, h >> s->chroma_y_shift, uvsx, uvsy);
+        pix_op[op_index](dest_cr, ptr_cr, uvlinesize, h >> s->chroma_y_shift, uvsx, uvsy);
     }
     //FIXME h261 lowres loop filter
 }
@@ -2142,6 +2148,9 @@ void MPV_decode_mb_internal(MpegEncContext *s, DCTELEM block[12][64],
             }
 
             /* skip dequant / idct if we are really late ;) */
+#if FF_API_HURRY_UP
+            if(s->hurry_up>1) goto skip_idct;
+#endif
             if(s->avctx->skip_idct){
                 if(  (s->avctx->skip_idct >= AVDISCARD_NONREF && s->pict_type == AV_PICTURE_TYPE_B)
                    ||(s->avctx->skip_idct >= AVDISCARD_NONKEY && s->pict_type != AV_PICTURE_TYPE_I)
@@ -2150,7 +2159,7 @@ void MPV_decode_mb_internal(MpegEncContext *s, DCTELEM block[12][64],
             }
 
             /* add dct residue */
-            if(s->encoding || !(   s->msmpeg4_version || s->codec_id==CODEC_ID_MPEG1VIDEO || s->codec_id==CODEC_ID_MPEG2VIDEO
+            if(s->encoding || !(   s->h263_msmpeg4 || s->codec_id==CODEC_ID_MPEG1VIDEO || s->codec_id==CODEC_ID_MPEG2VIDEO
                                 || (s->codec_id==CODEC_ID_MPEG4 && !s->mpeg_quant))){
                 add_dequant_dct(s, block[0], 0, dest_y                          , dct_linesize, s->qscale);
                 add_dequant_dct(s, block[1], 1, dest_y              + block_size, dct_linesize, s->qscale);
@@ -2629,6 +2638,6 @@ void ff_set_qscale(MpegEncContext * s, int qscale)
 
 void MPV_report_decode_progress(MpegEncContext *s)
 {
-    if (s->pict_type != FF_B_TYPE && !s->partitioned_frame && !s->error_occurred)
+    if (s->pict_type != AV_PICTURE_TYPE_B && !s->partitioned_frame)
         ff_thread_report_progress((AVFrame*)s->current_picture_ptr, s->mb_y, 0);
 }

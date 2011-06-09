@@ -42,7 +42,7 @@ struct vf_priv_s
       ocount, sum[5];
    double threshold;
    FILE *file;
-   int8_t *bdata;
+   char *bdata;
    unsigned int *csdata;
    int *history;
    };
@@ -384,8 +384,8 @@ static int analyze(struct vf_priv_s *p)
    {
    int *buf=0, *bp, bufsize=0, n, b, f, i, j, m, s;
    unsigned int *cbuf=0, *cp;
-   int8_t *pbuf;
-   int8_t lbuf[256];
+   char *pbuf;
+   char lbuf[256];
    int sum[5];
    double d;
 
@@ -598,8 +598,7 @@ static void uninit(struct vf_instance *vf)
 static int vf_open(vf_instance_t *vf, char *args)
    {
    struct vf_priv_s *p;
-   const char *filename="framediff.log";
-   char *ap, *q, *a;
+   char *filename="framediff.log", *ap, *q, *a;
 
    if(args && !(args=av_strdup(args)))
       {

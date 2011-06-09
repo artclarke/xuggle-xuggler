@@ -29,7 +29,7 @@
  */
 
 #include <alsa/asoundlib.h>
-#include "avdevice.h"
+#include "libavformat/avformat.h"
 
 #include "alsa-audio.h"
 

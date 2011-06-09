@@ -20,6 +20,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#undef V_DEBUG
+//#define V_DEBUG
+//#define AV_DEBUG(...) av_log(NULL, AV_LOG_INFO, __VA_ARGS__)
+
 #include <math.h>
 
 #define ALT_BITSTREAM_READER_LE
@@ -36,6 +40,10 @@
 #define V_NB_BITS2 11
 #define V_MAX_VLCS (1 << 16)
 #define V_MAX_PARTITIONS (1 << 20)
+
+#ifndef V_DEBUG
+#define AV_DEBUG(...)
+#endif
 
 #undef NDEBUG
 #include <assert.h>
@@ -237,7 +245,7 @@ static int vorbis_parse_setup_hdr_codebooks(vorbis_context *vc)
 
     vc->codebook_count = get_bits(gb, 8) + 1;
 
-    av_dlog(NULL, " Codebooks: %d \n", vc->codebook_count);
+    AV_DEBUG(" Codebooks: %d \n", vc->codebook_count);
 
     vc->codebooks = av_mallocz(vc->codebook_count * sizeof(*vc->codebooks));
     tmp_vlc_bits  = av_mallocz(V_MAX_VLCS * sizeof(*tmp_vlc_bits));
@@ -248,7 +256,7 @@ static int vorbis_parse_setup_hdr_codebooks(vorbis_context *vc)
         vorbis_codebook *codebook_setup = &vc->codebooks[cb];
         unsigned ordered, t, entries, used_entries = 0;
 
-        av_dlog(NULL, " %u. Codebook\n", cb);
+        AV_DEBUG(" %u. Codebook\n", cb);
 
         if (get_bits(gb, 24) != 0x564342) {
             av_log(vc->avccontext, AV_LOG_ERROR,
@@ -273,17 +281,17 @@ static int vorbis_parse_setup_hdr_codebooks(vorbis_context *vc)
 
         ordered = get_bits1(gb);
 
-        av_dlog(NULL, " codebook_dimensions %d, codebook_entries %u\n",
-                codebook_setup->dimensions, entries);
+        AV_DEBUG(" codebook_dimensions %d, codebook_entries %u\n",
+                 codebook_setup->dimensions, entries);
 
         if (!ordered) {
             unsigned ce, flag;
             unsigned sparse = get_bits1(gb);
 
-            av_dlog(NULL, " not ordered \n");
+            AV_DEBUG(" not ordered \n");
 
             if (sparse) {
-                av_dlog(NULL, " sparse \n");
+                AV_DEBUG(" sparse \n");
 
                 used_entries = 0;
                 for (ce = 0; ce < entries; ++ce) {
@@ -295,7 +303,7 @@ static int vorbis_parse_setup_hdr_codebooks(vorbis_context *vc)
                         tmp_vlc_bits[ce] = 0;
                 }
             } else {
-                av_dlog(NULL, " not sparse \n");
+                AV_DEBUG(" not sparse \n");
 
                 used_entries = entries;
                 for (ce = 0; ce < entries; ++ce)
@@ -305,17 +313,17 @@ static int vorbis_parse_setup_hdr_codebooks(vorbis_context *vc)
             unsigned current_entry  = 0;
             unsigned current_length = get_bits(gb, 5) + 1;
 
-            av_dlog(NULL, " ordered, current length: %u\n", current_length);  //FIXME
+            AV_DEBUG(" ordered, current length: %u\n", current_length);  //FIXME
 
             used_entries = entries;
             for (; current_entry < used_entries && current_length <= 32; ++current_length) {
                 unsigned i, number;
 
-                av_dlog(NULL, " number bits: %u ", ilog(entries - current_entry));
+                AV_DEBUG(" number bits: %u ", ilog(entries - current_entry));
 
                 number = get_bits(gb, ilog(entries - current_entry));
 
-                av_dlog(NULL, " number: %u\n", number);
+                AV_DEBUG(" number: %u\n", number);
 
                 for (i = current_entry; i < number+current_entry; ++i)
                     if (i < used_entries)
@@ -331,8 +339,7 @@ static int vorbis_parse_setup_hdr_codebooks(vorbis_context *vc)
 
         codebook_setup->lookup_type = get_bits(gb, 4);
 
-        av_dlog(NULL, " lookup type: %d : %s \n", codebook_setup->lookup_type,
-                codebook_setup->lookup_type ? "vq" : "no lookup");
+        AV_DEBUG(" lookup type: %d : %s \n", codebook_setup->lookup_type, codebook_setup->lookup_type ? "vq" : "no lookup");
 
 // If the codebook is used for (inverse) VQ, calculate codevectors.
 
@@ -345,17 +352,14 @@ static int vorbis_parse_setup_hdr_codebooks(vorbis_context *vc)
             unsigned codebook_value_bits = get_bits(gb, 4) + 1;
             unsigned codebook_sequence_p = get_bits1(gb);
 
-            av_dlog(NULL, " We expect %d numbers for building the codevectors. \n",
-                    codebook_lookup_values);
-            av_dlog(NULL, "  delta %f minmum %f \n",
-                    codebook_delta_value, codebook_minimum_value);
+            AV_DEBUG(" We expect %d numbers for building the codevectors. \n", codebook_lookup_values);
+            AV_DEBUG("  delta %f minmum %f \n", codebook_delta_value, codebook_minimum_value);
 
             for (i = 0; i < codebook_lookup_values; ++i) {
                 codebook_multiplicands[i] = get_bits(gb, codebook_value_bits);
 
-                av_dlog(NULL, " multiplicands*delta+minmum : %e \n",
-                        (float)codebook_multiplicands[i] * codebook_delta_value + codebook_minimum_value);
-                av_dlog(NULL, " multiplicand %u\n", codebook_multiplicands[i]);
+                AV_DEBUG(" multiplicands*delta+minmum : %e \n", (float)codebook_multiplicands[i]*codebook_delta_value+codebook_minimum_value);
+                AV_DEBUG(" multiplicand %u\n", codebook_multiplicands[i]);
             }
 
 // Weed out unused vlcs and build codevector vector
@@ -370,7 +374,9 @@ static int vorbis_parse_setup_hdr_codebooks(vorbis_context *vc)
                     float last = 0.0;
                     unsigned lookup_offset = i;
 
-                    av_dlog(vc->avccontext, "Lookup offset %u ,", i);
+#ifdef V_DEBUG
+                    av_log(vc->avccontext, AV_LOG_INFO, "Lookup offset %u ,", i);
+#endif
 
                     for (k = 0; k < dim; ++k) {
                         unsigned multiplicand_offset = lookup_offset % codebook_lookup_values;
@@ -381,11 +387,12 @@ static int vorbis_parse_setup_hdr_codebooks(vorbis_context *vc)
                     }
                     tmp_vlc_bits[j] = tmp_vlc_bits[i];
 
-                    av_dlog(vc->avccontext, "real lookup offset %u, vector: ", j);
+#ifdef V_DEBUG
+                    av_log(vc->avccontext, AV_LOG_INFO, "real lookup offset %u, vector: ", j);
                     for (k = 0; k < dim; ++k)
-                        av_dlog(vc->avccontext, " %f ",
-                                codebook_setup->codevectors[j * dim + k]);
-                    av_dlog(vc->avccontext, "\n");
+                        av_log(vc->avccontext, AV_LOG_INFO, " %f ", codebook_setup->codevectors[j * dim + k]);
+                    av_log(vc->avccontext, AV_LOG_INFO, "\n");
+#endif
 
                     ++j;
                 }
@@ -446,8 +453,8 @@ static int vorbis_parse_setup_hdr_tdtransforms(vorbis_context *vc)
     for (i = 0; i < vorbis_time_count; ++i) {
         unsigned vorbis_tdtransform = get_bits(gb, 16);
 
-        av_dlog(NULL, " Vorbis time domain transform %u: %u\n",
-                vorbis_time_count, vorbis_tdtransform);
+        AV_DEBUG(" Vorbis time domain transform %u: %u\n",
+                 vorbis_time_count, vorbis_tdtransform);
 
         if (vorbis_tdtransform) {
             av_log(vc->avccontext, AV_LOG_ERROR, "Vorbis time domain transform data nonzero. \n");
@@ -478,7 +485,7 @@ static int vorbis_parse_setup_hdr_floors(vorbis_context *vc)
 
         floor_setup->floor_type = get_bits(gb, 16);
 
-        av_dlog(NULL, " %d. floor type %d \n", i, floor_setup->floor_type);
+        AV_DEBUG(" %d. floor type %d \n", i, floor_setup->floor_type);
 
         if (floor_setup->floor_type == 1) {
             int maximum_class = -1;
@@ -488,33 +495,29 @@ static int vorbis_parse_setup_hdr_floors(vorbis_context *vc)
 
             floor_setup->data.t1.partitions = get_bits(gb, 5);
 
-            av_dlog(NULL, " %d.floor: %d partitions \n",
-                    i, floor_setup->data.t1.partitions);
+            AV_DEBUG(" %d.floor: %d partitions \n", i, floor_setup->data.t1.partitions);
 
             for (j = 0; j < floor_setup->data.t1.partitions; ++j) {
                 floor_setup->data.t1.partition_class[j] = get_bits(gb, 4);
                 if (floor_setup->data.t1.partition_class[j] > maximum_class)
                     maximum_class = floor_setup->data.t1.partition_class[j];
 
-                av_dlog(NULL, " %d. floor %d partition class %d \n",
-                        i, j, floor_setup->data.t1.partition_class[j]);
+                AV_DEBUG(" %d. floor %d partition class %d \n", i, j, floor_setup->data.t1.partition_class[j]);
 
             }
 
-            av_dlog(NULL, " maximum class %d \n", maximum_class);
+            AV_DEBUG(" maximum class %d \n", maximum_class);
 
             for (j = 0; j <= maximum_class; ++j) {
                 floor_setup->data.t1.class_dimensions[j] = get_bits(gb, 3) + 1;
                 floor_setup->data.t1.class_subclasses[j] = get_bits(gb, 2);
 
-                av_dlog(NULL, " %d floor %d class dim: %d subclasses %d \n", i, j,
-                        floor_setup->data.t1.class_dimensions[j],
-                        floor_setup->data.t1.class_subclasses[j]);
+                AV_DEBUG(" %d floor %d class dim: %d subclasses %d \n", i, j, floor_setup->data.t1.class_dimensions[j], floor_setup->data.t1.class_subclasses[j]);
 
                 if (floor_setup->data.t1.class_subclasses[j]) {
                     GET_VALIDATED_INDEX(floor_setup->data.t1.class_masterbook[j], 8, vc->codebook_count)
 
-                    av_dlog(NULL, "   masterbook: %d \n", floor_setup->data.t1.class_masterbook[j]);
+                    AV_DEBUG("   masterbook: %d \n", floor_setup->data.t1.class_masterbook[j]);
                 }
 
                 for (k = 0; k < (1 << floor_setup->data.t1.class_subclasses[j]); ++k) {
@@ -523,7 +526,7 @@ static int vorbis_parse_setup_hdr_floors(vorbis_context *vc)
                         VALIDATE_INDEX(bits, vc->codebook_count)
                     floor_setup->data.t1.subclass_books[j][k] = bits;
 
-                    av_dlog(NULL, "    book %d. : %d \n", k, floor_setup->data.t1.subclass_books[j][k]);
+                    AV_DEBUG("    book %d. : %d \n", k, floor_setup->data.t1.subclass_books[j][k]);
                 }
             }
 
@@ -552,8 +555,8 @@ static int vorbis_parse_setup_hdr_floors(vorbis_context *vc)
                 for (k = 0; k < floor_setup->data.t1.class_dimensions[floor_setup->data.t1.partition_class[j]]; ++k, ++floor1_values) {
                     floor_setup->data.t1.list[floor1_values].x = get_bits(gb, rangebits);
 
-                    av_dlog(NULL, " %u. floor1 Y coord. %d\n", floor1_values,
-                            floor_setup->data.t1.list[floor1_values].x);
+                    AV_DEBUG(" %u. floor1 Y coord. %d\n", floor1_values,
+                             floor_setup->data.t1.list[floor1_values].x);
                 }
             }
 
@@ -605,26 +608,28 @@ static int vorbis_parse_setup_hdr_floors(vorbis_context *vc)
             if (!floor_setup->data.t0.lsp)
                 return -1;
 
-            /* debug output parsed headers */
-            av_dlog(NULL, "floor0 order: %u\n", floor_setup->data.t0.order);
-            av_dlog(NULL, "floor0 rate: %u\n", floor_setup->data.t0.rate);
-            av_dlog(NULL, "floor0 bark map size: %u\n",
-                    floor_setup->data.t0.bark_map_size);
-            av_dlog(NULL, "floor0 amplitude bits: %u\n",
-                    floor_setup->data.t0.amplitude_bits);
-            av_dlog(NULL, "floor0 amplitude offset: %u\n",
-                    floor_setup->data.t0.amplitude_offset);
-            av_dlog(NULL, "floor0 number of books: %u\n",
-                    floor_setup->data.t0.num_books);
-            av_dlog(NULL, "floor0 book list pointer: %p\n",
-                    floor_setup->data.t0.book_list);
+#ifdef V_DEBUG /* debug output parsed headers */
+            AV_DEBUG("floor0 order: %u\n", floor_setup->data.t0.order);
+            AV_DEBUG("floor0 rate: %u\n", floor_setup->data.t0.rate);
+            AV_DEBUG("floor0 bark map size: %u\n",
+                     floor_setup->data.t0.bark_map_size);
+            AV_DEBUG("floor0 amplitude bits: %u\n",
+                     floor_setup->data.t0.amplitude_bits);
+            AV_DEBUG("floor0 amplitude offset: %u\n",
+                     floor_setup->data.t0.amplitude_offset);
+            AV_DEBUG("floor0 number of books: %u\n",
+                     floor_setup->data.t0.num_books);
+            AV_DEBUG("floor0 book list pointer: %p\n",
+                     floor_setup->data.t0.book_list);
             {
                 int idx;
                 for (idx = 0; idx < floor_setup->data.t0.num_books; ++idx) {
-                    av_dlog(NULL, "  Book %d: %u\n", idx + 1,
-                            floor_setup->data.t0.book_list[idx]);
+                    AV_DEBUG("  Book %d: %u\n",
+                             idx+1,
+                             floor_setup->data.t0.book_list[idx]);
                 }
             }
+#endif
         } else {
             av_log(vc->avccontext, AV_LOG_ERROR, "Invalid floor type!\n");
             return -1;
@@ -643,7 +648,7 @@ static int vorbis_parse_setup_hdr_residues(vorbis_context *vc)
     vc->residue_count = get_bits(gb, 6)+1;
     vc->residues      = av_mallocz(vc->residue_count * sizeof(*vc->residues));
 
-    av_dlog(NULL, " There are %d residues. \n", vc->residue_count);
+    AV_DEBUG(" There are %d residues. \n", vc->residue_count);
 
     for (i = 0; i < vc->residue_count; ++i) {
         vorbis_residue *res_setup = &vc->residues[i];
@@ -652,7 +657,7 @@ static int vorbis_parse_setup_hdr_residues(vorbis_context *vc)
 
         res_setup->type = get_bits(gb, 16);
 
-        av_dlog(NULL, " %u. residue type %d\n", i, res_setup->type);
+        AV_DEBUG(" %u. residue type %d\n", i, res_setup->type);
 
         res_setup->begin          = get_bits(gb, 24);
         res_setup->end            = get_bits(gb, 24);
@@ -679,9 +684,8 @@ static int vorbis_parse_setup_hdr_residues(vorbis_context *vc)
         if (!res_setup->classifs)
             return AVERROR(ENOMEM);
 
-        av_dlog(NULL, "    begin %d end %d part.size %d classif.s %d classbook %d \n",
-                res_setup->begin, res_setup->end, res_setup->partition_size,
-                res_setup->classifications, res_setup->classbook);
+        AV_DEBUG("    begin %d end %d part.size %d classif.s %d classbook %d \n", res_setup->begin, res_setup->end, res_setup->partition_size,
+          res_setup->classifications, res_setup->classbook);
 
         for (j = 0; j < res_setup->classifications; ++j) {
             high_bits = 0;
@@ -690,7 +694,7 @@ static int vorbis_parse_setup_hdr_residues(vorbis_context *vc)
                 high_bits = get_bits(gb, 5);
             cascade[j] = (high_bits << 3) + low_bits;
 
-            av_dlog(NULL, "     %u class cascade depth: %d\n", j, ilog(cascade[j]));
+            AV_DEBUG("     %u class cascade depth: %d\n", j, ilog(cascade[j]));
         }
 
         res_setup->maxpass = 0;
@@ -699,8 +703,8 @@ static int vorbis_parse_setup_hdr_residues(vorbis_context *vc)
                 if (cascade[j]&(1 << k)) {
                     GET_VALIDATED_INDEX(res_setup->books[j][k], 8, vc->codebook_count)
 
-                    av_dlog(NULL, "     %u class cascade depth %u book: %d\n",
-                            j, k, res_setup->books[j][k]);
+                    AV_DEBUG("     %u class cascade depth %u book: %d\n",
+                             j, k, res_setup->books[j][k]);
 
                     if (k>res_setup->maxpass)
                         res_setup->maxpass = k;
@@ -723,7 +727,7 @@ static int vorbis_parse_setup_hdr_mappings(vorbis_context *vc)
     vc->mapping_count = get_bits(gb, 6)+1;
     vc->mappings      = av_mallocz(vc->mapping_count * sizeof(*vc->mappings));
 
-    av_dlog(NULL, " There are %d mappings. \n", vc->mapping_count);
+    AV_DEBUG(" There are %d mappings. \n", vc->mapping_count);
 
     for (i = 0; i < vc->mapping_count; ++i) {
         vorbis_mapping *mapping_setup = &vc->mappings[i];
@@ -752,8 +756,8 @@ static int vorbis_parse_setup_hdr_mappings(vorbis_context *vc)
             mapping_setup->coupling_steps = 0;
         }
 
-        av_dlog(NULL, "   %u mapping coupling steps: %d\n",
-                i, mapping_setup->coupling_steps);
+        AV_DEBUG("   %u mapping coupling steps: %d\n",
+                 i, mapping_setup->coupling_steps);
 
         if (get_bits(gb, 2)) {
             av_log(vc->avccontext, AV_LOG_ERROR, "%u. mapping setup data invalid.\n", i);
@@ -772,9 +776,10 @@ static int vorbis_parse_setup_hdr_mappings(vorbis_context *vc)
             GET_VALIDATED_INDEX(mapping_setup->submap_floor[j],   8, vc->floor_count)
             GET_VALIDATED_INDEX(mapping_setup->submap_residue[j], 8, vc->residue_count)
 
-            av_dlog(NULL, "   %u mapping %u submap : floor %d, residue %d\n", i, j,
-                    mapping_setup->submap_floor[j],
-                    mapping_setup->submap_residue[j]);
+            AV_DEBUG("   %u mapping %u submap : floor %d, residue %d\n",
+                     i, j,
+                     mapping_setup->submap_floor[j],
+                     mapping_setup->submap_residue[j]);
         }
     }
     return 0;
@@ -809,9 +814,12 @@ static void create_map(vorbis_context *vc, unsigned floor_number)
         vf->map_size[blockflag] = n;
     }
 
+#ifdef V_DEBUG
     for (idx = 0; idx <= n; ++idx) {
-        av_dlog(NULL, "floor0 map: map at pos %d is %d\n", idx, map[idx]);
+        AV_DEBUG("floor0 map: map at pos %d is %d\n",
+                 idx, map[idx]);
     }
+#endif
 }
 
 static int vorbis_parse_setup_hdr_modes(vorbis_context *vc)
@@ -822,7 +830,7 @@ static int vorbis_parse_setup_hdr_modes(vorbis_context *vc)
     vc->mode_count = get_bits(gb, 6) + 1;
     vc->modes      = av_mallocz(vc->mode_count * sizeof(*vc->modes));
 
-    av_dlog(NULL, " There are %d modes.\n", vc->mode_count);
+    AV_DEBUG(" There are %d modes.\n", vc->mode_count);
 
     for (i = 0; i < vc->mode_count; ++i) {
         vorbis_mode *mode_setup = &vc->modes[i];
@@ -832,9 +840,9 @@ static int vorbis_parse_setup_hdr_modes(vorbis_context *vc)
         mode_setup->transformtype = get_bits(gb, 16); //FIXME check
         GET_VALIDATED_INDEX(mode_setup->mapping, 8, vc->mapping_count);
 
-        av_dlog(NULL, " %u mode: blockflag %d, windowtype %d, transformtype %d, mapping %d\n",
-                i, mode_setup->blockflag, mode_setup->windowtype,
-                mode_setup->transformtype, mode_setup->mapping);
+        AV_DEBUG(" %u mode: blockflag %d, windowtype %d, transformtype %d, mapping %d\n",
+                 i, mode_setup->blockflag, mode_setup->windowtype,
+                 mode_setup->transformtype, mode_setup->mapping);
     }
     return 0;
 }
@@ -942,7 +950,7 @@ static int vorbis_parse_id_hdr(vorbis_context *vc)
     ff_mdct_init(&vc->mdct[0], bl0, 1, -vc->scale_bias);
     ff_mdct_init(&vc->mdct[1], bl1, 1, -vc->scale_bias);
 
-    av_dlog(NULL, " vorbis version %d \n audio_channels %d \n audio_samplerate %d \n bitrate_max %d \n bitrate_nom %d \n bitrate_min %d \n blk_0 %d blk_1 %d \n ",
+    AV_DEBUG(" vorbis version %d \n audio_channels %d \n audio_samplerate %d \n bitrate_max %d \n bitrate_nom %d \n bitrate_min %d \n blk_0 %d blk_1 %d \n ",
             vc->version, vc->audio_channels, vc->audio_samplerate, vc->bitrate_maximum, vc->bitrate_nominal, vc->bitrate_minimum, vc->blocksize[0], vc->blocksize[1]);
 
 /*
@@ -971,13 +979,7 @@ static av_cold int vorbis_decode_init(AVCodecContext *avccontext)
     dsputil_init(&vc->dsp, avccontext);
     ff_fmt_convert_init(&vc->fmt_conv, avccontext);
 
-    if (avccontext->request_sample_fmt == AV_SAMPLE_FMT_FLT) {
-        avccontext->sample_fmt = AV_SAMPLE_FMT_FLT;
-        vc->scale_bias = 1.0f;
-    } else {
-        avccontext->sample_fmt = AV_SAMPLE_FMT_S16;
-        vc->scale_bias = 32768.0f;
-    }
+    vc->scale_bias = 32768.0f;
 
     if (!headers_len) {
         av_log(avccontext, AV_LOG_ERROR, "Extradata missing.\n");
@@ -1022,6 +1024,9 @@ static av_cold int vorbis_decode_init(AVCodecContext *avccontext)
     avccontext->channels    = vc->audio_channels;
     avccontext->sample_rate = vc->audio_samplerate;
     avccontext->frame_size  = FFMIN(vc->blocksize[0], vc->blocksize[1]) >> 2;
+    avccontext->sample_fmt  =
+        avccontext->request_sample_fmt == AV_SAMPLE_FMT_FLT ?
+        AV_SAMPLE_FMT_FLT : AV_SAMPLE_FMT_S16;
 
     return 0 ;
 }
@@ -1050,7 +1055,7 @@ static int vorbis_floor0_decode(vorbis_context *vc,
                     "floor0 dec: booknumber too high!\n");
             book_idx =  0;
         }
-        av_dlog(NULL, "floor0 dec: booknumber: %u\n", book_idx);
+        AV_DEBUG("floor0 dec: booknumber: %u\n", book_idx);
         codebook = vc->codebooks[vf->book_list[book_idx]];
         /* Invalid codebook! */
         if (!codebook.codevectors)
@@ -1059,13 +1064,13 @@ static int vorbis_floor0_decode(vorbis_context *vc,
         while (lsp_len<vf->order) {
             int vec_off;
 
-            av_dlog(NULL, "floor0 dec: book dimension: %d\n", codebook.dimensions);
-            av_dlog(NULL, "floor0 dec: maximum depth: %d\n", codebook.maxdepth);
+            AV_DEBUG("floor0 dec: book dimension: %d\n", codebook.dimensions);
+            AV_DEBUG("floor0 dec: maximum depth: %d\n", codebook.maxdepth);
             /* read temp vector */
             vec_off = get_vlc2(&vc->gb, codebook.vlc.table,
                                codebook.nb_bits, codebook.maxdepth)
                       * codebook.dimensions;
-            av_dlog(NULL, "floor0 dec: vector offset: %d\n", vec_off);
+            AV_DEBUG("floor0 dec: vector offset: %d\n", vec_off);
             /* copy each vector component and add last to it */
             for (idx = 0; idx < codebook.dimensions; ++idx)
                 lsp[lsp_len+idx] = codebook.codevectors[vec_off+idx] + last;
@@ -1073,12 +1078,14 @@ static int vorbis_floor0_decode(vorbis_context *vc,
 
             lsp_len += codebook.dimensions;
         }
+#ifdef V_DEBUG
         /* DEBUG: output lsp coeffs */
         {
             int idx;
             for (idx = 0; idx < lsp_len; ++idx)
-                av_dlog(NULL, "floor0 dec: coeff at %d is %f\n", idx, lsp[idx]);
+                AV_DEBUG("floor0 dec: coeff at %d is %f\n", idx, lsp[idx]);
         }
+#endif
 
         /* synthesize floor output vector */
         {
@@ -1088,6 +1095,9 @@ static int vorbis_floor0_decode(vorbis_context *vc,
 
             for (i = 0; i < order; i++)
                 lsp[i] = 2.0f * cos(lsp[i]);
+
+            AV_DEBUG("floor0 synth: map_size = %d; m = %d; wstep = %f\n",
+                     vf->map_size, order, wstep);
 
             i = 0;
             while (i < vf->map_size[blockflag]) {
@@ -1128,7 +1138,7 @@ static int vorbis_floor0_decode(vorbis_context *vc,
         return 1;
     }
 
-    av_dlog(NULL, " Floor0 decoded\n");
+    AV_DEBUG(" Floor0 decoded\n");
 
     return 0;
 }
@@ -1155,7 +1165,7 @@ static int vorbis_floor1_decode(vorbis_context *vc,
     floor1_Y[0] = get_bits(gb, ilog(range - 1));
     floor1_Y[1] = get_bits(gb, ilog(range - 1));
 
-    av_dlog(NULL, "floor 0 Y %d floor 1 Y %d \n", floor1_Y[0], floor1_Y[1]);
+    AV_DEBUG("floor 0 Y %d floor 1 Y %d \n", floor1_Y[0], floor1_Y[1]);
 
     offset = 2;
     for (i = 0; i < vf->partitions; ++i) {
@@ -1165,7 +1175,7 @@ static int vorbis_floor1_decode(vorbis_context *vc,
         csub = (1 << cbits) - 1;
         cval = 0;
 
-        av_dlog(NULL, "Cbits %u\n", cbits);
+        AV_DEBUG("Cbits %u\n", cbits);
 
         if (cbits) // this reads all subclasses for this partition's class
             cval = get_vlc2(gb, vc->codebooks[vf->class_masterbook[partition_class]].vlc.table,
@@ -1174,8 +1184,8 @@ static int vorbis_floor1_decode(vorbis_context *vc,
         for (j = 0; j < cdim; ++j) {
             book = vf->subclass_books[partition_class][cval & csub];
 
-            av_dlog(NULL, "book %d Cbits %u cval %u  bits:%d\n",
-                    book, cbits, cval, get_bits_count(gb));
+            AV_DEBUG("book %d Cbits %u cval %u  bits:%d\n",
+                     book, cbits, cval, get_bits_count(gb));
 
             cval = cval >> cbits;
             if (book > -1) {
@@ -1185,8 +1195,7 @@ static int vorbis_floor1_decode(vorbis_context *vc,
                 floor1_Y[offset+j] = 0;
             }
 
-            av_dlog(NULL, " floor(%d) = %d \n",
-                    vf->list[offset+j].x, floor1_Y[offset+j]);
+            AV_DEBUG(" floor(%d) = %d \n", vf->list[offset+j].x, floor1_Y[offset+j]);
         }
         offset+=cdim;
     }
@@ -1244,15 +1253,15 @@ static int vorbis_floor1_decode(vorbis_context *vc,
             floor1_Y_final[i] = predicted;
         }
 
-        av_dlog(NULL, " Decoded floor(%d) = %u / val %u\n",
-                vf->list[i].x, floor1_Y_final[i], val);
+        AV_DEBUG(" Decoded floor(%d) = %u / val %u\n",
+                 vf->list[i].x, floor1_Y_final[i], val);
     }
 
 // Curve synth - connect the calculated dots and convert from dB scale FIXME optimize ?
 
     ff_vorbis_floor1_render_list(vf->list, vf->x_list_dim, floor1_Y_final, floor1_flag, vf->multiplier, vec, vf->list[1].x);
 
-    av_dlog(NULL, " Floor decoded\n");
+    AV_DEBUG(" Floor decoded\n");
 
     return 0;
 }
@@ -1283,7 +1292,7 @@ static av_always_inline int vorbis_residue_decode_internal(vorbis_context *vc,
         ch_used = ch;
     }
 
-    av_dlog(NULL, " residue type 0/1/2 decode begin, ch: %d  cpc %d  \n", ch, c_p_c);
+    AV_DEBUG(" residue type 0/1/2 decode begin, ch: %d  cpc %d  \n", ch, c_p_c);
 
     for (pass = 0; pass <= vr->maxpass; ++pass) { // FIXME OPTIMIZE?
         uint16_t voffset, partition_count, j_times_ptns_to_read;
@@ -1297,7 +1306,7 @@ static av_always_inline int vorbis_residue_decode_internal(vorbis_context *vc,
                         unsigned temp = get_vlc2(gb, vc->codebooks[vr->classbook].vlc.table,
                                                  vc->codebooks[vr->classbook].nb_bits, 3);
 
-                        av_dlog(NULL, "Classword: %u\n", temp);
+                        AV_DEBUG("Classword: %u\n", temp);
 
                         assert(vr->classifications > 1 && temp <= 65536); //needed for inverse[]
                         for (i = 0; i < c_p_c; ++i) {
@@ -1342,8 +1351,7 @@ static av_always_inline int vorbis_residue_decode_internal(vorbis_context *vc,
                                     for (l = 0; l < dim; ++l, ++voffs) {
                                         vec[voffs]+=codebook.codevectors[coffs+l];  // FPMATH
 
-                                        av_dlog(NULL, " pass %d offs: %d curr: %f change: %f cv offs.: %d  \n",
-                                                pass, voffs, vec[voffs], codebook.codevectors[coffs+l], coffs);
+                                        AV_DEBUG(" pass %d offs: %d curr: %f change: %f cv offs.: %d  \n", pass, voffs, vec[voffs], codebook.codevectors[coffs+l], coffs);
                                     }
                                 }
                             } else if (vr_type == 2 && ch == 2 && (voffset & 1) == 0 && (dim & 1) == 0) { // most frequent case optimized
@@ -1370,10 +1378,7 @@ static av_always_inline int vorbis_residue_decode_internal(vorbis_context *vc,
                                         vec[voffs       ] += codebook.codevectors[coffs + l    ];  // FPMATH
                                         vec[voffs + vlen] += codebook.codevectors[coffs + l + 1];  // FPMATH
 
-                                        av_dlog(NULL, " pass %d offs: %d curr: %f change: %f cv offs.: %d+%d  \n",
-                                                pass, voffset / ch + (voffs % ch) * vlen,
-                                                vec[voffset / ch + (voffs % ch) * vlen],
-                                                codebook.codevectors[coffs + l], coffs, l);
+                                        AV_DEBUG(" pass %d offs: %d curr: %f change: %f cv offs.: %d+%d  \n", pass, voffset / ch + (voffs % ch) * vlen, vec[voffset / ch + (voffs % ch) * vlen], codebook.codevectors[coffs + l], coffs, l);
                                     }
                                 }
 
@@ -1385,10 +1390,7 @@ static av_always_inline int vorbis_residue_decode_internal(vorbis_context *vc,
                                     for (l = 0; l < dim; ++l, ++voffs) {
                                         vec[voffs / ch + (voffs % ch) * vlen] += codebook.codevectors[coffs + l];  // FPMATH FIXME use if and counter instead of / and %
 
-                                        av_dlog(NULL, " pass %d offs: %d curr: %f change: %f cv offs.: %d+%d  \n",
-                                                pass, voffset / ch + (voffs % ch) * vlen,
-                                                vec[voffset / ch + (voffs % ch) * vlen],
-                                                codebook.codevectors[coffs + l], coffs, l);
+                                        AV_DEBUG(" pass %d offs: %d curr: %f change: %f cv offs.: %d+%d  \n", pass, voffset / ch + (voffs % ch) * vlen, vec[voffset / ch + (voffs % ch) * vlen], codebook.codevectors[coffs + l], coffs, l);
                                     }
                                 }
                             }
@@ -1476,8 +1478,8 @@ static int vorbis_parse_audio_packet(vorbis_context *vc)
     vc->mode_number = mode_number;
     mapping = &vc->mappings[vc->modes[mode_number].mapping];
 
-    av_dlog(NULL, " Mode number: %u , mapping: %d , blocktype %d\n", mode_number,
-            vc->modes[mode_number].mapping, vc->modes[mode_number].blockflag);
+    AV_DEBUG(" Mode number: %u , mapping: %d , blocktype %d\n", mode_number,
+             vc->modes[mode_number].mapping, vc->modes[mode_number].blockflag);
 
     blockflag = vc->modes[mode_number].blockflag;
     blocksize = vc->blocksize[blockflag];
@@ -1606,7 +1608,7 @@ static int vorbis_decode_frame(AVCodecContext *avccontext,
     if (!buf_size)
         return 0;
 
-    av_dlog(NULL, "packet length %d \n", buf_size);
+    AV_DEBUG("packet length %d \n", buf_size);
 
     init_get_bits(gb, buf, buf_size*8);
 
@@ -1623,8 +1625,7 @@ static int vorbis_decode_frame(AVCodecContext *avccontext,
         return buf_size ;
     }
 
-    av_dlog(NULL, "parsed %d bytes %d bits, returned %d samples (*ch*bits) \n",
-            get_bits_count(gb) / 8, get_bits_count(gb) % 8, len);
+    AV_DEBUG("parsed %d bytes %d bits, returned %d samples (*ch*bits) \n", get_bits_count(gb)/8, get_bits_count(gb)%8, len);
 
     if (vc->audio_channels > 8) {
         for (i = 0; i < vc->audio_channels; i++)
@@ -1635,14 +1636,15 @@ static int vorbis_decode_frame(AVCodecContext *avccontext,
                               len * ff_vorbis_channel_layout_offsets[vc->audio_channels - 1][i];
     }
 
-    if (avccontext->sample_fmt == AV_SAMPLE_FMT_FLT)
-        vc->fmt_conv.float_interleave(data, channel_ptrs, len, vc->audio_channels);
-    else
+    *data_size = len * vc->audio_channels;
+    if (avccontext->sample_fmt == AV_SAMPLE_FMT_FLT) {
+        float_interleave(data, channel_ptrs, len, vc->audio_channels);
+        *data_size *= sizeof(float);
+    } else {
         vc->fmt_conv.float_to_int16_interleave(data, channel_ptrs, len,
                                                vc->audio_channels);
-
-    *data_size = len * vc->audio_channels *
-                 (av_get_bits_per_sample_fmt(avccontext->sample_fmt) / 8);
+        *data_size *= 2;
+    }
 
     return buf_size ;
 }
@@ -1669,8 +1671,5 @@ AVCodec ff_vorbis_decoder = {
     vorbis_decode_frame,
     .long_name = NULL_IF_CONFIG_SMALL("Vorbis"),
     .channel_layouts = ff_vorbis_channel_layouts,
-    .sample_fmts = (const enum AVSampleFormat[]) {
-        AV_SAMPLE_FMT_FLT, AV_SAMPLE_FMT_S16, AV_SAMPLE_FMT_NONE
-    },
 };
 

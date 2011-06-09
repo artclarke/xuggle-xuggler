@@ -38,7 +38,7 @@
 #include "libavutil/parseutils.h"
 #include "libavutil/pixdesc.h"
 #include "libavutil/eval.h"
-#include "libavutil/opt.h"
+#include "libavcodec/opt.h"
 #include "cmdutils.h"
 #include "version.h"
 #if CONFIG_NETWORK
@@ -76,8 +76,7 @@ void uninit_opts(void)
     av_freep(&avformat_opts->key);
     av_freep(&avformat_opts);
 #if CONFIG_SWSCALE
-    sws_freeContext(sws_opts);
-    sws_opts = NULL;
+    av_freep(&sws_opts);
 #endif
     for (i = 0; i < opt_name_count; i++) {
         av_freep(&opt_names[i]);
@@ -217,7 +216,7 @@ static inline void prepare_app_arguments(int *argc_ptr, char ***argv_ptr)
 #endif /* WIN32 && !__MINGW32CE__ */
 
 void parse_options(int argc, char **argv, const OptionDef *options,
-                   int (* parse_arg_function)(const char *opt, const char *arg))
+                   void (* parse_arg_function)(const char*))
 {
     const char *opt, *arg;
     int optindex, handleoptions=1;
@@ -273,19 +272,21 @@ unknown_opt:
                 *po->u.int64_arg = parse_number_or_die(opt, arg, OPT_INT64, INT64_MIN, INT64_MAX);
             } else if (po->flags & OPT_FLOAT) {
                 *po->u.float_arg = parse_number_or_die(opt, arg, OPT_FLOAT, -INFINITY, INFINITY);
-            } else {
-                if (po->u.func_arg(opt, arg) < 0) {
+            } else if (po->flags & OPT_FUNC2) {
+                if (po->u.func2_arg(opt, arg) < 0) {
                     fprintf(stderr, "%s: failed to set value '%s' for option '%s'\n", argv[0], arg, opt);
                     exit(1);
                 }
+            } else if (po->flags & OPT_DUMMY) {
+                /* Do nothing for this option */
+            } else {
+                po->u.func_arg(arg);
             }
             if(po->flags & OPT_EXIT)
                 exit(0);
         } else {
-            if (parse_arg_function) {
-                if (parse_arg_function(NULL, opt) < 0)
-                    exit(1);
-            }
+            if (parse_arg_function)
+                parse_arg_function(opt);
         }
     }
 }
@@ -300,7 +301,7 @@ int opt_default(const char *opt, const char *arg){
     AVInputFormat *iformat = NULL;
 
     while ((p = av_codec_next(p))) {
-        const AVClass *c = p->priv_class;
+        AVClass *c = p->priv_class;
         if (c && av_find_opt(&c, opt, NULL, 0, 0))
             break;
     }
@@ -410,25 +411,13 @@ int opt_timelimit(const char *opt, const char *arg)
     return 0;
 }
 
-static void *alloc_priv_context(int size, const AVClass *class)
-{
-    void *p = av_mallocz(size);
-    if (p) {
-        *(const AVClass **)p = class;
-        av_opt_set_defaults(p);
-    }
-    return p;
-}
-
 void set_context_opts(void *ctx, void *opts_ctx, int flags, AVCodec *codec)
 {
     int i;
     void *priv_ctx=NULL;
     if(!strcmp("AVCodecContext", (*(AVClass**)ctx)->class_name)){
         AVCodecContext *avctx= ctx;
-        if(codec && codec->priv_class){
-            if(!avctx->priv_data && codec->priv_data_size)
-                avctx->priv_data= alloc_priv_context(codec->priv_data_size, codec->priv_class);
+        if(codec && codec->priv_class && avctx->priv_data){
             priv_ctx= avctx->priv_data;
         }
     } else if (!strcmp("AVFormatContext", (*(AVClass**)ctx)->class_name)) {
@@ -848,23 +837,6 @@ FILE *get_preset_file(char *filename, size_t filename_size,
         av_strlcpy(filename, preset_name, filename_size);
         f = fopen(filename, "r");
     } else {
-#ifdef _WIN32
-        char datadir[MAX_PATH], *ls;
-        base[2] = NULL;
-
-        if (GetModuleFileNameA(GetModuleHandleA(NULL), datadir, sizeof(datadir) - 1))
-        {
-            for (ls = datadir; ls < datadir + strlen(datadir); ls++)
-                if (*ls == '\\') *ls = '/';
-
-            if (ls = strrchr(datadir, '/'))
-            {
-                *ls = 0;
-                strncat(datadir, "/ffpresets",  sizeof(datadir) - 1 - strlen(datadir));
-                base[2] = datadir;
-            }
-        }
-#endif
         for (i = 0; i < 3 && !f; i++) {
             if (!base[i])
                 continue;
@@ -925,7 +897,6 @@ int get_filtered_video_frame(AVFilterContext *ctx, AVFrame *frame,
 {
     int ret;
     AVFilterBufferRef *picref;
-    *picref_ptr = NULL;
 
     if ((ret = avfilter_request_frame(ctx->inputs[0])) < 0)
         return ret;

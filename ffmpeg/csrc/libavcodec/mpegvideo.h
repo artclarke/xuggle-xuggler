@@ -209,6 +209,7 @@ typedef struct MpegEncContext {
 
 /* the following codec id fields are deprecated in favor of codec_id */
     int h263_plus;    ///< h263 plus headers
+    int h263_msmpeg4; ///< generate MSMPEG4 compatible stream (deprecated, use msmpeg4_version instead)
     int h263_flv;     ///< use flv h263 header
 
     enum CodecID codec_id;     /* see CODEC_ID_xxx */
@@ -390,6 +391,11 @@ typedef struct MpegEncContext {
     int no_rounding;  /**< apply no rounding to motion compensation (MPEG4, msmpeg4, ...)
                         for b-frames rounding mode is always 0 */
 
+#if FF_API_HURRY_UP
+    int hurry_up;     /**< when set to 1 during decoding, b frames will be skipped
+                         when set to 2 idct/dequant will be skipped too */
+#endif
+
     /* macroblock layer */
     int mb_x, mb_y;
     int mb_skip_run;
@@ -474,7 +480,7 @@ typedef struct MpegEncContext {
     int last_bits; ///< temp var used for calculating the above vars
 
     /* error concealment / resync */
-    int error_count, error_occurred;
+    int error_count;
     uint8_t *error_status_table;       ///< table of the error status of each MB
 #define VP_START            1          ///< current MB is the first after a resync marker
 #define AC_ERROR            2
@@ -842,3 +848,4 @@ void ff_wmv2_encode_mb(MpegEncContext * s,
                        int motion_x, int motion_y);
 
 #endif /* AVCODEC_MPEGVIDEO_H */
+

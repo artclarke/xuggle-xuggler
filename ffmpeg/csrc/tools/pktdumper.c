@@ -104,11 +104,7 @@ int main(int argc, char **argv)
         //printf("open(\"%s\")\n", pktfilename);
         if (!nowrite) {
             fd = open(pktfilename, O_WRONLY|O_CREAT, 0644);
-            err = write(fd, pkt.data, pkt.size);
-            if (err < 0) {
-                fprintf(stderr, "write: error %d\n", err);
-                return 1;
-            }
+            write(fd, pkt.data, pkt.size);
             close(fd);
         }
         av_free_packet(&pkt);
