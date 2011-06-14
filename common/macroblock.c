@@ -588,7 +588,7 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x
         }
 }
 
-x264_left_table_t left_indices[4] =
+static const x264_left_table_t left_indices[4] =
 {
     /* Current is progressive */
     {{ 4, 4, 5, 5}, { 3,  3,  7,  7}, {16+1, 16+1, 16+4+1, 16+4+1}, {0, 0, 1, 1}, {0, 0, 0, 0}},
@@ -800,7 +800,7 @@ void ALWAYS_INLINE x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y, in
     uint8_t (*nnz)[24] = h->mb.non_zero_count;
     int16_t *cbp = h->mb.cbp;
 
-    x264_left_table_t *left_index_table = h->mb.left_index_table;
+    const x264_left_table_t *left_index_table = h->mb.left_index_table;
 
     /* load cache */
     if( h->mb.i_neighbour & MB_TOP )
@@ -1343,7 +1343,7 @@ void x264_macroblock_deblock_strength( x264_t *h )
             int s4x4 = h->mb.i_b4_stride;
 
             uint8_t (*nnz)[24] = h->mb.non_zero_count;
-            x264_left_table_t *left_index_table = SLICE_MBAFF ? h->mb.left_index_table : &left_indices[3];
+            const x264_left_table_t *left_index_table = SLICE_MBAFF ? h->mb.left_index_table : &left_indices[3];
 
             if( h->mb.i_neighbour & MB_TOP )
                 CP32( &h->mb.cache.non_zero_count[x264_scan8[0] - 8], &nnz[h->mb.i_mb_top_xy][12] );

@@ -632,7 +632,7 @@ struct x264_t
         int     i_mb_top_y;
         int     i_mb_topleft_y;
         int     i_mb_topright_y;
-        x264_left_table_t *left_index_table;
+        const x264_left_table_t *left_index_table;
         int     i_mb_top_mbpair_xy;
         int     topleft_partition;
         int     b_allow_skip;
