@@ -261,6 +261,7 @@ def _YUVOutputComparisonFactory():
 
                 ffmpeg_proc = Popen([
                     "ffmpeg",
+                    "-vsync 0",
                     "-i",
                     "%s.264" % self.fixture.dispatcher.video,
                     "ffmpeg-output.yuv"
