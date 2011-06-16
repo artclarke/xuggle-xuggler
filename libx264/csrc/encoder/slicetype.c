@@ -371,8 +371,8 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     const int i_stride = fenc->i_stride_lowres;
     const int i_pel_offset = 8 * (i_mb_x + i_mb_y * i_stride);
     const int i_bipred_weight = h->param.analyse.b_weighted_bipred ? 64 - (dist_scale_factor>>2) : 32;
-    int16_t (*fenc_mvs[2])[2] = { &frames[b]->lowres_mvs[0][b-p0-1][i_mb_xy], &frames[b]->lowres_mvs[1][p1-b-1][i_mb_xy] };
-    int (*fenc_costs[2]) = { &frames[b]->lowres_mv_costs[0][b-p0-1][i_mb_xy], &frames[b]->lowres_mv_costs[1][p1-b-1][i_mb_xy] };
+    int16_t (*fenc_mvs[2])[2] = { &fenc->lowres_mvs[0][b-p0-1][i_mb_xy], &fenc->lowres_mvs[1][p1-b-1][i_mb_xy] };
+    int (*fenc_costs[2]) = { &fenc->lowres_mv_costs[0][b-p0-1][i_mb_xy], &fenc->lowres_mv_costs[1][p1-b-1][i_mb_xy] };
     int b_frame_score_mb = (i_mb_x > 0 && i_mb_x < h->mb.i_mb_width - 1 &&
                             i_mb_y > 0 && i_mb_y < h->mb.i_mb_height - 1) ||
                             h->mb.i_mb_width <= 2 || h->mb.i_mb_height <= 2;
@@ -580,15 +580,14 @@ lowres_intra_mb:
 
         i_icost += intra_penalty;
         fenc->i_intra_cost[i_mb_xy] = i_icost;
+        int i_icost_aq = i_icost;
+        if( h->param.rc.i_aq_mode )
+            i_icost_aq = (i_icost_aq * fenc->i_inv_qscale_factor[i_mb_xy] + 128) >> 8;
+        fenc->i_row_satds[0][0][h->mb.i_mb_y] += i_icost_aq;
         if( b_frame_score_mb )
         {
-            int *row_satd_intra = frames[b]->i_row_satds[0][0];
-            int i_icost_aq = i_icost;
-            if( h->param.rc.i_aq_mode )
-                i_icost_aq = (i_icost_aq * frames[b]->i_inv_qscale_factor[i_mb_xy] + 128) >> 8;
             fenc->i_cost_est[0][0] += i_icost;
             fenc->i_cost_est_aq[0][0] += i_icost_aq;
-            row_satd_intra[h->mb.i_mb_y] += i_icost_aq;
         }
     }
 
@@ -612,13 +611,13 @@ lowres_intra_mb:
     {
         int i_bcost_aq = i_bcost;
         if( h->param.rc.i_aq_mode )
-            i_bcost_aq = (i_bcost_aq * frames[b]->i_inv_qscale_factor[i_mb_xy] + 128) >> 8;
+            i_bcost_aq = (i_bcost_aq * fenc->i_inv_qscale_factor[i_mb_xy] + 128) >> 8;
         fenc->i_row_satds[b-p0][p1-b][h->mb.i_mb_y] += i_bcost_aq;
         if( b_frame_score_mb )
         {
             /* Don't use AQ-weighted costs for slicetype decision, only for ratecontrol. */
-            frames[b]->i_cost_est[b-p0][p1-b] += i_bcost;
-            frames[b]->i_cost_est_aq[b-p0][p1-b] += i_bcost_aq;
+            fenc->i_cost_est[b-p0][p1-b] += i_bcost;
+            fenc->i_cost_est_aq[b-p0][p1-b] += i_bcost_aq;
         }
     }
 

@@ -121,6 +121,7 @@ typedef struct x264_frame
     int     *i_row_satd;
     int     *i_row_bits;
     float   *f_row_qp;
+    float   *f_row_qscale;
     float   *f_qp_offset;
     float   *f_qp_offset_aq;
     int     b_intra_calculated;

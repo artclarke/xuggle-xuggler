@@ -40,7 +40,7 @@ deinterleave_shuf: db 0,2,4,6,8,10,12,14,1,3,5,7,9,11,13,15
 
 pd_16: times 4 dd 16
 pd_0f: times 4 dd 0xffff
-pf_inv256: times 4 dd 0.00390625
+pf_inv256: times 8 dd 0.00390625
 
 pad10: times 8 dw    10*PIXEL_MAX
 pad20: times 8 dw    20*PIXEL_MAX
@@ -1630,7 +1630,7 @@ FRAME_INIT_LOWRES ssse3
 ;                             uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len )
 ;-----------------------------------------------------------------------------
 cglobal mbtree_propagate_cost_sse2, 7,7,7
-    shl        r6d, 1
+    add        r6d, r6d
     lea         r0, [r0+r6*2]
     add         r1, r6
     add         r2, r6
@@ -1673,3 +1673,49 @@ cglobal mbtree_propagate_cost_sse2, 7,7,7
     jl .loop
     REP_RET
 
+%macro INT16_TO_FLOAT 1
+    vpunpckhwd   xmm4, xmm%1, xmm7
+    vpunpcklwd  xmm%1, xmm7
+    vinsertf128 ymm%1, ymm%1, xmm4, 1
+    vcvtdq2ps   ymm%1, ymm%1
+%endmacro
+
+; FIXME: align loads/stores to 16 bytes
+cglobal mbtree_propagate_cost_avx, 7,7,8
+    add           r6d, r6d
+    lea            r0, [r0+r6*2]
+    add            r1, r6
+    add            r2, r6
+    add            r3, r6
+    add            r4, r6
+    neg            r6
+    vmovdqa      xmm5, [pw_3fff]
+    vbroadcastss ymm6, [r5]
+    vmulps       ymm6, ymm6, [pf_inv256]
+    vpxor        xmm7, xmm7
+.loop:
+    vmovdqu      xmm0, [r2+r6]       ; intra
+    vmovdqu      xmm1, [r4+r6]       ; invq
+    vmovdqu      xmm2, [r1+r6]       ; prop
+    vpand        xmm3, xmm5, [r3+r6] ; inter
+    INT16_TO_FLOAT 0
+    INT16_TO_FLOAT 1
+    INT16_TO_FLOAT 2
+    INT16_TO_FLOAT 3
+    vmulps       ymm1, ymm1, ymm0
+    vsubps       ymm4, ymm0, ymm3
+    vmulps       ymm1, ymm1, ymm6    ; intra*invq*fps_factor>>8
+    vaddps       ymm1, ymm1, ymm2    ; prop + (intra*invq*fps_factor>>8)
+    vrcpps       ymm3, ymm0          ; 1 / intra 1st approximation
+    vmulps       ymm2, ymm0, ymm3    ; intra * (1/intra 1st approx)
+    vmulps       ymm2, ymm2, ymm3    ; intra * (1/intra 1st approx)^2
+    vmulps       ymm1, ymm1, ymm4    ; (prop + (intra*invq*fps_factor>>8)) * (intra - inter)
+    vaddps       ymm3, ymm3, ymm3    ; 2 * (1/intra 1st approx)
+    vsubps       ymm3, ymm3, ymm2    ; 2nd approximation for 1/intra
+    vmulps       ymm1, ymm1, ymm3    ; / intra
+    vcvtps2dq    ymm1, ymm1
+    vmovdqu [r0+r6*2], ymm1
+    add            r6, 16
+    jl .loop
+    vzeroupper
+    RET

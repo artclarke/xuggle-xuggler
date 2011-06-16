@@ -342,7 +342,7 @@ int x264_macroblock_thread_allocate( x264_t *h, int b_lookahead )
             ((me_range*2+24) * sizeof(int16_t) + (me_range+4) * (me_range+1) * 4 * sizeof(mvsad_t));
         scratch_size = X264_MAX3( buf_hpel, buf_ssim, buf_tesa );
     }
-    int buf_mbtree = h->param.rc.b_mb_tree * ((h->mb.i_mb_width+3)&~3) * sizeof(int);
+    int buf_mbtree = h->param.rc.b_mb_tree * ((h->mb.i_mb_width+7)&~7) * sizeof(int);
     scratch_size = X264_MAX( scratch_size, buf_mbtree );
     if( scratch_size )
         CHECKED_MALLOC( h->scratch_buffer, scratch_size );
@@ -588,7 +588,7 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x
         }
 }
 
-x264_left_table_t left_indices[4] =
+static const x264_left_table_t left_indices[4] =
 {
     /* Current is progressive */
     {{ 4, 4, 5, 5}, { 3,  3,  7,  7}, {16+1, 16+1, 16+4+1, 16+4+1}, {0, 0, 1, 1}, {0, 0, 0, 0}},
@@ -800,7 +800,7 @@ void ALWAYS_INLINE x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y, in
     uint8_t (*nnz)[24] = h->mb.non_zero_count;
     int16_t *cbp = h->mb.cbp;
 
-    x264_left_table_t *left_index_table = h->mb.left_index_table;
+    const x264_left_table_t *left_index_table = h->mb.left_index_table;
 
     /* load cache */
     if( h->mb.i_neighbour & MB_TOP )
@@ -1343,7 +1343,7 @@ void x264_macroblock_deblock_strength( x264_t *h )
             int s4x4 = h->mb.i_b4_stride;
 
             uint8_t (*nnz)[24] = h->mb.non_zero_count;
-            x264_left_table_t *left_index_table = SLICE_MBAFF ? h->mb.left_index_table : &left_indices[3];
+            const x264_left_table_t *left_index_table = SLICE_MBAFF ? h->mb.left_index_table : &left_indices[3];
 
             if( h->mb.i_neighbour & MB_TOP )
                 CP32( &h->mb.cache.non_zero_count[x264_scan8[0] - 8], &nnz[h->mb.i_mb_top_xy][12] );
