@@ -744,15 +744,11 @@ if [ "$lavf" = "auto" ] ; then
         done
     fi
     LAVF_LIBS="-L. $LAVF_LIBS"
-    if cc_check libavformat/avformat.h "$LAVF_CFLAGS $LAVF_LIBS" "avcodec_decode_video2(0,0,0,0);" ; then
-        if cpp_check libavcodec/avcodec.h "$LAVF_CFLAGS $LAVF_LIBS" "LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52,64,0)" ; then
-            if [ "$swscale" = "yes" ]; then
-                lavf="yes"
-            else
-                echo "Warning: libavformat is not supported without swscale support"
-            fi
+    if cc_check libavformat/avformat.h "$LAVF_CFLAGS $LAVF_LIBS" "avformat_open_input(0,0,0,0);" ; then
+        if [ "$swscale" = "yes" ]; then
+            lavf="yes"
         else
-            echo "Warning: libavcodec is too old, update to ffmpeg r22735+"
+            echo "Warning: libavformat is not supported without swscale support"
         fi
     fi
 fi
