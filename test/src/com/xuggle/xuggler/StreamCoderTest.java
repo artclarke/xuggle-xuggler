@@ -297,9 +297,11 @@ public class StreamCoderTest extends TestCase
     
     coder = IStreamCoder.make(IStreamCoder.Direction.ENCODING);
     coder.setCodec(ICodec.ID.CODEC_ID_PCM_S16LE);
+    assertNotNull(coder.getCodec());
+    log.debug("Coder: {}", coder.getCodec());
     coder.setSampleRate(22050);
     coder.setChannels(1);
-    assertTrue(coder.open() >= 0);
+    assertTrue("could not open coder", coder.open() >= 0);
     assertEquals(coder.getAudioFrameSize(), coder.getDefaultAudioFrameSize());
     coder.setDefaultAudioFrameSize(3);
     assertEquals(coder.getAudioFrameSize(), coder.getDefaultAudioFrameSize());

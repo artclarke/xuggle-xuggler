@@ -311,7 +311,7 @@ public class MediaWriterTest
     writer.close();
 
     assert(file.exists());
-    assertEquals(file.length(), 40157, 100);
+    assertEquals(40314, file.length(), 100);
     log.debug("manually check: " + file);
   }
 
@@ -369,7 +369,7 @@ public class MediaWriterTest
     writer.close();
 
     assert (file.exists());
-    assertEquals(file.length(), 40157, 100);
+    assertEquals(40314, file.length(), 100);
     log.debug("manually check: " + file);
   }
 

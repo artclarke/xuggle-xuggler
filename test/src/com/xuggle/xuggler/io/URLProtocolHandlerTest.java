@@ -116,7 +116,8 @@ public class URLProtocolHandlerTest
     retval = FfmpegIO.url_open(mHandle, "test:succeed", IURLProtocolHandler.URL_RDWR);
     assertEquals("should succeed", 0, retval);
     retval = FfmpegIO.url_write(mHandle, mBuffer, mBuffer.length);
-    assertEquals("should fail", -1, retval);  }
+    assertEquals("should fail", -1, retval);
+  }
   
   @Test
   public void testSeekException()

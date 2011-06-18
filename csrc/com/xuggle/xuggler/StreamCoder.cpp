@@ -162,12 +162,17 @@ StreamCoder::make(Direction direction, IStreamCoder* aCoder)
           break;
         }
         // set the codec to the codec_id
-        retval->setCodec(aCoder->getCodec());
+        ICodec* tempCodec = aCoder->getCodec();
+        retval->setCodec(tempCodec);
+        tempCodec->release();
       }
       else
       {
         retval->mCodecContext->codec_id = CODEC_ID_PROBE; // Tell FFMPEG we don't know, but to probe to find out
-      }
+        if (retval->mCodecContext->sample_fmt == SAMPLE_FMT_NONE)
+          retval->mCodecContext->sample_fmt = SAMPLE_FMT_S16;
+
+}
     }
   }
   catch (std::bad_alloc &e)
