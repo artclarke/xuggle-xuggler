@@ -55,6 +55,7 @@ typedef enum {
 
 typedef struct {
     AVCodecContext *avctx;
+    DSPContext dsp;
 
     SiprMode mode;
 

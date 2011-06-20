@@ -34,14 +34,13 @@
 #include "libavdevice/avdevice.h"
 #include "libswscale/swscale.h"
 #include "libavcodec/audioconvert.h"
-#include "libavutil/opt.h"
+#include "libavcodec/opt.h"
 #include "libavcodec/avfft.h"
 
 #if CONFIG_AVFILTER
 # include "libavfilter/avcodec.h"
 # include "libavfilter/avfilter.h"
 # include "libavfilter/avfiltergraph.h"
-# include "libavfilter/vsink_buffer.h"
 #endif
 
 #include <SDL.h>
@@ -254,7 +253,7 @@ static int autoexit;
 static int exit_on_keydown;
 static int exit_on_mousedown;
 static int loop=1;
-static int framedrop=-1;
+static int framedrop=1;
 static enum ShowMode show_mode = SHOW_MODE_NONE;
 
 static int rdftspeed=20;
@@ -857,57 +856,6 @@ static void video_audio_display(VideoState *s)
     }
 }
 
-static void stream_close(VideoState *is)
-{
-    VideoPicture *vp;
-    int i;
-    /* XXX: use a special url_shutdown call to abort parse cleanly */
-    is->abort_request = 1;
-    SDL_WaitThread(is->read_tid, NULL);
-    SDL_WaitThread(is->refresh_tid, NULL);
-
-    /* free all pictures */
-    for(i=0;i<VIDEO_PICTURE_QUEUE_SIZE; i++) {
-        vp = &is->pictq[i];
-#if CONFIG_AVFILTER
-        if (vp->picref) {
-            avfilter_unref_buffer(vp->picref);
-            vp->picref = NULL;
-        }
-#endif
-        if (vp->bmp) {
-            SDL_FreeYUVOverlay(vp->bmp);
-            vp->bmp = NULL;
-        }
-    }
-    SDL_DestroyMutex(is->pictq_mutex);
-    SDL_DestroyCond(is->pictq_cond);
-    SDL_DestroyMutex(is->subpq_mutex);
-    SDL_DestroyCond(is->subpq_cond);
-#if !CONFIG_AVFILTER
-    if (is->img_convert_ctx)
-        sws_freeContext(is->img_convert_ctx);
-#endif
-    av_free(is);
-}
-
-static void do_exit(void)
-{
-    if (cur_stream) {
-        stream_close(cur_stream);
-        cur_stream = NULL;
-    }
-    uninit_opts();
-#if CONFIG_AVFILTER
-    avfilter_uninit();
-#endif
-    if (show_status)
-        printf("\n");
-    SDL_Quit();
-    av_log(NULL, AV_LOG_QUIET, "");
-    exit(0);
-}
-
 static int video_open(VideoState *is){
     int flags = SDL_HWSURFACE|SDL_ASYNCBLIT|SDL_HWACCEL;
     int w,h;
@@ -946,7 +894,7 @@ static int video_open(VideoState *is){
 #endif
     if (!screen) {
         fprintf(stderr, "SDL: could not set video mode - exiting\n");
-        do_exit();
+        return -1;
     }
     if (!window_title)
         window_title = input_filename;
@@ -1139,7 +1087,7 @@ retry:
             }else{
                 next_target= vp->target_clock + is->video_clock - vp->pts; //FIXME pass durations cleanly
             }
-            if((framedrop>0 || (framedrop && is->audio_st)) && time > next_target){
+            if(framedrop && time > next_target){
                 is->skip_frames *= 1.0 + FRAME_SKIP_FACTOR;
                 if(is->pictq_size > 1 || time > next_target + 0.5){
                     /* update queue size and signal for next picture */
@@ -1254,6 +1202,57 @@ retry:
             last_time = cur_time;
         }
     }
+}
+
+static void stream_close(VideoState *is)
+{
+    VideoPicture *vp;
+    int i;
+    /* XXX: use a special url_shutdown call to abort parse cleanly */
+    is->abort_request = 1;
+    SDL_WaitThread(is->read_tid, NULL);
+    SDL_WaitThread(is->refresh_tid, NULL);
+
+    /* free all pictures */
+    for(i=0;i<VIDEO_PICTURE_QUEUE_SIZE; i++) {
+        vp = &is->pictq[i];
+#if CONFIG_AVFILTER
+        if (vp->picref) {
+            avfilter_unref_buffer(vp->picref);
+            vp->picref = NULL;
+        }
+#endif
+        if (vp->bmp) {
+            SDL_FreeYUVOverlay(vp->bmp);
+            vp->bmp = NULL;
+        }
+    }
+    SDL_DestroyMutex(is->pictq_mutex);
+    SDL_DestroyCond(is->pictq_cond);
+    SDL_DestroyMutex(is->subpq_mutex);
+    SDL_DestroyCond(is->subpq_cond);
+#if !CONFIG_AVFILTER
+    if (is->img_convert_ctx)
+        sws_freeContext(is->img_convert_ctx);
+#endif
+    av_free(is);
+}
+
+static void do_exit(void)
+{
+    if (cur_stream) {
+        stream_close(cur_stream);
+        cur_stream = NULL;
+    }
+    uninit_opts();
+#if CONFIG_AVFILTER
+    avfilter_uninit();
+#endif
+    if (show_status)
+        printf("\n");
+    SDL_Quit();
+    av_log(NULL, AV_LOG_QUIET, "");
+    exit(0);
 }
 
 /* allocate a picture (needs to do that in main thread to avoid
@@ -1644,7 +1643,7 @@ static int input_query_formats(AVFilterContext *ctx)
         priv->is->video_st->codec->pix_fmt, PIX_FMT_NONE
     };
 
-    avfilter_set_common_pixel_formats(ctx, avfilter_make_format_list(pix_fmts));
+    avfilter_set_common_formats(ctx, avfilter_make_format_list(pix_fmts));
     return 0;
 }
 
@@ -1683,7 +1682,7 @@ static int configure_video_filters(AVFilterGraph *graph, VideoState *is, const c
 {
     char sws_flags_str[128];
     int ret;
-    enum PixelFormat pix_fmts[] = { PIX_FMT_YUV420P, PIX_FMT_NONE };
+    FFSinkContext ffsink_ctx = { .pix_fmt = PIX_FMT_YUV420P };
     AVFilterContext *filt_src = NULL, *filt_out = NULL;
     snprintf(sws_flags_str, sizeof(sws_flags_str), "flags=%d", sws_flags);
     graph->scale_sws_opts = av_strdup(sws_flags_str);
@@ -1691,8 +1690,8 @@ static int configure_video_filters(AVFilterGraph *graph, VideoState *is, const c
     if ((ret = avfilter_graph_create_filter(&filt_src, &input_filter, "src",
                                             NULL, is, graph)) < 0)
         goto the_end;
-    if ((ret = avfilter_graph_create_filter(&filt_out, avfilter_get_by_name("buffersink"), "out",
-                                            NULL, pix_fmts, graph)) < 0)
+    if ((ret = avfilter_graph_create_filter(&filt_out, &ffsink, "out",
+                                            NULL, &ffsink_ctx, graph)) < 0)
         goto the_end;
 
     if(vfilters) {
@@ -1749,14 +1748,13 @@ static int video_thread(void *arg)
         AVPacket pkt;
 #else
         AVFilterBufferRef *picref;
-        AVRational tb = filt_out->inputs[0]->time_base;
+        AVRational tb;
 #endif
         while (is->paused && !is->videoq.abort_request)
             SDL_Delay(10);
 #if CONFIG_AVFILTER
-        ret = av_vsink_buffer_get_video_buffer_ref(filt_out, &picref, 0);
+        ret = get_filtered_video_frame(filt_out, frame, &picref, &tb);
         if (picref) {
-            avfilter_fill_frame_from_video_buffer_ref(frame, picref);
             pts_int = picref->pts;
             pos     = picref->pos;
             frame->opaque = picref;
@@ -1778,7 +1776,7 @@ static int video_thread(void *arg)
 
         if (ret < 0) goto the_end;
 
-        if (!picref)
+        if (!ret)
             continue;
 
         pts = pts_int*av_q2d(is->video_st->time_base);

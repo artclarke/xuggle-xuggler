@@ -419,10 +419,8 @@ cglobal deblock_h_luma_10_%1, 5,7,15
 
 INIT_XMM
 DEBLOCK_LUMA_64 sse2
-%ifdef HAVE_AVX
 INIT_AVX
 DEBLOCK_LUMA_64 avx
-%endif
 %endif
 
 %macro SWAPMOVA 2
@@ -716,10 +714,8 @@ cglobal deblock_h_luma_intra_10_%1, 4,7,16
 
 INIT_XMM
 DEBLOCK_LUMA_INTRA_64 sse2
-%ifdef HAVE_AVX
 INIT_AVX
 DEBLOCK_LUMA_INTRA_64 avx
-%endif
 
 %endif
 
@@ -803,11 +799,9 @@ DEBLOCK_LUMA_INTRA mmxext
 INIT_XMM
 DEBLOCK_LUMA sse2
 DEBLOCK_LUMA_INTRA sse2
-%ifdef HAVE_AVX
 INIT_AVX
 DEBLOCK_LUMA avx
 DEBLOCK_LUMA_INTRA avx
-%endif
 %endif
 
 ; in: %1=p0, %2=q0, %3=p1, %4=q1, %5=mask, %6=tmp, %7=tmp
@@ -919,7 +913,5 @@ DEBLOCK_CHROMA mmxext
 %endif
 INIT_XMM
 DEBLOCK_CHROMA sse2
-%ifdef HAVE_AVX
 INIT_AVX
 DEBLOCK_CHROMA avx
-%endif

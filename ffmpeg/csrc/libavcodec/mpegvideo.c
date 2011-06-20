@@ -1138,6 +1138,9 @@ int MPV_frame_start(MpegEncContext *s, AVCodecContext *avctx)
         }
     }
 
+#if FF_API_HURRY_UP
+    s->hurry_up= s->avctx->hurry_up;
+#endif
     s->error_recognition= avctx->error_recognition;
 
     /* set dequantizer, we can't do it during init as it might change for mpeg4
@@ -2147,6 +2150,9 @@ void MPV_decode_mb_internal(MpegEncContext *s, DCTELEM block[12][64],
             }
 
             /* skip dequant / idct if we are really late ;) */
+#if FF_API_HURRY_UP
+            if(s->hurry_up>1) goto skip_idct;
+#endif
             if(s->avctx->skip_idct){
                 if(  (s->avctx->skip_idct >= AVDISCARD_NONREF && s->pict_type == AV_PICTURE_TYPE_B)
                    ||(s->avctx->skip_idct >= AVDISCARD_NONKEY && s->pict_type != AV_PICTURE_TYPE_I)

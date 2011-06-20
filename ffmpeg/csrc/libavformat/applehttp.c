@@ -208,7 +208,7 @@ static int parse_playlist(AppleHTTPContext *c, const char *url,
 
     if (!in) {
         close_in = 1;
-        if ((ret = avio_open(&in, url, AVIO_FLAG_READ)) < 0)
+        if ((ret = avio_open(&in, url, AVIO_RDONLY)) < 0)
             return ret;
     }
 
@@ -321,13 +321,13 @@ static int open_input(struct variant *var)
 {
     struct segment *seg = var->segments[var->cur_seq_no - var->start_seq_no];
     if (seg->key_type == KEY_NONE) {
-        return ffurl_open(&var->input, seg->url, AVIO_FLAG_READ);
+        return ffurl_open(&var->input, seg->url, AVIO_RDONLY);
     } else if (seg->key_type == KEY_AES_128) {
         char iv[33], key[33], url[MAX_URL_SIZE];
         int ret;
         if (strcmp(seg->key, var->key_url)) {
             URLContext *uc;
-            if (ffurl_open(&uc, seg->key, AVIO_FLAG_READ) == 0) {
+            if (ffurl_open(&uc, seg->key, AVIO_RDONLY) == 0) {
                 if (ffurl_read_complete(uc, var->key, sizeof(var->key))
                     != sizeof(var->key)) {
                     av_log(NULL, AV_LOG_ERROR, "Unable to read key file %s\n",
@@ -347,7 +347,7 @@ static int open_input(struct variant *var)
             snprintf(url, sizeof(url), "crypto+%s", seg->url);
         else
             snprintf(url, sizeof(url), "crypto:%s", seg->url);
-        if ((ret = ffurl_alloc(&var->input, url, AVIO_FLAG_READ)) < 0)
+        if ((ret = ffurl_alloc(&var->input, url, AVIO_RDONLY)) < 0)
             return ret;
         av_set_string3(var->input->priv_data, "key", key, 0, NULL);
         av_set_string3(var->input->priv_data, "iv", iv, 0, NULL);
@@ -395,7 +395,9 @@ reload:
             goto reload;
         }
 
-        ret = open_input(v);
+        ret = ffurl_open(&v->input,
+                         v->segments[v->cur_seq_no - v->start_seq_no]->url,
+                         AVIO_RDONLY);
         if (ret < 0)
             return ret;
     }
@@ -473,11 +475,6 @@ static int applehttp_read_header(AVFormatContext *s, AVFormatParameters *ap)
         if (v->n_segments == 0)
             continue;
 
-        if (!(v->ctx = avformat_alloc_context())) {
-            ret = AVERROR(ENOMEM);
-            goto fail;
-        }
-
         v->index  = i;
         v->needed = 1;
         v->parent = s;
@@ -496,8 +493,8 @@ static int applehttp_read_header(AVFormatContext *s, AVFormatParameters *ap)
                                     NULL, 0, 0);
         if (ret < 0)
             goto fail;
-        v->ctx->pb       = &v->pb;
-        ret = avformat_open_input(&v->ctx, v->segments[0]->url, in_fmt, NULL);
+        ret = av_open_input_stream(&v->ctx, &v->pb, v->segments[0]->url,
+                                   in_fmt, NULL);
         if (ret < 0)
             goto fail;
         v->stream_offset = stream_offset;

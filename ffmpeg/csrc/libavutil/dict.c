@@ -19,7 +19,6 @@
  */
 
 #include <strings.h>
-#include "avstring.h"
 #include "dict.h"
 #include "internal.h"
 #include "mem.h"
@@ -52,7 +51,6 @@ int av_dict_set(AVDictionary **pm, const char *key, const char *value, int flags
 {
     AVDictionary      *m = *pm;
     AVDictionaryEntry *tag = av_dict_get(m, key, NULL, flags);
-    char *oldval = NULL;
 
     if(!m)
         m = *pm = av_mallocz(sizeof(*m));
@@ -60,10 +58,7 @@ int av_dict_set(AVDictionary **pm, const char *key, const char *value, int flags
     if(tag) {
         if (flags & AV_DICT_DONT_OVERWRITE)
             return 0;
-        if (flags & AV_DICT_APPEND)
-            oldval = tag->value;
-        else
-            av_free(tag->value);
+        av_free(tag->value);
         av_free(tag->key);
         *tag = m->elems[--m->count];
     } else {
@@ -80,12 +75,6 @@ int av_dict_set(AVDictionary **pm, const char *key, const char *value, int flags
         m->elems[m->count].key  = av_strdup(key  );
         if (flags & AV_DICT_DONT_STRDUP_VAL) {
             m->elems[m->count].value = value;
-        } else if (oldval && flags & AV_DICT_APPEND) {
-            int len = strlen(oldval) + strlen(value) + 1;
-            if (!(oldval = av_realloc(oldval, len)))
-                return AVERROR(ENOMEM);
-            av_strlcat(oldval, value, len);
-            m->elems[m->count].value = oldval;
         } else
             m->elems[m->count].value = av_strdup(value);
         m->count++;

@@ -37,25 +37,6 @@ static const char* context_to_name(void* ptr) {
         return "NULL";
 }
 
-static const AVOption *opt_find(void *obj, const char *name, const char *unit, int opt_flags, int search_flags)
-{
-    AVCodecContext *s = obj;
-    AVCodec        *c = NULL;
-
-    if (s->priv_data) {
-        if (s->codec->priv_class)
-            return av_opt_find(s->priv_data, name, unit, opt_flags, search_flags);
-        return NULL;
-    }
-
-    while ((c = av_codec_next(c))) {
-        const AVOption *o;
-        if (c->priv_class && (o = av_opt_find(&c->priv_class, name, unit, opt_flags, search_flags)))
-            return o;
-    }
-    return NULL;
-}
-
 #define OFFSET(x) offsetof(AVCodecContext,x)
 #define DEFAULT 0 //should be NAN but it does not work as it is not a constant in glibc as required by ANSI/ISO C
 //these names are too long to be readable
@@ -438,6 +419,7 @@ static const AVOption options[]={
 {"crf_max", "in crf mode, prevents vbv from lowering quality beyond this point", OFFSET(crf_max), FF_OPT_TYPE_FLOAT, {.dbl = DEFAULT }, 0, 51, V|E},
 {"log_level_offset", "set the log level offset", OFFSET(log_level_offset), FF_OPT_TYPE_INT, {.dbl = 0 }, INT_MIN, INT_MAX },
 #if FF_API_FLAC_GLOBAL_OPTS
+{"use_lpc", "sets whether to use LPC mode (FLAC)", OFFSET(use_lpc), FF_OPT_TYPE_INT, {.dbl = -1 }, INT_MIN, INT_MAX, A|E},
 {"lpc_type", "deprecated, use flac-specific options", OFFSET(lpc_type), FF_OPT_TYPE_INT, {.dbl = AV_LPC_TYPE_DEFAULT }, AV_LPC_TYPE_DEFAULT, AV_LPC_TYPE_NB-1, A|E},
 {"none",     NULL, 0, FF_OPT_TYPE_CONST, {.dbl = AV_LPC_TYPE_NONE },     INT_MIN, INT_MAX, A|E, "lpc_type"},
 {"fixed",    NULL, 0, FF_OPT_TYPE_CONST, {.dbl = AV_LPC_TYPE_FIXED },    INT_MIN, INT_MAX, A|E, "lpc_type"},
@@ -476,7 +458,7 @@ static const AVOption options[]={
 #undef D
 #undef DEFAULT
 
-static const AVClass av_codec_context_class = { "AVCodecContext", context_to_name, options, LIBAVUTIL_VERSION_INT, OFFSET(log_level_offset), .opt_find = opt_find};
+static const AVClass av_codec_context_class = { "AVCodecContext", context_to_name, options, LIBAVUTIL_VERSION_INT, OFFSET(log_level_offset) };
 
 void avcodec_get_context_defaults2(AVCodecContext *s, enum AVMediaType codec_type){
     int flags=0;

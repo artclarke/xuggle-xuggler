@@ -22,9 +22,9 @@
 #include "libavutil/avutil.h"
 #include "libavformat/avformat.h"
 
-#define LIBAVDEVICE_VERSION_MAJOR 53
-#define LIBAVDEVICE_VERSION_MINOR  1
-#define LIBAVDEVICE_VERSION_MICRO  1
+#define LIBAVDEVICE_VERSION_MAJOR 52
+#define LIBAVDEVICE_VERSION_MINOR  5
+#define LIBAVDEVICE_VERSION_MICRO  0
 
 #define LIBAVDEVICE_VERSION_INT AV_VERSION_INT(LIBAVDEVICE_VERSION_MAJOR, \
                                                LIBAVDEVICE_VERSION_MINOR, \

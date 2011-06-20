@@ -365,7 +365,8 @@ static inline uint32_t quantize(int32_t sample, int bits)
 {
     av_assert0(sample <    1 << (bits - 1));
     av_assert0(sample >= -(1 << (bits - 1)));
-    return sample & ((1 << bits) - 1);
+    sample &= sample & ((1 << bits) - 1);
+    return sample;
 }
 
 static inline int find_scale_factor7(int64_t max_value, int bits)

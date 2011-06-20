@@ -76,12 +76,12 @@ static int crypto_open(URLContext *h, const char *uri, int flags)
         ret = AVERROR(EINVAL);
         goto err;
     }
-    if (flags & AVIO_FLAG_WRITE) {
+    if (flags == AVIO_WRONLY) {
         av_log(h, AV_LOG_ERROR, "Only decryption is supported currently\n");
         ret = AVERROR(ENOSYS);
         goto err;
     }
-    if ((ret = ffurl_open(&c->hd, nested_url, AVIO_FLAG_READ)) < 0) {
+    if ((ret = ffurl_open(&c->hd, nested_url, AVIO_RDONLY)) < 0) {
         av_log(h, AV_LOG_ERROR, "Unable to open input\n");
         goto err;
     }

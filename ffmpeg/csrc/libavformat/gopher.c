@@ -50,7 +50,7 @@ static int gopher_connect(URLContext *h, const char *path)
             if (!path) return AVERROR(EINVAL);
             break;
         default:
-            av_log(h, AV_LOG_WARNING,
+            av_log(NULL, AV_LOG_WARNING,
                    "Gopher protocol type '%c' not supported yet!\n",
                    *path);
             return AVERROR(EINVAL);
@@ -100,7 +100,7 @@ static int gopher_open(URLContext *h, const char *uri, int flags)
     ff_url_join(buf, sizeof(buf), "tcp", NULL, hostname, port, NULL);
 
     s->hd = NULL;
-    err = ffurl_open(&s->hd, buf, AVIO_FLAG_READ_WRITE);
+    err = ffurl_open(&s->hd, buf, AVIO_RDWR);
     if (err < 0)
         goto fail;
 

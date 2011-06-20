@@ -20,7 +20,6 @@
  */
 
 #include "libavutil/pixdesc.h"
-#include "libavutil/audioconvert.h"
 #include "avfilter.h"
 
 /**
@@ -73,50 +72,34 @@ AVFilterFormats *avfilter_merge_formats(AVFilterFormats *a, AVFilterFormats *b)
     return ret;
 }
 
-#define MAKE_FORMAT_LIST()                                              \
-    AVFilterFormats *formats;                                           \
-    int count = 0;                                                      \
-    if (fmts)                                                           \
-        for (count = 0; fmts[count] != -1; count++)                     \
-            ;                                                           \
-    formats = av_mallocz(sizeof(AVFilterFormats));                      \
-    if (!formats) return NULL;                                          \
-    formats->format_count = count;                                      \
-    if (count) {                                                        \
-        formats->formats  = av_malloc(sizeof(*formats->formats)*count); \
-        if (!formats->formats) {                                        \
-            av_free(formats);                                           \
-            return NULL;                                                \
-        }                                                               \
-    }
-
 AVFilterFormats *avfilter_make_format_list(const int *fmts)
 {
-    MAKE_FORMAT_LIST();
-    while (count--)
-        formats->formats[count] = fmts[count];
+    AVFilterFormats *formats;
+    int count = 0;
 
-    return formats;
-}
+    if (fmts)
+        for (count = 0; fmts[count] != -1; count++)
+            ;
 
-AVFilterFormats *avfilter_make_format64_list(const int64_t *fmts)
-{
-    MAKE_FORMAT_LIST();
-    if (count)
+    formats               = av_mallocz(sizeof(AVFilterFormats));
+    formats->format_count = count;
+    if (count) {
+        formats->formats  = av_malloc(sizeof(*formats->formats) * count);
         memcpy(formats->formats, fmts, sizeof(*formats->formats) * count);
+    }
 
     return formats;
 }
 
-int avfilter_add_format(AVFilterFormats **avff, int64_t fmt)
+int avfilter_add_format(AVFilterFormats **avff, int fmt)
 {
-    int64_t *fmts;
+    int *fmts;
 
     if (!(*avff) && !(*avff = av_mallocz(sizeof(AVFilterFormats))))
         return AVERROR(ENOMEM);
 
     fmts = av_realloc((*avff)->formats,
-                      sizeof(*(*avff)->formats) * ((*avff)->format_count+1));
+                      sizeof((*avff)->formats) * ((*avff)->format_count+1));
     if (!fmts)
         return AVERROR(ENOMEM);
 
@@ -138,27 +121,6 @@ AVFilterFormats *avfilter_all_formats(enum AVMediaType type)
             avfilter_add_format(&ret, fmt);
 
     return ret;
-}
-
-AVFilterFormats *avfilter_all_channel_layouts(void)
-{
-    static int64_t chlayouts[] = {
-        AV_CH_LAYOUT_MONO,
-        AV_CH_LAYOUT_STEREO,
-        AV_CH_LAYOUT_4POINT0,
-        AV_CH_LAYOUT_QUAD,
-        AV_CH_LAYOUT_5POINT0,
-        AV_CH_LAYOUT_5POINT0_BACK,
-        AV_CH_LAYOUT_5POINT1,
-        AV_CH_LAYOUT_5POINT1_BACK,
-        AV_CH_LAYOUT_5POINT1|AV_CH_LAYOUT_STEREO_DOWNMIX,
-        AV_CH_LAYOUT_7POINT1,
-        AV_CH_LAYOUT_7POINT1_WIDE,
-        AV_CH_LAYOUT_7POINT1|AV_CH_LAYOUT_STEREO_DOWNMIX,
-        -1,
-    };
-
-    return avfilter_make_format64_list(chlayouts);
 }
 
 void avfilter_formats_ref(AVFilterFormats *f, AVFilterFormats **ref)

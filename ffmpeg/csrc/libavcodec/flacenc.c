@@ -296,6 +296,17 @@ static av_cold int flac_encode_init(AVCodecContext *avctx)
         s->options.max_partition_order = ((int[]){  2,  2,  3,  3,  3,  8,  8,  8,  8,  8,  8,  8,  8})[level];
 
     /* set compression option overrides from AVCodecContext */
+#if FF_API_USE_LPC
+    /* for compatibility with deprecated AVCodecContext.use_lpc */
+    if (avctx->use_lpc == 0) {
+        s->options.lpc_type = AV_LPC_TYPE_FIXED;
+    } else if (avctx->use_lpc == 1) {
+        s->options.lpc_type = AV_LPC_TYPE_LEVINSON;
+    } else if (avctx->use_lpc > 1) {
+        s->options.lpc_type   = AV_LPC_TYPE_CHOLESKY;
+        s->options.lpc_passes = avctx->use_lpc - 1;
+    }
+#endif
 #if FF_API_FLAC_GLOBAL_OPTS
     if (avctx->lpc_type > FF_LPC_TYPE_DEFAULT) {
         if (avctx->lpc_type > FF_LPC_TYPE_CHOLESKY) {
@@ -1387,7 +1398,7 @@ AVCodec ff_flac_encoder = {
     flac_encode_frame,
     flac_encode_close,
     NULL,
-    .capabilities = CODEC_CAP_SMALL_LAST_FRAME | CODEC_CAP_DELAY | CODEC_CAP_LOSSLESS,
+    .capabilities = CODEC_CAP_SMALL_LAST_FRAME | CODEC_CAP_DELAY,
     .sample_fmts = (const enum AVSampleFormat[]){AV_SAMPLE_FMT_S16,AV_SAMPLE_FMT_NONE},
     .long_name = NULL_IF_CONFIG_SMALL("FLAC (Free Lossless Audio Codec)"),
     .priv_class = &flac_encoder_class,

@@ -260,7 +260,6 @@ static int decode_frame(AVCodecContext *avctx,
     AVFrame * ref= (AVFrame*)&a->ref;
     uint8_t* outdata;
     int delta;
-    const uint8_t *pal = av_packet_get_side_data(avpkt, AV_PKT_DATA_PALETTE, NULL);
 
     if(ref->data[0])
         avctx->release_buffer(avctx, ref);
@@ -280,11 +279,11 @@ static int decode_frame(AVCodecContext *avctx,
     }
 
     /* make the palette available on the way out */
-    if (pal) {
+    memcpy(a->pic.data[1], a->avctx->palctrl->palette, AVPALETTE_SIZE);
+    if (a->avctx->palctrl->palette_changed) {
         a->pic.palette_has_changed = 1;
-        memcpy(a->pal, pal, AVPALETTE_SIZE);
+        a->avctx->palctrl->palette_changed = 0;
     }
-    memcpy(a->pic.data[1], a->pal, AVPALETTE_SIZE);
 
     *data_size = sizeof(AVFrame);
     *(AVFrame*)data = a->pic;
@@ -295,6 +294,10 @@ static int decode_frame(AVCodecContext *avctx,
 static av_cold int decode_init(AVCodecContext *avctx){
     QpegContext * const a = avctx->priv_data;
 
+    if (!avctx->palctrl) {
+        av_log(avctx, AV_LOG_FATAL, "Missing required palette via palctrl\n");
+        return -1;
+    }
     avcodec_get_frame_defaults(&a->pic);
     avcodec_get_frame_defaults(&a->ref);
     a->avctx = avctx;
