@@ -1014,7 +1014,7 @@ int ff_h264_decode_extradata(H264Context *h)
 {
     AVCodecContext *avctx = h->s.avctx;
 
-    if(*(char *)avctx->extradata == 1){
+    if(avctx->extradata[0] == 1){
         int i, cnt, nalsize;
         unsigned char *p = avctx->extradata;
 
@@ -1049,7 +1049,7 @@ int ff_h264_decode_extradata(H264Context *h)
             p += nalsize;
         }
         // Now store right nal length size, that will be use to parse all other nals
-        h->nal_length_size = ((*(((char*)(avctx->extradata))+4))&0x03)+1;
+        h->nal_length_size = (avctx->extradata[4] & 0x03) + 1;
     } else {
         h->is_avc = 0;
         if(decode_nal_units(h, avctx->extradata, avctx->extradata_size) < 0)
@@ -2984,7 +2984,7 @@ static int decode_slice_header(H264Context *h, H264Context *h0){
     h0->last_slice_type = slice_type;
     h->slice_num = ++h0->current_slice;
     if(h->slice_num >= MAX_SLICES){
-        av_log(s->avctx, AV_LOG_ERROR, "Too many slices, increase MAX_SLICES and recompile\n");
+        av_log(s->avctx, AV_LOG_ERROR, "Too many slices (%d >= %d), increase MAX_SLICES and recompile\n", h->slice_num, MAX_SLICES);
     }
 
     for(j=0; j<2; j++){
@@ -3696,11 +3696,7 @@ static int decode_nal_units(H264Context *h, const uint8_t *buf, int buf_size){
         }
 
         //FIXME do not discard SEI id
-        if(
-#if FF_API_HURRY_UP
-           (s->hurry_up == 1 && h->nal_ref_idc  == 0) ||
-#endif
-           (avctx->skip_frame >= AVDISCARD_NONREF && h->nal_ref_idc  == 0))
+        if(avctx->skip_frame >= AVDISCARD_NONREF && h->nal_ref_idc  == 0)
             continue;
 
       again:
@@ -3737,9 +3733,6 @@ static int decode_nal_units(H264Context *h, const uint8_t *buf, int buf_size){
             }
 
             if(hx->redundant_pic_count==0
-#if FF_API_HURRY_UP
-               && hx->s.hurry_up < 5
-#endif
                && (avctx->skip_frame < AVDISCARD_NONREF || hx->nal_ref_idc)
                && (avctx->skip_frame < AVDISCARD_BIDIR  || hx->slice_type_nos!=AV_PICTURE_TYPE_B)
                && (avctx->skip_frame < AVDISCARD_NONKEY || hx->slice_type_nos==AV_PICTURE_TYPE_I)
@@ -3777,9 +3770,6 @@ static int decode_nal_units(H264Context *h, const uint8_t *buf, int buf_size){
 
             if(hx->redundant_pic_count==0 && hx->intra_gb_ptr && hx->s.data_partitioning
                && s->context_initialized
-#if FF_API_HURRY_UP
-               && s->hurry_up < 5
-#endif
                && (avctx->skip_frame < AVDISCARD_NONREF || hx->nal_ref_idc)
                && (avctx->skip_frame < AVDISCARD_BIDIR  || hx->slice_type_nos!=AV_PICTURE_TYPE_B)
                && (avctx->skip_frame < AVDISCARD_NONKEY || hx->slice_type_nos==AV_PICTURE_TYPE_I)
@@ -3794,8 +3784,8 @@ static int decode_nal_units(H264Context *h, const uint8_t *buf, int buf_size){
             init_get_bits(&s->gb, ptr, bit_length);
             ff_h264_decode_seq_parameter_set(h);
 
-            if(s->flags& CODEC_FLAG_LOW_DELAY ||
-              (h->sps.bitstream_restriction_flag && !h->sps.num_reorder_frames))
+            if (s->flags& CODEC_FLAG_LOW_DELAY ||
+                (h->sps.bitstream_restriction_flag && !h->sps.num_reorder_frames))
                 s->low_delay=1;
 
             if(avctx->has_b_frames < 2)
@@ -3918,11 +3908,7 @@ static int decode_frame(AVCodecContext *avctx,
     }
 
     if(!(s->flags2 & CODEC_FLAG2_CHUNKS) && !s->current_picture_ptr){
-        if (avctx->skip_frame >= AVDISCARD_NONREF
-#if FF_API_HURRY_UP
-                || s->hurry_up
-#endif
-           )
+        if (avctx->skip_frame >= AVDISCARD_NONREF)
             return 0;
         av_log(avctx, AV_LOG_ERROR, "no frame!\n");
         return -1;

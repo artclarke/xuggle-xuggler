@@ -39,9 +39,9 @@
 #define AV_VERSION_DOT(a, b, c) a ##.## b ##.## c
 #define AV_VERSION(a, b, c) AV_VERSION_DOT(a, b, c)
 
-#define LIBAVUTIL_VERSION_MAJOR 50
-#define LIBAVUTIL_VERSION_MINOR 42
-#define LIBAVUTIL_VERSION_MICRO  0
+#define LIBAVUTIL_VERSION_MAJOR 51
+#define LIBAVUTIL_VERSION_MINOR  9
+#define LIBAVUTIL_VERSION_MICRO  1
 
 #define LIBAVUTIL_VERSION_INT   AV_VERSION_INT(LIBAVUTIL_VERSION_MAJOR, \
                                                LIBAVUTIL_VERSION_MINOR, \
@@ -59,10 +59,12 @@
  */
 #ifndef FF_API_OLD_EVAL_NAMES
 #define FF_API_OLD_EVAL_NAMES (LIBAVUTIL_VERSION_MAJOR < 52)
-
 #endif
 #ifndef FF_API_GET_BITS_PER_SAMPLE_FMT
 #define FF_API_GET_BITS_PER_SAMPLE_FMT (LIBAVUTIL_VERSION_MAJOR < 52)
+#endif
+#ifndef FF_API_FIND_OPT
+#define FF_API_FIND_OPT                 (LIBAVUTIL_VERSION_MAJOR < 52)
 #endif
 
 /**
@@ -101,13 +103,6 @@ enum AVMediaType {
 #define AV_TIME_BASE            1000000
 #define AV_TIME_BASE_Q          (AVRational){1, AV_TIME_BASE}
 
-/**
- * Those FF_API_* defines are not part of public API.
- * They may change, break or disappear at any time.
- */
-#ifndef FF_API_OLD_IMAGE_NAMES
-#define FF_API_OLD_IMAGE_NAMES (LIBAVUTIL_VERSION_MAJOR < 51)
-#endif
 enum AVPictureType {
     AV_PICTURE_TYPE_I = 1, ///< Intra
     AV_PICTURE_TYPE_P,     ///< Predicted

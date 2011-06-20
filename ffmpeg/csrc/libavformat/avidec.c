@@ -554,8 +554,7 @@ static int avi_read_header(AVFormatContext *s, AVFormatParameters *ap)
                 codec_type = AVMEDIA_TYPE_DATA;
                 break;
             default:
-                av_log(s, AV_LOG_ERROR, "unknown stream type %X\n", tag1);
-                goto fail;
+                av_log(s, AV_LOG_INFO, "unknown stream type %X\n", tag1);
             }
             if(ast->sample_size == 0)
                 st->duration = st->nb_frames;
@@ -607,15 +606,18 @@ static int avi_read_header(AVFormatContext *s, AVFormatParameters *ap)
                     /* This code assumes that extradata contains only palette. */
                     /* This is true for all paletted codecs implemented in FFmpeg. */
                     if (st->codec->extradata_size && (st->codec->bits_per_coded_sample <= 8)) {
-                        st->codec->palctrl = av_mallocz(sizeof(AVPaletteControl));
+                        int pal_size = (1 << st->codec->bits_per_coded_sample) << 2;
+                        const uint8_t *pal_src;
+
+                        pal_size = FFMIN(pal_size, st->codec->extradata_size);
+                        pal_src = st->codec->extradata + st->codec->extradata_size - pal_size;
 #if HAVE_BIGENDIAN
-                        for (i = 0; i < FFMIN(st->codec->extradata_size, AVPALETTE_SIZE)/4; i++)
-                            st->codec->palctrl->palette[i] = av_bswap32(((uint32_t*)st->codec->extradata)[i]);
+                        for (i = 0; i < pal_size/4; i++)
+                            ast->pal[i] = AV_RL32(pal_src+4*i);
 #else
-                        memcpy(st->codec->palctrl->palette, st->codec->extradata,
-                               FFMIN(st->codec->extradata_size, AVPALETTE_SIZE));
+                        memcpy(ast->pal, pal_src, pal_size);
 #endif
-                        st->codec->palctrl->palette_changed = 1;
+                        ast->has_pal = 1;
                     }
 
                     print_tag("video", tag1, 0);
@@ -797,7 +799,11 @@ static int read_gab2_sub(AVStream *st, AVPacket *pkt) {
         if (!(sub_demuxer = av_probe_input_format2(&pd, 1, &score)))
             goto error;
 
-        if (!av_open_input_stream(&ast->sub_ctx, pb, "", sub_demuxer, NULL)) {
+        if (!(ast->sub_ctx = avformat_alloc_context()))
+            goto error;
+
+        ast->sub_ctx->pb      = pb;
+        if (!avformat_open_input(&ast->sub_ctx, "", sub_demuxer, NULL)) {
             av_read_packet(ast->sub_ctx, &ast->sub_pkt);
             *st->codec = *ast->sub_ctx->streams[0]->codec;
             ast->sub_ctx->streams[0]->codec->extradata = NULL;
@@ -953,14 +959,14 @@ resync:
             return err;
 
         if(ast->has_pal && pkt->data && pkt->size<(unsigned)INT_MAX/2){
-            void *ptr= av_realloc(pkt->data, pkt->size + 4*256 + FF_INPUT_BUFFER_PADDING_SIZE);
-            if(ptr){
-            ast->has_pal=0;
-            pkt->size += 4*256;
-            pkt->data= ptr;
-                memcpy(pkt->data + pkt->size - 4*256, ast->pal, 4*256);
-            }else
-                av_log(s, AV_LOG_ERROR, "Failed to append palette\n");
+            uint8_t *pal;
+            pal = av_packet_new_side_data(pkt, AV_PKT_DATA_PALETTE, AVPALETTE_SIZE);
+            if(!pal){
+                av_log(s, AV_LOG_ERROR, "Failed to allocate data for palette\n");
+            }else{
+                memcpy(pal, ast->pal, AVPALETTE_SIZE);
+                ast->has_pal = 0;
+            }
         }
 
         if (CONFIG_DV_DEMUXER && avi->dv_demux) {
@@ -1349,7 +1355,7 @@ static int avi_read_seek(AVFormatContext *s, int stream_index, int64_t timestamp
         index = av_index_search_timestamp(
                 st2,
                 av_rescale_q(timestamp, st->time_base, st2->time_base) * FFMAX(ast2->sample_size, 1),
-                flags | AVSEEK_FLAG_BACKWARD);
+                flags | AVSEEK_FLAG_BACKWARD | (st2->codec->codec_type != AVMEDIA_TYPE_VIDEO ? AVSEEK_FLAG_ANY : 0));
         if(index<0)
             index=0;
         ast2->seek_pos= st2->index_entries[index].pos;
@@ -1365,7 +1371,7 @@ static int avi_read_seek(AVFormatContext *s, int stream_index, int64_t timestamp
         index = av_index_search_timestamp(
                 st2,
                 av_rescale_q(timestamp, st->time_base, st2->time_base) * FFMAX(ast2->sample_size, 1),
-                flags | AVSEEK_FLAG_BACKWARD);
+                flags | AVSEEK_FLAG_BACKWARD | (st2->codec->codec_type != AVMEDIA_TYPE_VIDEO ? AVSEEK_FLAG_ANY : 0));
         if(index<0)
             index=0;
         while(index>0 && st2->index_entries[index-1].pos >= pos_min)
@@ -1387,11 +1393,10 @@ static int avi_read_close(AVFormatContext *s)
     for(i=0;i<s->nb_streams;i++) {
         AVStream *st = s->streams[i];
         AVIStream *ast = st->priv_data;
-        av_free(st->codec->palctrl);
         if (ast) {
             if (ast->sub_ctx) {
                 av_freep(&ast->sub_ctx->pb);
-                av_close_input_stream(ast->sub_ctx);
+                av_close_input_file(ast->sub_ctx);
             }
             av_free(ast->sub_buffer);
             av_free_packet(&ast->sub_pkt);
