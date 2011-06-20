@@ -136,6 +136,9 @@ static int x264_weight_slice_header_cost( x264_t *h, x264_weight_t *w, int b_chr
 {
     /* Add cost of weights in the slice header. */
     int lambda = x264_lambda_tab[X264_LOOKAHEAD_QP];
+    /* 4 times higher, because chroma is analyzed at full resolution. */
+    if( b_chroma )
+        lambda *= 4;
     int numslices;
     if( h->param.i_slice_count )
         numslices = h->param.i_slice_count;
