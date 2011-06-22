@@ -46,6 +46,7 @@ static int depth_filter_csp_is_supported( int csp )
     return csp_mask == X264_CSP_I420 ||
            csp_mask == X264_CSP_I422 ||
            csp_mask == X264_CSP_I444 ||
+           csp_mask == X264_CSP_YV24 ||
            csp_mask == X264_CSP_YV12 ||
            csp_mask == X264_CSP_NV12;
 }

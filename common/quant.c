@@ -581,8 +581,14 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
     }
 #endif
 #endif // HIGH_BIT_DEPTH
-    pf->coeff_last[  DCT_LUMA_DC] = pf->coeff_last[DCT_LUMA_4x4];
-    pf->coeff_last[DCT_CHROMA_AC] = pf->coeff_last[ DCT_LUMA_AC];
-    pf->coeff_level_run[  DCT_LUMA_DC] = pf->coeff_level_run[DCT_LUMA_4x4];
-    pf->coeff_level_run[DCT_CHROMA_AC] = pf->coeff_level_run[ DCT_LUMA_AC];
+    pf->coeff_last[DCT_LUMA_DC]     = pf->coeff_last[DCT_CHROMAU_DC]  = pf->coeff_last[DCT_CHROMAV_DC] =
+    pf->coeff_last[DCT_CHROMAU_4x4] = pf->coeff_last[DCT_CHROMAV_4x4] = pf->coeff_last[DCT_LUMA_4x4];
+    pf->coeff_last[DCT_CHROMA_AC]   = pf->coeff_last[DCT_CHROMAU_AC]  =
+    pf->coeff_last[DCT_CHROMAV_AC]  = pf->coeff_last[DCT_LUMA_AC];
+    pf->coeff_last[DCT_CHROMAU_8x8] = pf->coeff_last[DCT_CHROMAV_8x8] = pf->coeff_last[DCT_LUMA_8x8];
+
+    pf->coeff_level_run[DCT_LUMA_DC]     = pf->coeff_level_run[DCT_CHROMAU_DC]  = pf->coeff_level_run[DCT_CHROMAV_DC] =
+    pf->coeff_level_run[DCT_CHROMAU_4x4] = pf->coeff_level_run[DCT_CHROMAV_4x4] = pf->coeff_level_run[DCT_LUMA_4x4];
+    pf->coeff_level_run[DCT_CHROMA_AC]   = pf->coeff_level_run[DCT_CHROMAU_AC]  =
+    pf->coeff_level_run[DCT_CHROMAV_AC]  = pf->coeff_level_run[DCT_LUMA_AC];
 }

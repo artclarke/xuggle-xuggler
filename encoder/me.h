@@ -41,11 +41,11 @@ typedef struct
     int      i_ref;
     const x264_weight_t *weight;
 
-    pixel *p_fref[6];
+    pixel *p_fref[12];
     pixel *p_fref_w;
     pixel *p_fenc[3];
     uint16_t *integral;
-    int      i_stride[2];
+    int      i_stride[3];
 
     ALIGNED_4( int16_t mvp[2] );
 
