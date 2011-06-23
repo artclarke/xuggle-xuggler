@@ -69,12 +69,6 @@ typedef struct
     int i_poc_type;
     /* poc 0 */
     int i_log2_max_poc_lsb;
-    /* poc 1 */
-    int b_delta_pic_order_always_zero;
-    int i_offset_for_non_ref_pic;
-    int i_offset_for_top_to_bottom_field;
-    int i_num_ref_frames_in_poc_cycle;
-    int i_offset_for_ref_frame[256];
 
     int i_num_ref_frames;
     int b_gaps_in_frame_num_value_allowed;

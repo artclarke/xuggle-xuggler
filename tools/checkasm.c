@@ -565,7 +565,6 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_dct_init( cpu_new, &dct_asm );
 
     memset( h, 0, sizeof(*h) );
-    h->pps = h->pps_array;
     x264_param_default( &h->param );
     h->chroma_qp_table = i_chroma_qp_table + 12;
     h->param.analyse.i_luma_deadzone[0] = 0;
@@ -1436,7 +1435,6 @@ static int check_quant( int cpu_ref, int cpu_new )
     x264_t h_buf;
     x264_t *h = &h_buf;
     memset( h, 0, sizeof(*h) );
-    h->pps = h->pps_array;
     x264_param_default( &h->param );
     h->chroma_qp_table = i_chroma_qp_table + 12;
     h->param.analyse.b_transform_8x8 = 1;

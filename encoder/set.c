@@ -165,21 +165,6 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
         while( (1 << sps->i_log2_max_poc_lsb) <= max_delta_poc * 2 )
             sps->i_log2_max_poc_lsb++;
     }
-    else if( sps->i_poc_type == 1 )
-    {
-        int i;
-
-        /* FIXME */
-        sps->b_delta_pic_order_always_zero = 1;
-        sps->i_offset_for_non_ref_pic = 0;
-        sps->i_offset_for_top_to_bottom_field = 0;
-        sps->i_num_ref_frames_in_poc_cycle = 0;
-
-        for( i = 0; i < sps->i_num_ref_frames_in_poc_cycle; i++ )
-        {
-            sps->i_offset_for_ref_frame[i] = 0;
-        }
-    }
 
     sps->b_vui = 1;
 
@@ -292,19 +277,7 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
     bs_write_ue( s, sps->i_log2_max_frame_num - 4 );
     bs_write_ue( s, sps->i_poc_type );
     if( sps->i_poc_type == 0 )
-    {
         bs_write_ue( s, sps->i_log2_max_poc_lsb - 4 );
-    }
-    else if( sps->i_poc_type == 1 )
-    {
-        bs_write1( s, sps->b_delta_pic_order_always_zero );
-        bs_write_se( s, sps->i_offset_for_non_ref_pic );
-        bs_write_se( s, sps->i_offset_for_top_to_bottom_field );
-        bs_write_ue( s, sps->i_num_ref_frames_in_poc_cycle );
-
-        for( int i = 0; i < sps->i_num_ref_frames_in_poc_cycle; i++ )
-            bs_write_se( s, sps->i_offset_for_ref_frame[i] );
-    }
     bs_write_ue( s, sps->i_num_ref_frames );
     bs_write1( s, sps->b_gaps_in_frame_num_value_allowed );
     bs_write_ue( s, sps->i_mb_width - 1 );

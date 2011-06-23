@@ -209,12 +209,6 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
         if( sh->pps->b_pic_order && !sh->b_field_pic )
             bs_write_se( s, sh->i_delta_poc_bottom );
     }
-    else if( sh->sps->i_poc_type == 1 && !sh->sps->b_delta_pic_order_always_zero )
-    {
-        bs_write_se( s, sh->i_delta_poc[0] );
-        if( sh->pps->b_pic_order && !sh->b_field_pic )
-            bs_write_se( s, sh->i_delta_poc[1] );
-    }
 
     if( sh->pps->b_redundant_pic_cnt )
         bs_write_ue( s, sh->i_redundant_pic_cnt );
@@ -790,7 +784,6 @@ static int x264_validate_parameters( x264_t *h, int b_open )
             int maxrate_bak = h->param.rc.i_vbv_max_bitrate;
             if( h->param.rc.i_rc_method == X264_RC_ABR && h->param.rc.i_vbv_buffer_size <= 0 )
                 h->param.rc.i_vbv_max_bitrate = h->param.rc.i_bitrate * 2;
-            h->sps = h->sps_array;
             x264_sps_init( h->sps, h->param.i_sps_id, &h->param );
             do h->param.i_level_idc = l->level_idc;
                 while( l[1].level_idc && x264_validate_levels( h, 0 ) && l++ );
@@ -1019,10 +1012,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
         goto fail;
     }
 
-    h->sps = &h->sps_array[0];
     x264_sps_init( h->sps, h->param.i_sps_id, &h->param );
-
-    h->pps = &h->pps_array[0];
     x264_pps_init( h->pps, h->param.i_sps_id, &h->param, h->sps );
 
     x264_set_aspect_ratio( h, &h->param, 1 );
@@ -1189,9 +1179,6 @@ x264_t *x264_encoder_open( x264_param_t *param )
         }
         else
             h->thread[i]->fdec = h->thread[0]->fdec;
-
-        h->thread[i]->sps = &h->thread[i]->sps_array[0];
-        h->thread[i]->pps = &h->thread[i]->pps_array[0];
 
         CHECKED_MALLOC( h->thread[i]->out.p_bitstream, h->out.i_bitstream );
         /* Start each thread with room for init_nal_count NAL units; it'll realloc later if needed. */
@@ -1952,10 +1939,6 @@ static inline void x264_slice_init( x264_t *h, int i_nal_type, int i_global_qp )
             h->sh.i_delta_poc_bottom = 0;
         h->fdec->i_delta_poc[0] = h->sh.i_delta_poc_bottom == -1;
         h->fdec->i_delta_poc[1] = h->sh.i_delta_poc_bottom ==  1;
-    }
-    else if( h->sps->i_poc_type == 1 )
-    {
-        /* FIXME TODO FIXME */
     }
     else
     {
