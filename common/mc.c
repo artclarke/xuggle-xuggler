@@ -314,6 +314,22 @@ void x264_plane_copy_deinterleave_c( pixel *dstu, int i_dstu,
         }
 }
 
+void x264_plane_copy_deinterleave_rgb_c( pixel *dsta, int i_dsta,
+                                         pixel *dstb, int i_dstb,
+                                         pixel *dstc, int i_dstc,
+                                         pixel *src, int i_src, int pw, int w, int h )
+{
+    for( int y=0; y<h; y++, dsta+=i_dsta, dstb+=i_dstb, dstc+=i_dstc, src+=i_src )
+    {
+        for( int x=0; x<w; x++ )
+        {
+            dsta[x] = src[x*pw];
+            dstb[x] = src[x*pw+1];
+            dstc[x] = src[x*pw+2];
+        }
+    }
+}
+
 static void store_interleave_8x8x2( pixel *dst, int i_dst, pixel *srcu, pixel *srcv )
 {
     for( int y=0; y<8; y++, dst+=i_dst, srcu+=FDEC_STRIDE, srcv+=FDEC_STRIDE )
@@ -481,6 +497,7 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
     pf->plane_copy = x264_plane_copy_c;
     pf->plane_copy_interleave = x264_plane_copy_interleave_c;
     pf->plane_copy_deinterleave = x264_plane_copy_deinterleave_c;
+    pf->plane_copy_deinterleave_rgb = x264_plane_copy_deinterleave_rgb_c;
 
     pf->hpel_filter = hpel_filter;
 

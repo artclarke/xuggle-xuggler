@@ -121,7 +121,7 @@ static const char * const muxer_names[] =
 
 static const char * const pulldown_names[] = { "none", "22", "32", "64", "double", "triple", "euro", 0 };
 static const char * const log_level_names[] = { "none", "error", "warning", "info", "debug", 0 };
-static const char * const output_csp_names[] = { "i420", "i444", 0 };
+static const char * const output_csp_names[] = { "i420", "i444", "rgb", 0 };
 
 typedef struct
 {
@@ -1129,6 +1129,8 @@ static int init_vid_filters( char *sequence, hnd_t *handle, video_info_t *info, 
         param->i_csp = X264_CSP_I420;
     else if( output_csp == X264_CSP_I444 && (csp < X264_CSP_I444 || csp > X264_CSP_YV24) )
         param->i_csp = X264_CSP_I444;
+    else if( output_csp == X264_CSP_RGB && (csp < X264_CSP_BGR || csp > X264_CSP_RGB) )
+        param->i_csp = X264_CSP_RGB;
     param->i_csp |= info->csp & X264_CSP_HIGH_DEPTH;
 
     if( x264_init_vid_filter( "resize", handle, &filter, info, param, NULL ) )
@@ -1349,7 +1351,7 @@ static int parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
             case OPT_OUTPUT_CSP:
                 FAIL_IF_ERROR( parse_enum_value( optarg, output_csp_names, &output_csp ), "Unknown output csp `%s'\n", optarg )
                 // correct the parsed value to the libx264 csp value
-                output_csp = !output_csp ? X264_CSP_I420 : X264_CSP_I444;
+                output_csp = !output_csp ? X264_CSP_I420 : (output_csp == 1 ? X264_CSP_I444 : X264_CSP_RGB);
                 break;
             default:
 generic_option:

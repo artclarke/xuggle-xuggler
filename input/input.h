@@ -104,10 +104,7 @@ extern cli_input_t input;
 
 /* extended colorspace list that isn't supported by libx264 but by the cli */
 #define X264_CSP_I422           X264_CSP_MAX     /* yuv 4:2:2 planar    */
-#define X264_CSP_BGR           (X264_CSP_MAX+1)  /* packed bgr 24bits   */
-#define X264_CSP_BGRA          (X264_CSP_MAX+2)  /* packed bgr 32bits   */
-#define X264_CSP_RGB           (X264_CSP_MAX+3)  /* packed rgb 24bits   */
-#define X264_CSP_CLI_MAX       (X264_CSP_MAX+4)  /* end of list         */
+#define X264_CSP_CLI_MAX       (X264_CSP_MAX+1)  /* end of list         */
 #define X264_CSP_OTHER          0x4000           /* non x264 colorspace */
 
 typedef struct

@@ -410,7 +410,7 @@ static int x264_validate_parameters( x264_t *h, int b_open )
     int i_csp = h->param.i_csp & X264_CSP_MASK;
     if( i_csp <= X264_CSP_NONE || i_csp >= X264_CSP_MAX )
     {
-        x264_log( h, X264_LOG_ERROR, "invalid CSP (only I420/YV12/NV12/I444/YV24 supported)\n" );
+        x264_log( h, X264_LOG_ERROR, "invalid CSP (only I420/YV12/NV12/I444/YV24/BGR/BGRA/RGB supported)\n" );
         return -1;
     }
 
@@ -767,7 +767,7 @@ static int x264_validate_parameters( x264_t *h, int b_open )
     h->mb.i_psy_rd = h->param.analyse.i_subpel_refine >= 6 ? FIX8( h->param.analyse.f_psy_rd ) : 0;
     h->mb.i_psy_trellis = h->param.analyse.i_trellis ? FIX8( h->param.analyse.f_psy_trellis / 4 ) : 0;
     /* In 4:4:4 mode, chroma gets twice as much resolution, so we can halve its quality. */
-    if( b_open && i_csp >= X264_CSP_I444 && h->param.analyse.b_psy )
+    if( b_open && i_csp >= X264_CSP_I444 && i_csp < X264_CSP_BGR && h->param.analyse.b_psy )
         h->param.analyse.i_chroma_qp_offset += 6;
     /* Psy RDO increases overall quantizers to improve the quality of luma--this indirectly hurts chroma quality */
     /* so we lower the chroma QP offset to compensate */
