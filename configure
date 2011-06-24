@@ -717,8 +717,8 @@ fi
 if [ "$swscale" = "auto" ] ; then
     swscale="no"
     if ${cross_prefix}pkg-config --exists libswscale 2>/dev/null; then
-        SWSCALE_LIBS="$SWSCALE_LIBS $(${cross_prefix}pkg-config --libs libswscale)"
-        SWSCALE_CFLAGS="$SWSCALE_CFLAGS $(${cross_prefix}pkg-config --cflags libswscale)"
+        SWSCALE_LIBS="$SWSCALE_LIBS $(${cross_prefix}pkg-config --libs libswscale libavutil)"
+        SWSCALE_CFLAGS="$SWSCALE_CFLAGS $(${cross_prefix}pkg-config --cflags libswscale libavutil)"
     fi
     [ -z "$SWSCALE_LIBS" ] && SWSCALE_LIBS="-lswscale -lavutil"
 
