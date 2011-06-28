@@ -339,6 +339,27 @@ static int handle_opts( const char **optlist, char **opts, video_info_t *info, r
     return 0;
 }
 
+static int handle_jpeg( int *format )
+{
+    switch( *format )
+    {
+        case PIX_FMT_YUVJ420P:
+            *format = PIX_FMT_YUV420P;
+            return 1;
+        case PIX_FMT_YUVJ422P:
+            *format = PIX_FMT_YUV422P;
+            return 1;
+        case PIX_FMT_YUVJ444P:
+            *format = PIX_FMT_YUV444P;
+            return 1;
+        case PIX_FMT_YUVJ440P:
+            *format = PIX_FMT_YUV440P;
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 static int x264_init_sws_context( resizer_hnd_t *h )
 {
     if( !h->ctx )
@@ -348,22 +369,28 @@ static int x264_init_sws_context( resizer_hnd_t *h )
             return -1;
 
         /* set flags that will not change */
+        int dst_format = h->dst.pix_fmt;
+        int dst_range  = handle_jpeg( &dst_format );
         av_set_int( h->ctx, "sws_flags",  h->ctx_flags );
         av_set_int( h->ctx, "dstw",       h->dst.width );
         av_set_int( h->ctx, "dsth",       h->dst.height );
-        av_set_int( h->ctx, "dst_format", h->dst.pix_fmt );
-        av_set_int( h->ctx, "dst_range",  0 ); /* FIXME: use the correct full range value */
+        av_set_int( h->ctx, "dst_format", dst_format );
+        av_set_int( h->ctx, "dst_range",  dst_range ); /* FIXME: use the correct full range value */
     }
 
+    int src_format = h->scale.pix_fmt;
+    int src_range  = handle_jpeg( &src_format );
     av_set_int( h->ctx, "srcw",       h->scale.width );
     av_set_int( h->ctx, "srch",       h->scale.height );
-    av_set_int( h->ctx, "src_format", h->scale.pix_fmt );
-    av_set_int( h->ctx, "src_range",  0 ); /* FIXME: use the correct full range value */
+    av_set_int( h->ctx, "src_format", src_format );
+    av_set_int( h->ctx, "src_range",  src_range ); /* FIXME: use the correct full range value */
 
     /* FIXME: use the correct full range values
      * FIXME: use the correct matrix coefficients (only YUV -> RGB conversions are supported) */
-    sws_setColorspaceDetails( h->ctx, sws_getCoefficients( SWS_CS_DEFAULT ), 0,
-                              sws_getCoefficients( SWS_CS_DEFAULT ), 0, 0, 1<<16, 1<<16 );
+    sws_setColorspaceDetails( h->ctx,
+                              sws_getCoefficients( SWS_CS_DEFAULT ), src_range,
+                              sws_getCoefficients( SWS_CS_DEFAULT ), av_get_int( h->ctx, "dst_range", NULL ),
+                              0, 1<<16, 1<<16 );
 
     return sws_init_context( h->ctx, NULL, NULL ) < 0;
 }
