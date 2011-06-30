@@ -613,7 +613,7 @@ fi
 
 if [ $asm = auto -a $ARCH = ARM ] ; then
     # set flags so neon is built by default
-    echo $CFLAGS | grep -Eq '(-mcpu|-march|-mfpu|-mfloat-abi)' || CFLAGS="$CFLAGS -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp"
+    echo $CFLAGS | grep -Eq '(-mcpu|-march|-mfpu)' || CFLAGS="$CFLAGS -mcpu=cortex-a8 -mfpu=neon"
 
     if  cc_check '' '' '__asm__("rev ip, ip");' ; then      define HAVE_ARMV6
         cc_check '' '' '__asm__("movt r0, #0");'         && define HAVE_ARMV6T2
