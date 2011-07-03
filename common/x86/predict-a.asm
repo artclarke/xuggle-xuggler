@@ -31,10 +31,12 @@
 SECTION_RODATA
 
 pw_76543210:
-pw_3210:    dw 0, 1, 2, 3, 4, 5, 6, 7
-pb_00s_ff:  times 8 db 0
-pb_0s_ff:   times 7 db 0
-            db 0xff
+pw_3210:     dw 0, 1, 2, 3, 4, 5, 6, 7
+pw_43210123: dw -3, -2, -1, 0, 1, 2, 3, 4
+pw_m3:       times 8 dw -3
+pb_00s_ff:   times 8 db 0
+pb_0s_ff:    times 7 db 0
+             db 0xff
 
 SECTION .text
 
@@ -45,6 +47,7 @@ cextern pw_1
 cextern pw_2
 cextern pw_4
 cextern pw_8
+cextern pw_16
 cextern pw_ff00
 cextern pb_reverse
 cextern pw_pixel_max
@@ -1045,32 +1048,42 @@ ALIGN 4
     REP_RET
 %endif ; !ARCH_X86_64
 
-%macro PREDICT_8x8C_P 1
-cglobal predict_8x8c_p_core_%1, 1,1
+INIT_XMM
+%ifdef HIGH_BIT_DEPTH
+cglobal predict_8x8c_p_core_sse2, 1,1,7
     movd        m0, r1m
     movd        m2, r2m
     movd        m4, r3m
-%ifdef HIGH_BIT_DEPTH
     mova        m3, [pw_pixel_max]
     pxor        m1, m1
-%endif
+    SPLATW      m0, m0, 0
+    SPLATW      m2, m2, 0
+    SPLATW      m4, m4, 0
+    pmullw      m2, [pw_43210123] ; b
+    pmullw      m5, m4, [pw_m3]   ; c
+    paddw       m5, [pw_16]
+    mov        r1d, 8
+.loop:
+    paddsw      m6, m2, m5
+    paddsw      m6, m0
+    psraw       m6, 5
+    CLIPW       m6, m1, m3
+    mova      [r0], m6
+    paddw       m5, m4
+    add         r0, FDEC_STRIDEB
+    dec r1d
+    jg .loop
+    REP_RET
+%else ; !HIGH_BIT_DEPTH
+cglobal predict_8x8c_p_core_sse2, 1,1
+    movd        m0, r1m
+    movd        m2, r2m
+    movd        m4, r3m
     SPLATW      m0, m0, 0
     SPLATW      m2, m2, 0
     SPLATW      m4, m4, 0
     pmullw      m2, [pw_76543210]
-%ifdef HIGH_BIT_DEPTH
-    mov        r1d, 8
-.loop:
-    paddsw      m5, m0, m2
-    psraw       m5, 5
-    CLIPW       m5, m1, m3
-    mova      [r0], m5
-    paddw       m2, m4
-    add         r0, FDEC_STRIDEB
-    dec r1d
-    jg .loop
-%else ;!HIGH_BIT_DEPTH
-    paddsw      m0, m2        ; m0 = {i+0*b, i+1*b, i+2*b, i+3*b, i+4*b, i+5*b, i+6*b, i+7*b}
+    paddsw      m0, m2            ; m0 = {i+0*b, i+1*b, i+2*b, i+3*b, i+4*b, i+5*b, i+6*b, i+7*b}
     paddsw      m3, m0, m4
     paddsw      m4, m4
 call .loop
@@ -1090,12 +1103,8 @@ call .loop
     packuswb    m5, m1
     movq        [r0+FDEC_STRIDE*2], m5
     movhps      [r0+FDEC_STRIDE*3], m5
-%endif ;!HIGH_BIT_DEPTH
     RET
-%endmacro ; PREDICT_8x8C_P
-
-INIT_XMM
-PREDICT_8x8C_P sse2
+%endif ; HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
 ; void predict_16x16_p_core( uint8_t *src, int i00, int b, int c )
@@ -1146,16 +1155,13 @@ cglobal predict_16x16_p_core_%1, 1,2,8
     movd     m0, r1m
     movd     m1, r2m
     movd     m2, r3m
-%ifdef HIGH_BIT_DEPTH
-    pxor     m6, m6
-    pxor     m7, m7
-%endif
     SPLATW   m0, m0, 0
     SPLATW   m1, m1, 0
     SPLATW   m2, m2, 0
     pmullw   m3, m1, [pw_76543210]
     psllw    m1, 3
 %ifdef HIGH_BIT_DEPTH
+    pxor     m6, m6
     mov     r1d, 16
 .loop:
     mova     m4, m0
