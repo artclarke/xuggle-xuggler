@@ -3324,17 +3324,18 @@ void    x264_encoder_close  ( x264_t *h )
         list_count[2] += h->stat.i_mb_partition[SLICE_TYPE_B][D_BI_8x8];
         i_mb_count[B_DIRECT] += (h->stat.i_mb_partition[SLICE_TYPE_B][D_DIRECT_8x8]+2)/4;
         i_mb_list_count = (list_count[0] + list_count[1] + list_count[2]) / 100.0;
-        x264_log( h, X264_LOG_INFO,
-                  "mb B  %s  B16..8: %4.1f%% %4.1f%% %4.1f%%  direct:%4.1f%%  skip:%4.1f%%  L0:%4.1f%% L1:%4.1f%% BI:%4.1f%%\n",
-                  buf,
-                  i_mb_size[PIXEL_16x16] / (i_count*4),
-                  (i_mb_size[PIXEL_16x8] + i_mb_size[PIXEL_8x16]) / (i_count*4),
-                  i_mb_size[PIXEL_8x8] / (i_count*4),
-                  i_mb_count[B_DIRECT] / i_count,
-                  i_mb_count[B_SKIP]   / i_count,
-                  list_count[0] / i_mb_list_count,
-                  list_count[1] / i_mb_list_count,
-                  list_count[2] / i_mb_list_count );
+        sprintf( buf + strlen(buf), "  B16..8: %4.1f%% %4.1f%% %4.1f%%  direct:%4.1f%%  skip:%4.1f%%",
+                 i_mb_size[PIXEL_16x16] / (i_count*4),
+                 (i_mb_size[PIXEL_16x8] + i_mb_size[PIXEL_8x16]) / (i_count*4),
+                 i_mb_size[PIXEL_8x8] / (i_count*4),
+                 i_mb_count[B_DIRECT] / i_count,
+                 i_mb_count[B_SKIP]   / i_count );
+        if( i_mb_list_count != 0 )
+            sprintf( buf + strlen(buf), "  L0:%4.1f%% L1:%4.1f%% BI:%4.1f%%",
+                     list_count[0] / i_mb_list_count,
+                     list_count[1] / i_mb_list_count,
+                     list_count[2] / i_mb_list_count );
+        x264_log( h, X264_LOG_INFO, "mb B  %s\n", buf );
     }
 
     x264_ratecontrol_summary( h );
