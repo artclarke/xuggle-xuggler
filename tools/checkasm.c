@@ -488,12 +488,13 @@ static int check_pixel( int cpu_ref, int cpu_new )
     if( pixel_asm.ssim_4x4x2_core != pixel_ref.ssim_4x4x2_core ||
         pixel_asm.ssim_end4 != pixel_ref.ssim_end4 )
     {
+        int cnt;
         float res_c, res_a;
         ALIGNED_16( int sums[5][4] ) = {{0}};
         used_asm = ok = 1;
         x264_emms();
-        res_c = x264_pixel_ssim_wxh( &pixel_c,   pbuf1+2, 32, pbuf2+2, 32, 32, 28, pbuf3 );
-        res_a = x264_pixel_ssim_wxh( &pixel_asm, pbuf1+2, 32, pbuf2+2, 32, 32, 28, pbuf3 );
+        res_c = x264_pixel_ssim_wxh( &pixel_c,   pbuf1+2, 32, pbuf2+2, 32, 32, 28, pbuf3, &cnt );
+        res_a = x264_pixel_ssim_wxh( &pixel_asm, pbuf1+2, 32, pbuf2+2, 32, 32, 28, pbuf3, &cnt );
         if( fabs( res_c - res_a ) > 1e-6 )
         {
             ok = 0;

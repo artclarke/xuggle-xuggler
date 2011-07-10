@@ -830,6 +830,7 @@ struct x264_t
             /* Metrics */
             int64_t i_ssd[3];
             double f_ssim;
+            int i_ssim_cnt;
         } frame;
 
         /* Cumulated stats */
