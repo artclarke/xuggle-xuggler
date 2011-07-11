@@ -59,10 +59,10 @@ void x264_param_default( x264_param_t *param )
     param->vui.i_sar_height= 0;
     param->vui.i_overscan  = 0;  /* undef */
     param->vui.i_vidformat = 5;  /* undef */
-    param->vui.b_fullrange = 0;  /* off */
+    param->vui.b_fullrange = -1; /* default depends on input */
     param->vui.i_colorprim = 2;  /* undef */
     param->vui.i_transfer  = 2;  /* undef */
-    param->vui.i_colmatrix = 2;  /* undef */
+    param->vui.i_colmatrix = -1; /* default depends on input */
     param->vui.i_chroma_loc= 0;  /* left center */
     param->i_fps_num       = 25;
     param->i_fps_den       = 1;
@@ -151,11 +151,13 @@ void x264_param_default( x264_param_t *param )
 
     param->i_cqm_preset = X264_CQM_FLAT;
     memset( param->cqm_4iy, 16, sizeof( param->cqm_4iy ) );
-    memset( param->cqm_4ic, 16, sizeof( param->cqm_4ic ) );
     memset( param->cqm_4py, 16, sizeof( param->cqm_4py ) );
+    memset( param->cqm_4ic, 16, sizeof( param->cqm_4ic ) );
     memset( param->cqm_4pc, 16, sizeof( param->cqm_4pc ) );
     memset( param->cqm_8iy, 16, sizeof( param->cqm_8iy ) );
     memset( param->cqm_8py, 16, sizeof( param->cqm_8py ) );
+    memset( param->cqm_8ic, 16, sizeof( param->cqm_8ic ) );
+    memset( param->cqm_8pc, 16, sizeof( param->cqm_8pc ) );
 
     param->b_repeat_headers = 1;
     param->b_annexb = 1;
@@ -763,8 +765,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     {
         p->i_cqm_preset = X264_CQM_CUSTOM;
         b_error |= parse_cqm( value, p->cqm_4iy, 16 );
-        b_error |= parse_cqm( value, p->cqm_4ic, 16 );
         b_error |= parse_cqm( value, p->cqm_4py, 16 );
+        b_error |= parse_cqm( value, p->cqm_4ic, 16 );
         b_error |= parse_cqm( value, p->cqm_4pc, 16 );
     }
     OPT("cqm8")
@@ -772,6 +774,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
         p->i_cqm_preset = X264_CQM_CUSTOM;
         b_error |= parse_cqm( value, p->cqm_8iy, 64 );
         b_error |= parse_cqm( value, p->cqm_8py, 64 );
+        b_error |= parse_cqm( value, p->cqm_8ic, 64 );
+        b_error |= parse_cqm( value, p->cqm_8pc, 64 );
     }
     OPT("cqm4i")
     {
@@ -809,11 +813,13 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     {
         p->i_cqm_preset = X264_CQM_CUSTOM;
         b_error |= parse_cqm( value, p->cqm_8iy, 64 );
+        b_error |= parse_cqm( value, p->cqm_8ic, 64 );
     }
     OPT("cqm8p")
     {
         p->i_cqm_preset = X264_CQM_CUSTOM;
         b_error |= parse_cqm( value, p->cqm_8py, 64 );
+        b_error |= parse_cqm( value, p->cqm_8pc, 64 );
     }
     OPT("log")
         p->i_log_level = atoi(value);

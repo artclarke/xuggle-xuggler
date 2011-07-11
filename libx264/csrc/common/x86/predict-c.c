@@ -315,12 +315,11 @@ static void x264_predict_8x8c_p_ssse3( uint8_t *src )
     b = ( 17 * H + 16 ) >> 5;
     c = ( 17 * V + 16 ) >> 5;
     i00 = a -3*b -3*c + 16;
-    /* b*7 + c*7 can overflow: it's easier to just branch away in this rare case
-     * than to try to consider it in the asm. */
-    if( BIT_DEPTH > 8 && (i00 > 0x7fff || abs(b) > 2340 || abs(c) > 2340) )
-        x264_predict_8x8c_p_c( src );
-    else
-        x264_predict_8x8c_p_core_sse2( src, i00, b, c );
+#if HIGH_BIT_DEPTH
+    x264_predict_8x8c_p_core_sse2( src, a, b, c );
+#else
+    x264_predict_8x8c_p_core_sse2( src, i00, b, c );
+#endif
 }
 #endif
 #if !HIGH_BIT_DEPTH

@@ -613,7 +613,7 @@ fi
 
 if [ $asm = auto -a $ARCH = ARM ] ; then
     # set flags so neon is built by default
-    echo $CFLAGS | grep -Eq '(-mcpu|-march|-mfpu|-mfloat-abi)' || CFLAGS="$CFLAGS -mcpu=cortex-a8 -mfpu=neon -mfloat-abi=softfp"
+    echo $CFLAGS | grep -Eq '(-mcpu|-march|-mfpu)' || CFLAGS="$CFLAGS -mcpu=cortex-a8 -mfpu=neon"
 
     if  cc_check '' '' '__asm__("rev ip, ip");' ; then      define HAVE_ARMV6
         cc_check '' '' '__asm__("movt r0, #0");'         && define HAVE_ARMV6T2
@@ -717,8 +717,8 @@ fi
 if [ "$swscale" = "auto" ] ; then
     swscale="no"
     if ${cross_prefix}pkg-config --exists libswscale 2>/dev/null; then
-        SWSCALE_LIBS="$SWSCALE_LIBS $(${cross_prefix}pkg-config --libs libswscale)"
-        SWSCALE_CFLAGS="$SWSCALE_CFLAGS $(${cross_prefix}pkg-config --cflags libswscale)"
+        SWSCALE_LIBS="$SWSCALE_LIBS $(${cross_prefix}pkg-config --libs libswscale libavutil)"
+        SWSCALE_CFLAGS="$SWSCALE_CFLAGS $(${cross_prefix}pkg-config --cflags libswscale libavutil)"
     fi
     [ -z "$SWSCALE_LIBS" ] && SWSCALE_LIBS="-lswscale -lavutil"
 
@@ -744,15 +744,11 @@ if [ "$lavf" = "auto" ] ; then
         done
     fi
     LAVF_LIBS="-L. $LAVF_LIBS"
-    if cc_check libavformat/avformat.h "$LAVF_CFLAGS $LAVF_LIBS" "avcodec_decode_video2(0,0,0,0);" ; then
-        if cpp_check libavcodec/avcodec.h "$LAVF_CFLAGS $LAVF_LIBS" "LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52,64,0)" ; then
-            if [ "$swscale" = "yes" ]; then
-                lavf="yes"
-            else
-                echo "Warning: libavformat is not supported without swscale support"
-            fi
+    if cc_check libavformat/avformat.h "$LAVF_CFLAGS $LAVF_LIBS" "avformat_open_input(0,0,0,0);" ; then
+        if [ "$swscale" = "yes" ]; then
+            lavf="yes"
         else
-            echo "Warning: libavcodec is too old, update to ffmpeg r22735+"
+            echo "Warning: libavformat is not supported without swscale support"
         fi
     fi
 fi

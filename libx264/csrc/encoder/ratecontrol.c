@@ -217,15 +217,15 @@ static ALWAYS_INLINE uint32_t ac_energy_var( uint64_t sum_ssd, int shift, x264_f
     return ssd - ((uint64_t)sum * sum >> shift);
 }
 
-static ALWAYS_INLINE uint32_t ac_energy_plane( x264_t *h, int mb_x, int mb_y, x264_frame_t *frame, int i, int field, int b_store )
+static ALWAYS_INLINE uint32_t ac_energy_plane( x264_t *h, int mb_x, int mb_y, x264_frame_t *frame, int i, int b_chroma, int b_field, int b_store )
 {
-    int w = i ? 8 : 16;
+    int w = b_chroma ? 8 : 16;
     int stride = frame->i_stride[i];
-    int offset = field
+    int offset = b_field
         ? 16 * mb_x + w * (mb_y&~1) * stride + (mb_y&1) * stride
         : 16 * mb_x + w * mb_y * stride;
-    stride <<= field;
-    if( i )
+    stride <<= b_field;
+    if( b_chroma )
     {
         ALIGNED_ARRAY_16( pixel, pix,[FENC_STRIDE*8] );
         h->mc.load_deinterleave_8x8x2_fenc( pix, frame->plane[1] + offset, stride );
@@ -233,7 +233,7 @@ static ALWAYS_INLINE uint32_t ac_energy_plane( x264_t *h, int mb_x, int mb_y, x2
              + ac_energy_var( h->pixf.var[PIXEL_8x8]( pix+FENC_STRIDE/2, FENC_STRIDE ), 6, frame, 2, b_store );
     }
     else
-        return ac_energy_var( h->pixf.var[PIXEL_16x16]( frame->plane[0] + offset, stride ), 8, frame, 0, b_store );
+        return ac_energy_var( h->pixf.var[PIXEL_16x16]( frame->plane[i] + offset, stride ), 8, frame, i, b_store );
 }
 
 // Find the total AC energy of the block in all planes.
@@ -249,16 +249,32 @@ static NOINLINE uint32_t x264_ac_energy_mb( x264_t *h, int mb_x, int mb_y, x264_
         /* We don't know the super-MB mode we're going to pick yet, so
          * simply try both and pick the lower of the two. */
         uint32_t var_interlaced, var_progressive;
-        var_interlaced   = ac_energy_plane( h, mb_x, mb_y, frame, 0, 1, 1 );
-        var_interlaced  += ac_energy_plane( h, mb_x, mb_y, frame, 1, 1, 1 );
-        var_progressive  = ac_energy_plane( h, mb_x, mb_y, frame, 0, 0, 0 );
-        var_progressive += ac_energy_plane( h, mb_x, mb_y, frame, 1, 0, 0 );
+        var_interlaced   = ac_energy_plane( h, mb_x, mb_y, frame, 0, 0, 1, 1 );
+        var_progressive  = ac_energy_plane( h, mb_x, mb_y, frame, 0, 0, 0, 0 );
+        if( CHROMA444 )
+        {
+            var_interlaced  += ac_energy_plane( h, mb_x, mb_y, frame, 1, 0, 1, 1 );
+            var_progressive += ac_energy_plane( h, mb_x, mb_y, frame, 1, 0, 0, 0 );
+            var_interlaced  += ac_energy_plane( h, mb_x, mb_y, frame, 2, 0, 1, 1 );
+            var_progressive += ac_energy_plane( h, mb_x, mb_y, frame, 2, 0, 0, 0 );
+        }
+        else
+        {
+            var_interlaced  += ac_energy_plane( h, mb_x, mb_y, frame, 1, 1, 1, 1 );
+            var_progressive += ac_energy_plane( h, mb_x, mb_y, frame, 1, 1, 0, 0 );
+        }
         var = X264_MIN( var_interlaced, var_progressive );
     }
     else
     {
-        var  = ac_energy_plane( h, mb_x, mb_y, frame, 0, PARAM_INTERLACED, 1 );
-        var += ac_energy_plane( h, mb_x, mb_y, frame, 1, PARAM_INTERLACED, 1 );
+        var  = ac_energy_plane( h, mb_x, mb_y, frame, 0, 0, PARAM_INTERLACED, 1 );
+        if( CHROMA444 )
+        {
+            var += ac_energy_plane( h, mb_x, mb_y, frame, 1, 0, PARAM_INTERLACED, 1 );
+            var += ac_energy_plane( h, mb_x, mb_y, frame, 2, 0, PARAM_INTERLACED, 1 );
+        }
+        else
+            var += ac_energy_plane( h, mb_x, mb_y, frame, 1, 1, PARAM_INTERLACED, 1 );
     }
     x264_emms();
     return var;
@@ -363,8 +379,9 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame, float *quant_off
     {
         uint64_t ssd = frame->i_pixel_ssd[i];
         uint64_t sum = frame->i_pixel_sum[i];
-        int width = h->mb.i_mb_width*16>>!!i;
-        int height = h->mb.i_mb_height*16>>!!i;
+        int size = CHROMA444 || !i ? 16 : 8;
+        int width = h->mb.i_mb_width*size;
+        int height = h->mb.i_mb_height*size;
         frame->i_pixel_ssd[i] = ssd - (sum * sum + width * height / 2) / (width * height);
     }
 }
@@ -1234,8 +1251,8 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp, int overhead )
         if( h->param.b_bluray_compat )
             mincr = 4;
 
-        /* High 10 doesn't require minCR, so just set the maximum to a large value. */
-        if( h->sps->i_profile_idc == PROFILE_HIGH10 )
+        /* High 10 / High 4:4:4 Predictive doesn't require minCR, so just set the maximum to a large value. */
+        if( h->sps->i_profile_idc >= PROFILE_HIGH10 )
             rc->frame_size_maximum = 1e9;
         else
         {

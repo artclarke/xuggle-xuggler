@@ -29,6 +29,7 @@
 #undef DECLARE_ALIGNED
 #include <libavformat/avformat.h>
 #include <libavutil/pixdesc.h>
+#include <libavutil/dict.h>
 
 typedef struct
 {
@@ -136,16 +137,13 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     if( !strcmp( psz_filename, "-" ) )
         psz_filename = "pipe:";
 
-    /* if resolution was passed in, parse it and colorspace into parameters. this allows raw video support */
-    AVFormatParameters *param = NULL;
+    /* if resolution was passed in, place it and colorspace into options. this allows raw video support */
+    AVDictionary *options = NULL;
     if( opt->resolution )
     {
-        param = calloc( 1, sizeof(AVFormatParameters) );
-        if( !param )
-            return -1;
-        sscanf( opt->resolution, "%dx%d", &param->width, &param->height );
-        param->pix_fmt = opt->colorspace ? av_get_pix_fmt( opt->colorspace ) : PIX_FMT_YUV420P;
-        FAIL_IF_ERROR( param->pix_fmt == PIX_FMT_NONE, "unsupported colorspace: %s\n", opt->colorspace );
+        av_dict_set( &options, "video_size", opt->resolution, 0 );
+        const char *csp = opt->colorspace ? opt->colorspace : av_get_pix_fmt_name( PIX_FMT_YUV420P );
+        av_dict_set( &options, "pixel_format", csp, 0 );
     }
 
     /* specify the input format. this is helpful when lavf fails to guess */
@@ -153,9 +151,9 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     if( opt->format )
         FAIL_IF_ERROR( !(format = av_find_input_format( opt->format )), "unknown file format: %s\n", opt->format );
 
-    FAIL_IF_ERROR( av_open_input_file( &h->lavf, psz_filename, format, 0, param ), "could not open input file\n" )
-    if( param )
-        free( param );
+    FAIL_IF_ERROR( avformat_open_input( &h->lavf, psz_filename, format, &options ), "could not open input file\n" )
+    if( options )
+        av_dict_free( &options );
     FAIL_IF_ERROR( av_find_stream_info( h->lavf ) < 0, "could not find input stream info\n" )
 
     int i = 0;

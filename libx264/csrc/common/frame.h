@@ -65,16 +65,16 @@ typedef struct x264_frame
 
     /* YUV buffer */
     int     i_plane;
-    int     i_stride[2];
-    int     i_width[2];
-    int     i_lines[2];
+    int     i_stride[3];
+    int     i_width[3];
+    int     i_lines[3];
     int     i_stride_lowres;
     int     i_width_lowres;
     int     i_lines_lowres;
-    pixel *plane[2];
-    pixel *plane_fld[2];
-    pixel *filtered[4]; /* plane[0], H, V, HV */
-    pixel *filtered_fld[4];
+    pixel *plane[3];
+    pixel *plane_fld[3];
+    pixel *filtered[3][4]; /* plane[0], H, V, HV */
+    pixel *filtered_fld[3][4];
     pixel *lowres[4]; /* half-size copy of input frame: Orig, H, V, HV */
     uint16_t *integral;
 
@@ -187,7 +187,6 @@ typedef struct
                                int bframe, x264_t *h );
 } x264_deblock_function_t;
 
-x264_frame_t *x264_frame_new( x264_t *h, int b_fdec );
 void          x264_frame_delete( x264_frame_t *frame );
 
 int           x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src );

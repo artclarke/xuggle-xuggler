@@ -121,6 +121,7 @@ static const char * const muxer_names[] =
 
 static const char * const pulldown_names[] = { "none", "22", "32", "64", "double", "triple", "euro", 0 };
 static const char * const log_level_names[] = { "none", "error", "warning", "info", "debug", 0 };
+static const char * const output_csp_names[] = { "i420", "i444", "rgb", 0 };
 
 typedef struct
 {
@@ -729,6 +730,8 @@ static void help( x264_param_t *defaults, int longhelp )
     H1( "      --input-fmt <string>    Specify input file format (requires lavf support)\n" );
     H1( "      --input-csp <string>    Specify input colorspace format for raw input\n" );
     print_csp_names( longhelp );
+    H1( "      --output-csp <string>   Specify output colorspace [\"%s\"]\n"
+        "                                  - %s\n", output_csp_names[0], stringify_names( buf, output_csp_names ) );
     H1( "      --input-depth <integer> Specify input bit depth for raw input\n" );
     H1( "      --input-res <intxint>   Specify input resolution (width x height)\n" );
     H1( "      --index <string>        Filename for input index file\n" );
@@ -808,7 +811,8 @@ enum
     OPT_INPUT_RES,
     OPT_INPUT_CSP,
     OPT_INPUT_DEPTH,
-    OPT_DTS_COMPRESSION
+    OPT_DTS_COMPRESSION,
+    OPT_OUTPUT_CSP
 } OptionsOPT;
 
 static char short_options[] = "8A:B:b:f:hI:i:m:o:p:q:r:t:Vvw";
@@ -966,6 +970,7 @@ static struct option long_options[] =
     { "input-csp",   required_argument, NULL, OPT_INPUT_CSP },
     { "input-depth", required_argument, NULL, OPT_INPUT_DEPTH },
     { "dts-compress",      no_argument, NULL, OPT_DTS_COMPRESSION },
+    { "output-csp",  required_argument, NULL, OPT_OUTPUT_CSP },
     {0, 0, 0, 0}
 };
 
@@ -1085,7 +1090,7 @@ static int select_input( const char *demuxer, char *used_demuxer, char *filename
     return 0;
 }
 
-static int init_vid_filters( char *sequence, hnd_t *handle, video_info_t *info, x264_param_t *param )
+static int init_vid_filters( char *sequence, hnd_t *handle, video_info_t *info, x264_param_t *param, int output_csp )
 {
     x264_register_vid_filters();
 
@@ -1117,14 +1122,17 @@ static int init_vid_filters( char *sequence, hnd_t *handle, video_info_t *info, 
         param->i_height = info->height;
         param->i_width  = info->width;
     }
-    /* if the current csp is supported by libx264, have libx264 use this csp.
-     * otherwise change the csp to I420 and have libx264 use this.
-     * when more colorspaces are supported, this decision will need to be updated. */
+    /* force the output csp to what the user specified (or the default) */
+    param->i_csp = info->csp;
     int csp = info->csp & X264_CSP_MASK;
-    if( csp > X264_CSP_NONE && csp < X264_CSP_MAX )
-        param->i_csp = info->csp;
-    else
-        param->i_csp = X264_CSP_I420 | ( info->csp & X264_CSP_HIGH_DEPTH );
+    if( output_csp == X264_CSP_I420 && (csp < X264_CSP_I420 || csp > X264_CSP_NV12) )
+        param->i_csp = X264_CSP_I420;
+    else if( output_csp == X264_CSP_I444 && (csp < X264_CSP_I444 || csp > X264_CSP_YV24) )
+        param->i_csp = X264_CSP_I444;
+    else if( output_csp == X264_CSP_RGB && (csp < X264_CSP_BGR || csp > X264_CSP_RGB) )
+        param->i_csp = X264_CSP_RGB;
+    param->i_csp |= info->csp & X264_CSP_HIGH_DEPTH;
+
     if( x264_init_vid_filter( "resize", handle, &filter, info, param, NULL ) )
         return -1;
 
@@ -1185,6 +1193,7 @@ static int parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
     memset( &input_opt, 0, sizeof(cli_input_opt_t) );
     memset( &output_opt, 0, sizeof(cli_output_opt_t) );
     input_opt.bit_depth = 8;
+    int output_csp = defaults.i_csp;
     opt->b_progress = 1;
 
     /* Presets are applied before all other options. */
@@ -1238,7 +1247,7 @@ static int parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
                 param->i_frame_total = X264_MAX( atoi( optarg ), 0 );
                 break;
             case OPT_SEEK:
-                opt->i_seek = input_opt.seek = X264_MAX( atoi( optarg ), 0 );
+                opt->i_seek = X264_MAX( atoi( optarg ), 0 );
                 break;
             case 'o':
                 output_filename = optarg;
@@ -1339,6 +1348,11 @@ static int parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
             case OPT_DTS_COMPRESSION:
                 output_opt.use_dts_compress = 1;
                 break;
+            case OPT_OUTPUT_CSP:
+                FAIL_IF_ERROR( parse_enum_value( optarg, output_csp_names, &output_csp ), "Unknown output csp `%s'\n", optarg )
+                // correct the parsed value to the libx264 csp value
+                output_csp = !output_csp ? X264_CSP_I420 : (output_csp == 1 ? X264_CSP_I444 : X264_CSP_RGB);
+                break;
             default:
 generic_option:
             {
@@ -1399,7 +1413,9 @@ generic_option:
     info.tff        = param->b_tff;
     info.vfr        = param->b_vfr_input;
 
+    input_opt.seek = opt->i_seek;
     input_opt.progress = opt->b_progress;
+    input_opt.output_csp = output_csp;
 
     if( select_input( demuxer, demuxername, input_filename, &opt->hin, &info, &input_opt ) )
         return -1;
@@ -1476,7 +1492,7 @@ generic_option:
         info.tff = param->b_tff;
     }
 
-    if( init_vid_filters( vid_filters, &opt->hin, &info, param ) )
+    if( init_vid_filters( vid_filters, &opt->hin, &info, param, output_csp ) )
         return -1;
 
     /* set param flags from the post-filtered video */

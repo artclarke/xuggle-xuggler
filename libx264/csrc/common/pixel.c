@@ -619,7 +619,7 @@ static float ssim_end4( int sum0[5][4], int sum1[5][4], int width )
 float x264_pixel_ssim_wxh( x264_pixel_function_t *pf,
                            pixel *pix1, int stride1,
                            pixel *pix2, int stride2,
-                           int width, int height, void *buf )
+                           int width, int height, void *buf, int *cnt )
 {
     int z = 0;
     float ssim = 0.0;
@@ -638,6 +638,7 @@ float x264_pixel_ssim_wxh( x264_pixel_function_t *pf,
         for( int x = 0; x < width-1; x += 4 )
             ssim += pf->ssim_end4( sum0+x, sum1+x, X264_MIN(4,width-x-1) );
     }
+    *cnt = (height-1) * (width-1);
     return ssim;
 }
 

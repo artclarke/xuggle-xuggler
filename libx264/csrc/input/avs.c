@@ -121,6 +121,17 @@ static AVS_Value update_clip( avs_hnd_t *h, const AVS_VideoInfo **vi, AVS_Value 
     return res;
 }
 
+static float get_avs_version( avs_hnd_t *h )
+{
+    FAIL_IF_ERROR( !h->func.avs_function_exists( h->env, "VersionNumber" ), "VersionNumber does not exist\n" )
+    AVS_Value ver = h->func.avs_invoke( h->env, "VersionNumber", avs_new_value_array( NULL, 0 ), NULL );
+    FAIL_IF_ERROR( avs_is_error( ver ), "unable to determine avisynth version: %s\n", avs_as_error( ver ) )
+    FAIL_IF_ERROR( !avs_is_float( ver ), "VersionNumber did not return a float value\n" );
+    float ret = avs_as_float( ver );
+    h->func.avs_release_value( ver );
+    return ret;
+}
+
 static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, cli_input_opt_t *opt )
 {
     FILE *fh = fopen( psz_filename, "r" );
@@ -139,6 +150,10 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         const char *error = h->func.avs_get_error( h->env );
         FAIL_IF_ERROR( error, "%s\n", error );
     }
+    float avs_version = get_avs_version( h );
+    if( avs_version <= 0 )
+        return -1;
+    x264_cli_log( "avs", X264_LOG_DEBUG, "using avisynth version %.2f\n", avs_version );
     AVS_Value arg = avs_new_value_string( psz_filename );
     AVS_Value res;
     char *filename_ext = get_filename_extension( psz_filename );
@@ -203,15 +218,22 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         info->tff = avs_is_tff( vi );
     }
 #if !HAVE_SWSCALE
-    /* if swscale is not available, convert CSPs to yv12 */
-    if( !avs_is_yv12( vi ) )
+    /* if swscale is not available, convert the CSP if necessary */
+    if( (opt->output_csp == X264_CSP_I420 && !avs_is_yv12( vi )) || (opt->output_csp == X264_CSP_I444 && !avs_is_yv24( vi )) ||
+        (opt->output_csp == X264_CSP_RGB && !avs_is_rgb( vi )) )
     {
-        x264_cli_log( "avs", X264_LOG_WARNING, "converting input clip to YV12\n" );
-        FAIL_IF_ERROR( vi->width&1 || vi->height&1, "input clip width or height not divisible by 2 (%dx%d)\n", vi->width, vi->height )
+        FAIL_IF_ERROR( avs_version < 2.6f && opt->output_csp == X264_CSP_I444, "avisynth >= 2.6 is required for i444 output\n" )
+
+        const char *csp = opt->output_csp == X264_CSP_I420 ? "YV12" : (opt->output_csp == X264_CSP_I444 ? "YV24" : "RGB");
+        x264_cli_log( "avs", X264_LOG_WARNING, "converting input clip to %s\n", csp );
+        FAIL_IF_ERROR( opt->output_csp == X264_CSP_I420 && (vi->width&1 || vi->height&1),
+                       "input clip width or height not divisible by 2 (%dx%d)\n", vi->width, vi->height )
         const char *arg_name[2] = { NULL, "interlaced" };
         AVS_Value arg_arr[2] = { res, avs_new_value_bool( info->interlaced ) };
-        AVS_Value res2 = h->func.avs_invoke( h->env, "ConvertToYV12", avs_new_value_array( arg_arr, 2 ), arg_name );
-        FAIL_IF_ERROR( avs_is_error( res2 ), "couldn't convert input clip to YV12\n" )
+        char conv_func[14] = { "ConvertTo" };
+        strcat( conv_func, csp );
+        AVS_Value res2 = h->func.avs_invoke( h->env, conv_func, avs_new_value_array( arg_arr, 2 ), arg_name );
+        FAIL_IF_ERROR( avs_is_error( res2 ), "couldn't convert input clip to %s\n", csp )
         res = update_clip( h, &vi, res2, res );
     }
 #endif
@@ -223,28 +245,26 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     info->fps_den = vi->fps_denominator;
     h->num_frames = info->num_frames = vi->num_frames;
     info->thread_safe = 1;
-#if HAVE_SWSCALE
     if( avs_is_rgb32( vi ) )
         info->csp = X264_CSP_BGRA | X264_CSP_VFLIP;
     else if( avs_is_rgb24( vi ) )
         info->csp = X264_CSP_BGR | X264_CSP_VFLIP;
-    else if( avs_is_yuy2( vi ) )
-        info->csp = PIX_FMT_YUYV422 | X264_CSP_OTHER;
     else if( avs_is_yv24( vi ) )
         info->csp = X264_CSP_I444;
+    else if( avs_is_yv12( vi ) )
+        info->csp = X264_CSP_I420;
+#if HAVE_SWSCALE
+    else if( avs_is_yuy2( vi ) )
+        info->csp = PIX_FMT_YUYV422 | X264_CSP_OTHER;
     else if( avs_is_yv16( vi ) )
         info->csp = X264_CSP_I422;
-    else if( avs_is_yv12( vi ) )
-         info->csp = X264_CSP_I420;
     else if( avs_is_yv411( vi ) )
         info->csp = PIX_FMT_YUV411P | X264_CSP_OTHER;
     else if( avs_is_y8( vi ) )
         info->csp = PIX_FMT_GRAY8 | X264_CSP_OTHER;
+#endif
     else
         info->csp = X264_CSP_NONE;
-#else
-    info->csp = X264_CSP_I420;
-#endif
     info->vfr = 0;
 
     *p_handle = h;

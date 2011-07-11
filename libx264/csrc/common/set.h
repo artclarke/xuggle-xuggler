@@ -49,7 +49,9 @@ enum cqm4_e
 enum cqm8_e
 {
     CQM_8IY = 0,
-    CQM_8PY = 1
+    CQM_8PY = 1,
+    CQM_8IC = 2,
+    CQM_8PC = 3,
 };
 
 typedef struct
@@ -69,12 +71,6 @@ typedef struct
     int i_poc_type;
     /* poc 0 */
     int i_log2_max_poc_lsb;
-    /* poc 1 */
-    int b_delta_pic_order_always_zero;
-    int i_offset_for_non_ref_pic;
-    int i_offset_for_top_to_bottom_field;
-    int i_num_ref_frames_in_poc_cycle;
-    int i_offset_for_ref_frame[256];
 
     int i_num_ref_frames;
     int b_gaps_in_frame_num_value_allowed;
@@ -154,6 +150,7 @@ typedef struct
     } vui;
 
     int b_qpprime_y_zero_transform_bypass;
+    int i_chroma_format_idc;
 
 } x264_sps_t;
 
@@ -185,7 +182,7 @@ typedef struct
     int b_transform_8x8_mode;
 
     int i_cqm_preset;
-    const uint8_t *scaling_list[6]; /* could be 8, but we don't allow separate Cb/Cr lists */
+    const uint8_t *scaling_list[8]; /* could be 12, but we don't allow separate Cb/Cr lists */
 
 } x264_pps_t;
 
@@ -237,10 +234,11 @@ static const uint8_t x264_cqm_flat16[64] =
     16,16,16,16,16,16,16,16,
     16,16,16,16,16,16,16,16
 };
-static const uint8_t * const x264_cqm_jvt[6] =
+static const uint8_t * const x264_cqm_jvt[8] =
 {
     x264_cqm_jvt4i, x264_cqm_jvt4p,
     x264_cqm_jvt4i, x264_cqm_jvt4p,
+    x264_cqm_jvt8i, x264_cqm_jvt8p,
     x264_cqm_jvt8i, x264_cqm_jvt8p
 };
 

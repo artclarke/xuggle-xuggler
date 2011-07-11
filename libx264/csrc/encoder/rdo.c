@@ -64,7 +64,7 @@ static uint16_t cabac_size_5ones[128];
 #include "cabac.c"
 
 #define COPY_CABAC h->mc.memcpy_aligned( &cabac_tmp.f8_bits_encoded, &h->cabac.f8_bits_encoded, \
-        sizeof(x264_cabac_t) - offsetof(x264_cabac_t,f8_bits_encoded) )
+        sizeof(x264_cabac_t) - offsetof(x264_cabac_t,f8_bits_encoded) - (CHROMA444 ? 0 : (1024+12)-460) )
 #define COPY_CABAC_PART( pos, size )\
         memcpy( &cb->state[pos], &h->cabac.state[pos], size )
 
@@ -146,9 +146,10 @@ static inline int ssd_plane( x264_t *h, int size, int p, int x, int y )
 
 static inline int ssd_mb( x264_t *h )
 {
-    int chromassd = ssd_plane(h, PIXEL_8x8, 1, 0, 0) + ssd_plane(h, PIXEL_8x8, 2, 0, 0);
-    chromassd = ((uint64_t)chromassd * h->mb.i_chroma_lambda2_offset + 128) >> 8;
-    return ssd_plane(h, PIXEL_16x16, 0, 0, 0) + chromassd;
+    int chroma_size = CHROMA444 ? PIXEL_16x16 : PIXEL_8x8;
+    int chroma_ssd = ssd_plane(h, chroma_size, 1, 0, 0) + ssd_plane(h, chroma_size, 2, 0, 0);
+    chroma_ssd = ((uint64_t)chroma_ssd * h->mb.i_chroma_lambda2_offset + 128) >> 8;
+    return ssd_plane(h, PIXEL_16x16, 0, 0, 0) + chroma_ssd;
 }
 
 static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
@@ -188,29 +189,6 @@ static int x264_rd_cost_mb( x264_t *h, int i_lambda2 )
     return i_ssd + i_bits;
 }
 
-/* For small partitions (i.e. those using at most one DCT category's worth of CABAC states),
- * it's faster to copy the individual parts than to perform a whole CABAC_COPY. */
-static ALWAYS_INLINE void x264_copy_cabac_part( x264_t *h, x264_cabac_t *cb, int cat, int intra )
-{
-    if( intra )
-        COPY_CABAC_PART( 68, 2 );  //intra pred mode
-    else
-        COPY_CABAC_PART( 40, 16 ); //mvd, rounded up to 16 bytes
-
-    /* 8x8dct writes CBP, while non-8x8dct writes CBF */
-    if( cat != DCT_LUMA_8x8 )
-        COPY_CABAC_PART( 85 + cat * 4, 4 );
-    else
-        COPY_CABAC_PART( 73, 4 );
-
-    /* Really should be 15 bytes, but rounding up a byte saves some
-     * instructions and is faster, and copying extra data doesn't hurt. */
-    COPY_CABAC_PART( significant_coeff_flag_offset[MB_INTERLACED][cat], 16 );
-    COPY_CABAC_PART( last_coeff_flag_offset[MB_INTERLACED][cat], 16 );
-    COPY_CABAC_PART( coeff_abs_level_m1_offset[cat], 10 );
-    cb->f8_bits_encoded = 0;
-}
-
 /* partition RD functions use 8 bits more precision to avoid large rounding errors at low QPs */
 
 static uint64_t x264_rd_cost_subpart( x264_t *h, int i_lambda2, int i4, int i_pixel )
@@ -224,11 +202,18 @@ static uint64_t x264_rd_cost_subpart( x264_t *h, int i_lambda2, int i4, int i_pi
         x264_macroblock_encode_p4x4( h, i4+2 );
 
     i_ssd = ssd_plane( h, i_pixel, 0, block_idx_x[i4]*4, block_idx_y[i4]*4 );
+    if( CHROMA444 )
+    {
+        int chromassd = ssd_plane( h, i_pixel, 1, block_idx_x[i4]*4, block_idx_y[i4]*4 )
+                      + ssd_plane( h, i_pixel, 2, block_idx_x[i4]*4, block_idx_y[i4]*4 );
+        chromassd = ((uint64_t)chromassd * h->mb.i_chroma_lambda2_offset + 128) >> 8;
+        i_ssd += chromassd;
+    }
 
     if( h->param.b_cabac )
     {
         x264_cabac_t cabac_tmp;
-        x264_copy_cabac_part( h, &cabac_tmp, DCT_LUMA_4x4, 0 );
+        COPY_CABAC;
         x264_subpartition_size_cabac( h, &cabac_tmp, i4, i_pixel );
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
@@ -261,10 +246,19 @@ uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i4, int i_pixel )
     if( i_pixel == PIXEL_8x16 )
         x264_macroblock_encode_p8x8( h, i8+2 );
 
-    chromassd = ssd_plane( h, i_pixel+3, 1, (i8&1)*4, (i8>>1)*4 )
-              + ssd_plane( h, i_pixel+3, 2, (i8&1)*4, (i8>>1)*4 );
+    i_ssd = ssd_plane( h, i_pixel, 0, (i8&1)*8, (i8>>1)*8 );
+    if( CHROMA444 )
+    {
+        chromassd = ssd_plane( h, i_pixel, 1, (i8&1)*8, (i8>>1)*8 )
+                  + ssd_plane( h, i_pixel, 2, (i8&1)*8, (i8>>1)*8 );
+    }
+    else
+    {
+        chromassd = ssd_plane( h, i_pixel+3, 1, (i8&1)*4, (i8>>1)*4 )
+                  + ssd_plane( h, i_pixel+3, 2, (i8&1)*4, (i8>>1)*4 );
+    }
     chromassd = ((uint64_t)chromassd * h->mb.i_chroma_lambda2_offset + 128) >> 8;
-    i_ssd = ssd_plane( h, i_pixel,   0, (i8&1)*8, (i8>>1)*8 ) + chromassd;
+    i_ssd += chromassd;
 
     if( h->param.b_cabac )
     {
@@ -279,19 +273,33 @@ uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i4, int i_pixel )
     return (i_ssd<<8) + i_bits;
 }
 
-static uint64_t x264_rd_cost_i8x8( x264_t *h, int i_lambda2, int i8, int i_mode )
+static uint64_t x264_rd_cost_i8x8( x264_t *h, int i_lambda2, int i8, int i_mode, pixel edge[3][48] )
 {
     uint64_t i_ssd, i_bits;
+    int plane_count = CHROMA444 ? 3 : 1;
+    int i_qp = h->mb.i_qp;
     h->mb.i_cbp_luma &= ~(1<<i8);
     h->mb.b_transform_8x8 = 1;
 
-    x264_mb_encode_i8x8( h, i8, h->mb.i_qp );
+    for( int p = 0; p < plane_count; p++ )
+    {
+        x264_mb_encode_i8x8( h, p, i8, i_qp, i_mode, edge[p] );
+        i_qp = h->mb.i_chroma_qp;
+    }
+
     i_ssd = ssd_plane( h, PIXEL_8x8, 0, (i8&1)*8, (i8>>1)*8 );
+    if( CHROMA444 )
+    {
+        int chromassd = ssd_plane( h, PIXEL_8x8, 1, (i8&1)*8, (i8>>1)*8 )
+                      + ssd_plane( h, PIXEL_8x8, 2, (i8&1)*8, (i8>>1)*8 );
+        chromassd = ((uint64_t)chromassd * h->mb.i_chroma_lambda2_offset + 128) >> 8;
+        i_ssd += chromassd;
+    }
 
     if( h->param.b_cabac )
     {
         x264_cabac_t cabac_tmp;
-        x264_copy_cabac_part( h, &cabac_tmp, DCT_LUMA_8x8, 1 );
+        COPY_CABAC;
         x264_partition_i8x8_size_cabac( h, &cabac_tmp, i8, i_mode );
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
@@ -304,14 +312,28 @@ static uint64_t x264_rd_cost_i8x8( x264_t *h, int i_lambda2, int i8, int i_mode 
 static uint64_t x264_rd_cost_i4x4( x264_t *h, int i_lambda2, int i4, int i_mode )
 {
     uint64_t i_ssd, i_bits;
+    int plane_count = CHROMA444 ? 3 : 1;
+    int i_qp = h->mb.i_qp;
 
-    x264_mb_encode_i4x4( h, i4, h->mb.i_qp );
+    for( int p = 0; p < plane_count; p++ )
+    {
+        x264_mb_encode_i4x4( h, p, i4, i_qp, i_mode );
+        i_qp = h->mb.i_chroma_qp;
+    }
+
     i_ssd = ssd_plane( h, PIXEL_4x4, 0, block_idx_x[i4]*4, block_idx_y[i4]*4 );
+    if( CHROMA444 )
+    {
+        int chromassd = ssd_plane( h, PIXEL_4x4, 1, block_idx_x[i4]*4, block_idx_y[i4]*4 )
+                      + ssd_plane( h, PIXEL_4x4, 2, block_idx_x[i4]*4, block_idx_y[i4]*4 );
+        chromassd = ((uint64_t)chromassd * h->mb.i_chroma_lambda2_offset + 128) >> 8;
+        i_ssd += chromassd;
+    }
 
     if( h->param.b_cabac )
     {
         x264_cabac_t cabac_tmp;
-        x264_copy_cabac_part( h, &cabac_tmp, DCT_LUMA_4x4, 1 );
+        COPY_CABAC;
         x264_partition_i4x4_size_cabac( h, &cabac_tmp, i4, i_mode );
         i_bits = ( (uint64_t)cabac_tmp.f8_bits_encoded * i_lambda2 + 128 ) >> 8;
     }
@@ -419,7 +441,7 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
                          const udctcoef *quant_mf, const int *unquant_mf,
                          const int *coef_weight, const uint8_t *zigzag,
                          int ctx_block_cat, int i_lambda2, int b_ac,
-                         int dc, int i_coefs, int idx )
+                         int b_chroma, int dc, int i_coefs, int idx )
 {
     int abs_coefs[64], signs[64];
     trellis_node_t nodes[2][8];
@@ -458,6 +480,7 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
     }
 
     i_last_nnz = i;
+    idx &= i_coefs == 64 ? 3 : 15;
 
     for( ; i >= b_ac; i-- )
     {
@@ -546,7 +569,7 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
             int d = i_coef - unquant_abs_level;
             int64_t ssd;
             /* Psy trellis: bias in favor of higher AC coefficients in the reconstructed frame. */
-            if( h->mb.i_psy_trellis && i && !dc && ctx_block_cat != DCT_CHROMA_AC )
+            if( h->mb.i_psy_trellis && i && !dc && !b_chroma )
             {
                 int orig_coef = (i_coefs == 64) ? h->mb.pic.fenc_dct8[idx][zigzag[i]] : h->mb.pic.fenc_dct4[idx][zigzag[i]];
                 int predicted_coef = orig_coef - i_coef * signs[i];
@@ -664,7 +687,7 @@ int quant_trellis_cavlc( x264_t *h, dctcoef *dct,
                          const udctcoef *quant_mf, const int *unquant_mf,
                          const int *coef_weight, const uint8_t *zigzag,
                          int ctx_block_cat, int i_lambda2, int b_ac,
-                         int dc, int i_coefs, int idx, int b_8x8 )
+                         int b_chroma, int dc, int i_coefs, int idx, int b_8x8 )
 {
     ALIGNED_16( dctcoef quant_coefs[2][16] );
     ALIGNED_16( dctcoef coefs[16] ) = {0};
@@ -672,7 +695,7 @@ int quant_trellis_cavlc( x264_t *h, dctcoef *dct,
     int64_t score = 1ULL<<62;
     int i, j;
     const int f = 1<<15;
-    int nC = ctx_block_cat == DCT_CHROMA_DC ? 4 : ct_index[x264_mb_predict_non_zero_code( h, ctx_block_cat == DCT_LUMA_DC ? 0 : idx )];
+    int nC = ctx_block_cat == DCT_CHROMA_DC ? 4 : ct_index[x264_mb_predict_non_zero_code( h, ctx_block_cat == DCT_LUMA_DC ? (idx - LUMA_DC)*16 : idx )];
 
     /* Code for handling 8x8dct -> 4x4dct CAVLC munging.  Input/output use a different
      * step/start/end than internal processing. */
@@ -685,6 +708,7 @@ int quant_trellis_cavlc( x264_t *h, dctcoef *dct,
         end = 60 + start;
         step = 4;
     }
+    idx &= 15;
 
     i_lambda2 <<= LAMBDA_BITS;
 
@@ -726,7 +750,7 @@ int quant_trellis_cavlc( x264_t *h, dctcoef *dct,
             delta_distortion[i] = (d0*d0 - d1*d1) * (dc?256:coef_weight[j]);
 
             /* Psy trellis: bias in favor of higher AC coefficients in the reconstructed frame. */
-            if( h->mb.i_psy_trellis && j && !dc && ctx_block_cat != DCT_CHROMA_AC )
+            if( h->mb.i_psy_trellis && j && !dc && !b_chroma )
             {
                 int orig_coef = b_8x8 ? h->mb.pic.fenc_dct8[idx>>2][zigzag[j]] : h->mb.pic.fenc_dct4[idx][zigzag[j]];
                 int predicted_coef = orig_coef - coef;
@@ -836,40 +860,44 @@ zeroblock:
 const static uint8_t x264_zigzag_scan2[4] = {0,1,2,3};
 
 int x264_quant_dc_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
-                           int i_qp, int ctx_block_cat, int b_intra, int b_chroma )
+                           int i_qp, int ctx_block_cat, int b_intra, int b_chroma, int idx )
 {
     if( h->param.b_cabac )
         return quant_trellis_cabac( h, dct,
             h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
             NULL, ctx_block_cat==DCT_CHROMA_DC ? x264_zigzag_scan2 : x264_zigzag_scan4[MB_INTERLACED],
-            ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, 1, ctx_block_cat==DCT_CHROMA_DC ? 4 : 16, 0 );
+            ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, b_chroma, 1, ctx_block_cat==DCT_CHROMA_DC ? 4 : 16, idx );
+
+    if( ctx_block_cat != DCT_CHROMA_DC )
+        ctx_block_cat = DCT_LUMA_DC;
 
     return quant_trellis_cavlc( h, dct,
         h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
         NULL, ctx_block_cat==DCT_CHROMA_DC ? x264_zigzag_scan2 : x264_zigzag_scan4[MB_INTERLACED],
-        ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, 1, ctx_block_cat==DCT_CHROMA_DC ? 4 : 16, 0, 0 );
+        ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, b_chroma, 1, ctx_block_cat==DCT_CHROMA_DC ? 4 : 16, idx, 0 );
 }
 
 int x264_quant_4x4_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
                             int i_qp, int ctx_block_cat, int b_intra, int b_chroma, int idx )
 {
-    int b_ac = (ctx_block_cat == DCT_LUMA_AC || ctx_block_cat == DCT_CHROMA_AC);
+    static const uint8_t ctx_ac[14] = {0,1,0,0,1,0,0,1,0,0,0,1,0,0};
+    int b_ac = ctx_ac[ctx_block_cat];
     if( h->param.b_cabac )
         return quant_trellis_cabac( h, dct,
             h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
             x264_dct4_weight2_zigzag[MB_INTERLACED],
             x264_zigzag_scan4[MB_INTERLACED],
-            ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, 0, 16, idx );
+            ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, b_chroma, 0, 16, idx );
 
     return quant_trellis_cavlc( h, dct,
             h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
             x264_dct4_weight2_zigzag[MB_INTERLACED],
             x264_zigzag_scan4[MB_INTERLACED],
-            ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, 0, 16, idx, 0 );
+            ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, b_chroma, 0, 16, idx, 0 );
 }
 
 int x264_quant_8x8_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
-                            int i_qp, int b_intra, int idx )
+                            int i_qp, int ctx_block_cat, int b_intra, int b_chroma, int idx )
 {
     if( h->param.b_cabac )
     {
@@ -877,7 +905,7 @@ int x264_quant_8x8_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
             h->quant8_mf[i_quant_cat][i_qp], h->unquant8_mf[i_quant_cat][i_qp],
             x264_dct8_weight2_zigzag[MB_INTERLACED],
             x264_zigzag_scan8[MB_INTERLACED],
-            DCT_LUMA_8x8, h->mb.i_trellis_lambda2[0][b_intra], 0, 0, 64, idx );
+            ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, b_chroma, 0, 64, idx );
     }
 
     /* 8x8 CAVLC is split into 4 4x4 blocks */
@@ -888,7 +916,7 @@ int x264_quant_8x8_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
             h->quant8_mf[i_quant_cat][i_qp], h->unquant8_mf[i_quant_cat][i_qp],
             x264_dct8_weight2_zigzag[MB_INTERLACED],
             x264_zigzag_scan8[MB_INTERLACED],
-            DCT_LUMA_4x4, h->mb.i_trellis_lambda2[0][b_intra], 0, 0, 16, idx*4+i, 1 );
+            DCT_LUMA_4x4, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, b_chroma, 0, 16, idx*4+i, 1 );
         /* Set up nonzero count for future calls */
         h->mb.cache.non_zero_count[x264_scan8[idx*4+i]] = nz;
         nzaccum |= nz;

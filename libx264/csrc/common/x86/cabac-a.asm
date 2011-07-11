@@ -55,7 +55,7 @@ struc cb
     .end: pointer 1
     align 16, resb 1
     .bits_encoded: resd 1
-    .state: resb 460
+    .state: resb 1024
 endstruc
 
 %macro LOAD_GLOBAL 4

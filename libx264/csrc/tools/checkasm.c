@@ -488,12 +488,13 @@ static int check_pixel( int cpu_ref, int cpu_new )
     if( pixel_asm.ssim_4x4x2_core != pixel_ref.ssim_4x4x2_core ||
         pixel_asm.ssim_end4 != pixel_ref.ssim_end4 )
     {
+        int cnt;
         float res_c, res_a;
         ALIGNED_16( int sums[5][4] ) = {{0}};
         used_asm = ok = 1;
         x264_emms();
-        res_c = x264_pixel_ssim_wxh( &pixel_c,   pbuf1+2, 32, pbuf2+2, 32, 32, 28, pbuf3 );
-        res_a = x264_pixel_ssim_wxh( &pixel_asm, pbuf1+2, 32, pbuf2+2, 32, 32, 28, pbuf3 );
+        res_c = x264_pixel_ssim_wxh( &pixel_c,   pbuf1+2, 32, pbuf2+2, 32, 32, 28, pbuf3, &cnt );
+        res_a = x264_pixel_ssim_wxh( &pixel_asm, pbuf1+2, 32, pbuf2+2, 32, 32, 28, pbuf3, &cnt );
         if( fabs( res_c - res_a ) > 1e-6 )
         {
             ok = 0;
@@ -564,8 +565,8 @@ static int check_dct( int cpu_ref, int cpu_new )
     x264_dct_init( cpu_new, &dct_asm );
 
     memset( h, 0, sizeof(*h) );
-    h->pps = h->pps_array;
     x264_param_default( &h->param );
+    h->sps->i_chroma_format_idc = 1;
     h->chroma_qp_table = i_chroma_qp_table + 12;
     h->param.analyse.i_luma_deadzone[0] = 0;
     h->param.analyse.i_luma_deadzone[1] = 0;
@@ -1435,7 +1436,7 @@ static int check_quant( int cpu_ref, int cpu_new )
     x264_t h_buf;
     x264_t *h = &h_buf;
     memset( h, 0, sizeof(*h) );
-    h->pps = h->pps_array;
+    h->sps->i_chroma_format_idc = 1;
     x264_param_default( &h->param );
     h->chroma_qp_table = i_chroma_qp_table + 12;
     h->param.analyse.b_transform_8x8 = 1;
@@ -1905,26 +1906,26 @@ static int check_intra( int cpu_ref, int cpu_new )
 }
 
 #define DECL_CABAC(cpu) \
-static void run_cabac_decision_##cpu( uint8_t *dst )\
+static void run_cabac_decision_##cpu( x264_t *h, uint8_t *dst )\
 {\
     x264_cabac_t cb;\
-    x264_cabac_context_init( &cb, SLICE_TYPE_P, 26, 0 );\
+    x264_cabac_context_init( h, &cb, SLICE_TYPE_P, 26, 0 );\
     x264_cabac_encode_init( &cb, dst, dst+0xff0 );\
     for( int i = 0; i < 0x1000; i++ )\
         x264_cabac_encode_decision_##cpu( &cb, buf1[i]>>1, buf1[i]&1 );\
 }\
-static void run_cabac_bypass_##cpu( uint8_t *dst )\
+static void run_cabac_bypass_##cpu( x264_t *h, uint8_t *dst )\
 {\
     x264_cabac_t cb;\
-    x264_cabac_context_init( &cb, SLICE_TYPE_P, 26, 0 );\
+    x264_cabac_context_init( h, &cb, SLICE_TYPE_P, 26, 0 );\
     x264_cabac_encode_init( &cb, dst, dst+0xff0 );\
     for( int i = 0; i < 0x1000; i++ )\
         x264_cabac_encode_bypass_##cpu( &cb, buf1[i]&1 );\
 }\
-static void run_cabac_terminal_##cpu( uint8_t *dst )\
+static void run_cabac_terminal_##cpu( x264_t *h, uint8_t *dst )\
 {\
     x264_cabac_t cb;\
-    x264_cabac_context_init( &cb, SLICE_TYPE_P, 26, 0 );\
+    x264_cabac_context_init( h, &cb, SLICE_TYPE_P, 26, 0 );\
     x264_cabac_encode_init( &cb, dst, dst+0xff0 );\
     for( int i = 0; i < 0x1000; i++ )\
         x264_cabac_encode_terminal_##cpu( &cb );\
@@ -1941,28 +1942,30 @@ DECL_CABAC(asm)
 static int check_cabac( int cpu_ref, int cpu_new )
 {
     int ret = 0, ok, used_asm = 1;
+    x264_t h;
+    h.sps->i_chroma_format_idc = 3;
     if( cpu_ref || run_cabac_decision_c == run_cabac_decision_asm )
         return 0;
-    x264_cabac_init();
+    x264_cabac_init( &h );
 
     set_func_name( "cabac_encode_decision" );
     memcpy( buf4, buf3, 0x1000 );
-    call_c( run_cabac_decision_c, buf3 );
-    call_a( run_cabac_decision_asm, buf4 );
+    call_c( run_cabac_decision_c, &h, buf3 );
+    call_a( run_cabac_decision_asm, &h, buf4 );
     ok = !memcmp( buf3, buf4, 0x1000 );
     report( "cabac decision:" );
 
     set_func_name( "cabac_encode_bypass" );
     memcpy( buf4, buf3, 0x1000 );
-    call_c( run_cabac_bypass_c, buf3 );
-    call_a( run_cabac_bypass_asm, buf4 );
+    call_c( run_cabac_bypass_c, &h, buf3 );
+    call_a( run_cabac_bypass_asm, &h, buf4 );
     ok = !memcmp( buf3, buf4, 0x1000 );
     report( "cabac bypass:" );
 
     set_func_name( "cabac_encode_terminal" );
     memcpy( buf4, buf3, 0x1000 );
-    call_c( run_cabac_terminal_c, buf3 );
-    call_a( run_cabac_terminal_asm, buf4 );
+    call_c( run_cabac_terminal_c, &h, buf3 );
+    call_a( run_cabac_terminal_asm, &h, buf4 );
     ok = !memcmp( buf3, buf4, 0x1000 );
     report( "cabac terminal:" );
 

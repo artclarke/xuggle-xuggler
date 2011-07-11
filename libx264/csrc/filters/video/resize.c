@@ -137,6 +137,7 @@ static int convert_csp_to_pix_fmt( int csp )
         case X264_CSP_YV12: /* specially handled via swapping chroma */
         case X264_CSP_I420: return csp&X264_CSP_HIGH_DEPTH ? PIX_FMT_YUV420P16 : PIX_FMT_YUV420P;
         case X264_CSP_I422: return csp&X264_CSP_HIGH_DEPTH ? PIX_FMT_YUV422P16 : PIX_FMT_YUV422P;
+        case X264_CSP_YV24: /* specially handled via swapping chroma */
         case X264_CSP_I444: return csp&X264_CSP_HIGH_DEPTH ? PIX_FMT_YUV444P16 : PIX_FMT_YUV444P;
         case X264_CSP_RGB:  return csp&X264_CSP_HIGH_DEPTH ? PIX_FMT_RGB48     : PIX_FMT_RGB24;
         /* the next 3 csps have no equivalent 16bit depth in swscale */
@@ -338,6 +339,27 @@ static int handle_opts( const char **optlist, char **opts, video_info_t *info, r
     return 0;
 }
 
+static int handle_jpeg( int *format )
+{
+    switch( *format )
+    {
+        case PIX_FMT_YUVJ420P:
+            *format = PIX_FMT_YUV420P;
+            return 1;
+        case PIX_FMT_YUVJ422P:
+            *format = PIX_FMT_YUV422P;
+            return 1;
+        case PIX_FMT_YUVJ444P:
+            *format = PIX_FMT_YUV444P;
+            return 1;
+        case PIX_FMT_YUVJ440P:
+            *format = PIX_FMT_YUV440P;
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 static int x264_init_sws_context( resizer_hnd_t *h )
 {
     if( !h->ctx )
@@ -347,22 +369,28 @@ static int x264_init_sws_context( resizer_hnd_t *h )
             return -1;
 
         /* set flags that will not change */
+        int dst_format = h->dst.pix_fmt;
+        int dst_range  = handle_jpeg( &dst_format );
         av_set_int( h->ctx, "sws_flags",  h->ctx_flags );
         av_set_int( h->ctx, "dstw",       h->dst.width );
         av_set_int( h->ctx, "dsth",       h->dst.height );
-        av_set_int( h->ctx, "dst_format", h->dst.pix_fmt );
-        av_set_int( h->ctx, "dst_range",  0 ); /* FIXME: use the correct full range value */
+        av_set_int( h->ctx, "dst_format", dst_format );
+        av_set_int( h->ctx, "dst_range",  dst_range ); /* FIXME: use the correct full range value */
     }
 
+    int src_format = h->scale.pix_fmt;
+    int src_range  = handle_jpeg( &src_format );
     av_set_int( h->ctx, "srcw",       h->scale.width );
     av_set_int( h->ctx, "srch",       h->scale.height );
-    av_set_int( h->ctx, "src_format", h->scale.pix_fmt );
-    av_set_int( h->ctx, "src_range",  0 ); /* FIXME: use the correct full range value */
+    av_set_int( h->ctx, "src_format", src_format );
+    av_set_int( h->ctx, "src_range",  src_range ); /* FIXME: use the correct full range value */
 
     /* FIXME: use the correct full range values
      * FIXME: use the correct matrix coefficients (only YUV -> RGB conversions are supported) */
-    sws_setColorspaceDetails( h->ctx, sws_getCoefficients( SWS_CS_DEFAULT ), 0,
-                              sws_getCoefficients( SWS_CS_DEFAULT ), 0, 0, 1<<16, 1<<16 );
+    sws_setColorspaceDetails( h->ctx,
+                              sws_getCoefficients( SWS_CS_DEFAULT ), src_range,
+                              sws_getCoefficients( SWS_CS_DEFAULT ), av_get_int( h->ctx, "dst_range", NULL ),
+                              0, 1<<16, 1<<16 );
 
     return sws_init_context( h->ctx, NULL, NULL ) < 0;
 }
@@ -436,9 +464,11 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
     h->dst.pix_fmt = convert_csp_to_pix_fmt( h->dst_csp );
     h->scale = h->dst;
 
-    /* swap chroma planes if YV12 is involved, as libswscale works with I420 */
-    h->pre_swap_chroma = (info->csp & X264_CSP_MASK) == X264_CSP_YV12;
-    h->post_swap_chroma = (h->dst_csp & X264_CSP_MASK) == X264_CSP_YV12;
+    /* swap chroma planes if YV12/YV24 is involved, as libswscale works with I420/I444 */
+    int src_csp = info->csp & X264_CSP_MASK;
+    int dst_csp = h->dst_csp & X264_CSP_MASK;
+    h->pre_swap_chroma  = src_csp == X264_CSP_YV12 || src_csp == X264_CSP_YV24;
+    h->post_swap_chroma = dst_csp == X264_CSP_YV12 || dst_csp == X264_CSP_YV24;
 
     int src_pix_fmt = convert_csp_to_pix_fmt( info->csp );
 

@@ -45,14 +45,17 @@ typedef struct
     ALIGNED_16( int f8_bits_encoded ); // only if using x264_cabac_size_decision()
 
     /* context */
-    uint8_t state[460];
+    uint8_t state[1024];
+
+    /* for 16-byte alignment */
+    uint8_t padding[12];
 } x264_cabac_t;
 
 extern const uint8_t x264_cabac_transition[128][2];
 extern const uint16_t x264_cabac_entropy[128];
 
 /* init the contexts given i_slice_type, the quantif and the model */
-void x264_cabac_context_init( x264_cabac_t *cb, int i_slice_type, int i_qp, int i_model );
+void x264_cabac_context_init( x264_t *h, x264_cabac_t *cb, int i_slice_type, int i_qp, int i_model );
 
 void x264_cabac_encode_init_core( x264_cabac_t *cb );
 void x264_cabac_encode_init ( x264_cabac_t *cb, uint8_t *p_data, uint8_t *p_end );

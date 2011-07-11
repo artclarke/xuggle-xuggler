@@ -96,7 +96,10 @@ typedef struct
     void (*plane_copy_deinterleave)( pixel *dstu, int i_dstu,
                                      pixel *dstv, int i_dstv,
                                      pixel *src, int i_src, int w, int h );
-
+    void (*plane_copy_deinterleave_rgb)( pixel *dsta, int i_dsta,
+                                         pixel *dstb, int i_dstb,
+                                         pixel *dstc, int i_dstc,
+                                         pixel *src, int i_src, int pw, int w, int h );
     void (*hpel_filter)( pixel *dsth, pixel *dstv, pixel *dstc, pixel *src,
                          int i_stride, int i_width, int i_height, int16_t *buf );
 
