@@ -4,35 +4,51 @@ if test x"$1" = x"-h" -o x"$1" = x"--help" ; then
 cat <<EOF
 Usage: ./configure [options]
 
-available options:
+Help:
+  -h, --help               print this message
 
-  --help                   print this message
-  --disable-cli            disables cli
-  --system-libx264         use system libx264 instead of internal
-  --enable-shared          build shared library
-  --enable-static          build static library
-  --disable-avs            disables avisynth support (windows only)
-  --disable-lavf           disables libavformat support
-  --disable-ffms           disables ffmpegsource support
-  --disable-gpac           disables gpac support
-  --disable-gpl            disables GPL-only features
-  --disable-thread         disables multithreaded encoding
-  --enable-win32thread     use win32threads (windows only)
-  --disable-swscale        disables swscale support
-  --disable-asm            disables platform-specific assembly optimizations
-  --disable-interlaced     disables interlaced encoding support
-  --enable-debug           adds -g
-  --enable-gprof           adds -pg
-  --enable-strip           adds -s
-  --enable-visualize       enables visualization (X11 only)
-  --enable-pic             build position-independent code
-  --bit-depth=BIT_DEPTH    sets output bit depth (8-10), default 8
+Standard options:
+  --prefix=PREFIX          install architecture-independent files in PREFIX
+                           [/usr/local]
+  --exec-prefix=EPREFIX    install architecture-dependent files in EPREFIX
+                           [PREFIX]
+  --bindir=DIR             install binaries in DIR [EPREFIX/bin]
+  --libdir=DIR             install libs in DIR [EPREFIX/lib]
+  --includedir=DIR         install includes in DIR [PREFIX/include]
   --extra-asflags=EASFLAGS add EASFLAGS to ASFLAGS
   --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS
   --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS
+
+Configuration options:
+  --disable-cli            disable cli
+  --system-libx264         use system libx264 instead of internal
+  --enable-shared          build shared library
+  --enable-static          build static library
+  --disable-gpl            disable GPL-only features
+  --disable-thread         disable multithreaded encoding
+  --enable-win32thread     use win32threads (windows only)
+  --disable-interlaced     disable interlaced encoding support
+  --enable-visualize       enable visualization (X11 only)
+  --bit-depth=BIT_DEPTH    set output bit depth (8-10) [8]
+
+Advanced options:
+  --disable-asm            disable platform-specific assembly optimizations
+  --enable-debug           add -g
+  --enable-gprof           add -pg
+  --enable-strip           add -s
+  --enable-pic             build position-independent code
+
+Cross-compilation:
   --host=HOST              build programs to run on HOST
   --cross-prefix=PREFIX    use PREFIX for compilation tools
   --sysroot=SYSROOT        root of cross-build tree
+
+External library support:
+  --disable-avs            disable avisynth support (windows only)
+  --disable-swscale        disable swscale support
+  --disable-lavf           disable libavformat support
+  --disable-ffms           disable ffmpegsource support
+  --disable-gpac           disable gpac support
 
 EOF
 exit 1
