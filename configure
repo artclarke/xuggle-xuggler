@@ -289,13 +289,13 @@ for opt do
             gpl="no"
             ;;
         --extra-asflags=*)
-            ASFLAGS="$ASFLAGS ${opt#--extra-asflags=}"
+            ASFLAGS="$ASFLAGS $optarg"
             ;;
         --extra-cflags=*)
-            CFLAGS="$CFLAGS ${opt#--extra-cflags=}"
+            CFLAGS="$CFLAGS $optarg"
             ;;
         --extra-ldflags=*)
-            LDFLAGS="$LDFLAGS ${opt#--extra-ldflags=}"
+            LDFLAGS="$LDFLAGS $optarg"
             ;;
         --disable-thread)
             thread="no"
@@ -324,17 +324,17 @@ for opt do
             vis="yes"
             ;;
         --host=*)
-            host="${opt#--host=}"
+            host="$optarg"
             ;;
         --cross-prefix=*)
-            cross_prefix="${opt#--cross-prefix=}"
+            cross_prefix="$optarg"
             ;;
         --sysroot=*)
-            CFLAGS="$CFLAGS --sysroot=${opt#--sysroot=}"
-            LDFLAGS="$LDFLAGS --sysroot=${opt#--sysroot=}"
+            CFLAGS="$CFLAGS --sysroot=$optarg"
+            LDFLAGS="$LDFLAGS --sysroot=$optarg"
             ;;
         --bit-depth=*)
-            bit_depth="${opt#--bit-depth=}"
+            bit_depth="$optarg"
             if [ "$bit_depth" -lt "8" -o "$bit_depth" -gt "10" ]; then
                 echo "Supplied bit depth must be in range [8,10]."
                 exit 1
