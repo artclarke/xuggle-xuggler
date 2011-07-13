@@ -2835,7 +2835,16 @@ int     x264_encoder_encode( x264_t *h,
             overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD;
         }
 
-        /* buffering period sei is written in x264_encoder_frame_end */
+        /* when frame threading is used, buffering period sei is written in x264_encoder_frame_end */
+        if( h->i_thread_frames == 1 && h->sps->vui.b_nal_hrd_parameters_present )
+        {
+            x264_hrd_fullness( h );
+            x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
+            x264_sei_buffering_period_write( h, &h->out.bs );
+            if( x264_nal_end( h ) )
+               return -1;
+            overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD;
+        }
     }
 
     /* write extra sei */
@@ -2979,8 +2988,8 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     }
 
     x264_emms();
-    /* generate sei buffering period and insert it into place */
-    if( h->fenc->b_keyframe && h->sps->vui.b_nal_hrd_parameters_present )
+    /* generate buffering period sei and insert it into place */
+    if( h->i_thread_frames > 1 && h->fenc->b_keyframe && h->sps->vui.b_nal_hrd_parameters_present )
     {
         x264_hrd_fullness( h );
         x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
