@@ -465,8 +465,8 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
     h->scale = h->dst;
 
     /* swap chroma planes if YV12/YV24 is involved, as libswscale works with I420/I444 */
-    int src_csp = info->csp & X264_CSP_MASK;
-    int dst_csp = h->dst_csp & X264_CSP_MASK;
+    int src_csp = info->csp & (X264_CSP_MASK | X264_CSP_OTHER);
+    int dst_csp = h->dst_csp & (X264_CSP_MASK | X264_CSP_OTHER);
     h->pre_swap_chroma  = src_csp == X264_CSP_YV12 || src_csp == X264_CSP_YV24;
     h->post_swap_chroma = dst_csp == X264_CSP_YV12 || dst_csp == X264_CSP_YV24;
 
