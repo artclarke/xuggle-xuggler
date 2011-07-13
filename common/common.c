@@ -275,7 +275,7 @@ static int x264_param_apply_preset( x264_param_t *param, const char *preset )
     else if( !strcasecmp( preset, "placebo" ) )
     {
         param->analyse.i_me_method = X264_ME_TESA;
-        param->analyse.i_subpel_refine = 10;
+        param->analyse.i_subpel_refine = 11;
         param->analyse.i_me_range = 24;
         param->i_frame_reference = 16;
         param->i_bframe_adaptive = X264_B_ADAPT_TRELLIS;

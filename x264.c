@@ -479,7 +479,7 @@ static void help( x264_param_t *defaults, int longhelp )
         "                                    --bframes 16 --b-adapt 2 --direct auto\n"
         "                                    --slow-firstpass --no-fast-pskip\n"
         "                                    --me tesa --merange 24 --partitions all\n"
-        "                                    --rc-lookahead 60 --ref 16 --subme 10\n"
+        "                                    --rc-lookahead 60 --ref 16 --subme 11\n"
         "                                    --trellis 2\n" );
     else H0( "                                  - ultrafast,superfast,veryfast,faster,fast\n"
              "                                  - medium,slow,slower,veryslow,placebo\n" );
@@ -650,8 +650,9 @@ static void help( x264_param_t *defaults, int longhelp )
         "                                  - 7: RD mode decision for all frames\n"
         "                                  - 8: RD refinement for I/P-frames\n"
         "                                  - 9: RD refinement for all frames\n"
-        "                                  - 10: QP-RD - requires trellis=2, aq-mode>0\n" );
-    else H1( "                                  decision quality: 1=fast, 10=best.\n"  );
+        "                                  - 10: QP-RD - requires trellis=2, aq-mode>0\n"
+        "                                  - 11: Full RD: disable all early terminations\n" );
+    else H1( "                                  decision quality: 1=fast, 11=best\n" );
     H1( "      --psy-rd <float:float>  Strength of psychovisual optimization [\"%.1f:%.1f\"]\n"
         "                                  #1: RD (requires subme>=6)\n"
         "                                  #2: Trellis (requires trellis, experimental)\n",

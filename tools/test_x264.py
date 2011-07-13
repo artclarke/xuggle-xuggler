@@ -44,7 +44,9 @@ OPTIONS = [
                                   "fast",
                                   "medium",
                                   "slow",
-                                  "slower") ]
+                                  "slower",
+                                  "veryslow",
+                                  "placebo") ]
 ]
 
 # end options

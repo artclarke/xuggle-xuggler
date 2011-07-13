@@ -503,7 +503,7 @@ static int x264_validate_parameters( x264_t *h, int b_open )
     h->param.rc.f_rf_constant = x264_clip3f( h->param.rc.f_rf_constant, -QP_BD_OFFSET, 51 );
     h->param.rc.f_rf_constant_max = x264_clip3f( h->param.rc.f_rf_constant_max, -QP_BD_OFFSET, 51 );
     h->param.rc.i_qp_constant = x264_clip3( h->param.rc.i_qp_constant, 0, QP_MAX );
-    h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 0, 10 );
+    h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 0, 11 );
     h->param.rc.f_ip_factor = X264_MAX( h->param.rc.f_ip_factor, 0.01f );
     h->param.rc.f_pb_factor = X264_MAX( h->param.rc.f_pb_factor, 0.01f );
     if( h->param.rc.i_rc_method == X264_RC_CRF )
@@ -784,7 +784,7 @@ static int x264_validate_parameters( x264_t *h, int b_open )
         h->param.rc.f_aq_strength = 0;
     }
     h->param.analyse.i_noise_reduction = x264_clip3( h->param.analyse.i_noise_reduction, 0, 1<<16 );
-    if( h->param.analyse.i_subpel_refine == 10 && (h->param.analyse.i_trellis != 2 || !h->param.rc.i_aq_mode) )
+    if( h->param.analyse.i_subpel_refine >= 10 && (h->param.analyse.i_trellis != 2 || !h->param.rc.i_aq_mode) )
         h->param.analyse.i_subpel_refine = 9;
 
     {
