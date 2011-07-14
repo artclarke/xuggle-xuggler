@@ -1396,8 +1396,8 @@ static int check_deblock( int cpu_ref, int cpu_new )
                         mv[j][k][l] = ((rand()&7) != 7) ? (rand()&7) - 3 : (rand()&1023) - 512;
                 }
             set_func_name( "deblock_strength" );
-            call_c( db_c.deblock_strength, nnz, ref, mv, bs[0], 2<<(i&1), ((i>>1)&1), NULL );
-            call_a( db_a.deblock_strength, nnz, ref, mv, bs[1], 2<<(i&1), ((i>>1)&1), NULL );
+            call_c( db_c.deblock_strength, nnz, ref, mv, bs[0], 2<<(i&1), ((i>>1)&1) );
+            call_a( db_a.deblock_strength, nnz, ref, mv, bs[1], 2<<(i&1), ((i>>1)&1) );
             if( memcmp( bs[0], bs[1], sizeof(bs[0]) ) )
             {
                 ok = 0;

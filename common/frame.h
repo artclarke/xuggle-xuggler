@@ -184,7 +184,7 @@ typedef struct
     x264_deblock_intra_t deblock_chroma_intra[2];
     void (*deblock_strength) ( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
                                int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][8][4], int mvy_limit,
-                               int bframe, x264_t *h );
+                               int bframe );
 } x264_deblock_function_t;
 
 void          x264_frame_delete( x264_frame_t *frame );
