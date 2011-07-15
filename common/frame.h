@@ -182,6 +182,10 @@ typedef struct
     x264_deblock_inter_t deblock_chroma[2];
     x264_deblock_intra_t deblock_luma_intra[2];
     x264_deblock_intra_t deblock_chroma_intra[2];
+    x264_deblock_inter_t deblock_luma_mbaff;
+    x264_deblock_inter_t deblock_chroma_mbaff;
+    x264_deblock_intra_t deblock_luma_intra_mbaff;
+    x264_deblock_intra_t deblock_chroma_intra_mbaff;
     void (*deblock_strength) ( uint8_t nnz[X264_SCAN8_SIZE], int8_t ref[2][X264_SCAN8_LUMA_SIZE],
                                int16_t mv[2][X264_SCAN8_LUMA_SIZE][2], uint8_t bs[2][8][4], int mvy_limit,
                                int bframe );
