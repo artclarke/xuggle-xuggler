@@ -328,6 +328,44 @@ static ALWAYS_INLINE void deblock_edge_intra( x264_t *h, pixel *pix, int i_strid
     pf_intra( pix, i_stride, alpha, beta );
 }
 
+static ALWAYS_INLINE void x264_macroblock_cache_load_neighbours_deblock( x264_t *h, int mb_x, int mb_y )
+{
+    int deblock_on_slice_edges = h->sh.i_disable_deblocking_filter_idc != 2;
+
+    h->mb.i_neighbour = 0;
+    h->mb.i_mb_xy = mb_y * h->mb.i_mb_stride + mb_x;
+    h->mb.b_interlaced = PARAM_INTERLACED && h->mb.field[h->mb.i_mb_xy];
+    h->mb.i_mb_top_y = mb_y - (1 << MB_INTERLACED);
+    h->mb.i_mb_top_xy = mb_x + h->mb.i_mb_stride*h->mb.i_mb_top_y;
+    h->mb.i_mb_left_xy[1] =
+    h->mb.i_mb_left_xy[0] = h->mb.i_mb_xy - 1;
+    if( SLICE_MBAFF )
+    {
+        if( mb_y&1 )
+        {
+            if( mb_x && h->mb.field[h->mb.i_mb_xy - 1] != MB_INTERLACED )
+                h->mb.i_mb_left_xy[0] -= h->mb.i_mb_stride;
+        }
+        else
+        {
+            if( h->mb.i_mb_top_xy >= 0 && MB_INTERLACED && !h->mb.field[h->mb.i_mb_top_xy] )
+            {
+                h->mb.i_mb_top_xy += h->mb.i_mb_stride;
+                h->mb.i_mb_top_y++;
+            }
+            if( mb_x && h->mb.field[h->mb.i_mb_xy - 1] != MB_INTERLACED )
+                h->mb.i_mb_left_xy[1] += h->mb.i_mb_stride;
+        }
+    }
+
+    if( mb_x > 0 && (deblock_on_slice_edges ||
+        h->mb.slice_table[h->mb.i_mb_left_xy[0]] == h->mb.slice_table[h->mb.i_mb_xy]) )
+        h->mb.i_neighbour |= MB_LEFT;
+    if( mb_y > MB_INTERLACED && (deblock_on_slice_edges
+        || h->mb.slice_table[h->mb.i_mb_top_xy] == h->mb.slice_table[h->mb.i_mb_xy]) )
+        h->mb.i_neighbour |= MB_TOP;
+}
+
 void x264_frame_deblock_row( x264_t *h, int mb_y )
 {
     int b_interlaced = SLICE_MBAFF;
