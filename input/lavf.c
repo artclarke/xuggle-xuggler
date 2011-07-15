@@ -170,7 +170,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     /* lavf is thread unsafe as calling av_read_frame invalidates previously read AVPackets */
     info->thread_safe  = 0;
     h->vfr_input       = info->vfr;
-    FAIL_IF_ERROR( avcodec_open( c, avcodec_find_decoder( c->codec_id ) ),
+    FAIL_IF_ERROR( avcodec_open2( c, avcodec_find_decoder( c->codec_id ), NULL ),
                    "could not find decoder for video stream\n" )
 
     /* prefetch the first frame and set/confirm flags */
