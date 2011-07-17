@@ -46,6 +46,7 @@
 #include "libavutil/bswap.h"
 #include "libavutil/opt.h"
 #include "libavutil/pixdesc.h"
+#include "libavutil/avassert.h"
 
 unsigned swscale_version(void)
 {
@@ -119,6 +120,7 @@ const char *swscale_license(void)
         || (x)==PIX_FMT_YUV420P16LE   \
         || (x)==PIX_FMT_YUV422P16LE   \
         || (x)==PIX_FMT_YUV444P16LE   \
+        || (x)==PIX_FMT_YUV422P10LE   \
         || (x)==PIX_FMT_YUV420P9BE    \
         || (x)==PIX_FMT_YUV444P9BE    \
         || (x)==PIX_FMT_YUV420P10BE   \
@@ -127,7 +129,7 @@ const char *swscale_license(void)
         || (x)==PIX_FMT_YUV420P16BE   \
         || (x)==PIX_FMT_YUV422P16BE   \
         || (x)==PIX_FMT_YUV444P16BE   \
-        || (x)==PIX_FMT_YUV422P10     \
+        || (x)==PIX_FMT_YUV422P10BE   \
     )
 
 int sws_isSupportedInput(enum PixelFormat pix_fmt)
@@ -149,12 +151,18 @@ int sws_isSupportedInput(enum PixelFormat pix_fmt)
         || (x)==PIX_FMT_YUVJ444P    \
         || isRGBinBytes(x)          \
         || isBGRinBytes(x)          \
-        || (x)==PIX_FMT_RGB565      \
-        || (x)==PIX_FMT_RGB555      \
-        || (x)==PIX_FMT_RGB444      \
-        || (x)==PIX_FMT_BGR565      \
-        || (x)==PIX_FMT_BGR555      \
-        || (x)==PIX_FMT_BGR444      \
+        || (x)==PIX_FMT_RGB565LE    \
+        || (x)==PIX_FMT_RGB565BE    \
+        || (x)==PIX_FMT_RGB555LE    \
+        || (x)==PIX_FMT_RGB555BE    \
+        || (x)==PIX_FMT_RGB444LE    \
+        || (x)==PIX_FMT_RGB444BE    \
+        || (x)==PIX_FMT_BGR565LE    \
+        || (x)==PIX_FMT_BGR565BE    \
+        || (x)==PIX_FMT_BGR555LE    \
+        || (x)==PIX_FMT_BGR555BE    \
+        || (x)==PIX_FMT_BGR444LE    \
+        || (x)==PIX_FMT_BGR444BE    \
         || (x)==PIX_FMT_RGB8        \
         || (x)==PIX_FMT_BGR8        \
         || (x)==PIX_FMT_RGB4_BYTE   \
@@ -170,12 +178,13 @@ int sws_isSupportedInput(enum PixelFormat pix_fmt)
         || (x)==PIX_FMT_GRAY8       \
         || (x)==PIX_FMT_YUV410P     \
         || (x)==PIX_FMT_YUV440P     \
-        || (x)==PIX_FMT_YUV422P10   \
+        || (x)==PIX_FMT_YUV422P10LE   \
         || (x)==PIX_FMT_YUV420P9LE    \
         || (x)==PIX_FMT_YUV420P10LE   \
         || (x)==PIX_FMT_YUV420P16LE   \
         || (x)==PIX_FMT_YUV422P16LE   \
         || (x)==PIX_FMT_YUV444P16LE   \
+        || (x)==PIX_FMT_YUV422P10BE   \
         || (x)==PIX_FMT_YUV420P9BE    \
         || (x)==PIX_FMT_YUV420P10BE   \
         || (x)==PIX_FMT_YUV420P16BE   \
@@ -708,7 +717,9 @@ static void getSubSampleFactors(int *h, int *v, enum PixelFormat format)
     *v = av_pix_fmt_descriptors[format].log2_chroma_h;
 }
 
-int sws_setColorspaceDetails(SwsContext *c, const int inv_table[4], int srcRange, const int table[4], int dstRange, int brightness, int contrast, int saturation)
+int sws_setColorspaceDetails(struct SwsContext *c, const int inv_table[4],
+                             int srcRange, const int table[4], int dstRange,
+                             int brightness, int contrast, int saturation)
 {
     memcpy(c->srcColorspaceTable, inv_table, sizeof(int)*4);
     memcpy(c->dstColorspaceTable,     table, sizeof(int)*4);
@@ -731,7 +742,9 @@ int sws_setColorspaceDetails(SwsContext *c, const int inv_table[4], int srcRange
     return 0;
 }
 
-int sws_getColorspaceDetails(SwsContext *c, int **inv_table, int *srcRange, int **table, int *dstRange, int *brightness, int *contrast, int *saturation)
+int sws_getColorspaceDetails(struct SwsContext *c, int **inv_table,
+                             int *srcRange, int **table, int *dstRange,
+                             int *brightness, int *contrast, int *saturation)
 {
     if (!c || isYUV(c->dstFormat) || isGray(c->dstFormat)) return -1;
 
@@ -769,7 +782,7 @@ SwsContext *sws_alloc_context(void)
 
 int sws_init_context(SwsContext *c, SwsFilter *srcFilter, SwsFilter *dstFilter)
 {
-    int i;
+    int i, j;
     int usesVFilter, usesHFilter;
     int unscaled;
     SwsFilter dummyFilter= {NULL, NULL, NULL, NULL};
@@ -777,7 +790,7 @@ int sws_init_context(SwsContext *c, SwsFilter *srcFilter, SwsFilter *dstFilter)
     int srcH= c->srcH;
     int dstW= c->dstW;
     int dstH= c->dstH;
-    int dst_stride = FFALIGN(dstW * sizeof(int16_t)+66, 16), dst_stride_px = dst_stride >> 1;
+    int dst_stride = FFALIGN(dstW * sizeof(int16_t)+66, 16);
     int flags, cpu_flags;
     enum PixelFormat srcFormat= c->srcFormat;
     enum PixelFormat dstFormat= c->dstFormat;
@@ -874,8 +887,14 @@ int sws_init_context(SwsContext *c, SwsFilter *srcFilter, SwsFilter *dstFilter)
         }
     }
 
+    c->scalingBpp = FFMAX(av_pix_fmt_descriptors[srcFormat].comp[0].depth_minus1,
+                          av_pix_fmt_descriptors[dstFormat].comp[0].depth_minus1) >= 15 ? 16 : 8;
+
+    if (c->scalingBpp == 16)
+        dst_stride <<= 1;
+    av_assert0(c->scalingBpp<=16);
     FF_ALLOC_OR_GOTO(c, c->formatConvBuffer, FFALIGN(srcW*2+78, 16) * 2, fail);
-    if (HAVE_MMX2 && cpu_flags & AV_CPU_FLAG_MMX2) {
+    if (HAVE_MMX2 && cpu_flags & AV_CPU_FLAG_MMX2 && c->scalingBpp == 8) {
         c->canMMX2BeUsed= (dstW >=srcW && (dstW&31)==0 && (srcW&15)==0) ? 1 : 0;
         if (!c->canMMX2BeUsed && dstW >=srcW && (srcW&15)==0 && (flags&SWS_FAST_BILINEAR)) {
             if (flags&SWS_PRINT_INFO)
@@ -901,7 +920,7 @@ int sws_init_context(SwsContext *c, SwsFilter *srcFilter, SwsFilter *dstFilter)
             c->chrXInc+= 20;
         }
         //we don't use the x86 asm scaler if MMX is available
-        else if (HAVE_MMX && cpu_flags & AV_CPU_FLAG_MMX) {
+        else if (HAVE_MMX && cpu_flags & AV_CPU_FLAG_MMX && c->scalingBpp == 8) {
             c->lumXInc = ((srcW-2)<<16)/(dstW-2) - 20;
             c->chrXInc = ((c->chrSrcW-2)<<16)/(c->chrDstW-2) - 20;
         }
@@ -1029,25 +1048,32 @@ int sws_init_context(SwsContext *c, SwsFilter *srcFilter, SwsFilter *dstFilter)
     //Note we need at least one pixel more at the end because of the MMX code (just in case someone wanna replace the 4000/8000)
     /* align at 16 bytes for AltiVec */
     for (i=0; i<c->vLumBufSize; i++) {
-        FF_ALLOCZ_OR_GOTO(c, c->lumPixBuf[i+c->vLumBufSize], dst_stride+1, fail);
+        FF_ALLOCZ_OR_GOTO(c, c->lumPixBuf[i+c->vLumBufSize], dst_stride+16, fail);
         c->lumPixBuf[i] = c->lumPixBuf[i+c->vLumBufSize];
     }
-    c->uv_off = dst_stride_px;
-    c->uv_offx2 = dst_stride;
+    // 64 / c->scalingBpp is the same as 16 / sizeof(scaling_intermediate)
+    c->uv_off   = (dst_stride>>1) + 64 / c->scalingBpp;
+    c->uv_offx2 = dst_stride + 16;
     for (i=0; i<c->vChrBufSize; i++) {
-        FF_ALLOC_OR_GOTO(c, c->chrUPixBuf[i+c->vChrBufSize], dst_stride*2+1, fail);
+        FF_ALLOC_OR_GOTO(c, c->chrUPixBuf[i+c->vChrBufSize], dst_stride*2+32, fail);
         c->chrUPixBuf[i] = c->chrUPixBuf[i+c->vChrBufSize];
-        c->chrVPixBuf[i] = c->chrVPixBuf[i+c->vChrBufSize] = c->chrUPixBuf[i] + dst_stride_px;
+        c->chrVPixBuf[i] = c->chrVPixBuf[i+c->vChrBufSize] = c->chrUPixBuf[i] + (dst_stride >> 1) + 8;
     }
     if (CONFIG_SWSCALE_ALPHA && c->alpPixBuf)
         for (i=0; i<c->vLumBufSize; i++) {
-            FF_ALLOCZ_OR_GOTO(c, c->alpPixBuf[i+c->vLumBufSize], dst_stride+1, fail);
+            FF_ALLOCZ_OR_GOTO(c, c->alpPixBuf[i+c->vLumBufSize], dst_stride+16, fail);
             c->alpPixBuf[i] = c->alpPixBuf[i+c->vLumBufSize];
         }
 
     //try to avoid drawing green stuff between the right end and the stride end
     for (i=0; i<c->vChrBufSize; i++)
-        memset(c->chrUPixBuf[i], 64, dst_stride*2+1);
+        if(av_pix_fmt_descriptors[c->dstFormat].comp[0].depth_minus1 == 15){
+            av_assert0(c->scalingBpp == 16);
+            for(j=0; j<dst_stride/2+1; j++)
+                ((int32_t*)(c->chrUPixBuf[i]))[j] = 1<<18;
+        } else
+            for(j=0; j<dst_stride+1; j++)
+                ((int16_t*)(c->chrUPixBuf[i]))[j] = 1<<14;
 
     assert(c->chrDstH <= dstH);
 

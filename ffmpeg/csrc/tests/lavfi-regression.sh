@@ -11,15 +11,13 @@ set -e
 
 eval do_$test=y
 
-rm -f "$logfile"
-
 do_video_filter() {
     label=$1
     filters=$2
     shift 2
-    printf '%-20s' $label >>$logfile
+    printf '%-20s' $label
     run_ffmpeg $DEC_OPTS -f image2 -vcodec pgmyuv -i $raw_src    \
-        $ENC_OPTS -vf "$filters" -vcodec rawvideo $* -f nut md5: >>$logfile
+        $ENC_OPTS -vf "$filters" -vcodec rawvideo $* -f nut md5:
 }
 
 do_lavfi() {
@@ -71,7 +69,7 @@ do_lavfi_pixfmts "pad"     "500:400:20:20"
 do_lavfi_pixfmts "scale"   "200:100"
 do_lavfi_pixfmts "vflip"   ""
 
-if [ -n "$do_pixdesc_be" ] || [ -n "$do_pixdesc_le" ]; then
+if [ -n "$do_pixdesc" ]; then
     pix_fmts="$($ffmpeg -pix_fmts list 2>/dev/null | sed -ne '9,$p' | grep '^IO' | cut -d' ' -f2 | sort)"
     for pix_fmt in $pix_fmts; do
         do_video_filter $pix_fmt "slicify=random,format=$pix_fmt,pixdesctest" -pix_fmt $pix_fmt

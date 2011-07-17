@@ -120,14 +120,6 @@ void ff_bink_idct_put_c(uint8_t *dest, int linesize, DCTELEM *block);
 void ff_ea_idct_put_c(uint8_t *dest, int linesize, DCTELEM *block);
 
 /* 1/2^n downscaling functions from imgconvert.c */
-#if LIBAVCODEC_VERSION_MAJOR < 53
-/**
- * @deprecated Use av_image_copy_plane() instead.
- */
-attribute_deprecated
-void ff_img_copy_plane(uint8_t *dst, int dst_wrap, const uint8_t *src, int src_wrap, int width, int height);
-#endif
-
 void ff_shrink22(uint8_t *dst, int dst_wrap, const uint8_t *src, int src_wrap, int width, int height);
 void ff_shrink44(uint8_t *dst, int dst_wrap, const uint8_t *src, int src_wrap, int width, int height);
 void ff_shrink88(uint8_t *dst, int dst_wrap, const uint8_t *src, int src_wrap, int width, int height);
@@ -158,7 +150,7 @@ void clear_blocks_c(DCTELEM *blocks);
 
 /* add and put pixel (decoding) */
 // blocksizes for op_pixels_func are 8x4,8x8 16x8 16x16
-//h for op_pixels_func is limited to {width/2, width} but never larger than 16 and never smaller then 4
+//h for op_pixels_func is limited to {width/2, width} but never larger than 16 and never smaller than 4
 typedef void (*op_pixels_func)(uint8_t *block/*align width (8 or 16)*/, const uint8_t *pixels/*align 1*/, int line_size, int h);
 typedef void (*tpel_mc_func)(uint8_t *block/*align width (8 or 16)*/, const uint8_t *pixels/*align 1*/, int line_size, int w, int h);
 typedef void (*qpel_mc_func)(uint8_t *dst/*align width (8 or 16)*/, uint8_t *src/*align 1*/, int stride);
@@ -191,7 +183,7 @@ static void a(uint8_t *block, const uint8_t *pixels, int line_size, int h){\
 }
 
 /* motion estimation */
-// h is limited to {width/2, width, 2*width} but never larger than 16 and never smaller then 2
+// h is limited to {width/2, width, 2*width} but never larger than 16 and never smaller than 2
 // although currently h<4 is not used as functions with width <8 are neither used nor implemented
 typedef int (*me_cmp_func)(void /*MpegEncContext*/ *s, uint8_t *blk1/*align width (8 or 16)*/, uint8_t *blk2/*align 1*/, int line_size, int h)/* __attribute__ ((const))*/;
 
@@ -218,8 +210,6 @@ void ff_emulated_edge_mc_ ## depth (uint8_t *buf, const uint8_t *src, int linesi
 EMULATED_EDGE(8)
 EMULATED_EDGE(9)
 EMULATED_EDGE(10)
-
-#define ff_emulated_edge_mc ff_emulated_edge_mc_8
 
 void ff_add_pixels_clamped_c(const DCTELEM *block, uint8_t *dest, int linesize);
 void ff_put_pixels_clamped_c(const DCTELEM *block, uint8_t *dest, int linesize);
@@ -560,6 +550,22 @@ typedef struct DSPContext {
      */
     void (*apply_window_int16)(int16_t *output, const int16_t *input,
                                const int16_t *window, unsigned int len);
+
+    /**
+     * Clip each element in an array of int32_t to a given minimum and maximum value.
+     * @param dst  destination array
+     *             constraints: 16-byte aligned
+     * @param src  source array
+     *             constraints: 16-byte aligned
+     * @param min  minimum value
+     *             constraints: must in the the range [-(1<<24), 1<<24]
+     * @param max  maximum value
+     *             constraints: must in the the range [-(1<<24), 1<<24]
+     * @param len  number of elements in the array
+     *             constraints: multiple of 32 greater than zero
+     */
+    void (*vector_clip_int32)(int32_t *dst, const int32_t *src, int32_t min,
+                              int32_t max, unsigned int len);
 
     /* rv30 functions */
     qpel_mc_func put_rv30_tpel_pixels_tab[4][16];

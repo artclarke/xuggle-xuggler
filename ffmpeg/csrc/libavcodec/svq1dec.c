@@ -663,9 +663,6 @@ static int svq1_decode_frame(AVCodecContext *avctx,
   //this should be removed after libavcodec can handle more flexible picture types & ordering
   if(s->pict_type==AV_PICTURE_TYPE_B && s->last_picture_ptr==NULL) return buf_size;
 
-#if FF_API_HURRY_UP
-  if(avctx->hurry_up && s->pict_type==FF_B_TYPE) return buf_size;
-#endif
   if(  (avctx->skip_frame >= AVDISCARD_NONREF && s->pict_type==AV_PICTURE_TYPE_B)
      ||(avctx->skip_frame >= AVDISCARD_NONKEY && s->pict_type!=AV_PICTURE_TYPE_I)
      || avctx->skip_frame >= AVDISCARD_ALL)
@@ -692,12 +689,12 @@ static int svq1_decode_frame(AVCodecContext *avctx,
       linesize= s->uvlinesize;
     }
 
-    current  = s->current_picture.data[i];
+    current = s->current_picture.f.data[i];
 
     if(s->pict_type==AV_PICTURE_TYPE_B){
-        previous = s->next_picture.data[i];
+        previous = s->next_picture.f.data[i];
     }else{
-        previous = s->last_picture.data[i];
+        previous = s->last_picture.f.data[i];
     }
 
     if (s->pict_type == AV_PICTURE_TYPE_I) {

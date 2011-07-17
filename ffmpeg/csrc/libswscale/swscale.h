@@ -28,10 +28,12 @@
  */
 
 #include "libavutil/avutil.h"
+#include "libavutil/log.h"
+#include "libavutil/pixfmt.h"
 
-#define LIBSWSCALE_VERSION_MAJOR 0
-#define LIBSWSCALE_VERSION_MINOR 14
-#define LIBSWSCALE_VERSION_MICRO 1
+#define LIBSWSCALE_VERSION_MAJOR 2
+#define LIBSWSCALE_VERSION_MINOR 0
+#define LIBSWSCALE_VERSION_MICRO 0
 
 #define LIBSWSCALE_VERSION_INT  AV_VERSION_INT(LIBSWSCALE_VERSION_MAJOR, \
                                                LIBSWSCALE_VERSION_MINOR, \
@@ -216,7 +218,7 @@ struct SwsContext *sws_getContext(int srcW, int srcH, enum PixelFormat srcFormat
  * top-bottom or bottom-top order. If slices are provided in
  * non-sequential order the behavior of the function is undefined.
  *
- * @param context   the scaling context previously created with
+ * @param c         the scaling context previously created with
  *                  sws_getContext()
  * @param srcSlice  the array containing the pointers to the planes of
  *                  the source slice
@@ -233,8 +235,9 @@ struct SwsContext *sws_getContext(int srcW, int srcH, enum PixelFormat srcFormat
  *                  the destination image
  * @return          the height of the output slice
  */
-int sws_scale(struct SwsContext *context, const uint8_t* const srcSlice[], const int srcStride[],
-              int srcSliceY, int srcSliceH, uint8_t* const dst[], const int dstStride[]);
+int sws_scale(struct SwsContext *c, const uint8_t* const srcSlice[],
+              const int srcStride[], int srcSliceY, int srcSliceH,
+              uint8_t* const dst[], const int dstStride[]);
 
 #if LIBSWSCALE_VERSION_MAJOR < 1
 /**
@@ -247,7 +250,6 @@ int sws_scale_ordered(struct SwsContext *context, const uint8_t* const src[],
 
 /**
  * @param inv_table the yuv2rgb coefficients, normally ff_yuv2rgb_coeffs[x]
- * @param fullRange if 1 then the luma range is 0..255 if 0 it is 16..235
  * @return -1 if not supported
  */
 int sws_setColorspaceDetails(struct SwsContext *c, const int inv_table[4],
@@ -354,7 +356,7 @@ struct SwsContext *sws_getCachedContext(struct SwsContext *context,
  * @param num_pixels number of pixels to convert
  * @param palette    array with [256] entries, which must match color arrangement (RGB or BGR) of src
  */
-void sws_convertPalette8ToPacked32(const uint8_t *src, uint8_t *dst, long num_pixels, const uint8_t *palette);
+void sws_convertPalette8ToPacked32(const uint8_t *src, uint8_t *dst, int num_pixels, const uint8_t *palette);
 
 /**
  * Converts an 8bit paletted frame into a frame with a color depth of 24 bits.
@@ -366,7 +368,7 @@ void sws_convertPalette8ToPacked32(const uint8_t *src, uint8_t *dst, long num_pi
  * @param num_pixels number of pixels to convert
  * @param palette    array with [256] entries, which must match color arrangement (RGB or BGR) of src
  */
-void sws_convertPalette8ToPacked24(const uint8_t *src, uint8_t *dst, long num_pixels, const uint8_t *palette);
+void sws_convertPalette8ToPacked24(const uint8_t *src, uint8_t *dst, int num_pixels, const uint8_t *palette);
 
 
 #endif /* SWSCALE_SWSCALE_H */

@@ -26,12 +26,13 @@
  */
 
 #include "libavutil/avstring.h"
-#include "libavutil/integer.h"
 #include "libavutil/crc.h"
+#include "libavutil/mathematics.h"
 #include "libavutil/pixdesc.h"
 #include "libavutil/audioconvert.h"
 #include "libavutil/imgutils.h"
 #include "libavutil/samplefmt.h"
+#include "libavutil/dict.h"
 #include "avcodec.h"
 #include "dsputil.h"
 #include "libavutil/opt.h"
@@ -48,7 +49,7 @@ static int volatile entangled_thread_counter=0;
 static int (*ff_lockmgr_cb)(void **mutex, enum AVLockOp op);
 static void *codec_mutex;
 
-void *av_fast_realloc(void *ptr, unsigned int *size, FF_INTERNALC_MEM_TYPE min_size)
+void *av_fast_realloc(void *ptr, unsigned int *size, size_t min_size)
 {
     if(min_size < *size)
         return ptr;
@@ -64,7 +65,7 @@ void *av_fast_realloc(void *ptr, unsigned int *size, FF_INTERNALC_MEM_TYPE min_s
     return ptr;
 }
 
-void av_fast_malloc(void *ptr, unsigned int *size, FF_INTERNALC_MEM_TYPE min_size)
+void av_fast_malloc(void *ptr, unsigned int *size, size_t min_size)
 {
     void **p = ptr;
     if (min_size < *size)
@@ -93,13 +94,6 @@ void avcodec_register(AVCodec *codec)
     *p = codec;
     codec->next = NULL;
 }
-
-#if LIBAVCODEC_VERSION_MAJOR < 53
-void register_avcodec(AVCodec *codec)
-{
-    avcodec_register(codec);
-}
-#endif
 
 unsigned avcodec_get_edge_width(void)
 {
@@ -149,6 +143,10 @@ void avcodec_align_dimensions2(AVCodecContext *s, int *width, int *height, int l
     case PIX_FMT_YUV420P10BE:
     case PIX_FMT_YUV422P10LE:
     case PIX_FMT_YUV422P10BE:
+    case PIX_FMT_YUV444P9LE:
+    case PIX_FMT_YUV444P9BE:
+    case PIX_FMT_YUV444P10LE:
+    case PIX_FMT_YUV444P10BE:
         w_align= 16; //FIXME check for non mpeg style codecs and use less alignment
         h_align= 16;
         if(s->codec_id == CODEC_ID_MPEG2VIDEO || s->codec_id == CODEC_ID_MJPEG || s->codec_id == CODEC_ID_AMV || s->codec_id == CODEC_ID_THP || s->codec_id == CODEC_ID_H264)
@@ -225,12 +223,6 @@ void avcodec_align_dimensions(AVCodecContext *s, int *width, int *height){
     align = FFMAX3(align, linesize_align[1], linesize_align[2]);
     *width=FFALIGN(*width, align);
 }
-
-#if LIBAVCODEC_VERSION_MAJOR < 53
-int avcodec_check_dimensions(void *av_log_ctx, unsigned int w, unsigned int h){
-    return av_image_check_size(w, h, 0, av_log_ctx);
-}
-#endif
 
 int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
     int i;
@@ -494,9 +486,20 @@ static void avcodec_get_subtitle_defaults(AVSubtitle *sub)
     sub->pts = AV_NOPTS_VALUE;
 }
 
+#if FF_API_AVCODEC_OPEN
 int attribute_align_arg avcodec_open(AVCodecContext *avctx, AVCodec *codec)
 {
+    return avcodec_open2(avctx, codec, NULL);
+}
+#endif
+
+int attribute_align_arg avcodec_open2(AVCodecContext *avctx, AVCodec *codec, AVDictionary **options)
+{
     int ret = 0;
+    AVDictionary *tmp = NULL;
+
+    if (options)
+        av_dict_copy(&tmp, *options, 0);
 
     /* If there is a user-supplied mutex locking routine, call it. */
     if (ff_lockmgr_cb) {
@@ -523,14 +526,18 @@ int attribute_align_arg avcodec_open(AVCodecContext *avctx, AVCodec *codec)
             ret = AVERROR(ENOMEM);
             goto end;
         }
-        if(codec->priv_class){ //this can be droped once all user apps use   avcodec_get_context_defaults3()
+        if (codec->priv_class) {
             *(AVClass**)avctx->priv_data= codec->priv_class;
             av_opt_set_defaults(avctx->priv_data);
         }
       }
+      if (codec->priv_class && (ret = av_opt_set_dict(avctx->priv_data, &tmp) < 0))
+          goto free_and_end;
     } else {
         avctx->priv_data = NULL;
     }
+    if ((ret = av_opt_set_dict(avctx, &tmp)) < 0)
+        goto free_and_end;
 
     if(avctx->coded_width && avctx->coded_height)
         avcodec_set_dimensions(avctx, avctx->coded_width, avctx->coded_height);
@@ -649,8 +656,14 @@ end:
     if (ff_lockmgr_cb) {
         (*ff_lockmgr_cb)(&codec_mutex, AV_LOCK_RELEASE);
     }
+    if (options) {
+        av_dict_free(options);
+        *options = tmp;
+    }
+
     return ret;
 free_and_end:
+    av_dict_free(&tmp);
     av_freep(&avctx->priv_data);
     avctx->codec= NULL;
     goto end;
@@ -736,22 +749,6 @@ static int64_t guess_correct_pts(AVCodecContext *ctx,
     return pts;
 }
 
-#if FF_API_VIDEO_OLD
-int attribute_align_arg avcodec_decode_video(AVCodecContext *avctx, AVFrame *picture,
-                         int *got_picture_ptr,
-                         const uint8_t *buf, int buf_size)
-{
-    AVPacket avpkt;
-    av_init_packet(&avpkt);
-    avpkt.data = buf;
-    avpkt.size = buf_size;
-    // HACK for CorePNG to decode as normal PNG by default
-    avpkt.flags = AV_PKT_FLAG_KEY;
-
-    return avcodec_decode_video2(avctx, picture, got_picture_ptr, &avpkt);
-}
-#endif
-
 int attribute_align_arg avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
                          int *got_picture_ptr,
                          AVPacket *avpkt)
@@ -763,6 +760,7 @@ int attribute_align_arg avcodec_decode_video2(AVCodecContext *avctx, AVFrame *pi
         return -1;
 
     if((avctx->codec->capabilities & CODEC_CAP_DELAY) || avpkt->size || (avctx->active_thread_type&FF_THREAD_FRAME)){
+        av_packet_split_side_data(avpkt);
         avctx->pkt = avpkt;
         if (HAVE_PTHREADS && avctx->active_thread_type&FF_THREAD_FRAME)
              ret = ff_thread_decode_frame(avctx, picture, got_picture_ptr,
@@ -801,20 +799,6 @@ int attribute_align_arg avcodec_decode_video2(AVCodecContext *avctx, AVFrame *pi
     return ret;
 }
 
-#if FF_API_AUDIO_OLD
-int attribute_align_arg avcodec_decode_audio2(AVCodecContext *avctx, int16_t *samples,
-                         int *frame_size_ptr,
-                         const uint8_t *buf, int buf_size)
-{
-    AVPacket avpkt;
-    av_init_packet(&avpkt);
-    avpkt.data = buf;
-    avpkt.size = buf_size;
-
-    return avcodec_decode_audio3(avctx, samples, frame_size_ptr, &avpkt);
-}
-#endif
-
 int attribute_align_arg avcodec_decode_audio3(AVCodecContext *avctx, int16_t *samples,
                          int *frame_size_ptr,
                          AVPacket *avpkt)
@@ -843,20 +827,6 @@ int attribute_align_arg avcodec_decode_audio3(AVCodecContext *avctx, int16_t *sa
     }
     return ret;
 }
-
-#if FF_API_SUBTITLE_OLD
-int avcodec_decode_subtitle(AVCodecContext *avctx, AVSubtitle *sub,
-                            int *got_sub_ptr,
-                            const uint8_t *buf, int buf_size)
-{
-    AVPacket avpkt;
-    av_init_packet(&avpkt);
-    avpkt.data = buf;
-    avpkt.size = buf_size;
-
-    return avcodec_decode_subtitle2(avctx, sub, got_sub_ptr, &avpkt);
-}
-#endif
 
 int avcodec_decode_subtitle2(AVCodecContext *avctx, AVSubtitle *sub,
                             int *got_sub_ptr,
@@ -1189,7 +1159,7 @@ void avcodec_flush_buffers(AVCodecContext *avctx)
 {
     if(HAVE_PTHREADS && avctx->active_thread_type&FF_THREAD_FRAME)
         ff_thread_flush(avctx);
-    if(avctx->codec->flush)
+    else if(avctx->codec->flush)
         avctx->codec->flush(avctx);
 }
 
@@ -1289,20 +1259,6 @@ unsigned int av_xiphlacing(unsigned char *s, unsigned int v)
     n++;
     return n;
 }
-
-#if LIBAVCODEC_VERSION_MAJOR < 53
-#include "libavutil/parseutils.h"
-
-int av_parse_video_frame_size(int *width_ptr, int *height_ptr, const char *str)
-{
-    return av_parse_video_size(width_ptr, height_ptr, str);
-}
-
-int av_parse_video_frame_rate(AVRational *frame_rate, const char *arg)
-{
-    return av_parse_video_rate(frame_rate, arg);
-}
-#endif
 
 int ff_match_2uint16(const uint16_t (*tab)[2], int size, int a, int b){
     int i;
@@ -1420,12 +1376,4 @@ int avcodec_thread_init(AVCodecContext *s, int thread_count)
     s->thread_count = thread_count;
     return ff_thread_init(s);
 }
-
-void avcodec_thread_free(AVCodecContext *s)
-{
-#if HAVE_THREADS
-    ff_thread_free(s);
-#endif
-}
-
 #endif

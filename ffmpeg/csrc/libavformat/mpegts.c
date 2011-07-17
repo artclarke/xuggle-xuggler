@@ -25,6 +25,7 @@
 #include "libavutil/intreadwrite.h"
 #include "libavutil/log.h"
 #include "libavutil/dict.h"
+#include "libavutil/mathematics.h"
 #include "libavutil/opt.h"
 #include "libavcodec/bytestream.h"
 #include "avformat.h"
@@ -232,11 +233,11 @@ static void set_pcr_pid(AVFormatContext *s, unsigned int programid, unsigned int
 }
 
 /**
- * \brief discard_pid() decides if the pid is to be discarded according
+ * @brief discard_pid() decides if the pid is to be discarded according
  *                      to caller's programs selection
- * \param ts    : - TS context
- * \param pid   : - pid
- * \return 1 if the pid is only comprised in programs that have .discard=AVDISCARD_ALL
+ * @param ts    : - TS context
+ * @param pid   : - pid
+ * @return 1 if the pid is only comprised in programs that have .discard=AVDISCARD_ALL
  *         0 otherwise
  */
 static int discard_pid(MpegTSContext *ts, unsigned int pid)
@@ -699,11 +700,6 @@ static int mpegts_push_data(MpegTSFilter *filter,
                     if ((pes->st && pes->st->discard == AVDISCARD_ALL) ||
                         code == 0x1be) /* padding_stream */
                         goto skip;
-
-#if FF_API_MAX_STREAMS
-                    if (!pes->st && pes->stream->nb_streams == MAX_STREAMS)
-                        goto skip;
-#endif
 
                     /* stream not present in PMT */
                     if (!pes->st) {
@@ -1273,7 +1269,7 @@ static int handle_packet(MpegTSContext *ts, const uint8_t *packet)
 {
     AVFormatContext *s = ts->stream;
     MpegTSFilter *tss;
-    int len, pid, cc, cc_ok, afc, is_start;
+    int len, pid, cc, expected_cc, cc_ok, afc, is_start;
     const uint8_t *p, *p_end;
     int64_t pos;
 
@@ -1291,7 +1287,8 @@ static int handle_packet(MpegTSContext *ts, const uint8_t *packet)
 
     /* continuity check (currently not used) */
     cc = (packet[3] & 0xf);
-    cc_ok = (tss->last_cc < 0) || ((((tss->last_cc + 1) & 0x0f) == cc));
+    expected_cc = (packet[3] & 0x10) ? (tss->last_cc + 1) & 0x0f : tss->last_cc;
+    cc_ok = (tss->last_cc < 0) || (expected_cc == cc);
     tss->last_cc = cc;
 
     /* skip adaptation field */
@@ -1890,15 +1887,15 @@ void ff_mpegts_parse_close(MpegTSContext *ts)
 }
 
 AVInputFormat ff_mpegts_demuxer = {
-    "mpegts",
-    NULL_IF_CONFIG_SMALL("MPEG-2 transport stream format"),
-    sizeof(MpegTSContext),
-    mpegts_probe,
-    mpegts_read_header,
-    mpegts_read_packet,
-    mpegts_read_close,
-    read_seek,
-    mpegts_get_pcr,
+    .name           = "mpegts",
+    .long_name      = NULL_IF_CONFIG_SMALL("MPEG-2 transport stream format"),
+    .priv_data_size = sizeof(MpegTSContext),
+    .read_probe     = mpegts_probe,
+    .read_header    = mpegts_read_header,
+    .read_packet    = mpegts_read_packet,
+    .read_close     = mpegts_read_close,
+    .read_seek      = read_seek,
+    .read_timestamp = mpegts_get_pcr,
     .flags = AVFMT_SHOW_IDS|AVFMT_TS_DISCONT,
 #ifdef USE_SYNCPOINT_SEARCH
     .read_seek2 = read_seek2,
@@ -1906,15 +1903,14 @@ AVInputFormat ff_mpegts_demuxer = {
 };
 
 AVInputFormat ff_mpegtsraw_demuxer = {
-    "mpegtsraw",
-    NULL_IF_CONFIG_SMALL("MPEG-2 raw transport stream format"),
-    sizeof(MpegTSContext),
-    NULL,
-    mpegts_read_header,
-    mpegts_raw_read_packet,
-    mpegts_read_close,
-    read_seek,
-    mpegts_get_pcr,
+    .name           = "mpegtsraw",
+    .long_name      = NULL_IF_CONFIG_SMALL("MPEG-2 raw transport stream format"),
+    .priv_data_size = sizeof(MpegTSContext),
+    .read_header    = mpegts_read_header,
+    .read_packet    = mpegts_raw_read_packet,
+    .read_close     = mpegts_read_close,
+    .read_seek      = read_seek,
+    .read_timestamp = mpegts_get_pcr,
     .flags = AVFMT_SHOW_IDS|AVFMT_TS_DISCONT,
 #ifdef USE_SYNCPOINT_SEARCH
     .read_seek2 = read_seek2,

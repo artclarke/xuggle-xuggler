@@ -37,9 +37,10 @@
 #include "libavutil/avstring.h"
 #include "libavutil/lfg.h"
 #include "libavutil/dict.h"
+#include "libavutil/mathematics.h"
 #include "libavutil/random_seed.h"
 #include "libavutil/parseutils.h"
-#include "libavcodec/opt.h"
+#include "libavutil/opt.h"
 #include <stdarg.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -94,9 +95,7 @@ static const char *http_state[] = {
     "RTSP_SEND_PACKET",
 };
 
-#if !FF_API_MAX_STREAMS
 #define MAX_STREAMS 20
-#endif
 
 #define IOBUFFER_INIT_SIZE 8192
 
@@ -2118,7 +2117,7 @@ static void open_parser(AVFormatContext *s, int i)
         codec = avcodec_find_decoder(st->codec->codec_id);
         if (codec && (codec->capabilities & CODEC_CAP_PARSE_ONLY)) {
             st->codec->parse_only = 1;
-            if (avcodec_open(st->codec, codec) < 0)
+            if (avcodec_open2(st->codec, codec, NULL) < 0)
                 st->codec->parse_only = 0;
         }
     }
@@ -2129,13 +2128,12 @@ static int open_input_stream(HTTPContext *c, const char *info)
     char buf[128];
     char input_filename[1024];
     AVFormatContext *s = NULL;
-    int buf_size, i, ret;
+    int i, ret;
     int64_t stream_pos;
 
     /* find file name */
     if (c->stream->feed) {
         strcpy(input_filename, c->stream->feed->feed_filename);
-        buf_size = FFM_PACKET_SIZE;
         /* compute position (absolute time) */
         if (av_find_info_tag(buf, sizeof(buf), "date", info)) {
             if ((ret = av_parse_time(&stream_pos, buf, 0)) < 0)
@@ -2147,7 +2145,6 @@ static int open_input_stream(HTTPContext *c, const char *info)
             stream_pos = av_gettime() - c->stream->prebuffer * (int64_t)1000;
     } else {
         strcpy(input_filename, c->stream->feed_filename);
-        buf_size = 0;
         /* compute position (relative time) */
         if (av_find_info_tag(buf, sizeof(buf), "date", info)) {
             if ((ret = av_parse_time(&stream_pos, buf, 1)) < 0)
@@ -2231,11 +2228,11 @@ static int http_prepare_data(HTTPContext *c)
         av_dict_set(&c->fmt_ctx.metadata, "copyright", c->stream->copyright, 0);
         av_dict_set(&c->fmt_ctx.metadata, "title"    , c->stream->title    , 0);
 
+        c->fmt_ctx.streams = av_mallocz(sizeof(AVStream *) * c->stream->nb_streams);
+
         for(i=0;i<c->stream->nb_streams;i++) {
-            AVStream *st;
             AVStream *src;
-            st = av_mallocz(sizeof(AVStream));
-            c->fmt_ctx.streams[i] = st;
+            c->fmt_ctx.streams[i] = av_mallocz(sizeof(AVStream));
             /* if file or feed, then just take streams from FFStream struct */
             if (!c->stream->feed ||
                 c->stream->feed == c->stream)
@@ -2243,9 +2240,9 @@ static int http_prepare_data(HTTPContext *c)
             else
                 src = c->stream->feed->streams[c->stream->feed_streams[i]];
 
-            *st = *src;
-            st->priv_data = 0;
-            st->codec->frame_number = 0; /* XXX: should be done in
+            *(c->fmt_ctx.streams[i]) = *src;
+            c->fmt_ctx.streams[i]->priv_data = 0;
+            c->fmt_ctx.streams[i]->codec->frame_number = 0; /* XXX: should be done in
                                            AVStream, not in codec */
         }
         /* set output format parameters */
@@ -2943,11 +2940,9 @@ static int prepare_sdp_description(FFStream *stream, uint8_t **pbuffer,
         snprintf(avc->filename, 1024, "rtp://0.0.0.0");
     }
 
-#if !FF_API_MAX_STREAMS
     if (avc->nb_streams >= INT_MAX/sizeof(*avc->streams) ||
         !(avc->streams = av_malloc(avc->nb_streams * sizeof(*avc->streams))))
         goto sdp_done;
-#endif
     if (avc->nb_streams >= INT_MAX/sizeof(*avs) ||
         !(avs = av_malloc(avc->nb_streams * sizeof(*avs))))
         goto sdp_done;
@@ -2960,10 +2955,8 @@ static int prepare_sdp_description(FFStream *stream, uint8_t **pbuffer,
     av_sdp_create(&avc, 1, *pbuffer, 2048);
 
  sdp_done:
-#if !FF_API_MAX_STREAMS
     av_free(avc->streams);
-#endif
-    av_metadata_free(&avc->metadata);
+    av_dict_free(&avc->metadata);
     av_free(avc);
     av_free(avs);
 
@@ -3391,6 +3384,9 @@ static int rtp_new_av_stream(HTTPContext *c,
     if (!st)
         goto fail;
     ctx->nb_streams = 1;
+    ctx->streams = av_mallocz(sizeof(AVStream *) * ctx->nb_streams);
+    if (!ctx->streams)
+      goto fail;
     ctx->streams[0] = st;
 
     if (!c->stream->feed ||
@@ -3424,7 +3420,7 @@ static int rtp_new_av_stream(HTTPContext *c,
                      "rtp://%s:%d", ipaddr, ntohs(dest_addr->sin_port));
         }
 
-        if (url_open(&h, ctx->filename, AVIO_WRONLY) < 0)
+        if (url_open(&h, ctx->filename, AVIO_FLAG_WRITE) < 0)
             goto fail;
         c->rtp_handles[stream_index] = h;
         max_packet_size = url_get_max_packet_size(h);
@@ -3472,7 +3468,7 @@ static AVStream *add_av_stream1(FFStream *stream, AVCodecContext *codec, int cop
     if (!fst)
         return NULL;
     if (copy) {
-        fst->codec= avcodec_alloc_context();
+        fst->codec = avcodec_alloc_context3(NULL);
         memcpy(fst->codec, codec, sizeof(AVCodecContext));
         if (codec->extradata_size) {
             fst->codec->extradata = av_malloc(codec->extradata_size);
@@ -3512,7 +3508,7 @@ static int add_av_stream(FFStream *feed, AVStream *st)
             case AVMEDIA_TYPE_AUDIO:
                 if (av1->channels == av->channels &&
                     av1->sample_rate == av->sample_rate)
-                    goto found;
+                    return i;
                 break;
             case AVMEDIA_TYPE_VIDEO:
                 if (av1->width == av->width &&
@@ -3520,7 +3516,7 @@ static int add_av_stream(FFStream *feed, AVStream *st)
                     av1->time_base.den == av->time_base.den &&
                     av1->time_base.num == av->time_base.num &&
                     av1->gop_size == av->gop_size)
-                    goto found;
+                    return i;
                 break;
             default:
                 abort();
@@ -3532,8 +3528,6 @@ static int add_av_stream(FFStream *feed, AVStream *st)
     if (!fst)
         return -1;
     return feed->nb_streams - 1;
- found:
-    return i;
 }
 
 static void remove_stream(FFStream *stream)
@@ -3654,21 +3648,13 @@ static void build_feed_streams(void)
     for(stream = first_stream; stream != NULL; stream = stream->next) {
         feed = stream->feed;
         if (feed) {
-            if (!stream->is_feed) {
-                /* we handle a stream coming from a feed */
-                for(i=0;i<stream->nb_streams;i++)
-                    stream->feed_streams[i] = add_av_stream(feed, stream->streams[i]);
-            }
-        }
-    }
-
-    /* gather all streams */
-    for(stream = first_stream; stream != NULL; stream = stream->next) {
-        feed = stream->feed;
-        if (feed) {
             if (stream->is_feed) {
                 for(i=0;i<stream->nb_streams;i++)
                     stream->feed_streams[i] = i;
+            } else {
+                /* we handle a stream coming from a feed */
+                for(i=0;i<stream->nb_streams;i++)
+                    stream->feed_streams[i] = add_av_stream(feed, stream->streams[i]);
             }
         }
     }
@@ -3677,7 +3663,7 @@ static void build_feed_streams(void)
     for(feed = first_feed; feed != NULL; feed = feed->next_feed) {
         int fd;
 
-        if (url_exist(feed->feed_filename)) {
+        if (avio_check(feed->feed_filename, AVIO_FLAG_READ) > 0) {
             /* See if it matches */
             AVFormatContext *s = NULL;
             int matches = 0;
@@ -3750,7 +3736,7 @@ static void build_feed_streams(void)
                 unlink(feed->feed_filename);
             }
         }
-        if (!url_exist(feed->feed_filename)) {
+        if (avio_check(feed->feed_filename, AVIO_FLAG_WRITE) <= 0) {
             AVFormatContext s1 = {0}, *s = &s1;
 
             if (feed->readonly) {
@@ -3760,20 +3746,15 @@ static void build_feed_streams(void)
             }
 
             /* only write the header of the ffm file */
-            if (avio_open(&s->pb, feed->feed_filename, AVIO_WRONLY) < 0) {
+            if (avio_open(&s->pb, feed->feed_filename, AVIO_FLAG_WRITE) < 0) {
                 http_log("Could not open output feed file '%s'\n",
                          feed->feed_filename);
                 exit(1);
             }
             s->oformat = feed->fmt;
             s->nb_streams = feed->nb_streams;
-            for(i=0;i<s->nb_streams;i++) {
-                AVStream *st;
-                st = feed->streams[i];
-                s->streams[i] = st;
-            }
-            av_set_parameters(s, NULL);
-            if (av_write_header(s) < 0) {
+            s->streams = feed->streams;
+            if (avformat_write_header(s, NULL) < 0) {
                 http_log("Container doesn't supports the required parameters\n");
                 exit(1);
             }
@@ -3894,7 +3875,7 @@ static void add_codec(FFStream *stream, AVCodecContext *av)
     st = av_mallocz(sizeof(AVStream));
     if (!st)
         return;
-    st->codec = avcodec_alloc_context();
+    st->codec = avcodec_alloc_context3(NULL);
     stream->streams[stream->nb_streams++] = st;
     memcpy(st->codec, av, sizeof(AVCodecContext));
 }
@@ -4662,12 +4643,13 @@ static void opt_debug(void)
     logfilename[0] = '-';
 }
 
-static void show_help(void)
+static int opt_help(const char *opt, const char *arg)
 {
     printf("usage: ffserver [options]\n"
            "Hyper fast multi format Audio/Video streaming server\n");
     printf("\n");
     show_help_options(options, "Main options:\n", 0, 0);
+    return 0;
 }
 
 static const OptionDef options[] = {

@@ -19,6 +19,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include "libavutil/mathematics.h"
 #include "libavcodec/avcodec.h"
 #include "avformat.h"
 #include "avio_internal.h"
@@ -171,9 +172,12 @@ const AVCodecTag ff_codec_bmp_tags[] = {
     { CODEC_ID_RAWVIDEO,     MKTAG('y', 'u', 'v', 's') },
     { CODEC_ID_RAWVIDEO,     MKTAG('P', '4', '2', '2') },
     { CODEC_ID_RAWVIDEO,     MKTAG('Y', 'V', '1', '2') },
+    { CODEC_ID_RAWVIDEO,     MKTAG('Y', 'V', '1', '6') },
+    { CODEC_ID_RAWVIDEO,     MKTAG('Y', 'V', '2', '4') },
     { CODEC_ID_RAWVIDEO,     MKTAG('U', 'Y', 'V', 'Y') },
     { CODEC_ID_RAWVIDEO,     MKTAG('V', 'Y', 'U', 'Y') },
     { CODEC_ID_RAWVIDEO,     MKTAG('I', 'Y', 'U', 'V') },
+    { CODEC_ID_RAWVIDEO,     MKTAG('Y', '8', ' ', ' ') },
     { CODEC_ID_RAWVIDEO,     MKTAG('Y', '8', '0', '0') },
     { CODEC_ID_RAWVIDEO,     MKTAG('H', 'D', 'Y', 'C') },
     { CODEC_ID_RAWVIDEO,     MKTAG('Y', 'V', 'U', '9') },

@@ -31,6 +31,19 @@
 #include "ac3enc.h"
 
 
+/* prototypes for static functions in ac3enc_fixed.c and ac3enc_float.c */
+
+static void scale_coefficients(AC3EncodeContext *s);
+
+static void apply_window(DSPContext *dsp, SampleType *output,
+                         const SampleType *input, const SampleType *window,
+                         unsigned int len);
+
+static int normalize_samples(AC3EncodeContext *s);
+
+static void clip_coefficients(DSPContext *dsp, CoefType *coef, unsigned int len);
+
+
 int AC3_NAME(allocate_sample_buffers)(AC3EncodeContext *s)
 {
     int ch;
@@ -55,8 +68,8 @@ alloc_fail:
  * Deinterleave input samples.
  * Channels are reordered from Libav's default order to AC-3 order.
  */
-void AC3_NAME(deinterleave_input_samples)(AC3EncodeContext *s,
-                                          const SampleType *samples)
+static void deinterleave_input_samples(AC3EncodeContext *s,
+                                       const SampleType *samples)
 {
     int ch, i;
 
@@ -85,7 +98,7 @@ void AC3_NAME(deinterleave_input_samples)(AC3EncodeContext *s,
  * This applies the KBD window and normalizes the input to reduce precision
  * loss due to fixed-point calculations.
  */
-void AC3_NAME(apply_mdct)(AC3EncodeContext *s)
+static void apply_mdct(AC3EncodeContext *s)
 {
     int blk, ch;
 
@@ -94,14 +107,14 @@ void AC3_NAME(apply_mdct)(AC3EncodeContext *s)
             AC3Block *block = &s->blocks[blk];
             const SampleType *input_samples = &s->planar_samples[ch][blk * AC3_BLOCK_SIZE];
 
-            s->apply_window(&s->dsp, s->windowed_samples, input_samples,
-                            s->mdct->window, AC3_WINDOW_SIZE);
+            apply_window(&s->dsp, s->windowed_samples, input_samples,
+                         s->mdct_window, AC3_WINDOW_SIZE);
 
             if (s->fixed_point)
-                block->coeff_shift[ch+1] = s->normalize_samples(s);
+                block->coeff_shift[ch+1] = normalize_samples(s);
 
-            s->mdct->fft.mdct_calcw(&s->mdct->fft, block->mdct_coef[ch+1],
-                                    s->windowed_samples);
+            s->mdct.mdct_calcw(&s->mdct, block->mdct_coef[ch+1],
+                               s->windowed_samples);
         }
     }
 }
@@ -127,7 +140,7 @@ static inline float calc_cpl_coord(float energy_ch, float energy_cpl)
  *       adaptive coupling strategy were to be implemented it might be useful
  *       at that time to use coupling for the fixed-point encoder as well.
  */
-void AC3_NAME(apply_channel_coupling)(AC3EncodeContext *s)
+static void apply_channel_coupling(AC3EncodeContext *s)
 {
 #if CONFIG_AC3ENC_FLOAT
     LOCAL_ALIGNED_16(float,   cpl_coords,       [AC3_MAX_BLOCKS], [AC3_MAX_CHANNELS][16]);
@@ -160,8 +173,8 @@ void AC3_NAME(apply_channel_coupling)(AC3EncodeContext *s)
                 cpl_coef[i] += ch_coef[i];
         }
 
-        /* coefficients must be clipped to +/- 1.0 in order to be encoded */
-        s->dsp.vector_clipf(cpl_coef, cpl_coef, -1.0f, 1.0f, num_cpl_coefs);
+        /* coefficients must be clipped in order to be encoded */
+        clip_coefficients(&s->dsp, cpl_coef, num_cpl_coefs);
 
         /* scale coupling coefficients from float to 24-bit fixed-point */
         s->ac3dsp.float_to_fixed24(&block->fixed_coef[CPL_CH][cpl_start],
@@ -289,6 +302,7 @@ void AC3_NAME(apply_channel_coupling)(AC3EncodeContext *s)
         if (!block->cpl_in_use || !block->new_cpl_coords)
             continue;
 
+        clip_coefficients(&s->dsp, cpl_coords[blk][1], s->fbw_channels * 16);
         s->ac3dsp.float_to_fixed24(fixed_cpl_coords[blk][1],
                                    cpl_coords[blk][1],
                                    s->fbw_channels * 16);
@@ -339,7 +353,7 @@ void AC3_NAME(apply_channel_coupling)(AC3EncodeContext *s)
 /**
  * Determine rematrixing flags for each block and band.
  */
-void AC3_NAME(compute_rematrixing_strategy)(AC3EncodeContext *s)
+static void compute_rematrixing_strategy(AC3EncodeContext *s)
 {
     int nb_coefs;
     int blk, bnd, i;
@@ -396,4 +410,62 @@ void AC3_NAME(compute_rematrixing_strategy)(AC3EncodeContext *s)
         }
         block0 = block;
     }
+}
+
+
+/**
+ * Encode a single AC-3 frame.
+ */
+int AC3_NAME(encode_frame)(AVCodecContext *avctx, unsigned char *frame,
+                           int buf_size, void *data)
+{
+    AC3EncodeContext *s = avctx->priv_data;
+    const SampleType *samples = data;
+    int ret;
+
+    if (!s->eac3 && s->options.allow_per_frame_metadata) {
+        ret = ff_ac3_validate_metadata(s);
+        if (ret)
+            return ret;
+    }
+
+    if (s->bit_alloc.sr_code == 1 || s->eac3)
+        ff_ac3_adjust_frame_size(s);
+
+    deinterleave_input_samples(s, samples);
+
+    apply_mdct(s);
+
+    if (s->fixed_point)
+        scale_coefficients(s);
+
+    clip_coefficients(&s->dsp, s->blocks[0].mdct_coef[1],
+                      AC3_MAX_COEFS * AC3_MAX_BLOCKS * s->channels);
+
+    s->cpl_on = s->cpl_enabled;
+    ff_ac3_compute_coupling_strategy(s);
+
+    if (s->cpl_on)
+        apply_channel_coupling(s);
+
+    compute_rematrixing_strategy(s);
+
+    if (!s->fixed_point)
+        scale_coefficients(s);
+
+    ff_ac3_apply_rematrixing(s);
+
+    ff_ac3_process_exponents(s);
+
+    ret = ff_ac3_compute_bit_allocation(s);
+    if (ret) {
+        av_log(avctx, AV_LOG_ERROR, "Bit allocation failed. Try increasing the bitrate.\n");
+        return ret;
+    }
+
+    ff_ac3_quantize_mantissas(s);
+
+    ff_ac3_output_frame(s, frame);
+
+    return s->frame_size;
 }

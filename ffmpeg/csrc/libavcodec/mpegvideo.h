@@ -28,6 +28,7 @@
 #ifndef AVCODEC_MPEGVIDEO_H
 #define AVCODEC_MPEGVIDEO_H
 
+#include "avcodec.h"
 #include "dsputil.h"
 #include "get_bits.h"
 #include "put_bits.h"
@@ -82,12 +83,13 @@ struct MpegEncContext;
  * Picture.
  */
 typedef struct Picture{
-    FF_COMMON_FRAME
+    struct AVFrame f;
 
     /**
      * halfpel luma planes.
      */
     uint8_t *interpolated[3];
+    int8_t *qscale_table_base;
     int16_t (*motion_val_base[2])[2];
     uint32_t *mb_type_base;
 #define MB_TYPE_INTRA MB_TYPE_INTRA4x4 //default mb_type if there is just one type
@@ -154,7 +156,7 @@ typedef struct MotionEstContext{
     uint32_t *score_map;               ///< map to store the scores
     int map_generation;
     int pre_penalty_factor;
-    int penalty_factor;                /*!< an estimate of the bits required to
+    int penalty_factor;                /**< an estimate of the bits required to
                                         code a given mv value, e.g. (1,0) takes
                                         more bits than (0,0). We have to
                                         estimate whether any reduction in
@@ -390,11 +392,6 @@ typedef struct MpegEncContext {
 
     int no_rounding;  /**< apply no rounding to motion compensation (MPEG4, msmpeg4, ...)
                         for b-frames rounding mode is always 0 */
-
-#if FF_API_HURRY_UP
-    int hurry_up;     /**< when set to 1 during decoding, b frames will be skipped
-                         when set to 2 idct/dequant will be skipped too */
-#endif
 
     /* macroblock layer */
     int mb_x, mb_y;

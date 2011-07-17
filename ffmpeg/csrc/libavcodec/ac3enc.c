@@ -46,7 +46,7 @@
 #include "eac3enc.h"
 
 typedef struct AC3Mant {
-    uint16_t *qmant1_ptr, *qmant2_ptr, *qmant4_ptr; ///< mantissa pointers for bap=1,2,4
+    int16_t *qmant1_ptr, *qmant2_ptr, *qmant4_ptr; ///< mantissa pointers for bap=1,2,4
     int mant1_cnt, mant2_cnt, mant4_cnt;    ///< mantissa counts for bap=1,2,4
 } AC3Mant;
 
@@ -177,7 +177,7 @@ static const int8_t ac3_coupling_start_tab[6][3][19] = {
  * Adjust the frame size to make the average bit rate match the target bit rate.
  * This is only needed for 11025, 22050, and 44100 sample rates or any E-AC-3.
  */
-static void adjust_frame_size(AC3EncodeContext *s)
+void ff_ac3_adjust_frame_size(AC3EncodeContext *s)
 {
     while (s->bits_written >= s->bit_rate && s->samples_written >= s->sample_rate) {
         s->bits_written    -= s->bit_rate;
@@ -190,7 +190,7 @@ static void adjust_frame_size(AC3EncodeContext *s)
 }
 
 
-static void compute_coupling_strategy(AC3EncodeContext *s)
+void ff_ac3_compute_coupling_strategy(AC3EncodeContext *s)
 {
     int blk, ch;
     int got_cpl_snr;
@@ -254,7 +254,7 @@ static void compute_coupling_strategy(AC3EncodeContext *s)
 /**
  * Apply stereo rematrixing to coefficients based on rematrixing flags.
  */
-static void apply_rematrixing(AC3EncodeContext *s)
+void ff_ac3_apply_rematrixing(AC3EncodeContext *s)
 {
     int nb_coefs;
     int blk, bnd, i;
@@ -306,8 +306,6 @@ static av_cold void exponent_init(AC3EncodeContext *s)
 
 /**
  * Extract exponents from the MDCT coefficients.
- * This takes into account the normalization that was done to the input samples
- * by adjusting the exponents by the exponent shift values.
  */
 static void extract_exponents(AC3EncodeContext *s)
 {
@@ -570,7 +568,7 @@ static void group_exponents(AC3EncodeContext *s)
  * Extract exponents from MDCT coefficients, calculate exponent strategies,
  * and encode final exponents.
  */
-static void process_exponents(AC3EncodeContext *s)
+void ff_ac3_process_exponents(AC3EncodeContext *s)
 {
     extract_exponents(s);
 
@@ -1023,87 +1021,18 @@ static int cbr_bit_allocation(AC3EncodeContext *s)
 
 
 /**
- * Downgrade exponent strategies to reduce the bits used by the exponents.
- * This is a fallback for when bit allocation fails with the normal exponent
- * strategies.  Each time this function is run it only downgrades the
- * strategy in 1 channel of 1 block.
- * @return non-zero if downgrade was unsuccessful
- */
-static int downgrade_exponents(AC3EncodeContext *s)
-{
-    int ch, blk;
-
-    for (blk = AC3_MAX_BLOCKS-1; blk >= 0; blk--) {
-        for (ch = !s->blocks[blk].cpl_in_use; ch <= s->fbw_channels; ch++) {
-            if (s->exp_strategy[ch][blk] == EXP_D15) {
-                s->exp_strategy[ch][blk] = EXP_D25;
-                return 0;
-            }
-        }
-    }
-    for (blk = AC3_MAX_BLOCKS-1; blk >= 0; blk--) {
-        for (ch = !s->blocks[blk].cpl_in_use; ch <= s->fbw_channels; ch++) {
-            if (s->exp_strategy[ch][blk] == EXP_D25) {
-                s->exp_strategy[ch][blk] = EXP_D45;
-                return 0;
-            }
-        }
-    }
-    /* block 0 cannot reuse exponents, so only downgrade D45 to REUSE if
-       the block number > 0 */
-    for (blk = AC3_MAX_BLOCKS-1; blk > 0; blk--) {
-        for (ch = !s->blocks[blk].cpl_in_use; ch <= s->fbw_channels; ch++) {
-            if (s->exp_strategy[ch][blk] > EXP_REUSE) {
-                s->exp_strategy[ch][blk] = EXP_REUSE;
-                return 0;
-            }
-        }
-    }
-    return -1;
-}
-
-
-/**
  * Perform bit allocation search.
  * Finds the SNR offset value that maximizes quality and fits in the specified
  * frame size.  Output is the SNR offset and a set of bit allocation pointers
  * used to quantize the mantissas.
  */
-static int compute_bit_allocation(AC3EncodeContext *s)
+int ff_ac3_compute_bit_allocation(AC3EncodeContext *s)
 {
-    int ret;
-
     count_frame_bits(s);
 
     bit_alloc_masking(s);
 
-    ret = cbr_bit_allocation(s);
-    while (ret) {
-        /* fallback 1: disable channel coupling */
-        if (s->cpl_on) {
-            s->cpl_on = 0;
-            compute_coupling_strategy(s);
-            s->compute_rematrixing_strategy(s);
-            apply_rematrixing(s);
-            process_exponents(s);
-            ret = compute_bit_allocation(s);
-            continue;
-        }
-
-        /* fallback 2: downgrade exponents */
-        if (!downgrade_exponents(s)) {
-            extract_exponents(s);
-            encode_exponents(s);
-            group_exponents(s);
-            ret = compute_bit_allocation(s);
-            continue;
-        }
-
-        /* fallbacks were not enough... */
-        break;
-    }
-
-    return ret;
+    return cbr_bit_allocation(s);
 }
 
 
@@ -1123,20 +1052,14 @@ static inline int sym_quant(int c, int e, int levels)
  */
 static inline int asym_quant(int c, int e, int qbits)
 {
-    int lshift, m, v;
+    int m;
 
-    lshift = e + qbits - 24;
-    if (lshift >= 0)
-        v = c << lshift;
-    else
-        v = c >> (-lshift);
-    /* rounding */
-    v = (v + 1) >> 1;
+    c = (((c << e) >> (24 - qbits)) + 1) >> 1;
     m = (1 << (qbits-1));
-    if (v >= m)
-        v = m - 1;
-    av_assert2(v >= -m);
-    return v & ((1 << qbits)-1);
+    if (c >= m)
+        c = m - 1;
+    av_assert2(c >= -m);
+    return c;
 }
 
 
@@ -1145,7 +1068,7 @@ static inline int asym_quant(int c, int e, int qbits)
  */
 static void quantize_mantissas_blk_ch(AC3Mant *s, int32_t *fixed_coef,
                                       uint8_t *exp, uint8_t *bap,
-                                      uint16_t *qmant, int start_freq,
+                                      int16_t *qmant, int start_freq,
                                       int end_freq)
 {
     int i;
@@ -1238,7 +1161,7 @@ static void quantize_mantissas_blk_ch(AC3Mant *s, int32_t *fixed_coef,
 /**
  * Quantize mantissas using coefficients, exponents, and bit allocation pointers.
  */
-static void quantize_mantissas(AC3EncodeContext *s)
+void ff_ac3_quantize_mantissas(AC3EncodeContext *s)
 {
     int blk, ch, ch0=0, got_cpl;
 
@@ -1497,14 +1420,14 @@ static void output_audio_block(AC3EncodeContext *s, int blk)
             q = block->qmant[ch][i];
             b = s->ref_bap[ch][blk][i];
             switch (b) {
-            case 0:                                         break;
-            case 1: if (q != 128) put_bits(&s->pb,   5, q); break;
-            case 2: if (q != 128) put_bits(&s->pb,   7, q); break;
-            case 3:               put_bits(&s->pb,   3, q); break;
-            case 4: if (q != 128) put_bits(&s->pb,   7, q); break;
-            case 14:              put_bits(&s->pb,  14, q); break;
-            case 15:              put_bits(&s->pb,  16, q); break;
-            default:              put_bits(&s->pb, b-1, q); break;
+            case 0:                                          break;
+            case 1: if (q != 128) put_bits (&s->pb,   5, q); break;
+            case 2: if (q != 128) put_bits (&s->pb,   7, q); break;
+            case 3:               put_sbits(&s->pb,   3, q); break;
+            case 4: if (q != 128) put_bits (&s->pb,   7, q); break;
+            case 14:              put_sbits(&s->pb,  14, q); break;
+            case 15:              put_sbits(&s->pb,  16, q); break;
+            default:              put_sbits(&s->pb, b-1, q); break;
             }
         }
         if (ch == CPL_CH)
@@ -1597,7 +1520,7 @@ static void output_frame_end(AC3EncodeContext *s)
 /**
  * Write the frame to the output bitstream.
  */
-static void output_frame(AC3EncodeContext *s, unsigned char *frame)
+void ff_ac3_output_frame(AC3EncodeContext *s, unsigned char *frame)
 {
     int blk;
 
@@ -1612,10 +1535,10 @@ static void output_frame(AC3EncodeContext *s, unsigned char *frame)
 }
 
 
-static void dprint_options(AVCodecContext *avctx)
+static void dprint_options(AC3EncodeContext *s)
 {
 #ifdef DEBUG
-    AC3EncodeContext *s = avctx->priv_data;
+    AVCodecContext *avctx = s->avctx;
     AC3EncOptions *opt = &s->options;
     char strbuf[32];
 
@@ -1766,9 +1689,9 @@ static void validate_mix_level(void *log_ctx, const char *opt_name,
  * Validate metadata options as set by AVOption system.
  * These values can optionally be changed per-frame.
  */
-static int validate_metadata(AVCodecContext *avctx)
+int ff_ac3_validate_metadata(AC3EncodeContext *s)
 {
-    AC3EncodeContext *s = avctx->priv_data;
+    AVCodecContext *avctx = s->avctx;
     AC3EncOptions *opt = &s->options;
 
     /* validate mixing levels */
@@ -1876,57 +1799,6 @@ static int validate_metadata(AVCodecContext *avctx)
 
 
 /**
- * Encode a single AC-3 frame.
- */
-int ff_ac3_encode_frame(AVCodecContext *avctx, unsigned char *frame,
-                        int buf_size, void *data)
-{
-    AC3EncodeContext *s = avctx->priv_data;
-    const SampleType *samples = data;
-    int ret;
-
-    if (!s->eac3 && s->options.allow_per_frame_metadata) {
-        ret = validate_metadata(avctx);
-        if (ret)
-            return ret;
-    }
-
-    if (s->bit_alloc.sr_code == 1 || s->eac3)
-        adjust_frame_size(s);
-
-    s->deinterleave_input_samples(s, samples);
-
-    s->apply_mdct(s);
-
-    s->scale_coefficients(s);
-
-    s->cpl_on = s->cpl_enabled;
-    compute_coupling_strategy(s);
-
-    if (s->cpl_on)
-        s->apply_channel_coupling(s);
-
-    s->compute_rematrixing_strategy(s);
-
-    apply_rematrixing(s);
-
-    process_exponents(s);
-
-    ret = compute_bit_allocation(s);
-    if (ret) {
-        av_log(avctx, AV_LOG_ERROR, "Bit allocation failed. Try increasing the bitrate.\n");
-        return ret;
-    }
-
-    quantize_mantissas(s);
-
-    output_frame(s, frame);
-
-    return s->frame_size;
-}
-
-
-/**
  * Finalize encoding and free any memory allocated by the encoder.
  */
 av_cold int ff_ac3_encode_close(AVCodecContext *avctx)
@@ -1948,6 +1820,8 @@ av_cold int ff_ac3_encode_close(AVCodecContext *avctx)
     av_freep(&s->band_psd_buffer);
     av_freep(&s->mask_buffer);
     av_freep(&s->qmant_buffer);
+    av_freep(&s->cpl_coord_exp_buffer);
+    av_freep(&s->cpl_coord_mant_buffer);
     for (blk = 0; blk < AC3_MAX_BLOCKS; blk++) {
         AC3Block *block = &s->blocks[blk];
         av_freep(&block->mdct_coef);
@@ -1958,10 +1832,11 @@ av_cold int ff_ac3_encode_close(AVCodecContext *avctx)
         av_freep(&block->band_psd);
         av_freep(&block->mask);
         av_freep(&block->qmant);
+        av_freep(&block->cpl_coord_exp);
+        av_freep(&block->cpl_coord_mant);
     }
 
-    s->mdct_end(s->mdct);
-    av_freep(&s->mdct);
+    s->mdct_end(s);
 
     av_freep(&avctx->coded_frame);
     return 0;
@@ -2016,8 +1891,9 @@ static av_cold int set_channel_info(AC3EncodeContext *s, int channels,
 }
 
 
-static av_cold int validate_options(AVCodecContext *avctx, AC3EncodeContext *s)
+static av_cold int validate_options(AC3EncodeContext *s)
 {
+    AVCodecContext *avctx = s->avctx;
     int i, ret, max_sr;
 
     /* validate channel layout */
@@ -2122,7 +1998,7 @@ static av_cold int validate_options(AVCodecContext *avctx, AC3EncodeContext *s)
     }
 
     if (!s->eac3) {
-        ret = validate_metadata(avctx);
+        ret = ff_ac3_validate_metadata(s);
         if (ret)
             return ret;
     }
@@ -2209,10 +2085,10 @@ static av_cold void set_bandwidth(AC3EncodeContext *s)
 }
 
 
-static av_cold int allocate_buffers(AVCodecContext *avctx)
+static av_cold int allocate_buffers(AC3EncodeContext *s)
 {
+    AVCodecContext *avctx = s->avctx;
     int blk, ch;
-    AC3EncodeContext *s = avctx->priv_data;
     int channels = s->channels + 1; /* includes coupling channel */
 
     if (s->allocate_sample_buffers(s))
@@ -2325,7 +2201,7 @@ av_cold int ff_ac3_encode_init(AVCodecContext *avctx)
 
     ff_ac3_common_init();
 
-    ret = validate_options(avctx, s);
+    ret = validate_options(s);
     if (ret)
         return ret;
 
@@ -2348,24 +2224,11 @@ av_cold int ff_ac3_encode_init(AVCodecContext *avctx)
     if (CONFIG_AC3_FIXED_ENCODER && s->fixed_point) {
         s->mdct_end                     = ff_ac3_fixed_mdct_end;
         s->mdct_init                    = ff_ac3_fixed_mdct_init;
-        s->apply_window                 = ff_ac3_fixed_apply_window;
-        s->normalize_samples            = ff_ac3_fixed_normalize_samples;
-        s->scale_coefficients           = ff_ac3_fixed_scale_coefficients;
         s->allocate_sample_buffers      = ff_ac3_fixed_allocate_sample_buffers;
-        s->deinterleave_input_samples   = ff_ac3_fixed_deinterleave_input_samples;
-        s->apply_mdct                   = ff_ac3_fixed_apply_mdct;
-        s->apply_channel_coupling       = ff_ac3_fixed_apply_channel_coupling;
-        s->compute_rematrixing_strategy = ff_ac3_fixed_compute_rematrixing_strategy;
     } else if (CONFIG_AC3_ENCODER || CONFIG_EAC3_ENCODER) {
         s->mdct_end                     = ff_ac3_float_mdct_end;
         s->mdct_init                    = ff_ac3_float_mdct_init;
-        s->apply_window                 = ff_ac3_float_apply_window;
-        s->scale_coefficients           = ff_ac3_float_scale_coefficients;
         s->allocate_sample_buffers      = ff_ac3_float_allocate_sample_buffers;
-        s->deinterleave_input_samples   = ff_ac3_float_deinterleave_input_samples;
-        s->apply_mdct                   = ff_ac3_float_apply_mdct;
-        s->apply_channel_coupling       = ff_ac3_float_apply_channel_coupling;
-        s->compute_rematrixing_strategy = ff_ac3_float_compute_rematrixing_strategy;
     }
     if (CONFIG_EAC3_ENCODER && s->eac3)
         s->output_frame_header = ff_eac3_output_frame_header;
@@ -2378,12 +2241,11 @@ av_cold int ff_ac3_encode_init(AVCodecContext *avctx)
 
     bit_alloc_init(s);
 
-    FF_ALLOCZ_OR_GOTO(avctx, s->mdct, sizeof(AC3MDCTContext), init_fail);
-    ret = s->mdct_init(avctx, s->mdct, 9);
+    ret = s->mdct_init(s);
     if (ret)
         goto init_fail;
 
-    ret = allocate_buffers(avctx);
+    ret = allocate_buffers(s);
     if (ret)
         goto init_fail;
 
@@ -2392,7 +2254,7 @@ av_cold int ff_ac3_encode_init(AVCodecContext *avctx)
     dsputil_init(&s->dsp, avctx);
     ff_ac3dsp_init(&s->ac3dsp, avctx->flags & CODEC_FLAG_BITEXACT);
 
-    dprint_options(avctx);
+    dprint_options(s);
 
     return 0;
 init_fail:

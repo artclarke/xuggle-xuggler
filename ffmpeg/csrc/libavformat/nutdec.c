@@ -24,6 +24,7 @@
 #include "libavutil/avstring.h"
 #include "libavutil/bswap.h"
 #include "libavutil/dict.h"
+#include "libavutil/mathematics.h"
 #include "libavutil/tree.h"
 #include "avio_internal.h"
 #include "nut.h"
@@ -31,11 +32,7 @@
 #undef NDEBUG
 #include <assert.h>
 
-#if FF_API_MAX_STREAMS
-#define NUT_MAX_STREAMS MAX_STREAMS
-#else
 #define NUT_MAX_STREAMS 256    /* arbitrary sanity check value */
-#endif
 
 static int get_str(AVIOContext *bc, char *string, unsigned int maxlen){
     unsigned int len= ffio_read_varlen(bc);
@@ -927,14 +924,14 @@ static int nut_read_close(AVFormatContext *s)
 
 #if CONFIG_NUT_DEMUXER
 AVInputFormat ff_nut_demuxer = {
-    "nut",
-    NULL_IF_CONFIG_SMALL("NUT format"),
-    sizeof(NUTContext),
-    nut_probe,
-    nut_read_header,
-    nut_read_packet,
-    nut_read_close,
-    read_seek,
+    .name           = "nut",
+    .long_name      = NULL_IF_CONFIG_SMALL("NUT format"),
+    .priv_data_size = sizeof(NUTContext),
+    .read_probe     = nut_probe,
+    .read_header    = nut_read_header,
+    .read_packet    = nut_read_packet,
+    .read_close     = nut_read_close,
+    .read_seek      = read_seek,
     .extensions = "nut",
     .codec_tag = (const AVCodecTag * const []) { ff_codec_bmp_tags, ff_nut_video_tags, ff_codec_wav_tags, ff_nut_subtitle_tags, 0 },
 };

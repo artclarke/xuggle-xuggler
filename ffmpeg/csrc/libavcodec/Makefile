@@ -15,7 +15,6 @@ OBJS = allcodecs.o                                                      \
        fmtconvert.o                                                     \
        imgconvert.o                                                     \
        jrevdct.o                                                        \
-       opt.o                                                            \
        options.o                                                        \
        parser.o                                                         \
        raw.o                                                            \
@@ -551,6 +550,7 @@ OBJS-$(CONFIG_MATROSKA_DEMUXER)        += mpeg4audio.o mpegaudiodata.o
 OBJS-$(CONFIG_MATROSKA_MUXER)          += xiph.o mpeg4audio.o \
                                           flacdec.o flacdata.o flac.o \
                                           mpegaudiodata.o vorbis_data.o
+OBJS-$(CONFIG_MP3_MUXER)               += mpegaudiodata.o mpegaudiodecheader.o
 OBJS-$(CONFIG_MOV_DEMUXER)             += mpeg4audio.o mpegaudiodata.o
 OBJS-$(CONFIG_MOV_MUXER)               += mpeg4audio.o mpegaudiodata.o
 OBJS-$(CONFIG_MPEGTS_MUXER)            += mpegvideo.o mpeg4audio.o
@@ -667,7 +667,7 @@ OBJS-$(CONFIG_MLIB)                    += mlib/dsputil_mlib.o           \
 # well.
 OBJS-$(!CONFIG_SMALL)                  += inverse.o
 
--include $(SUBDIR)$(ARCH)/Makefile
+-include $(SRC_PATH)/$(SUBDIR)$(ARCH)/Makefile
 
 SKIPHEADERS                            += %_tablegen.h                  \
                                           %_tables.h                    \
@@ -694,7 +694,7 @@ DIRS = alpha arm bfin mlib ppc ps2 sh4 sparc x86
 
 CLEANFILES = *_tables.c *_tables.h *_tablegen$(HOSTEXESUF)
 
-include $(SUBDIR)../subdir.mak
+include $(SRC_PATH)/subdir.mak
 
 $(SUBDIR)dct-test$(EXESUF): $(SUBDIR)dctref.o
 

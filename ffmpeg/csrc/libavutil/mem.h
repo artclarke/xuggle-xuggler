@@ -62,14 +62,6 @@
     #define av_alloc_size(n)
 #endif
 
-#if LIBAVUTIL_VERSION_MAJOR < 51
-#   define FF_INTERNAL_MEM_TYPE unsigned int
-#   define FF_INTERNAL_MEM_TYPE_MAX_VALUE UINT_MAX
-#else
-#   define FF_INTERNAL_MEM_TYPE size_t
-#   define FF_INTERNAL_MEM_TYPE_MAX_VALUE SIZE_MAX
-#endif
-
 /**
  * Allocate a block of size bytes with alignment suitable for all
  * memory accesses (including vectors if available on the CPU).
@@ -78,21 +70,21 @@
  * be allocated.
  * @see av_mallocz()
  */
-void *av_malloc(FF_INTERNAL_MEM_TYPE size) av_malloc_attrib av_alloc_size(1);
+void *av_malloc(size_t size) av_malloc_attrib av_alloc_size(1);
 
 /**
  * Allocate or reallocate a block of memory.
  * If ptr is NULL and size > 0, allocate a new block. If
  * size is zero, free the memory block pointed to by ptr.
- * @param size Size in bytes for the memory block to be allocated or
- * reallocated.
  * @param ptr Pointer to a memory block already allocated with
  * av_malloc(z)() or av_realloc() or NULL.
+ * @param size Size in bytes for the memory block to be allocated or
+ * reallocated.
  * @return Pointer to a newly reallocated block or NULL if the block
  * cannot be reallocated or the function is used to free the memory block.
  * @see av_fast_realloc()
  */
-void *av_realloc(void *ptr, FF_INTERNAL_MEM_TYPE size) av_alloc_size(2);
+void *av_realloc(void *ptr, size_t size) av_alloc_size(2);
 
 /**
  * Free a memory block which has been allocated with av_malloc(z)() or
@@ -112,7 +104,7 @@ void av_free(void *ptr);
  * @return Pointer to the allocated block, NULL if it cannot be allocated.
  * @see av_malloc()
  */
-void *av_mallocz(FF_INTERNAL_MEM_TYPE size) av_malloc_attrib av_alloc_size(1);
+void *av_mallocz(size_t size) av_malloc_attrib av_alloc_size(1);
 
 /**
  * Duplicate the string s.

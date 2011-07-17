@@ -68,7 +68,7 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
     snprintf(portstr, sizeof(portstr), "%d", port);
     ret = getaddrinfo(hostname, portstr, &hints, &ai);
     if (ret) {
-        av_log(NULL, AV_LOG_ERROR,
+        av_log(h, AV_LOG_ERROR,
                "Failed to resolve hostname %s: %s\n",
                hostname, gai_strerror(ret));
         return AVERROR(EIO);
@@ -128,7 +128,7 @@ static int tcp_open(URLContext *h, const char *uri, int flags)
         optlen = sizeof(ret);
         getsockopt (fd, SOL_SOCKET, SO_ERROR, &ret, &optlen);
         if (ret != 0) {
-            av_log(NULL, AV_LOG_ERROR,
+            av_log(h, AV_LOG_ERROR,
                    "TCP connection to %s:%d failed: %s\n",
                    hostname, port, strerror(ret));
             ret = AVERROR(ret);

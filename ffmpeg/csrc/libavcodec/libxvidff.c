@@ -30,6 +30,7 @@
 #include "avcodec.h"
 #include "libavutil/cpu.h"
 #include "libavutil/intreadwrite.h"
+#include "libavutil/mathematics.h"
 #include "libxvid_internal.h"
 #if !HAVE_MKSTEMP
 #include <fcntl.h>
@@ -749,7 +750,7 @@ static int xvid_ff_2pass_before(struct xvid_context *ref,
 static int xvid_ff_2pass_after(struct xvid_context *ref,
                                 xvid_plg_data_t *param) {
     char *log = ref->twopassbuffer;
-    char *frame_types = " ipbs";
+    const char *frame_types = " ipbs";
     char frame_type;
 
     /* Quick bounds check */

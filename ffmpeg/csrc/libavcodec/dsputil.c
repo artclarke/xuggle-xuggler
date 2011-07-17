@@ -2664,6 +2664,22 @@ static void apply_window_int16_c(int16_t *output, const int16_t *input,
     }
 }
 
+static void vector_clip_int32_c(int32_t *dst, const int32_t *src, int32_t min,
+                                int32_t max, unsigned int len)
+{
+    do {
+        *dst++ = av_clip(*src++, min, max);
+        *dst++ = av_clip(*src++, min, max);
+        *dst++ = av_clip(*src++, min, max);
+        *dst++ = av_clip(*src++, min, max);
+        *dst++ = av_clip(*src++, min, max);
+        *dst++ = av_clip(*src++, min, max);
+        *dst++ = av_clip(*src++, min, max);
+        *dst++ = av_clip(*src++, min, max);
+        len -= 8;
+    } while (len > 0);
+}
+
 #define W0 2048
 #define W1 2841 /* 2048*sqrt (2)*cos (1*pi/16) */
 #define W2 2676 /* 2048*sqrt (2)*cos (2*pi/16) */
@@ -2816,7 +2832,7 @@ av_cold void dsputil_static_init(void)
 
 int ff_check_alignment(void){
     static int did_fail=0;
-    DECLARE_ALIGNED(16, int, aligned);
+    LOCAL_ALIGNED_16(int, aligned);
 
     if((intptr_t)&aligned & 15){
         if(!did_fail){
@@ -3106,6 +3122,7 @@ av_cold void dsputil_init(DSPContext* c, AVCodecContext *avctx)
     c->scalarproduct_int16 = scalarproduct_int16_c;
     c->scalarproduct_and_madd_int16 = scalarproduct_and_madd_int16_c;
     c->apply_window_int16 = apply_window_int16_c;
+    c->vector_clip_int32 = vector_clip_int32_c;
     c->scalarproduct_float = scalarproduct_float_c;
     c->butterflies_float = butterflies_float_c;
     c->vector_fmul_scalar = vector_fmul_scalar_c;

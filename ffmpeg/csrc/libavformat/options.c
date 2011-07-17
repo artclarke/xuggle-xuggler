@@ -122,10 +122,3 @@ AVFormatContext *avformat_alloc_context(void)
     avformat_get_context_defaults(ic);
     return ic;
 }
-
-#if FF_API_ALLOC_FORMAT_CONTEXT
-AVFormatContext *av_alloc_format_context(void)
-{
-    return avformat_alloc_context();
-}
-#endif

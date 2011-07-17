@@ -26,6 +26,7 @@
 #include "avfilter.h"
 #include "libavutil/avstring.h"
 #include "libavutil/eval.h"
+#include "libavutil/mathematics.h"
 #include "libavutil/pixdesc.h"
 #include "libavutil/avassert.h"
 #include "libswscale/swscale.h"
@@ -38,7 +39,8 @@ static const char *var_names[] = {
     "in_h",   "ih",
     "out_w",  "ow",
     "out_h",  "oh",
-    "a",
+    "a", "dar",
+    "sar",
     "hsub",
     "vsub",
     NULL
@@ -52,7 +54,8 @@ enum var_name {
     VAR_IN_H,   VAR_IH,
     VAR_OUT_W,  VAR_OW,
     VAR_OUT_H,  VAR_OH,
-    VAR_A,
+    VAR_A, VAR_DAR,
+    VAR_SAR,
     VAR_HSUB,
     VAR_VSUB,
     VARS_NB
@@ -157,7 +160,9 @@ static int config_props(AVFilterLink *outlink)
     var_values[VAR_IN_H]  = var_values[VAR_IH] = inlink->h;
     var_values[VAR_OUT_W] = var_values[VAR_OW] = NAN;
     var_values[VAR_OUT_H] = var_values[VAR_OH] = NAN;
-    var_values[VAR_A]     = (float) inlink->w / inlink->h;
+    var_values[VAR_DAR]   = var_values[VAR_A]  = (float) inlink->w / inlink->h;
+    var_values[VAR_SAR]   = inlink->sample_aspect_ratio.num ?
+        (float) inlink->sample_aspect_ratio.num / inlink->sample_aspect_ratio.den : 1;
     var_values[VAR_HSUB]  = 1<<av_pix_fmt_descriptors[inlink->format].log2_chroma_w;
     var_values[VAR_VSUB]  = 1<<av_pix_fmt_descriptors[inlink->format].log2_chroma_h;
 

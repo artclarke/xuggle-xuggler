@@ -85,7 +85,7 @@ static int sap_read_header(AVFormatContext *s,
 
     ff_url_join(url, sizeof(url), "udp", NULL, host, port, "?localport=%d",
                 port);
-    ret = ffurl_open(&sap->ann_fd, url, AVIO_RDONLY);
+    ret = ffurl_open(&sap->ann_fd, url, AVIO_FLAG_READ);
     if (ret)
         goto fail;
 
@@ -224,13 +224,13 @@ static int sap_fetch_packet(AVFormatContext *s, AVPacket *pkt)
 }
 
 AVInputFormat ff_sap_demuxer = {
-    "sap",
-    NULL_IF_CONFIG_SMALL("SAP input format"),
-    sizeof(struct SAPState),
-    sap_probe,
-    sap_read_header,
-    sap_fetch_packet,
-    sap_read_close,
+    .name           = "sap",
+    .long_name      = NULL_IF_CONFIG_SMALL("SAP input format"),
+    .priv_data_size = sizeof(struct SAPState),
+    .read_probe     = sap_probe,
+    .read_header    = sap_read_header,
+    .read_packet    = sap_fetch_packet,
+    .read_close     = sap_read_close,
     .flags = AVFMT_NOFILE,
 };
 

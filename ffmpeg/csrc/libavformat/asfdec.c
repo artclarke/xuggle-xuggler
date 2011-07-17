@@ -25,6 +25,7 @@
 #include "libavutil/common.h"
 #include "libavutil/avstring.h"
 #include "libavutil/dict.h"
+#include "libavutil/mathematics.h"
 #include "libavcodec/mpegaudio.h"
 #include "avformat.h"
 #include "avio_internal.h"
@@ -84,13 +85,11 @@ static const ff_asf_guid index_guid = {
     0x90, 0x08, 0x00, 0x33, 0xb1, 0xe5, 0xcf, 0x11, 0x89, 0xf4, 0x00, 0xa0, 0xc9, 0x03, 0x49, 0xcb
 };
 
+#ifdef DEBUG
 static const ff_asf_guid stream_bitrate_guid = { /* (http://get.to/sdp) */
     0xce, 0x75, 0xf8, 0x7b, 0x8d, 0x46, 0xd1, 0x11, 0x8d, 0x82, 0x00, 0x60, 0x97, 0xc9, 0xa2, 0xb2
 };
-/**********************************/
-/* decoding */
 
-#ifdef DEBUG
 #define PRINT_IF_GUID(g,cmp) \
 if (!ff_guidcmp(g, &cmp)) \
     av_dlog(NULL, "(GUID: %s) ", #cmp)
@@ -359,15 +358,14 @@ static int asf_read_stream_properties(AVFormatContext *s, int64_t size)
         /* This is true for all paletted codecs implemented in ffmpeg */
         if (st->codec->extradata_size && (st->codec->bits_per_coded_sample <= 8)) {
             int av_unused i;
-            st->codec->palctrl = av_mallocz(sizeof(AVPaletteControl));
 #if HAVE_BIGENDIAN
             for (i = 0; i < FFMIN(st->codec->extradata_size, AVPALETTE_SIZE)/4; i++)
-                st->codec->palctrl->palette[i] = av_bswap32(((uint32_t*)st->codec->extradata)[i]);
+                asf_st->palette[i] = av_bswap32(((uint32_t*)st->codec->extradata)[i]);
 #else
-            memcpy(st->codec->palctrl->palette, st->codec->extradata,
-                    FFMIN(st->codec->extradata_size, AVPALETTE_SIZE));
+            memcpy(asf_st->palette, st->codec->extradata,
+                   FFMIN(st->codec->extradata_size, AVPALETTE_SIZE));
 #endif
-            st->codec->palctrl->palette_changed = 1;
+            asf_st->palette_changed = 1;
         }
 
         st->codec->codec_tag = tag1;
@@ -971,6 +969,17 @@ static int ff_asf_parse_packet(AVFormatContext *s, AVIOContext *pb, AVPacket *pk
             asf_st->pkt.stream_index = asf->stream_index;
             asf_st->pkt.pos =
             asf_st->packet_pos= asf->packet_pos;
+            if (asf_st->pkt.data && asf_st->palette_changed) {
+                uint8_t *pal;
+                pal = av_packet_new_side_data(pkt, AV_PKT_DATA_PALETTE,
+                                              AVPALETTE_SIZE);
+                if (!pal) {
+                    av_log(s, AV_LOG_ERROR, "Cannot append palette to packet\n");
+                } else {
+                    memcpy(pal, asf_st->palette, AVPALETTE_SIZE);
+                    asf_st->palette_changed = 0;
+                }
+            }
 //printf("new packet: stream:%d key:%d packet_key:%d audio:%d size:%d\n",
 //asf->stream_index, asf->packet_key_frame, asf_st->pkt.flags & AV_PKT_FLAG_KEY,
 //s->streams[asf->stream_index]->codec->codec_type == AVMEDIA_TYPE_AUDIO, asf->packet_obj_size);
@@ -1084,8 +1093,6 @@ static int asf_read_packet(AVFormatContext *s, AVPacket *pkt)
             assert(asf->packet_size_left < FRAME_HEADER_SIZE || asf->packet_segments < 1);
         asf->packet_time_start = 0;
     }
-
-    return 0;
 }
 
 // Added to support seeking after packets have been read
@@ -1127,13 +1134,7 @@ static void asf_reset_header(AVFormatContext *s)
 
 static int asf_read_close(AVFormatContext *s)
 {
-    int i;
     asf_reset_header(s);
-
-    for(i=0;i<s->nb_streams;i++) {
-        AVStream *st = s->streams[i];
-        av_free(st->codec->palctrl);
-    }
 
     return 0;
 }
@@ -1281,14 +1282,14 @@ static int asf_read_seek(AVFormatContext *s, int stream_index, int64_t pts, int 
 }
 
 AVInputFormat ff_asf_demuxer = {
-    "asf",
-    NULL_IF_CONFIG_SMALL("ASF format"),
-    sizeof(ASFContext),
-    asf_probe,
-    asf_read_header,
-    asf_read_packet,
-    asf_read_close,
-    asf_read_seek,
-    asf_read_pts,
+    .name           = "asf",
+    .long_name      = NULL_IF_CONFIG_SMALL("ASF format"),
+    .priv_data_size = sizeof(ASFContext),
+    .read_probe     = asf_probe,
+    .read_header    = asf_read_header,
+    .read_packet    = asf_read_packet,
+    .read_close     = asf_read_close,
+    .read_seek      = asf_read_seek,
+    .read_timestamp = asf_read_pts,
     .flags = AVFMT_NOBINSEARCH | AVFMT_NOGENSEARCH,
 };

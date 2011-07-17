@@ -26,6 +26,8 @@
 //#define MOV_EXPORT_ALL_METADATA
 
 #include "libavutil/intreadwrite.h"
+#include "libavutil/intfloat_readwrite.h"
+#include "libavutil/mathematics.h"
 #include "libavutil/avstring.h"
 #include "libavutil/dict.h"
 #include "avformat.h"
@@ -1043,7 +1045,6 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
                 unsigned int color_start, color_count, color_end;
                 unsigned char r, g, b;
 
-                st->codec->palctrl = av_malloc(sizeof(*st->codec->palctrl));
                 if (color_greyscale) {
                     int color_index, color_dec;
                     /* compute the greyscale palette */
@@ -1053,7 +1054,7 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
                     color_dec = 256 / (color_count - 1);
                     for (j = 0; j < color_count; j++) {
                         r = g = b = color_index;
-                        st->codec->palctrl->palette[j] =
+                        sc->palette[j] =
                             (r << 16) | (g << 8) | (b);
                         color_index -= color_dec;
                         if (color_index < 0)
@@ -1074,7 +1075,7 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
                         r = color_table[j * 3 + 0];
                         g = color_table[j * 3 + 1];
                         b = color_table[j * 3 + 2];
-                        st->codec->palctrl->palette[j] =
+                        sc->palette[j] =
                             (r << 16) | (g << 8) | (b);
                     }
                 } else {
@@ -1096,12 +1097,12 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
                             avio_r8(pb);
                             b = avio_r8(pb);
                             avio_r8(pb);
-                            st->codec->palctrl->palette[j] =
+                            sc->palette[j] =
                                 (r << 16) | (g << 8) | (b);
                         }
                     }
                 }
-                st->codec->palctrl->palette_changed = 1;
+                sc->has_palette = 1;
             }
         } else if(st->codec->codec_type==AVMEDIA_TYPE_AUDIO) {
             int bits_per_sample, flags;
@@ -1739,7 +1740,7 @@ static int mov_open_dref(AVIOContext **pb, const char *src, MOVDref *ref)
 
             av_strlcat(filename, ref->path + l + 1, 1024);
 
-            if (!avio_open(pb, filename, AVIO_RDONLY))
+            if (!avio_open(pb, filename, AVIO_FLAG_READ))
                 return 0;
         }
     }
@@ -2328,7 +2329,6 @@ static int mov_probe(AVProbeData *p)
             return score;
         }
     }
-    return score;
 }
 
 // must be done after parsing all trak because there's no order requirement
@@ -2482,6 +2482,17 @@ static int mov_read_packet(AVFormatContext *s, AVPacket *pkt)
         ret = av_get_packet(sc->pb, pkt, sample->size);
         if (ret < 0)
             return ret;
+        if (sc->has_palette) {
+            uint8_t *pal;
+
+            pal = av_packet_new_side_data(pkt, AV_PKT_DATA_PALETTE, AVPALETTE_SIZE);
+            if (!pal) {
+                av_log(mov->fc, AV_LOG_ERROR, "Cannot append palette to packet\n");
+            } else {
+                memcpy(pal, sc->palette, AVPALETTE_SIZE);
+                sc->has_palette = 0;
+            }
+        }
 #if CONFIG_DV_DEMUXER
         if (mov->dv_demux && sc->dv_audio_container) {
             dv_produce_packet(mov->dv_demux, pkt, pkt->data, pkt->size, pkt->pos);
@@ -2619,12 +2630,12 @@ static int mov_read_close(AVFormatContext *s)
 }
 
 AVInputFormat ff_mov_demuxer = {
-    "mov,mp4,m4a,3gp,3g2,mj2",
-    NULL_IF_CONFIG_SMALL("QuickTime/MPEG-4/Motion JPEG 2000 format"),
-    sizeof(MOVContext),
-    mov_probe,
-    mov_read_header,
-    mov_read_packet,
-    mov_read_close,
-    mov_read_seek,
+    .name           = "mov,mp4,m4a,3gp,3g2,mj2",
+    .long_name      = NULL_IF_CONFIG_SMALL("QuickTime/MPEG-4/Motion JPEG 2000 format"),
+    .priv_data_size = sizeof(MOVContext),
+    .read_probe     = mov_probe,
+    .read_header    = mov_read_header,
+    .read_packet    = mov_read_packet,
+    .read_close     = mov_read_close,
+    .read_seek      = mov_read_seek,
 };

@@ -24,6 +24,7 @@
  * RTMP protocol based on http://rtmpdump.mplayerhq.hu/ librtmp
  */
 
+#include "libavutil/mathematics.h"
 #include "avformat.h"
 #include "url.h"
 
@@ -94,7 +95,7 @@ static int rtmp_open(URLContext *s, const char *uri, int flags)
         goto fail;
     }
 
-    if (flags & AVIO_WRONLY)
+    if (flags & AVIO_FLAG_WRITE)
         RTMP_EnableWrite(r);
 
     if (!RTMP_Connect(r, NULL) || !RTMP_ConnectStream(r, 0)) {

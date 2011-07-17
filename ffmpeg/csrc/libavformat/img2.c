@@ -43,6 +43,7 @@ typedef struct {
     char *pixel_format;     /**< Set by a private option. */
     char *video_size;       /**< Set by a private option. */
     char *framerate;        /**< Set by a private option. */
+    int loop;
 } VideoData;
 
 typedef struct {
@@ -54,6 +55,7 @@ static const IdStrMap img_tags[] = {
     { CODEC_ID_MJPEG     , "jpeg"},
     { CODEC_ID_MJPEG     , "jpg"},
     { CODEC_ID_LJPEG     , "ljpg"},
+    { CODEC_ID_JPEGLS    , "jls"},
     { CODEC_ID_PNG       , "png"},
     { CODEC_ID_PNG       , "mng"},
     { CODEC_ID_PPM       , "ppm"},
@@ -143,11 +145,11 @@ static int find_image_range(int *pfirst_index, int *plast_index,
         if (av_get_frame_filename(buf, sizeof(buf), path, first_index) < 0){
             *pfirst_index =
             *plast_index = 1;
-            if(url_exist(buf))
+            if (avio_check(buf, AVIO_FLAG_READ) > 0)
                 return 0;
             return -1;
         }
-        if (url_exist(buf))
+        if (avio_check(buf, AVIO_FLAG_READ) > 0)
             break;
     }
     if (first_index == 5)
@@ -165,7 +167,7 @@ static int find_image_range(int *pfirst_index, int *plast_index,
             if (av_get_frame_filename(buf, sizeof(buf), path,
                                       last_index + range1) < 0)
                 goto fail;
-            if (!url_exist(buf))
+            if (avio_check(buf, AVIO_FLAG_READ) <= 0)
                 break;
             range = range1;
             /* just in case... */
@@ -246,6 +248,11 @@ static int read_header(AVFormatContext *s1, AVFormatParameters *ap)
         framerate = (AVRational){ap->time_base.den, ap->time_base.num};
 #endif
 
+#if FF_API_LOOP_INPUT
+    if (s1->loop_input)
+        s->loop = s1->loop_input;
+#endif
+
     av_strlcpy(s->path, s1->filename, sizeof(s->path));
     s->img_number = 0;
     s->img_count = 0;
@@ -305,7 +312,7 @@ static int read_packet(AVFormatContext *s1, AVPacket *pkt)
 
     if (!s->is_pipe) {
         /* loop over input */
-        if (s1->loop_input && s->img_number > s->img_last) {
+        if (s->loop && s->img_number > s->img_last) {
             s->img_number = s->img_first;
         }
         if (s->img_number > s->img_last)
@@ -314,7 +321,7 @@ static int read_packet(AVFormatContext *s1, AVPacket *pkt)
                                   s->path, s->img_number)<0 && s->img_number > 1)
             return AVERROR(EIO);
         for(i=0; i<3; i++){
-            if (avio_open(&f[i], filename, AVIO_RDONLY) < 0) {
+            if (avio_open(&f[i], filename, AVIO_FLAG_READ) < 0) {
                 if(i==1)
                     break;
                 av_log(s1, AV_LOG_ERROR, "Could not open file : %s\n",filename);
@@ -401,7 +408,7 @@ static int write_packet(AVFormatContext *s, AVPacket *pkt)
             return AVERROR(EINVAL);
         }
         for(i=0; i<3; i++){
-            if (avio_open(&pb[i], filename, AVIO_WRONLY) < 0) {
+            if (avio_open(&pb[i], filename, AVIO_FLAG_WRITE) < 0) {
                 av_log(s, AV_LOG_ERROR, "Could not open file : %s\n",filename);
                 return AVERROR(EIO);
             }
@@ -466,6 +473,7 @@ static const AVOption options[] = {
     { "pixel_format", "", OFFSET(pixel_format), FF_OPT_TYPE_STRING, {.str = NULL}, 0, 0, DEC },
     { "video_size",   "", OFFSET(video_size),   FF_OPT_TYPE_STRING, {.str = NULL}, 0, 0, DEC },
     { "framerate",    "", OFFSET(framerate),    FF_OPT_TYPE_STRING, {.str = "25"}, 0, 0, DEC },
+    { "loop",         "", OFFSET(loop),         FF_OPT_TYPE_INT,    {.dbl = 0},    0, 1, DEC },
     { NULL },
 };
 
@@ -505,7 +513,7 @@ AVInputFormat ff_image2pipe_demuxer = {
 AVOutputFormat ff_image2_muxer = {
     .name           = "image2",
     .long_name      = NULL_IF_CONFIG_SMALL("image2 sequence"),
-    .extensions     = "bmp,dpx,jpeg,jpg,ljpg,pam,pbm,pcx,pgm,pgmyuv,png,"
+    .extensions     = "bmp,dpx,jls,jpeg,jpg,ljpg,pam,pbm,pcx,pgm,pgmyuv,png,"
                       "ppm,sgi,tga,tif,tiff,jp2",
     .priv_data_size = sizeof(VideoData),
     .video_codec    = CODEC_ID_MJPEG,
