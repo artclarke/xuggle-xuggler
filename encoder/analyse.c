@@ -2998,7 +2998,6 @@ intra_analysis:
             const unsigned int flags = h->param.analyse.inter;
             int i_type;
             int i_partition;
-            int i_thresh16x8;
             int i_satd_inter, i_satd_intra;
 
             x264_mb_analyse_load_costs( h, &analysis );
@@ -3038,7 +3037,8 @@ intra_analysis:
                     for( int i = 0; i < 4; i++ )
                     {
                         x264_mb_analyse_inter_p4x4( h, &analysis, i );
-                        if( !analysis.b_early_terminate || analysis.l0.i_cost4x4[i] < analysis.l0.me8x8[i].cost )
+                        int i_thresh8x4 = analysis.l0.me4x4[i][1].cost_mv + analysis.l0.me4x4[i][2].cost_mv;
+                        if( !analysis.b_early_terminate || analysis.l0.i_cost4x4[i] < analysis.l0.me8x8[i].cost + i_thresh8x4 )
                         {
                             int i_cost8x8 = analysis.l0.i_cost4x4[i];
                             h->mb.i_sub_partition[i] = D_L0_4x4;
@@ -3060,7 +3060,7 @@ intra_analysis:
             }
 
             /* Now do 16x8/8x16 */
-            i_thresh16x8 = analysis.l0.me8x8[1].cost_mv + analysis.l0.me8x8[2].cost_mv;
+            int i_thresh16x8 = analysis.l0.me8x8[1].cost_mv + analysis.l0.me8x8[2].cost_mv;
             if( ( flags & X264_ANALYSE_PSUB16x16 ) && (!analysis.b_early_terminate ||
                 analysis.l0.i_cost8x8 < analysis.l0.me16x16.cost + i_thresh16x8) )
             {
