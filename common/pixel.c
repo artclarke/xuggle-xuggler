@@ -642,7 +642,7 @@ float x264_pixel_ssim_wxh( x264_pixel_function_t *pf,
     return ssim;
 }
 
-int pixel_vsad( pixel *src, int stride, int height )
+static int pixel_vsad( pixel *src, int stride, int height )
 {
     int score = 0;
     for( int i = 1; i < height; i++, src += stride )

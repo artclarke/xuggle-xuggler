@@ -340,7 +340,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     FILE *tcfile_in;
     timecode_hnd_t *h = malloc( sizeof(timecode_hnd_t) );
     FAIL_IF_ERROR( !h, "malloc failed\n" )
-    h->input = input;
+    h->input = cli_input;
     h->p_handle = *p_handle;
     if( opt->timebase )
     {

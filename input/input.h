@@ -100,7 +100,7 @@ extern const cli_input_t lavf_input;
 extern const cli_input_t ffms_input;
 extern cli_input_t timecode_input;
 
-extern cli_input_t input;
+extern cli_input_t cli_input;
 
 /* extended colorspace list that isn't supported by libx264 but by the cli */
 #define X264_CSP_I422           X264_CSP_MAX     /* yuv 4:2:2 planar    */

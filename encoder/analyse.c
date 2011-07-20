@@ -1281,7 +1281,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
     else \
         (m)->p_fref[4] = &(src)[4][(xoff)+((yoff)>>1)*(m)->i_stride[1]]; \
     (m)->integral = &h->mb.pic.p_integral[list][ref][(xoff)+(yoff)*(m)->i_stride[0]]; \
-    (m)->weight = weight_none; \
+    (m)->weight = x264_weight_none; \
     (m)->i_ref = ref; \
 }
 
@@ -1831,13 +1831,13 @@ static ALWAYS_INLINE int x264_analyse_bi_chroma( x264_t *h, x264_mb_analysis_t *
     if( CHROMA444 ) \
     { \
         h->mc.mc_luma( pix[0], 16, &m0.p_fref[4], m0.i_stride[1], \
-                       m0.mv[0], m0.mv[1], 2*width, 2*height, weight_none ); \
+                       m0.mv[0], m0.mv[1], 2*width, 2*height, x264_weight_none ); \
         h->mc.mc_luma( pix[1], 16, &m0.p_fref[8], m0.i_stride[2], \
-                       m0.mv[0], m0.mv[1], 2*width, 2*height, weight_none ); \
+                       m0.mv[0], m0.mv[1], 2*width, 2*height, x264_weight_none ); \
         h->mc.mc_luma( pix[2], 16, &m1.p_fref[4], m1.i_stride[1], \
-                       m1.mv[0], m1.mv[1], 2*width, 2*height, weight_none ); \
+                       m1.mv[0], m1.mv[1], 2*width, 2*height, x264_weight_none ); \
         h->mc.mc_luma( pix[3], 16, &m1.p_fref[8], m1.i_stride[2], \
-                       m1.mv[0], m1.mv[1], 2*width, 2*height, weight_none ); \
+                       m1.mv[0], m1.mv[1], 2*width, 2*height, x264_weight_none ); \
         h->mc.avg[i_pixel]( bi[0], 16, pix[0], 16, pix[2], 16, h->mb.bipred_weight[m0.i_ref][m1.i_ref] ); \
         h->mc.avg[i_pixel]( bi[1], 16, pix[1], 16, pix[3], 16, h->mb.bipred_weight[m0.i_ref][m1.i_ref] ); \
         i_chroma_cost  = h->pixf.mbcmp[i_pixel]( m0.p_fenc[1], FENC_STRIDE, bi[0], 16 ); \
@@ -2003,10 +2003,10 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     int ref_costs = REF_COST( 0, a->l0.bi16x16.i_ref ) + REF_COST( 1, a->l1.bi16x16.i_ref );
     src0 = h->mc.get_ref( pix0, &stride0,
                           h->mb.pic.p_fref[0][a->l0.bi16x16.i_ref], h->mb.pic.i_stride[0],
-                          a->l0.bi16x16.mv[0], a->l0.bi16x16.mv[1], 16, 16, weight_none );
+                          a->l0.bi16x16.mv[0], a->l0.bi16x16.mv[1], 16, 16, x264_weight_none );
     src1 = h->mc.get_ref( pix1, &stride1,
                           h->mb.pic.p_fref[1][a->l1.bi16x16.i_ref], h->mb.pic.i_stride[0],
-                          a->l1.bi16x16.mv[0], a->l1.bi16x16.mv[1], 16, 16, weight_none );
+                          a->l1.bi16x16.mv[0], a->l1.bi16x16.mv[1], 16, 16, x264_weight_none );
 
     h->mc.avg[PIXEL_16x16]( pix0, 16, src0, stride0, src1, stride1, h->mb.bipred_weight[a->l0.bi16x16.i_ref][a->l1.bi16x16.i_ref] );
 
@@ -2264,9 +2264,9 @@ static void x264_mb_analyse_inter_b8x8_mixed_ref( x264_t *h, x264_mb_analysis_t 
 
         /* BI mode */
         src[0] = h->mc.get_ref( pix[0], &stride[0], a->l0.me8x8[i].p_fref, a->l0.me8x8[i].i_stride[0],
-                                a->l0.me8x8[i].mv[0], a->l0.me8x8[i].mv[1], 8, 8, weight_none );
+                                a->l0.me8x8[i].mv[0], a->l0.me8x8[i].mv[1], 8, 8, x264_weight_none );
         src[1] = h->mc.get_ref( pix[1], &stride[1], a->l1.me8x8[i].p_fref, a->l1.me8x8[i].i_stride[0],
-                                a->l1.me8x8[i].mv[0], a->l1.me8x8[i].mv[1], 8, 8, weight_none );
+                                a->l1.me8x8[i].mv[0], a->l1.me8x8[i].mv[1], 8, 8, x264_weight_none );
         h->mc.avg[PIXEL_8x8]( pix[0], 8, src[0], stride[0], src[1], stride[1],
                                 h->mb.bipred_weight[a->l0.me8x8[i].i_ref][a->l1.me8x8[i].i_ref] );
 
@@ -2346,7 +2346,7 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
 
             /* BI mode */
             src[l] = h->mc.get_ref( pix[l], &stride[l], m->p_fref, m->i_stride[0],
-                                    m->mv[0], m->mv[1], 8, 8, weight_none );
+                                    m->mv[0], m->mv[1], 8, 8, x264_weight_none );
             i_part_cost_bi += m->cost_mv + m->i_ref_cost;
         }
         h->mc.avg[PIXEL_8x8]( pix[0], 8, src[0], stride[0], src[1], stride[1], h->mb.bipred_weight[a->l0.me16x16.i_ref][a->l1.me16x16.i_ref] );
@@ -2424,9 +2424,9 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a, int i
 
         /* BI mode */
         src[0] = h->mc.get_ref( pix[0], &stride[0], a->l0.me16x8[i].p_fref, a->l0.me16x8[i].i_stride[0],
-                                a->l0.me16x8[i].mv[0], a->l0.me16x8[i].mv[1], 16, 8, weight_none );
+                                a->l0.me16x8[i].mv[0], a->l0.me16x8[i].mv[1], 16, 8, x264_weight_none );
         src[1] = h->mc.get_ref( pix[1], &stride[1], a->l1.me16x8[i].p_fref, a->l1.me16x8[i].i_stride[0],
-                                a->l1.me16x8[i].mv[0], a->l1.me16x8[i].mv[1], 16, 8, weight_none );
+                                a->l1.me16x8[i].mv[0], a->l1.me16x8[i].mv[1], 16, 8, x264_weight_none );
         h->mc.avg[PIXEL_16x8]( pix[0], 16, src[0], stride[0], src[1], stride[1],
                                 h->mb.bipred_weight[a->l0.me16x8[i].i_ref][a->l1.me16x8[i].i_ref] );
 
@@ -2518,9 +2518,9 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a, int i
 
         /* BI mode */
         src[0] = h->mc.get_ref( pix[0], &stride[0], a->l0.me8x16[i].p_fref, a->l0.me8x16[i].i_stride[0],
-                                a->l0.me8x16[i].mv[0], a->l0.me8x16[i].mv[1], 8, 16, weight_none );
+                                a->l0.me8x16[i].mv[0], a->l0.me8x16[i].mv[1], 8, 16, x264_weight_none );
         src[1] = h->mc.get_ref( pix[1], &stride[1], a->l1.me8x16[i].p_fref, a->l1.me8x16[i].i_stride[0],
-                                a->l1.me8x16[i].mv[0], a->l1.me8x16[i].mv[1], 8, 16, weight_none );
+                                a->l1.me8x16[i].mv[0], a->l1.me8x16[i].mv[1], 8, 16, x264_weight_none );
         h->mc.avg[PIXEL_8x16]( pix[0], 8, src[0], stride[0], src[1], stride[1], h->mb.bipred_weight[a->l0.me8x16[i].i_ref][a->l1.me8x16[i].i_ref] );
 
         i_part_cost_bi = h->pixf.mbcmp[PIXEL_8x16]( a->l0.me8x16[i].p_fenc[0], FENC_STRIDE, pix[0], 8 )

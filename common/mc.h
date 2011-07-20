@@ -40,7 +40,7 @@ typedef struct x264_weight_t
     weight_fn_t *weightfn;
 } ALIGNED_16( x264_weight_t );
 
-extern const x264_weight_t weight_none[3];
+extern const x264_weight_t x264_weight_none[3];
 
 #define SET_WEIGHT( w, b, s, d, o )\
 {\

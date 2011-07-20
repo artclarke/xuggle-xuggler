@@ -32,7 +32,7 @@
     h->mc.mc_luma( &h->mb.pic.p_fdec[p][4*y*FDEC_STRIDE+4*x], FDEC_STRIDE, \
                    &h->mb.pic.p_fref[list][i_ref][p*4], h->mb.pic.i_stride[p], \
                    mvx, mvy, 4*width, 4*height, \
-                   list ? weight_none : &h->sh.weight[i_ref][p] );
+                   list ? x264_weight_none : &h->sh.weight[i_ref][p] );
 
 static NOINLINE void x264_mb_mc_0xywh( x264_t *h, int x, int y, int width, int height )
 {
@@ -97,9 +97,9 @@ static NOINLINE void x264_mb_mc_1xywh( x264_t *h, int x, int y, int width, int h
 
 #define MC_LUMA_BI(p) \
     src0 = h->mc.get_ref( tmp0, &i_stride0, &h->mb.pic.p_fref[0][i_ref0][p*4], h->mb.pic.i_stride[p], \
-                          mvx0, mvy0, 4*width, 4*height, weight_none ); \
+                          mvx0, mvy0, 4*width, 4*height, x264_weight_none ); \
     src1 = h->mc.get_ref( tmp1, &i_stride1, &h->mb.pic.p_fref[1][i_ref1][p*4], h->mb.pic.i_stride[p], \
-                          mvx1, mvy1, 4*width, 4*height, weight_none ); \
+                          mvx1, mvy1, 4*width, 4*height, x264_weight_none ); \
     h->mc.avg[i_mode]( &h->mb.pic.p_fdec[p][4*y*FDEC_STRIDE+4*x], FDEC_STRIDE, \
                        src0, i_stride0, src1, i_stride1, weight );
 

@@ -84,8 +84,8 @@ typedef struct {
 } cli_opt_t;
 
 /* file i/o operation structs */
-cli_input_t input;
-static cli_output_t output;
+cli_input_t cli_input;
+static cli_output_t cli_output;
 
 /* video filter operation struct */
 static cli_vid_filter_t filter;
@@ -283,9 +283,9 @@ int main( int argc, char **argv )
     if( filter.free )
         filter.free( opt.hin );
     else if( opt.hin )
-        input.close_file( opt.hin );
+        cli_input.close_file( opt.hin );
     if( opt.hout )
-        output.close_file( opt.hout, 0, 0 );
+        cli_output.close_file( opt.hout, 0, 0 );
     if( opt.tcfile_out )
         fclose( opt.tcfile_out );
     if( opt.qpfile )
@@ -781,7 +781,7 @@ static void help( x264_param_t *defaults, int longhelp )
     H0( "\n" );
 }
 
-enum
+typedef enum
 {
     OPT_FRAMES = 256,
     OPT_SEEK,
@@ -983,7 +983,7 @@ static int select_output( const char *muxer, char *filename, x264_param_t *param
     if( !strcasecmp( ext, "mp4" ) )
     {
 #if HAVE_GPAC
-        output = mp4_output;
+        cli_output = mp4_output;
         param->b_annexb = 0;
         param->b_repeat_headers = 0;
         if( param->i_nal_hrd == X264_NAL_HRD_CBR )
@@ -998,18 +998,18 @@ static int select_output( const char *muxer, char *filename, x264_param_t *param
     }
     else if( !strcasecmp( ext, "mkv" ) )
     {
-        output = mkv_output;
+        cli_output = mkv_output;
         param->b_annexb = 0;
         param->b_repeat_headers = 0;
     }
     else if( !strcasecmp( ext, "flv" ) )
     {
-        output = flv_output;
+        cli_output = flv_output;
         param->b_annexb = 0;
         param->b_repeat_headers = 0;
     }
     else
-        output = raw_output;
+        cli_output = raw_output;
     return 0;
 }
 
@@ -1036,7 +1036,7 @@ static int select_input( const char *demuxer, char *used_demuxer, char *filename
     if( !strcasecmp( module, "avs" ) || !strcasecmp( ext, "d2v" ) || !strcasecmp( ext, "dga" ) )
     {
 #if HAVE_AVS
-        input = avs_input;
+        cli_input = avs_input;
         module = "avs";
 #else
         x264_cli_log( "x264", X264_LOG_ERROR, "not compiled with AVS input support\n" );
@@ -1044,9 +1044,9 @@ static int select_input( const char *demuxer, char *used_demuxer, char *filename
 #endif
     }
     else if( !strcasecmp( module, "y4m" ) )
-        input = y4m_input;
+        cli_input = y4m_input;
     else if( !strcasecmp( module, "raw" ) || !strcasecmp( ext, "yuv" ) )
-        input = raw_input;
+        cli_input = raw_input;
     else
     {
 #if HAVE_FFMS
@@ -1055,7 +1055,7 @@ static int select_input( const char *demuxer, char *used_demuxer, char *filename
         {
             module = "ffms";
             b_auto = 0;
-            input = ffms_input;
+            cli_input = ffms_input;
         }
 #endif
 #if HAVE_LAVF
@@ -1064,7 +1064,7 @@ static int select_input( const char *demuxer, char *used_demuxer, char *filename
         {
             module = "lavf";
             b_auto = 0;
-            input = lavf_input;
+            cli_input = lavf_input;
         }
 #endif
 #if HAVE_AVS
@@ -1073,14 +1073,14 @@ static int select_input( const char *demuxer, char *used_demuxer, char *filename
         {
             module = "avs";
             b_auto = 0;
-            input = avs_input;
+            cli_input = avs_input;
         }
 #endif
         if( b_auto && !raw_input.open_file( filename, p_handle, info, opt ) )
         {
             module = "raw";
             b_auto = 0;
-            input = raw_input;
+            cli_input = raw_input;
         }
 
         FAIL_IF_ERROR( !(*p_handle), "could not open input file `%s' via any method!\n", filename )
@@ -1397,7 +1397,7 @@ generic_option:
 
     if( select_output( muxer, output_filename, param ) )
         return -1;
-    FAIL_IF_ERROR( output.open_file( output_filename, &opt->hout, &output_opt ), "could not open output file `%s'\n", output_filename )
+    FAIL_IF_ERROR( cli_output.open_file( output_filename, &opt->hout, &output_opt ), "could not open output file `%s'\n", output_filename )
 
     input_filename = argv[optind++];
     video_info_t info = {0};
@@ -1420,7 +1420,7 @@ generic_option:
     if( select_input( demuxer, demuxername, input_filename, &opt->hin, &info, &input_opt ) )
         return -1;
 
-    FAIL_IF_ERROR( !opt->hin && input.open_file( input_filename, &opt->hin, &info, &input_opt ),
+    FAIL_IF_ERROR( !opt->hin && cli_input.open_file( input_filename, &opt->hin, &info, &input_opt ),
                    "could not open input file `%s'\n", input_filename )
 
     x264_reduce_fraction( &info.sar_width, &info.sar_height );
@@ -1433,7 +1433,7 @@ generic_option:
     {
         FAIL_IF_ERROR( b_user_fps, "--fps + --tcfile-in is incompatible.\n" )
         FAIL_IF_ERROR( timecode_input.open_file( tcfile_name, &opt->hin, &info, &input_opt ), "timecode input failed\n" )
-        input = timecode_input;
+        cli_input = timecode_input;
     }
     else FAIL_IF_ERROR( !info.vfr && input_opt.timebase, "--timebase is incompatible with cfr input\n" )
 
@@ -1447,7 +1447,7 @@ generic_option:
             fprintf( stderr, "x264 [error]: threaded input failed\n" );
             return -1;
         }
-        input = thread_input;
+        cli_input = thread_input;
     }
 #endif
 
@@ -1595,7 +1595,7 @@ static int encode_frame( x264_t *h, hnd_t hout, x264_picture_t *pic, int64_t *la
 
     if( i_frame_size )
     {
-        i_frame_size = output.write_frame( hout, nal[0].p_payload, i_frame_size, &pic_out );
+        i_frame_size = cli_output.write_frame( hout, nal[0].p_payload, i_frame_size, &pic_out );
         *last_dts = pic_out.i_dts;
     }
 
@@ -1692,7 +1692,7 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
 
     x264_encoder_parameters( h, param );
 
-    FAIL_IF_ERROR2( output.set_param( opt->hout, param ), "can't set outfile param\n" );
+    FAIL_IF_ERROR2( cli_output.set_param( opt->hout, param ), "can't set outfile param\n" );
 
     i_start = x264_mdate();
 
@@ -1708,7 +1708,7 @@ static int encode( x264_param_t *param, cli_opt_t *opt )
         int i_nal;
 
         FAIL_IF_ERROR2( x264_encoder_headers( h, &headers, &i_nal ) < 0, "x264_encoder_headers failed\n" )
-        FAIL_IF_ERROR2( (i_file = output.write_headers( opt->hout, headers )) < 0, "error writing headers to output file\n" );
+        FAIL_IF_ERROR2( (i_file = cli_output.write_headers( opt->hout, headers )) < 0, "error writing headers to output file\n" );
     }
 
     if( opt->tcfile_out )
@@ -1818,7 +1818,7 @@ fail:
     if( b_ctrl_c )
         fprintf( stderr, "aborted at input frame %d, output frame %d\n", opt->i_seek + i_frame, i_frame_output );
 
-    output.close_file( opt->hout, largest_pts, second_largest_pts );
+    cli_output.close_file( opt->hout, largest_pts, second_largest_pts );
     opt->hout = NULL;
 
     if( i_frame_output > 0 )

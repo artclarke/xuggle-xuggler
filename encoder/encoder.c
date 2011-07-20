@@ -1519,7 +1519,7 @@ int x264_weighted_reference_duplicate( x264_t *h, int i_ref, const x264_weight_t
     /* Duplication is a hack to compensate for crappy rounding in motion compensation.
      * With high bit depth, it's not worth doing, so turn it off except in the case of
      * unweighted dupes. */
-    if( BIT_DEPTH > 8 && w != weight_none )
+    if( BIT_DEPTH > 8 && w != x264_weight_none )
         return -1;
 
     newframe = x264_frame_pop_blank_unused( h );
@@ -1719,7 +1719,7 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
                 {
                     SET_WEIGHT( h->fenc->weight[0][0], 1, 1, 0, h->fenc->weight[0][0].i_offset );
                 }
-                x264_weighted_reference_duplicate( h, 0, weight_none );
+                x264_weighted_reference_duplicate( h, 0, x264_weight_none );
                 if( h->fenc->weight[0][0].i_offset > -128 )
                 {
                     w[0] = h->fenc->weight[0][0];

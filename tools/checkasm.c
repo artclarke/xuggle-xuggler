@@ -852,7 +852,7 @@ static int check_mc( int cpu_ref, int cpu_new )
 #define MC_TEST_LUMA( w, h ) \
         if( mc_a.mc_luma != mc_ref.mc_luma && !(w&(w-1)) && h<=16 ) \
         { \
-            const x264_weight_t *weight = weight_none; \
+            const x264_weight_t *weight = x264_weight_none; \
             set_func_name( "mc_luma_%dx%d", w, h ); \
             used_asm = 1; \
             for( int i = 0; i < 1024; i++ ) \
@@ -870,7 +870,7 @@ static int check_mc( int cpu_ref, int cpu_new )
             pixel *ref = dst2; \
             int ref_stride = 32; \
             int w_checked = ( ( sizeof(pixel) == 2 && (w == 12 || w == 20)) ? w-2 : w ); \
-            const x264_weight_t *weight = weight_none; \
+            const x264_weight_t *weight = x264_weight_none; \
             set_func_name( "get_ref_%dx%d", w_checked, h ); \
             used_asm = 1; \
             for( int i = 0; i < 1024; i++ ) \

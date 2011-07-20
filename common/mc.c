@@ -143,7 +143,7 @@ static weight_fn_t x264_mc_weight_wtab[6] =
     mc_weight_w16,
     mc_weight_w20,
 };
-const x264_weight_t weight_none[3] = { {{0}} };
+const x264_weight_t x264_weight_none[3] = { {{0}} };
 static void mc_copy( pixel *src, int i_src_stride, pixel *dst, int i_dst_stride, int i_width, int i_height )
 {
     for( int y = 0; y < i_height; y++ )

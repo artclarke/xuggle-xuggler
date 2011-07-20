@@ -44,7 +44,7 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
         return -1;
     h->cur_frame = -1;
 
-    if( input.picture_alloc( &h->pic, info->csp, info->width, info->height ) )
+    if( cli_input.picture_alloc( &h->pic, info->csp, info->width, info->height ) )
         return -1;
 
     h->hin = *handle;
@@ -58,7 +58,7 @@ static int get_frame( hnd_t handle, cli_pic_t *output, int frame )
 {
     source_hnd_t *h = handle;
     /* do not allow requesting of frames from before the current position */
-    if( frame <= h->cur_frame || input.read_frame( &h->pic, h->hin, frame ) )
+    if( frame <= h->cur_frame || cli_input.read_frame( &h->pic, h->hin, frame ) )
         return -1;
     h->cur_frame = frame;
     *output = h->pic;
@@ -68,7 +68,7 @@ static int get_frame( hnd_t handle, cli_pic_t *output, int frame )
 static int release_frame( hnd_t handle, cli_pic_t *pic, int frame )
 {
     source_hnd_t *h = handle;
-    if( input.release_frame && input.release_frame( &h->pic, h->hin ) )
+    if( cli_input.release_frame && cli_input.release_frame( &h->pic, h->hin ) )
         return -1;
     return 0;
 }
@@ -76,8 +76,8 @@ static int release_frame( hnd_t handle, cli_pic_t *pic, int frame )
 static void free_filter( hnd_t handle )
 {
     source_hnd_t *h = handle;
-    input.picture_clean( &h->pic );
-    input.close_file( h->hin );
+    cli_input.picture_clean( &h->pic );
+    cli_input.close_file( h->hin );
     free( h );
 }
 
