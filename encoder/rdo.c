@@ -439,7 +439,7 @@ typedef struct
 static ALWAYS_INLINE
 int quant_trellis_cabac( x264_t *h, dctcoef *dct,
                          const udctcoef *quant_mf, const int *unquant_mf,
-                         const int *coef_weight, const uint8_t *zigzag,
+                         const uint16_t *coef_weight, const uint8_t *zigzag,
                          int ctx_block_cat, int i_lambda2, int b_ac,
                          int b_chroma, int dc, int i_coefs, int idx )
 {
@@ -685,7 +685,7 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
 static ALWAYS_INLINE
 int quant_trellis_cavlc( x264_t *h, dctcoef *dct,
                          const udctcoef *quant_mf, const int *unquant_mf,
-                         const int *coef_weight, const uint8_t *zigzag,
+                         const uint16_t *coef_weight, const uint8_t *zigzag,
                          int ctx_block_cat, int i_lambda2, int b_ac,
                          int b_chroma, int dc, int i_coefs, int idx, int b_8x8 )
 {
