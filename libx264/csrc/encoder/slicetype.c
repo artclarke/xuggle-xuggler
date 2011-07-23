@@ -87,7 +87,7 @@ static NOINLINE pixel *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fenc
                 int mvx = fenc->lowres_mvs[0][ref0_distance][i_mb_xy][0];
                 int mvy = fenc->lowres_mvs[0][ref0_distance][i_mb_xy][1];
                 h->mc.mc_luma( p+x, i_stride, ref->lowres, i_stride,
-                               mvx+(x<<2), mvy+(y<<2), 8, 8, weight_none );
+                               mvx+(x<<2), mvy+(y<<2), 8, 8, x264_weight_none );
             }
         x264_emms();
         return dest;
@@ -531,7 +531,7 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         m[1].i_stride[0] = i_stride;
         m[1].p_fenc[0] = h->mb.pic.p_fenc[0];
         m[1].i_ref = 0;
-        m[1].weight = weight_none;
+        m[1].weight = x264_weight_none;
         LOAD_HPELS_LUMA( m[1].p_fref, fref1->lowres );
         m[1].p_fref_w = m[1].p_fref[0];
 
@@ -703,7 +703,7 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
 {
     int i_score = 0;
     int do_search[2];
-    const x264_weight_t *w = weight_none;
+    const x264_weight_t *w = x264_weight_none;
     /* Check whether we already evaluated this frame
      * If we have tried this frame as P, then we have also tried
      * the preceding frames as B. (is this still true?) */

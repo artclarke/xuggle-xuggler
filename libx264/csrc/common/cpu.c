@@ -365,14 +365,8 @@ int x264_cpu_num_processors( void )
     return sysconf( _SC_NPROCESSORS_ONLN );
 
 #elif SYS_LINUX
-    unsigned int bit;
-    int np;
     cpu_set_t p_aff;
-    memset( &p_aff, 0, sizeof(p_aff) );
-    sched_getaffinity( 0, sizeof(p_aff), &p_aff );
-    for( np = 0, bit = 0; bit < sizeof(p_aff); bit++ )
-        np += (((uint8_t *)&p_aff)[bit / 8] >> (bit % 8)) & 1;
-    return np;
+    return sched_getaffinity( 0, sizeof(p_aff), &p_aff ) ? 1 : CPU_COUNT(&p_aff);
 
 #elif SYS_BEOS
     system_info info;

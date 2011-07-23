@@ -46,6 +46,7 @@ static const uint8_t subpel_iterations[][4] =
     {0,0,2,2},
     {0,0,4,10},
     {0,0,4,10},
+    {0,0,4,10},
     {0,0,4,10}};
 
 /* (x-1)%6 */
@@ -937,17 +938,17 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     int mvy = bm##list##y+dy;\
     stride[0][list][i] = bw;\
     src[0][list][i] = h->mc.get_ref( pixy_buf[list][i], &stride[0][list][i], &m->p_fref[0],\
-                                     m->i_stride[0], mvx, mvy, bw, bh, weight_none );\
+                                     m->i_stride[0], mvx, mvy, bw, bh, x264_weight_none );\
     if( rd )\
     {\
         if( CHROMA444 )\
         {\
             stride[1][list][i] = bw;\
             src[1][list][i] = h->mc.get_ref( pixu_buf[list][i], &stride[1][list][i], &m->p_fref[4],\
-                                             m->i_stride[1], mvx, mvy, bw, bh, weight_none );\
+                                             m->i_stride[1], mvx, mvy, bw, bh, x264_weight_none );\
             stride[2][list][i] = bw;\
             src[2][list][i] = h->mc.get_ref( pixv_buf[list][i], &stride[2][list][i], &m->p_fref[8],\
-                                             m->i_stride[2], mvx, mvy, bw, bh, weight_none );\
+                                             m->i_stride[2], mvx, mvy, bw, bh, x264_weight_none );\
         }\
         else\
             h->mc.mc_chroma( pixu_buf[list][i], pixv_buf[list][i], 8, m->p_fref[4], m->i_stride[1],\

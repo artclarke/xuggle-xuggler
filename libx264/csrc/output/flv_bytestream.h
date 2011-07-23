@@ -124,17 +124,16 @@ flv_buffer *flv_create_writer( const char *filename );
 int flv_append_data( flv_buffer *c, uint8_t *data, unsigned size );
 int flv_write_byte( flv_buffer *c, uint8_t *byte );
 int flv_flush_data( flv_buffer *c );
-void rewrite_amf_be24( flv_buffer *c, unsigned length, unsigned start );
+void flv_rewrite_amf_be24( flv_buffer *c, unsigned length, unsigned start );
 
-uint64_t dbl2int( double value );
-uint64_t get_amf_double( double value );
-void x264_put_byte( flv_buffer *c, uint8_t b );
-void x264_put_be32( flv_buffer *c, uint32_t val );
-void x264_put_be64( flv_buffer *c, uint64_t val );
-void x264_put_be16( flv_buffer *c, uint16_t val );
-void x264_put_be24( flv_buffer *c, uint32_t val );
-void x264_put_tag( flv_buffer *c, const char *tag );
-void x264_put_amf_string( flv_buffer *c, const char *str );
-void x264_put_amf_double( flv_buffer *c, double d );
+uint64_t flv_dbl2int( double value );
+void flv_put_byte( flv_buffer *c, uint8_t b );
+void flv_put_be32( flv_buffer *c, uint32_t val );
+void flv_put_be64( flv_buffer *c, uint64_t val );
+void flv_put_be16( flv_buffer *c, uint16_t val );
+void flv_put_be24( flv_buffer *c, uint32_t val );
+void flv_put_tag( flv_buffer *c, const char *tag );
+void flv_put_amf_string( flv_buffer *c, const char *str );
+void flv_put_amf_double( flv_buffer *c, double d );
 
 #endif

@@ -503,7 +503,7 @@ static int x264_validate_parameters( x264_t *h, int b_open )
     h->param.rc.f_rf_constant = x264_clip3f( h->param.rc.f_rf_constant, -QP_BD_OFFSET, 51 );
     h->param.rc.f_rf_constant_max = x264_clip3f( h->param.rc.f_rf_constant_max, -QP_BD_OFFSET, 51 );
     h->param.rc.i_qp_constant = x264_clip3( h->param.rc.i_qp_constant, 0, QP_MAX );
-    h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 0, 10 );
+    h->param.analyse.i_subpel_refine = x264_clip3( h->param.analyse.i_subpel_refine, 0, 11 );
     h->param.rc.f_ip_factor = X264_MAX( h->param.rc.f_ip_factor, 0.01f );
     h->param.rc.f_pb_factor = X264_MAX( h->param.rc.f_pb_factor, 0.01f );
     if( h->param.rc.i_rc_method == X264_RC_CRF )
@@ -721,7 +721,6 @@ static int x264_validate_parameters( x264_t *h, int b_open )
         h->param.analyse.inter &= ~X264_ANALYSE_I8x8;
         h->param.analyse.intra &= ~X264_ANALYSE_I8x8;
     }
-    h->param.analyse.i_chroma_qp_offset = x264_clip3(h->param.analyse.i_chroma_qp_offset, -12, 12);
     h->param.analyse.i_trellis = x264_clip3( h->param.analyse.i_trellis, 0, 2 );
     h->param.rc.i_aq_mode = x264_clip3( h->param.rc.i_aq_mode, 0, 2 );
     h->param.rc.f_aq_strength = x264_clip3f( h->param.rc.f_aq_strength, 0, 3 );
@@ -766,6 +765,7 @@ static int x264_validate_parameters( x264_t *h, int b_open )
     h->param.analyse.f_psy_trellis = x264_clip3f( h->param.analyse.f_psy_trellis, 0, 10 );
     h->mb.i_psy_rd = h->param.analyse.i_subpel_refine >= 6 ? FIX8( h->param.analyse.f_psy_rd ) : 0;
     h->mb.i_psy_trellis = h->param.analyse.i_trellis ? FIX8( h->param.analyse.f_psy_trellis / 4 ) : 0;
+    h->param.analyse.i_chroma_qp_offset = x264_clip3(h->param.analyse.i_chroma_qp_offset, -32, 32);
     /* In 4:4:4 mode, chroma gets twice as much resolution, so we can halve its quality. */
     if( b_open && i_csp >= X264_CSP_I444 && i_csp < X264_CSP_BGR && h->param.analyse.b_psy )
         h->param.analyse.i_chroma_qp_offset += 6;
@@ -784,7 +784,7 @@ static int x264_validate_parameters( x264_t *h, int b_open )
         h->param.rc.f_aq_strength = 0;
     }
     h->param.analyse.i_noise_reduction = x264_clip3( h->param.analyse.i_noise_reduction, 0, 1<<16 );
-    if( h->param.analyse.i_subpel_refine == 10 && (h->param.analyse.i_trellis != 2 || !h->param.rc.i_aq_mode) )
+    if( h->param.analyse.i_subpel_refine >= 10 && (h->param.analyse.i_trellis != 2 || !h->param.rc.i_aq_mode) )
         h->param.analyse.i_subpel_refine = 9;
 
     {
@@ -1519,7 +1519,7 @@ int x264_weighted_reference_duplicate( x264_t *h, int i_ref, const x264_weight_t
     /* Duplication is a hack to compensate for crappy rounding in motion compensation.
      * With high bit depth, it's not worth doing, so turn it off except in the case of
      * unweighted dupes. */
-    if( BIT_DEPTH > 8 && w != weight_none )
+    if( BIT_DEPTH > 8 && w != x264_weight_none )
         return -1;
 
     newframe = x264_frame_pop_blank_unused( h );
@@ -1719,7 +1719,7 @@ static inline void x264_reference_build_list( x264_t *h, int i_poc )
                 {
                     SET_WEIGHT( h->fenc->weight[0][0], 1, 1, 0, h->fenc->weight[0][0].i_offset );
                 }
-                x264_weighted_reference_duplicate( h, 0, weight_none );
+                x264_weighted_reference_duplicate( h, 0, x264_weight_none );
                 if( h->fenc->weight[0][0].i_offset > -128 )
                 {
                     w[0] = h->fenc->weight[0][0];
@@ -2835,7 +2835,16 @@ int     x264_encoder_encode( x264_t *h,
             overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD;
         }
 
-        /* buffering period sei is written in x264_encoder_frame_end */
+        /* when frame threading is used, buffering period sei is written in x264_encoder_frame_end */
+        if( h->i_thread_frames == 1 && h->sps->vui.b_nal_hrd_parameters_present )
+        {
+            x264_hrd_fullness( h );
+            x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );
+            x264_sei_buffering_period_write( h, &h->out.bs );
+            if( x264_nal_end( h ) )
+               return -1;
+            overhead += h->out.nal[h->out.i_nal-1].i_payload + NALU_OVERHEAD;
+        }
     }
 
     /* write extra sei */
@@ -2979,8 +2988,8 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     }
 
     x264_emms();
-    /* generate sei buffering period and insert it into place */
-    if( h->fenc->b_keyframe && h->sps->vui.b_nal_hrd_parameters_present )
+    /* generate buffering period sei and insert it into place */
+    if( h->i_thread_frames > 1 && h->fenc->b_keyframe && h->sps->vui.b_nal_hrd_parameters_present )
     {
         x264_hrd_fullness( h );
         x264_nal_start( h, NAL_SEI, NAL_PRIORITY_DISPOSABLE );

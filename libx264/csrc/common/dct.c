@@ -35,8 +35,8 @@
 #   include "arm/dct.h"
 #endif
 
-int x264_dct4_weight2_zigzag[2][16];
-int x264_dct8_weight2_zigzag[2][64];
+uint16_t x264_dct4_weight2_zigzag[2][16];
+uint16_t x264_dct8_weight2_zigzag[2][64];
 
 static void dct4x4dc( dctcoef d[16] )
 {

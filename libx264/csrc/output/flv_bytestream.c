@@ -26,61 +26,61 @@
 #include "output.h"
 #include "flv_bytestream.h"
 
-uint64_t dbl2int( double value )
+uint64_t flv_dbl2int( double value )
 {
     return (union {double f; uint64_t i;}){value}.i;
 }
 
 /* Put functions  */
 
-void x264_put_byte( flv_buffer *c, uint8_t b )
+void flv_put_byte( flv_buffer *c, uint8_t b )
 {
     flv_append_data( c, &b, 1 );
 }
 
-void x264_put_be32( flv_buffer *c, uint32_t val )
+void flv_put_be32( flv_buffer *c, uint32_t val )
 {
-    x264_put_byte( c, val >> 24 );
-    x264_put_byte( c, val >> 16 );
-    x264_put_byte( c, val >> 8 );
-    x264_put_byte( c, val );
+    flv_put_byte( c, val >> 24 );
+    flv_put_byte( c, val >> 16 );
+    flv_put_byte( c, val >> 8 );
+    flv_put_byte( c, val );
 }
 
-void x264_put_be64( flv_buffer *c, uint64_t val )
+void flv_put_be64( flv_buffer *c, uint64_t val )
 {
-    x264_put_be32( c, val >> 32 );
-    x264_put_be32( c, val );
+    flv_put_be32( c, val >> 32 );
+    flv_put_be32( c, val );
 }
 
-void x264_put_be16( flv_buffer *c, uint16_t val )
+void flv_put_be16( flv_buffer *c, uint16_t val )
 {
-    x264_put_byte( c, val >> 8 );
-    x264_put_byte( c, val );
+    flv_put_byte( c, val >> 8 );
+    flv_put_byte( c, val );
 }
 
-void x264_put_be24( flv_buffer *c, uint32_t val )
+void flv_put_be24( flv_buffer *c, uint32_t val )
 {
-    x264_put_be16( c, val >> 8 );
-    x264_put_byte( c, val );
+    flv_put_be16( c, val >> 8 );
+    flv_put_byte( c, val );
 }
 
-void x264_put_tag( flv_buffer *c, const char *tag )
+void flv_put_tag( flv_buffer *c, const char *tag )
 {
     while( *tag )
-        x264_put_byte( c, *tag++ );
+        flv_put_byte( c, *tag++ );
 }
 
-void x264_put_amf_string( flv_buffer *c, const char *str )
+void flv_put_amf_string( flv_buffer *c, const char *str )
 {
     uint16_t len = strlen( str );
-    x264_put_be16( c, len );
+    flv_put_be16( c, len );
     flv_append_data( c, (uint8_t*)str, len );
 }
 
-void x264_put_amf_double( flv_buffer *c, double d )
+void flv_put_amf_double( flv_buffer *c, double d )
 {
-    x264_put_byte( c, AMF_DATA_TYPE_NUMBER );
-    x264_put_be64( c, dbl2int( d ) );
+    flv_put_byte( c, AMF_DATA_TYPE_NUMBER );
+    flv_put_be64( c, flv_dbl2int( d ) );
 }
 
 /* flv writing functions */
@@ -132,7 +132,7 @@ int flv_append_data( flv_buffer *c, uint8_t *data, unsigned size )
     return 0;
 }
 
-void rewrite_amf_be24( flv_buffer *c, unsigned length, unsigned start )
+void flv_rewrite_amf_be24( flv_buffer *c, unsigned length, unsigned start )
 {
      *(c->data + start + 0) = length >> 16;
      *(c->data + start + 1) = length >> 8;

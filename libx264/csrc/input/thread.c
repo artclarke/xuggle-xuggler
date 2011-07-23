@@ -48,9 +48,9 @@ typedef struct thread_input_arg_t
 static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, cli_input_opt_t *opt )
 {
     thread_hnd_t *h = malloc( sizeof(thread_hnd_t) );
-    FAIL_IF_ERR( !h || input.picture_alloc( &h->pic, info->csp, info->width, info->height ),
+    FAIL_IF_ERR( !h || cli_input.picture_alloc( &h->pic, info->csp, info->width, info->height ),
                  "x264", "malloc failed\n" )
-    h->input = input;
+    h->input = cli_input;
     h->p_handle = *p_handle;
     h->next_frame = -1;
     h->next_args = malloc( sizeof(thread_input_arg_t) );

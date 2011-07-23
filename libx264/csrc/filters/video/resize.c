@@ -65,6 +65,7 @@ typedef struct
     int pre_swap_chroma;
     int post_swap_chroma;
     int variable_input; /* input is capable of changing properties */
+    int working;        /* we have already started working with frames */
     frame_prop_t dst;   /* desired output properties */
     frame_prop_t scale; /* properties of the SwsContext input */
 } resizer_hnd_t;
@@ -395,13 +396,13 @@ static int x264_init_sws_context( resizer_hnd_t *h )
     return sws_init_context( h->ctx, NULL, NULL ) < 0;
 }
 
-static int check_resizer( resizer_hnd_t *h, cli_pic_t *in, int frame )
+static int check_resizer( resizer_hnd_t *h, cli_pic_t *in )
 {
     frame_prop_t input_prop = { in->img.width, in->img.height, convert_csp_to_pix_fmt( in->img.csp ) };
     if( !memcmp( &input_prop, &h->scale, sizeof(frame_prop_t) ) )
         return 0;
     /* also warn if the resizer was initialized after the first frame */
-    if( h->ctx || frame )
+    if( h->ctx || h->working )
         x264_cli_log( NAME, X264_LOG_WARNING, "stream properties changed at pts %"PRId64"\n", in->pts );
     h->scale = input_prop;
     if( !h->buffer_allocated )
@@ -465,8 +466,8 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
     h->scale = h->dst;
 
     /* swap chroma planes if YV12/YV24 is involved, as libswscale works with I420/I444 */
-    int src_csp = info->csp & X264_CSP_MASK;
-    int dst_csp = h->dst_csp & X264_CSP_MASK;
+    int src_csp = info->csp & (X264_CSP_MASK | X264_CSP_OTHER);
+    int dst_csp = h->dst_csp & (X264_CSP_MASK | X264_CSP_OTHER);
     h->pre_swap_chroma  = src_csp == X264_CSP_YV12 || src_csp == X264_CSP_YV24;
     h->post_swap_chroma = dst_csp == X264_CSP_YV12 || dst_csp == X264_CSP_YV24;
 
@@ -502,7 +503,7 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
     if( !h->variable_input )
     {
         cli_pic_t input_pic = {{info->csp, info->width, info->height, 0}, 0};
-        if( check_resizer( h, &input_pic, 0 ) )
+        if( check_resizer( h, &input_pic ) )
             return -1;
     }
 
@@ -524,8 +525,9 @@ static int get_frame( hnd_t handle, cli_pic_t *output, int frame )
     resizer_hnd_t *h = handle;
     if( h->prev_filter.get_frame( h->prev_hnd, output, frame ) )
         return -1;
-    if( h->variable_input && check_resizer( h, output, frame ) )
+    if( h->variable_input && check_resizer( h, output ) )
         return -1;
+    h->working = 1;
     if( h->pre_swap_chroma )
         XCHG( uint8_t*, output->img.plane[1], output->img.plane[2] );
     if( h->ctx )

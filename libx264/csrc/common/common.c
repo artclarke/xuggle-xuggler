@@ -275,7 +275,7 @@ static int x264_param_apply_preset( x264_param_t *param, const char *preset )
     else if( !strcasecmp( preset, "placebo" ) )
     {
         param->analyse.i_me_method = X264_ME_TESA;
-        param->analyse.i_subpel_refine = 10;
+        param->analyse.i_subpel_refine = 11;
         param->analyse.i_me_range = 24;
         param->i_frame_reference = 16;
         param->i_bframe_adaptive = X264_B_ADAPT_TRELLIS;
@@ -1057,27 +1057,47 @@ void x264_picture_init( x264_picture_t *pic )
  ****************************************************************************/
 int x264_picture_alloc( x264_picture_t *pic, int i_csp, int i_width, int i_height )
 {
+    typedef struct
+    {
+        int planes;
+        int width_fix8[3];
+        int height_fix8[3];
+    } x264_csp_tab_t;
+
+    static const x264_csp_tab_t x264_csp_tab[] =
+    {
+        [X264_CSP_I420] = { 3, { 256*1, 256/2, 256/2 }, { 256*1, 256/2, 256/2 } },
+        [X264_CSP_YV12] = { 3, { 256*1, 256/2, 256/2 }, { 256*1, 256/2, 256/2 } },
+        [X264_CSP_NV12] = { 2, { 256*1, 256*1 },        { 256*1, 256/2 },       },
+        [X264_CSP_I444] = { 3, { 256*1, 256*1, 256*1 }, { 256*1, 256*1, 256*1 } },
+        [X264_CSP_YV24] = { 3, { 256*1, 256*1, 256*1 }, { 256*1, 256*1, 256*1 } },
+        [X264_CSP_BGR]  = { 1, { 256*3 },               { 256*1 },              },
+        [X264_CSP_BGRA] = { 1, { 256*4 },               { 256*1 },              },
+        [X264_CSP_RGB]  = { 1, { 256*3 },               { 256*1 },              },
+    };
+
     int csp = i_csp & X264_CSP_MASK;
     if( csp <= X264_CSP_NONE || csp >= X264_CSP_MAX )
         return -1;
     x264_picture_init( pic );
     pic->img.i_csp = i_csp;
-    pic->img.i_plane = csp == X264_CSP_NV12 ? 2 : 3;
+    pic->img.i_plane = x264_csp_tab[csp].planes;
     int depth_factor = i_csp & X264_CSP_HIGH_DEPTH ? 2 : 1;
-    pic->img.plane[0] = x264_malloc( 3 * i_width * i_height / 2 * depth_factor );
+    int plane_offset[3] = {0};
+    int frame_size = 0;
+    for( int i = 0; i < pic->img.i_plane; i++ )
+    {
+        int stride = (((int64_t)i_width * x264_csp_tab[csp].width_fix8[i]) >> 8) * depth_factor;
+        int plane_size = (((int64_t)i_height * x264_csp_tab[csp].height_fix8[i]) >> 8) * stride;
+        pic->img.i_stride[i] = stride;
+        plane_offset[i] = frame_size;
+        frame_size += plane_size;
+    }
+    pic->img.plane[0] = x264_malloc( frame_size );
     if( !pic->img.plane[0] )
         return -1;
-    pic->img.plane[1] = pic->img.plane[0] + i_width * i_height * depth_factor;
-    if( csp != X264_CSP_NV12 )
-        pic->img.plane[2] = pic->img.plane[1] + i_width * i_height / 4 * depth_factor;
-    pic->img.i_stride[0] = i_width * depth_factor;
-    if( csp == X264_CSP_NV12 )
-        pic->img.i_stride[1] = i_width * depth_factor;
-    else
-    {
-        pic->img.i_stride[1] = i_width / 2 * depth_factor;
-        pic->img.i_stride[2] = i_width / 2 * depth_factor;
-    }
+    for( int i = 1; i < pic->img.i_plane; i++ )
+        pic->img.plane[i] = pic->img.plane[0] + plane_offset[i];
     return 0;
 }
 
