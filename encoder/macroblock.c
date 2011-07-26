@@ -1135,8 +1135,8 @@ static ALWAYS_INLINE void x264_macroblock_encode_p8x8_internal( x264_t *h, int i
                 dctcoef dc;
                 pixel *p_fenc = h->mb.pic.p_fenc[1+ch] + 4*x + 4*y*FENC_STRIDE;
                 pixel *p_fdec = h->mb.pic.p_fdec[1+ch] + 4*x + 4*y*FDEC_STRIDE;
-                nz = h->zigzagf.sub_4x4ac( h->dct.luma4x4[16+i8+ch*4], p_fenc, p_fdec, &dc );
-                h->mb.cache.non_zero_count[x264_scan8[16+i8+ch*4]] = nz;
+                nz = h->zigzagf.sub_4x4ac( h->dct.luma4x4[16+i8+ch*16], p_fenc, p_fdec, &dc );
+                h->mb.cache.non_zero_count[x264_scan8[16+i8+ch*16]] = nz;
             }
             h->mb.i_cbp_chroma = 0x02;
         }
