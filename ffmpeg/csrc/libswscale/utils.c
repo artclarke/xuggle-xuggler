@@ -140,14 +140,10 @@ const static FormatEntry format_entries[PIX_FMT_NB] = {
     [PIX_FMT_YUV444P10LE] = { 1 , 0 },
 };
 
-#define isSupportedIn(x) (format_entries[x].is_supported_in)
-
 int sws_isSupportedInput(enum PixelFormat pix_fmt)
 {
     return format_entries[pix_fmt].is_supported_in;
 }
-
-#define isSupportedOut(x) (format_entries[x].is_supported_out)
 
 int sws_isSupportedOutput(enum PixelFormat pix_fmt)
 {
@@ -759,11 +755,11 @@ int sws_init_context(SwsContext *c, SwsFilter *srcFilter, SwsFilter *dstFilter)
 
     unscaled = (srcW == dstW && srcH == dstH);
 
-    if (!isSupportedIn(srcFormat)) {
+    if (!sws_isSupportedInput(srcFormat)) {
         av_log(c, AV_LOG_ERROR, "%s is not supported as input pixel format\n", av_get_pix_fmt_name(srcFormat));
         return AVERROR(EINVAL);
     }
-    if (!isSupportedOut(dstFormat)) {
+    if (!sws_isSupportedOutput(dstFormat)) {
         av_log(c, AV_LOG_ERROR, "%s is not supported as output pixel format\n", av_get_pix_fmt_name(dstFormat));
         return AVERROR(EINVAL);
     }
@@ -1069,29 +1065,17 @@ int sws_init_context(SwsContext *c, SwsFilter *srcFilter, SwsFilter *dstFilter)
             if (c->canMMX2BeUsed && (flags&SWS_FAST_BILINEAR))
                 av_log(c, AV_LOG_VERBOSE, "using FAST_BILINEAR MMX2 scaler for horizontal scaling\n");
             else {
-                if (c->hLumFilterSize==4)
-                    av_log(c, AV_LOG_VERBOSE, "using 4-tap MMX scaler for horizontal luminance scaling\n");
-                else if (c->hLumFilterSize==8)
-                    av_log(c, AV_LOG_VERBOSE, "using 8-tap MMX scaler for horizontal luminance scaling\n");
-                else
-                    av_log(c, AV_LOG_VERBOSE, "using n-tap MMX scaler for horizontal luminance scaling\n");
-
-                if (c->hChrFilterSize==4)
-                    av_log(c, AV_LOG_VERBOSE, "using 4-tap MMX scaler for horizontal chrominance scaling\n");
-                else if (c->hChrFilterSize==8)
-                    av_log(c, AV_LOG_VERBOSE, "using 8-tap MMX scaler for horizontal chrominance scaling\n");
-                else
-                    av_log(c, AV_LOG_VERBOSE, "using n-tap MMX scaler for horizontal chrominance scaling\n");
+                av_log(c, AV_LOG_VERBOSE, "using %s-tap MMX scaler for horizontal luminance scaling\n",
+                       c->hLumFilterSize == 4 ? "4" :
+                       c->hLumFilterSize == 8 ? "8" : "n");
+                av_log(c, AV_LOG_VERBOSE, "using %s-tap MMX scaler for horizontal chrominance scaling\n",
+                       c->hChrFilterSize == 4 ? "4" :
+                       c->hChrFilterSize == 8 ? "8" : "n");
             }
         } else {
-#if HAVE_MMX
-            av_log(c, AV_LOG_VERBOSE, "using x86 asm scaler for horizontal scaling\n");
-#else
-            if (flags & SWS_FAST_BILINEAR)
-                av_log(c, AV_LOG_VERBOSE, "using FAST_BILINEAR C scaler for horizontal scaling\n");
-            else
-                av_log(c, AV_LOG_VERBOSE, "using C scaler for horizontal scaling\n");
-#endif
+            av_log(c, AV_LOG_VERBOSE, "using %s scaler for horizontal scaling\n",
+                   HAVE_MMX ? "x86 asm" :
+                   flags & SWS_FAST_BILINEAR ? "FAST_BILINEAR C" : "C");
         }
         if (isPlanarYUV(dstFormat)) {
             if (c->vLumFilterSize==1)
