@@ -260,7 +260,7 @@ SUB_DCT4 ssse3
 
 %macro ADD4x4_IDCT 1
 cglobal add4x4_idct_%1, 2,2,6
-    add   r0, 4*FDEC_STRIDE
+    add   r0, 2*FDEC_STRIDEB
 .skip_prologue:
     mova  m1, [r1+16]
     mova  m3, [r1+48]
@@ -271,8 +271,8 @@ cglobal add4x4_idct_%1, 2,2,6
     paddd m0, [pd_32]
     IDCT4_1D d,0,1,2,3,4,5
     pxor  m5, m5
-    STORE_DIFFx2 m0, m1, m4, m5, [r0-4*FDEC_STRIDE], [r0-2*FDEC_STRIDE]
-    STORE_DIFFx2 m2, m3, m4, m5, [r0+0*FDEC_STRIDE], [r0+2*FDEC_STRIDE]
+    STORE_DIFFx2 m0, m1, m4, m5, [r0-2*FDEC_STRIDEB], [r0-1*FDEC_STRIDEB]
+    STORE_DIFFx2 m2, m3, m4, m5, [r0+0*FDEC_STRIDEB], [r0+1*FDEC_STRIDEB]
     RET
 %endmacro
 
