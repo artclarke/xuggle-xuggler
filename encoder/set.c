@@ -99,10 +99,12 @@ void x264_sei_write( bs_t *s, uint8_t *payload, int payload_size, int payload_ty
 
 void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
 {
+    int csp = param->i_csp & X264_CSP_MASK;
+
     sps->i_id = i_id;
     sps->i_mb_width = ( param->i_width + 15 ) / 16;
     sps->i_mb_height= ( param->i_height + 15 ) / 16;
-    sps->i_chroma_format_idc = param->i_csp >= X264_CSP_I444 ? 3 : 1;
+    sps->i_chroma_format_idc = csp >= X264_CSP_I444 ? 3 : 1;
 
     sps->b_qpprime_y_zero_transform_bypass = param->rc.i_rc_method == X264_RC_CQP && param->rc.i_qp_constant == 0;
     if( sps->b_qpprime_y_zero_transform_bypass || sps->i_chroma_format_idc == 3 )
@@ -203,13 +205,13 @@ void x264_sps_init( x264_sps_t *sps, int i_id, x264_param_t *param )
     sps->vui.b_signal_type_present = 0;
     sps->vui.i_vidformat = ( param->vui.i_vidformat >= 0 && param->vui.i_vidformat <= 5 ? param->vui.i_vidformat : 5 );
     sps->vui.b_fullrange = ( param->vui.b_fullrange >= 0 && param->vui.b_fullrange <= 1 ? param->vui.b_fullrange :
-                           ( param->i_csp >= X264_CSP_BGR ? 1 : 0 ) );
+                           ( csp >= X264_CSP_BGR ? 1 : 0 ) );
     sps->vui.b_color_description_present = 0;
 
     sps->vui.i_colorprim = ( param->vui.i_colorprim >= 0 && param->vui.i_colorprim <=  8 ? param->vui.i_colorprim : 2 );
     sps->vui.i_transfer  = ( param->vui.i_transfer  >= 0 && param->vui.i_transfer  <= 10 ? param->vui.i_transfer  : 2 );
     sps->vui.i_colmatrix = ( param->vui.i_colmatrix >= 0 && param->vui.i_colmatrix <=  8 ? param->vui.i_colmatrix :
-                           ( param->i_csp >= X264_CSP_BGR ? 0 : 2 ) );
+                           ( csp >= X264_CSP_BGR ? 0 : 2 ) );
     if( sps->vui.i_colorprim != 2 ||
         sps->vui.i_transfer  != 2 ||
         sps->vui.i_colmatrix != 2 )
