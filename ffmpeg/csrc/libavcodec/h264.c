@@ -1809,8 +1809,8 @@ static av_always_inline void hl_decode_mb_internal(H264Context *h, int simple, i
     }
 
     if (!simple && IS_INTRA_PCM(mb_type)) {
+        const int bit_depth = h->sps.bit_depth_luma;
         if (pixel_shift) {
-            const int bit_depth = h->sps.bit_depth_luma;
             int j;
             GetBitContext gb;
             init_get_bits(&gb, (uint8_t*)h->mb, 384*bit_depth);
@@ -1821,6 +1821,15 @@ static av_always_inline void hl_decode_mb_internal(H264Context *h, int simple, i
                     tmp_y[j] = get_bits(&gb, bit_depth);
             }
             if(simple || !CONFIG_GRAY || !(s->flags&CODEC_FLAG_GRAY)){
+                if (!h->sps.chroma_format_idc) {
+                    for (i = 0; i < 8; i++) {
+                        uint16_t *tmp_cb = (uint16_t*)(dest_cb + i*uvlinesize);
+                        uint16_t *tmp_cr = (uint16_t*)(dest_cr + i*uvlinesize);
+                        for (j = 0; j < 8; j++) {
+                            tmp_cb[j] = tmp_cr[j] = 1 << (bit_depth - 1);
+                        }
+                    }
+                } else {
                 for (i = 0; i < 8; i++) {
                     uint16_t *tmp_cb = (uint16_t*)(dest_cb + i*uvlinesize);
                     for (j = 0; j < 8; j++)
@@ -1831,15 +1840,23 @@ static av_always_inline void hl_decode_mb_internal(H264Context *h, int simple, i
                     for (j = 0; j < 8; j++)
                         tmp_cr[j] = get_bits(&gb, bit_depth);
                 }
+                }
             }
         } else {
             for (i=0; i<16; i++) {
                 memcpy(dest_y + i*  linesize, h->mb       + i*8, 16);
             }
             if(simple || !CONFIG_GRAY || !(s->flags&CODEC_FLAG_GRAY)){
+                if (!h->sps.chroma_format_idc) {
+                    for (i=0; i<8; i++) {
+                        memset(dest_cb+ i*uvlinesize, 1 << (bit_depth - 1), 8);
+                        memset(dest_cr+ i*uvlinesize, 1 << (bit_depth - 1), 8);
+                    }
+                } else {
                 for (i=0; i<8; i++) {
                     memcpy(dest_cb+ i*uvlinesize, h->mb + 128 + i*4,  8);
                     memcpy(dest_cr+ i*uvlinesize, h->mb + 160 + i*4,  8);
+                }
                 }
             }
         }
@@ -2157,15 +2174,17 @@ static void implicit_weight_table(H264Context *h, int field){
     for(ref0=ref_start; ref0 < ref_count0; ref0++){
         int poc0 = h->ref_list[0][ref0].poc;
         for(ref1=ref_start; ref1 < ref_count1; ref1++){
+            int w= 32;
+            if (!h->ref_list[0][ref0].long_ref && !h->ref_list[1][ref1].long_ref){
             int poc1 = h->ref_list[1][ref1].poc;
             int td = av_clip(poc1 - poc0, -128, 127);
-            int w= 32;
             if(td){
                 int tb = av_clip(cur_poc - poc0, -128, 127);
                 int tx = (16384 + (FFABS(td) >> 1)) / td;
                 int dist_scale_factor = (tb*tx + 32) >> 8;
                 if(dist_scale_factor >= -64 && dist_scale_factor <= 128)
                     w = 64 - dist_scale_factor;
+            }
             }
             if(field<0){
                 h->implicit_weight[ref0][ref1][0]=
@@ -2946,7 +2965,7 @@ static int decode_slice_header(H264Context *h, H264Context *h0){
     h0->last_slice_type = slice_type;
     h->slice_num = ++h0->current_slice;
     if(h->slice_num >= MAX_SLICES){
-        av_log(s->avctx, AV_LOG_ERROR, "Too many slices (%d >= %d), increase MAX_SLICES and recompile\n", h->slice_num, MAX_SLICES);
+        av_log(s->avctx, AV_LOG_WARNING, "Possibly too many slices (%d >= %d), increase MAX_SLICES and recompile if there are artifacts\n", h->slice_num, MAX_SLICES);
     }
 
     for(j=0; j<2; j++){
