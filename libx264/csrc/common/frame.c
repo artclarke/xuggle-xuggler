@@ -577,12 +577,9 @@ void x264_expand_border_mbpair( x264_t *h, int mb_x, int mb_y )
         int stride = h->fenc->i_stride[i];
         int height = h->param.i_height >> shift;
         int pady = (h->mb.i_mb_height * 16 - h->param.i_height) >> shift;
-        int mbsize = 16>>shift;
-        pixel *fenc = h->fenc->plane[i] + mbsize * mb_x;
+        pixel *fenc = h->fenc->plane[i] + 16*mb_x;
         for( int y = height; y < height + pady; y++ )
-            memcpy( fenc + y*stride,
-                    fenc + (height-1)*stride,
-                    mbsize * sizeof(pixel) );
+            memcpy( fenc + y*stride, fenc + (height-1)*stride, 16*sizeof(pixel) );
     }
 }
 
