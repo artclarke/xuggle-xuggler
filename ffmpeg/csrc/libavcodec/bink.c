@@ -572,22 +572,6 @@ static inline int binkb_get_value(BinkContext *c, int bundle_num)
     return ret;
 }
 
-static inline DCTELEM dequant(DCTELEM in, uint32_t quant, int dc)
-{
-    /* Note: multiplication is unsigned but we want signed shift
-     * otherwise clipping breaks.
-     * TODO: The official decoder does not use clipping at all
-     * but instead uses the full 32-bit result.
-     * However clipping at least gets rid of the case that a
-     * half-black half-white intra block gets black and white swapped
-     * and should cause at most minor differences (except for DC). */
-    int32_t res = in * quant;
-    res >>= 11;
-    if (!dc)
-        res = av_clip_int16(res);
-    return res;
-}
-
 /**
  * Read 8x8 block of DCT coefficients.
  *
@@ -686,10 +670,10 @@ static int read_dct_coeffs(GetBitContext *gb, int32_t block[64], const uint8_t *
 
     quant = quant_matrices[quant_idx];
 
-    block[0] = dequant(block[0], quant[0], 1);
+    block[0] = (block[0] * quant[0]) >> 11;
     for (i = 0; i < coef_count; i++) {
         int idx = coef_idx[i];
-        block[scan[idx]] = dequant(block[scan[idx]], quant[idx], 0);
+        block[scan[idx]] = (block[scan[idx]] * quant[idx]) >> 11;
     }
 
     return 0;
@@ -1334,13 +1318,12 @@ static av_cold int decode_end(AVCodecContext *avctx)
 }
 
 AVCodec ff_bink_decoder = {
-    "binkvideo",
-    AVMEDIA_TYPE_VIDEO,
-    CODEC_ID_BINKVIDEO,
-    sizeof(BinkContext),
-    decode_init,
-    NULL,
-    decode_end,
-    decode_frame,
+    .name           = "binkvideo",
+    .type           = AVMEDIA_TYPE_VIDEO,
+    .id             = CODEC_ID_BINKVIDEO,
+    .priv_data_size = sizeof(BinkContext),
+    .init           = decode_init,
+    .close          = decode_end,
+    .decode         = decode_frame,
     .long_name = NULL_IF_CONFIG_SMALL("Bink video"),
 };

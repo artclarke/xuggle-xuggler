@@ -275,6 +275,19 @@ the output (cropped) width and heigth
 @item ow, oh
 same as @var{out_w} and @var{out_h}
 
+@item a
+same as @var{iw} / @var{ih}
+
+@item sar
+input sample aspect ratio
+
+@item dar
+input display aspect ratio, it is the same as (@var{iw} / @var{ih}) * @var{sar}
+
+@item hsub, vsub
+horizontal and vertical chroma subsample values. For example for the
+pixel format "yuv422p" @var{hsub} is 2 and @var{vsub} is 1.
+
 @item n
 the number of input frame, starting from 0
 
@@ -1184,11 +1197,14 @@ same as @var{out_w} and @var{out_h}
 x and y offsets as specified by the @var{x} and @var{y}
 expressions, or NAN if not yet specified
 
-@item dar, a
-input display aspect ratio, same as @var{iw} / @var{ih}
+@item a
+same as @var{iw} / @var{ih}
 
 @item sar
 input sample aspect ratio
+
+@item dar
+input display aspect ratio, it is the same as (@var{iw} / @var{ih}) * @var{sar}
 
 @item hsub, vsub
 horizontal and vertical chroma subsample values. For example for the
@@ -1248,6 +1264,12 @@ pad="max(iw\,ih):ow:(ow-iw)/2:(oh-ih)/2"
 # pad the input to get a final w/h ratio of 16:9
 pad="ih*16/9:ih:(ow-iw)/2:(oh-ih)/2"
 
+# for anamorphic video, in order to set the output display aspect ratio,
+# it is necessary to use sar in the expression, according to the relation:
+# (ih * X / ih) * sar = output_dar
+# X = output_dar / sar
+pad="ih*16/9/sar:ih:(ow-iw)/2:(oh-ih)/2"
+
 # double output size and put the input video in the bottom-right
 # corner of the output padded area
 pad="2*iw:2*ih:ow-iw:oh-ih"
@@ -1289,11 +1311,14 @@ the output (cropped) width and heigth
 @item ow, oh
 same as @var{out_w} and @var{out_h}
 
-@item dar, a
-input display aspect ratio, same as @var{iw} / @var{ih}
+@item a
+same as @var{iw} / @var{ih}
 
 @item sar
 input sample aspect ratio
+
+@item dar
+input display aspect ratio, it is the same as (@var{iw} / @var{ih}) * @var{sar}
 
 @item hsub, vsub
 horizontal and vertical chroma subsample values. For example for the
