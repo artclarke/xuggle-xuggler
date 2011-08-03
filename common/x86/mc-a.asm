@@ -1291,19 +1291,21 @@ MC_COPY 16
 ;=============================================================================
 ; prefetch
 ;=============================================================================
-; FIXME assumes 64 byte cachelines
+; assumes 64 byte cachelines
+; FIXME doesn't cover all pixels in high depth and/or 4:4:4
 
 ;-----------------------------------------------------------------------------
-; void prefetch_fenc( uint8_t *pix_y, int stride_y,
-;                     uint8_t *pix_uv, int stride_uv, int mb_x )
+; void prefetch_fenc( pixel *pix_y, int stride_y,
+;                     pixel *pix_uv, int stride_uv, int mb_x )
 ;-----------------------------------------------------------------------------
 INIT_MMX
 %ifdef ARCH_X86_64
 cglobal prefetch_fenc_mmx2, 5,5
+    FIX_STRIDES r1d, r3d
     and    r4d, 3
     mov    eax, r4d
     imul   r4d, r1d
-    lea    r0,  [r0+r4*4+64]
+    lea    r0,  [r0+r4*4+64*SIZEOF_PIXEL]
     prefetcht0  [r0]
     prefetcht0  [r0+r1]
     lea    r0,  [r0+r1*2]
@@ -1311,7 +1313,7 @@ cglobal prefetch_fenc_mmx2, 5,5
     prefetcht0  [r0+r1]
 
     imul   eax, r3d
-    lea    r2,  [r2+rax*2+64]
+    lea    r2,  [r2+rax*2+64*SIZEOF_PIXEL]
     prefetcht0  [r2]
     prefetcht0  [r2+r3]
     RET
@@ -1321,9 +1323,10 @@ cglobal prefetch_fenc_mmx2, 0,3
     mov    r2, r4m
     mov    r1, r1m
     mov    r0, r0m
+    FIX_STRIDES r1
     and    r2, 3
     imul   r2, r1
-    lea    r0, [r0+r2*4+64]
+    lea    r0, [r0+r2*4+64*SIZEOF_PIXEL]
     prefetcht0 [r0]
     prefetcht0 [r0+r1]
     lea    r0, [r0+r1*2]
@@ -1333,21 +1336,23 @@ cglobal prefetch_fenc_mmx2, 0,3
     mov    r2, r4m
     mov    r1, r3m
     mov    r0, r2m
+    FIX_STRIDES r1
     and    r2, 3
     imul   r2, r1
-    lea    r0, [r0+r2*2+64]
+    lea    r0, [r0+r2*2+64*SIZEOF_PIXEL]
     prefetcht0 [r0]
     prefetcht0 [r0+r1]
     ret
 %endif ; ARCH_X86_64
 
 ;-----------------------------------------------------------------------------
-; void prefetch_ref( uint8_t *pix, int stride, int parity )
+; void prefetch_ref( pixel *pix, int stride, int parity )
 ;-----------------------------------------------------------------------------
 cglobal prefetch_ref_mmx2, 3,3
+    FIX_STRIDES r1d
     dec    r2d
     and    r2d, r1d
-    lea    r0,  [r0+r2*8+64]
+    lea    r0,  [r0+r2*8+64*SIZEOF_PIXEL]
     lea    r2,  [r1*3]
     prefetcht0  [r0]
     prefetcht0  [r0+r1]

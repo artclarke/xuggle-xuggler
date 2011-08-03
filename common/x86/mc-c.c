@@ -85,8 +85,8 @@ void x264_mc_copy_w8_sse2( pixel *, int, pixel *, int, int );
 void x264_mc_copy_w16_mmx( pixel *, int, pixel *, int, int );
 void x264_mc_copy_w16_sse2( pixel *, int, pixel *, int, int );
 void x264_mc_copy_w16_aligned_sse2( pixel *, int, pixel *, int, int );
-void x264_prefetch_fenc_mmx2( uint8_t *, int, uint8_t *, int, int );
-void x264_prefetch_ref_mmx2( uint8_t *, int, int );
+void x264_prefetch_fenc_mmx2( pixel *, int, pixel *, int, int );
+void x264_prefetch_ref_mmx2( pixel *, int, int );
 void x264_plane_copy_core_mmx2( pixel *, int, pixel *, int, int w, int h);
 void x264_plane_copy_c( pixel *, int, pixel *, int, int w, int h );
 void x264_plane_copy_interleave_core_mmx2( pixel *dst, int i_dst,
@@ -225,7 +225,11 @@ static void (* const x264_mc_copy_wtab_##instr[5])( pixel *, int, pixel *, int, 
 };
 
 MC_COPY_WTAB(mmx,mmx,mmx,mmx)
+#if HIGH_BIT_DEPTH
+MC_COPY_WTAB(sse2,mmx,sse2,sse2)
+#else
 MC_COPY_WTAB(sse2,mmx,mmx,sse2)
+#endif
 
 #define MC_WEIGHT_WTAB(function, instr, name1, name2, w12version)\
     static void (* x264_mc_##function##_wtab_##instr[6])( pixel *, int, pixel *, int, const x264_weight_t *, int ) =\
@@ -510,6 +514,9 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     if( !(cpu&X264_CPU_MMX2) )
         return;
 
+    pf->prefetch_fenc = x264_prefetch_fenc_mmx2;
+    pf->prefetch_ref  = x264_prefetch_ref_mmx2;
+
     pf->plane_copy = x264_plane_copy_mmx2;
     pf->plane_copy_interleave = x264_plane_copy_interleave_mmx2;
     pf->store_interleave_8x8x2 = x264_store_interleave_8x8x2_mmx2;
@@ -605,8 +612,6 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     if( !(cpu&X264_CPU_STACK_MOD4) )
         pf->mc_chroma = x264_mc_chroma_avx;
 #else // !HIGH_BIT_DEPTH
-    pf->prefetch_fenc = x264_prefetch_fenc_mmx2;
-    pf->prefetch_ref  = x264_prefetch_ref_mmx2;
 
 #if ARCH_X86 // all x86_64 cpus with cacheline split issues use sse2 instead
     if( cpu&X264_CPU_CACHELINE_32 )

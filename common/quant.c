@@ -428,6 +428,10 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->quant_4x4 = x264_quant_4x4_sse4;
         pf->quant_8x8 = x264_quant_8x8_sse4;
     }
+    if( cpu&X264_CPU_AVX )
+    {
+        pf->denoise_dct = x264_denoise_dct_avx;
+    }
 #endif // HAVE_MMX
 #else // !HIGH_BIT_DEPTH
 #if HAVE_MMX
