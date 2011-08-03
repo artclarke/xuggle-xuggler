@@ -359,7 +359,7 @@ INIT_MMX
 ; void sub8x8_dct( int16_t dct[4][4][4], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
 %macro SUB_NxN_DCT 6
-cglobal %1, 3,3,11*(mmsize/16)
+cglobal %1, 3,3,11
 %ifndef HIGH_BIT_DEPTH
 %if mmsize == 8
     pxor m7, m7
@@ -398,9 +398,9 @@ cglobal %1, 3,3,11*(mmsize/16)
 ;-----------------------------------------------------------------------------
 %macro ADD_NxN_IDCT 6-7
 %ifdef HIGH_BIT_DEPTH
-cglobal %1, 2,2,6*(mmsize/16)
+cglobal %1, 2,2,6
 %else
-cglobal %1, 2,2,11*(mmsize/16)
+cglobal %1, 2,2,11
     pxor m7, m7
 %endif
 %if mmsize==16
@@ -661,6 +661,7 @@ cglobal add16x16_idct_dc_mmx, 2,3
     movdqa    [r0+%1+FDEC_STRIDE*3], xmm7
 %endmacro
 
+INIT_XMM
 cglobal add16x16_idct_dc_sse2, 2,2,8
     call .loop
     add       r0, FDEC_STRIDE*4
@@ -939,7 +940,7 @@ SCAN_8x8
 ; void zigzag_scan_8x8_frame( dctcoef level[64], dctcoef dct[8][8] )
 ;-----------------------------------------------------------------------------
 %macro SCAN_8x8_FRAME 5
-cglobal zigzag_scan_8x8_frame, 2,2,8*(mmsize/16)
+cglobal zigzag_scan_8x8_frame, 2,2,8
     mova        m0, [r1]
     mova        m1, [r1+ 8*SIZEOF_DCTCOEF]
     movu        m2, [r1+14*SIZEOF_DCTCOEF]
@@ -1149,7 +1150,7 @@ cglobal zigzag_scan_4x4_field_mmx2, 2,3
 ; 54 55 58 59 60 61 62 63
 %undef SCAN_8x8
 %macro SCAN_8x8 5
-cglobal zigzag_scan_8x8_field, 2,3,8*(mmsize/16)
+cglobal zigzag_scan_8x8_field, 2,3,8
     mova       m0, [r1+ 0*SIZEOF_DCTCOEF]       ; 03 02 01 00
     mova       m1, [r1+ 4*SIZEOF_DCTCOEF]       ; 07 06 05 04
     mova       m2, [r1+ 8*SIZEOF_DCTCOEF]       ; 11 10 09 08
@@ -1330,7 +1331,7 @@ ZIGZAG_SUB_4x4 ac, field
 %endmacro
 
 %macro ZIGZAG_8x8_CAVLC 1
-cglobal zigzag_interleave_8x8_cavlc, 3,3,8*(mmsize/16)
+cglobal zigzag_interleave_8x8_cavlc, 3,3,8
     INTERLEAVE  0, %1
     INTERLEAVE  8, %1
     INTERLEAVE 16, %1

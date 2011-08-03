@@ -430,7 +430,7 @@ AVG_WEIGHT 16, 7
 %endif
 
 %macro WEIGHTER 1
-    cglobal mc_weight_w%1, NUMREGS, NUMREGS, XMMREGS*(mmsize/16)
+    cglobal mc_weight_w%1, NUMREGS, NUMREGS, XMMREGS
     FIX_STRIDES r1, r3
     WEIGHT_START %1
     LOAD_HEIGHT
@@ -695,7 +695,7 @@ AVGH  4,  2
 ;                     uint16_t *src2, int height );
 ;-----------------------------------------------------------------------------
 %macro AVG2_W_ONE 1
-cglobal pixel_avg2_w%1, 6,7,4*(mmsize/16)
+cglobal pixel_avg2_w%1, 6,7,4
     sub     r4, r2
     lea     r6, [r4+r3*2]
 .height_loop:
@@ -720,7 +720,7 @@ cglobal pixel_avg2_w%1, 6,7,4*(mmsize/16)
 %endmacro
 
 %macro AVG2_W_TWO 3
-cglobal pixel_avg2_w%1, 6,7,8*(mmsize/16)
+cglobal pixel_avg2_w%1, 6,7,8
     sub     r4, r2
     lea     r6, [r4+r3*2]
 .height_loop:
@@ -1203,7 +1203,7 @@ AVG16_CACHELINE_LOOP_SSSE3 j, k
 ; pixel copy
 ;=============================================================================
 
-%macro COPY4 2-*
+%macro COPY1 2
     movu  m0, [r2]
     movu  m1, [r2+r3]
     movu  m2, [r2+r3*2]
@@ -1214,27 +1214,28 @@ AVG16_CACHELINE_LOOP_SSSE3 j, k
     mova  [r0+%1],   m3
 %endmacro
 
-%macro COPY_ONE 4
-    COPY4 %1, %2
+%macro COPY2 2-4 0, 1
+    movu  m0, [r2+%3*mmsize]
+    movu  m1, [r2+%4*mmsize]
+    movu  m2, [r2+r3+%3*mmsize]
+    movu  m3, [r2+r3+%4*mmsize]
+    movu  m4, [r2+r3*2+%3*mmsize]
+    movu  m5, [r2+r3*2+%4*mmsize]
+    movu  m6, [r2+%2+%3*mmsize]
+    movu  m7, [r2+%2+%4*mmsize]
+    mova  [r0+%3*mmsize],      m0
+    mova  [r0+%4*mmsize],      m1
+    mova  [r0+r1+%3*mmsize],   m2
+    mova  [r0+r1+%4*mmsize],   m3
+    mova  [r0+r1*2+%3*mmsize], m4
+    mova  [r0+r1*2+%4*mmsize], m5
+    mova  [r0+%1+%3*mmsize],   m6
+    mova  [r0+%1+%4*mmsize],   m7
 %endmacro
 
-%macro COPY_TWO 4
-    movu  m0, [r2+%3]
-    movu  m1, [r2+%4]
-    movu  m2, [r2+r3+%3]
-    movu  m3, [r2+r3+%4]
-    movu  m4, [r2+r3*2+%3]
-    movu  m5, [r2+r3*2+%4]
-    movu  m6, [r2+%2+%3]
-    movu  m7, [r2+%2+%4]
-    mova  [r0+%3],      m0
-    mova  [r0+%4],      m1
-    mova  [r0+r1+%3],   m2
-    mova  [r0+r1+%4],   m3
-    mova  [r0+r1*2+%3], m4
-    mova  [r0+r1*2+%4], m5
-    mova  [r0+%1+%3],   m6
-    mova  [r0+%1+%4],   m7
+%macro COPY4 2
+    COPY2 %1, %2, 0, 1
+    COPY2 %1, %2, 2, 3
 %endmacro
 
 ;-----------------------------------------------------------------------------
@@ -1252,76 +1253,38 @@ cglobal mc_copy_w4_mmx, 4,6
     %define mova movd
     %define movu movd
 %endif
-    COPY4 r4, r5
+    COPY1   r4, r5
     lea     r2, [r2+r3*4]
     lea     r0, [r0+r1*4]
 .end:
-    COPY4 r4, r5
+    COPY1   r4, r5
     RET
 
-%ifdef HIGH_BIT_DEPTH
-cglobal mc_copy_w16_mmx, 5,7
+%macro MC_COPY 1
+%assign %%w %1*SIZEOF_PIXEL/mmsize
+%if %%w > 0
+cglobal mc_copy_w%1, 5,7,8*(%%w/2)
     FIX_STRIDES r1, r3
     lea     r6, [r3*3]
     lea     r5, [r1*3]
 .height_loop:
-    COPY_TWO r5, r6, mmsize*0, mmsize*1
-    COPY_TWO r5, r6, mmsize*2, mmsize*3
-    sub    r4d, 4
+    COPY %+ %%w r5, r6
     lea     r2, [r2+r3*4]
     lea     r0, [r0+r1*4]
-    jg .height_loop
-    REP_RET
-
-%macro MC_COPY 2
-cglobal mc_copy_w%2, 5,7,%2-8
-    FIX_STRIDES r1, r3
-    lea     r6, [r3*3]
-    lea     r5, [r1*3]
-.height_loop:
-    COPY_%1 r5, r6, 0, mmsize
     sub    r4d, 4
-    lea     r2, [r2+r3*4]
-    lea     r0, [r0+r1*4]
     jg .height_loop
     REP_RET
+%endif
 %endmacro
 
 INIT_MMX mmx
-MC_COPY TWO,  8
+MC_COPY  8
+MC_COPY 16
 INIT_XMM sse2
-MC_COPY ONE,  8
-MC_COPY TWO, 16
+MC_COPY  8
+MC_COPY 16
 INIT_XMM aligned, sse2
-MC_COPY TWO, 16
-%endif ; HIGH_BIT_DEPTH
-
-%ifndef HIGH_BIT_DEPTH
-%macro MC_COPY 2
-cglobal mc_copy_w%2, 5,7
-    lea     r6, [r3*3]
-    lea     r5, [r1*3]
-.height_loop:
-    %1      r5, r6, 0, mmsize
-    lea     r2, [r2+r3*4]
-    lea     r0, [r0+r1*4]
-    sub     r4d, 4
-    jg      .height_loop
-    REP_RET
-%endmacro
-
-INIT_MMX mmx
-MC_COPY COPY4, 8
-MC_COPY COPY_TWO, 16
-INIT_XMM sse2
-MC_COPY COPY4, 16
-; cacheline split with mmx has too much overhead; the speed benefit is near-zero.
-; but with SSE3 the overhead is zero, so there's no reason not to include it.
-INIT_XMM sse3
-MC_COPY COPY4, 16
-INIT_XMM aligned, sse2
-MC_COPY COPY4, 16
-%endif ; !HIGH_BIT_DEPTH
+MC_COPY 16
 
 
 

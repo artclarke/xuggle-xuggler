@@ -697,7 +697,7 @@ INTRA_SAD_8x8C
 ;xmm7: DC prediction    xmm6: H prediction  xmm5: V prediction
 ;xmm4: DC pred score    xmm3: H pred score  xmm2: V pred score
 %macro INTRA_SAD16 0
-cglobal intra_sad_x3_16x16, 3,5,8*(mmsize/16)
+cglobal intra_sad_x3_16x16, 3,5,8
     pxor    mm0, mm0
     pxor    mm1, mm1
     psadbw  mm0, [r1-FDEC_STRIDE+0]

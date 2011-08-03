@@ -151,7 +151,7 @@ cextern pd_ffff
 ; void hpel_filter_v( uint16_t *dst, uint16_t *src, int16_t *buf, int stride, int width );
 ;-----------------------------------------------------------------------------
 %macro HPEL_FILTER 0
-cglobal hpel_filter_v, 5,6,11*(mmsize/16)
+cglobal hpel_filter_v, 5,6,11
     FIX_STRIDES r3d, r4d
 %ifdef WIN64
     movsxd     r4, r4d
@@ -211,7 +211,7 @@ cglobal hpel_filter_v, 5,6,11*(mmsize/16)
 ;-----------------------------------------------------------------------------
 ; void hpel_filter_c( uint16_t *dst, int16_t *buf, int width );
 ;-----------------------------------------------------------------------------
-cglobal hpel_filter_c, 3,3,10*(mmsize/16)
+cglobal hpel_filter_c, 3,3,10
     add        r2, r2
     add        r0, r2
     lea        r1, [r1+r2]
@@ -260,7 +260,7 @@ cglobal hpel_filter_c, 3,3,10*(mmsize/16)
 ;-----------------------------------------------------------------------------
 ; void hpel_filter_h( uint16_t *dst, uint16_t *src, int width );
 ;-----------------------------------------------------------------------------
-cglobal hpel_filter_h, 3,4,8*(mmsize/16)
+cglobal hpel_filter_h, 3,4,8
     %define src r1+r2
     add        r2, r2
     add        r0, r2
@@ -370,6 +370,7 @@ cglobal hpel_filter_v, 5,6,%1
 ;-----------------------------------------------------------------------------
 ; void hpel_filter_c( uint8_t *dst, int16_t *buf, int width );
 ;-----------------------------------------------------------------------------
+INIT_MMX
 cglobal hpel_filter_c_mmx2, 3,3
     add r0, r2
     lea r1, [r1+r2*2]
@@ -1480,7 +1481,7 @@ cglobal integral_init4v_ssse3, 3,5
 ;                              int src_stride, int dst_stride, int width, int height )
 ;-----------------------------------------------------------------------------
 %macro FRAME_INIT_LOWRES 0
-cglobal frame_init_lowres_core, 6,7,(12-4*(BIT_DEPTH/9))*(mmsize/16) ; 8 for HIGH_BIT_DEPTH, 12 otherwise
+cglobal frame_init_lowres_core, 6,7,(12-4*(BIT_DEPTH/9)) ; 8 for HIGH_BIT_DEPTH, 12 otherwise
 %ifdef HIGH_BIT_DEPTH
     shl   dword r6m, 1
     FIX_STRIDES r5d

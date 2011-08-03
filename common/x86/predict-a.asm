@@ -260,7 +260,7 @@ cglobal predict_4x4_ddr, 1,1
 %endrep
     RET
 
-cglobal predict_4x4_vr, 1,1,6*(mmsize/16)
+cglobal predict_4x4_vr, 1,1,6
     movh    m0, [r0-1*FDEC_STRIDEB]                                       ; ........t3t2t1t0
     mova    m5, m0
 %ifdef HIGH_BIT_DEPTH
@@ -296,7 +296,7 @@ cglobal predict_4x4_vr, 1,1,6*(mmsize/16)
     movh    [r0+3*FDEC_STRIDEB], m3
     RET
 
-cglobal predict_4x4_hd, 1,1,6*(mmsize/16)
+cglobal predict_4x4_hd, 1,1,6
     movh      m0, [r0-1*FDEC_STRIDEB-4*SIZEOF_PIXEL] ; lt ..
 %ifdef HIGH_BIT_DEPTH
     movh      m1, [r0-1*FDEC_STRIDEB]
@@ -490,7 +490,7 @@ cglobal predict_4x4_hu_mmx2, 1,1
 ; void predict_4x4_vl( pixel *src )
 ;-----------------------------------------------------------------------------
 %macro PREDICT_4x4_V1 3
-cglobal predict_4x4_vl, 1,1,6*(mmsize/16)
+cglobal predict_4x4_vl, 1,1,6
     movu        m1, [r0-FDEC_STRIDEB]
     psrl%1      m3, m1, %2
     psrl%1      m2, m1, %2*2
@@ -598,7 +598,7 @@ cglobal predict_4x4_dc_mmx2, 1,4
 ;-----------------------------------------------------------------------------
 ;void predict_8x8_filter( pixel *src, pixel edge[33], int i_neighbor, int i_filters )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8_filter, 4,5,7*(mmsize/16)
+cglobal predict_8x8_filter, 4,5,7
     add          r0, 0x58*SIZEOF_PIXEL
 %define src r0-0x58*SIZEOF_PIXEL
 %ifndef ARCH_X86_64
@@ -830,7 +830,7 @@ PREDICT_8x8_DC predict_8x8_dc_left_mmx2, 7
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_ddl( pixel *src, pixel *edge )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8_ddl, 2,2,8*(mmsize/16)
+cglobal predict_8x8_ddl, 2,2,8
     mova        m5, [r1+16*SIZEOF_PIXEL]
     movu        m2, [r1+17*SIZEOF_PIXEL]
     movu        m3, [r1+23*SIZEOF_PIXEL]
@@ -863,7 +863,7 @@ cglobal predict_8x8_ddl, 2,2,8*(mmsize/16)
 ; void predict_8x8_ddr( pixel *src, pixel *edge )
 ;-----------------------------------------------------------------------------
 %if avx_enabled == 0
-cglobal predict_8x8_ddr, 2,2,7*(mmsize/16)
+cglobal predict_8x8_ddr, 2,2,7
     movu        m1, [r1+ 7*SIZEOF_PIXEL]
     movu        m2, [r1+ 9*SIZEOF_PIXEL]
     movu        m3, [r1+15*SIZEOF_PIXEL]
@@ -904,7 +904,7 @@ PREDICT_8x8 b, q , 8
 ; void predict_8x8_hu( pixel *src, pixel *edge )
 ;-----------------------------------------------------------------------------
 %macro PREDICT_8x8_HU 5
-cglobal predict_8x8_hu, 2,2,8*(mmsize/16)
+cglobal predict_8x8_hu, 2,2,8
     movu      m1, [r1+7*SIZEOF_PIXEL] ; l0 l1 l2 l3 l4 l5 l6 l7
     add       r0, 4*FDEC_STRIDEB
     pshuf%3   m0, m1, 00011011b       ; l6 l7 l4 l5 l2 l3 l0 l1
@@ -960,7 +960,7 @@ PREDICT_8x8_HU b, q , w, bw, 8
 ; void predict_8x8_vr( pixel *src, pixel *edge )
 ;-----------------------------------------------------------------------------
 %macro PREDICT_8x8_VR 3
-cglobal predict_8x8_vr, 2,3,7*(mmsize/16)
+cglobal predict_8x8_vr, 2,3,7
     mova        m2, [r1+16*SIZEOF_PIXEL]
     movu        m3, [r1+15*SIZEOF_PIXEL]
     movu        m1, [r1+14*SIZEOF_PIXEL]
@@ -1316,7 +1316,7 @@ PREDICT_8x8
 ; void predict_8x8_hd( pixel *src, pixel *edge )
 ;-----------------------------------------------------------------------------
 %macro PREDICT_8x8_HD 4
-cglobal predict_8x8_hd, 2,2,8*(mmsize/16)
+cglobal predict_8x8_hd, 2,2,8
     add       r0, 4*FDEC_STRIDEB
     mova      m0, [r1]                     ; l7 .. .. .. .. .. .. ..
     mova      m1, [r1+ 8*SIZEOF_PIXEL]     ; lt l0 l1 l2 l3 l4 l5 l6

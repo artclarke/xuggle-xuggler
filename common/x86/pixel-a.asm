@@ -75,7 +75,7 @@ cextern hsub_mul
 ; int pixel_ssd_MxN( uint16_t *, int, uint16_t *, int )
 ;-----------------------------------------------------------------------------
 %macro SSD_ONE 2
-cglobal pixel_ssd_%1x%2, 4,5,6*(mmsize/16)
+cglobal pixel_ssd_%1x%2, 4,5,6
     mov     r4, %1*%2/mmsize
     pxor    m0, m0
 .loop
@@ -306,11 +306,7 @@ cglobal pixel_ssd_%1x%2, 0,0,0
 .startloop:
 %ifdef ARCH_X86_64
     DECLARE_REG_TMP 0,1,2,3
-%if cpuflag(ssse3) ; FIXME wrong, but correcting this modifies the binary
     PROLOGUE 0,0,8
-%else
-    PROLOGUE 0,0,8*(mmsize/16)
-%endif
 %else
     PROLOGUE 0,5
     DECLARE_REG_TMP 1,2,3,4
@@ -402,7 +398,7 @@ SSD  4,  8
 ;-----------------------------------------------------------------------------
 %ifdef HIGH_BIT_DEPTH
 %macro SSD_NV12 0
-cglobal pixel_ssd_nv12_core, 6,7,7*(mmsize/16)
+cglobal pixel_ssd_nv12_core, 6,7,7
     shl        r4d, 2
     FIX_STRIDES r1, r3
     add         r0, r4
@@ -1575,7 +1571,7 @@ cglobal intra_sa8d_x3_8x8_core, 3,3,16
     ABS2        m10, m11, m12, m13
     paddusw     m8,  m10
     paddusw     m9,  m11
-%ifidn cpuname, ssse3
+%if cpuflag(ssse3)
     pabsw       m10, m6
     pabsw       m11, m7
     pabsw       m15, m1

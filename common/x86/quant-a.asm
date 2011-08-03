@@ -83,24 +83,20 @@ cextern pd_1
 cextern pb_01
 cextern pd_1024
 
-%macro QUANT_DC_START_MMX 0
+%macro QUANT_DC_START 0
     movd       m6, r1m     ; mf
     movd       m7, r2m     ; bias
 %ifdef HIGH_BIT_DEPTH
     SPLATD     m6, m6
     SPLATD     m7, m7
+%elif cpuflag(sse4) ; ssse3, but not faster on conroe
+    movdqa     m5, [pb_01]
+    pshufb     m6, m5
+    pshufb     m7, m5
 %else
     SPLATW     m6, m6
     SPLATW     m7, m7
-%endif ; HIGH_BIT_DEPTH
-%endmacro
-
-%macro QUANT_DC_START_SSSE3 0
-    movdqa     m5, [pb_01]
-    movd       m6, r1m     ; mf
-    movd       m7, r2m     ; bias
-    pshufb     m6, m5
-    pshufb     m7, m5
+%endif
 %endmacro
 
 ; PABSW mmx and PSIGNW mmx do not individually perform the same operations as
@@ -304,8 +300,8 @@ cextern pd_1024
 ; int quant_2x2( int32_t dct[M*N], int mf, int bias )
 ;-----------------------------------------------------------------------------
 %macro QUANT_DC 2
-cglobal quant_%1x%2_dc, 3,3,8*(mmsize/16)
-    QUANT_DC_START_MMX
+cglobal quant_%1x%2_dc, 3,3,8
+    QUANT_DC_START
 %if %1*%2 <= mmsize/4
     QUANT_ONE_DC r0, m6, m7, 0
 %else
@@ -323,7 +319,7 @@ cglobal quant_%1x%2_dc, 3,3,8*(mmsize/16)
 ; int quant_MxN( int32_t dct[M*N], uint32_t mf[M*N], uint32_t bias[M*N] )
 ;-----------------------------------------------------------------------------
 %macro QUANT_AC 2
-cglobal quant_%1x%2, 3,3,8*(mmsize/16)
+cglobal quant_%1x%2, 3,3,8
 %assign x 0
 %rep %1*%2/(mmsize/2)
     QUANT_TWO_AC r0+x, r1+x, r2+x, x
@@ -427,7 +423,6 @@ cglobal %1, 3,3
 %endmacro
 
 INIT_MMX mmx2
-%define QUANT_DC_START QUANT_DC_START_MMX
 QUANT_DC quant_2x2_dc, 1
 %ifndef ARCH_X86_64 ; not needed because sse2 is faster
 QUANT_DC quant_4x4_dc, 4
@@ -451,7 +446,6 @@ QUANT_DC quant_2x2_dc, 1
 
 INIT_XMM sse4
 ;Not faster on Conroe, so only used in SSE4 versions
-%define QUANT_DC_START QUANT_DC_START_SSSE3
 QUANT_DC quant_4x4_dc, 2, 8
 QUANT_AC quant_4x4, 2
 QUANT_AC quant_8x8, 8
@@ -567,7 +561,7 @@ QUANT_AC quant_8x8, 8
 ; void dequant_4x4( dctcoef dct[4][4], int dequant_mf[6][4][4], int i_qp )
 ;-----------------------------------------------------------------------------
 %macro DEQUANT 3
-cglobal dequant_%1x%1, 0,3,6*(mmsize/16)
+cglobal dequant_%1x%1, 0,3,6
 .skip_prologue:
     DEQUANT_START %2+2, %2
 
@@ -630,11 +624,9 @@ cglobal dequant_%1x%1_flat16, 0,3
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM sse2
 DEQUANT 4, 4, 1
-INIT_XMM sse4
-DEQUANT 4, 4, 1
-INIT_XMM sse2
 DEQUANT 8, 6, 1
 INIT_XMM sse4
+DEQUANT 4, 4, 1
 DEQUANT 8, 6, 1
 %else
 %ifndef ARCH_X86_64
@@ -651,7 +643,7 @@ DEQUANT 8, 6, 2
 %endif
 
 %macro DEQUANT_DC 2
-cglobal dequant_4x4dc, 0,3,6*(mmsize/16)
+cglobal dequant_4x4dc, 0,3,6
     DEQUANT_START 6, 6
 
 .lshift:
@@ -855,7 +847,7 @@ OPTIMIZE_CHROMA_DC
 ; void denoise_dct( int32_t *dct, uint32_t *sum, uint32_t *offset, int size )
 ;-----------------------------------------------------------------------------
 %macro DENOISE_DCT 0
-cglobal denoise_dct, 4,4,8*(mmsize/16)
+cglobal denoise_dct, 4,4,8
     pxor      m6, m6
 .loop:
     sub       r3, mmsize/2
@@ -900,7 +892,7 @@ DENOISE_DCT
 ; void denoise_dct( int16_t *dct, uint32_t *sum, uint16_t *offset, int size )
 ;-----------------------------------------------------------------------------
 %macro DENOISE_DCT 0
-cglobal denoise_dct, 4,4,7*(mmsize/16)
+cglobal denoise_dct, 4,4,7
     pxor      m6, m6
 .loop:
     sub       r3, mmsize

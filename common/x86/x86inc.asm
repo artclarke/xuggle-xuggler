@@ -297,6 +297,9 @@ DECLARE_REG 6, rax, eax, ax,  al,  [rsp + stack_offset + 56]
 
 %macro WIN64_SPILL_XMM 1
     %assign xmm_regs_used %1
+    %if mmsize == 8
+        %assign xmm_regs_used 0
+    %endif
     ASSERT xmm_regs_used <= 16
     %if xmm_regs_used > 6
         sub rsp, (xmm_regs_used-6)*16+16
@@ -641,7 +644,7 @@ SECTION .note.GNU-stack noalloc noexec nowrite progbits
     INIT_CPUFLAGS %1
 %endmacro
 
-INIT_MMX
+INIT_XMM
 
 ; I often want to use macros that permute their arguments. e.g. there's no
 ; efficient way to implement butterfly or transpose or dct without swapping some

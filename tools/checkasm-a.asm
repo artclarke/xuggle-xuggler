@@ -59,6 +59,7 @@ cextern_naked puts
 ;-----------------------------------------------------------------------------
 ; intptr_t x264_checkasm_call( intptr_t (*func)(), int *ok, ... )
 ;-----------------------------------------------------------------------------
+INIT_XMM
 cglobal checkasm_call, 4,7,16
     sub  rsp, max_args*8
     %assign stack_offset stack_offset+max_args*8
