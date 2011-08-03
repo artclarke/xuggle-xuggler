@@ -63,8 +63,19 @@
     %elifidn __OUTPUT_FORMAT__,macho
         SECTION .text align=%1
         fakegot:
+    %elifidn __OUTPUT_FORMAT__,aout
+        section .text
     %else
         SECTION .rodata align=%1
+    %endif
+%endmacro
+
+; aout does not support align=
+%macro SECTION_TEXT 0-1 16
+    %ifidn __OUTPUT_FORMAT__,aout
+        SECTION .text
+    %else
+        SECTION .text align=%1
     %endif
 %endmacro
 
@@ -551,6 +562,24 @@ SECTION .note.GNU-stack noalloc noexec nowrite progbits
     %define RESET_MM_PERMUTATION INIT_AVX
 %endmacro
 
+%macro INIT_YMM 0
+    %assign avx_enabled 1
+    %define RESET_MM_PERMUTATION INIT_YMM
+    %define mmsize 32
+    %define num_mmregs 8
+    %ifdef ARCH_X86_64
+    %define num_mmregs 16
+    %endif
+    %define mova vmovaps
+    %define movu vmovups
+    %assign %%i 0
+    %rep num_mmregs
+    CAT_XDEFINE m, %%i, ymm %+ %%i
+    CAT_XDEFINE nymm, %%i, %%i
+    %assign %%i %%i+1
+    %endrep
+%endmacro
+
 INIT_MMX
 
 ; I often want to use macros that permute their arguments. e.g. there's no
@@ -663,30 +692,16 @@ INIT_MMX
 ; AVX abstraction layer
 ;=============================================================================
 
-%define sizeofmm0 8
-%define sizeofmm1 8
-%define sizeofmm2 8
-%define sizeofmm3 8
-%define sizeofmm4 8
-%define sizeofmm5 8
-%define sizeofmm6 8
-%define sizeofmm7 8
-%define sizeofxmm0 16
-%define sizeofxmm1 16
-%define sizeofxmm2 16
-%define sizeofxmm3 16
-%define sizeofxmm4 16
-%define sizeofxmm5 16
-%define sizeofxmm6 16
-%define sizeofxmm7 16
-%define sizeofxmm8 16
-%define sizeofxmm9 16
-%define sizeofxmm10 16
-%define sizeofxmm11 16
-%define sizeofxmm12 16
-%define sizeofxmm13 16
-%define sizeofxmm14 16
-%define sizeofxmm15 16
+%assign i 0
+%rep 16
+    %if i < 8
+        CAT_XDEFINE sizeofmm, i, 8
+    %endif
+    CAT_XDEFINE sizeofxmm, i, 16
+    CAT_XDEFINE sizeofymm, i, 32
+%assign i i+1
+%endrep
+%undef i
 
 ;%1 == instruction
 ;%2 == 1 if float, 0 if int
@@ -694,29 +709,33 @@ INIT_MMX
 ;%4 == number of operands given
 ;%5+: operands
 %macro RUN_AVX_INSTR 6-7+
-    %if sizeof%5==8
-        %define %%regmov movq
-    %elif %2
-        %define %%regmov movaps
+    %if sizeof%5==32
+        v%1 %5, %6, %7
     %else
-        %define %%regmov movdqa
-    %endif
+        %if sizeof%5==8
+            %define %%regmov movq
+        %elif %2
+            %define %%regmov movaps
+        %else
+            %define %%regmov movdqa
+        %endif
 
-    %if %4>=3+%3
-        %ifnidn %5, %6
-            %if avx_enabled && sizeof%5==16
-                v%1 %5, %6, %7
+        %if %4>=3+%3
+            %ifnidn %5, %6
+                %if avx_enabled && sizeof%5==16
+                    v%1 %5, %6, %7
+                %else
+                    %%regmov %5, %6
+                    %1 %5, %7
+                %endif
             %else
-                %%regmov %5, %6
                 %1 %5, %7
             %endif
+        %elif %3
+            %1 %5, %6, %7
         %else
-            %1 %5, %7
+            %1 %5, %6
         %endif
-    %elif %3
-        %1 %5, %6, %7
-    %else
-        %1 %5, %6
     %endif
 %endmacro
 
@@ -882,3 +901,8 @@ AVX_INSTR unpcklpd, 1, 0
 AVX_INSTR unpcklps, 1, 0
 AVX_INSTR xorpd, 1, 0
 AVX_INSTR xorps, 1, 0
+
+; 3DNow instructions, for sharing code between AVX, SSE and 3DN
+AVX_INSTR pfadd, 1, 0
+AVX_INSTR pfsub, 1, 0
+AVX_INSTR pfmul, 1, 0
