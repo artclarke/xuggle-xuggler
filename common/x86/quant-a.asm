@@ -525,6 +525,7 @@ cglobal dequant_%1x%1, 0,3,6
     psrld m3, 1
     DEQUANT_LOOP DEQUANT32_R, %1*%1/4, %3
 
+%ifndef HIGH_BIT_DEPTH
 %if notcpuflag(avx)
 cglobal dequant_%1x%1_flat16, 0,3
     movifnidn t2d, r2m
@@ -566,13 +567,11 @@ cglobal dequant_%1x%1_flat16, 0,3
 %endif
     RET
 %endif ; !AVX
+%endif ; !HIGH_BIT_DEPTH
 %endmacro ; DEQUANT
 
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM sse2
-DEQUANT 4, 4, 1
-DEQUANT 8, 6, 1
-INIT_XMM sse4
 DEQUANT 4, 4, 1
 DEQUANT 8, 6, 1
 %else
@@ -656,13 +655,11 @@ cglobal dequant_4x4dc, 0,3,6
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM sse2
 DEQUANT_DC d, pmaddwd
-INIT_XMM sse4
-DEQUANT_DC d, pmaddwd
-INIT_XMM avx
-DEQUANT_DC d, pmaddwd
 %else
+%ifndef ARCH_X86_64
 INIT_MMX mmx2
 DEQUANT_DC w, pmullw
+%endif
 INIT_XMM sse2
 DEQUANT_DC w, pmullw
 INIT_XMM avx
@@ -780,6 +777,7 @@ cglobal optimize_chroma_dc, 0,%%regs,7
     REP_RET
 %endmacro
 
+%ifndef HIGH_BIT_DEPTH
 INIT_XMM sse2
 OPTIMIZE_CHROMA_DC
 INIT_XMM ssse3
@@ -788,6 +786,7 @@ INIT_XMM sse4
 OPTIMIZE_CHROMA_DC
 INIT_XMM avx
 OPTIMIZE_CHROMA_DC
+%endif ; !HIGH_BIT_DEPTH
 
 %ifdef HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------

@@ -82,7 +82,6 @@ MC_WEIGHT( 20, avx )
 void x264_mc_copy_w4_mmx( pixel *, int, pixel *, int, int );
 void x264_mc_copy_w8_mmx( pixel *, int, pixel *, int, int );
 void x264_mc_copy_w8_sse2( pixel *, int, pixel *, int, int );
-void x264_mc_copy_w8_aligned_sse2( pixel *, int, pixel *, int, int );
 void x264_mc_copy_w16_mmx( pixel *, int, pixel *, int, int );
 void x264_mc_copy_w16_sse2( pixel *, int, pixel *, int, int );
 void x264_mc_copy_w16_aligned_sse2( pixel *, int, pixel *, int, int );

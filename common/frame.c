@@ -691,26 +691,6 @@ x264_frame_t *x264_frame_pop_blank_unused( x264_t *h )
     return frame;
 }
 
-void x264_frame_sort( x264_frame_t **list, int b_dts )
-{
-    int b_ok;
-    do {
-        b_ok = 1;
-        for( int i = 0; list[i+1]; i++ )
-        {
-            int dtype = list[i]->i_type - list[i+1]->i_type;
-            int dtime = list[i]->i_frame - list[i+1]->i_frame;
-            int swap = b_dts ? dtype > 0 || ( dtype == 0 && dtime > 0 )
-                             : dtime > 0;
-            if( swap )
-            {
-                XCHG( x264_frame_t*, list[i], list[i+1] );
-                b_ok = 0;
-            }
-        }
-    } while( !b_ok );
-}
-
 void x264_weight_scale_plane( x264_t *h, pixel *dst, int i_dst_stride, pixel *src, int i_src_stride,
                          int i_width, int i_height, x264_weight_t *w )
 {

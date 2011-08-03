@@ -998,7 +998,7 @@ INIT_XMM ssse3
 PREDICT_8x8_VR w, dq, 2
 INIT_XMM avx
 PREDICT_8x8_VR w, dq, 2
-%else
+%elifndef ARCH_X86_64
 INIT_MMX mmx2
 PREDICT_8x8_VR b, q , 8
 %endif

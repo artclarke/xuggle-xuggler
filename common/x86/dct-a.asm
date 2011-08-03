@@ -765,6 +765,7 @@ ADD16x16
     psubw     mm0, mm1            ; d02-d13 s02-s13 d02+d13 s02+s13
 %endmacro
 
+%ifndef HIGH_BIT_DEPTH
 INIT_MMX
 cglobal sub8x8_dct_dc_mmx2, 3,3
     DCTDC_2ROW_MMX m0, m4, 0
@@ -819,6 +820,7 @@ cglobal sub8x8_dct_dc_sse2, 3,3,8
     DCT2x2  mm0, mm7
     movq   [r0], mm0
     RET
+%endif ; !HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
 ; void zigzag_scan_8x8_frame( int16_t level[64], int16_t dct[8][8] )
@@ -1294,6 +1296,7 @@ cglobal zigzag_sub_4x4%1_%2, 3,3,8
     RET
 %endmacro
 
+%ifndef HIGH_BIT_DEPTH
 INIT_XMM ssse3
 ZIGZAG_SUB_4x4   , frame
 ZIGZAG_SUB_4x4 ac, frame
@@ -1304,6 +1307,7 @@ ZIGZAG_SUB_4x4   , frame
 ZIGZAG_SUB_4x4 ac, frame
 ZIGZAG_SUB_4x4   , field
 ZIGZAG_SUB_4x4 ac, field
+%endif ; !HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
 ; void zigzag_interleave_8x8_cavlc( int16_t *dst, int16_t *src, uint8_t *nnz )

@@ -1224,6 +1224,7 @@ MEMZERO
 
 
 
+%ifndef HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------
 ; void integral_init4h( uint16_t *sum, uint8_t *pix, int stride )
 ;-----------------------------------------------------------------------------
@@ -1276,6 +1277,7 @@ INIT_XMM sse4
 INTEGRAL_INIT8H
 INIT_XMM avx
 INTEGRAL_INIT8H
+%endif ; !HIGH_BIT_DEPTH
 
 %macro INTEGRAL_INIT_8V 0
 ;-----------------------------------------------------------------------------
