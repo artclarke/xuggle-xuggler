@@ -792,8 +792,8 @@ cglobal deblock_h_luma_intra_%1, 4,7,8*(mmsize/16)
 
 %ifndef ARCH_X86_64
 INIT_MMX
-DEBLOCK_LUMA mmxext
-DEBLOCK_LUMA_INTRA mmxext
+DEBLOCK_LUMA mmx2
+DEBLOCK_LUMA_INTRA mmx2
 INIT_XMM
 DEBLOCK_LUMA sse2
 DEBLOCK_LUMA_INTRA sse2
@@ -1314,7 +1314,7 @@ cglobal deblock_h_luma_%1, 0,5
 %endmacro ; DEBLOCK_LUMA
 
 INIT_MMX
-DEBLOCK_LUMA mmxext, v8, 8
+DEBLOCK_LUMA mmx2, v8, 8
 INIT_XMM
 DEBLOCK_LUMA sse2, v, 16
 INIT_AVX
@@ -1593,7 +1593,7 @@ INIT_AVX
 DEBLOCK_LUMA_INTRA avx , v
 %ifndef ARCH_X86_64
 INIT_MMX
-DEBLOCK_LUMA_INTRA mmxext, v8
+DEBLOCK_LUMA_INTRA mmx2, v8
 %endif
 %endif ; !HIGH_BIT_DEPTH
 
@@ -1774,7 +1774,7 @@ deblock_intra_body_%1:
 
 %ifndef ARCH_X86_64
 INIT_MMX
-DEBLOCK_CHROMA mmxext
+DEBLOCK_CHROMA mmx2
 %endif
 INIT_XMM
 DEBLOCK_CHROMA sse2
@@ -1880,7 +1880,7 @@ INIT_AVX
 DEBLOCK_CHROMA avx
 %ifndef ARCH_X86_64
 INIT_MMX
-DEBLOCK_CHROMA mmxext
+DEBLOCK_CHROMA mmx2
 %endif
 
 
@@ -1947,7 +1947,7 @@ INIT_AVX
 DEBLOCK_CHROMA_INTRA avx
 %ifndef ARCH_X86_64
 INIT_MMX
-DEBLOCK_CHROMA_INTRA mmxext
+DEBLOCK_CHROMA_INTRA mmx2
 %endif
 %endif ; !HIGH_BIT_DEPTH
 
@@ -2039,7 +2039,7 @@ DEBLOCK_CHROMA_INTRA mmxext
 %endmacro
 
 INIT_MMX
-cglobal deblock_strength_mmxext, 6,6
+cglobal deblock_strength_mmx2, 6,6
     ; Prepare mv comparison register
     shl      r4d, 8
     add      r4d, 3 - (1<<8)

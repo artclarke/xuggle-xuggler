@@ -767,7 +767,7 @@ ADD16x16 avx
 %endmacro
 
 INIT_MMX
-cglobal sub8x8_dct_dc_mmxext, 3,3
+cglobal sub8x8_dct_dc_mmx2, 3,3
     DCTDC_2ROW_MMX m0, m4, 0
     DCTDC_2ROW_MMX m5, m6, 2
     paddw     m0, m5
@@ -1028,12 +1028,12 @@ cglobal zigzag_scan_8x8_frame_%1, 2,2,8*(mmsize/16)
 
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM
-SCAN_8x8_FRAME sse2  , 4 , dq, qdq, dq, d
+SCAN_8x8_FRAME sse2, 4 , dq, qdq, dq, d
 INIT_AVX
-SCAN_8x8_FRAME avx   , 4 , dq, qdq, dq, d
+SCAN_8x8_FRAME avx , 4 , dq, qdq, dq, d
 %else
 INIT_MMX
-SCAN_8x8_FRAME mmxext, 16, q , dq , wd, w
+SCAN_8x8_FRAME mmx2, 16, q , dq , wd, w
 %endif
 
 ;-----------------------------------------------------------------------------
@@ -1123,7 +1123,7 @@ cglobal zigzag_scan_4x4_field_sse2, 2,3
 ; void zigzag_scan_4x4_field( int16_t level[16], int16_t dct[4][4] )
 ;-----------------------------------------------------------------------------
 ; sse2 is only 1 cycle faster, and ssse3/pshufb is slower on core2
-cglobal zigzag_scan_4x4_field_mmxext, 2,3
+cglobal zigzag_scan_4x4_field_mmx2, 2,3
     pshufw     mm0, [r1+4], 0xd2
     movq       mm1, [r1+16]
     movq       mm2, [r1+24]
@@ -1228,12 +1228,12 @@ cglobal zigzag_scan_8x8_field_%1, 2,3,8*(mmsize/16)
 %endmacro
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM
-SCAN_8x8 sse4  , d, dq, qdq, dq, 4
+SCAN_8x8 sse4, d, dq, qdq, dq, 4
 INIT_AVX
-SCAN_8x8 avx   , d, dq, qdq, dq, 4
+SCAN_8x8 avx , d, dq, qdq, dq, 4
 %else
 INIT_MMX
-SCAN_8x8 mmxext, w, wd, dq , q , 16
+SCAN_8x8 mmx2, w, wd, dq , q , 16
 %endif
 
 ;-----------------------------------------------------------------------------

@@ -196,7 +196,7 @@ INIT_AVX
 PREDICT_4x4_DDL avx , dq, 2, w
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
-cglobal predict_4x4_ddl_mmxext, 1,2
+cglobal predict_4x4_ddl_mmx2, 1,2
     mova    m1, [r0-2*FDEC_STRIDE+4]
     mova    m2, [r0-2*FDEC_STRIDE+0]
     mova    m3, [r0-2*FDEC_STRIDE+2]
@@ -219,7 +219,7 @@ cglobal predict_4x4_ddl_mmxext, 1,2
     RET
 %else
 INIT_MMX
-PREDICT_4x4_DDL mmxext, q , 8, b
+PREDICT_4x4_DDL mmx2, q, 8, b
 %endif
 
 ;-----------------------------------------------------------------------------
@@ -340,7 +340,7 @@ cglobal predict_4x4_hd_%1, 1,1,6*(mmsize/16)
 %ifdef HIGH_BIT_DEPTH
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
-cglobal predict_4x4_ddr_mmxext, 1,1
+cglobal predict_4x4_ddr_mmx2, 1,1
     movq    m3, [r0+3*FDEC_STRIDEB-8]
     psrlq   m3, 48
     PALIGNR m3, [r0+2*FDEC_STRIDEB-8], 6, m6
@@ -376,7 +376,7 @@ cglobal predict_4x4_ddr_mmxext, 1,1
     movd    [r0+3*FDEC_STRIDEB+4], m1
     RET
 
-cglobal predict_4x4_hd_mmxext, 1,1
+cglobal predict_4x4_hd_mmx2, 1,1
     mova      m0, [r0+1*FDEC_STRIDEB-8]
     punpckhwd m0, [r0+0*FDEC_STRIDEB-8]
     mova      m1, [r0+3*FDEC_STRIDEB-8]
@@ -414,17 +414,17 @@ cglobal predict_4x4_hd_mmxext, 1,1
 
 INIT_XMM
 %define PALIGNR PALIGNR_MMX
-PREDICT_4x4 sse2  , wd, dq, dq, w, qdq, 2
+PREDICT_4x4 sse2 , wd, dq, dq, w, qdq, 2
 %define PALIGNR PALIGNR_SSSE3
-PREDICT_4x4 ssse3 , wd, dq, dq, w, qdq, 2
+PREDICT_4x4 ssse3, wd, dq, dq, w, qdq, 2
 INIT_AVX
-PREDICT_4x4 avx   , wd, dq, dq, w, qdq, 2
+PREDICT_4x4 avx  , wd, dq, dq, w, qdq, 2
 %else
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
-PREDICT_4x4 mmxext, bw, wd, q , b, dq , 8
+PREDICT_4x4 mmx2 , bw, wd, q , b, dq , 8
 %define PALIGNR PALIGNR_SSSE3
-PREDICT_4x4 ssse3 , bw, wd, q , b, dq , 8
+PREDICT_4x4 ssse3, bw, wd, q , b, dq , 8
 %endif
 
 ;-----------------------------------------------------------------------------
@@ -432,7 +432,7 @@ PREDICT_4x4 ssse3 , bw, wd, q , b, dq , 8
 ;-----------------------------------------------------------------------------
 %ifdef HIGH_BIT_DEPTH
 INIT_MMX
-cglobal predict_4x4_hu_mmxext, 1,1
+cglobal predict_4x4_hu_mmx2, 1,1
     movq      m0, [r0+0*FDEC_STRIDEB-4*2]
     punpckhwd m0, [r0+1*FDEC_STRIDEB-4*2]
     movq      m1, [r0+2*FDEC_STRIDEB-4*2]
@@ -461,7 +461,7 @@ cglobal predict_4x4_hu_mmxext, 1,1
 
 %else ; !HIGH_BIT_DEPTH
 INIT_MMX
-cglobal predict_4x4_hu_mmxext, 1,1
+cglobal predict_4x4_hu_mmx2, 1,1
     movq      mm0, [r0+0*FDEC_STRIDE-8]
     punpckhbw mm0, [r0+1*FDEC_STRIDE-8]
     movq      mm1, [r0+2*FDEC_STRIDE-8]
@@ -520,7 +520,7 @@ PREDICT_4x4_V1 avx , dq, 2, w
 
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
-cglobal predict_4x4_vl_mmxext, 1,4
+cglobal predict_4x4_vl_mmx2, 1,4
     mova    m1, [r0-FDEC_STRIDEB+0]
     mova    m2, [r0-FDEC_STRIDEB+8]
     mova    m3, m2
@@ -549,7 +549,7 @@ cglobal predict_4x4_vl_mmxext, 1,4
     RET
 %else
 INIT_MMX
-PREDICT_4x4_V1 mmxext, q , 8, b
+PREDICT_4x4_V1 mmx2, q, 8, b
 %endif
 
 ;-----------------------------------------------------------------------------
@@ -557,7 +557,7 @@ PREDICT_4x4_V1 mmxext, q , 8, b
 ;-----------------------------------------------------------------------------
 %ifdef HIGH_BIT_DEPTH
 INIT_MMX
-cglobal predict_4x4_dc_mmxext, 1,1
+cglobal predict_4x4_dc_mmx2, 1,1
     mova   m2, [r0+0*FDEC_STRIDEB-4*SIZEOF_PIXEL]
     paddw  m2, [r0+1*FDEC_STRIDEB-4*SIZEOF_PIXEL]
     paddw  m2, [r0+2*FDEC_STRIDEB-4*SIZEOF_PIXEL]
@@ -577,7 +577,7 @@ cglobal predict_4x4_dc_mmxext, 1,1
 
 %else
 INIT_MMX
-cglobal predict_4x4_dc_mmxext, 1,4
+cglobal predict_4x4_dc_mmx2, 1,4
     pxor   mm7, mm7
     movd   mm0, [r0-FDEC_STRIDE]
     psadbw mm0, mm7
@@ -706,17 +706,17 @@ cglobal predict_8x8_filter_%1, 4,5,7*(mmsize/16)
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM
 %define PALIGNR PALIGNR_MMX
-PREDICT_FILTER sse2  , w, d, q, dq, 2
+PREDICT_FILTER sse2 , w, d, q, dq, 2
 %define PALIGNR PALIGNR_SSSE3
-PREDICT_FILTER ssse3 , w, d, q, dq, 2
+PREDICT_FILTER ssse3, w, d, q, dq, 2
 INIT_AVX
-PREDICT_FILTER avx   , w, d, q, dq, 2
+PREDICT_FILTER avx  , w, d, q, dq, 2
 %else
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
-PREDICT_FILTER mmxext, b, w, d, q , 8
+PREDICT_FILTER mmx2 , b, w, d, q , 8
 %define PALIGNR PALIGNR_SSSE3
-PREDICT_FILTER ssse3 , b, w, d, q , 8
+PREDICT_FILTER ssse3, b, w, d, q , 8
 %endif
 
 ;-----------------------------------------------------------------------------
@@ -734,7 +734,7 @@ INIT_XMM
 PREDICT_8x8_V sse2
 %else
 INIT_MMX
-PREDICT_8x8_V mmxext
+PREDICT_8x8_V mmx2
 %endif
 
 ;-----------------------------------------------------------------------------
@@ -758,10 +758,10 @@ cglobal predict_8x8_h_%1, 2,2
 
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM
-PREDICT_8x8_H sse2  , wd, D
+PREDICT_8x8_H sse2, wd, D
 %else
 INIT_MMX
-PREDICT_8x8_H mmxext, bw, W
+PREDICT_8x8_H mmx2, bw, W
 %endif
 
 ;-----------------------------------------------------------------------------
@@ -781,7 +781,7 @@ cglobal predict_8x8_dc_sse2, 2,2
 
 %else
 INIT_MMX
-cglobal predict_8x8_dc_mmxext, 2,2
+cglobal predict_8x8_dc_mmx2, 2,2
     pxor        mm0, mm0
     pxor        mm1, mm1
     psadbw      mm0, [r1+7]
@@ -827,8 +827,8 @@ cglobal %1, 2,2
     RET
 %endmacro
 INIT_MMX
-PREDICT_8x8_DC predict_8x8_dc_top_mmxext, 16
-PREDICT_8x8_DC predict_8x8_dc_left_mmxext, 7
+PREDICT_8x8_DC predict_8x8_dc_top_mmx2, 16
+PREDICT_8x8_DC predict_8x8_dc_left_mmx2, 7
 %endif ; HIGH_BIT_DEPTH
 
 ; sse2 is faster even on amd for 8-bit, so there's no sense in spending exe
@@ -902,12 +902,12 @@ cglobal predict_8x8_ddr_%1, 2,2,7*(mmsize/16)
 
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM
-PREDICT_8x8 sse2  , w, dq, 2
+PREDICT_8x8 sse2, w, dq, 2
 INIT_AVX
-PREDICT_8x8 avx   , w, dq, 2
+PREDICT_8x8 avx , w, dq, 2
 %elifndef ARCH_X86_64
 INIT_MMX
-PREDICT_8x8 mmxext, b, q , 8
+PREDICT_8x8 mmx2, b, q , 8
 %endif
 
 ;-----------------------------------------------------------------------------
@@ -957,15 +957,15 @@ cglobal predict_8x8_hu_%1, 2,2,8*(mmsize/16)
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM
 %define PALIGNR PALIGNR_MMX
-PREDICT_8x8_HU sse2  , w, dq, d, wd, 2
+PREDICT_8x8_HU sse2 , w, dq, d, wd, 2
 %define PALIGNR PALIGNR_SSSE3
-PREDICT_8x8_HU ssse3 , w, dq, d, wd, 2
+PREDICT_8x8_HU ssse3, w, dq, d, wd, 2
 INIT_AVX
-PREDICT_8x8_HU avx   , w, dq, d, wd, 2
+PREDICT_8x8_HU avx  , w, dq, d, wd, 2
 %elifndef ARCH_X86_64
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
-PREDICT_8x8_HU mmxext, b, q , w, bw, 8
+PREDICT_8x8_HU mmx2 , b, q , w, bw, 8
 %endif
 
 ;-----------------------------------------------------------------------------
@@ -1006,15 +1006,15 @@ cglobal predict_8x8_vr_%1, 2,3,7*(mmsize/16)
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM
 %define PALIGNR PALIGNR_MMX
-PREDICT_8x8_VR sse2  , w, dq, 2
+PREDICT_8x8_VR sse2 , w, dq, 2
 %define PALIGNR PALIGNR_SSSE3
-PREDICT_8x8_VR ssse3 , w, dq, 2
+PREDICT_8x8_VR ssse3, w, dq, 2
 INIT_AVX
-PREDICT_8x8_VR avx   , w, dq, 2
+PREDICT_8x8_VR avx  , w, dq, 2
 %else
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
-PREDICT_8x8_VR mmxext, b, q , 8
+PREDICT_8x8_VR mmx2 , b, q , 8
 %endif
 
 ;-----------------------------------------------------------------------------
@@ -1022,7 +1022,7 @@ PREDICT_8x8_VR mmxext, b, q , 8
 ;-----------------------------------------------------------------------------
 %ifndef ARCH_X86_64
 INIT_MMX
-cglobal predict_8x8c_p_core_mmxext, 1,2
+cglobal predict_8x8c_p_core_mmx2, 1,2
     LOAD_PLANE_ARGS
     movq        mm1, mm2
     pmullw      mm2, [pw_3210]
@@ -1110,7 +1110,7 @@ call .loop
 ; void predict_16x16_p_core( uint8_t *src, int i00, int b, int c )
 ;-----------------------------------------------------------------------------
 %ifndef ARCH_X86_64
-cglobal predict_16x16_p_core_mmxext, 1,2
+cglobal predict_16x16_p_core_mmx2, 1,2
     LOAD_PLANE_ARGS
     movq        mm5, mm2
     movq        mm1, mm2
@@ -1374,15 +1374,15 @@ cglobal predict_8x8_hd_%1, 2,2,8*(mmsize/16)
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM
 %define PALIGNR PALIGNR_MMX
-PREDICT_8x8_HD sse2  , w, dq, wd, 2
+PREDICT_8x8_HD sse2 , w, dq, wd, 2
 %define PALIGNR PALIGNR_SSSE3
-PREDICT_8x8_HD ssse3 , w, dq, wd, 2
+PREDICT_8x8_HD ssse3, w, dq, wd, 2
 INIT_AVX
-PREDICT_8x8_HD avx   , w, dq, wd, 2
+PREDICT_8x8_HD avx  , w, dq, wd, 2
 %else
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
-PREDICT_8x8_HD mmxext, b, q , bw, 8
+PREDICT_8x8_HD mmx2 , b, q , bw, 8
 
 ;-----------------------------------------------------------------------------
 ; void predict_8x8_hd( uint8_t *src, uint8_t *edge )
@@ -1569,7 +1569,7 @@ cglobal predict_8x8c_h_%1, 1,1
 
 INIT_MMX
 %define SPLATB SPLATB_MMX
-PREDICT_8x8C_H mmxext
+PREDICT_8x8C_H mmx2
 %define SPLATB SPLATB_SSSE3
 PREDICT_8x8C_H ssse3
 
@@ -1663,7 +1663,7 @@ cglobal predict_8x8c_dc_%1, 1,3
 %endmacro
 
 INIT_MMX
-PREDICT_8x8C_DC mmxext
+PREDICT_8x8C_DC mmx2
 %ifdef HIGH_BIT_DEPTH
 PREDICT_8x8C_DC sse2
 %endif
@@ -1686,7 +1686,7 @@ cglobal predict_8x8c_dc_top_sse2, 1,1
 
 %else
 
-cglobal predict_8x8c_dc_top_mmxext, 1,1
+cglobal predict_8x8c_dc_top_mmx2, 1,1
     movq        mm0, [r0 - FDEC_STRIDE]
     pxor        mm1, mm1
     pxor        mm2, mm2
@@ -1781,7 +1781,7 @@ cglobal predict_16x16_h_%1, 1,2
 
 INIT_MMX
 %define SPLATB SPLATB_MMX
-PREDICT_16x16_H mmxext
+PREDICT_16x16_H mmx2
 INIT_XMM
 %ifdef HIGH_BIT_DEPTH
 PREDICT_16x16_H sse2
@@ -1821,7 +1821,7 @@ PREDICT_16x16_H ssse3
 %endmacro
 
 INIT_MMX
-cglobal predict_16x16_dc_core_mmxext, 1,2
+cglobal predict_16x16_dc_core_mmx2, 1,2
 %ifdef ARCH_X86_64
     movd         m6, r1d
     PRED16x16_DC m6, 5
@@ -1831,19 +1831,19 @@ cglobal predict_16x16_dc_core_mmxext, 1,2
     REP_RET
 
 INIT_MMX
-cglobal predict_16x16_dc_top_mmxext, 1,2
+cglobal predict_16x16_dc_top_mmx2, 1,2
     PRED16x16_DC [pw_8], 4
     REP_RET
 
 INIT_MMX
 %ifdef HIGH_BIT_DEPTH
-cglobal predict_16x16_dc_left_core_mmxext, 1,2
+cglobal predict_16x16_dc_left_core_mmx2, 1,2
     movd       m0, r1m
     SPLATW     m0, m0
     STORE16x16 m0, m0, m0, m0
     REP_RET
 %else
-cglobal predict_16x16_dc_left_core_mmxext, 1,1
+cglobal predict_16x16_dc_left_core_mmx2, 1,1
     movd       m0, r1m
     pshufw     m0, m0, 0
     packuswb   m0, m0

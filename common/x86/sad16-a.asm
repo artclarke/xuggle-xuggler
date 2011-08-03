@@ -105,13 +105,13 @@ cglobal pixel_sad_%1x%2_%4, 4,4
 INIT_MMX
 %define ABS1 ABS1_MMX
 %define ABS2 ABS2_MMX
-SAD_MMX 16, 16, 1, mmxext
-SAD_MMX 16,  8, 1, mmxext
-SAD_MMX  8, 16, 2, mmxext
-SAD_MMX  8,  8, 2, mmxext
-SAD_MMX  8,  4, 2, mmxext
-SAD_MMX  4,  8, 2, mmxext
-SAD_MMX  4,  4, 2, mmxext
+SAD_MMX 16, 16, 1, mmx2
+SAD_MMX 16,  8, 1, mmx2
+SAD_MMX  8, 16, 2, mmx2
+SAD_MMX  8,  8, 2, mmx2
+SAD_MMX  8,  4, 2, mmx2
+SAD_MMX  4,  8, 2, mmx2
+SAD_MMX  4,  4, 2, mmx2
 %define ABS1 ABS1_SSSE3
 %define ABS2 ABS2_SSSE3
 SAD_MMX  4,  8, 2, ssse3
@@ -389,20 +389,20 @@ INIT_MMX
 %define XMM_REGS 0
 %define ABS1 ABS1_MMX
 %define ABS2 ABS2_MMX
-SAD_X 3, 16, 16, mmxext
-SAD_X 3, 16,  8, mmxext
-SAD_X 3,  8, 16, mmxext
-SAD_X 3,  8,  8, mmxext
-SAD_X 3,  8,  4, mmxext
-SAD_X 3,  4,  8, mmxext
-SAD_X 3,  4,  4, mmxext
-SAD_X 4, 16, 16, mmxext
-SAD_X 4, 16,  8, mmxext
-SAD_X 4,  8, 16, mmxext
-SAD_X 4,  8,  8, mmxext
-SAD_X 4,  8,  4, mmxext
-SAD_X 4,  4,  8, mmxext
-SAD_X 4,  4,  4, mmxext
+SAD_X 3, 16, 16, mmx2
+SAD_X 3, 16,  8, mmx2
+SAD_X 3,  8, 16, mmx2
+SAD_X 3,  8,  8, mmx2
+SAD_X 3,  8,  4, mmx2
+SAD_X 3,  4,  8, mmx2
+SAD_X 3,  4,  4, mmx2
+SAD_X 4, 16, 16, mmx2
+SAD_X 4, 16,  8, mmx2
+SAD_X 4,  8, 16, mmx2
+SAD_X 4,  8,  8, mmx2
+SAD_X 4,  8,  4, mmx2
+SAD_X 4,  4,  8, mmx2
+SAD_X 4,  4,  4, mmx2
 %define ABS1 ABS1_SSSE3
 %define ABS2 ABS2_SSSE3
 SAD_X 3,  4,  8, ssse3

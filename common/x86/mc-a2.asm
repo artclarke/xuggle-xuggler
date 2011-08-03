@@ -302,7 +302,7 @@ cglobal hpel_filter_h_%1, 3,4,8*(mmsize/16)
 %endmacro ; HPEL_FILTER
 
 INIT_MMX
-HPEL_FILTER mmxext
+HPEL_FILTER mmx2
 INIT_XMM
 HPEL_FILTER sse2
 %endif ; HIGH_BIT_DEPTH
@@ -370,7 +370,7 @@ cglobal hpel_filter_v_%1, 5,6,%2
 ;-----------------------------------------------------------------------------
 ; void hpel_filter_c( uint8_t *dst, int16_t *buf, int width );
 ;-----------------------------------------------------------------------------
-cglobal hpel_filter_c_mmxext, 3,3
+cglobal hpel_filter_c_mmx2, 3,3
     add r0, r2
     lea r1, [r1+r2*2]
     neg r2
@@ -399,7 +399,7 @@ cglobal hpel_filter_c_mmxext, 3,3
 ;-----------------------------------------------------------------------------
 ; void hpel_filter_h( uint8_t *dst, uint8_t *src, int width );
 ;-----------------------------------------------------------------------------
-cglobal hpel_filter_h_mmxext, 3,3
+cglobal hpel_filter_h_mmx2, 3,3
     add r0, r2
     add r1, r2
     neg r2
@@ -599,18 +599,18 @@ cglobal hpel_filter_h_ssse3, 3,3
 
 %define PALIGNR PALIGNR_MMX
 INIT_MMX
-HPEL_V mmxext, 0, 1
+HPEL_V mmx2,  0, 1
 INIT_XMM
-HPEL_V sse2,   8, 1
+HPEL_V sse2,  8, 1
 HPEL_C sse2_misalign
 %ifndef ARCH_X86_64
 HPEL_C sse2
 %define PALIGNR PALIGNR_SSSE3
 HPEL_C ssse3
-HPEL_V ssse3,  0, 0
+HPEL_V ssse3, 0, 0
 INIT_AVX
 HPEL_C avx
-HPEL_V avx,    0, 0
+HPEL_V avx,   0, 0
 %endif
 
 %ifdef ARCH_X86_64
@@ -806,7 +806,7 @@ HPEL avx
 ;-----------------------------------------------------------------------------
 ; assumes i_dst and w are multiples of 16, and i_dst>w
 INIT_MMX
-cglobal plane_copy_core_mmxext, 6,7
+cglobal plane_copy_core_mmx2, 6,7
     FIX_STRIDES r1d, r3d, r4d
     movsxdifnidn r1, r1d
     movsxdifnidn r3, r3d
@@ -1109,7 +1109,7 @@ cglobal load_deinterleave_8x8x2_fdec_%1, 3,4
 
 %ifdef HIGH_BIT_DEPTH
 INIT_MMX
-PLANE_INTERLEAVE mmxext
+PLANE_INTERLEAVE mmx2
 PLANE_DEINTERLEAVE mmx
 INIT_XMM
 PLANE_INTERLEAVE sse2
@@ -1119,7 +1119,7 @@ PLANE_INTERLEAVE avx
 PLANE_DEINTERLEAVE avx
 %else
 INIT_MMX
-PLANE_INTERLEAVE mmxext
+PLANE_INTERLEAVE mmx2
 PLANE_DEINTERLEAVE mmx
 INIT_XMM
 PLANE_INTERLEAVE sse2
@@ -1514,7 +1514,7 @@ cglobal frame_init_lowres_core_%1, 6,7,(12-4*(BIT_DEPTH/9))*(mmsize/16) ; 8 for 
     psrld     m7, 16
 .vloop:
     mov      r6d, r7m
-%ifnidn %1,mmxext
+%ifnidn %1,mmx2
     mova      m0, [r0]
     mova      m1, [r0+r5]
     pavgw     m0, m1
@@ -1526,7 +1526,7 @@ cglobal frame_init_lowres_core_%1, 6,7,(12-4*(BIT_DEPTH/9))*(mmsize/16) ; 8 for 
     sub       r2, mmsize
     sub       r3, mmsize
     sub       r4, mmsize
-%ifidn %1,mmxext
+%ifidn %1,mmx2
     FILT8xU r1, r2, 0
     FILT8xU r3, r4, r5
 %else
@@ -1550,7 +1550,7 @@ cglobal frame_init_lowres_core_%1, 6,7,(12-4*(BIT_DEPTH/9))*(mmsize/16) ; 8 for 
     psrlw     m7, 8
 .vloop:
     mov      r6d, r7m
-%ifnidn %1, mmxext
+%ifnidn %1, mmx2
     mova      m0, [r0]
     mova      m1, [r0+r5]
     pavgb     m0, m1
@@ -1590,7 +1590,7 @@ cglobal frame_init_lowres_core_%1, 6,7,(12-4*(BIT_DEPTH/9))*(mmsize/16) ; 8 for 
     mova    [r2], m4
     mova    [r3], m3
     mova    [r4], m5
-%elifidn %1, mmxext
+%elifidn %1, mmx2
     FILT8x2U  r1, r2, 0
     FILT8x2U  r3, r4, r5
 %else
@@ -1616,9 +1616,9 @@ cglobal frame_init_lowres_core_%1, 6,7,(12-4*(BIT_DEPTH/9))*(mmsize/16) ; 8 for 
 
 INIT_MMX
 %define PALIGNR PALIGNR_MMX
-FRAME_INIT_LOWRES mmxext
+FRAME_INIT_LOWRES mmx2
 %ifndef ARCH_X86_64
-FRAME_INIT_LOWRES cache32_mmxext
+FRAME_INIT_LOWRES cache32_mmx2
 %endif
 INIT_XMM
 FRAME_INIT_LOWRES sse2

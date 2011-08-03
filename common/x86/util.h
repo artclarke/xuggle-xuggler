@@ -41,8 +41,8 @@ typedef uint32_t v4si __attribute__((vector_size (16)));
 
 #if HAVE_X86_INLINE_ASM && HAVE_MMX
 
-#define x264_median_mv x264_median_mv_mmxext
-static ALWAYS_INLINE void x264_median_mv_mmxext( int16_t *dst, int16_t *a, int16_t *b, int16_t *c )
+#define x264_median_mv x264_median_mv_mmx2
+static ALWAYS_INLINE void x264_median_mv_mmx2( int16_t *dst, int16_t *a, int16_t *b, int16_t *c )
 {
     asm(
         "movd   %1,    %%mm0 \n"
@@ -59,8 +59,8 @@ static ALWAYS_INLINE void x264_median_mv_mmxext( int16_t *dst, int16_t *a, int16
     );
 }
 
-#define x264_predictor_difference x264_predictor_difference_mmxext
-static ALWAYS_INLINE int x264_predictor_difference_mmxext( int16_t (*mvc)[2], intptr_t i_mvc )
+#define x264_predictor_difference x264_predictor_difference_mmx2
+static ALWAYS_INLINE int x264_predictor_difference_mmx2( int16_t (*mvc)[2], intptr_t i_mvc )
 {
     int sum;
     static const uint64_t pw_1 = 0x0001000100010001ULL;
@@ -95,8 +95,8 @@ static ALWAYS_INLINE int x264_predictor_difference_mmxext( int16_t (*mvc)[2], in
     return sum;
 }
 
-#define x264_cabac_mvd_sum x264_cabac_mvd_sum_mmxext
-static ALWAYS_INLINE uint16_t x264_cabac_mvd_sum_mmxext(uint8_t *mvdleft, uint8_t *mvdtop)
+#define x264_cabac_mvd_sum x264_cabac_mvd_sum_mmx2
+static ALWAYS_INLINE uint16_t x264_cabac_mvd_sum_mmx2(uint8_t *mvdleft, uint8_t *mvdtop)
 {
     static const uint64_t pb_2    = 0x0202020202020202ULL;
     static const uint64_t pb_32   = 0x2020202020202020ULL;
@@ -121,8 +121,8 @@ static ALWAYS_INLINE uint16_t x264_cabac_mvd_sum_mmxext(uint8_t *mvdleft, uint8_
     return amvd;
 }
 
-#define x264_predictor_roundclip x264_predictor_roundclip_mmxext
-static void ALWAYS_INLINE x264_predictor_roundclip_mmxext( int16_t (*dst)[2], int16_t (*mvc)[2], int i_mvc, int mv_x_min, int mv_x_max, int mv_y_min, int mv_y_max )
+#define x264_predictor_roundclip x264_predictor_roundclip_mmx2
+static void ALWAYS_INLINE x264_predictor_roundclip_mmx2( int16_t (*dst)[2], int16_t (*mvc)[2], int i_mvc, int mv_x_min, int mv_x_max, int mv_y_min, int mv_y_max )
 {
     uint32_t mv_min = pack16to32_mask( mv_x_min, mv_y_min );
     uint32_t mv_max = pack16to32_mask( mv_x_max, mv_y_max );

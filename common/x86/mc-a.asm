@@ -223,9 +223,9 @@ cglobal pixel_avg_weight_w%2_%1
 %define BIWEIGHT BIWEIGHT_MMX
 %define BIWEIGHT_START BIWEIGHT_START_MMX
 INIT_MMX
-AVG_WEIGHT mmxext, 4
-AVG_WEIGHT mmxext, 8
-AVG_WEIGHT mmxext, 16
+AVG_WEIGHT mmx2, 4
+AVG_WEIGHT mmx2, 8
+AVG_WEIGHT mmx2, 16
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM
 AVG_WEIGHT sse2, 4,  8
@@ -444,11 +444,11 @@ AVG_WEIGHT ssse3, 16, 7
 %endmacro
 
 INIT_MMX
-WEIGHTER  4, mmxext
-WEIGHTER  8, mmxext
-WEIGHTER 12, mmxext
-WEIGHTER 16, mmxext
-WEIGHTER 20, mmxext
+WEIGHTER  4, mmx2
+WEIGHTER  8, mmx2
+WEIGHTER 12, mmx2
+WEIGHTER 16, mmx2
+WEIGHTER 20, mmx2
 INIT_XMM
 WEIGHTER  8, sse2
 WEIGHTER 16, sse2
@@ -540,11 +540,11 @@ WEIGHTER 20, avx
        OFFSET %1, %2, sub
 %endmacro
 INIT_MMX
-OFFSETPN  4, mmxext
-OFFSETPN  8, mmxext
-OFFSETPN 12, mmxext
-OFFSETPN 16, mmxext
-OFFSETPN 20, mmxext
+OFFSETPN  4, mmx2
+OFFSETPN  8, mmx2
+OFFSETPN 12, mmx2
+OFFSETPN 16, mmx2
+OFFSETPN 20, mmx2
 INIT_XMM
 OFFSETPN 12, sse2
 OFFSETPN 16, sse2
@@ -582,7 +582,7 @@ cglobal pixel_avg_%1x%2_%3
     test dword r4m, 15
     jz pixel_avg_w%1_sse2
 %endif
-    jmp pixel_avg_w%1_mmxext
+    jmp pixel_avg_w%1_mmx2
 %endmacro
 
 ;-----------------------------------------------------------------------------
@@ -616,19 +616,19 @@ cglobal pixel_avg_w%1_%4
 %ifdef HIGH_BIT_DEPTH
 
 INIT_MMX
-AVG_FUNC 4, movq, movq, mmxext
-AVGH 4, 8, mmxext
-AVGH 4, 4, mmxext
-AVGH 4, 2, mmxext
+AVG_FUNC 4, movq, movq, mmx2
+AVGH 4, 8, mmx2
+AVGH 4, 4, mmx2
+AVGH 4, 2, mmx2
 
-AVG_FUNC 8, movq, movq, mmxext
-AVGH 8, 16, mmxext
-AVGH 8,  8, mmxext
-AVGH 8,  4, mmxext
+AVG_FUNC 8, movq, movq, mmx2
+AVGH 8, 16, mmx2
+AVGH 8,  8, mmx2
+AVGH 8,  4, mmx2
 
-AVG_FUNC 16, movq, movq, mmxext
-AVGH 16, 16, mmxext
-AVGH 16,  8, mmxext
+AVG_FUNC 16, movq, movq, mmx2
+AVGH 16, 16, mmx2
+AVGH 16,  8, mmx2
 
 INIT_XMM
 AVG_FUNC 4, movq, movq, sse2
@@ -648,19 +648,19 @@ AVGH  16,  8, sse2
 %else ;!HIGH_BIT_DEPTH
 
 INIT_MMX
-AVG_FUNC 4, movd, movd, mmxext
-AVGH 4, 8, mmxext
-AVGH 4, 4, mmxext
-AVGH 4, 2, mmxext
+AVG_FUNC 4, movd, movd, mmx2
+AVGH 4, 8, mmx2
+AVGH 4, 4, mmx2
+AVGH 4, 2, mmx2
 
-AVG_FUNC 8, movq, movq, mmxext
-AVGH 8, 16, mmxext
-AVGH 8,  8, mmxext
-AVGH 8,  4, mmxext
+AVG_FUNC 8, movq, movq, mmx2
+AVGH 8, 16, mmx2
+AVGH 8,  8, mmx2
+AVGH 8,  4, mmx2
 
-AVG_FUNC 16, movq, movq, mmxext
-AVGH 16, 16, mmxext
-AVGH 16, 8,  mmxext
+AVG_FUNC 16, movq, movq, mmx2
+AVGH 16, 16, mmx2
+AVGH 16, 8,  mmx2
 
 INIT_XMM
 AVG_FUNC 16, movdqu, movdqa, sse2
@@ -753,15 +753,15 @@ cglobal pixel_avg2_w%1_%4, 6,7,8*(mmsize/16)
 %endmacro
 
 INIT_MMX
-AVG2_W_ONE  4, mmxext
-AVG2_W_TWO  8, movu, mova, mmxext
+AVG2_W_ONE  4, mmx2
+AVG2_W_TWO  8, movu, mova, mmx2
 INIT_XMM
 AVG2_W_ONE  8, sse2
 AVG2_W_TWO 10, movd, movd, sse2
 AVG2_W_TWO 16, movu, mova, sse2
 
 INIT_MMX
-cglobal pixel_avg2_w10_mmxext, 6,7
+cglobal pixel_avg2_w10_mmx2, 6,7
     sub     r4, r2
     lea     r6, [r4+r3*2]
 .height_loop:
@@ -789,7 +789,7 @@ cglobal pixel_avg2_w10_mmxext, 6,7
     jg .height_loop
     REP_RET
 
-cglobal pixel_avg2_w16_mmxext, 6,7
+cglobal pixel_avg2_w16_mmx2, 6,7
     sub     r4, r2
     lea     r6, [r4+r3*2]
 .height_loop:
@@ -823,7 +823,7 @@ cglobal pixel_avg2_w16_mmxext, 6,7
     jg .height_loop
     REP_RET
 
-cglobal pixel_avg2_w18_mmxext, 6,7
+cglobal pixel_avg2_w18_mmx2, 6,7
     sub     r4, r2
 .height_loop:
     movu    m0, [r2+ 0]
@@ -877,7 +877,7 @@ cglobal pixel_avg2_w18_sse2, 6,7,6
 ;                     uint8_t *src2, int height );
 ;-----------------------------------------------------------------------------
 %macro AVG2_W8 2
-cglobal pixel_avg2_w%1_mmxext, 6,7
+cglobal pixel_avg2_w%1_mmx2, 6,7
     sub    r4, r2
     lea    r6, [r4+r3]
 .height_loop:
@@ -898,7 +898,7 @@ AVG2_W8 4, movd
 AVG2_W8 8, movq
 
 %macro AVG2_W16 2
-cglobal pixel_avg2_w%1_mmxext, 6,7
+cglobal pixel_avg2_w%1_mmx2, 6,7
     sub    r2, r4
     lea    r6, [r2+r3]
 .height_loop:
@@ -924,7 +924,7 @@ cglobal pixel_avg2_w%1_mmxext, 6,7
 AVG2_W16 12, movd
 AVG2_W16 16, movq
 
-cglobal pixel_avg2_w20_mmxext, 6,7
+cglobal pixel_avg2_w20_mmx2, 6,7
     sub    r2, r4
     lea    r6, [r2+r3]
 .height_loop:
@@ -1050,7 +1050,7 @@ AVG2_W20 sse2_misalign
 %endmacro
 
 %macro AVG_CACHELINE_FUNC 2
-pixel_avg2_w%1_cache_mmxext:
+pixel_avg2_w%1_cache_mmx2:
     AVG_CACHELINE_START
     AVG_CACHELINE_LOOP 0, movq
 %if %1>8
@@ -1069,9 +1069,9 @@ pixel_avg2_w%1_cache_mmxext:
 %macro AVG_CACHELINE_CHECK 3 ; width, cacheline, instruction set
 %if %1 == 12
 ;w12 isn't needed because w16 is just as fast if there's no cacheline split
-%define cachesplit pixel_avg2_w16_cache_mmxext
+%define cachesplit pixel_avg2_w16_cache_mmx2
 %else
-%define cachesplit pixel_avg2_w%1_cache_mmxext
+%define cachesplit pixel_avg2_w%1_cache_mmx2
 %endif
 cglobal pixel_avg2_w%1_cache%2_%3
     mov    eax, r2m
@@ -1105,15 +1105,15 @@ cglobal pixel_avg2_w%1_cache%2_%3
 %endif
 %endmacro
 
-AVG_CACHELINE_CHECK  8, 64, mmxext
-AVG_CACHELINE_CHECK 12, 64, mmxext
+AVG_CACHELINE_CHECK  8, 64, mmx2
+AVG_CACHELINE_CHECK 12, 64, mmx2
 %ifndef ARCH_X86_64
-AVG_CACHELINE_CHECK 16, 64, mmxext
-AVG_CACHELINE_CHECK 20, 64, mmxext
-AVG_CACHELINE_CHECK  8, 32, mmxext
-AVG_CACHELINE_CHECK 12, 32, mmxext
-AVG_CACHELINE_CHECK 16, 32, mmxext
-AVG_CACHELINE_CHECK 20, 32, mmxext
+AVG_CACHELINE_CHECK 16, 64, mmx2
+AVG_CACHELINE_CHECK 20, 64, mmx2
+AVG_CACHELINE_CHECK  8, 32, mmx2
+AVG_CACHELINE_CHECK 12, 32, mmx2
+AVG_CACHELINE_CHECK 16, 32, mmx2
+AVG_CACHELINE_CHECK 20, 32, mmx2
 %endif
 AVG_CACHELINE_CHECK 16, 64, sse2
 AVG_CACHELINE_CHECK 20, 64, sse2
@@ -1371,7 +1371,7 @@ COPY_W16_SSE2 mc_copy_w16_aligned_sse2, movdqa
 ;                     uint8_t *pix_uv, int stride_uv, int mb_x )
 ;-----------------------------------------------------------------------------
 %ifdef ARCH_X86_64
-cglobal prefetch_fenc_mmxext, 5,5
+cglobal prefetch_fenc_mmx2, 5,5
     and    r4d, 3
     mov    eax, r4d
     imul   r4d, r1d
@@ -1389,7 +1389,7 @@ cglobal prefetch_fenc_mmxext, 5,5
     RET
 
 %else
-cglobal prefetch_fenc_mmxext, 0,3
+cglobal prefetch_fenc_mmx2, 0,3
     mov    r2, r4m
     mov    r1, r1m
     mov    r0, r0m
@@ -1416,7 +1416,7 @@ cglobal prefetch_fenc_mmxext, 0,3
 ;-----------------------------------------------------------------------------
 ; void prefetch_ref( uint8_t *pix, int stride, int parity )
 ;-----------------------------------------------------------------------------
-cglobal prefetch_ref_mmxext, 3,3
+cglobal prefetch_ref_mmx2, 3,3
     dec    r2d
     and    r2d, r1d
     lea    r0,  [r0+r2*8+64]
@@ -1514,7 +1514,7 @@ cglobal mc_chroma_%1, 0,6
 %if mmsize==8
 .skip_prologue:
 %else
-    jl mc_chroma_mmxext %+ .skip_prologue
+    jl mc_chroma_mmx2 %+ .skip_prologue
     WIN64_SPILL_XMM 9
 %endif
     movd       m5, t2d
@@ -2009,7 +2009,7 @@ cglobal mc_chroma_%1, 0,6,9
 
 %ifdef HIGH_BIT_DEPTH
 INIT_MMX
-MC_CHROMA mmxext
+MC_CHROMA mmx2
 INIT_XMM
 MC_CHROMA sse2
 INIT_AVX
@@ -2017,7 +2017,7 @@ MC_CHROMA avx
 %else ; !HIGH_BIT_DEPTH
 INIT_MMX
 %define UNPACK_UNALIGNED UNPACK_UNALIGNED_MEM
-MC_CHROMA mmxext
+MC_CHROMA mmx2
 INIT_XMM
 MC_CHROMA sse2_misalign
 %define UNPACK_UNALIGNED UNPACK_UNALIGNED_LOAD

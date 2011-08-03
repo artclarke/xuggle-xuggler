@@ -96,7 +96,7 @@ cextern sw_64
 ; int pixel_sad_16x16( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
 %macro SAD 2
-cglobal pixel_sad_%1x%2_mmxext, 4,4
+cglobal pixel_sad_%1x%2_mmx2, 4,4
     pxor    mm0, mm0
 %rep %2/2
     SAD_INC_2x%1P
@@ -278,7 +278,7 @@ cglobal pixel_sad_8x16_sse2, 4,4
 
 %ifndef ARCH_X86_64
 INIT_MMX
-cglobal pixel_vsad_mmxext, 3,3
+cglobal pixel_vsad_mmx2, 3,3
     mova      m0, [r0]
     mova      m1, [r0+8]
     mova      m2, [r0+r1]
@@ -341,7 +341,7 @@ cglobal pixel_vsad_sse2, 3,3
 ; void intra_sad_x3_4x4( uint8_t *fenc, uint8_t *fdec, int res[3] );
 ;-----------------------------------------------------------------------------
 
-cglobal intra_sad_x3_4x4_mmxext, 3,3
+cglobal intra_sad_x3_4x4_mmx2, 3,3
     pxor      mm7, mm7
     movd      mm0, [r1-FDEC_STRIDE]
     movd      mm1, [r0+FENC_STRIDE*0]
@@ -462,7 +462,7 @@ INTRA_SADx3_4x4 avx
 %endmacro
 
 INIT_MMX
-cglobal intra_sad_x3_8x8_mmxext, 3,3
+cglobal intra_sad_x3_8x8_mmx2, 3,3
     movq      m7, [r1+7]
     pxor      m0, m0
     movq      m6, [r1+16]  ;V prediction
@@ -685,7 +685,7 @@ cglobal intra_sad_x3_8x8c_%1, 3,3
 %endmacro
 
 INIT_MMX
-INTRA_SAD_8x8C mmxext
+INTRA_SAD_8x8C mmx2
 INTRA_SAD_8x8C ssse3
 
 
@@ -775,7 +775,7 @@ cglobal intra_sad_x3_16x16_%1,3,5,%2
 
 INIT_MMX
 %define SPLATB SPLATB_MMX
-INTRA_SAD16 mmxext
+INTRA_SAD16 mmx2
 INIT_XMM
 INTRA_SAD16 sse2, 8
 %define SPLATB SPLATB_SSSE3
@@ -1003,7 +1003,7 @@ INTRA_SAD16 ssse3, 8
 ;                          uint8_t *pix2, int i_stride, int scores[3] )
 ;-----------------------------------------------------------------------------
 %macro SAD_X 3
-cglobal pixel_sad_x%1_%2x%3_mmxext, %1+2, %1+2
+cglobal pixel_sad_x%1_%2x%3_mmx2, %1+2, %1+2
 %ifdef WIN64
     %assign i %1+1
     movsxd r %+ i, r %+ i %+ d
@@ -1506,7 +1506,7 @@ cglobal pixel_sad_16x%2_cache64_%1
     mov    eax, r2m
     and    eax, 0x17|%1|(%4>>1)
     cmp    eax, 0x10|%1|(%4>>1)
-    jle pixel_sad_%1x%2_mmxext
+    jle pixel_sad_%1x%2_mmx2
     and    eax, 7
     shl    eax, 3
     movd   mm6, [sw_64]
@@ -1519,7 +1519,7 @@ cglobal pixel_sad_16x%2_cache64_%1
 %endmacro
 
 %macro SAD16_CACHELINE_FUNC_MMX2 2 ; height, cacheline
-cglobal pixel_sad_16x%1_cache%2_mmxext
+cglobal pixel_sad_16x%1_cache%2_mmx2
     SAD_CACHELINE_START_MMX2 16, %1, %1, %2
 .loop:
     movq   mm1, [r2]
@@ -1545,7 +1545,7 @@ cglobal pixel_sad_16x%1_cache%2_mmxext
 %endmacro
 
 %macro SAD8_CACHELINE_FUNC_MMX2 2 ; height, cacheline
-cglobal pixel_sad_8x%1_cache%2_mmxext
+cglobal pixel_sad_8x%1_cache%2_mmx2
     SAD_CACHELINE_START_MMX2 8, %1, %1/2, %2
 .loop:
     movq   mm1, [r2+8]
@@ -1745,15 +1745,15 @@ SAD8_CACHELINE_FUNC_MMX2   8, 64
 SAD8_CACHELINE_FUNC_MMX2  16, 64
 
 %ifndef ARCH_X86_64
-SADX34_CACHELINE_FUNC 16, 16, 32, mmxext, mmxext, mmxext
-SADX34_CACHELINE_FUNC 16,  8, 32, mmxext, mmxext, mmxext
-SADX34_CACHELINE_FUNC  8, 16, 32, mmxext, mmxext, mmxext
-SADX34_CACHELINE_FUNC  8,  8, 32, mmxext, mmxext, mmxext
-SADX34_CACHELINE_FUNC 16, 16, 64, mmxext, mmxext, mmxext
-SADX34_CACHELINE_FUNC 16,  8, 64, mmxext, mmxext, mmxext
+SADX34_CACHELINE_FUNC 16, 16, 32, mmx2, mmx2, mmx2
+SADX34_CACHELINE_FUNC 16,  8, 32, mmx2, mmx2, mmx2
+SADX34_CACHELINE_FUNC  8, 16, 32, mmx2, mmx2, mmx2
+SADX34_CACHELINE_FUNC  8,  8, 32, mmx2, mmx2, mmx2
+SADX34_CACHELINE_FUNC 16, 16, 64, mmx2, mmx2, mmx2
+SADX34_CACHELINE_FUNC 16,  8, 64, mmx2, mmx2, mmx2
 %endif ; !ARCH_X86_64
-SADX34_CACHELINE_FUNC  8, 16, 64, mmxext, mmxext, mmxext
-SADX34_CACHELINE_FUNC  8,  8, 64, mmxext, mmxext, mmxext
+SADX34_CACHELINE_FUNC  8, 16, 64, mmx2, mmx2, mmx2
+SADX34_CACHELINE_FUNC  8,  8, 64, mmx2, mmx2, mmx2
 
 %ifndef ARCH_X86_64
 SAD16_CACHELINE_FUNC sse2, 8
@@ -1766,7 +1766,7 @@ SAD16_CACHELINE_LOOP_SSE2 i
 SADX34_CACHELINE_FUNC 16, 16, 64, sse2, sse2, sse2
 SADX34_CACHELINE_FUNC 16,  8, 64, sse2, sse2, sse2
 %endif ; !ARCH_X86_64
-SADX34_CACHELINE_FUNC  8, 16, 64, sse2, mmxext, sse2
+SADX34_CACHELINE_FUNC  8, 16, 64, sse2, mmx2, sse2
 
 SAD16_CACHELINE_FUNC ssse3, 8
 SAD16_CACHELINE_FUNC ssse3, 16

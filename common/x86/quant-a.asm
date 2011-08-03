@@ -442,9 +442,9 @@ INIT_MMX
 %define PABSW PABSW_MMX
 %define PSIGNW PSIGNW_MMX
 %define QUANT_DC_START QUANT_DC_START_MMX
-QUANT_DC quant_2x2_dc_mmxext, 1
+QUANT_DC quant_2x2_dc_mmx2, 1
 %ifndef ARCH_X86_64 ; not needed because sse2 is faster
-QUANT_DC quant_4x4_dc_mmxext, 4
+QUANT_DC quant_4x4_dc_mmx2, 4
 QUANT_AC quant_4x4_mmx, 4
 QUANT_AC quant_8x8_mmx, 16
 %endif
@@ -747,17 +747,17 @@ cglobal dequant_4x4dc_%1, 0,3,6*(mmsize/16)
 
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM
-DEQUANT_DC sse2  , d
-DEQUANT_DC sse4  , d
+DEQUANT_DC sse2, d
+DEQUANT_DC sse4, d
 INIT_AVX
-DEQUANT_DC avx   , d
+DEQUANT_DC avx, d
 %else
 INIT_MMX
-DEQUANT_DC mmxext, w
+DEQUANT_DC mmx2, w
 INIT_XMM
-DEQUANT_DC sse2  , w
+DEQUANT_DC sse2, w
 INIT_AVX
-DEQUANT_DC avx   , w
+DEQUANT_DC avx, w
 %endif
 
 ; t4 is eax for return value.
@@ -1106,10 +1106,10 @@ cglobal decimate_score%1_%2, 1,3
 %ifndef ARCH_X86_64
 INIT_MMX
 %define DECIMATE_MASK DECIMATE_MASK_MMX
-DECIMATE4x4 15, mmxext, 0, 0
-DECIMATE4x4 16, mmxext, 0, 0
-DECIMATE4x4 15, mmxext_slowctz, 1, 0
-DECIMATE4x4 16, mmxext_slowctz, 1, 0
+DECIMATE4x4 15, mmx2, 0, 0
+DECIMATE4x4 16, mmx2, 0, 0
+DECIMATE4x4 15, mmx2_slowctz, 1, 0
+DECIMATE4x4 16, mmx2_slowctz, 1, 0
 %endif
 INIT_XMM
 %define DECIMATE_MASK DECIMATE_MASK_SSE2
@@ -1163,7 +1163,7 @@ cglobal decimate_score64_%1, 1,4
     RET
 
 %else ; ARCH
-%ifidn %1, mmxext
+%ifidn %1, mmx2
 cglobal decimate_score64_%1, 1,6
 %else
 cglobal decimate_score64_%1, 1,5
@@ -1225,7 +1225,7 @@ cglobal decimate_score64_%1, 1,5
 %ifndef ARCH_X86_64
 INIT_MMX
 %define DECIMATE_MASK DECIMATE_MASK_MMX
-DECIMATE8x8 mmxext, 0
+DECIMATE8x8 mmx2, 0
 %endif
 INIT_XMM
 %define DECIMATE_MASK DECIMATE_MASK_SSE2
@@ -1294,9 +1294,9 @@ cglobal coeff_last4_%1, 1,3
 %endmacro
 
 %define LAST LAST_X86
-COEFF_LAST4 mmxext
+COEFF_LAST4 mmx2
 %define LAST LAST_SSE4A
-COEFF_LAST4 mmxext_lzcnt
+COEFF_LAST4 mmx2_lzcnt
 
 %else ; !HIGH_BIT_DEPTH
 %macro LAST_MASK4_MMX 2-3
@@ -1348,9 +1348,9 @@ cglobal coeff_last4_%1, 0,3
 %endmacro
 
 %define LAST LAST_X86
-COEFF_LAST4 mmxext
+COEFF_LAST4 mmx2
 %define LAST LAST_SSE4A
-COEFF_LAST4 mmxext_lzcnt
+COEFF_LAST4 mmx2_lzcnt
 %endif ; HIGH_BIT_DEPTH
 
 %macro COEFF_LAST 1
@@ -1412,7 +1412,7 @@ cglobal coeff_last64_%1, 1,4
 %ifndef ARCH_X86_64
 INIT_MMX
 %define LAST_MASK LAST_MASK_MMX
-COEFF_LAST mmxext
+COEFF_LAST mmx2
 %endif
 INIT_XMM
 %define LAST_MASK LAST_MASK_SSE2
@@ -1480,11 +1480,11 @@ INIT_MMX
 %define LZCOUNT LZCOUNT_X86
 %ifndef ARCH_X86_64
 %define LAST_MASK LAST_MASK_MMX
-COEFF_LEVELRUN mmxext, 15
-COEFF_LEVELRUN mmxext, 16
+COEFF_LEVELRUN mmx2, 15
+COEFF_LEVELRUN mmx2, 16
 %endif
 %define LAST_MASK LAST_MASK4_MMX
-COEFF_LEVELRUN mmxext, 4
+COEFF_LEVELRUN mmx2, 4
 INIT_XMM
 %define LAST_MASK LAST_MASK_SSE2
 COEFF_LEVELRUN sse2, 15
@@ -1494,4 +1494,4 @@ COEFF_LEVELRUN sse2_lzcnt, 15
 COEFF_LEVELRUN sse2_lzcnt, 16
 INIT_MMX
 %define LAST_MASK LAST_MASK4_MMX
-COEFF_LEVELRUN mmxext_lzcnt, 4
+COEFF_LEVELRUN mmx2_lzcnt, 4

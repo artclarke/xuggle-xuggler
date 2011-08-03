@@ -105,7 +105,7 @@ cglobal pixel_ssd_%1x%2_%3, 4,5,6*(mmsize/16)
 %endmacro
 
 %macro SSD_16_MMX 2
-cglobal pixel_ssd_%1x%2_mmxext, 4,5
+cglobal pixel_ssd_%1x%2_mmx2, 4,5
     mov     r4, %1*%2/mmsize/2
     pxor    m0, m0
 .loop
@@ -139,11 +139,11 @@ cglobal pixel_ssd_%1x%2_mmxext, 4,5
 %endmacro
 
 INIT_MMX
-SSD_ONE     4,  4, mmxext
-SSD_ONE     4,  8, mmxext
-SSD_ONE     8,  4, mmxext
-SSD_ONE     8,  8, mmxext
-SSD_ONE     8, 16, mmxext
+SSD_ONE     4,  4, mmx2
+SSD_ONE     4,  8, mmx2
+SSD_ONE     8,  4, mmx2
+SSD_ONE     8,  8, mmx2
+SSD_ONE     8, 16, mmx2
 SSD_16_MMX 16,  8
 SSD_16_MMX 16, 16
 INIT_XMM
@@ -445,7 +445,7 @@ cglobal pixel_ssd_nv12_core_%1, 6,7,7*(mmsize/16)
     paddq       m4, m3
     paddq       m4, m1
 %else ; unfortunately paddq is sse2
-      ; emulate 48 bit precision for mmxext instead
+      ; emulate 48 bit precision for mmx2 instead
     mova        m0, m2
     mova        m1, m3
     punpcklwd   m2, m6
@@ -466,7 +466,7 @@ cglobal pixel_ssd_nv12_core_%1, 6,7,7*(mmsize/16)
 %if mmsize==16
     movq      [r3], m4
     movhps    [r4], m4
-%else ; fixup for mmxext
+%else ; fixup for mmx2
     SBUTTERFLY dq, 4, 5, 0
     mova        m0, m4
     psrld       m4, 16
@@ -534,7 +534,7 @@ cglobal pixel_ssd_nv12_core_%1, 6,7
 %endif ; !HIGH_BIT_DEPTH
 
 INIT_MMX
-SSD_NV12 mmxext
+SSD_NV12 mmx2
 INIT_XMM
 SSD_NV12 sse2
 INIT_AVX
@@ -624,13 +624,13 @@ SSD_NV12 avx
 ; int pixel_var_wxh( uint8_t *, int )
 ;-----------------------------------------------------------------------------
 INIT_MMX
-cglobal pixel_var_16x16_mmxext, 2,3
+cglobal pixel_var_16x16_mmx2, 2,3
     FIX_STRIDES r1
     VAR_START 0
     VAR_2ROW 8*SIZEOF_PIXEL, 16
     VAR_END 16, 16
 
-cglobal pixel_var_8x8_mmxext, 2,3
+cglobal pixel_var_8x8_mmx2, 2,3
     FIX_STRIDES r1
     VAR_START 0
     VAR_2ROW r1, 4
@@ -721,7 +721,7 @@ VAR avx
 ; int pixel_var2_8x8( pixel *, int, pixel *, int, int * )
 ;-----------------------------------------------------------------------------
 INIT_MMX
-cglobal pixel_var2_8x8_mmxext, 5,6
+cglobal pixel_var2_8x8_mmx2, 5,6
     FIX_STRIDES r1, r3
     VAR_START 0
     mov      r5d, 8
@@ -1013,7 +1013,7 @@ cglobal pixel_var2_8x8_ssse3, 5,6,8
 ; int pixel_satd_16x16( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
 INIT_MMX
-cglobal pixel_satd_16x4_internal_mmxext
+cglobal pixel_satd_16x4_internal_mmx2
     SATD_4x4_MMX m2,  0, 0
     SATD_4x4_MMX m1,  4, 0
     paddw        m0, m2
@@ -1024,12 +1024,12 @@ cglobal pixel_satd_16x4_internal_mmxext
     paddw        m0, m1
     ret
 
-cglobal pixel_satd_8x8_internal_mmxext
+cglobal pixel_satd_8x8_internal_mmx2
     SATD_4x4_MMX m2,  0, 0
     SATD_4x4_MMX m1,  4, 1
     paddw        m0, m2
     paddw        m0, m1
-pixel_satd_8x4_internal_mmxext:
+pixel_satd_8x4_internal_mmx2:
     SATD_4x4_MMX m2,  0, 0
     SATD_4x4_MMX m1,  4, 0
     paddw        m0, m2
@@ -1038,17 +1038,17 @@ pixel_satd_8x4_internal_mmxext:
 
 %ifdef HIGH_BIT_DEPTH
 %macro SATD_MxN_MMX 3
-cglobal pixel_satd_%1x%2_mmxext, 4,7
+cglobal pixel_satd_%1x%2_mmx2, 4,7
     SATD_START_MMX
     pxor   m0, m0
-    call pixel_satd_%1x%3_internal_mmxext
+    call pixel_satd_%1x%3_internal_mmx2
     HADDUW m0, m1
     movd  r6d, m0
 %rep %2/%3-1
     pxor   m0, m0
     lea    r0, [r0+4*r1]
     lea    r2, [r2+4*r3]
-    call pixel_satd_%1x%3_internal_mmxext
+    call pixel_satd_%1x%3_internal_mmx2
     movd   m2, r4
     HADDUW m0, m1
     movd   r4, m0
@@ -1065,58 +1065,58 @@ SATD_MxN_MMX  8, 16, 8
 %endif ; HIGH_BIT_DEPTH
 
 %ifndef HIGH_BIT_DEPTH
-cglobal pixel_satd_16x16_mmxext, 4,6
+cglobal pixel_satd_16x16_mmx2, 4,6
     SATD_START_MMX
     pxor   m0, m0
 %rep 3
-    call pixel_satd_16x4_internal_mmxext
+    call pixel_satd_16x4_internal_mmx2
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
 %endrep
-    call pixel_satd_16x4_internal_mmxext
+    call pixel_satd_16x4_internal_mmx2
     HADDUW m0, m1
     movd  eax, m0
     RET
 
-cglobal pixel_satd_16x8_mmxext, 4,6
+cglobal pixel_satd_16x8_mmx2, 4,6
     SATD_START_MMX
     pxor   m0, m0
-    call pixel_satd_16x4_internal_mmxext
+    call pixel_satd_16x4_internal_mmx2
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
-    call pixel_satd_16x4_internal_mmxext
+    call pixel_satd_16x4_internal_mmx2
     SATD_END_MMX
 
-cglobal pixel_satd_8x16_mmxext, 4,6
+cglobal pixel_satd_8x16_mmx2, 4,6
     SATD_START_MMX
     pxor   m0, m0
-    call pixel_satd_8x8_internal_mmxext
+    call pixel_satd_8x8_internal_mmx2
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
-    call pixel_satd_8x8_internal_mmxext
+    call pixel_satd_8x8_internal_mmx2
     SATD_END_MMX
 %endif ; !HIGH_BIT_DEPTH
 
-cglobal pixel_satd_8x8_mmxext, 4,6
+cglobal pixel_satd_8x8_mmx2, 4,6
     SATD_START_MMX
     pxor   m0, m0
-    call pixel_satd_8x8_internal_mmxext
+    call pixel_satd_8x8_internal_mmx2
     SATD_END_MMX
 
-cglobal pixel_satd_8x4_mmxext, 4,6
+cglobal pixel_satd_8x4_mmx2, 4,6
     SATD_START_MMX
     pxor   m0, m0
-    call pixel_satd_8x4_internal_mmxext
+    call pixel_satd_8x4_internal_mmx2
     SATD_END_MMX
 
-cglobal pixel_satd_4x8_mmxext, 4,6
+cglobal pixel_satd_4x8_mmx2, 4,6
     SATD_START_MMX
     SATD_4x4_MMX m0, 0, 1
     SATD_4x4_MMX m1, 0, 0
     paddw  m0, m1
     SATD_END_MMX
 
-cglobal pixel_satd_4x4_mmxext, 4,6
+cglobal pixel_satd_4x4_mmx2, 4,6
     SATD_START_MMX
     SATD_4x4_MMX m0, 0, 0
     SATD_END_MMX
@@ -1396,7 +1396,7 @@ cglobal pixel_sa8d_16x16_%1, 4,6,12
     RET
 
 %else ; ARCH_X86_32
-%ifnidn %1, mmxext
+%ifnidn %1, mmx2
 cglobal pixel_sa8d_8x8_internal_%1
     %define spill0 [esp+4]
     %define spill1 [esp+20]
@@ -1446,7 +1446,7 @@ cglobal pixel_sa8d_8x8_internal_%1
     paddw m0, m3
     SAVE_MM_PERMUTATION pixel_sa8d_8x8_internal_%1
     ret
-%endif ; ifndef mmxext
+%endif ; ifndef mmx2
 
 cglobal pixel_sa8d_8x8_%1, 4,7
     FIX_STRIDES r1, r3
@@ -1475,7 +1475,7 @@ cglobal pixel_sa8d_16x16_%1, 4,7
     lea  r4, [3*r1]
     lea  r5, [3*r3]
     call pixel_sa8d_8x8_internal_%1
-%ifidn %1, mmxext
+%ifidn %1, mmx2
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
 %endif
@@ -1491,7 +1491,7 @@ cglobal pixel_sa8d_16x16_%1, 4,7
     SA8D_INTER
     mova [esp+48], m0
     call pixel_sa8d_8x8_internal_%1
-%ifidn %1, mmxext
+%ifidn %1, mmx2
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
 %endif
@@ -2000,7 +2000,7 @@ cglobal intra_satd_x3_8x8c_%1, 0,6
 
 ; in:  r0=pix, r1=stride, r2=stride*3, r3=tmp, m6=mask_ac4, m7=0
 ; out: [tmp]=hadamard4, m0=satd
-cglobal hadamard_ac_4x4_mmxext
+cglobal hadamard_ac_4x4_mmx2
 %ifdef HIGH_BIT_DEPTH
     mova      m0, [r0]
     mova      m1, [r0+r1]
@@ -2029,10 +2029,10 @@ cglobal hadamard_ac_4x4_mmxext
     paddw     m0, m1
     paddw     m2, m3
     paddw     m0, m2
-    SAVE_MM_PERMUTATION hadamard_ac_4x4_mmxext
+    SAVE_MM_PERMUTATION hadamard_ac_4x4_mmx2
     ret
 
-cglobal hadamard_ac_2x2max_mmxext
+cglobal hadamard_ac_2x2max_mmx2
     mova      m0, [r3+0x00]
     mova      m1, [r3+0x20]
     mova      m2, [r3+0x40]
@@ -2051,7 +2051,7 @@ cglobal hadamard_ac_2x2max_mmxext
     paddw     m7, m0
     paddw     m7, m1
 %endif ; HIGH_BIT_DEPTH
-    SAVE_MM_PERMUTATION hadamard_ac_2x2max_mmxext
+    SAVE_MM_PERMUTATION hadamard_ac_2x2max_mmx2
     ret
 
 %macro AC_PREP 2
@@ -2069,27 +2069,27 @@ cglobal hadamard_ac_2x2max_mmxext
 %endif ; HIGH_BIT_DEPTH
 %endmacro
 
-cglobal hadamard_ac_8x8_mmxext
+cglobal hadamard_ac_8x8_mmx2
     mova      m6, [mask_ac4]
 %ifdef HIGH_BIT_DEPTH
     mova      m7, [pw_1]
 %else
     pxor      m7, m7
 %endif ; HIGH_BIT_DEPTH
-    call hadamard_ac_4x4_mmxext
+    call hadamard_ac_4x4_mmx2
     add       r0, 4*SIZEOF_PIXEL
     add       r3, 32
     mova      m5, m0
     AC_PREP   m5, m7
-    call hadamard_ac_4x4_mmxext
+    call hadamard_ac_4x4_mmx2
     lea       r0, [r0+4*r1]
     add       r3, 64
     AC_PADD   m5, m0, m7
-    call hadamard_ac_4x4_mmxext
+    call hadamard_ac_4x4_mmx2
     sub       r0, 4*SIZEOF_PIXEL
     sub       r3, 32
     AC_PADD   m5, m0, m7
-    call hadamard_ac_4x4_mmxext
+    call hadamard_ac_4x4_mmx2
     AC_PADD   m5, m0, m7
     sub       r3, 40
     mova [rsp+gprsize+8], m5 ; save satd
@@ -2097,7 +2097,7 @@ cglobal hadamard_ac_8x8_mmxext
     pxor      m6, m6
 %endif
 %rep 3
-    call hadamard_ac_2x2max_mmxext
+    call hadamard_ac_2x2max_mmx2
 %endrep
     mova      m0, [r3+0x00]
     mova      m1, [r3+0x20]
@@ -2126,10 +2126,10 @@ cglobal hadamard_ac_8x8_mmxext
 %endif ; HIGH_BIT_DEPTH
     mova [rsp+gprsize], m6 ; save sa8d
     SWAP       0,  6
-    SAVE_MM_PERMUTATION hadamard_ac_8x8_mmxext
+    SAVE_MM_PERMUTATION hadamard_ac_8x8_mmx2
     ret
 
-%macro HADAMARD_AC_WXH_SUM_MMXEXT 2
+%macro HADAMARD_AC_WXH_SUM_MMX 2
     mova    m1, [rsp+1*mmsize]
 %ifdef HIGH_BIT_DEPTH
 %if %1*%2 >= 128
@@ -2174,33 +2174,33 @@ cglobal hadamard_ac_8x8_mmxext
 %endmacro
 
 %macro HADAMARD_AC_WXH_MMX 2
-cglobal pixel_hadamard_ac_%1x%2_mmxext, 2,4
+cglobal pixel_hadamard_ac_%1x%2_mmx2, 2,4
     %assign pad 16-gprsize-(stack_offset&15)
     %define ysub r1
     FIX_STRIDES r1
     sub  rsp, 16+128+pad
     lea  r2, [r1*3]
     lea  r3, [rsp+16]
-    call hadamard_ac_8x8_mmxext
+    call hadamard_ac_8x8_mmx2
 %if %2==16
     %define ysub r2
     lea  r0, [r0+r1*4]
     sub  rsp, 16
-    call hadamard_ac_8x8_mmxext
+    call hadamard_ac_8x8_mmx2
 %endif
 %if %1==16
     neg  ysub
     sub  rsp, 16
     lea  r0, [r0+ysub*4+8*SIZEOF_PIXEL]
     neg  ysub
-    call hadamard_ac_8x8_mmxext
+    call hadamard_ac_8x8_mmx2
 %if %2==16
     lea  r0, [r0+r1*4]
     sub  rsp, 16
-    call hadamard_ac_8x8_mmxext
+    call hadamard_ac_8x8_mmx2
 %endif
 %endif
-    HADAMARD_AC_WXH_SUM_MMXEXT %1, %2
+    HADAMARD_AC_WXH_SUM_MMX %1, %2
     movd edx, m0
     movd eax, m1
     shr  edx, 1
@@ -2443,8 +2443,8 @@ cglobal pixel_hadamard_ac_%1x%2_%3, 2,3,11
 ; instantiate satds
 
 %ifndef ARCH_X86_64
-cextern pixel_sa8d_8x8_internal_mmxext
-SA8D mmxext
+cextern pixel_sa8d_8x8_internal_mmx2
+SA8D mmx2
 %endif
 
 %define TRANS TRANS_SSE2
@@ -2464,7 +2464,7 @@ SATDS_SSE2 sse2
 INTRA_SA8D_SSE2 sse2
 %ifndef HIGH_BIT_DEPTH
 INIT_MMX
-INTRA_SATDS_MMX mmxext
+INTRA_SATDS_MMX mmx2
 %endif
 INIT_XMM
 HADAMARD_AC_SSE2 sse2
@@ -2705,7 +2705,7 @@ SSIM avx
 ; int pixel_ads4( int enc_dc[4], uint16_t *sums, int delta,
 ;                 uint16_t *cost_mvx, int16_t *mvs, int width, int thresh )
 ;-----------------------------------------------------------------------------
-cglobal pixel_ads4_mmxext, 6,7
+cglobal pixel_ads4_mmx2, 6,7
     movq    mm6, [r0]
     movq    mm4, [r0+8]
     pshufw  mm7, mm6, 0
@@ -2736,7 +2736,7 @@ cglobal pixel_ads4_mmxext, 6,7
     movd    [r6], mm1
     ADS_END 1
 
-cglobal pixel_ads2_mmxext, 6,7
+cglobal pixel_ads2_mmx2, 6,7
     movq    mm6, [r0]
     pshufw  mm5, r6m, 0
     pshufw  mm7, mm6, 0
@@ -2757,7 +2757,7 @@ cglobal pixel_ads2_mmxext, 6,7
     movd    [r6], mm4
     ADS_END 1
 
-cglobal pixel_ads1_mmxext, 6,7
+cglobal pixel_ads1_mmx2, 6,7
     pshufw  mm7, [r0], 0
     pshufw  mm6, r6m, 0
     ADS_START
