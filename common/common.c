@@ -596,6 +596,10 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
                     b_error = 1;
             }
             free( buf );
+            if( p->cpu & X264_CPU_SSSE3 )
+                p->cpu |= X264_CPU_SSE2_IS_FAST;
+            if( p->cpu & X264_CPU_SSE4 )
+                p->cpu |= X264_CPU_SHUFFLE_IS_FAST;
         }
     }
     OPT("threads")
