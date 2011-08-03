@@ -126,62 +126,62 @@ SAD  4,  4
     RET
 %endmacro
 
-%macro SAD_W16 1
+%macro SAD_W16 0
 ;-----------------------------------------------------------------------------
 ; int pixel_sad_16x16( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-cglobal pixel_sad_16x16_%1, 4,4,8
-    movdqu  m0, [r2]
-    movdqu  m1, [r2+r3]
+cglobal pixel_sad_16x16, 4,4,8
+    movu    m0, [r2]
+    movu    m1, [r2+r3]
     lea     r2, [r2+2*r3]
-    movdqu  m2, [r2]
-    movdqu  m3, [r2+r3]
+    movu    m2, [r2]
+    movu    m3, [r2+r3]
     lea     r2, [r2+2*r3]
     psadbw  m0, [r0]
     psadbw  m1, [r0+r1]
     lea     r0, [r0+2*r1]
-    movdqu  m4, [r2]
+    movu    m4, [r2]
     paddw   m0, m1
     psadbw  m2, [r0]
     psadbw  m3, [r0+r1]
     lea     r0, [r0+2*r1]
-    movdqu  m5, [r2+r3]
+    movu    m5, [r2+r3]
     lea     r2, [r2+2*r3]
     paddw   m2, m3
-    movdqu  m6, [r2]
-    movdqu  m7, [r2+r3]
+    movu    m6, [r2]
+    movu    m7, [r2+r3]
     lea     r2, [r2+2*r3]
     paddw   m0, m2
     psadbw  m4, [r0]
     psadbw  m5, [r0+r1]
     lea     r0, [r0+2*r1]
-    movdqu  m1, [r2]
+    movu    m1, [r2]
     paddw   m4, m5
     psadbw  m6, [r0]
     psadbw  m7, [r0+r1]
     lea     r0, [r0+2*r1]
-    movdqu  m2, [r2+r3]
+    movu    m2, [r2+r3]
     lea     r2, [r2+2*r3]
     paddw   m6, m7
-    movdqu  m3, [r2]
+    movu    m3, [r2]
     paddw   m0, m4
-    movdqu  m4, [r2+r3]
+    movu    m4, [r2+r3]
     lea     r2, [r2+2*r3]
     paddw   m0, m6
     psadbw  m1, [r0]
     psadbw  m2, [r0+r1]
     lea     r0, [r0+2*r1]
-    movdqu  m5, [r2]
+    movu    m5, [r2]
     paddw   m1, m2
     psadbw  m3, [r0]
     psadbw  m4, [r0+r1]
     lea     r0, [r0+2*r1]
-    movdqu  m6, [r2+r3]
+    movu    m6, [r2+r3]
     lea     r2, [r2+2*r3]
     paddw   m3, m4
-    movdqu  m7, [r2]
+    movu    m7, [r2]
     paddw   m0, m1
-    movdqu  m1, [r2+r3]
+    movu    m1, [r2+r3]
     paddw   m0, m3
     psadbw  m5, [r0]
     psadbw  m6, [r0+r1]
@@ -197,12 +197,12 @@ cglobal pixel_sad_16x16_%1, 4,4,8
 ;-----------------------------------------------------------------------------
 ; int pixel_sad_16x8( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-cglobal pixel_sad_16x8_%1, 4,4
-    movdqu  m0, [r2]
-    movdqu  m2, [r2+r3]
+cglobal pixel_sad_16x8, 4,4
+    movu    m0, [r2]
+    movu    m2, [r2+r3]
     lea     r2, [r2+2*r3]
-    movdqu  m3, [r2]
-    movdqu  m4, [r2+r3]
+    movu    m3, [r2]
+    movu    m4, [r2+r3]
     psadbw  m0, [r0]
     psadbw  m2, [r0+r1]
     lea     r0, [r0+2*r1]
@@ -213,11 +213,11 @@ cglobal pixel_sad_16x8_%1, 4,4
     paddw   m0, m2
     paddw   m3, m4
     paddw   m0, m3
-    movdqu  m1, [r2]
-    movdqu  m2, [r2+r3]
+    movu    m1, [r2]
+    movu    m2, [r2+r3]
     lea     r2, [r2+2*r3]
-    movdqu  m3, [r2]
-    movdqu  m4, [r2+r3]
+    movu    m3, [r2]
+    movu    m4, [r2+r3]
     psadbw  m1, [r0]
     psadbw  m2, [r0+r1]
     lea     r0, [r0+2*r1]
@@ -232,13 +232,12 @@ cglobal pixel_sad_16x8_%1, 4,4
     SAD_END_SSE2
 %endmacro
 
-INIT_XMM
-SAD_W16 sse2
-%define movdqu lddqu
-SAD_W16 sse3
-%define movdqu movdqa
-SAD_W16 sse2_aligned
-%undef movdqu
+INIT_XMM sse2
+SAD_W16
+INIT_XMM sse3
+SAD_W16
+INIT_XMM sse2, aligned
+SAD_W16
 
 %macro SAD_INC_4x8P_SSE 1
     movq    m1, [r0]
@@ -263,6 +262,7 @@ SAD_W16 sse2_aligned
     paddw   m0, m2
 %endmacro
 
+INIT_XMM
 ;Even on Nehalem, no sizes other than 8x16 benefit from this method.
 cglobal pixel_sad_8x16_sse2, 4,4
     SAD_INC_4x8P_SSE 0
@@ -384,8 +384,8 @@ cglobal intra_sad_x3_4x4_mmx2, 3,3
     movd   [r2+4], mm1 ;H prediction cost
     RET
 
-%macro INTRA_SADx3_4x4 1
-cglobal intra_sad_x3_4x4_%1, 3,3
+%macro INTRA_SADx3_4x4 0
+cglobal intra_sad_x3_4x4, 3,3
     movd       xmm4, [r1+FDEC_STRIDE*0-4]
     pinsrd     xmm4, [r1+FDEC_STRIDE*1-4], 1
     pinsrd     xmm4, [r1+FDEC_STRIDE*2-4], 2
@@ -418,10 +418,10 @@ cglobal intra_sad_x3_4x4_%1, 3,3
     RET
 %endmacro ; INTRA_SADx3_4x4
 
-INIT_XMM
-INTRA_SADx3_4x4 sse4
-INIT_AVX
-INTRA_SADx3_4x4 avx
+INIT_XMM sse4
+INTRA_SADx3_4x4
+INIT_XMM avx
+INTRA_SADx3_4x4
 
 ;-----------------------------------------------------------------------------
 ; void intra_sad_x3_8x8( uint8_t *fenc, uint8_t edge[33], int res[3]);
@@ -490,8 +490,8 @@ cglobal intra_sad_x3_8x8_mmx2, 3,3
     movd  [r2+8], m1
     RET
 
-%macro INTRA_SADx3_8x8 1
-cglobal intra_sad_x3_8x8_%1, 3,4,9
+%macro INTRA_SADx3_8x8 0
+cglobal intra_sad_x3_8x8, 3,4,9
 %ifdef PIC
     lea        r11, [h8x8_pred_shuf]
 %define shuf r11
@@ -548,17 +548,17 @@ cglobal intra_sad_x3_8x8_%1, 3,4,9
     RET
 %endmacro ; INTRA_SADx3_8x8
 
-INIT_XMM
-INTRA_SADx3_8x8 ssse3
-INIT_AVX
-INTRA_SADx3_8x8 avx
+INIT_XMM ssse3
+INTRA_SADx3_8x8
+INIT_XMM avx
+INTRA_SADx3_8x8
 
 ;-----------------------------------------------------------------------------
 ; void intra_sad_x3_8x8c( uint8_t *fenc, uint8_t *fdec, int res[3] );
 ;-----------------------------------------------------------------------------
 
-%macro INTRA_SAD_HV_ITER 2
-%ifidn %2, ssse3
+%macro INTRA_SAD_HV_ITER 1
+%if cpuflag(ssse3)
     movd        m1, [r1 + FDEC_STRIDE*(%1-4) - 4]
     movd        m3, [r1 + FDEC_STRIDE*(%1-3) - 4]
     pshufb      m1, m7
@@ -588,17 +588,17 @@ INTRA_SADx3_8x8 avx
 %endif
 %endmacro
 
-%macro INTRA_SAD_8x8C 1
-cglobal intra_sad_x3_8x8c_%1, 3,3
+%macro INTRA_SAD_8x8C 0
+cglobal intra_sad_x3_8x8c, 3,3
     movq        m6, [r1 - FDEC_STRIDE]
     add         r1, FDEC_STRIDE*4
-%ifidn %1,ssse3
+%if cpuflag(ssse3)
     movq        m7, [pb_3]
 %endif
-    INTRA_SAD_HV_ITER 0, %1
-    INTRA_SAD_HV_ITER 2, %1
-    INTRA_SAD_HV_ITER 4, %1
-    INTRA_SAD_HV_ITER 6, %1
+    INTRA_SAD_HV_ITER 0
+    INTRA_SAD_HV_ITER 2
+    INTRA_SAD_HV_ITER 4
+    INTRA_SAD_HV_ITER 6
     movd    [r2+4], m0
     movd    [r2+8], m2
     pxor        m7, m7
@@ -630,7 +630,7 @@ cglobal intra_sad_x3_8x8c_%1, 3,3
     paddw       m0, m3
     psrlw       m0, 2
     pavgw       m0, m7 ; s0+s2, s1, s3, s1+s3
-%ifidn %1, ssse3
+%if cpuflag(ssse3)
     movq2dq   xmm0, m0
     pshufb    xmm0, [pb_shuf8x8c]
     movq      xmm1, [r0+FENC_STRIDE*0]
@@ -684,9 +684,10 @@ cglobal intra_sad_x3_8x8c_%1, 3,3
     RET
 %endmacro
 
-INIT_MMX
-INTRA_SAD_8x8C mmx2
-INTRA_SAD_8x8C ssse3
+INIT_MMX mmx2
+INTRA_SAD_8x8C
+INIT_MMX ssse3
+INTRA_SAD_8x8C
 
 
 ;-----------------------------------------------------------------------------
@@ -695,15 +696,15 @@ INTRA_SAD_8x8C ssse3
 
 ;xmm7: DC prediction    xmm6: H prediction  xmm5: V prediction
 ;xmm4: DC pred score    xmm3: H pred score  xmm2: V pred score
-%macro INTRA_SAD16 1-2 0
-cglobal intra_sad_x3_16x16_%1,3,5,%2
+%macro INTRA_SAD16 0
+cglobal intra_sad_x3_16x16, 3,5,8*(mmsize/16)
     pxor    mm0, mm0
     pxor    mm1, mm1
     psadbw  mm0, [r1-FDEC_STRIDE+0]
     psadbw  mm1, [r1-FDEC_STRIDE+8]
     paddw   mm0, mm1
     movd    r3d, mm0
-%ifidn %1, ssse3
+%if cpuflag(ssse3)
     mova  m1, [pb_3]
 %endif
 %assign x 0
@@ -773,13 +774,12 @@ cglobal intra_sad_x3_16x16_%1,3,5,%2
     RET
 %endmacro
 
-INIT_MMX
-%define SPLATB SPLATB_MMX
-INTRA_SAD16 mmx2
-INIT_XMM
-INTRA_SAD16 sse2, 8
-%define SPLATB SPLATB_SSSE3
-INTRA_SAD16 ssse3, 8
+INIT_MMX mmx2
+INTRA_SAD16
+INIT_XMM sse2
+INTRA_SAD16
+INIT_XMM ssse3
+INTRA_SAD16
 
 
 
@@ -1015,6 +1015,7 @@ cglobal pixel_sad_x%1_%2x%3_mmx2, %1+2, %1+2
     SAD_X%1_END
 %endmacro
 
+INIT_MMX
 SAD_X 3, 16, 16
 SAD_X 3, 16,  8
 SAD_X 3,  8, 16
@@ -1037,26 +1038,47 @@ SAD_X 4,  4,  4
 ;=============================================================================
 
 %macro SAD_X3_START_1x16P_SSE2 0
-    movdqa xmm3, [r0]
-    movdqu xmm0, [r1]
-    movdqu xmm1, [r2]
-    movdqu xmm2, [r3]
+%if cpuflag(misalign)
+    mova   xmm2, [r0]
+    movu   xmm0, [r1]
+    movu   xmm1, [r2]
+    psadbw xmm0, xmm2
+    psadbw xmm1, xmm2
+    psadbw xmm2, [r3]
+%else
+    mova   xmm3, [r0]
+    movu   xmm0, [r1]
+    movu   xmm1, [r2]
+    movu   xmm2, [r3]
     psadbw xmm0, xmm3
     psadbw xmm1, xmm3
     psadbw xmm2, xmm3
+%endif
 %endmacro
 
 %macro SAD_X3_1x16P_SSE2 2
-    movdqa xmm3, [r0+%1]
-    movdqu xmm4, [r1+%2]
-    movdqu xmm5, [r2+%2]
-    movdqu xmm6, [r3+%2]
+%if cpuflag(misalign)
+    mova   xmm3, [r0+%1]
+    movu   xmm4, [r1+%2]
+    movu   xmm5, [r2+%2]
+    psadbw xmm4, xmm3
+    psadbw xmm5, xmm3
+    psadbw xmm3, [r3+%2]
+    paddw  xmm0, xmm4
+    paddw  xmm1, xmm5
+    paddw  xmm2, xmm3
+%else
+    mova   xmm3, [r0+%1]
+    movu   xmm4, [r1+%2]
+    movu   xmm5, [r2+%2]
+    movu   xmm6, [r3+%2]
     psadbw xmm4, xmm3
     psadbw xmm5, xmm3
     psadbw xmm6, xmm3
     paddw  xmm0, xmm4
     paddw  xmm1, xmm5
     paddw  xmm2, xmm6
+%endif
 %endmacro
 
 %macro SAD_X3_2x16P_SSE2 1
@@ -1160,24 +1182,49 @@ SAD_X 4,  4,  4
 %endmacro
 
 %macro SAD_X4_START_1x16P_SSE2 0
-    movdqa xmm7, [r0]
-    movdqu xmm0, [r1]
-    movdqu xmm1, [r2]
-    movdqu xmm2, [r3]
-    movdqu xmm3, [r4]
+%if cpuflag(misalign)
+    mova   xmm3, [r0]
+    movu   xmm0, [r1]
+    movu   xmm1, [r2]
+    movu   xmm2, [r3]
+    psadbw xmm0, xmm3
+    psadbw xmm1, xmm3
+    psadbw xmm2, xmm3
+    psadbw xmm3, [r4]
+%else
+    mova   xmm7, [r0]
+    movu   xmm0, [r1]
+    movu   xmm1, [r2]
+    movu   xmm2, [r3]
+    movu   xmm3, [r4]
     psadbw xmm0, xmm7
     psadbw xmm1, xmm7
     psadbw xmm2, xmm7
     psadbw xmm3, xmm7
+%endif
 %endmacro
 
 %macro SAD_X4_1x16P_SSE2 2
-    movdqa xmm7, [r0+%1]
-    movdqu xmm4, [r1+%2]
-    movdqu xmm5, [r2+%2]
-    movdqu xmm6, [r3+%2]
+%if cpuflag(misalign)
+    mova   xmm7, [r0+%1]
+    movu   xmm4, [r1+%2]
+    movu   xmm5, [r2+%2]
+    movu   xmm6, [r3+%2]
+    psadbw xmm4, xmm7
+    psadbw xmm5, xmm7
+    psadbw xmm6, xmm7
+    psadbw xmm7, [r4+%2]
+    paddw  xmm0, xmm4
+    paddw  xmm1, xmm5
+    paddw  xmm2, xmm6
+    paddw  xmm3, xmm7
+%else
+    mova   xmm7, [r0+%1]
+    movu   xmm4, [r1+%2]
+    movu   xmm5, [r2+%2]
+    movu   xmm6, [r3+%2]
 %ifdef ARCH_X86_64
-    movdqu xmm8, [r4+%2]
+    movu   xmm8, [r4+%2]
     psadbw xmm4, xmm7
     psadbw xmm5, xmm7
     psadbw xmm6, xmm7
@@ -1191,11 +1238,12 @@ SAD_X 4,  4,  4
     psadbw xmm5, xmm7
     paddw  xmm0, xmm4
     psadbw xmm6, xmm7
-    movdqu xmm4, [r4+%2]
+    movu   xmm4, [r4+%2]
     paddw  xmm1, xmm5
     psadbw xmm4, xmm7
     paddw  xmm2, xmm6
     paddw  xmm3, xmm4
+%endif
 %endif
 %endmacro
 
@@ -1273,86 +1321,12 @@ SAD_X 4,  4,  4
     RET
 %endmacro
 
-%macro SAD_X3_START_1x16P_SSE2_MISALIGN 0
-    movdqa xmm2, [r0]
-    movdqu xmm0, [r1]
-    movdqu xmm1, [r2]
-    psadbw xmm0, xmm2
-    psadbw xmm1, xmm2
-    psadbw xmm2, [r3]
-%endmacro
-
-%macro SAD_X3_1x16P_SSE2_MISALIGN 2
-    movdqa xmm3, [r0+%1]
-    movdqu xmm4, [r1+%2]
-    movdqu xmm5, [r2+%2]
-    psadbw xmm4, xmm3
-    psadbw xmm5, xmm3
-    psadbw xmm3, [r3+%2]
-    paddw  xmm0, xmm4
-    paddw  xmm1, xmm5
-    paddw  xmm2, xmm3
-%endmacro
-
-%macro SAD_X4_START_1x16P_SSE2_MISALIGN 0
-    movdqa xmm3, [r0]
-    movdqu xmm0, [r1]
-    movdqu xmm1, [r2]
-    movdqu xmm2, [r3]
-    psadbw xmm0, xmm3
-    psadbw xmm1, xmm3
-    psadbw xmm2, xmm3
-    psadbw xmm3, [r4]
-%endmacro
-
-%macro SAD_X4_1x16P_SSE2_MISALIGN 2
-    movdqa xmm7, [r0+%1]
-    movdqu xmm4, [r1+%2]
-    movdqu xmm5, [r2+%2]
-    movdqu xmm6, [r3+%2]
-    psadbw xmm4, xmm7
-    psadbw xmm5, xmm7
-    psadbw xmm6, xmm7
-    psadbw xmm7, [r4+%2]
-    paddw  xmm0, xmm4
-    paddw  xmm1, xmm5
-    paddw  xmm2, xmm6
-    paddw  xmm3, xmm7
-%endmacro
-
-%macro SAD_X3_2x16P_SSE2_MISALIGN 1
-%if %1
-    SAD_X3_START_1x16P_SSE2_MISALIGN
-%else
-    SAD_X3_1x16P_SSE2_MISALIGN 0, 0
-%endif
-    SAD_X3_1x16P_SSE2_MISALIGN FENC_STRIDE, r4
-    add  r0, 2*FENC_STRIDE
-    lea  r1, [r1+2*r4]
-    lea  r2, [r2+2*r4]
-    lea  r3, [r3+2*r4]
-%endmacro
-
-%macro SAD_X4_2x16P_SSE2_MISALIGN 1
-%if %1
-    SAD_X4_START_1x16P_SSE2_MISALIGN
-%else
-    SAD_X4_1x16P_SSE2_MISALIGN 0, 0
-%endif
-    SAD_X4_1x16P_SSE2_MISALIGN FENC_STRIDE, r5
-    add  r0, 2*FENC_STRIDE
-    lea  r1, [r1+2*r5]
-    lea  r2, [r2+2*r5]
-    lea  r3, [r3+2*r5]
-    lea  r4, [r4+2*r5]
-%endmacro
-
 ;-----------------------------------------------------------------------------
 ; void pixel_sad_x3_16x16( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1,
 ;                          uint8_t *pix2, int i_stride, int scores[3] )
 ;-----------------------------------------------------------------------------
-%macro SAD_X_SSE2 4
-cglobal pixel_sad_x%1_%2x%3_%4, 2+%1,2+%1,9
+%macro SAD_X_SSE2 3
+cglobal pixel_sad_x%1_%2x%3, 2+%1,2+%1,9
 %ifdef WIN64
     %assign i %1+1
     movsxd r %+ i, r %+ i %+ d
@@ -1364,41 +1338,29 @@ cglobal pixel_sad_x%1_%2x%3_%4, 2+%1,2+%1,9
     SAD_X%1_END_SSE2
 %endmacro
 
-%macro SAD_X_SSE2_MISALIGN 4
-cglobal pixel_sad_x%1_%2x%3_%4_misalign, 2+%1,2+%1,9
-%ifdef WIN64
-    %assign i %1+1
-    movsxd r %+ i, r %+ i %+ d
-%endif
-    SAD_X%1_2x%2P_SSE2_MISALIGN 1
-%rep %3/2-1
-    SAD_X%1_2x%2P_SSE2_MISALIGN 0
-%endrep
-    SAD_X%1_END_SSE2
-%endmacro
+INIT_XMM sse2
+SAD_X_SSE2 3, 16, 16
+SAD_X_SSE2 3, 16,  8
+SAD_X_SSE2 3,  8, 16
+SAD_X_SSE2 3,  8,  8
+SAD_X_SSE2 3,  8,  4
+SAD_X_SSE2 4, 16, 16
+SAD_X_SSE2 4, 16,  8
+SAD_X_SSE2 4,  8, 16
+SAD_X_SSE2 4,  8,  8
+SAD_X_SSE2 4,  8,  4
 
-SAD_X_SSE2 3, 16, 16, sse2
-SAD_X_SSE2 3, 16,  8, sse2
-SAD_X_SSE2 3,  8, 16, sse2
-SAD_X_SSE2 3,  8,  8, sse2
-SAD_X_SSE2 3,  8,  4, sse2
-SAD_X_SSE2 4, 16, 16, sse2
-SAD_X_SSE2 4, 16,  8, sse2
-SAD_X_SSE2 4,  8, 16, sse2
-SAD_X_SSE2 4,  8,  8, sse2
-SAD_X_SSE2 4,  8,  4, sse2
+INIT_XMM sse2, misalign
+SAD_X_SSE2 3, 16, 16
+SAD_X_SSE2 3, 16,  8
+SAD_X_SSE2 4, 16, 16
+SAD_X_SSE2 4, 16,  8
 
-SAD_X_SSE2_MISALIGN 3, 16, 16, sse2
-SAD_X_SSE2_MISALIGN 3, 16,  8, sse2
-SAD_X_SSE2_MISALIGN 4, 16, 16, sse2
-SAD_X_SSE2_MISALIGN 4, 16,  8, sse2
-
-%define movdqu lddqu
-SAD_X_SSE2 3, 16, 16, sse3
-SAD_X_SSE2 3, 16,  8, sse3
-SAD_X_SSE2 4, 16, 16, sse3
-SAD_X_SSE2 4, 16,  8, sse3
-%undef movdqu
+INIT_XMM sse3
+SAD_X_SSE2 3, 16, 16
+SAD_X_SSE2 3, 16,  8
+SAD_X_SSE2 4, 16, 16
+SAD_X_SSE2 4, 16,  8
 
 
 
@@ -1731,6 +1693,7 @@ cglobal pixel_sad_x4_%1x%2_cache%3_%6
 
 ; instantiate the aligned sads
 
+INIT_MMX
 %ifndef ARCH_X86_64
 SAD16_CACHELINE_FUNC_MMX2  8, 32
 SAD16_CACHELINE_FUNC_MMX2 16, 32

@@ -189,15 +189,15 @@ cextern pd_32
 ;-----------------------------------------------------------------------------
 ; int pixel_avg_weight_w16( pixel *dst, int, pixel *src1, int, pixel *src2, int, int i_weight )
 ;-----------------------------------------------------------------------------
-%macro AVG_WEIGHT 2-3 0
-cglobal pixel_avg_weight_w%2_%1
+%macro AVG_WEIGHT 1-2 0
+cglobal pixel_avg_weight_w%1
     BIWEIGHT_START
-    AVG_START %3
+    AVG_START %2
 %ifdef HIGH_BIT_DEPTH
     mova    m7, [pw_pixel_max]
 %endif
 .height_loop:
-%if mmsize==16 && %2==mmsize/(2*SIZEOF_PIXEL)
+%if mmsize==16 && %1==mmsize/(2*SIZEOF_PIXEL)
     BIWEIGHT [t2], [t4]
     SWAP 0, 6
     BIWEIGHT [t2+SIZEOF_PIXEL*t3], [t4+SIZEOF_PIXEL*t5]
@@ -211,9 +211,9 @@ cglobal pixel_avg_weight_w%2_%1
     movhps   [t0+SIZEOF_PIXEL*t1], m6
 %else
 %assign x 0
-%rep (%2*SIZEOF_PIXEL+mmsize-1)/mmsize
-    BIWEIGHT_ROW   t0+x,                   t2+x,                   t4+x,                 %2
-    BIWEIGHT_ROW   t0+x+SIZEOF_PIXEL*t1,   t2+x+SIZEOF_PIXEL*t3,   t4+x+SIZEOF_PIXEL*t5, %2
+%rep (%1*SIZEOF_PIXEL+mmsize-1)/mmsize
+    BIWEIGHT_ROW   t0+x,                   t2+x,                   t4+x,                 %1
+    BIWEIGHT_ROW   t0+x+SIZEOF_PIXEL*t1,   t2+x+SIZEOF_PIXEL*t3,   t4+x+SIZEOF_PIXEL*t5, %1
 %assign x x+mmsize
 %endrep
 %endif
@@ -222,26 +222,26 @@ cglobal pixel_avg_weight_w%2_%1
 
 %define BIWEIGHT BIWEIGHT_MMX
 %define BIWEIGHT_START BIWEIGHT_START_MMX
-INIT_MMX
-AVG_WEIGHT mmx2, 4
-AVG_WEIGHT mmx2, 8
-AVG_WEIGHT mmx2, 16
+INIT_MMX mmx2
+AVG_WEIGHT 4
+AVG_WEIGHT 8
+AVG_WEIGHT 16
 %ifdef HIGH_BIT_DEPTH
-INIT_XMM
-AVG_WEIGHT sse2, 4,  8
-AVG_WEIGHT sse2, 8,  8
-AVG_WEIGHT sse2, 16, 8
+INIT_XMM sse2
+AVG_WEIGHT 4,  8
+AVG_WEIGHT 8,  8
+AVG_WEIGHT 16, 8
 %else ;!HIGH_BIT_DEPTH
-INIT_XMM
-AVG_WEIGHT sse2, 8,  7
-AVG_WEIGHT sse2, 16, 7
+INIT_XMM sse2
+AVG_WEIGHT 8,  7
+AVG_WEIGHT 16, 7
 %define BIWEIGHT BIWEIGHT_SSSE3
 %define BIWEIGHT_START BIWEIGHT_START_SSSE3
-INIT_MMX
-AVG_WEIGHT ssse3, 4
-INIT_XMM
-AVG_WEIGHT ssse3, 8,  7
-AVG_WEIGHT ssse3, 16, 7
+INIT_MMX ssse3
+AVG_WEIGHT 4
+INIT_XMM ssse3
+AVG_WEIGHT 8,  7
+AVG_WEIGHT 16, 7
 %endif ;HIGH_BIT_DEPTH
 
 ;=============================================================================
@@ -429,8 +429,8 @@ AVG_WEIGHT ssse3, 16, 7
 %assign XMMREGS 8
 %endif
 
-%macro WEIGHTER 2
-    cglobal mc_weight_w%1_%2, NUMREGS, NUMREGS, XMMREGS*(mmsize/16)
+%macro WEIGHTER 1
+    cglobal mc_weight_w%1, NUMREGS, NUMREGS, XMMREGS*(mmsize/16)
     FIX_STRIDES r1, r3
     WEIGHT_START %1
     LOAD_HEIGHT
@@ -443,36 +443,36 @@ AVG_WEIGHT ssse3, 16, 7
     REP_RET
 %endmacro
 
-INIT_MMX
-WEIGHTER  4, mmx2
-WEIGHTER  8, mmx2
-WEIGHTER 12, mmx2
-WEIGHTER 16, mmx2
-WEIGHTER 20, mmx2
-INIT_XMM
-WEIGHTER  8, sse2
-WEIGHTER 16, sse2
-WEIGHTER 20, sse2
+INIT_MMX mmx2
+WEIGHTER  4
+WEIGHTER  8
+WEIGHTER 12
+WEIGHTER 16
+WEIGHTER 20
+INIT_XMM sse2
+WEIGHTER  8
+WEIGHTER 16
+WEIGHTER 20
 %ifdef HIGH_BIT_DEPTH
-WEIGHTER 12, sse2
-INIT_AVX
-WEIGHTER  8, avx
-WEIGHTER 12, avx
-WEIGHTER 16, avx
-WEIGHTER 20, avx
+WEIGHTER 12
+INIT_XMM avx
+WEIGHTER  8
+WEIGHTER 12
+WEIGHTER 16
+WEIGHTER 20
 %else
 %define WEIGHT WEIGHT_SSSE3
 %define WEIGHT_START WEIGHT_START_SSSE3
-INIT_MMX
-WEIGHTER  4, ssse3
-INIT_XMM
-WEIGHTER  8, ssse3
-WEIGHTER 16, ssse3
-WEIGHTER 20, ssse3
-INIT_AVX
-WEIGHTER  8, avx
-WEIGHTER 16, avx
-WEIGHTER 20, avx
+INIT_MMX ssse3
+WEIGHTER  4
+INIT_XMM ssse3
+WEIGHTER  8
+WEIGHTER 16
+WEIGHTER 20
+INIT_XMM avx
+WEIGHTER  8
+WEIGHTER 16
+WEIGHTER 20
 %endif
 
 %macro OFFSET_OP 7
@@ -516,18 +516,18 @@ WEIGHTER 20, avx
 ;-----------------------------------------------------------------------------
 ;void mc_offset_wX( pixel *src, int i_src_stride, pixel *dst, int i_dst_stride, weight_t *w, int h )
 ;-----------------------------------------------------------------------------
-%macro OFFSET 3
-    cglobal mc_offset%3_w%1_%2, NUMREGS, NUMREGS
+%macro OFFSET 2
+    cglobal mc_offset%2_w%1, NUMREGS, NUMREGS
     FIX_STRIDES r1, r3
     mova m2, [r4]
 %ifdef HIGH_BIT_DEPTH
-%ifidn %3,add
+%ifidn %2,add
     mova m3, [pw_pixel_max]
 %endif
 %endif
     LOAD_HEIGHT
 .loop:
-    OFFSET_TWO_ROW r2, r0, %1, %3
+    OFFSET_TWO_ROW r2, r0, %1, %2
     lea  r0, [r0+r1*2]
     lea  r2, [r2+r3*2]
     sub HEIGHT_REG, 2
@@ -535,29 +535,29 @@ WEIGHTER 20, avx
     REP_RET
 %endmacro
 
-%macro OFFSETPN 2
-       OFFSET %1, %2, add
-       OFFSET %1, %2, sub
+%macro OFFSETPN 1
+       OFFSET %1, add
+       OFFSET %1, sub
 %endmacro
-INIT_MMX
-OFFSETPN  4, mmx2
-OFFSETPN  8, mmx2
-OFFSETPN 12, mmx2
-OFFSETPN 16, mmx2
-OFFSETPN 20, mmx2
-INIT_XMM
-OFFSETPN 12, sse2
-OFFSETPN 16, sse2
-OFFSETPN 20, sse2
-INIT_AVX
-OFFSETPN 12, avx
-OFFSETPN 16, avx
-OFFSETPN 20, avx
+INIT_MMX mmx2
+OFFSETPN  4
+OFFSETPN  8
+OFFSETPN 12
+OFFSETPN 16
+OFFSETPN 20
+INIT_XMM sse2
+OFFSETPN 12
+OFFSETPN 16
+OFFSETPN 20
+INIT_XMM avx
+OFFSETPN 12
+OFFSETPN 16
+OFFSETPN 20
 %ifdef HIGH_BIT_DEPTH
-INIT_XMM
-OFFSETPN  8, sse2
-INIT_AVX
-OFFSETPN  8, avx
+INIT_XMM sse2
+OFFSETPN  8
+INIT_XMM avx
+OFFSETPN  8
 %endif
 %undef LOAD_HEIGHT
 %undef HEIGHT_REG
@@ -573,11 +573,11 @@ OFFSETPN  8, avx
 ; void pixel_avg_4x4( pixel *dst, int dst_stride,
 ;                     pixel *src1, int src1_stride, pixel *src2, int src2_stride, int weight );
 ;-----------------------------------------------------------------------------
-%macro AVGH 3
-cglobal pixel_avg_%1x%2_%3
+%macro AVGH 2
+cglobal pixel_avg_%1x%2
     mov eax, %2
     cmp dword r6m, 32
-    jne pixel_avg_weight_w%1_%3
+    jne pixel_avg_weight_w%1 %+ SUFFIX
 %if mmsize == 16 && %1 == 16
     test dword r4m, 15
     jz pixel_avg_w%1_sse2
@@ -591,8 +591,8 @@ cglobal pixel_avg_%1x%2_%3
 ;                    int height, int weight );
 ;-----------------------------------------------------------------------------
 
-%macro AVG_FUNC 4
-cglobal pixel_avg_w%1_%4
+%macro AVG_FUNC 3
+cglobal pixel_avg_w%1
     AVG_START
 .height_loop:
 %assign x 0
@@ -615,71 +615,73 @@ cglobal pixel_avg_w%1_%4
 
 %ifdef HIGH_BIT_DEPTH
 
-INIT_MMX
-AVG_FUNC 4, movq, movq, mmx2
-AVGH 4, 8, mmx2
-AVGH 4, 4, mmx2
-AVGH 4, 2, mmx2
+INIT_MMX mmx2
+AVG_FUNC 4, movq, movq
+AVGH 4, 8
+AVGH 4, 4
+AVGH 4, 2
 
-AVG_FUNC 8, movq, movq, mmx2
-AVGH 8, 16, mmx2
-AVGH 8,  8, mmx2
-AVGH 8,  4, mmx2
+AVG_FUNC 8, movq, movq
+AVGH 8, 16
+AVGH 8,  8
+AVGH 8,  4
 
-AVG_FUNC 16, movq, movq, mmx2
-AVGH 16, 16, mmx2
-AVGH 16,  8, mmx2
+AVG_FUNC 16, movq, movq
+AVGH 16, 16
+AVGH 16,  8
 
-INIT_XMM
-AVG_FUNC 4, movq, movq, sse2
-AVGH  4, 8, sse2
-AVGH  4, 4, sse2
-AVGH  4, 2, sse2
+INIT_XMM sse2
+AVG_FUNC 4, movq, movq
+AVGH  4, 8
+AVGH  4, 4
+AVGH  4, 2
 
-AVG_FUNC 8, movdqu, movdqa, sse2
-AVGH  8, 16, sse2
-AVGH  8,  8, sse2
-AVGH  8,  4, sse2
+AVG_FUNC 8, movdqu, movdqa
+AVGH  8, 16
+AVGH  8,  8
+AVGH  8,  4
 
-AVG_FUNC 16, movdqu, movdqa, sse2
-AVGH  16, 16, sse2
-AVGH  16,  8, sse2
+AVG_FUNC 16, movdqu, movdqa
+AVGH  16, 16
+AVGH  16,  8
 
 %else ;!HIGH_BIT_DEPTH
 
-INIT_MMX
-AVG_FUNC 4, movd, movd, mmx2
-AVGH 4, 8, mmx2
-AVGH 4, 4, mmx2
-AVGH 4, 2, mmx2
+INIT_MMX mmx2
+AVG_FUNC 4, movd, movd
+AVGH 4, 8
+AVGH 4, 4
+AVGH 4, 2
 
-AVG_FUNC 8, movq, movq, mmx2
-AVGH 8, 16, mmx2
-AVGH 8,  8, mmx2
-AVGH 8,  4, mmx2
+AVG_FUNC 8, movq, movq
+AVGH 8, 16
+AVGH 8,  8
+AVGH 8,  4
 
-AVG_FUNC 16, movq, movq, mmx2
-AVGH 16, 16, mmx2
-AVGH 16, 8,  mmx2
+AVG_FUNC 16, movq, movq
+AVGH 16, 16
+AVGH 16, 8
 
-INIT_XMM
-AVG_FUNC 16, movdqu, movdqa, sse2
-AVGH 16, 16, sse2
-AVGH 16,  8, sse2
-AVGH  8, 16, sse2
-AVGH  8,  8, sse2
-AVGH  8,  4, sse2
-AVGH 16, 16, ssse3
-AVGH 16,  8, ssse3
-AVGH  8, 16, ssse3
-AVGH  8,  8, ssse3
-AVGH  8,  4, ssse3
-INIT_MMX
-AVGH  4,  8, ssse3
-AVGH  4,  4, ssse3
-AVGH  4,  2, ssse3
+INIT_XMM sse2
+AVG_FUNC 16, movdqu, movdqa
+AVGH 16, 16
+AVGH 16,  8
+AVGH  8, 16
+AVGH  8,  8
+AVGH  8,  4
+INIT_XMM ssse3
+AVGH 16, 16
+AVGH 16,  8
+AVGH  8, 16
+AVGH  8,  8
+AVGH  8,  4
+INIT_MMX ssse3
+AVGH  4,  8
+AVGH  4,  4
+AVGH  4,  2
 
 %endif ;HIGH_BIT_DEPTH
+
 
 
 ;=============================================================================
@@ -692,8 +694,8 @@ AVGH  4,  2, ssse3
 ;                     uint16_t *src1, int src_stride,
 ;                     uint16_t *src2, int height );
 ;-----------------------------------------------------------------------------
-%macro AVG2_W_ONE 2
-cglobal pixel_avg2_w%1_%2, 6,7,4*(mmsize/16)
+%macro AVG2_W_ONE 1
+cglobal pixel_avg2_w%1, 6,7,4*(mmsize/16)
     sub     r4, r2
     lea     r6, [r4+r3*2]
 .height_loop:
@@ -717,8 +719,8 @@ cglobal pixel_avg2_w%1_%2, 6,7,4*(mmsize/16)
     REP_RET
 %endmacro
 
-%macro AVG2_W_TWO 4
-cglobal pixel_avg2_w%1_%4, 6,7,8*(mmsize/16)
+%macro AVG2_W_TWO 3
+cglobal pixel_avg2_w%1, 6,7,8*(mmsize/16)
     sub     r4, r2
     lea     r6, [r4+r3*2]
 .height_loop:
@@ -752,13 +754,13 @@ cglobal pixel_avg2_w%1_%4, 6,7,8*(mmsize/16)
     REP_RET
 %endmacro
 
-INIT_MMX
-AVG2_W_ONE  4, mmx2
-AVG2_W_TWO  8, movu, mova, mmx2
-INIT_XMM
-AVG2_W_ONE  8, sse2
-AVG2_W_TWO 10, movd, movd, sse2
-AVG2_W_TWO 16, movu, mova, sse2
+INIT_MMX mmx2
+AVG2_W_ONE  4
+AVG2_W_TWO  8, movu, mova
+INIT_XMM sse2
+AVG2_W_ONE  8
+AVG2_W_TWO 10, movd, movd
+AVG2_W_TWO 16, movu, mova
 
 INIT_MMX
 cglobal pixel_avg2_w10_mmx2, 6,7
@@ -894,6 +896,7 @@ cglobal pixel_avg2_w%1_mmx2, 6,7
     REP_RET
 %endmacro
 
+INIT_MMX
 AVG2_W8 4, movd
 AVG2_W8 8, movq
 
@@ -1096,15 +1099,14 @@ cglobal pixel_avg2_w%1_cache%2_%3
     jz pixel_avg2_w%1_%3
     mov    eax, r2m
 %endif
-%ifidn %3, sse2
-    AVG_CACHELINE_FUNC %1, %2
-%elif %1==8 && %2==64
+%if mmsize==16 || (%1==8 && %2==64)
     AVG_CACHELINE_FUNC %1, %2
 %else
     jmp cachesplit
 %endif
 %endmacro
 
+INIT_MMX
 AVG_CACHELINE_CHECK  8, 64, mmx2
 AVG_CACHELINE_CHECK 12, 64, mmx2
 %ifndef ARCH_X86_64
@@ -1115,6 +1117,7 @@ AVG_CACHELINE_CHECK 12, 32, mmx2
 AVG_CACHELINE_CHECK 16, 32, mmx2
 AVG_CACHELINE_CHECK 20, 32, mmx2
 %endif
+INIT_XMM
 AVG_CACHELINE_CHECK 16, 64, sse2
 AVG_CACHELINE_CHECK 20, 64, sse2
 
@@ -1200,41 +1203,44 @@ AVG16_CACHELINE_LOOP_SSSE3 j, k
 ; pixel copy
 ;=============================================================================
 
-%macro COPY4 4
-    %2  m0, [r2]
-    %2  m1, [r2+r3]
-    %2  m2, [r2+r3*2]
-    %2  m3, [r2+%4]
-    %1  [r0],      m0
-    %1  [r0+r1],   m1
-    %1  [r0+r1*2], m2
-    %1  [r0+%3],   m3
+%macro COPY4 2-*
+    movu  m0, [r2]
+    movu  m1, [r2+r3]
+    movu  m2, [r2+r3*2]
+    movu  m3, [r2+%2]
+    mova  [r0],      m0
+    mova  [r0+r1],   m1
+    mova  [r0+r1*2], m2
+    mova  [r0+%1],   m3
 %endmacro
 
-%ifdef HIGH_BIT_DEPTH
-%macro COPY_ONE 6
-    COPY4 %1, %2, %3, %4
+%macro COPY_ONE 4
+    COPY4 %1, %2
 %endmacro
 
-%macro COPY_TWO 6
-    %2  m0, [r2+%5]
-    %2  m1, [r2+%6]
-    %2  m2, [r2+r3+%5]
-    %2  m3, [r2+r3+%6]
-    %2  m4, [r2+r3*2+%5]
-    %2  m5, [r2+r3*2+%6]
-    %2  m6, [r2+%4+%5]
-    %2  m7, [r2+%4+%6]
-    %1 [r0+%5],      m0
-    %1 [r0+%6],      m1
-    %1 [r0+r1+%5],   m2
-    %1 [r0+r1+%6],   m3
-    %1 [r0+r1*2+%5], m4
-    %1 [r0+r1*2+%6], m5
-    %1 [r0+%3+%5],   m6
-    %1 [r0+%3+%6],   m7
+%macro COPY_TWO 4
+    movu  m0, [r2+%3]
+    movu  m1, [r2+%4]
+    movu  m2, [r2+r3+%3]
+    movu  m3, [r2+r3+%4]
+    movu  m4, [r2+r3*2+%3]
+    movu  m5, [r2+r3*2+%4]
+    movu  m6, [r2+%2+%3]
+    movu  m7, [r2+%2+%4]
+    mova  [r0+%3],      m0
+    mova  [r0+%4],      m1
+    mova  [r0+r1+%3],   m2
+    mova  [r0+r1+%4],   m3
+    mova  [r0+r1*2+%3], m4
+    mova  [r0+r1*2+%4], m5
+    mova  [r0+%1+%3],   m6
+    mova  [r0+%1+%4],   m7
 %endmacro
 
+;-----------------------------------------------------------------------------
+; void mc_copy_w4( uint8_t *dst, int i_dst_stride,
+;                  uint8_t *src, int i_src_stride, int i_height )
+;-----------------------------------------------------------------------------
 INIT_MMX
 cglobal mc_copy_w4_mmx, 4,6
     FIX_STRIDES r1, r3
@@ -1242,109 +1248,61 @@ cglobal mc_copy_w4_mmx, 4,6
     lea     r5, [r3*3]
     lea     r4, [r1*3]
     je .end
-    COPY4 mova, mova, r4, r5
-    lea     r2, [r2+r3*4]
-    lea     r0, [r0+r1*4]
-.end
-    COPY4 movu, mova, r4, r5
-    RET
-
-cglobal mc_copy_w16_mmx, 5,7
-    FIX_STRIDES r1, r3
-    lea     r6, [r3*3]
-    lea     r5, [r1*3]
-.height_loop:
-    COPY_TWO mova, movu, r5, r6, mmsize*0, mmsize*1
-    COPY_TWO mova, movu, r5, r6, mmsize*2, mmsize*3
-    sub    r4d, 4
-    lea     r2, [r2+r3*4]
-    lea     r0, [r0+r1*4]
-    jg .height_loop
-    REP_RET
-
-%macro MC_COPY 5
-cglobal mc_copy_w%2_%4, 5,7,%5
-    FIX_STRIDES r1, r3
-    lea     r6, [r3*3]
-    lea     r5, [r1*3]
-.height_loop:
-    COPY_%1 mova, %3, r5, r6, 0, mmsize
-    sub    r4d, 4
-    lea     r2, [r2+r3*4]
-    lea     r0, [r0+r1*4]
-    jg .height_loop
-    REP_RET
-%endmacro
-
-MC_COPY TWO,  8, movu, mmx,          0
-INIT_XMM
-MC_COPY ONE,  8, movu, sse2,         0
-MC_COPY TWO, 16, movu, sse2,         8
-MC_COPY TWO, 16, mova, aligned_sse2, 8
-%endif ; HIGH_BIT_DEPTH
-
 %ifndef HIGH_BIT_DEPTH
-INIT_MMX
-;-----------------------------------------------------------------------------
-; void mc_copy_w4( uint8_t *dst, int i_dst_stride,
-;                  uint8_t *src, int i_src_stride, int i_height )
-;-----------------------------------------------------------------------------
-cglobal mc_copy_w4_mmx, 4,6
-    cmp     dword r4m, 4
-    lea     r5, [r3*3]
-    lea     r4, [r1*3]
-    je .end
-    COPY4 movd, movd, r4, r5
+    %define mova movd
+    %define movu movd
+%endif
+    COPY4 r4, r5
     lea     r2, [r2+r3*4]
     lea     r0, [r0+r1*4]
 .end:
-    COPY4 movd, movd, r4, r5
+    COPY4 r4, r5
     RET
 
-cglobal mc_copy_w8_mmx, 5,7
-    lea     r6, [r3*3]
-    lea     r5, [r1*3]
-.height_loop:
-    COPY4 movq, movq, r5, r6
-    lea     r2, [r2+r3*4]
-    lea     r0, [r0+r1*4]
-    sub     r4d, 4
-    jg      .height_loop
-    REP_RET
-
+%ifdef HIGH_BIT_DEPTH
 cglobal mc_copy_w16_mmx, 5,7
+    FIX_STRIDES r1, r3
     lea     r6, [r3*3]
     lea     r5, [r1*3]
 .height_loop:
-    movq    mm0, [r2]
-    movq    mm1, [r2+8]
-    movq    mm2, [r2+r3]
-    movq    mm3, [r2+r3+8]
-    movq    mm4, [r2+r3*2]
-    movq    mm5, [r2+r3*2+8]
-    movq    mm6, [r2+r6]
-    movq    mm7, [r2+r6+8]
-    movq    [r0], mm0
-    movq    [r0+8], mm1
-    movq    [r0+r1], mm2
-    movq    [r0+r1+8], mm3
-    movq    [r0+r1*2], mm4
-    movq    [r0+r1*2+8], mm5
-    movq    [r0+r5], mm6
-    movq    [r0+r5+8], mm7
+    COPY_TWO r5, r6, mmsize*0, mmsize*1
+    COPY_TWO r5, r6, mmsize*2, mmsize*3
+    sub    r4d, 4
     lea     r2, [r2+r3*4]
     lea     r0, [r0+r1*4]
-    sub     r4d, 4
-    jg      .height_loop
+    jg .height_loop
     REP_RET
 
-INIT_XMM
-%macro COPY_W16_SSE2 2
-cglobal %1, 5,7
+%macro MC_COPY 2
+cglobal mc_copy_w%2, 5,7,%2-8
+    FIX_STRIDES r1, r3
     lea     r6, [r3*3]
     lea     r5, [r1*3]
 .height_loop:
-    COPY4 movdqa, %2, r5, r6
+    COPY_%1 r5, r6, 0, mmsize
+    sub    r4d, 4
+    lea     r2, [r2+r3*4]
+    lea     r0, [r0+r1*4]
+    jg .height_loop
+    REP_RET
+%endmacro
+
+INIT_MMX mmx
+MC_COPY TWO,  8
+INIT_XMM sse2
+MC_COPY ONE,  8
+MC_COPY TWO, 16
+INIT_XMM aligned, sse2
+MC_COPY TWO, 16
+%endif ; HIGH_BIT_DEPTH
+
+%ifndef HIGH_BIT_DEPTH
+%macro MC_COPY 2
+cglobal mc_copy_w%2, 5,7
+    lea     r6, [r3*3]
+    lea     r5, [r1*3]
+.height_loop:
+    %1      r5, r6, 0, mmsize
     lea     r2, [r2+r3*4]
     lea     r0, [r0+r1*4]
     sub     r4d, 4
@@ -1352,11 +1310,17 @@ cglobal %1, 5,7
     REP_RET
 %endmacro
 
-COPY_W16_SSE2 mc_copy_w16_sse2, movdqu
+INIT_MMX mmx
+MC_COPY COPY4, 8
+MC_COPY COPY_TWO, 16
+INIT_XMM sse2
+MC_COPY COPY4, 16
 ; cacheline split with mmx has too much overhead; the speed benefit is near-zero.
 ; but with SSE3 the overhead is zero, so there's no reason not to include it.
-COPY_W16_SSE2 mc_copy_w16_sse3, lddqu
-COPY_W16_SSE2 mc_copy_w16_aligned_sse2, movdqa
+INIT_XMM sse3
+MC_COPY COPY4, 16
+INIT_XMM aligned, sse2
+MC_COPY COPY4, 16
 %endif ; !HIGH_BIT_DEPTH
 
 
@@ -1370,6 +1334,7 @@ COPY_W16_SSE2 mc_copy_w16_aligned_sse2, movdqa
 ; void prefetch_fenc( uint8_t *pix_y, int stride_y,
 ;                     uint8_t *pix_uv, int stride_uv, int mb_x )
 ;-----------------------------------------------------------------------------
+INIT_MMX
 %ifdef ARCH_X86_64
 cglobal prefetch_fenc_mmx2, 5,5
     and    r4d, 3
@@ -1476,13 +1441,13 @@ cglobal prefetch_ref_mmx2, 3,3
 %endif
 %endmacro
 %else ; !HIGH_BIT_DEPTH
-%macro UNPACK_UNALIGNED_MEM 3
+%macro UNPACK_UNALIGNED 3
+%if mmsize == 8 || cpuflag(misalign)
     punpcklwd  %1, %3
-%endmacro
-
-%macro UNPACK_UNALIGNED_LOAD 3
+%else
     movh       %2, %3
     punpcklwd  %1, %2
+%endif
 %endmacro
 %endif ; HIGH_BIT_DEPTH
 
@@ -1492,8 +1457,8 @@ cglobal prefetch_ref_mmx2, 3,3
 ;                 int dx, int dy,
 ;                 int width, int height )
 ;-----------------------------------------------------------------------------
-%macro MC_CHROMA 1
-cglobal mc_chroma_%1, 0,6
+%macro MC_CHROMA 0
+cglobal mc_chroma, 0,6
     MC_CHROMA_START
     FIX_STRIDES r4
     and       r5d, 7
@@ -1874,8 +1839,8 @@ ALIGN 4
 %endmacro ; MC_CHROMA
 
 
-%macro MC_CHROMA_SSSE3 1-2
-cglobal mc_chroma_%1, 0,6,9
+%macro MC_CHROMA_SSSE3 0
+cglobal mc_chroma, 0,6,9
     MC_CHROMA_START
     and       r5d, 7
     and       t2d, 7
@@ -1889,7 +1854,7 @@ cglobal mc_chroma_%1, 0,6,9
     imul      r5d, t0d ; (x*255+8)*(8-y)
     movd       m6, t2d
     movd       m7, r5d
-%ifidn %2, _cache64
+%if cpuflag(cache64)
     mov       t0d, r3d
     and       t0d, 7
 %ifdef PIC
@@ -2008,22 +1973,23 @@ cglobal mc_chroma_%1, 0,6,9
 %endmacro
 
 %ifdef HIGH_BIT_DEPTH
-INIT_MMX
-MC_CHROMA mmx2
-INIT_XMM
-MC_CHROMA sse2
-INIT_AVX
-MC_CHROMA avx
+INIT_MMX mmx2
+MC_CHROMA
+INIT_XMM sse2
+MC_CHROMA
+INIT_XMM avx
+MC_CHROMA
 %else ; !HIGH_BIT_DEPTH
-INIT_MMX
-%define UNPACK_UNALIGNED UNPACK_UNALIGNED_MEM
-MC_CHROMA mmx2
-INIT_XMM
-MC_CHROMA sse2_misalign
-%define UNPACK_UNALIGNED UNPACK_UNALIGNED_LOAD
-MC_CHROMA sse2
-MC_CHROMA_SSSE3 ssse3
-MC_CHROMA_SSSE3 ssse3_cache64, _cache64
-INIT_AVX
-MC_CHROMA_SSSE3 avx ; No known AVX CPU will trigger CPU_CACHELINE_64
+INIT_MMX mmx2
+MC_CHROMA
+INIT_XMM sse2, misalign
+MC_CHROMA
+INIT_XMM sse2
+MC_CHROMA
+INIT_XMM ssse3
+MC_CHROMA_SSSE3
+INIT_XMM ssse3, cache64
+MC_CHROMA_SSSE3
+INIT_XMM avx
+MC_CHROMA_SSSE3 ; No known AVX CPU will trigger CPU_CACHELINE_64
 %endif ; HIGH_BIT_DEPTH

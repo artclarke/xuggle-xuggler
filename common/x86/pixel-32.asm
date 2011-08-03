@@ -28,7 +28,7 @@
 %include "x86util.asm"
 
 SECTION .text
-INIT_MMX
+INIT_MMX mmx2
 
 %macro LOAD_DIFF_4x8P 1 ; dx
     LOAD_DIFF  m0, m7, none, [r0+%1],      [r2+%1]
@@ -66,7 +66,7 @@ INIT_MMX
 ;-----------------------------------------------------------------------------
 ; int pixel_sa8d_8x8( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-cglobal pixel_sa8d_8x8_internal_mmx2
+cglobal pixel_sa8d_8x8_internal
     push   r0
     push   r2
     sub    esp, 0x74
@@ -174,7 +174,7 @@ cglobal pixel_sa8d_8x8_internal_mmx2
 ;-----------------------------------------------------------------------------
 ; void intra_sa8d_x3_8x8_core( uint8_t *fenc, int16_t edges[2][8], int *res )
 ;-----------------------------------------------------------------------------
-cglobal intra_sa8d_x3_8x8_core_mmx2
+cglobal intra_sa8d_x3_8x8_core
     mov    eax, [esp+4]
     mov    ecx, [esp+8]
     sub    esp, 0x70
@@ -335,7 +335,7 @@ cglobal intra_sa8d_x3_8x8_core_mmx2
 ; void pixel_ssim_4x4x2_core( const uint8_t *pix1, int stride1,
 ;                             const uint8_t *pix2, int stride2, int sums[2][4] )
 ;-----------------------------------------------------------------------------
-cglobal pixel_ssim_4x4x2_core_mmx2
+cglobal pixel_ssim_4x4x2_core
     push     ebx
     push     edi
     mov      ebx, [esp+16]

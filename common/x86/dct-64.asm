@@ -34,7 +34,6 @@ SECTION .text
 %ifndef HIGH_BIT_DEPTH
 cextern pw_32
 cextern hsub_mul
-INIT_XMM
 
 %macro DCT8_1D 10
     SUMSUB_BA w, %5, %4 ; %5=s34, %4=d34
@@ -133,17 +132,17 @@ INIT_XMM
     SWAP  %3, %8, %7
 %endmacro
 
-%macro DCT_SUB8 1
-cglobal sub8x8_dct_%1, 3,3,11
+%macro DCT_SUB8 0
+cglobal sub8x8_dct, 3,3,11
     add r2, 4*FDEC_STRIDE
-%ifnidn %1, sse2
+%if cpuflag(ssse3)
     mova m7, [hsub_mul]
 %endif
 %ifdef WIN64
     call .skip_prologue
     RET
 %endif
-global sub8x8_dct_%1.skip_prologue
+global current_function %+ .skip_prologue
 .skip_prologue:
     SWAP 7, 9
     LOAD_DIFF8x4 0, 1, 2, 3, 8, 9, r1, r2-4*FDEC_STRIDE
@@ -161,16 +160,16 @@ global sub8x8_dct_%1.skip_prologue
 ;-----------------------------------------------------------------------------
 ; void sub8x8_dct8( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
-cglobal sub8x8_dct8_%1, 3,3,11
+cglobal sub8x8_dct8, 3,3,11
     add r2, 4*FDEC_STRIDE
-%ifnidn %1, sse2
+%if cpuflag(ssse3)
     mova m7, [hsub_mul]
 %endif
 %ifdef WIN64
     call .skip_prologue
     RET
 %endif
-global sub8x8_dct8_%1.skip_prologue
+global current_function %+ .skip_prologue
 .skip_prologue:
     SWAP 7, 10
     LOAD_DIFF8x4  0, 1, 2, 3, 4, 10, r1, r2-4*FDEC_STRIDE
@@ -189,29 +188,29 @@ global sub8x8_dct8_%1.skip_prologue
     ret
 %endmacro
 
-%define LOAD_DIFF8x4 LOAD_DIFF8x4_SSE2
+INIT_XMM sse2
 %define movdqa movaps
 %define punpcklqdq movlhps
-DCT_SUB8 sse2
+DCT_SUB8
 %undef movdqa
 %undef punpcklqdq
-%define LOAD_DIFF8x4 LOAD_DIFF8x4_SSSE3
-DCT_SUB8 ssse3
-INIT_AVX
-DCT_SUB8 avx
+INIT_XMM ssse3
+DCT_SUB8
+INIT_XMM avx
+DCT_SUB8
 
 ;-----------------------------------------------------------------------------
 ; void add8x8_idct8( uint8_t *p_dst, int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
-%macro ADD8x8_IDCT8 1
-cglobal add8x8_idct8_%1, 2,2,11
+%macro ADD8x8_IDCT8 0
+cglobal add8x8_idct8, 2,2,11
     add r0, 4*FDEC_STRIDE
     pxor m7, m7
 %ifdef WIN64
     call .skip_prologue
     RET
 %endif
-global add8x8_idct8_%1.skip_prologue
+global current_function %+ .skip_prologue
 .skip_prologue:
     SWAP 7, 9
     movdqa  m0, [r1+0x00]
@@ -234,23 +233,23 @@ global add8x8_idct8_%1.skip_prologue
     ret
 %endmacro ; ADD8x8_IDCT8
 
-INIT_XMM
-ADD8x8_IDCT8 sse2
-INIT_AVX
-ADD8x8_IDCT8 avx
+INIT_XMM sse2
+ADD8x8_IDCT8
+INIT_XMM avx
+ADD8x8_IDCT8
 
 ;-----------------------------------------------------------------------------
 ; void add8x8_idct( uint8_t *pix, int16_t dct[4][4][4] )
 ;-----------------------------------------------------------------------------
-%macro ADD8x8 1
-cglobal add8x8_idct_%1, 2,2,11
+%macro ADD8x8 0
+cglobal add8x8_idct, 2,2,11
     add  r0, 4*FDEC_STRIDE
     pxor m7, m7
 %ifdef WIN64
     call .skip_prologue
     RET
 %endif
-global add8x8_idct_%1.skip_prologue
+global current_function %+ .skip_prologue
 .skip_prologue:
     SWAP 7, 9
     mova   m0, [r1+ 0]
@@ -281,8 +280,8 @@ global add8x8_idct_%1.skip_prologue
     ret
 %endmacro ; ADD8x8
 
-INIT_XMM
-ADD8x8 sse2
-INIT_AVX
-ADD8x8 avx
+INIT_XMM sse2
+ADD8x8
+INIT_XMM avx
+ADD8x8
 %endif ; !HIGH_BIT_DEPTH
