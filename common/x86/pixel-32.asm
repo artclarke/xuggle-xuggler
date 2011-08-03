@@ -48,14 +48,14 @@ INIT_MMX mmx2
 %macro SUM4x8_MM 0
     movq [spill],   m6
     movq [spill+8], m7
-    ABS2     m0, m1, m6, m7
-    ABS2     m2, m3, m6, m7
+    ABSW2    m0, m1, m0, m1, m6, m7
+    ABSW2    m2, m3, m2, m3, m6, m7
     paddw    m0, m2
     paddw    m1, m3
     movq     m6, [spill]
     movq     m7, [spill+8]
-    ABS2     m4, m5, m2, m3
-    ABS2     m6, m7, m2, m3
+    ABSW2    m4, m5, m4, m5, m2, m3
+    ABSW2    m6, m7, m6, m7, m2, m3
     paddw    m4, m6
     paddw    m5, m7
     paddw    m0, m4
@@ -218,23 +218,23 @@ cglobal intra_sa8d_x3_8x8_core
 
     movq [spill+0], m0
     movq [spill+8], m1
-    ABS2     m2, m3, m0, m1
-    ABS2     m4, m5, m0, m1
+    ABSW2    m2, m3, m2, m3, m0, m1
+    ABSW2    m4, m5, m4, m5, m0, m1
     paddw    m2, m4
     paddw    m3, m5
-    ABS2     m6, m7, m4, m5
+    ABSW2    m6, m7, m6, m7, m4, m5
     movq     m0, [spill+0]
     movq     m1, [spill+8]
     paddw    m2, m6
     paddw    m3, m7
     paddw    m2, m3
-    ABS1     m1, m4
+    ABSW     m1, m1, m4
     paddw    m2, m1 ; 7x4 sum
     movq     m7, m0
     movq     m1, [ecx+8] ; left bottom
     psllw    m1, 3
     psubw    m7, m1
-    ABS2     m0, m7, m5, m3
+    ABSW2    m0, m7, m0, m7, m5, m3
     paddw    m0, m2
     paddw    m7, m2
     movq [sum+0], m0 ; dc
@@ -262,15 +262,15 @@ cglobal intra_sa8d_x3_8x8_core
 
     movq [spill],   m0
     movq [spill+8], m1
-    ABS2     m2, m3, m0, m1
-    ABS2     m4, m5, m0, m1
+    ABSW2    m2, m3, m2, m3, m0, m1
+    ABSW2    m4, m5, m4, m5, m0, m1
     paddw    m2, m4
     paddw    m3, m5
     paddw    m2, m3
     movq     m0, [spill]
     movq     m1, [spill+8]
-    ABS2     m6, m7, m4, m5
-    ABS1     m1, m3
+    ABSW2    m6, m7, m6, m7, m4, m5
+    ABSW     m1, m1, m3
     paddw    m2, m7
     paddw    m1, m6
     paddw    m2, m1 ; 7x4 sum
@@ -287,7 +287,7 @@ cglobal intra_sa8d_x3_8x8_core
 
     psubw    m1, m7
     psubw    m0, m6
-    ABS2     m0, m1, m5, m6
+    ABSW2    m0, m1, m0, m1, m5, m6
     movq     m3, [sum+0] ; dc
     paddw    m0, m2
     paddw    m1, m2
@@ -303,7 +303,7 @@ cglobal intra_sa8d_x3_8x8_core
     psllw    m4, 3
     psubw    m3, [sum+16]
     psubw    m4, [sum+24]
-    ABS2     m3, m4, m5, m6
+    ABSW2    m3, m4, m3, m4, m5, m6
     paddw    m2, m3
     paddw    m2, m4 ; v
 

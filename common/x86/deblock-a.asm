@@ -2128,7 +2128,8 @@ cglobal deblock_strength, 6,6,8
     packsswb  m0, m1
     packsswb  m2, m3
 %endif
-    ABSB2     m0, m2, m1, m3
+    ABSB      m0, m1
+    ABSB      m2, m3
     psubusb   m0, m6
     psubusb   m2, m6
     packsswb  m0, m2
@@ -2144,7 +2145,8 @@ cglobal deblock_strength, 6,6,8
     psubw     m3, [mv+4*8* 3]
     packsswb  m0, m1
     packsswb  m2, m3
-    ABSB2     m0, m2, m1, m3
+    ABSB      m0, m1
+    ABSB      m2, m3
     psubusb   m0, m6
     psubusb   m2, m6
     packsswb  m0, m2

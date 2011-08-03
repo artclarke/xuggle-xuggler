@@ -99,59 +99,6 @@ cextern pd_1024
 %endif
 %endmacro
 
-; PABSW mmx and PSIGNW mmx do not individually perform the same operations as
-; pabsw and psignw instructions, but the conjuction works
-%macro PABSW 2
-%if cpuflag(ssse3)
-    pabsw      %1, %2
-%else
-    pxor       %1, %1
-    pcmpgtw    %1, %2
-    pxor       %2, %1
-    psubw      %2, %1
-    SWAP       %1, %2
-%endif
-%endmacro
-
-%macro PSIGNW 2
-%if cpuflag(ssse3)
-    psignw     %1, %2
-%else
-    pxor       %1, %2
-    psubw      %1, %2
-%endif
-%endmacro
-
-%macro PABSD 2
-%if cpuflag(ssse3)
-    pabsd       %1, %2
-%else
-    pxor        %1, %1
-    pcmpgtd     %1, %2
-    pxor        %2, %1
-    psubd       %2, %1
-    SWAP        %1, %2
-%endif
-%endmacro
-
-%macro PSIGND_MMX 2-3
-%if %0==3
-    pxor        %1, %2, %3
-    psubd       %1, %3
-%else
-    pxor        %1, %2
-    psubd       %1, %2
-%endif
-%endmacro
-
-%macro PSIGND 2+
-%if cpuflag(ssse3)
-    psignd      %1, %2
-%else
-    PSIGND_MMX  %1, %2
-%endif
-%endmacro
-
 %macro QUANT_END 0
 %if cpuflag(sse4)
     xor      eax, eax
@@ -185,7 +132,7 @@ cextern pd_1024
 %macro QUANT_ONE_DC 4
 %if cpuflag(sse4)
     mova        m0, [%1]
-    PABSD       m1, m0
+    ABSD        m1, m0
     paddd       m1, %3
     pmulld      m1, %2
     psrad       m1, 16
@@ -198,7 +145,7 @@ cextern pd_1024
 %endif
 %else ; !sse4
     mova        m0, [%1]
-    PABSD       m1, m0
+    ABSD        m1, m0
     paddd       m1, %3
     mova        m2, m1
     psrlq       m2, 32
@@ -221,8 +168,8 @@ cextern pd_1024
 %if cpuflag(sse4)
     mova        m0, [%1]
     mova        m1, [%1+mmsize]
-    PABSD       m2, m0
-    PABSD       m3, m1
+    ABSD        m2, m0
+    ABSD        m3, m1
     paddd       m2, %3
     paddd       m3, %3
     pmulld      m2, %2
@@ -248,7 +195,7 @@ cextern pd_1024
 %macro QUANT_ONE_AC_MMX 4
     mova        m0, [%1]
     mova        m2, [%2]
-    PABSD       m1, m0
+    ABSD        m1, m0
     mova        m4, m2
     paddd       m1, [%3]
     mova        m3, m1
@@ -272,8 +219,8 @@ cextern pd_1024
 %if cpuflag(sse4)
     mova        m0, [%1]
     mova        m1, [%1+mmsize]
-    PABSD       m2, m0
-    PABSD       m3, m1
+    ABSD        m2, m0
+    ABSD        m3, m1
     paddd       m2, [%3]
     paddd       m3, [%3+mmsize]
     pmulld      m2, [%2]
@@ -355,7 +302,7 @@ QUANT_AC 8, 8
 ;;; %2      (m64/mmx)   mf[y][x] or mf[0][0] (as uint16_t)
 ;;; %3      (m64/mmx)   bias[y][x] or bias[0][0] (as uint16_t)
     mova       m1, %1   ; load dct coeffs
-    PABSW      m0, m1
+    ABSW       m0, m1, sign
     paddusw    m0, %3   ; round
     pmulhuw    m0, %2   ; divide
     PSIGNW     m0, m1   ; restore sign
@@ -370,8 +317,8 @@ QUANT_AC 8, 8
 %macro QUANT_TWO 7
     mova       m1, %1
     mova       m3, %2
-    PABSW      m0, m1
-    PABSW      m2, m3
+    ABSW       m0, m1, sign
+    ABSW       m2, m3, sign
     paddusw    m0, %5
     paddusw    m2, %6
     pmulhuw    m0, %3
@@ -853,8 +800,8 @@ cglobal denoise_dct, 4,4,8
     sub       r3, mmsize/2
     mova      m2, [r0+r3*4+0*mmsize]
     mova      m3, [r0+r3*4+1*mmsize]
-    PABSD     m0, m2
-    PABSD     m1, m3
+    ABSD      m0, m2
+    ABSD      m1, m3
     mova      m4, m0
     mova      m5, m1
     psubd     m0, [r2+r3*4+0*mmsize]
@@ -898,8 +845,8 @@ cglobal denoise_dct, 4,4,7
     sub       r3, mmsize
     mova      m2, [r0+r3*2+0*mmsize]
     mova      m3, [r0+r3*2+1*mmsize]
-    PABSW     m0, m2
-    PABSW     m1, m3
+    ABSW      m0, m2, sign
+    ABSW      m1, m3, sign
     psubusw   m4, m0, [r2+r3*2+0*mmsize]
     psubusw   m5, m1, [r2+r3*2+1*mmsize]
     PSIGNW    m4, m2
@@ -946,16 +893,10 @@ DENOISE_DCT
     movdqa   xmm1, [%3+32]
     packssdw xmm0, [%3+16]
     packssdw xmm1, [%3+48]
-    ABS2     xmm0, xmm1, xmm3, xmm4
+    ABSW2    xmm0, xmm1, xmm0, xmm1, xmm3, xmm4
 %else
-%if cpuflag(ssse3)
-    pabsw    xmm0, [%3+ 0]
-    pabsw    xmm1, [%3+16]
-%else
-    movdqa   xmm0, [%3+ 0]
-    movdqa   xmm1, [%3+16]
-    ABS2     xmm0, xmm1, xmm3, xmm4
-%endif
+    ABSW     xmm0, [%3+ 0], xmm3
+    ABSW     xmm1, [%3+16], xmm4
 %endif
     packsswb xmm0, xmm1
     pxor     xmm2, xmm2
@@ -980,8 +921,8 @@ DENOISE_DCT
     movq      mm2, [%3+16]
     movq      mm3, [%3+24]
 %endif
-    ABS2      mm0, mm1, mm6, mm7
-    ABS2      mm2, mm3, mm6, mm7
+    ABSW2     mm0, mm1, mm0, mm1, mm6, mm7
+    ABSW2     mm2, mm3, mm2, mm3, mm6, mm7
     packsswb  mm0, mm1
     packsswb  mm2, mm3
     pxor      mm4, mm4

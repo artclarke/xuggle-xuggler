@@ -43,8 +43,8 @@ cextern pw_1
     psubw   m2, [r2+ 8]
     psubw   m3, [r2+16]
     psubw   m4, [r2+24]
-    ABS2    m1, m2, m5, m6
-    ABS2    m3, m4, m7, m5
+    ABSW2   m1, m2, m1, m2, m5, m6
+    ABSW2   m3, m4, m3, m4, m7, m5
     lea     r0, [r0+2*r1]
     lea     r2, [r2+2*r3]
     paddw   m1, m2
@@ -62,8 +62,8 @@ cextern pw_1
     psubw   m2, [r2+8]
     psubw   m3, [r2+2*r3+0]
     psubw   m4, [r2+2*r3+8]
-    ABS2    m1, m2, m5, m6
-    ABS2    m3, m4, m7, m5
+    ABSW2   m1, m2, m1, m2, m5, m6
+    ABSW2   m3, m4, m3, m4, m7, m5
     lea     r0, [r0+4*r1]
     lea     r2, [r2+4*r3]
     paddw   m1, m2
@@ -77,7 +77,7 @@ cextern pw_1
     movu    m2, [r0+2*r1]
     psubw   m1, [r2]
     psubw   m2, [r2+2*r3]
-    ABS2    m1, m2, m3, m4
+    ABSW2   m1, m2, m1, m2, m3, m4
     lea     r0, [r0+4*r1]
     lea     r2, [r2+4*r3]
     paddw   m0, m1
@@ -127,10 +127,10 @@ SAD_MMX  4,  4, 2
     psubw   m2, [r0+16]
     psubw   m3, [r0+2*r1+ 0]
     psubw   m4, [r0+2*r1+16]
-    ABS2    m1, m2, m5, m6
+    ABSW2   m1, m2, m1, m2, m5, m6
     lea     r0, [r0+4*r1]
     lea     r2, [r2+4*r3]
-    ABS2    m3, m4, m7, m5
+    ABSW2   m3, m4, m3, m4, m7, m5
     paddw   m1, m2
     paddw   m3, m4
     paddw   m0, m1
@@ -142,7 +142,7 @@ SAD_MMX  4,  4, 2
     movu    m2, [r2+2*r3]
     psubw   m1, [r0]
     psubw   m2, [r0+2*r1]
-    ABS2    m1, m2, m3, m4
+    ABSW2   m1, m2, m1, m2, m3, m4
     lea     r0, [r0+4*r1]
     lea     r2, [r2+4*r3]
     paddw   m0, m1
@@ -205,8 +205,8 @@ SAD_XMM  8,  8
     psubw   m0, m3
     psubw   m1, m3
     psubw   m2, m3
-    ABS2    m0, m1, m4, m5
-    ABS1    m2, m6
+    ABSW2   m0, m1, m0, m1, m4, m5
+    ABSW    m2, m2, m6
 %endmacro
 
 %macro SAD_X3_ONE 2
@@ -217,8 +217,8 @@ SAD_XMM  8,  8
     psubw   m3, m6
     psubw   m4, m6
     psubw   m5, m6
-    ABS2    m3, m4, m7, m6
-    ABS1    m5, m6
+    ABSW2   m3, m4, m3, m4, m7, m6
+    ABSW    m5, m5, m6
     paddw   m0, m3
     paddw   m1, m4
     paddw   m2, m5
@@ -265,8 +265,8 @@ SAD_XMM  8,  8
     psubw   m1, m4
     psubw   m2, m4
     psubw   m3, m4
-    ABS2    m0, m1, m5, m6
-    ABS2    m2, m3, m4, m7
+    ABSW2   m0, m1, m0, m1, m5, m6
+    ABSW2   m2, m3, m2, m3, m4, m7
 %endmacro
 
 %macro SAD_X4_ONE 2
@@ -280,8 +280,8 @@ SAD_XMM  8,  8
     psubw   m6, m4
     psubw   m7, m4
     psubw   m8, m4
-    ABS2    m5, m6, m9, m10
-    ABS2    m7, m8, m9, m10
+    ABSW2   m5, m6, m5, m6, m9, m10
+    ABSW2   m7, m8, m7, m8, m9, m10
     paddw   m0, m5
     paddw   m1, m6
     paddw   m2, m7
@@ -304,15 +304,15 @@ SAD_XMM  8,  8
 %else ; num_mmregs == 8 && !ssse3
     psubw   m5, m4
     psubw   m6, m4
-    ABS1    m5, m7
-    ABS1    m6, m7
+    ABSW    m5, m5, m7
+    ABSW    m6, m6, m7
     paddw   m0, m5
     paddw   m1, m6
     movu    m5, [r3+%2]
     movu    m6, [r4+%2]
     psubw   m5, m4
     psubw   m6, m4
-    ABS2    m5, m6, m7, m4
+    ABSW2   m5, m6, m5, m6, m7, m4
     paddw   m2, m5
     paddw   m3, m6
 %endif

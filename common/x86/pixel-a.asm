@@ -965,8 +965,8 @@ cglobal pixel_var2_8x8_ssse3, 5,6,8
 %else
     HADAMARD4_V %2, %3, %4, %5, %6
     ; doing the abs first is a slight advantage
-    ABS2 m%2, m%4, m%6, m%7
-    ABS2 m%3, m%5, m%6, m%7
+    ABSW2 m%2, m%4, m%2, m%4, m%6, m%7
+    ABSW2 m%3, m%5, m%3, m%5, m%6, m%7
     HADAMARD 1, max, %2, %4, %6, %7
 %endif
 %ifnidn %9, swap
@@ -1567,21 +1567,12 @@ cglobal intra_sa8d_x3_8x8_core, 3,3,16
     movdqa      m9,  m3
     movdqa      m10, m4
     movdqa      m11, m5
-    ABS2        m8,  m9,  m12, m13
-    ABS2        m10, m11, m12, m13
+    ABSW2       m8,  m9,  m8,  m9,  m12, m13
+    ABSW2       m10, m11, m10, m11, m12, m13
     paddusw     m8,  m10
     paddusw     m9,  m11
-%if cpuflag(ssse3)
-    pabsw       m10, m6
-    pabsw       m11, m7
-    pabsw       m15, m1
-%else
-    movdqa      m10, m6
-    movdqa      m11, m7
-    movdqa      m15, m1
-    ABS2        m10, m11, m13, m14
-    ABS1        m15, m13
-%endif
+    ABSW2       m10, m11, m6,  m7,  m6,  m7
+    ABSW        m15, m1,  m1
     paddusw     m10, m11
     paddusw     m8,  m9
     paddusw     m15, m10
@@ -1592,8 +1583,7 @@ cglobal intra_sa8d_x3_8x8_core, 3,3,16
     psllw       m8,  3
     psubw       m8,  m0
     psubw       m9,  m0
-    ABS1        m8,  m10
-    ABS1        m9,  m11 ; 1x8 sum
+    ABSW2       m8,  m9,  m8,  m9,  m10, m11 ; 1x8 sum
     paddusw     m14, m15, m8
     paddusw     m15, m9
     punpcklwd   m0,  m1
@@ -1607,7 +1597,7 @@ cglobal intra_sa8d_x3_8x8_core, 3,3,16
     psllw       m1,  3
     psrldq      m2,  m15, 2  ; 8x7 sum
     psubw       m0,  m1  ; 8x1 sum
-    ABS1        m0,  m1
+    ABSW        m0,  m0,  m1
     paddusw     m2,  m0
 
     ; 3x HADDW
@@ -1727,19 +1717,9 @@ cglobal hadamard_load
 ; out: m7
 ; clobber: m4..m6
 %macro SUM3x4 0
-%if cpuflag(ssse3)
-    pabsw       m4, m1
-    pabsw       m5, m2
-    pabsw       m7, m3
+    ABSW2       m4, m5, m1, m2, m1, m2
+    ABSW        m7, m3, m3
     paddw       m4, m5
-%else
-    movq        m4, m1
-    movq        m5, m2
-    ABS2        m4, m5, m6, m7
-    movq        m7, m3
-    paddw       m4, m5
-    ABS1        m7, m6
-%endif
     paddw       m7, m4
 %endmacro
 
@@ -1758,8 +1738,8 @@ cglobal hadamard_load
     movq        m1, %3
     psllw       m1, 2
     psubw       m0, m1
-    ABS2        m4, m5, m2, m3 ; 1x4 sum
-    ABS1        m0, m1 ; 4x1 sum
+    ABSW2       m4, m5, m4, m5, m2, m3 ; 1x4 sum
+    ABSW        m0, m0, m1 ; 4x1 sum
 %endmacro
 
 %macro INTRA_SATDS_MMX 0
@@ -1982,16 +1962,6 @@ cglobal intra_satd_x3_8x8c, 0,6
 %endmacro ; INTRA_SATDS_MMX
 
 
-%macro ABS_MOV 2
-%if cpuflag(ssse3)
-    pabsw   %1, %2
-%else
-    pxor    %1, %1
-    psubw   %1, %2
-    pmaxsw  %1, %2
-%endif
-%endmacro
-
 ; in:  r0=pix, r1=stride, r2=stride*3, r3=tmp, m6=mask_ac4, m7=0
 ; out: [tmp]=hadamard4, m0=satd
 INIT_MMX mmx2
@@ -2016,11 +1986,11 @@ cglobal hadamard_ac_4x4
     mova [r3+8],  m1
     mova [r3+16], m2
     mova [r3+24], m3
-    ABS1      m0, m4
-    ABS1      m1, m4
+    ABSW      m0, m0, m4
+    ABSW      m1, m1, m4
     pand      m0, m6
-    ABS1      m2, m4
-    ABS1      m3, m4
+    ABSW      m2, m2, m4
+    ABSW      m3, m3, m4
     paddw     m0, m1
     paddw     m2, m3
     paddw     m0, m2
@@ -2034,8 +2004,8 @@ cglobal hadamard_ac_2x2max
     mova      m3, [r3+0x60]
     sub       r3, 8
     SUMSUB_BADC w, 0, 1, 2, 3, 4
-    ABS2 m0, m2, m4, m5
-    ABS2 m1, m3, m4, m5
+    ABSW2 m0, m2, m0, m2, m4, m5
+    ABSW2 m1, m3, m1, m3, m4, m5
     HADAMARD 0, max, 0, 2, 4, 5
     HADAMARD 0, max, 1, 3, 4, 5
 %ifdef HIGH_BIT_DEPTH
@@ -2101,8 +2071,8 @@ cglobal hadamard_ac_8x8
     mova      m3, [r3+0x60]
     SUMSUB_BADC w, 0, 1, 2, 3, 4
     HADAMARD 0, sumsub, 0, 2, 4, 5
-    ABS2 m1, m3, m4, m5
-    ABS2 m0, m2, m4, m5
+    ABSW2 m1, m3, m1, m3, m4, m5
+    ABSW2 m0, m2, m0, m2, m4, m5
     HADAMARD 0, max, 1, 3, 4, 5
 %ifdef HIGH_BIT_DEPTH
     pand      m0, [mask_ac4]
@@ -2299,9 +2269,9 @@ cglobal hadamard_ac_8x8
 %endif
     mova  spill1, m2
     mova  spill2, m3
-    ABS_MOV   m1, m0
-    ABS_MOV   m2, m4
-    ABS_MOV   m3, m5
+    ABSW      m1, m0, m0
+    ABSW      m2, m4, m4
+    ABSW      m3, m5, m5
     paddw     m1, m2
     SUMSUB_BA w, 0, 4
 %if vertical
@@ -2310,15 +2280,15 @@ cglobal hadamard_ac_8x8
     pand      m1, [mask_ac4b]
 %endif
     AC_PREP   m1, [pw_1]
-    ABS_MOV   m2, spill0
+    ABSW      m2, spill0
     AC_PADD   m1, m3, [pw_1]
-    ABS_MOV   m3, spill1
+    ABSW      m3, spill1
     AC_PADD   m1, m2, [pw_1]
-    ABS_MOV   m2, spill2
+    ABSW      m2, spill2
     AC_PADD   m1, m3, [pw_1]
-    ABS_MOV   m3, m6
+    ABSW      m3, m6, m6
     AC_PADD   m1, m2, [pw_1]
-    ABS_MOV   m2, m7
+    ABSW      m2, m7, m7
     AC_PADD   m1, m3, [pw_1]
     mova      m3, m7
     AC_PADD   m1, m2, [pw_1]
@@ -2349,9 +2319,9 @@ cglobal hadamard_ac_8x8
 %else
     paddw     m2, m2
 %endif ; HIGH_BIT_DEPTH
-    ABS1      m4, m7
+    ABSW      m4, m4, m7
     pand      m0, [mask_ac8]
-    ABS1      m0, m7
+    ABSW      m0, m0, m7
     AC_PADD   m2, m4, [pw_1]
     AC_PADD   m2, m0, [pw_1]
     mova [rsp+gprsize+16], m2 ; save sa8d
@@ -2708,15 +2678,15 @@ cglobal pixel_ads4, 6,7
     movq    mm1, [r1+16]
     psubw   mm0, mm7
     psubw   mm1, mm6
-    ABS1    mm0, mm2
-    ABS1    mm1, mm3
+    ABSW    mm0, mm0, mm2
+    ABSW    mm1, mm1, mm3
     movq    mm2, [r1+r2]
     movq    mm3, [r1+r2+16]
     psubw   mm2, mm5
     psubw   mm3, mm4
     paddw   mm0, mm1
-    ABS1    mm2, mm1
-    ABS1    mm3, mm1
+    ABSW    mm2, mm2, mm1
+    ABSW    mm3, mm3, mm1
     paddw   mm0, mm2
     paddw   mm0, mm3
     pshufw  mm1, r6m, 0
@@ -2737,8 +2707,8 @@ cglobal pixel_ads2, 6,7
     movq    mm1, [r1+r2]
     psubw   mm0, mm7
     psubw   mm1, mm6
-    ABS1    mm0, mm2
-    ABS1    mm1, mm3
+    ABSW    mm0, mm0, mm2
+    ABSW    mm1, mm1, mm3
     paddw   mm0, mm1
     paddusw mm0, [r3]
     movq    mm4, mm5
@@ -2756,8 +2726,8 @@ cglobal pixel_ads1, 6,7
     movq    mm1, [r1+8]
     psubw   mm0, mm7
     psubw   mm1, mm7
-    ABS1    mm0, mm2
-    ABS1    mm1, mm3
+    ABSW    mm0, mm0, mm2
+    ABSW    mm1, mm1, mm3
     paddusw mm0, [r3]
     paddusw mm1, [r3+8]
     movq    mm4, mm6
@@ -2789,15 +2759,15 @@ cglobal pixel_ads4, 6,7,12
     psubw   xmm0, xmm10, xmm7
     movdqu xmm10, [r1+16]
     psubw   xmm1, xmm10, xmm6
-    ABS1    xmm0, xmm2
-    ABS1    xmm1, xmm3
+    ABSW    xmm0, xmm0, xmm2
+    ABSW    xmm1, xmm1, xmm3
     psubw   xmm2, xmm11, xmm5
     movdqu xmm11, [r1+r2+16]
     paddw   xmm0, xmm1
     psubw   xmm3, xmm11, xmm4
     movdqu  xmm9, [r3]
-    ABS1    xmm2, xmm1
-    ABS1    xmm3, xmm1
+    ABSW    xmm2, xmm2, xmm1
+    ABSW    xmm3, xmm3, xmm1
     paddw   xmm0, xmm2
     paddw   xmm0, xmm3
     paddusw xmm0, xmm9
@@ -2811,15 +2781,15 @@ cglobal pixel_ads4, 6,7,12
     movdqu  xmm1, [r1+16]
     psubw   xmm0, xmm7
     psubw   xmm1, xmm6
-    ABS1    xmm0, xmm2
-    ABS1    xmm1, xmm3
+    ABSW    xmm0, xmm0, xmm2
+    ABSW    xmm1, xmm1, xmm3
     movdqu  xmm2, [r1+r2]
     movdqu  xmm3, [r1+r2+16]
     psubw   xmm2, xmm5
     psubw   xmm3, xmm4
     paddw   xmm0, xmm1
-    ABS1    xmm2, xmm1
-    ABS1    xmm3, xmm1
+    ABSW    xmm2, xmm2, xmm1
+    ABSW    xmm3, xmm3, xmm1
     paddw   xmm0, xmm2
     paddw   xmm0, xmm3
     movd    xmm1, r6m
@@ -2849,8 +2819,8 @@ cglobal pixel_ads2, 6,7,8
     psubw   xmm0, xmm7
     psubw   xmm1, xmm6
     movdqu  xmm4, [r3]
-    ABS1    xmm0, xmm2
-    ABS1    xmm1, xmm3
+    ABSW    xmm0, xmm0, xmm2
+    ABSW    xmm1, xmm1, xmm3
     paddw   xmm0, xmm1
     paddusw xmm0, xmm4
     psubusw xmm1, xmm5, xmm0
@@ -2873,8 +2843,8 @@ cglobal pixel_ads1, 6,7,8
     psubw   xmm1, xmm7
     movdqu  xmm2, [r3]
     movdqu  xmm3, [r3+16]
-    ABS1    xmm0, xmm4
-    ABS1    xmm1, xmm5
+    ABSW    xmm0, xmm0, xmm4
+    ABSW    xmm1, xmm1, xmm5
     paddusw xmm0, xmm2
     paddusw xmm1, xmm3
     psubusw xmm4, xmm6, xmm0

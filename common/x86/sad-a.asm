@@ -733,7 +733,7 @@ cglobal intra_sad_x3_16x16, 3,5,8
     pxor    m2, m2
     mov     r3d, 15*FENC_STRIDE
 .vloop:
-    SPLATB  m6, r1+r3*2-1, m1
+    SPLATB_LOAD m6, r1+r3*2-1, m1
     mova    m0, [r0+r3]
     psadbw  m0, m7
     paddw   m4, m0

@@ -1538,7 +1538,7 @@ cglobal predict_8x8c_h, 1,1
     add    r0, FDEC_STRIDE*4
 %assign n -4
 %rep 8
-    SPLATB m0, r0+FDEC_STRIDE*n-1, m1
+    SPLATB_LOAD m0, r0+FDEC_STRIDE*n-1, m1
     mova [r0+FDEC_STRIDE*n], m0
 %assign n n+1
 %endrep
@@ -1745,7 +1745,7 @@ cglobal predict_16x16_h, 1,2
 .vloop:
 %assign n 0
 %rep 4
-    SPLATB m0, r0+r1+FDEC_STRIDE*n-1, m1
+    SPLATB_LOAD m0, r0+r1+FDEC_STRIDE*n-1, m1
     mova [r0+r1+FDEC_STRIDE*n], m0
 %if mmsize==8
     mova [r0+r1+FDEC_STRIDE*n+8], m0
