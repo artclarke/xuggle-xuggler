@@ -144,8 +144,8 @@ static int config_input(AVFilterLink *inlink)
     char *expr;
     int ret;
 
-    if (!(boxblur->temp[0] = av_malloc(w)) ||
-        !(boxblur->temp[1] = av_malloc(w)))
+    if (!(boxblur->temp[0] = av_malloc(FFMAX(w, h))) ||
+        !(boxblur->temp[1] = av_malloc(FFMAX(w, h))))
         return AVERROR(ENOMEM);
 
     boxblur->hsub = desc->log2_chroma_w;
@@ -206,7 +206,7 @@ static int config_input(AVFilterLink *inlink)
 }
 
 static inline void blur(uint8_t *dst, int dst_step, const uint8_t *src, int src_step,
-                        int w, int radius)
+                        int len, int radius)
 {
     /* Naive boxblur would sum source pixels from x-radius .. x+radius
      * for destination pixel x. That would be O(radius*width).
@@ -235,39 +235,39 @@ static inline void blur(uint8_t *dst, int dst_step, const uint8_t *src, int src_
         dst[x*dst_step] = (sum*inv + (1<<15))>>16;
     }
 
-    for (; x < w-radius; x++) {
+    for (; x < len-radius; x++) {
         sum += src[(radius+x)*src_step] - src[(x-radius-1)*src_step];
         dst[x*dst_step] = (sum*inv + (1<<15))>>16;
     }
 
-    for (; x < w; x++) {
-        sum += src[(2*w-radius-x-1)*src_step] - src[(x-radius-1)*src_step];
+    for (; x < len; x++) {
+        sum += src[(2*len-radius-x-1)*src_step] - src[(x-radius-1)*src_step];
         dst[x*dst_step] = (sum*inv + (1<<15))>>16;
     }
 }
 
 static inline void blur_power(uint8_t *dst, int dst_step, const uint8_t *src, int src_step,
-                              int w, int radius, int power, uint8_t *temp[2])
+                              int len, int radius, int power, uint8_t *temp[2])
 {
     uint8_t *a = temp[0], *b = temp[1];
 
     if (radius && power) {
-        blur(a, 1, src, src_step, w, radius);
+        blur(a, 1, src, src_step, len, radius);
         for (; power > 2; power--) {
             uint8_t *c;
-            blur(b, 1, a, 1, w, radius);
+            blur(b, 1, a, 1, len, radius);
             c = a; a = b; b = c;
         }
         if (power > 1) {
-            blur(dst, dst_step, a, 1, w, radius);
+            blur(dst, dst_step, a, 1, len, radius);
         } else {
             int i;
-            for (i = 0; i < w; i++)
+            for (i = 0; i < len; i++)
                 dst[i*dst_step] = a[i];
         }
     } else {
         int i;
-        for (i = 0; i < w; i++)
+        for (i = 0; i < len; i++)
             dst[i*dst_step] = src[i*src_step];
     }
 }
@@ -328,6 +328,8 @@ static void draw_slice(AVFilterLink *inlink, int y0, int h0, int slice_dir)
               outpicref->data[plane], outpicref->linesize[plane],
               w[plane], h[plane], boxblur->radius[plane], boxblur->power[plane],
               boxblur->temp);
+
+    avfilter_draw_slice(outlink, y0, h0, slice_dir);
 }
 
 AVFilter avfilter_vf_boxblur = {

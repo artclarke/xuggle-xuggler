@@ -73,6 +73,7 @@ typedef struct {
     int odml_depth;
     int use_odml;
 #define MAX_ODML_DEPTH 1000
+    int64_t dts_max;
 } AVIContext;
 
 
@@ -667,6 +668,7 @@ static int avi_read_header(AVFormatContext *s, AVFormatParameters *ap)
                     if (st->codec->stream_codec_tag == AV_RL32("Axan")){
                         st->codec->codec_id  = CODEC_ID_XAN_DPCM;
                         st->codec->codec_tag = 0;
+                        ast->dshow_block_align = 0;
                     }
                     if (amv_file_format){
                         st->codec->codec_id  = CODEC_ID_ADPCM_IMA_AMV;
@@ -1167,6 +1169,16 @@ resync:
         }
         ast->seek_pos= 0;
 
+        if(!avi->non_interleaved && st->nb_index_entries>1){
+            int64_t dts= av_rescale_q(pkt->dts, st->time_base, AV_TIME_BASE_Q);
+
+            if(avi->dts_max - dts > 2*AV_TIME_BASE){
+                avi->non_interleaved= 1;
+                av_log(s, AV_LOG_INFO, "Switching to NI mode, due to poor interleaving\n");
+            }else if(avi->dts_max < dts)
+                avi->dts_max = dts;
+        }
+
         return size;
     }
 
@@ -1398,7 +1410,7 @@ static int avi_read_seek(AVFormatContext *s, int stream_index, int64_t timestamp
                 flags | AVSEEK_FLAG_BACKWARD | (st2->codec->codec_type != AVMEDIA_TYPE_VIDEO ? AVSEEK_FLAG_ANY : 0));
         if(index<0)
             index=0;
-        while(index>0 && st2->index_entries[index-1].pos >= pos_min)
+        while(!avi->non_interleaved && index>0 && st2->index_entries[index-1].pos >= pos_min)
             index--;
         ast2->frame_offset = st2->index_entries[index].timestamp;
     }
@@ -1406,6 +1418,7 @@ static int avi_read_seek(AVFormatContext *s, int stream_index, int64_t timestamp
     /* do the seek */
     avio_seek(s->pb, pos_min, SEEK_SET);
     avi->stream_index= -1;
+    avi->dts_max= INT_MIN;
     return 0;
 }
 
