@@ -29,7 +29,7 @@
 #include "common.h"
 #include "cpu.h"
 
-#if HAVE_PTHREAD && SYS_LINUX
+#if HAVE_POSIXTHREAD && SYS_LINUX
 #include <sched.h>
 #endif
 #if SYS_BEOS
@@ -366,7 +366,17 @@ int x264_cpu_num_processors( void )
 
 #elif SYS_LINUX
     cpu_set_t p_aff;
-    return sched_getaffinity( 0, sizeof(p_aff), &p_aff ) ? 1 : CPU_COUNT(&p_aff);
+    memset( &p_aff, 0, sizeof(p_aff) );
+    if( sched_getaffinity( 0, sizeof(p_aff), &p_aff ) )
+        return 1;
+#if HAVE_CPU_COUNT
+    return CPU_COUNT(&p_aff);
+#else
+    int np = 0;
+    for( unsigned int bit = 0; bit < 8 * sizeof(p_aff); bit++ )
+        np += (((uint8_t *)&p_aff)[bit / 8] >> (bit % 8)) & 1;
+    return np;
+#endif
 
 #elif SYS_BEOS
     system_info info;
