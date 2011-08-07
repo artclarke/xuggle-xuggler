@@ -273,7 +273,7 @@ static NOINLINE unsigned int x264_weight_cost_chroma444( x264_t *h, x264_frame_t
     else
         for( int y = 0; y < i_lines; y += 16, pixoff = y*i_stride )
             for( int x = 0; x < i_width; x += 16, pixoff += 16 )
-                cost += h->pixf.mbcmp[PIXEL_16x16]( &ref[pixoff], 16, &src[pixoff], i_stride );
+                cost += h->pixf.mbcmp[PIXEL_16x16]( &ref[pixoff], i_stride, &src[pixoff], i_stride );
     x264_emms();
     return cost;
 }
@@ -340,7 +340,10 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
         else
         {
             if( CHROMA444 )
+            {
                 mcbuf = x264_weight_cost_init_chroma444( h, fenc, ref, h->mb.p_weight_buf[0], plane );
+                origscore = minscore = x264_weight_cost_chroma444( h, fenc, mcbuf, NULL, plane );
+            }
             else
             {
                 pixel *dstu = h->mb.p_weight_buf[0];
@@ -349,8 +352,8 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
                 if( plane == 1 )
                     x264_weight_cost_init_chroma( h, fenc, ref, dstu, dstv );
                 mcbuf = plane == 1 ? dstu : dstv;
+                origscore = minscore = x264_weight_cost_chroma( h, fenc, mcbuf, NULL );
             }
-            origscore = minscore = x264_weight_cost_chroma( h, fenc, mcbuf, NULL );
         }
 
         if( !minscore )
