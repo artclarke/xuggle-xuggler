@@ -204,7 +204,7 @@ cglobal predict_4x4_ddl, 1,2
 
     mova    m5, [r0-2*FDEC_STRIDE+6]
     mova    m6, [r0-2*FDEC_STRIDE+8]
-    pshufw  m7, m6, 0xF9
+    pshufw  m7, m6, q3321
     PRED8x8_LOWPASS w, m4, m7, m5, m6
     mova    [r0+6*FDEC_STRIDE], m4
 
@@ -353,7 +353,7 @@ cglobal predict_4x4_ddr, 1,1
     movq    m1, m2
     psllq   m1, 16
     PRED8x8_LOWPASS w, m0, m3, m1, m2
-    pshufw  m0, m0, 0x1B
+    pshufw  m0, m0, q0123
     movq    [r0+3*FDEC_STRIDEB], m0
 
     movq    m2, [r0-1*FDEC_STRIDEB-0]
@@ -434,15 +434,15 @@ cglobal predict_4x4_hu_mmx2, 1,1
     movq      m1, [r0+2*FDEC_STRIDEB-4*2]
     punpckhwd m1, [r0+3*FDEC_STRIDEB-4*2]
     punpckhdq m0, m1
-    pshufw    m1, m1, 0xFF
+    pshufw    m1, m1, q3333
     movq      [r0+3*FDEC_STRIDEB], m1
     movd      [r0+2*FDEC_STRIDEB+4], m1
     mova      m2, m0
     psrlq     m2, 16
     pavgw     m2, m0
 
-    pshufw    m1, m0, 11111001b
-    pshufw    m5, m0, 11111110b
+    pshufw    m1, m0, q3321
+    pshufw    m5, m0, q3332
     PRED8x8_LOWPASS w, m3, m0, m5, m1, m7
     movq      m6, m2
     punpcklwd m6, m3
@@ -465,7 +465,7 @@ cglobal predict_4x4_hu_mmx2, 1,1
     punpckhwd mm0, mm1
     movq      mm1, mm0
     punpckhbw mm1, mm1
-    pshufw    mm1, mm1, 0xFF
+    pshufw    mm1, mm1, q3333
     punpckhdq mm0, mm1
     movq      mm2, mm0
     movq      mm3, mm0
@@ -669,7 +669,7 @@ cglobal predict_8x8_filter, 4,5,7
     jmp .do_topright
 .fix_tr_2:
     punpckh%1%2 m3, m3
-    pshuf%2     m1, m3, 0xFF
+    pshuf%2     m1, m3, q3333
 .do_topright:
     mova        [t1+24*SIZEOF_PIXEL], m1
     psrl%4      m1, 7*%5
@@ -907,7 +907,7 @@ PREDICT_8x8 b, q , 8
 cglobal predict_8x8_hu, 2,2,8
     movu      m1, [r1+7*SIZEOF_PIXEL] ; l0 l1 l2 l3 l4 l5 l6 l7
     add       r0, 4*FDEC_STRIDEB
-    pshuf%3   m0, m1, 00011011b       ; l6 l7 l4 l5 l2 l3 l0 l1
+    pshuf%3   m0, m1, q0123           ; l6 l7 l4 l5 l2 l3 l0 l1
     psll%2    m1, 7*%5                ; l7 .. .. .. .. .. .. ..
     mova      m2, m0
     psll%3    m0, 8*SIZEOF_PIXEL
@@ -928,11 +928,11 @@ cglobal predict_8x8_hu, 2,2,8
     mova      m7, m5
     mova      m0, m5
     PALIGNR   m5, m4, 2*SIZEOF_PIXEL, m1
-    pshuf%3   m1, m6, 11111001b
+    pshuf%3   m1, m6, q3321
     PALIGNR   m6, m4, 4*SIZEOF_PIXEL, m2
-    pshuf%3   m2, m7, 11111110b
+    pshuf%3   m2, m7, q3332
     PALIGNR   m7, m4, 6*SIZEOF_PIXEL, m3
-    pshuf%3   m3, m0, 11111111b
+    pshuf%3   m3, m0, q3333
     mova      [r0-4*FDEC_STRIDEB], m4
     mova      [r0-3*FDEC_STRIDEB], m5
     mova      [r0-2*FDEC_STRIDEB], m6
@@ -1427,7 +1427,7 @@ cglobal predict_8x8_hu, 2,2
     movq      mm4, mm5
 %else
     movq      mm1, [r1+7]           ; l0 l1 l2 l3 l4 l5 l6 l7
-    pshufw    mm0, mm1, 00011011b   ; l6 l7 l4 l5 l2 l3 l0 l1
+    pshufw    mm0, mm1, q0123       ; l6 l7 l4 l5 l2 l3 l0 l1
     movq      mm2, mm0
     psllw     mm0, 8
     psrlw     mm2, 8
@@ -1455,9 +1455,9 @@ cglobal predict_8x8_hu, 2,2
     psrldq    xmm0, 2
 %assign Y (Y+1)
 %endrep
-    pshufw     mm5, mm4, 11111001b
-    pshufw     mm6, mm4, 11111110b
-    pshufw     mm7, mm4, 11111111b
+    pshufw     mm5, mm4, q3321
+    pshufw     mm6, mm4, q3332
+    pshufw     mm7, mm4, q3333
     movq     [r0+Y*FDEC_STRIDE], xmm0
     movq     [r0+0*FDEC_STRIDE], mm4
     movq     [r0+1*FDEC_STRIDE], mm5
@@ -1592,8 +1592,8 @@ cglobal predict_8x8c_dc, 1,3
     punpcklwd m0, m1
     punpcklwd m2, m3
     punpckldq m0, m2            ; s0, s1, s2, s3
-    pshufw    m3, m0, 11110110b ; s2, s1, s3, s3
-    pshufw    m0, m0, 01110100b ; s0, s1, s3, s1
+    pshufw    m3, m0, q3312     ; s2, s1, s3, s3
+    pshufw    m0, m0, q1310     ; s0, s1, s3, s1
     paddw     m0, m3
     psrlw     m0, 2
     pavgw     m0, m7            ; s0+s2, s1, s3, s1+s3
@@ -1601,7 +1601,7 @@ cglobal predict_8x8c_dc, 1,3
 %if cpuflag(sse2)
     movq2dq   xmm0, m0
     punpcklwd xmm0, xmm0
-    pshufd    xmm1, xmm0, 11111010b
+    pshufd    xmm1, xmm0, q3322
     punpckldq xmm0, xmm0
 %assign n 0
 %rep 8
@@ -1610,10 +1610,10 @@ cglobal predict_8x8c_dc, 1,3
 %assign n n+1
 %endrep
 %else
-    pshufw    m1, m0, 0x00
-    pshufw    m2, m0, 0x55
-    pshufw    m3, m0, 0xaa
-    pshufw    m4, m0, 0xff
+    pshufw    m1, m0, q0000
+    pshufw    m2, m0, q1111
+    pshufw    m3, m0, q2222
+    pshufw    m4, m0, q3333
 %assign n 0
 %rep 8
 %assign i (1 + (n/4)*2)
@@ -1652,13 +1652,13 @@ INIT_XMM
 cglobal predict_8x8c_dc_top_sse2, 1,1
     pxor        m2, m2
     mova        m0, [r0 - FDEC_STRIDEB]
-    pmaddwd     m0, [pw_1]
-    pshufd      m1, m0, 0x31
-    paddd       m0, m1
+    pshufd      m1, m0, q2301
+    paddw       m0, m1
+    pshuflw     m1, m0, q2301
+    pshufhw     m1, m1, q2301
+    paddw       m0, m1
     psrlw       m0, 1
     pavgw       m0, m2
-    pshuflw     m0, m0, 0
-    pshufhw     m0, m0, 0
     STORE8x8    m0, m0
     RET
 

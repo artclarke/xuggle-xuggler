@@ -372,7 +372,7 @@ cglobal intra_sad_x3_4x4_mmx2, 3,3
     psraw     mm5, 2
     pavgw     mm5, mm7
     punpcklbw mm5, mm5
-    pshufw    mm5, mm5, 0x0 ;DC prediction
+    pshufw    mm5, mm5, 0 ;DC prediction
     movq      mm6, mm5
     psadbw    mm5, mm1
     psadbw    mm6, mm2
@@ -473,18 +473,18 @@ cglobal intra_sad_x3_8x8_mmx2, 3,3
     paddw     m0, [pw_8]
     psrlw     m0, 4
     punpcklbw m0, m0
-    pshufw    m0, m0, 0x0 ;DC prediction
+    pshufw    m0, m0, q0000 ;DC prediction
     punpckhbw m7, m7
-    INTRA_SAD_HVDC_ITER 0, 0xff
-    INTRA_SAD_HVDC_ITER 1, 0xaa
-    INTRA_SAD_HVDC_ITER 2, 0x55
-    INTRA_SAD_HVDC_ITER 3, 0x00
+    INTRA_SAD_HVDC_ITER 0, q3333
+    INTRA_SAD_HVDC_ITER 1, q2222
+    INTRA_SAD_HVDC_ITER 2, q1111
+    INTRA_SAD_HVDC_ITER 3, q0000
     movq      m7, [r1+7]
     punpcklbw m7, m7
-    INTRA_SAD_HVDC_ITER 4, 0xff
-    INTRA_SAD_HVDC_ITER 5, 0xaa
-    INTRA_SAD_HVDC_ITER 6, 0x55
-    INTRA_SAD_HVDC_ITER 7, 0x00
+    INTRA_SAD_HVDC_ITER 4, q3333
+    INTRA_SAD_HVDC_ITER 5, q2222
+    INTRA_SAD_HVDC_ITER 6, q1111
+    INTRA_SAD_HVDC_ITER 7, q0000
     movd  [r2+0], m2
     movd  [r2+4], m3
     movd  [r2+8], m1
@@ -568,8 +568,8 @@ INTRA_SADx3_8x8
     movq        m3, [r1 + FDEC_STRIDE*(%1-3) - 8]
     punpckhbw   m1, m1
     punpckhbw   m3, m3
-    pshufw      m1, m1, 0xff
-    pshufw      m3, m3, 0xff
+    pshufw      m1, m1, q3333
+    pshufw      m3, m3, q3333
 %endif
     movq        m4, [r0 + FENC_STRIDE*(%1+0)]
     movq        m5, [r0 + FENC_STRIDE*(%1+1)]
@@ -625,8 +625,8 @@ cglobal intra_sad_x3_8x8c, 3,3
     punpcklwd   m0, m1
     punpcklwd   m2, m3
     punpckldq   m0, m2 ;s0 s1 s2 s3
-    pshufw      m3, m0, 11110110b ;s2,s1,s3,s3
-    pshufw      m0, m0, 01110100b ;s0,s1,s3,s1
+    pshufw      m3, m0, q3312 ;s2,s1,s3,s3
+    pshufw      m0, m0, q1310 ;s0,s1,s3,s1
     paddw       m0, m3
     psrlw       m0, 2
     pavgw       m0, m7 ; s0+s2, s1, s3, s1+s3

@@ -1404,8 +1404,8 @@ cglobal prefetch_ref_mmx2, 3,3
     punpcklwd  %1, %3
     punpckhwd  %2, %3
 %else
-    shufps     %2, %1, %3, 11011101b
-    shufps     %1, %3, 10001000b
+    shufps     %2, %1, %3, q3131
+    shufps     %1, %3, q2020
 %endif
 %endmacro
 %else ; !HIGH_BIT_DEPTH
@@ -1458,18 +1458,18 @@ cglobal mc_chroma, 0,6
     pxor       m6, m6
     punpcklbw  m5, m6
 %if mmsize==8
-    pshufw     m7, m5, 0xee
-    pshufw     m6, m5, 0x00
-    pshufw     m5, m5, 0x55
+    pshufw     m7, m5, q3232
+    pshufw     m6, m5, q0000
+    pshufw     m5, m5, q1111
     jge .width4
 %else
 %ifdef WIN64
     cmp dword r7m, 4 ; flags were clobbered by WIN64_SPILL_XMM
 %endif
-    pshufd     m7, m5, 0x55
+    pshufd     m7, m5, q1111
     punpcklwd  m5, m5
-    pshufd     m6, m5, 0x00
-    pshufd     m5, m5, 0x55
+    pshufd     m6, m5, q0000
+    pshufd     m5, m5, q1111
     jg .width8
 %endif
 %ifdef HIGH_BIT_DEPTH
@@ -1635,12 +1635,12 @@ ALIGN 4
 %else ; !HIGH_BIT_DEPTH
     packuswb   m0, m1
 %if mmsize==8
-    pshufw     m1, m0, 0x8
-    pshufw     m0, m0, 0xd
+    pshufw     m1, m0, q0020
+    pshufw     m0, m0, q0031
     movd     [r0], m1
     movd     [r1], m0
 %else
-    pshufd     m0, m0, 0xd8
+    pshufd     m0, m0, q3120
     movq     [r0], m0
     movhps   [r1], m0
 %endif
@@ -1908,7 +1908,7 @@ cglobal mc_chroma, 0,6,9
     psrlw      m0, 6
     psrlw      m1, 6
     packuswb   m0, m1
-    pshufd     m0, m0, 0xd8
+    pshufd     m0, m0, q3120
     movq     [r0], m0
     movhps   [r1], m0
 
@@ -1929,7 +1929,7 @@ cglobal mc_chroma, 0,6,9
     psrlw      m2, 6
     psrlw      m3, 6
     packuswb   m2, m3
-    pshufd     m2, m2, 0xd8
+    pshufd     m2, m2, q3120
     movq   [r0+r2], m2
     movhps [r1+r2], m2
     lea        r3, [r3+r4*2]

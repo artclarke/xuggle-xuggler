@@ -417,14 +417,11 @@ cglobal pixel_ssd_nv12_core, 6,7,7
     mova        m1, [r0+r6+mmsize]
     psubw       m0, [r2+r6]
     psubw       m1, [r2+r6+mmsize]
-%if mmsize==8
-    pshufw      m0, m0, 11011000b
-    pshufw      m1, m1, 11011000b
-%else
-    pshuflw     m0, m0, 11011000b
-    pshuflw     m1, m1, 11011000b
-    pshufhw     m0, m0, 11011000b
-    pshufhw     m1, m1, 11011000b
+    PSHUFLW     m0, m0, q3120
+    PSHUFLW     m1, m1, q3120
+%if mmsize==16
+    pshufhw     m0, m0, q3120
+    pshufhw     m1, m1, q3120
 %endif
     pmaddwd     m0, m0
     pmaddwd     m1, m1
@@ -993,9 +990,9 @@ cglobal pixel_var2_8x8_ssse3, 5,6,8
     HADDUW      m0, m1
     movd       eax, m0
 %else ; !HIGH_BIT_DEPTH
-    pshufw      m1, m0, 01001110b
+    pshufw      m1, m0, q1032
     paddw       m0, m1
-    pshufw      m1, m0, 10110001b
+    pshufw      m1, m0, q2301
     paddw       m0, m1
     movd       eax, m0
     and        eax, 0xffff
@@ -1607,7 +1604,7 @@ cglobal intra_sa8d_x3_8x8_core, 3,3,16
     pmaddwd     m15, m7
     punpckhdq   m3,  m2, m14
     punpckldq   m2,  m14
-    pshufd      m5,  m15, 0xf5
+    pshufd      m5,  m15, q3311
     paddd       m2,  m3
     paddd       m5,  m15
     punpckhqdq  m3,  m2, m5
@@ -1683,18 +1680,18 @@ cglobal hadamard_load
 
 %macro SUM_MM_X3 8 ; 3x sum, 4x tmp, op
     pxor        %7, %7
-    pshufw      %4, %1, 01001110b
-    pshufw      %5, %2, 01001110b
-    pshufw      %6, %3, 01001110b
+    pshufw      %4, %1, q1032
+    pshufw      %5, %2, q1032
+    pshufw      %6, %3, q1032
     paddw       %1, %4
     paddw       %2, %5
     paddw       %3, %6
     punpcklwd   %1, %7
     punpcklwd   %2, %7
     punpcklwd   %3, %7
-    pshufw      %4, %1, 01001110b
-    pshufw      %5, %2, 01001110b
-    pshufw      %6, %3, 01001110b
+    pshufw      %4, %1, q1032
+    pshufw      %5, %2, q1032
+    pshufw      %6, %3, q1032
     %8          %1, %4
     %8          %2, %5
     %8          %3, %6
@@ -2519,13 +2516,13 @@ cglobal pixel_ssim_4x4x2_core, 4,4,8
     ; PHADDW m1, m2
     ; PHADDD m3, m4
     movdqa    m7, [pw_1]
-    pshufd    m5, m3, 0xb1
+    pshufd    m5, m3, q2301
     pmaddwd   m1, m7
     pmaddwd   m2, m7
-    pshufd    m6, m4, 0xb1
+    pshufd    m6, m4, q2301
     packssdw  m1, m2
     paddd     m3, m5
-    pshufd    m1, m1, 0xd8
+    pshufd    m1, m1, q3120
     paddd     m4, m6
     pmaddwd   m1, m7
     punpckhdq m5, m3, m4
@@ -2622,7 +2619,7 @@ cglobal pixel_ssim_end4, 3,3,7
 .skip:
     movhlps   m0, m4
     addps     m0, m4
-    pshuflw   m4, m0, 0xE
+    pshuflw   m4, m0, q0032
     addss     m0, m4
 %ifndef ARCH_X86_64
     movd     r0m, m0
@@ -2669,9 +2666,9 @@ cglobal pixel_ads4, 6,7
     movq    mm6, [r0]
     movq    mm4, [r0+8]
     pshufw  mm7, mm6, 0
-    pshufw  mm6, mm6, 0xAA
+    pshufw  mm6, mm6, q2222
     pshufw  mm5, mm4, 0
-    pshufw  mm4, mm4, 0xAA
+    pshufw  mm4, mm4, q2222
     ADS_START
 .loop:
     movq    mm0, [r1]
@@ -2700,7 +2697,7 @@ cglobal pixel_ads2, 6,7
     movq    mm6, [r0]
     pshufw  mm5, r6m, 0
     pshufw  mm7, mm6, 0
-    pshufw  mm6, mm6, 0xAA
+    pshufw  mm6, mm6, q2222
     ADS_START
 .loop:
     movq    mm0, [r1]
@@ -2742,9 +2739,9 @@ cglobal pixel_ads1, 6,7
 cglobal pixel_ads4, 6,7,12
     movdqa  xmm4, [r0]
     pshuflw xmm7, xmm4, 0
-    pshuflw xmm6, xmm4, 0xAA
+    pshuflw xmm6, xmm4, q2222
     pshufhw xmm5, xmm4, 0
-    pshufhw xmm4, xmm4, 0xAA
+    pshufhw xmm4, xmm4, q2222
     punpcklqdq xmm7, xmm7
     punpcklqdq xmm6, xmm6
     punpckhqdq xmm5, xmm5
@@ -2807,7 +2804,7 @@ cglobal pixel_ads2, 6,7,8
     movq    xmm6, [r0]
     movd    xmm5, r6m
     pshuflw xmm7, xmm6, 0
-    pshuflw xmm6, xmm6, 0xAA
+    pshuflw xmm6, xmm6, q2222
     pshuflw xmm5, xmm5, 0
     punpcklqdq xmm7, xmm7
     punpcklqdq xmm6, xmm6

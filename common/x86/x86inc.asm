@@ -985,3 +985,22 @@ AVX_INSTR xorps, 1, 0
 AVX_INSTR pfadd, 1, 0
 AVX_INSTR pfsub, 1, 0
 AVX_INSTR pfmul, 1, 0
+
+
+; base-4 constants for shuffles
+%assign i 0
+%rep 256
+    %assign j ((i>>6)&3)*1000 + ((i>>4)&3)*100 + ((i>>2)&3)*10 + (i&3)
+    %if j < 10
+        CAT_XDEFINE q000, j, i
+    %elif j < 100
+        CAT_XDEFINE q00, j, i
+    %elif j < 1000
+        CAT_XDEFINE q0, j, i
+    %else
+        CAT_XDEFINE q, j, i
+    %endif
+%assign i i+1
+%endrep
+%undef i
+%undef j

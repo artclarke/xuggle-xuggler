@@ -244,19 +244,17 @@
 %endmacro
 
 %imacro SPLATW 2-3 0
+    PSHUFLW    %1, %2, (%3)*q1111
 %if mmsize == 16
-    pshuflw    %1, %2, (%3)*0x55
     punpcklqdq %1, %1
-%else
-    pshufw     %1, %2, (%3)*0x55
 %endif
 %endmacro
 
 %imacro SPLATD 2-3 0
 %if mmsize == 16
-    pshufd %1, %2, (%3)*0x55
+    pshufd %1, %2, (%3)*q1111
 %else
-    pshufw %1, %2, (%3)*0x11 + ((%3)+1)*0x44
+    pshufw %1, %2, (%3)*q0101 + ((%3)+1)*q1010
 %endif
 %endmacro
 
@@ -269,12 +267,9 @@
 %if mmsize == 16
     movhlps %2, %1
     paddd   %1, %2
-    pshuflw %2, %1, 0xE
-    paddd   %1, %2
-%else
-    pshufw  %2, %1, 0xE
-    paddd   %1, %2
 %endif
+    PSHUFLW %2, %1, q0032
+    paddd   %1, %2
 %endmacro
 
 %macro HADDW 2
@@ -317,6 +312,14 @@
     %endif
     por %%dst, %4
 %endif
+%endmacro
+
+%macro PSHUFLW 1+
+    %if mmsize == 8
+        pshufw %1
+    %else
+        pshuflw %1
+    %endif
 %endmacro
 
 
@@ -415,25 +418,25 @@
 %ifidn %1, d
 %ifidn %2, ord
     psrl%1  m%5, m%3, 16
-    pblendw m%5, m%4, 10101010b
+    pblendw m%5, m%4, q2222
     psll%1  m%4, 16
-    pblendw m%4, m%3, 01010101b
+    pblendw m%4, m%3, q1111
     SWAP     %3, %5
 %else
 %if avx_enabled
-    pblendw m%5, m%3, m%4, 10101010b
+    pblendw m%5, m%3, m%4, q2222
     SWAP     %3, %5
 %else
     mova    m%5, m%3
-    pblendw m%3, m%4, 10101010b
+    pblendw m%3, m%4, q2222
 %endif
     psll%1  m%4, 16
     psrl%1  m%5, 16
     por     m%4, m%5
 %endif
 %elifidn %1, q
-    shufps m%5, m%3, m%4, 11011101b
-    shufps m%3, m%4, 10001000b
+    shufps m%5, m%3, m%4, q3131
+    shufps m%3, m%4, q2020
     SWAP    %4, %5
 %endif
 %endmacro

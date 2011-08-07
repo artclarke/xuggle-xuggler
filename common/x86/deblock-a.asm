@@ -78,8 +78,8 @@ cextern pw_pixel_max
 %else
     movd        %1, [%2]
     punpcklbw   %1, %1
-    pshuflw     %1, %1, 01010000b
-    pshufd      %1, %1, 01010000b
+    pshuflw     %1, %1, q1100
+    pshufd      %1, %1, q1100
 %endif
     psraw       %1, 8
 %endmacro
@@ -2026,9 +2026,9 @@ DEBLOCK_CHROMA_INTRA
     movu      m1, [%1+12]
     mova      m2, m0
     pslldq    m0, 1
-    shufps    m2, m1, 0xdd ; cur nnz, all rows
+    shufps    m2, m1, q3131 ; cur nnz, all rows
     pslldq    m1, 1
-    shufps    m0, m1, 0xdd ; left neighbors
+    shufps    m0, m1, q3131 ; left neighbors
     pslldq    m1, m2, 4
     movd      m3, [%1-8] ; could be palignr if nnz was aligned
     por       m1, m3 ; top neighbors

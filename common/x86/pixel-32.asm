@@ -132,18 +132,18 @@ cglobal pixel_sa8d_8x8_internal
 
 %macro SUM_MM_X3 8 ; 3x sum, 4x tmp, op
     pxor        %7, %7
-    pshufw      %4, %1, 01001110b
-    pshufw      %5, %2, 01001110b
-    pshufw      %6, %3, 01001110b
+    pshufw      %4, %1, q1032
+    pshufw      %5, %2, q1032
+    pshufw      %6, %3, q1032
     paddusw     %1, %4
     paddusw     %2, %5
     paddusw     %3, %6
     punpcklwd   %1, %7
     punpcklwd   %2, %7
     punpcklwd   %3, %7
-    pshufw      %4, %1, 01001110b
-    pshufw      %5, %2, 01001110b
-    pshufw      %6, %3, 01001110b
+    pshufw      %4, %1, q1032
+    pshufw      %5, %2, q1032
+    pshufw      %6, %3, q1032
     %8          %1, %4
     %8          %2, %5
     %8          %3, %6
@@ -370,14 +370,14 @@ cglobal pixel_ssim_4x4x2_core
 %endrep
     mov      eax, [esp+28]
     lea      eax, [eax+edi*4]
-    pshufw    m5, m1, 0xE
-    pshufw    m6, m2, 0xE
+    pshufw    m5, m1, q0032
+    pshufw    m6, m2, q0032
     paddusw   m1, m5
     paddusw   m2, m6
     punpcklwd m1, m2
-    pshufw    m2, m1, 0xE
-    pshufw    m5, m3, 0xE
-    pshufw    m6, m4, 0xE
+    pshufw    m2, m1, q0032
+    pshufw    m5, m3, q0032
+    pshufw    m6, m4, q0032
     paddusw   m1, m2
     paddd     m3, m5
     paddd     m4, m6

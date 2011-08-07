@@ -630,11 +630,7 @@ cglobal dequant_4x4dc, 0,3,6
 %endrep
 
 %else ; !HIGH_BIT_DEPTH
-%if mmsize==8
-    punpcklwd m2, m2
-%else
-    pshuflw m2, m2, 0
-%endif
+    PSHUFLW   m2, m2, 0
     punpcklwd m2, m4
 %rep SIZEOF_PIXEL*32/mmsize
     mova      m0, [r0+x]
@@ -703,7 +699,7 @@ cglobal optimize_chroma_dc, 0,%%regs,7
     mova      m5, [chroma_dc_dmf_mask_mmx]
 %endif
     pshuflw   m2, m2, 0
-    pshufd    m0, m1, 00010001b  ;  1  0  3  2  1  0  3  2
+    pshufd    m0, m1, q0101      ;  1  0  3  2  1  0  3  2
     punpcklqdq m2, m2
     punpcklqdq m1, m1            ;  3  2  1  0  3  2  1  0
     mova      m6, [pd_1024]      ; 32<<5, elements are shifted 5 bits to the left
@@ -733,8 +729,8 @@ cglobal optimize_chroma_dc, 0,%%regs,7
     mova      m3, m0
 .outer_loop:
     movsx    t3d, word [t0+2*t1] ; dct[coeff]
-    pshufd    m6, m1, 11111111b
-    pshufd    m1, m1, 10010000b  ; move the next element to high dword
+    pshufd    m6, m1, q3333
+    pshufd    m1, m1, q2100      ; move the next element to high dword
     PSIGND    m5, m2, m6
     test     t3d, t3d
     jz .loop_end
@@ -759,7 +755,7 @@ cglobal optimize_chroma_dc, 0,%%regs,7
 .loop_end:
     dec      t1d
     jz .last_coeff
-    pshufd    m2, m2, 01111000b  ;  -  +  -  +  /  -  -  +  +
+    pshufd    m2, m2, q1320      ;  -  +  -  +  /  -  -  +  +
     jg .outer_loop
 .ret:
     REP_RET
