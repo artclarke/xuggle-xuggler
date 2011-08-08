@@ -1996,7 +1996,7 @@ static int check_bitstream( int cpu_ref, int cpu_new )
             /* Test corner-case sizes */
             int test_size = i < 10 ? i+1 : rand() & 0x3fff;
             /* Test 8 different probability distributions of zeros */
-            for( int j = 0; j < test_size; j++ )
+            for( int j = 0; j < test_size+32; j++ )
                 input[j] = (rand()&((1 << ((i&7)+1)) - 1)) * rand();
             uint8_t *end_c = (uint8_t*)call_c1( bs_c.nal_escape, output1, input, input+test_size );
             uint8_t *end_a = (uint8_t*)call_a1( bs_a.nal_escape, output2, input, input+test_size );
@@ -2009,7 +2009,7 @@ static int check_bitstream( int cpu_ref, int cpu_new )
                 break;
             }
         }
-        for( int j = 0; j < size; j++ )
+        for( int j = 0; j < size+32; j++ )
             input[j] = rand();
         call_c2( bs_c.nal_escape, output1, input, input+size );
         call_a2( bs_a.nal_escape, output2, input, input+size );

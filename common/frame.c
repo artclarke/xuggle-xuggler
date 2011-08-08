@@ -706,8 +706,11 @@ void x264_weight_scale_plane( x264_t *h, pixel *dst, int i_dst_stride, pixel *sr
      * in terms of the cache loads. */
     while( i_height > 0 )
     {
-        for( int x = 0; x < i_width; x += 16 )
+        int x;
+        for( x = 0; x < i_width-8; x += 16 )
             w->weightfn[16>>2]( dst+x, i_dst_stride, src+x, i_src_stride, w, X264_MIN( i_height, 16 ) );
+        if( x < i_width )
+            w->weightfn[ 8>>2]( dst+x, i_dst_stride, src+x, i_src_stride, w, X264_MIN( i_height, 16 ) );
         i_height -= 16;
         dst += 16 * i_dst_stride;
         src += 16 * i_src_stride;

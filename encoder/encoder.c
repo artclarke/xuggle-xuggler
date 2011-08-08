@@ -1381,7 +1381,11 @@ static int x264_nal_check_buffer( x264_t *h )
 static int x264_nal_end( x264_t *h )
 {
     x264_nal_t *nal = &h->out.nal[h->out.i_nal];
-    nal->i_payload = &h->out.p_bitstream[bs_pos( &h->out.bs ) / 8] - nal->p_payload;
+    uint8_t *end = &h->out.p_bitstream[bs_pos( &h->out.bs ) / 8];
+    nal->i_payload = end - nal->p_payload;
+    /* nal_escape_mmx reads past the end of the input.
+     * While undefined padding wouldn't actually affect the output, it makes valgrind unhappy. */
+    memset( end, 0xff, 32 );
     if( h->param.nalu_process )
         h->param.nalu_process( h, nal );
     h->out.i_nal++;
