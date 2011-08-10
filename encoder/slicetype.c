@@ -145,7 +145,7 @@ static NOINLINE pixel *x264_weight_cost_init_chroma444( x264_t *h, x264_frame_t 
             for( int x = 0, pel_offset_x = 0; x < i_width; x += 16, mb_xy++, pel_offset_x += 16 )
             {
                 pixel *pix = dst + pel_offset_y + pel_offset_x;
-                pixel *src = fenc->plane[p] + pel_offset_y + pel_offset_x;
+                pixel *src = ref->plane[p] + pel_offset_y + pel_offset_x;
                 int mvx = fenc->lowres_mvs[0][ref0_distance][mb_xy][0] / 2;
                 int mvy = fenc->lowres_mvs[0][ref0_distance][mb_xy][1] / 2;
                 /* We don't want to calculate hpels for fenc frames, so we round the motion
@@ -156,7 +156,7 @@ static NOINLINE pixel *x264_weight_cost_init_chroma444( x264_t *h, x264_frame_t 
         return dst;
     }
     x264_emms();
-    return fenc->plane[p];
+    return ref->plane[p];
 }
 
 static int x264_weight_slice_header_cost( x264_t *h, x264_weight_t *w, int b_chroma )
