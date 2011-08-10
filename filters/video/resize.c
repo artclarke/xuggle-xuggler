@@ -79,7 +79,7 @@ static void help( int longhelp )
             "            - resolution only: resizes and adapts sar to avoid stretching\n"
             "            - sar only: sets the sar and resizes to avoid stretching\n"
             "            - resolution and sar: resizes to given resolution and sets the sar\n"
-            "            - fittobox: resizes the video based on the desired contraints\n"
+            "            - fittobox: resizes the video based on the desired constraints\n"
             "               - width, height, both\n"
             "            - fittobox and sar: same as above except with specified sar\n"
             "            - csp: convert to the given csp. syntax: [name][:depth]\n"
