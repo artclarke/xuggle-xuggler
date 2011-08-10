@@ -115,6 +115,7 @@ static NOINLINE void x264_weight_cost_init_chroma( x264_t *h, x264_frame_t *fenc
 
     if( fenc->lowres_mvs[0][ref0_distance][0][0] != 0x7FFF )
     {
+        x264_frame_expand_border_chroma( h, ref, 1 );
         for( int y = 0, mb_xy = 0, pel_offset_y = 0; y < i_lines; y += 8, pel_offset_y = y*i_stride )
             for( int x = 0, pel_offset_x = 0; x < i_width; x += 8, mb_xy++, pel_offset_x += 8 )
             {
@@ -141,6 +142,7 @@ static NOINLINE pixel *x264_weight_cost_init_chroma444( x264_t *h, x264_frame_t 
 
     if( fenc->lowres_mvs[0][ref0_distance][0][0] != 0x7FFF )
     {
+        x264_frame_expand_border_chroma( h, ref, p );
         for( int y = 0, mb_xy = 0, pel_offset_y = 0; y < i_lines; y += 16, pel_offset_y = y*i_stride )
             for( int x = 0, pel_offset_x = 0; x < i_width; x += 16, mb_xy++, pel_offset_x += 16 )
             {
