@@ -437,6 +437,11 @@ case $host_os in
         define HAVE_MALLOC_H
         LDFLAGS="$LDFLAGS -lm"
         ;;
+    gnu*)
+        SYS="HURD"
+        define HAVE_MALLOC_H
+        LDFLAGS="$LDFLAGS -lm"
+        ;;
     cygwin*)
         EXE=".exe"
         if cc_check "" -mno-cygwin; then
