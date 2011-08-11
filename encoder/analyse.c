@@ -3358,7 +3358,7 @@ intra_analysis:
                 for( int i = 1; i < h->mb.pic.i_fref[0]; i++ )
                     M32( h->mb.mvr[0][i][h->mb.i_mb_xy] ) = 0;
                 for( int i = 1; i < h->mb.pic.i_fref[1]; i++ )
-                    M32( h->mb.mvr[0][i][h->mb.i_mb_xy] ) = 0;
+                    M32( h->mb.mvr[1][i][h->mb.i_mb_xy] ) = 0;
                 return;
             }
 
