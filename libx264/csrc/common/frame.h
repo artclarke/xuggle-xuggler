@@ -222,15 +222,11 @@ x264_frame_t *x264_frame_pop_blank_unused( x264_t *h );
 void x264_weight_scale_plane( x264_t *h, pixel *dst, int i_dst_stride, pixel *src, int i_src_stride,
                               int i_width, int i_height, x264_weight_t *w );
 x264_frame_t *x264_frame_pop_unused( x264_t *h, int b_fdec );
-void          x264_frame_sort( x264_frame_t **list, int b_dts );
 void          x264_frame_delete_list( x264_frame_t **list );
 
 int           x264_sync_frame_list_init( x264_sync_frame_list_t *slist, int nelem );
 void          x264_sync_frame_list_delete( x264_sync_frame_list_t *slist );
 void          x264_sync_frame_list_push( x264_sync_frame_list_t *slist, x264_frame_t *frame );
 x264_frame_t *x264_sync_frame_list_pop( x264_sync_frame_list_t *slist );
-
-#define x264_frame_sort_dts(list) x264_frame_sort(list, 1)
-#define x264_frame_sort_pts(list) x264_frame_sort(list, 0)
 
 #endif

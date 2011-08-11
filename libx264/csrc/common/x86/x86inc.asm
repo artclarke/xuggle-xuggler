@@ -63,8 +63,19 @@
     %elifidn __OUTPUT_FORMAT__,macho
         SECTION .text align=%1
         fakegot:
+    %elifidn __OUTPUT_FORMAT__,aout
+        section .text
     %else
         SECTION .rodata align=%1
+    %endif
+%endmacro
+
+; aout does not support align=
+%macro SECTION_TEXT 0-1 16
+    %ifidn __OUTPUT_FORMAT__,aout
+        SECTION .text
+    %else
+        SECTION .text align=%1
     %endif
 %endmacro
 
@@ -101,7 +112,7 @@
 ; we need more flexible macro.
 
 ; RET:
-; Pops anything that was pushed by PROLOGUE
+; Pops anything that was pushed by PROLOGUE, and returns.
 
 ; REP_RET:
 ; Same, but if it doesn't pop anything it becomes a 2-byte ret, for athlons
@@ -286,6 +297,9 @@ DECLARE_REG 6, rax, eax, ax,  al,  [rsp + stack_offset + 56]
 
 %macro WIN64_SPILL_XMM 1
     %assign xmm_regs_used %1
+    %if mmsize == 8
+        %assign xmm_regs_used 0
+    %endif
     ASSERT xmm_regs_used <= 16
     %if xmm_regs_used > 6
         sub rsp, (xmm_regs_used-6)*16+16
@@ -448,13 +462,24 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 
 %assign function_align 16
 
-; Symbol prefix for C linkage
-%macro cglobal 1-2+
+; Begin a function.
+; Applies any symbol mangling needed for C linkage, and sets up a define such that
+; subsequent uses of the function name automatically refer to the mangled version.
+; Appends cpuflags to the function name if cpuflags has been specified.
+%macro cglobal 1-2+ ; name, [PROLOGUE args]
+%if %0 == 1
+    cglobal_internal %1 %+ SUFFIX
+%else
+    cglobal_internal %1 %+ SUFFIX, %2
+%endif
+%endmacro
+%macro cglobal_internal 1-2+
     %ifndef cglobaled_%1
         %xdefine %1 mangle(program_name %+ _ %+ %1)
         %xdefine %1.skip_prologue %1 %+ .skip_prologue
         CAT_XDEFINE cglobaled_, %1, 1
     %endif
+    %xdefine current_function %1
     %ifidn __OUTPUT_FORMAT__,elf
         global %1:function hidden
     %else
@@ -471,12 +496,14 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 
 %macro cextern 1
     %xdefine %1 mangle(program_name %+ _ %+ %1)
+    CAT_XDEFINE cglobaled_, %1, 1
     extern %1
 %endmacro
 
-;like cextern, but without the prefix
+; like cextern, but without the prefix
 %macro cextern_naked 1
     %xdefine %1 mangle(%1)
+    CAT_XDEFINE cglobaled_, %1, 1
     extern %1
 %endmacro
 
@@ -492,6 +519,56 @@ DECLARE_REG 6, ebp, ebp, bp, null, [esp + stack_offset + 28]
 SECTION .note.GNU-stack noalloc noexec nowrite progbits
 %endif
 
+; cpuflags
+
+%assign cpuflags_mmx      (1<<0)
+%assign cpuflags_mmx2     (1<<1) | cpuflags_mmx
+%assign cpuflags_sse      (1<<2) | cpuflags_mmx2
+%assign cpuflags_sse2     (1<<3) | cpuflags_sse
+%assign cpuflags_sse2slow (1<<4) | cpuflags_sse2
+%assign cpuflags_sse3     (1<<5) | cpuflags_sse2
+%assign cpuflags_ssse3    (1<<6) | cpuflags_sse3
+%assign cpuflags_sse4     (1<<7) | cpuflags_ssse3
+%assign cpuflags_sse42    (1<<8) | cpuflags_sse4
+%assign cpuflags_avx      (1<<9) | cpuflags_sse42
+
+%assign cpuflags_cache32  (1<<16)
+%assign cpuflags_cache64  (1<<17)
+%assign cpuflags_slowctz  (1<<18)
+%assign cpuflags_lzcnt    (1<<19)
+%assign cpuflags_misalign (1<<20)
+%assign cpuflags_aligned  (1<<21) ; not a cpu feature, but a function variant
+
+%define    cpuflag(x) ((cpuflags & (cpuflags_ %+ x)) == (cpuflags_ %+ x))
+%define notcpuflag(x) ((cpuflags & (cpuflags_ %+ x)) != (cpuflags_ %+ x))
+
+; Takes up to 2 cpuflags from the above list.
+; All subsequent functions (up to the next INIT_CPUFLAGS) is built for the specified cpu.
+; You shouldn't need to invoke this macro directly, it's a subroutine for INIT_MMX &co.
+%macro INIT_CPUFLAGS 0-2
+    %if %0 >= 1
+        %xdefine cpuname %1
+        %assign cpuflags cpuflags_%1
+        %if %0 >= 2
+            %xdefine cpuname %1_%2
+            %assign cpuflags cpuflags | cpuflags_%2
+        %endif
+        %xdefine SUFFIX _ %+ cpuname
+        %if cpuflag(avx)
+            %assign avx_enabled 1
+        %endif
+        %if cpuflag(aligned)
+            %define movu mova
+        %elifidn %1, sse3
+            %define movu lddqu
+        %endif
+    %else
+        %xdefine SUFFIX
+        %undef cpuname
+        %undef cpuflags
+    %endif
+%endmacro
+
 ; merge mmx and sse*
 
 %macro CAT_XDEFINE 3
@@ -502,9 +579,9 @@ SECTION .note.GNU-stack noalloc noexec nowrite progbits
     %undef %1%2
 %endmacro
 
-%macro INIT_MMX 0
+%macro INIT_MMX 0-1+
     %assign avx_enabled 0
-    %define RESET_MM_PERMUTATION INIT_MMX
+    %define RESET_MM_PERMUTATION INIT_MMX %1
     %define mmsize 8
     %define num_mmregs 8
     %define mova movq
@@ -522,11 +599,12 @@ SECTION .note.GNU-stack noalloc noexec nowrite progbits
     CAT_UNDEF nmm, %%i
     %assign %%i %%i+1
     %endrep
+    INIT_CPUFLAGS %1
 %endmacro
 
-%macro INIT_XMM 0
+%macro INIT_XMM 0-1+
     %assign avx_enabled 0
-    %define RESET_MM_PERMUTATION INIT_XMM
+    %define RESET_MM_PERMUTATION INIT_XMM %1
     %define mmsize 16
     %define num_mmregs 8
     %ifdef ARCH_X86_64
@@ -542,16 +620,31 @@ SECTION .note.GNU-stack noalloc noexec nowrite progbits
     CAT_XDEFINE nxmm, %%i, %%i
     %assign %%i %%i+1
     %endrep
+    INIT_CPUFLAGS %1
 %endmacro
 
-%macro INIT_AVX 0
-    INIT_XMM
+%macro INIT_YMM 0-1+
     %assign avx_enabled 1
-    %define PALIGNR PALIGNR_SSSE3
-    %define RESET_MM_PERMUTATION INIT_AVX
+    %define RESET_MM_PERMUTATION INIT_YMM %1
+    %define mmsize 32
+    %define num_mmregs 8
+    %ifdef ARCH_X86_64
+    %define num_mmregs 16
+    %endif
+    %define mova vmovaps
+    %define movu vmovups
+    %undef movh
+    %undef movnta
+    %assign %%i 0
+    %rep num_mmregs
+    CAT_XDEFINE m, %%i, ymm %+ %%i
+    CAT_XDEFINE nymm, %%i, %%i
+    %assign %%i %%i+1
+    %endrep
+    INIT_CPUFLAGS %1
 %endmacro
 
-INIT_MMX
+INIT_XMM
 
 ; I often want to use macros that permute their arguments. e.g. there's no
 ; efficient way to implement butterfly or transpose or dct without swapping some
@@ -607,31 +700,46 @@ INIT_MMX
 %endrep
 %endmacro
 
-; If SAVE_MM_PERMUTATION is placed at the end of a function and given the
-; function name, then any later calls to that function will automatically
-; load the permutation, so values can be returned in mmregs.
-%macro SAVE_MM_PERMUTATION 1 ; name to save as
+; If SAVE_MM_PERMUTATION is placed at the end of a function, then any later
+; calls to that function will automatically load the permutation, so values can
+; be returned in mmregs.
+%macro SAVE_MM_PERMUTATION 0-1
+    %if %0
+        %xdefine %%f %1_m
+    %else
+        %xdefine %%f current_function %+ _m
+    %endif
     %assign %%i 0
     %rep num_mmregs
-    CAT_XDEFINE %1_m, %%i, m %+ %%i
+        CAT_XDEFINE %%f, %%i, m %+ %%i
     %assign %%i %%i+1
     %endrep
 %endmacro
 
 %macro LOAD_MM_PERMUTATION 1 ; name to load from
-    %assign %%i 0
-    %rep num_mmregs
-    CAT_XDEFINE m, %%i, %1_m %+ %%i
-    CAT_XDEFINE n, m %+ %%i, %%i
-    %assign %%i %%i+1
-    %endrep
+    %ifdef %1_m0
+        %assign %%i 0
+        %rep num_mmregs
+            CAT_XDEFINE m, %%i, %1_m %+ %%i
+            CAT_XDEFINE n, m %+ %%i, %%i
+        %assign %%i %%i+1
+        %endrep
+    %endif
 %endmacro
 
+; Append cpuflags to the callee's name iff the appended name is known and the plain name isn't
 %macro call 1
-    call %1
-    %ifdef %1_m0
-        LOAD_MM_PERMUTATION %1
+    call_internal %1, %1 %+ SUFFIX
+%endmacro
+%macro call_internal 2
+    %xdefine %%i %1
+    %ifndef cglobaled_%1
+        %ifdef cglobaled_%2
+            %xdefine %%i %2
+        %endif
     %endif
+    call %%i
+    LOAD_MM_PERMUTATION %%i
 %endmacro
 
 ; Substitutions that reduce instruction size but are functionally equivalent
@@ -663,30 +771,16 @@ INIT_MMX
 ; AVX abstraction layer
 ;=============================================================================
 
-%define sizeofmm0 8
-%define sizeofmm1 8
-%define sizeofmm2 8
-%define sizeofmm3 8
-%define sizeofmm4 8
-%define sizeofmm5 8
-%define sizeofmm6 8
-%define sizeofmm7 8
-%define sizeofxmm0 16
-%define sizeofxmm1 16
-%define sizeofxmm2 16
-%define sizeofxmm3 16
-%define sizeofxmm4 16
-%define sizeofxmm5 16
-%define sizeofxmm6 16
-%define sizeofxmm7 16
-%define sizeofxmm8 16
-%define sizeofxmm9 16
-%define sizeofxmm10 16
-%define sizeofxmm11 16
-%define sizeofxmm12 16
-%define sizeofxmm13 16
-%define sizeofxmm14 16
-%define sizeofxmm15 16
+%assign i 0
+%rep 16
+    %if i < 8
+        CAT_XDEFINE sizeofmm, i, 8
+    %endif
+    CAT_XDEFINE sizeofxmm, i, 16
+    CAT_XDEFINE sizeofymm, i, 32
+%assign i i+1
+%endrep
+%undef i
 
 ;%1 == instruction
 ;%2 == 1 if float, 0 if int
@@ -694,29 +788,33 @@ INIT_MMX
 ;%4 == number of operands given
 ;%5+: operands
 %macro RUN_AVX_INSTR 6-7+
-    %if sizeof%5==8
-        %define %%regmov movq
-    %elif %2
-        %define %%regmov movaps
+    %if sizeof%5==32
+        v%1 %5, %6, %7
     %else
-        %define %%regmov movdqa
-    %endif
+        %if sizeof%5==8
+            %define %%regmov movq
+        %elif %2
+            %define %%regmov movaps
+        %else
+            %define %%regmov movdqa
+        %endif
 
-    %if %4>=3+%3
-        %ifnidn %5, %6
-            %if avx_enabled && sizeof%5==16
-                v%1 %5, %6, %7
+        %if %4>=3+%3
+            %ifnidn %5, %6
+                %if avx_enabled && sizeof%5==16
+                    v%1 %5, %6, %7
+                %else
+                    %%regmov %5, %6
+                    %1 %5, %7
+                %endif
             %else
-                %%regmov %5, %6
                 %1 %5, %7
             %endif
+        %elif %3
+            %1 %5, %6, %7
         %else
-            %1 %5, %7
+            %1 %5, %6
         %endif
-    %elif %3
-        %1 %5, %6, %7
-    %else
-        %1 %5, %6
     %endif
 %endmacro
 
@@ -882,3 +980,27 @@ AVX_INSTR unpcklpd, 1, 0
 AVX_INSTR unpcklps, 1, 0
 AVX_INSTR xorpd, 1, 0
 AVX_INSTR xorps, 1, 0
+
+; 3DNow instructions, for sharing code between AVX, SSE and 3DN
+AVX_INSTR pfadd, 1, 0
+AVX_INSTR pfsub, 1, 0
+AVX_INSTR pfmul, 1, 0
+
+
+; base-4 constants for shuffles
+%assign i 0
+%rep 256
+    %assign j ((i>>6)&3)*1000 + ((i>>4)&3)*100 + ((i>>2)&3)*10 + (i&3)
+    %if j < 10
+        CAT_XDEFINE q000, j, i
+    %elif j < 100
+        CAT_XDEFINE q00, j, i
+    %elif j < 1000
+        CAT_XDEFINE q0, j, i
+    %else
+        CAT_XDEFINE q, j, i
+    %endif
+%assign i i+1
+%endrep
+%undef i
+%undef j

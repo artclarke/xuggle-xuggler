@@ -29,7 +29,7 @@
 #include "common.h"
 #include "cpu.h"
 
-#if HAVE_PTHREAD && SYS_LINUX
+#if HAVE_POSIXTHREAD && SYS_LINUX
 #include <sched.h>
 #endif
 #if SYS_BEOS
@@ -47,30 +47,33 @@
 
 const x264_cpu_name_t x264_cpu_names[] =
 {
-    {"Altivec", X264_CPU_ALTIVEC},
-//  {"MMX",     X264_CPU_MMX}, // we don't support asm on mmx1 cpus anymore
-    {"MMX2",    X264_CPU_MMX|X264_CPU_MMXEXT},
-    {"MMXEXT",  X264_CPU_MMX|X264_CPU_MMXEXT},
-//  {"SSE",     X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE}, // there are no sse1 functions in x264
-    {"SSE2Slow",X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE2_IS_SLOW},
-    {"SSE2",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2},
-    {"SSE2Fast",X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE2_IS_FAST},
-    {"SSE3",    X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3},
-    {"SSSE3",   X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3},
-    {"FastShuffle",   X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SHUFFLE_IS_FAST},
-    {"SSE4.1",  X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4},
-    {"SSE4.2",  X264_CPU_MMX|X264_CPU_MMXEXT|X264_CPU_SSE|X264_CPU_SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4|X264_CPU_SSE42},
-    {"AVX", X264_CPU_AVX},
-    {"Cache32", X264_CPU_CACHELINE_32},
-    {"Cache64", X264_CPU_CACHELINE_64},
-    {"SSEMisalign", X264_CPU_SSE_MISALIGN},
-    {"LZCNT", X264_CPU_LZCNT},
+    {"Altivec",     X264_CPU_ALTIVEC},
+//  {"MMX",         X264_CPU_MMX}, // we don't support asm on mmx1 cpus anymore
+    {"MMX2",        X264_CPU_MMX|X264_CPU_MMX2},
+    {"MMXEXT",      X264_CPU_MMX|X264_CPU_MMX2},
+//  {"SSE",         X264_CPU_MMX|X264_CPU_MMX2|X264_CPU_SSE}, // there are no sse1 functions in x264
+#define SSE2 X264_CPU_MMX|X264_CPU_MMX2|X264_CPU_SSE|X264_CPU_SSE2
+    {"SSE2Slow",    SSE2|X264_CPU_SSE2_IS_SLOW},
+    {"SSE2",        SSE2},
+    {"SSE2Fast",    SSE2|X264_CPU_SSE2_IS_FAST},
+    {"SSE3",        SSE2|X264_CPU_SSE3},
+    {"SSSE3",       SSE2|X264_CPU_SSE3|X264_CPU_SSSE3},
+    {"FastShuffle", SSE2|X264_CPU_SHUFFLE_IS_FAST},
+    {"SSE4.1",      SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4},
+    {"SSE4",        SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4},
+    {"SSE4.2",      SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4|X264_CPU_SSE42},
+    {"AVX",         SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4|X264_CPU_SSE42|X264_CPU_AVX},
+#undef SSE2
+    {"Cache32",         X264_CPU_CACHELINE_32},
+    {"Cache64",         X264_CPU_CACHELINE_64},
+    {"SSEMisalign",     X264_CPU_SSE_MISALIGN},
+    {"LZCNT",           X264_CPU_LZCNT},
     {"Slow_mod4_stack", X264_CPU_STACK_MOD4},
-    {"ARMv6", X264_CPU_ARMV6},
-    {"NEON",  X264_CPU_NEON},
-    {"Fast_NEON_MRC",  X264_CPU_FAST_NEON_MRC},
-    {"SlowCTZ", X264_CPU_SLOW_CTZ},
-    {"SlowAtom", X264_CPU_SLOW_ATOM},
+    {"ARMv6",           X264_CPU_ARMV6},
+    {"NEON",            X264_CPU_NEON},
+    {"Fast_NEON_MRC",   X264_CPU_FAST_NEON_MRC},
+    {"SlowCTZ",         X264_CPU_SLOW_CTZ},
+    {"SlowAtom",        X264_CPU_SLOW_ATOM},
     {"", 0},
 };
 
@@ -121,7 +124,7 @@ uint32_t x264_cpu_detect( void )
     else
         return 0;
     if( edx&0x02000000 )
-        cpu |= X264_CPU_MMXEXT|X264_CPU_SSE;
+        cpu |= X264_CPU_MMX2|X264_CPU_SSE;
     if( edx&0x04000000 )
         cpu |= X264_CPU_SSE2;
     if( ecx&0x00000001 )
@@ -154,7 +157,7 @@ uint32_t x264_cpu_detect( void )
         cpu |= X264_CPU_SLOW_CTZ;
         x264_cpu_cpuid( 0x80000001, &eax, &ebx, &ecx, &edx );
         if( edx&0x00400000 )
-            cpu |= X264_CPU_MMXEXT;
+            cpu |= X264_CPU_MMX2;
         if( cpu & X264_CPU_SSE2 )
         {
             if( ecx&0x00000040 ) /* SSE4a */
@@ -366,7 +369,17 @@ int x264_cpu_num_processors( void )
 
 #elif SYS_LINUX
     cpu_set_t p_aff;
-    return sched_getaffinity( 0, sizeof(p_aff), &p_aff ) ? 1 : CPU_COUNT(&p_aff);
+    memset( &p_aff, 0, sizeof(p_aff) );
+    if( sched_getaffinity( 0, sizeof(p_aff), &p_aff ) )
+        return 1;
+#if HAVE_CPU_COUNT
+    return CPU_COUNT(&p_aff);
+#else
+    int np = 0;
+    for( unsigned int bit = 0; bit < 8 * sizeof(p_aff); bit++ )
+        np += (((uint8_t *)&p_aff)[bit / 8] >> (bit % 8)) & 1;
+    return np;
+#endif
 
 #elif SYS_BEOS
     system_info info;

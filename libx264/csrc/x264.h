@@ -104,7 +104,8 @@ typedef struct
 #define X264_CPU_CACHELINE_64   0x000002  /* 32/64 is the size of a cacheline in bytes */
 #define X264_CPU_ALTIVEC        0x000004
 #define X264_CPU_MMX            0x000008
-#define X264_CPU_MMXEXT         0x000010  /* MMX2 aka MMXEXT aka ISSE */
+#define X264_CPU_MMX2           0x000010  /* MMX2 aka MMXEXT aka ISSE */
+#define X264_CPU_MMXEXT    X264_CPU_MMX2
 #define X264_CPU_SSE            0x000020
 #define X264_CPU_SSE2           0x000040
 #define X264_CPU_SSE2_IS_SLOW   0x000080  /* avoid most SSE2 functions on Athlon64 */

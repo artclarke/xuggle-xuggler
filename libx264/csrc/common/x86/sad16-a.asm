@@ -43,8 +43,8 @@ cextern pw_1
     psubw   m2, [r2+ 8]
     psubw   m3, [r2+16]
     psubw   m4, [r2+24]
-    ABS2    m1, m2, m5, m6
-    ABS2    m3, m4, m7, m5
+    ABSW2   m1, m2, m1, m2, m5, m6
+    ABSW2   m3, m4, m3, m4, m7, m5
     lea     r0, [r0+2*r1]
     lea     r2, [r2+2*r3]
     paddw   m1, m2
@@ -62,8 +62,8 @@ cextern pw_1
     psubw   m2, [r2+8]
     psubw   m3, [r2+2*r3+0]
     psubw   m4, [r2+2*r3+8]
-    ABS2    m1, m2, m5, m6
-    ABS2    m3, m4, m7, m5
+    ABSW2   m1, m2, m1, m2, m5, m6
+    ABSW2   m3, m4, m3, m4, m7, m5
     lea     r0, [r0+4*r1]
     lea     r2, [r2+4*r3]
     paddw   m1, m2
@@ -77,7 +77,7 @@ cextern pw_1
     movu    m2, [r0+2*r1]
     psubw   m1, [r2]
     psubw   m2, [r2+2*r3]
-    ABS2    m1, m2, m3, m4
+    ABSW2   m1, m2, m1, m2, m3, m4
     lea     r0, [r0+4*r1]
     lea     r2, [r2+4*r3]
     paddw   m0, m1
@@ -87,8 +87,8 @@ cextern pw_1
 ;-----------------------------------------------------------------------------
 ; int pixel_sad_NxM( uint16_t *, int, uint16_t *, int )
 ;-----------------------------------------------------------------------------
-%macro SAD_MMX 4
-cglobal pixel_sad_%1x%2_%4, 4,4
+%macro SAD_MMX 3
+cglobal pixel_sad_%1x%2, 4,4
     pxor    m0, m0
 %rep %2/%3
     SAD_INC_%3x%1P_MMX
@@ -102,22 +102,17 @@ cglobal pixel_sad_%1x%2_%4, 4,4
     RET
 %endmacro
 
-INIT_MMX
-%define ABS1 ABS1_MMX
-%define ABS2 ABS2_MMX
-SAD_MMX 16, 16, 1, mmxext
-SAD_MMX 16,  8, 1, mmxext
-SAD_MMX  8, 16, 2, mmxext
-SAD_MMX  8,  8, 2, mmxext
-SAD_MMX  8,  4, 2, mmxext
-SAD_MMX  4,  8, 2, mmxext
-SAD_MMX  4,  4, 2, mmxext
-%define ABS1 ABS1_SSSE3
-%define ABS2 ABS2_SSSE3
-SAD_MMX  4,  8, 2, ssse3
-SAD_MMX  4,  4, 2, ssse3
-%undef ABS1
-%undef ABS2
+INIT_MMX mmx2
+SAD_MMX 16, 16, 1
+SAD_MMX 16,  8, 1
+SAD_MMX  8, 16, 2
+SAD_MMX  8,  8, 2
+SAD_MMX  8,  4, 2
+SAD_MMX  4,  8, 2
+SAD_MMX  4,  4, 2
+INIT_MMX ssse3
+SAD_MMX  4,  8, 2
+SAD_MMX  4,  4, 2
 
 ;=============================================================================
 ; SAD XMM
@@ -132,10 +127,10 @@ SAD_MMX  4,  4, 2, ssse3
     psubw   m2, [r0+16]
     psubw   m3, [r0+2*r1+ 0]
     psubw   m4, [r0+2*r1+16]
-    ABS2    m1, m2, m5, m6
+    ABSW2   m1, m2, m1, m2, m5, m6
     lea     r0, [r0+4*r1]
     lea     r2, [r2+4*r3]
-    ABS2    m3, m4, m7, m5
+    ABSW2   m3, m4, m3, m4, m7, m5
     paddw   m1, m2
     paddw   m3, m4
     paddw   m0, m1
@@ -147,7 +142,7 @@ SAD_MMX  4,  4, 2, ssse3
     movu    m2, [r2+2*r3]
     psubw   m1, [r0]
     psubw   m2, [r0+2*r1]
-    ABS2    m1, m2, m3, m4
+    ABSW2   m1, m2, m1, m2, m3, m4
     lea     r0, [r0+4*r1]
     lea     r2, [r2+4*r3]
     paddw   m0, m1
@@ -157,8 +152,8 @@ SAD_MMX  4,  4, 2, ssse3
 ;-----------------------------------------------------------------------------
 ; int pixel_sad_NxM( uint16_t *, int, uint16_t *, int )
 ;-----------------------------------------------------------------------------
-%macro SAD_XMM 3
-cglobal pixel_sad_%1x%2_%3, 4,4,8
+%macro SAD_XMM 2
+cglobal pixel_sad_%1x%2, 4,4,8
     pxor    m0, m0
 %rep %2/2
     SAD_INC_2x%1P_XMM
@@ -168,35 +163,28 @@ cglobal pixel_sad_%1x%2_%3, 4,4,8
     RET
 %endmacro
 
-INIT_XMM
-%define ABS1 ABS1_MMX
-%define ABS2 ABS2_MMX
-SAD_XMM 16, 16, sse2
-SAD_XMM 16,  8, sse2
-SAD_XMM  8, 16, sse2
-SAD_XMM  8,  8, sse2
-SAD_XMM  8,  4, sse2
-%define movdqu movdqa
-SAD_XMM 16, 16, sse2_aligned
-SAD_XMM 16,  8, sse2_aligned
-SAD_XMM  8, 16, sse2_aligned
-SAD_XMM  8,  8, sse2_aligned
-%undef movdqu
-%define ABS1 ABS1_SSSE3
-%define ABS2 ABS2_SSSE3
-SAD_XMM 16, 16, ssse3
-SAD_XMM 16,  8, ssse3
-SAD_XMM  8, 16, ssse3
-SAD_XMM  8,  8, ssse3
-SAD_XMM  8,  4, ssse3
-%define movdqu movdqa
-SAD_XMM 16, 16, ssse3_aligned
-SAD_XMM 16,  8, ssse3_aligned
-SAD_XMM  8, 16, ssse3_aligned
-SAD_XMM  8,  8, ssse3_aligned
-%undef movdqu
-%undef ABS1
-%undef ABS2
+INIT_XMM sse2
+SAD_XMM 16, 16
+SAD_XMM 16,  8
+SAD_XMM  8, 16
+SAD_XMM  8,  8
+SAD_XMM  8,  4
+INIT_XMM sse2, aligned
+SAD_XMM 16, 16
+SAD_XMM 16,  8
+SAD_XMM  8, 16
+SAD_XMM  8,  8
+INIT_XMM ssse3
+SAD_XMM 16, 16
+SAD_XMM 16,  8
+SAD_XMM  8, 16
+SAD_XMM  8,  8
+SAD_XMM  8,  4
+INIT_XMM ssse3, aligned
+SAD_XMM 16, 16
+SAD_XMM 16,  8
+SAD_XMM  8, 16
+SAD_XMM  8,  8
 
 ;=============================================================================
 ; SAD x3/x4
@@ -217,8 +205,8 @@ SAD_XMM  8,  8, ssse3_aligned
     psubw   m0, m3
     psubw   m1, m3
     psubw   m2, m3
-    ABS2    m0, m1, m4, m5
-    ABS1    m2, m6
+    ABSW2   m0, m1, m0, m1, m4, m5
+    ABSW    m2, m2, m6
 %endmacro
 
 %macro SAD_X3_ONE 2
@@ -229,8 +217,8 @@ SAD_XMM  8,  8, ssse3_aligned
     psubw   m3, m6
     psubw   m4, m6
     psubw   m5, m6
-    ABS2    m3, m4, m7, m6
-    ABS1    m5, m6
+    ABSW2   m3, m4, m3, m4, m7, m6
+    ABSW    m5, m5, m6
     paddw   m0, m3
     paddw   m1, m4
     paddw   m2, m5
@@ -277,8 +265,8 @@ SAD_XMM  8,  8, ssse3_aligned
     psubw   m1, m4
     psubw   m2, m4
     psubw   m3, m4
-    ABS2    m0, m1, m5, m6
-    ABS2    m2, m3, m4, m7
+    ABSW2   m0, m1, m0, m1, m5, m6
+    ABSW2   m2, m3, m2, m3, m4, m7
 %endmacro
 
 %macro SAD_X4_ONE 2
@@ -292,13 +280,13 @@ SAD_XMM  8,  8, ssse3_aligned
     psubw   m6, m4
     psubw   m7, m4
     psubw   m8, m4
-    ABS2    m5, m6, m9, m10
-    ABS2    m7, m8, m9, m10
+    ABSW2   m5, m6, m5, m6, m9, m10
+    ABSW2   m7, m8, m7, m8, m9, m10
     paddw   m0, m5
     paddw   m1, m6
     paddw   m2, m7
     paddw   m3, m8
-%elifidn ABS1, ABS1_SSSE3
+%elif cpuflag(ssse3)
     movu    m7, [r3+%2]
     psubw   m5, m4
     psubw   m6, m4
@@ -316,15 +304,15 @@ SAD_XMM  8,  8, ssse3_aligned
 %else ; num_mmregs == 8 && !ssse3
     psubw   m5, m4
     psubw   m6, m4
-    ABS1    m5, m7
-    ABS1    m6, m7
+    ABSW    m5, m5, m7
+    ABSW    m6, m6, m7
     paddw   m0, m5
     paddw   m1, m6
     movu    m5, [r3+%2]
     movu    m6, [r4+%2]
     psubw   m5, m4
     psubw   m6, m4
-    ABS2    m5, m6, m7, m4
+    ABSW2   m5, m6, m5, m6, m7, m4
     paddw   m2, m5
     paddw   m3, m6
 %endif
@@ -363,8 +351,8 @@ SAD_XMM  8,  8, ssse3_aligned
 ; void pixel_sad_xK_MxN( uint16_t *fenc, uint16_t *pix0, uint16_t *pix1,
 ;                        uint16_t *pix2, int i_stride, int scores[3] )
 ;-----------------------------------------------------------------------------
-%macro SAD_X 4
-cglobal pixel_sad_x%1_%2x%3_%4, 6,7,XMM_REGS
+%macro SAD_X 3
+cglobal pixel_sad_x%1_%2x%3, 6,7,XMM_REGS
     %assign regnum %1+1
     %xdefine STRIDE r %+ regnum
 %ifdef WIN64
@@ -385,54 +373,48 @@ cglobal pixel_sad_x%1_%2x%3_%4, 6,7,XMM_REGS
     SAD_X%1_END %2, %3
 %endmacro
 
-INIT_MMX
+INIT_MMX mmx2
 %define XMM_REGS 0
-%define ABS1 ABS1_MMX
-%define ABS2 ABS2_MMX
-SAD_X 3, 16, 16, mmxext
-SAD_X 3, 16,  8, mmxext
-SAD_X 3,  8, 16, mmxext
-SAD_X 3,  8,  8, mmxext
-SAD_X 3,  8,  4, mmxext
-SAD_X 3,  4,  8, mmxext
-SAD_X 3,  4,  4, mmxext
-SAD_X 4, 16, 16, mmxext
-SAD_X 4, 16,  8, mmxext
-SAD_X 4,  8, 16, mmxext
-SAD_X 4,  8,  8, mmxext
-SAD_X 4,  8,  4, mmxext
-SAD_X 4,  4,  8, mmxext
-SAD_X 4,  4,  4, mmxext
-%define ABS1 ABS1_SSSE3
-%define ABS2 ABS2_SSSE3
-SAD_X 3,  4,  8, ssse3
-SAD_X 3,  4,  4, ssse3
-SAD_X 4,  4,  8, ssse3
-SAD_X 4,  4,  4, ssse3
-INIT_XMM
+SAD_X 3, 16, 16
+SAD_X 3, 16,  8
+SAD_X 3,  8, 16
+SAD_X 3,  8,  8
+SAD_X 3,  8,  4
+SAD_X 3,  4,  8
+SAD_X 3,  4,  4
+SAD_X 4, 16, 16
+SAD_X 4, 16,  8
+SAD_X 4,  8, 16
+SAD_X 4,  8,  8
+SAD_X 4,  8,  4
+SAD_X 4,  4,  8
+SAD_X 4,  4,  4
+INIT_MMX ssse3
+SAD_X 3,  4,  8
+SAD_X 3,  4,  4
+SAD_X 4,  4,  8
+SAD_X 4,  4,  4
+INIT_XMM ssse3
 %define XMM_REGS 9
-SAD_X 3, 16, 16, ssse3
-SAD_X 3, 16,  8, ssse3
-SAD_X 3,  8, 16, ssse3
-SAD_X 3,  8,  8, ssse3
-SAD_X 3,  8,  4, ssse3
-SAD_X 4, 16, 16, ssse3
-SAD_X 4, 16,  8, ssse3
-SAD_X 4,  8, 16, ssse3
-SAD_X 4,  8,  8, ssse3
-SAD_X 4,  8,  4, ssse3
+SAD_X 3, 16, 16
+SAD_X 3, 16,  8
+SAD_X 3,  8, 16
+SAD_X 3,  8,  8
+SAD_X 3,  8,  4
+SAD_X 4, 16, 16
+SAD_X 4, 16,  8
+SAD_X 4,  8, 16
+SAD_X 4,  8,  8
+SAD_X 4,  8,  4
+INIT_XMM sse2
 %define XMM_REGS 11
-%define ABS1 ABS1_MMX
-%define ABS2 ABS2_MMX
-SAD_X 3, 16, 16, sse2
-SAD_X 3, 16,  8, sse2
-SAD_X 3,  8, 16, sse2
-SAD_X 3,  8,  8, sse2
-SAD_X 3,  8,  4, sse2
-SAD_X 4, 16, 16, sse2
-SAD_X 4, 16,  8, sse2
-SAD_X 4,  8, 16, sse2
-SAD_X 4,  8,  8, sse2
-SAD_X 4,  8,  4, sse2
-%undef ABS1
-%undef ABS2
+SAD_X 3, 16, 16
+SAD_X 3, 16,  8
+SAD_X 3,  8, 16
+SAD_X 3,  8,  8
+SAD_X 3,  8,  4
+SAD_X 4, 16, 16
+SAD_X 4, 16,  8
+SAD_X 4,  8, 16
+SAD_X 4,  8,  8
+SAD_X 4,  8,  4

@@ -28,18 +28,18 @@
 #ifndef X264_I386_DCT_H
 #define X264_I386_DCT_H
 
-void x264_sub4x4_dct_mmx      ( dctcoef dct    [16], pixel   *pix1, pixel   *pix2 );
-void x264_sub8x8_dct_mmx      ( dctcoef dct[ 4][16], pixel   *pix1, pixel   *pix2 );
-void x264_sub16x16_dct_mmx    ( dctcoef dct[16][16], pixel   *pix1, pixel   *pix2 );
-void x264_sub8x8_dct_sse2     ( int16_t dct[ 4][16], uint8_t *pix1, uint8_t *pix2 );
-void x264_sub16x16_dct_sse2   ( int16_t dct[16][16], uint8_t *pix1, uint8_t *pix2 );
-void x264_sub4x4_dct_ssse3    ( int16_t dct    [16], uint8_t *pix1, uint8_t *pix2 );
-void x264_sub8x8_dct_ssse3    ( int16_t dct[ 4][16], uint8_t *pix1, uint8_t *pix2 );
-void x264_sub16x16_dct_ssse3  ( int16_t dct[16][16], uint8_t *pix1, uint8_t *pix2 );
-void x264_sub8x8_dct_avx      ( int16_t dct[ 4][16], uint8_t *pix1, uint8_t *pix2 );
-void x264_sub16x16_dct_avx    ( int16_t dct[16][16], uint8_t *pix1, uint8_t *pix2 );
-void x264_sub8x8_dct_dc_mmxext( int16_t dct    [ 4], uint8_t *pix1, uint8_t *pix2 );
-void x264_sub8x8_dct_dc_sse2  ( int16_t dct    [ 4], uint8_t *pix1, uint8_t *pix2 );
+void x264_sub4x4_dct_mmx    ( dctcoef dct    [16], pixel   *pix1, pixel   *pix2 );
+void x264_sub8x8_dct_mmx    ( dctcoef dct[ 4][16], pixel   *pix1, pixel   *pix2 );
+void x264_sub16x16_dct_mmx  ( dctcoef dct[16][16], pixel   *pix1, pixel   *pix2 );
+void x264_sub8x8_dct_sse2   ( int16_t dct[ 4][16], uint8_t *pix1, uint8_t *pix2 );
+void x264_sub16x16_dct_sse2 ( int16_t dct[16][16], uint8_t *pix1, uint8_t *pix2 );
+void x264_sub4x4_dct_ssse3  ( int16_t dct    [16], uint8_t *pix1, uint8_t *pix2 );
+void x264_sub8x8_dct_ssse3  ( int16_t dct[ 4][16], uint8_t *pix1, uint8_t *pix2 );
+void x264_sub16x16_dct_ssse3( int16_t dct[16][16], uint8_t *pix1, uint8_t *pix2 );
+void x264_sub8x8_dct_avx    ( int16_t dct[ 4][16], uint8_t *pix1, uint8_t *pix2 );
+void x264_sub16x16_dct_avx  ( int16_t dct[16][16], uint8_t *pix1, uint8_t *pix2 );
+void x264_sub8x8_dct_dc_mmx2( int16_t dct    [ 4], uint8_t *pix1, uint8_t *pix2 );
+void x264_sub8x8_dct_dc_sse2( int16_t dct    [ 4], uint8_t *pix1, uint8_t *pix2 );
 
 void x264_add4x4_idct_mmx       ( uint8_t *p_dst, int16_t dct    [16] );
 void x264_add4x4_idct_sse2     ( uint16_t *p_dst, int32_t dct    [16] );
@@ -84,19 +84,19 @@ void x264_add16x16_idct8_sse2( uint8_t *dst, int16_t dct[4][64] );
 void x264_add8x8_idct8_avx   ( uint8_t *dst, int16_t dct   [64] );
 void x264_add16x16_idct8_avx ( uint8_t *dst, int16_t dct[4][64] );
 
-void x264_zigzag_scan_8x8_frame_avx   ( dctcoef level[64], dctcoef dct[64] );
-void x264_zigzag_scan_8x8_frame_ssse3 ( int16_t level[64], int16_t dct[64] );
-void x264_zigzag_scan_8x8_frame_sse2  ( dctcoef level[64], dctcoef dct[64] );
-void x264_zigzag_scan_8x8_frame_mmxext( int16_t level[64], int16_t dct[64] );
-void x264_zigzag_scan_4x4_frame_avx   ( dctcoef level[16], dctcoef dct[16] );
-void x264_zigzag_scan_4x4_frame_ssse3 ( int16_t level[16], int16_t dct[16] );
-void x264_zigzag_scan_4x4_frame_sse2  ( int32_t level[16], int32_t dct[16] );
-void x264_zigzag_scan_4x4_frame_mmx   ( int16_t level[16], int16_t dct[16] );
-void x264_zigzag_scan_4x4_field_sse2  ( int32_t level[16], int32_t dct[16] );
-void x264_zigzag_scan_4x4_field_mmxext( int16_t level[16], int16_t dct[16] );
-void x264_zigzag_scan_8x8_field_avx   ( int32_t level[64], int32_t dct[64] );
-void x264_zigzag_scan_8x8_field_sse4  ( int32_t level[64], int32_t dct[64] );
-void x264_zigzag_scan_8x8_field_mmxext( int16_t level[64], int16_t dct[64] );
+void x264_zigzag_scan_8x8_frame_avx  ( dctcoef level[64], dctcoef dct[64] );
+void x264_zigzag_scan_8x8_frame_ssse3( int16_t level[64], int16_t dct[64] );
+void x264_zigzag_scan_8x8_frame_sse2 ( dctcoef level[64], dctcoef dct[64] );
+void x264_zigzag_scan_8x8_frame_mmx2 ( int16_t level[64], int16_t dct[64] );
+void x264_zigzag_scan_4x4_frame_avx  ( dctcoef level[16], dctcoef dct[16] );
+void x264_zigzag_scan_4x4_frame_ssse3( int16_t level[16], int16_t dct[16] );
+void x264_zigzag_scan_4x4_frame_sse2 ( int32_t level[16], int32_t dct[16] );
+void x264_zigzag_scan_4x4_frame_mmx  ( int16_t level[16], int16_t dct[16] );
+void x264_zigzag_scan_4x4_field_sse2 ( int32_t level[16], int32_t dct[16] );
+void x264_zigzag_scan_4x4_field_mmx2 ( int16_t level[16], int16_t dct[16] );
+void x264_zigzag_scan_8x8_field_avx  ( int32_t level[64], int32_t dct[64] );
+void x264_zigzag_scan_8x8_field_sse4 ( int32_t level[64], int32_t dct[64] );
+void x264_zigzag_scan_8x8_field_mmx2 ( int16_t level[64], int16_t dct[64] );
 int  x264_zigzag_sub_4x4_frame_avx    ( int16_t level[16], const uint8_t *src, uint8_t *dst );
 int  x264_zigzag_sub_4x4_frame_ssse3  ( int16_t level[16], const uint8_t *src, uint8_t *dst );
 int  x264_zigzag_sub_4x4ac_frame_avx  ( int16_t level[16], const uint8_t *src, uint8_t *dst, int16_t *dc );
@@ -105,8 +105,8 @@ int  x264_zigzag_sub_4x4_field_avx    ( int16_t level[16], const uint8_t *src, u
 int  x264_zigzag_sub_4x4_field_ssse3  ( int16_t level[16], const uint8_t *src, uint8_t *dst );
 int  x264_zigzag_sub_4x4ac_field_avx  ( int16_t level[16], const uint8_t *src, uint8_t *dst, int16_t *dc );
 int  x264_zigzag_sub_4x4ac_field_ssse3( int16_t level[16], const uint8_t *src, uint8_t *dst, int16_t *dc );
-void x264_zigzag_interleave_8x8_cavlc_mmx( int16_t *dst, int16_t *src, uint8_t *nnz );
+void x264_zigzag_interleave_8x8_cavlc_mmx ( int16_t *dst, int16_t *src, uint8_t *nnz );
 void x264_zigzag_interleave_8x8_cavlc_sse2( dctcoef *dst, dctcoef *src, uint8_t *nnz );
-void x264_zigzag_interleave_8x8_cavlc_avx( dctcoef *dst, dctcoef *src, uint8_t *nnz );
+void x264_zigzag_interleave_8x8_cavlc_avx ( dctcoef *dst, dctcoef *src, uint8_t *nnz );
 
 #endif

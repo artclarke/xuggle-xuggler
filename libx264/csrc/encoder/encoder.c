@@ -392,7 +392,7 @@ static int x264_validate_parameters( x264_t *h, int b_open )
     {
         x264_log( h, X264_LOG_ERROR, "your cpu does not support SSE1, but x264 was compiled with asm support\n");
 #else
-    if( b_open && !(x264_cpu_detect() & X264_CPU_MMXEXT) )
+    if( b_open && !(x264_cpu_detect() & X264_CPU_MMX2) )
     {
         x264_log( h, X264_LOG_ERROR, "your cpu does not support MMXEXT, but x264 was compiled with asm support\n");
 #endif

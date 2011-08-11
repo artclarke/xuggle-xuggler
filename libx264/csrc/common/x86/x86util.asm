@@ -41,14 +41,24 @@
 
 %assign PIXEL_MAX ((1 << BIT_DEPTH)-1)
 
+%macro FIX_STRIDES 1-*
+%ifdef HIGH_BIT_DEPTH
+%rep %0
+    add %1, %1
+    %rotate 1
+%endrep
+%endif
+%endmacro
+
+
 %macro SBUTTERFLY 4
-%if avx_enabled == 0
+%if avx_enabled && mmsize == 16
+    punpckh%1 m%4, m%2, m%3
+    punpckl%1 m%2, m%3
+%else
     mova      m%4, m%2
     punpckl%1 m%2, m%3
     punpckh%1 m%4, m%3
-%else
-    punpckh%1 m%4, m%2, m%3
-    punpckl%1 m%2, m%3
 %endif
     SWAP %3, %4
 %endmacro
@@ -133,114 +143,185 @@
 %endif
 %endmacro
 
-%macro ABS1_MMX 2    ; a, tmp
-    pxor    %2, %2
+%macro ABSW 2-3 ; dst, src, tmp (tmp used only if dst==src)
+%if cpuflag(ssse3)
+    pabsw   %1, %2
+%elifidn %3, sign ; version for pairing with PSIGNW: modifies src
+    pxor    %1, %1
+    pcmpgtw %1, %2
+    pxor    %2, %1
     psubw   %2, %1
+    SWAP    %1, %2
+%elifidn %1, %2
+    pxor    %3, %3
+    psubw   %3, %1
+    pmaxsw  %1, %3
+%elifid %2
+    pxor    %1, %1
+    psubw   %1, %2
     pmaxsw  %1, %2
+%elif %0 == 2
+    pxor    %1, %1
+    psubw   %1, %2
+    pmaxsw  %1, %2
+%else
+    mova    %1, %2
+    pxor    %3, %3
+    psubw   %3, %1
+    pmaxsw  %1, %3
+%endif
 %endmacro
 
-%macro ABS2_MMX 4    ; a, b, tmp0, tmp1
-    pxor    %3, %3
-    pxor    %4, %4
-    psubw   %3, %1
-    psubw   %4, %2
+%macro ABSW2 6 ; dst1, dst2, src1, src2, tmp, tmp
+%if cpuflag(ssse3)
+    pabsw   %1, %3
+    pabsw   %2, %4
+%elifidn %1, %3
+    pxor    %5, %5
+    pxor    %6, %6
+    psubw   %5, %1
+    psubw   %6, %2
+    pmaxsw  %1, %5
+    pmaxsw  %2, %6
+%else
+    pxor    %1, %1
+    pxor    %2, %2
+    psubw   %1, %3
+    psubw   %2, %4
     pmaxsw  %1, %3
     pmaxsw  %2, %4
+%endif
 %endmacro
 
-%macro ABS1_SSSE3 2
-    pabsw   %1, %1
-%endmacro
-
-%macro ABS2_SSSE3 4
-    pabsw   %1, %1
-    pabsw   %2, %2
-%endmacro
-
-%macro ABSB_MMX 2
+%macro ABSB 2
+%if cpuflag(ssse3)
+    pabsb   %1, %1
+%else
     pxor    %2, %2
     psubb   %2, %1
     pminub  %1, %2
+%endif
 %endmacro
 
-%macro ABSB2_MMX 4
-    pxor    %3, %3
-    pxor    %4, %4
-    psubb   %3, %1
-    psubb   %4, %2
-    pminub  %1, %3
-    pminub  %2, %4
+%macro ABSD 2
+%if cpuflag(ssse3)
+    pabsd   %1, %2
+%else
+    pxor    %1, %1
+    pcmpgtd %1, %2
+    pxor    %2, %1
+    psubd   %2, %1
+    SWAP    %1, %2
+%endif
 %endmacro
 
-%macro ABSD2_MMX 4
-    pxor    %3, %3
-    pxor    %4, %4
-    pcmpgtd %3, %1
-    pcmpgtd %4, %2
-    pxor    %1, %3
-    pxor    %2, %4
-    psubd   %1, %3
-    psubd   %2, %4
+%macro PSIGN 3-4
+%if cpuflag(ssse3) && %0 == 4
+    psign%1 %2, %3, %4
+%elif cpuflag(ssse3)
+    psign%1 %2, %3
+%elif %0 == 4
+    pxor    %2, %3, %4
+    psub%1  %2, %4
+%else
+    pxor    %2, %3
+    psub%1  %2, %3
+%endif
 %endmacro
 
-%macro ABSB_SSSE3 2
-    pabsb   %1, %1
-%endmacro
+%define PSIGNW PSIGN w,
+%define PSIGND PSIGN d,
 
-%macro ABSB2_SSSE3 4
-    pabsb   %1, %1
-    pabsb   %2, %2
-%endmacro
-
-%macro ABS4 6
-    ABS2 %1, %2, %5, %6
-    ABS2 %3, %4, %5, %6
-%endmacro
-
-%define ABS1 ABS1_MMX
-%define ABS2 ABS2_MMX
-%define ABSB ABSB_MMX
-%define ABSB2 ABSB2_MMX
-
-%macro SPLATB_MMX 3
+%macro SPLATB_LOAD 3
+%if cpuflag(ssse3)
+    movd      %1, [%2-3]
+    pshufb    %1, %3
+%else
     movd      %1, [%2-3] ;to avoid crossing a cacheline
     punpcklbw %1, %1
     SPLATW    %1, %1, 3
+%endif
 %endmacro
 
-%macro SPLATB_SSSE3 3
-    movd      %1, [%2-3]
-    pshufb    %1, %3
+%imacro SPLATW 2-3 0
+    PSHUFLW    %1, %2, (%3)*q1111
+%if mmsize == 16
+    punpcklqdq %1, %1
+%endif
 %endmacro
 
-%macro PALIGNR_MMX 4-5 ; [dst,] src1, src2, imm, tmp
+%imacro SPLATD 2-3 0
+%if mmsize == 16
+    pshufd %1, %2, (%3)*q1111
+%else
+    pshufw %1, %2, (%3)*q0101 + ((%3)+1)*q1010
+%endif
+%endmacro
+
+%macro CLIPW 3 ;(dst, min, max)
+    pmaxsw %1, %2
+    pminsw %1, %3
+%endmacro
+
+%macro HADDD 2 ; sum junk
+%if mmsize == 16
+    movhlps %2, %1
+    paddd   %1, %2
+%endif
+    PSHUFLW %2, %1, q0032
+    paddd   %1, %2
+%endmacro
+
+%macro HADDW 2
+    pmaddwd %1, [pw_1]
+    HADDD   %1, %2
+%endmacro
+
+%macro HADDUW 2
+    psrld %2, %1, 16
+    pslld %1, 16
+    psrld %1, 16
+    paddd %1, %2
+    HADDD %1, %2
+%endmacro
+
+%macro PALIGNR 4-5 ; [dst,] src1, src2, imm, tmp
+%if cpuflag(ssse3)
+    %if %0==5
+        palignr %1, %2, %3, %4
+    %else
+        palignr %1, %2, %3
+    %endif
+%else
     %define %%dst %1
-%if %0==5
-%ifnidn %1, %2
-    mova    %%dst, %2
+    %if %0==5
+        %ifnidn %1, %2
+            mova %%dst, %2
+        %endif
+        %rotate 1
+    %endif
+    %ifnidn %4, %2
+        mova %4, %2
+    %endif
+    %if mmsize==8
+        psllq  %%dst, (8-%3)*8
+        psrlq  %4, %3*8
+    %else
+        pslldq %%dst, 16-%3
+        psrldq %4, %3
+    %endif
+    por %%dst, %4
 %endif
-    %rotate 1
-%endif
-%ifnidn %4, %2
-    mova    %4, %2
-%endif
-%if mmsize==8
-    psllq   %%dst, (8-%3)*8
-    psrlq   %4, %3*8
-%else
-    pslldq  %%dst, 16-%3
-    psrldq  %4, %3
-%endif
-    por     %%dst, %4
 %endmacro
 
-%macro PALIGNR_SSSE3 4-5
-%if %0==5
-    palignr %1, %2, %3, %4
-%else
-    palignr %1, %2, %3
-%endif
+%macro PSHUFLW 1+
+    %if mmsize == 8
+        pshufw %1
+    %else
+        pshuflw %1
+    %endif
 %endmacro
+
 
 %macro DEINTB 5 ; mask, reg1, mask, reg2, optional src to fill masks from
 %ifnum %5
@@ -260,16 +341,14 @@
     padd%1  m%2, m%3
     padd%1  m%3, m%3
     psub%1  m%3, m%2
-%else
-%if avx_enabled == 0
-    mova    m%4, m%2
-    padd%1  m%2, m%3
-    psub%1  m%3, m%4
-%else
+%elif avx_enabled
     padd%1  m%4, m%2, m%3
     psub%1  m%3, m%2
     SWAP    %2, %4
-%endif
+%else
+    mova    m%4, m%2
+    padd%1  m%2, m%3
+    psub%1  m%3, m%4
 %endif
 %endmacro
 
@@ -339,25 +418,25 @@
 %ifidn %1, d
 %ifidn %2, ord
     psrl%1  m%5, m%3, 16
-    pblendw m%5, m%4, 10101010b
+    pblendw m%5, m%4, q2222
     psll%1  m%4, 16
-    pblendw m%4, m%3, 01010101b
+    pblendw m%4, m%3, q1111
     SWAP     %3, %5
 %else
-%if avx_enabled == 0
+%if avx_enabled
+    pblendw m%5, m%3, m%4, q2222
+    SWAP     %3, %5
+%else
     mova    m%5, m%3
-    pblendw m%3, m%4, 10101010b
-%else
-    pblendw m%5, m%3, m%4, 10101010b
-    SWAP     %3, %5
+    pblendw m%3, m%4, q2222
 %endif
     psll%1  m%4, 16
     psrl%1  m%5, 16
     por     m%4, m%5
 %endif
 %elifidn %1, q
-    shufps m%5, m%3, m%4, 11011101b
-    shufps m%3, m%4, 10001000b
+    shufps m%5, m%3, m%4, q3131
+    shufps m%3, m%4, q2020
     SWAP    %4, %5
 %endif
 %endmacro
@@ -392,10 +471,10 @@
 %else
     %ifidn %2, amax
         %if %0==6
-            ABS2 m%3, m%4, m%5, m%6
+            ABSW2 m%3, m%4, m%3, m%4, m%5, m%6
         %else
-            ABS1 m%3, m%5
-            ABS1 m%4, m%5
+            ABSW m%3, m%3, m%5
+            ABSW m%4, m%4, m%5
         %endif
     %endif
     pmaxsw m%3, m%4
@@ -467,18 +546,18 @@
 %endmacro
 
 %macro SUMSUB2_BA 4
-%if avx_enabled == 0
-    mova    m%4, m%2
-    padd%1  m%2, m%3
-    padd%1  m%2, m%3
-    psub%1  m%3, m%4
-    psub%1  m%3, m%4
-%else
+%if avx_enabled
     padd%1  m%4, m%2, m%3
     padd%1  m%4, m%3
     psub%1  m%3, m%2
     psub%1  m%3, m%2
     SWAP     %2,  %4
+%else
+    mova    m%4, m%2
+    padd%1  m%2, m%3
+    padd%1  m%2, m%3
+    psub%1  m%3, m%4
+    psub%1  m%3, m%4
 %endif
 %endmacro
 
@@ -562,14 +641,8 @@
 %endif
 %endmacro
 
-%macro LOAD_DIFF8x4_SSE2 8
-    LOAD_DIFF  m%1, m%5, m%6, [%7+%1*FENC_STRIDE], [%8+%1*FDEC_STRIDE]
-    LOAD_DIFF  m%2, m%5, m%6, [%7+%2*FENC_STRIDE], [%8+%2*FDEC_STRIDE]
-    LOAD_DIFF  m%3, m%5, m%6, [%7+%3*FENC_STRIDE], [%8+%3*FDEC_STRIDE]
-    LOAD_DIFF  m%4, m%5, m%6, [%7+%4*FENC_STRIDE], [%8+%4*FDEC_STRIDE]
-%endmacro
-
-%macro LOAD_DIFF8x4_SSSE3 8 ; 4x dst, 1x tmp, 1x mul, 2x ptr
+%macro LOAD_DIFF8x4 8 ; 4x dst, 1x tmp, 1x mul, 2x ptr
+%if cpuflag(ssse3)
     movh       m%2, [%8+%1*FDEC_STRIDE]
     movh       m%1, [%7+%1*FENC_STRIDE]
     punpcklbw  m%1, m%2
@@ -586,6 +659,12 @@
     pmaddubsw  m%2, m%6
     pmaddubsw  m%3, m%6
     pmaddubsw  m%4, m%6
+%else
+    LOAD_DIFF  m%1, m%5, m%6, [%7+%1*FENC_STRIDE], [%8+%1*FDEC_STRIDE]
+    LOAD_DIFF  m%2, m%5, m%6, [%7+%2*FENC_STRIDE], [%8+%2*FDEC_STRIDE]
+    LOAD_DIFF  m%3, m%5, m%6, [%7+%3*FENC_STRIDE], [%8+%3*FDEC_STRIDE]
+    LOAD_DIFF  m%4, m%5, m%6, [%7+%4*FENC_STRIDE], [%8+%4*FDEC_STRIDE]
+%endif
 %endmacro
 
 %macro STORE_DCT 6
@@ -640,60 +719,4 @@
     paddsw     %1, %2
     packuswb   %1, %1
     movh       %4, %1
-%endmacro
-
-%macro CLIPW 3 ;(dst, min, max)
-    pmaxsw %1, %2
-    pminsw %1, %3
-%endmacro
-
-%macro HADDD 2 ; sum junk
-%if mmsize == 16
-    movhlps %2, %1
-    paddd   %1, %2
-    pshuflw %2, %1, 0xE
-    paddd   %1, %2
-%else
-    pshufw  %2, %1, 0xE
-    paddd   %1, %2
-%endif
-%endmacro
-
-%macro HADDW 2
-    pmaddwd %1, [pw_1]
-    HADDD   %1, %2
-%endmacro
-
-%macro HADDUW 2
-    psrld %2, %1, 16
-    pslld %1, 16
-    psrld %1, 16
-    paddd %1, %2
-    HADDD %1, %2
-%endmacro
-
-%macro FIX_STRIDES 1-*
-%ifdef HIGH_BIT_DEPTH
-%rep %0
-    add %1, %1
-    %rotate 1
-%endrep
-%endif
-%endmacro
-
-%macro SPLATW 2-3 0
-%if mmsize == 16
-    pshuflw    %1, %2, (%3)*0x55
-    punpcklqdq %1, %1
-%else
-    pshufw     %1, %2, (%3)*0x55
-%endif
-%endmacro
-
-%macro SPLATD 2-3 0
-%if mmsize == 16
-    pshufd %1, %2, (%3)*0x55
-%else
-    pshufw %1, %2, (%3)*0x11 + ((%3)+1)*0x44
-%endif
 %endmacro

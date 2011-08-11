@@ -308,7 +308,6 @@ void x264_macroblock_thread_free( x264_t *h, int b_lookahead );
 
 void x264_macroblock_slice_init( x264_t *h );
 void x264_macroblock_thread_init( x264_t *h );
-void x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y, int b_interlaced );
 void x264_macroblock_cache_load_progressive( x264_t *h, int mb_x, int mb_y );
 void x264_macroblock_cache_load_interlaced( x264_t *h, int mb_x, int mb_y );
 void x264_macroblock_deblock_strength( x264_t *h );

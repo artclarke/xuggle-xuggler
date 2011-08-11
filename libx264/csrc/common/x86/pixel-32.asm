@@ -28,7 +28,7 @@
 %include "x86util.asm"
 
 SECTION .text
-INIT_MMX
+INIT_MMX mmx2
 
 %macro LOAD_DIFF_4x8P 1 ; dx
     LOAD_DIFF  m0, m7, none, [r0+%1],      [r2+%1]
@@ -48,14 +48,14 @@ INIT_MMX
 %macro SUM4x8_MM 0
     movq [spill],   m6
     movq [spill+8], m7
-    ABS2     m0, m1, m6, m7
-    ABS2     m2, m3, m6, m7
+    ABSW2    m0, m1, m0, m1, m6, m7
+    ABSW2    m2, m3, m2, m3, m6, m7
     paddw    m0, m2
     paddw    m1, m3
     movq     m6, [spill]
     movq     m7, [spill+8]
-    ABS2     m4, m5, m2, m3
-    ABS2     m6, m7, m2, m3
+    ABSW2    m4, m5, m4, m5, m2, m3
+    ABSW2    m6, m7, m6, m7, m2, m3
     paddw    m4, m6
     paddw    m5, m7
     paddw    m0, m4
@@ -66,7 +66,7 @@ INIT_MMX
 ;-----------------------------------------------------------------------------
 ; int pixel_sa8d_8x8( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-cglobal pixel_sa8d_8x8_internal_mmxext
+cglobal pixel_sa8d_8x8_internal
     push   r0
     push   r2
     sub    esp, 0x74
@@ -132,18 +132,18 @@ cglobal pixel_sa8d_8x8_internal_mmxext
 
 %macro SUM_MM_X3 8 ; 3x sum, 4x tmp, op
     pxor        %7, %7
-    pshufw      %4, %1, 01001110b
-    pshufw      %5, %2, 01001110b
-    pshufw      %6, %3, 01001110b
+    pshufw      %4, %1, q1032
+    pshufw      %5, %2, q1032
+    pshufw      %6, %3, q1032
     paddusw     %1, %4
     paddusw     %2, %5
     paddusw     %3, %6
     punpcklwd   %1, %7
     punpcklwd   %2, %7
     punpcklwd   %3, %7
-    pshufw      %4, %1, 01001110b
-    pshufw      %5, %2, 01001110b
-    pshufw      %6, %3, 01001110b
+    pshufw      %4, %1, q1032
+    pshufw      %5, %2, q1032
+    pshufw      %6, %3, q1032
     %8          %1, %4
     %8          %2, %5
     %8          %3, %6
@@ -174,7 +174,7 @@ cglobal pixel_sa8d_8x8_internal_mmxext
 ;-----------------------------------------------------------------------------
 ; void intra_sa8d_x3_8x8_core( uint8_t *fenc, int16_t edges[2][8], int *res )
 ;-----------------------------------------------------------------------------
-cglobal intra_sa8d_x3_8x8_core_mmxext
+cglobal intra_sa8d_x3_8x8_core
     mov    eax, [esp+4]
     mov    ecx, [esp+8]
     sub    esp, 0x70
@@ -218,23 +218,23 @@ cglobal intra_sa8d_x3_8x8_core_mmxext
 
     movq [spill+0], m0
     movq [spill+8], m1
-    ABS2     m2, m3, m0, m1
-    ABS2     m4, m5, m0, m1
+    ABSW2    m2, m3, m2, m3, m0, m1
+    ABSW2    m4, m5, m4, m5, m0, m1
     paddw    m2, m4
     paddw    m3, m5
-    ABS2     m6, m7, m4, m5
+    ABSW2    m6, m7, m6, m7, m4, m5
     movq     m0, [spill+0]
     movq     m1, [spill+8]
     paddw    m2, m6
     paddw    m3, m7
     paddw    m2, m3
-    ABS1     m1, m4
+    ABSW     m1, m1, m4
     paddw    m2, m1 ; 7x4 sum
     movq     m7, m0
     movq     m1, [ecx+8] ; left bottom
     psllw    m1, 3
     psubw    m7, m1
-    ABS2     m0, m7, m5, m3
+    ABSW2    m0, m7, m0, m7, m5, m3
     paddw    m0, m2
     paddw    m7, m2
     movq [sum+0], m0 ; dc
@@ -262,15 +262,15 @@ cglobal intra_sa8d_x3_8x8_core_mmxext
 
     movq [spill],   m0
     movq [spill+8], m1
-    ABS2     m2, m3, m0, m1
-    ABS2     m4, m5, m0, m1
+    ABSW2    m2, m3, m2, m3, m0, m1
+    ABSW2    m4, m5, m4, m5, m0, m1
     paddw    m2, m4
     paddw    m3, m5
     paddw    m2, m3
     movq     m0, [spill]
     movq     m1, [spill+8]
-    ABS2     m6, m7, m4, m5
-    ABS1     m1, m3
+    ABSW2    m6, m7, m6, m7, m4, m5
+    ABSW     m1, m1, m3
     paddw    m2, m7
     paddw    m1, m6
     paddw    m2, m1 ; 7x4 sum
@@ -287,7 +287,7 @@ cglobal intra_sa8d_x3_8x8_core_mmxext
 
     psubw    m1, m7
     psubw    m0, m6
-    ABS2     m0, m1, m5, m6
+    ABSW2    m0, m1, m0, m1, m5, m6
     movq     m3, [sum+0] ; dc
     paddw    m0, m2
     paddw    m1, m2
@@ -303,7 +303,7 @@ cglobal intra_sa8d_x3_8x8_core_mmxext
     psllw    m4, 3
     psubw    m3, [sum+16]
     psubw    m4, [sum+24]
-    ABS2     m3, m4, m5, m6
+    ABSW2    m3, m4, m3, m4, m5, m6
     paddw    m2, m3
     paddw    m2, m4 ; v
 
@@ -335,7 +335,7 @@ cglobal intra_sa8d_x3_8x8_core_mmxext
 ; void pixel_ssim_4x4x2_core( const uint8_t *pix1, int stride1,
 ;                             const uint8_t *pix2, int stride2, int sums[2][4] )
 ;-----------------------------------------------------------------------------
-cglobal pixel_ssim_4x4x2_core_mmxext
+cglobal pixel_ssim_4x4x2_core
     push     ebx
     push     edi
     mov      ebx, [esp+16]
@@ -370,14 +370,14 @@ cglobal pixel_ssim_4x4x2_core_mmxext
 %endrep
     mov      eax, [esp+28]
     lea      eax, [eax+edi*4]
-    pshufw    m5, m1, 0xE
-    pshufw    m6, m2, 0xE
+    pshufw    m5, m1, q0032
+    pshufw    m6, m2, q0032
     paddusw   m1, m5
     paddusw   m2, m6
     punpcklwd m1, m2
-    pshufw    m2, m1, 0xE
-    pshufw    m5, m3, 0xE
-    pshufw    m6, m4, 0xE
+    pshufw    m2, m1, q0032
+    pshufw    m5, m3, q0032
+    pshufw    m6, m4, q0032
     paddusw   m1, m2
     paddd     m3, m5
     paddd     m4, m6

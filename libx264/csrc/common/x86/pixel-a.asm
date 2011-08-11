@@ -74,8 +74,8 @@ cextern hsub_mul
 ;-----------------------------------------------------------------------------
 ; int pixel_ssd_MxN( uint16_t *, int, uint16_t *, int )
 ;-----------------------------------------------------------------------------
-%macro SSD_ONE 3
-cglobal pixel_ssd_%1x%2_%3, 4,5,6*(mmsize/16)
+%macro SSD_ONE 2
+cglobal pixel_ssd_%1x%2, 4,5,6
     mov     r4, %1*%2/mmsize
     pxor    m0, m0
 .loop
@@ -105,7 +105,7 @@ cglobal pixel_ssd_%1x%2_%3, 4,5,6*(mmsize/16)
 %endmacro
 
 %macro SSD_16_MMX 2
-cglobal pixel_ssd_%1x%2_mmxext, 4,5
+cglobal pixel_ssd_%1x%2, 4,5
     mov     r4, %1*%2/mmsize/2
     pxor    m0, m0
 .loop
@@ -138,20 +138,20 @@ cglobal pixel_ssd_%1x%2_mmxext, 4,5
     RET
 %endmacro
 
-INIT_MMX
-SSD_ONE     4,  4, mmxext
-SSD_ONE     4,  8, mmxext
-SSD_ONE     8,  4, mmxext
-SSD_ONE     8,  8, mmxext
-SSD_ONE     8, 16, mmxext
+INIT_MMX mmx2
+SSD_ONE     4,  4
+SSD_ONE     4,  8
+SSD_ONE     8,  4
+SSD_ONE     8,  8
+SSD_ONE     8, 16
 SSD_16_MMX 16,  8
 SSD_16_MMX 16, 16
-INIT_XMM
-SSD_ONE     8,  4, sse2
-SSD_ONE     8,  8, sse2
-SSD_ONE     8, 16, sse2
-SSD_ONE    16,  8, sse2
-SSD_ONE    16, 16, sse2
+INIT_XMM sse2
+SSD_ONE     8,  4
+SSD_ONE     8,  8
+SSD_ONE     8, 16
+SSD_ONE    16,  8
+SSD_ONE    16, 16
 %endif ; HIGH_BIT_DEPTH
 
 %ifndef HIGH_BIT_DEPTH
@@ -290,25 +290,23 @@ SSD_ONE    16, 16, sse2
 ;-----------------------------------------------------------------------------
 ; int pixel_ssd_16x16( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-%macro SSD 3-4 0
+%macro SSD 2
 %if %1 != %2
     %assign function_align 8
 %else
     %assign function_align 16
 %endif
-cglobal pixel_ssd_%1x%2_%3, 0,0,0
+cglobal pixel_ssd_%1x%2, 0,0,0
     mov     al, %1*%2/mmsize/2
 
 %if %1 != %2
-    jmp mangle(x264_pixel_ssd_%1x%1_%3.startloop)
+    jmp mangle(x264_pixel_ssd_%1x%1 %+ SUFFIX %+ .startloop)
 %else
 
 .startloop:
 %ifdef ARCH_X86_64
     DECLARE_REG_TMP 0,1,2,3
-%ifnidn %3, mmx
     PROLOGUE 0,0,8
-%endif
 %else
     PROLOGUE 0,5
     DECLARE_REG_TMP 1,2,3,4
@@ -318,11 +316,9 @@ cglobal pixel_ssd_%1x%2_%3, 0,0,0
     mov t3, r3m
 %endif
 
-%ifidn %3, ssse3
+%if cpuflag(ssse3)
     mova    m7, [hsub_mul]
-%elifidn %3, avx
-    mova    m7, [hsub_mul]
-%elifidn %3, sse2
+%elifidn cpuname, sse2
     mova    m7, [pw_00ff]
 %elif %1 >= mmsize
     pxor    m7, m7
@@ -346,43 +342,45 @@ ALIGN 16
 %endif
 %endmacro
 
-INIT_MMX
-SSD 16, 16, mmx
-SSD 16,  8, mmx
-SSD  8,  8, mmx
-SSD  8, 16, mmx
-SSD  4,  4, mmx
-SSD  8,  4, mmx
-SSD  4,  8, mmx
-INIT_XMM
-SSD 16, 16, sse2slow, 8
-SSD  8,  8, sse2slow, 8
-SSD 16,  8, sse2slow, 8
-SSD  8, 16, sse2slow, 8
-SSD  8,  4, sse2slow, 8
+INIT_MMX mmx
+SSD 16, 16
+SSD 16,  8
+SSD  8,  8
+SSD  8, 16
+SSD  4,  4
+SSD  8,  4
+SSD  4,  8
+INIT_XMM sse2slow
+SSD 16, 16
+SSD  8,  8
+SSD 16,  8
+SSD  8, 16
+SSD  8,  4
+INIT_XMM sse2
 %define SSD_CORE SSD_CORE_SSE2
 %define JOIN JOIN_SSE2
-SSD 16, 16, sse2, 8
-SSD  8,  8, sse2, 8
-SSD 16,  8, sse2, 8
-SSD  8, 16, sse2, 8
-SSD  8,  4, sse2, 8
+SSD 16, 16
+SSD  8,  8
+SSD 16,  8
+SSD  8, 16
+SSD  8,  4
+INIT_XMM ssse3
 %define SSD_CORE SSD_CORE_SSSE3
 %define JOIN JOIN_SSSE3
-SSD 16, 16, ssse3, 8
-SSD  8,  8, ssse3, 8
-SSD 16,  8, ssse3, 8
-SSD  8, 16, ssse3, 8
-SSD  8,  4, ssse3, 8
-INIT_AVX
-SSD 16, 16, avx, 8
-SSD  8,  8, avx, 8
-SSD 16,  8, avx, 8
-SSD  8, 16, avx, 8
-SSD  8,  4, avx, 8
-INIT_MMX
-SSD  4,  4, ssse3
-SSD  4,  8, ssse3
+SSD 16, 16
+SSD  8,  8
+SSD 16,  8
+SSD  8, 16
+SSD  8,  4
+INIT_XMM avx
+SSD 16, 16
+SSD  8,  8
+SSD 16,  8
+SSD  8, 16
+SSD  8,  4
+INIT_MMX ssse3
+SSD  4,  4
+SSD  4,  8
 %assign function_align 16
 %endif ; !HIGH_BIT_DEPTH
 
@@ -399,8 +397,8 @@ SSD  4,  8, ssse3
 ; distortion levels it will take much more than that though.
 ;-----------------------------------------------------------------------------
 %ifdef HIGH_BIT_DEPTH
-%macro SSD_NV12 1-2 0
-cglobal pixel_ssd_nv12_core_%1, 6,7,7*(mmsize/16)
+%macro SSD_NV12 0
+cglobal pixel_ssd_nv12_core, 6,7,7
     shl        r4d, 2
     FIX_STRIDES r1, r3
     add         r0, r4
@@ -419,14 +417,11 @@ cglobal pixel_ssd_nv12_core_%1, 6,7,7*(mmsize/16)
     mova        m1, [r0+r6+mmsize]
     psubw       m0, [r2+r6]
     psubw       m1, [r2+r6+mmsize]
-%if mmsize==8
-    pshufw      m0, m0, 11011000b
-    pshufw      m1, m1, 11011000b
-%else
-    pshuflw     m0, m0, 11011000b
-    pshuflw     m1, m1, 11011000b
-    pshufhw     m0, m0, 11011000b
-    pshufhw     m1, m1, 11011000b
+    PSHUFLW     m0, m0, q3120
+    PSHUFLW     m1, m1, q3120
+%if mmsize==16
+    pshufhw     m0, m0, q3120
+    pshufhw     m1, m1, q3120
 %endif
     pmaddwd     m0, m0
     pmaddwd     m1, m1
@@ -445,7 +440,7 @@ cglobal pixel_ssd_nv12_core_%1, 6,7,7*(mmsize/16)
     paddq       m4, m3
     paddq       m4, m1
 %else ; unfortunately paddq is sse2
-      ; emulate 48 bit precision for mmxext instead
+      ; emulate 48 bit precision for mmx2 instead
     mova        m0, m2
     mova        m1, m3
     punpcklwd   m2, m6
@@ -466,7 +461,7 @@ cglobal pixel_ssd_nv12_core_%1, 6,7,7*(mmsize/16)
 %if mmsize==16
     movq      [r3], m4
     movhps    [r4], m4
-%else ; fixup for mmxext
+%else ; fixup for mmx2
     SBUTTERFLY dq, 4, 5, 0
     mova        m0, m4
     psrld       m4, 16
@@ -491,8 +486,8 @@ cglobal pixel_ssd_nv12_core_%1, 6,7,7*(mmsize/16)
 ; 6604 if interlaced), since it is called on blocks of height up to 12 (resp
 ; 20). At sane distortion levels it will take much more than that though.
 ;-----------------------------------------------------------------------------
-%macro SSD_NV12 1-2 0
-cglobal pixel_ssd_nv12_core_%1, 6,7
+%macro SSD_NV12 0
+cglobal pixel_ssd_nv12_core, 6,7
     shl    r4d, 1
     add     r0, r4
     add     r2, r4
@@ -533,12 +528,12 @@ cglobal pixel_ssd_nv12_core_%1, 6,7
 %endmacro ; SSD_NV12
 %endif ; !HIGH_BIT_DEPTH
 
-INIT_MMX
-SSD_NV12 mmxext
-INIT_XMM
-SSD_NV12 sse2
-INIT_AVX
-SSD_NV12 avx
+INIT_MMX mmx2
+SSD_NV12
+INIT_XMM sse2
+SSD_NV12
+INIT_XMM avx
+SSD_NV12
 
 ;=============================================================================
 ; variance
@@ -624,27 +619,27 @@ SSD_NV12 avx
 ; int pixel_var_wxh( uint8_t *, int )
 ;-----------------------------------------------------------------------------
 INIT_MMX
-cglobal pixel_var_16x16_mmxext, 2,3
+cglobal pixel_var_16x16_mmx2, 2,3
     FIX_STRIDES r1
     VAR_START 0
     VAR_2ROW 8*SIZEOF_PIXEL, 16
     VAR_END 16, 16
 
-cglobal pixel_var_8x8_mmxext, 2,3
+cglobal pixel_var_8x8_mmx2, 2,3
     FIX_STRIDES r1
     VAR_START 0
     VAR_2ROW r1, 4
     VAR_END 8, 8
 
 %ifdef HIGH_BIT_DEPTH
-%macro VAR 1
-cglobal pixel_var_16x16_%1, 2,3,8
+%macro VAR 0
+cglobal pixel_var_16x16, 2,3,8
     FIX_STRIDES r1
     VAR_START 0
     VAR_2ROW r1, 8
     VAR_END 16, 16
 
-cglobal pixel_var_8x8_%1, 2,3,8
+cglobal pixel_var_8x8, 2,3,8
     lea       r2, [r1*3]
     VAR_START 0
     mova      m0, [r0]
@@ -661,15 +656,15 @@ cglobal pixel_var_8x8_%1, 2,3,8
     VAR_END 8, 8
 %endmacro ; VAR
 
-INIT_XMM
-VAR sse2
-INIT_AVX
-VAR avx
+INIT_XMM sse2
+VAR
+INIT_XMM avx
+VAR
 %endif ; HIGH_BIT_DEPTH
 
 %ifndef HIGH_BIT_DEPTH
-%macro VAR 1
-cglobal pixel_var_16x16_%1, 2,3,8
+%macro VAR 0
+cglobal pixel_var_16x16, 2,3,8
     VAR_START 1
     mov      r2d, 8
 .loop:
@@ -682,7 +677,7 @@ cglobal pixel_var_16x16_%1, 2,3,8
     jg .loop
     VAR_END 16, 16
 
-cglobal pixel_var_8x8_%1, 2,4,8
+cglobal pixel_var_8x8, 2,4,8
     VAR_START 1
     mov      r2d, 2
     lea       r3, [r1*3]
@@ -699,10 +694,10 @@ cglobal pixel_var_8x8_%1, 2,4,8
     VAR_END 8, 8
 %endmacro ; VAR
 
-INIT_XMM
-VAR sse2
-INIT_AVX
-VAR avx
+INIT_XMM sse2
+VAR
+INIT_XMM avx
+VAR
 %endif ; !HIGH_BIT_DEPTH
 
 %macro VAR2_END 0
@@ -721,7 +716,7 @@ VAR avx
 ; int pixel_var2_8x8( pixel *, int, pixel *, int, int * )
 ;-----------------------------------------------------------------------------
 INIT_MMX
-cglobal pixel_var2_8x8_mmxext, 5,6
+cglobal pixel_var2_8x8_mmx2, 5,6
     FIX_STRIDES r1, r3
     VAR_START 0
     mov      r5d, 8
@@ -839,21 +834,19 @@ cglobal pixel_var2_8x8_ssse3, 5,6,8
 
 %define TRANS TRANS_SSE2
 
-%macro JDUP_SSE2 2
-    punpckldq %1, %2
-    ; doesn't need to dup. sse2 does things by zero extending to words and full h_2d
-%endmacro
-
-%macro JDUP_CONROE 2
+%macro JDUP 2
+%if cpuflag(sse4)
+    ; just use shufps on anything post conroe
+    shufps %1, %2, 0
+%elif cpuflag(ssse3)
     ; join 2x 32 bit and duplicate them
     ; emulating shufps is faster on conroe
     punpcklqdq %1, %2
     movsldup %1, %1
-%endmacro
-
-%macro JDUP_PENRYN 2
-    ; just use shufps on anything post conroe
-    shufps %1, %2, 0
+%else
+    ; doesn't need to dup. sse2 does things by zero extending to words and full h_2d
+    punpckldq %1, %2
+%endif
 %endmacro
 
 %macro HSUMSUB 5
@@ -969,7 +962,8 @@ cglobal pixel_var2_8x8_ssse3, 5,6,8
 %else
     HADAMARD4_V %2, %3, %4, %5, %6
     ; doing the abs first is a slight advantage
-    ABS4 m%2, m%4, m%3, m%5, m%6, m%7
+    ABSW2 m%2, m%4, m%2, m%4, m%6, m%7
+    ABSW2 m%3, m%5, m%3, m%5, m%6, m%7
     HADAMARD 1, max, %2, %4, %6, %7
 %endif
 %ifnidn %9, swap
@@ -996,9 +990,9 @@ cglobal pixel_var2_8x8_ssse3, 5,6,8
     HADDUW      m0, m1
     movd       eax, m0
 %else ; !HIGH_BIT_DEPTH
-    pshufw      m1, m0, 01001110b
+    pshufw      m1, m0, q1032
     paddw       m0, m1
-    pshufw      m1, m0, 10110001b
+    pshufw      m1, m0, q2301
     paddw       m0, m1
     movd       eax, m0
     and        eax, 0xffff
@@ -1012,8 +1006,8 @@ cglobal pixel_var2_8x8_ssse3, 5,6,8
 ;-----------------------------------------------------------------------------
 ; int pixel_satd_16x16( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-INIT_MMX
-cglobal pixel_satd_16x4_internal_mmxext
+INIT_MMX mmx2
+cglobal pixel_satd_16x4_internal
     SATD_4x4_MMX m2,  0, 0
     SATD_4x4_MMX m1,  4, 0
     paddw        m0, m2
@@ -1024,12 +1018,12 @@ cglobal pixel_satd_16x4_internal_mmxext
     paddw        m0, m1
     ret
 
-cglobal pixel_satd_8x8_internal_mmxext
+cglobal pixel_satd_8x8_internal
     SATD_4x4_MMX m2,  0, 0
     SATD_4x4_MMX m1,  4, 1
     paddw        m0, m2
     paddw        m0, m1
-pixel_satd_8x4_internal_mmxext:
+pixel_satd_8x4_internal_mmx2:
     SATD_4x4_MMX m2,  0, 0
     SATD_4x4_MMX m1,  4, 0
     paddw        m0, m2
@@ -1038,17 +1032,17 @@ pixel_satd_8x4_internal_mmxext:
 
 %ifdef HIGH_BIT_DEPTH
 %macro SATD_MxN_MMX 3
-cglobal pixel_satd_%1x%2_mmxext, 4,7
+cglobal pixel_satd_%1x%2, 4,7
     SATD_START_MMX
     pxor   m0, m0
-    call pixel_satd_%1x%3_internal_mmxext
+    call pixel_satd_%1x%3_internal_mmx2
     HADDUW m0, m1
     movd  r6d, m0
 %rep %2/%3-1
     pxor   m0, m0
     lea    r0, [r0+4*r1]
     lea    r2, [r2+4*r3]
-    call pixel_satd_%1x%3_internal_mmxext
+    call pixel_satd_%1x%3_internal_mmx2
     movd   m2, r4
     HADDUW m0, m1
     movd   r4, m0
@@ -1065,74 +1059,74 @@ SATD_MxN_MMX  8, 16, 8
 %endif ; HIGH_BIT_DEPTH
 
 %ifndef HIGH_BIT_DEPTH
-cglobal pixel_satd_16x16_mmxext, 4,6
+cglobal pixel_satd_16x16, 4,6
     SATD_START_MMX
     pxor   m0, m0
 %rep 3
-    call pixel_satd_16x4_internal_mmxext
+    call pixel_satd_16x4_internal_mmx2
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
 %endrep
-    call pixel_satd_16x4_internal_mmxext
+    call pixel_satd_16x4_internal_mmx2
     HADDUW m0, m1
     movd  eax, m0
     RET
 
-cglobal pixel_satd_16x8_mmxext, 4,6
+cglobal pixel_satd_16x8, 4,6
     SATD_START_MMX
     pxor   m0, m0
-    call pixel_satd_16x4_internal_mmxext
+    call pixel_satd_16x4_internal_mmx2
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
-    call pixel_satd_16x4_internal_mmxext
+    call pixel_satd_16x4_internal_mmx2
     SATD_END_MMX
 
-cglobal pixel_satd_8x16_mmxext, 4,6
+cglobal pixel_satd_8x16, 4,6
     SATD_START_MMX
     pxor   m0, m0
-    call pixel_satd_8x8_internal_mmxext
+    call pixel_satd_8x8_internal_mmx2
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
-    call pixel_satd_8x8_internal_mmxext
+    call pixel_satd_8x8_internal_mmx2
     SATD_END_MMX
 %endif ; !HIGH_BIT_DEPTH
 
-cglobal pixel_satd_8x8_mmxext, 4,6
+cglobal pixel_satd_8x8, 4,6
     SATD_START_MMX
     pxor   m0, m0
-    call pixel_satd_8x8_internal_mmxext
+    call pixel_satd_8x8_internal_mmx2
     SATD_END_MMX
 
-cglobal pixel_satd_8x4_mmxext, 4,6
+cglobal pixel_satd_8x4, 4,6
     SATD_START_MMX
     pxor   m0, m0
-    call pixel_satd_8x4_internal_mmxext
+    call pixel_satd_8x4_internal_mmx2
     SATD_END_MMX
 
-cglobal pixel_satd_4x8_mmxext, 4,6
+cglobal pixel_satd_4x8, 4,6
     SATD_START_MMX
     SATD_4x4_MMX m0, 0, 1
     SATD_4x4_MMX m1, 0, 0
     paddw  m0, m1
     SATD_END_MMX
 
-cglobal pixel_satd_4x4_mmxext, 4,6
+cglobal pixel_satd_4x4, 4,6
     SATD_START_MMX
     SATD_4x4_MMX m0, 0, 0
     SATD_END_MMX
 
-%macro SATD_START_SSE2 3
-%ifnidn %1, sse2
-    mova    %3, [hmul_8p]
+%macro SATD_START_SSE2 2
+%if cpuflag(ssse3)
+    mova    %2, [hmul_8p]
 %endif
     lea     r4, [3*r1]
     lea     r5, [3*r3]
-    pxor    %2, %2
+    pxor    %1, %1
 %endmacro
 
-%macro SATD_END_SSE2 2
-    HADDW   %2, m7
-    movd   eax, %2
+%macro SATD_END_SSE2 1
+    HADDW   %1, m7
+    movd   eax, %1
     RET
 %endmacro
 
@@ -1158,9 +1152,9 @@ cglobal pixel_satd_4x4_mmxext, 4,6
 ;-----------------------------------------------------------------------------
 ; int pixel_satd_8x4( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-%macro SATDS_SSE2 1
-%ifnidn %1, sse2
-cglobal pixel_satd_4x4_%1, 4, 6, 6
+%macro SATDS_SSE2 0
+%if cpuflag(ssse3)
+cglobal pixel_satd_4x4, 4, 6, 6
     SATD_START_MMX
     mova m4, [hmul_4p]
     LOAD_DUP_2x4P m2, m5, [r2], [r2+r3]
@@ -1176,9 +1170,9 @@ cglobal pixel_satd_4x4_%1, 4, 6, 6
     RET
 %endif
 
-cglobal pixel_satd_4x8_%1, 4, 6, 8
+cglobal pixel_satd_4x8, 4, 6, 8
     SATD_START_MMX
-%ifnidn %1, sse2
+%if cpuflag(ssse3)
     mova m7, [hmul_4p]
 %endif
     movd m4, [r2]
@@ -1211,81 +1205,82 @@ cglobal pixel_satd_4x8_%1, 4, 6, 8
     movd m4, [r0+r1]
     JDUP m3, m4
     DIFFOP 2, 6, 3, 5, 7
-    SATD_8x4_SSE %1, 0, 1, 2, 3, 4, 5, 6, swap
+    SATD_8x4_SSE cpuname, 0, 1, 2, 3, 4, 5, 6, swap
     HADDW m6, m1
     movd eax, m6
     RET
 
-cglobal pixel_satd_8x8_internal_%1
+cglobal pixel_satd_8x8_internal
     LOAD_SUMSUB_8x4P 0, 1, 2, 3, 4, 5, 7, r0, r2, 1
-    SATD_8x4_SSE %1, 0, 1, 2, 3, 4, 5, 6
-pixel_satd_8x4_internal_%1:
+    SATD_8x4_SSE cpuname, 0, 1, 2, 3, 4, 5, 6
+%%pixel_satd_8x4_internal:
     LOAD_SUMSUB_8x4P 0, 1, 2, 3, 4, 5, 7, r0, r2, 1
-    SATD_8x4_SSE %1, 0, 1, 2, 3, 4, 5, 6
+    SATD_8x4_SSE cpuname, 0, 1, 2, 3, 4, 5, 6
     ret
 
 %ifdef UNIX64 ; 16x8 regresses on phenom win64, 16x16 is almost the same
-cglobal pixel_satd_16x4_internal_%1
+cglobal pixel_satd_16x4_internal
     LOAD_SUMSUB_16x4P 0, 1, 2, 3, 4, 8, 5, 9, 6, 7, r0, r2, 11
     lea  r2, [r2+4*r3]
     lea  r0, [r0+4*r1]
+    ; FIXME: this doesn't really mean ssse3, but rather selects between two different behaviors implemented with sse2?
     SATD_8x4_SSE ssse3, 0, 1, 2, 3, 6, 11, 10
     SATD_8x4_SSE ssse3, 4, 8, 5, 9, 6, 3, 10
     ret
 
-cglobal pixel_satd_16x8_%1, 4,6,12
-    SATD_START_SSE2 %1, m10, m7
-%ifidn %1, sse2
+cglobal pixel_satd_16x8, 4,6,12
+    SATD_START_SSE2 m10, m7
+%if notcpuflag(ssse3)
     mova m7, [pw_00ff]
 %endif
-    jmp pixel_satd_16x8_internal_%1
+    jmp %%pixel_satd_16x8_internal
 
-cglobal pixel_satd_16x16_%1, 4,6,12
-    SATD_START_SSE2 %1, m10, m7
-%ifidn %1, sse2
+cglobal pixel_satd_16x16, 4,6,12
+    SATD_START_SSE2 m10, m7
+%if notcpuflag(ssse3)
     mova m7, [pw_00ff]
 %endif
-    call pixel_satd_16x4_internal_%1
-    call pixel_satd_16x4_internal_%1
-pixel_satd_16x8_internal_%1:
-    call pixel_satd_16x4_internal_%1
-    call pixel_satd_16x4_internal_%1
-    SATD_END_SSE2 %1, m10
+    call pixel_satd_16x4_internal
+    call pixel_satd_16x4_internal
+%%pixel_satd_16x8_internal:
+    call pixel_satd_16x4_internal
+    call pixel_satd_16x4_internal
+    SATD_END_SSE2 m10
 %else
-cglobal pixel_satd_16x8_%1, 4,6,8
-    SATD_START_SSE2 %1, m6, m7
+cglobal pixel_satd_16x8, 4,6,8
+    SATD_START_SSE2 m6, m7
     BACKUP_POINTERS
-    call pixel_satd_8x8_internal_%1
+    call pixel_satd_8x8_internal
     RESTORE_AND_INC_POINTERS
-    call pixel_satd_8x8_internal_%1
-    SATD_END_SSE2 %1, m6
+    call pixel_satd_8x8_internal
+    SATD_END_SSE2 m6
 
-cglobal pixel_satd_16x16_%1, 4,6,8
-    SATD_START_SSE2 %1, m6, m7
+cglobal pixel_satd_16x16, 4,6,8
+    SATD_START_SSE2 m6, m7
     BACKUP_POINTERS
-    call pixel_satd_8x8_internal_%1
-    call pixel_satd_8x8_internal_%1
+    call pixel_satd_8x8_internal
+    call pixel_satd_8x8_internal
     RESTORE_AND_INC_POINTERS
-    call pixel_satd_8x8_internal_%1
-    call pixel_satd_8x8_internal_%1
-    SATD_END_SSE2 %1, m6
+    call pixel_satd_8x8_internal
+    call pixel_satd_8x8_internal
+    SATD_END_SSE2 m6
 %endif
 
-cglobal pixel_satd_8x16_%1, 4,6,8
-    SATD_START_SSE2 %1, m6, m7
-    call pixel_satd_8x8_internal_%1
-    call pixel_satd_8x8_internal_%1
-    SATD_END_SSE2 %1, m6
+cglobal pixel_satd_8x16, 4,6,8
+    SATD_START_SSE2 m6, m7
+    call pixel_satd_8x8_internal
+    call pixel_satd_8x8_internal
+    SATD_END_SSE2 m6
 
-cglobal pixel_satd_8x8_%1, 4,6,8
-    SATD_START_SSE2 %1, m6, m7
-    call pixel_satd_8x8_internal_%1
-    SATD_END_SSE2 %1, m6
+cglobal pixel_satd_8x8, 4,6,8
+    SATD_START_SSE2 m6, m7
+    call pixel_satd_8x8_internal
+    SATD_END_SSE2 m6
 
-cglobal pixel_satd_8x4_%1, 4,6,8
-    SATD_START_SSE2 %1, m6, m7
-    call pixel_satd_8x4_internal_%1
-    SATD_END_SSE2 %1, m6
+cglobal pixel_satd_8x4, 4,6,8
+    SATD_START_SSE2 m6, m7
+    call %%pixel_satd_8x4_internal
+    SATD_END_SSE2 m6
 %endmacro ; SATDS_SSE2
 
 %macro SA8D_INTER 0
@@ -1304,20 +1299,18 @@ cglobal pixel_satd_8x4_%1, 4,6,8
 %endif ; HIGH_BIT_DEPTH
 %endmacro
 
-%macro SA8D 1
+%macro SA8D 0
 %ifdef HIGH_BIT_DEPTH
     %define vertical 1
-%elifidn %1, sse2 ; sse2 doesn't seem to like the horizontal way of doing things
-    %define vertical 1
-%else
-    %define vertical 0
+%else ; sse2 doesn't seem to like the horizontal way of doing things
+    %define vertical (cpuflags == cpuflags_sse2)
 %endif
 
 %ifdef ARCH_X86_64
 ;-----------------------------------------------------------------------------
 ; int pixel_sa8d_8x8( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
-cglobal pixel_sa8d_8x8_internal_%1
+cglobal pixel_sa8d_8x8_internal
     lea  r10, [r0+4*r1]
     lea  r11, [r2+4*r3]
     LOAD_SUMSUB_8x4P 0, 1, 2, 8, 5, 6, 7, r0, r2
@@ -1341,17 +1334,17 @@ cglobal pixel_sa8d_8x8_internal_%1
     paddw m0, m1
     paddw m0, m2
     paddw m0, m8
-    SAVE_MM_PERMUTATION pixel_sa8d_8x8_internal_%1
+    SAVE_MM_PERMUTATION
     ret
 
-cglobal pixel_sa8d_8x8_%1, 4,6,12
+cglobal pixel_sa8d_8x8, 4,6,12
     FIX_STRIDES r1, r3
     lea  r4, [3*r1]
     lea  r5, [3*r3]
 %if vertical == 0
     mova m7, [hmul_8p]
 %endif
-    call pixel_sa8d_8x8_internal_%1
+    call pixel_sa8d_8x8_internal
 %ifdef HIGH_BIT_DEPTH
     HADDUW m0, m1
 %else
@@ -1362,29 +1355,29 @@ cglobal pixel_sa8d_8x8_%1, 4,6,12
     shr eax, 1
     RET
 
-cglobal pixel_sa8d_16x16_%1, 4,6,12
+cglobal pixel_sa8d_16x16, 4,6,12
     FIX_STRIDES r1, r3
     lea  r4, [3*r1]
     lea  r5, [3*r3]
 %if vertical == 0
     mova m7, [hmul_8p]
 %endif
-    call pixel_sa8d_8x8_internal_%1 ; pix[0]
+    call pixel_sa8d_8x8_internal ; pix[0]
     add  r2, 8*SIZEOF_PIXEL
     add  r0, 8*SIZEOF_PIXEL
 %ifdef HIGH_BIT_DEPTH
     HADDUW m0, m1
 %endif
     mova m10, m0
-    call pixel_sa8d_8x8_internal_%1 ; pix[8]
+    call pixel_sa8d_8x8_internal ; pix[8]
     lea  r2, [r2+8*r3]
     lea  r0, [r0+8*r1]
     SA8D_INTER
-    call pixel_sa8d_8x8_internal_%1 ; pix[8*stride+8]
+    call pixel_sa8d_8x8_internal ; pix[8*stride+8]
     sub  r2, 8*SIZEOF_PIXEL
     sub  r0, 8*SIZEOF_PIXEL
     SA8D_INTER
-    call pixel_sa8d_8x8_internal_%1 ; pix[8*stride]
+    call pixel_sa8d_8x8_internal ; pix[8*stride]
     SA8D_INTER
     SWAP 0, 10
 %ifndef HIGH_BIT_DEPTH
@@ -1396,8 +1389,8 @@ cglobal pixel_sa8d_16x16_%1, 4,6,12
     RET
 
 %else ; ARCH_X86_32
-%ifnidn %1, mmxext
-cglobal pixel_sa8d_8x8_internal_%1
+%if mmsize == 16
+cglobal pixel_sa8d_8x8_internal
     %define spill0 [esp+4]
     %define spill1 [esp+20]
     %define spill2 [esp+36]
@@ -1411,7 +1404,7 @@ cglobal pixel_sa8d_8x8_internal_%1
     movdqa m3, spill0
     paddw m0, m1
     HADAMARD2_2D 2, 6, 3, 7, 5, qdq, amax
-%else ; non-sse2
+%else ; mmsize == 8
     mova m7, [hmul_8p]
     LOAD_SUMSUB_8x4P 0, 1, 2, 3, 5, 6, 7, r0, r2, 1
     ; could do first HADAMARD4_V here to save spilling later
@@ -1444,18 +1437,18 @@ cglobal pixel_sa8d_8x8_internal_%1
 %endif ; sse2/non-sse2
     paddw m0, m2
     paddw m0, m3
-    SAVE_MM_PERMUTATION pixel_sa8d_8x8_internal_%1
+    SAVE_MM_PERMUTATION
     ret
-%endif ; ifndef mmxext
+%endif ; ifndef mmx2
 
-cglobal pixel_sa8d_8x8_%1, 4,7
+cglobal pixel_sa8d_8x8, 4,7
     FIX_STRIDES r1, r3
     mov    r6, esp
     and   esp, ~15
     sub   esp, 48
     lea    r4, [3*r1]
     lea    r5, [3*r3]
-    call pixel_sa8d_8x8_internal_%1
+    call pixel_sa8d_8x8_internal
 %ifdef HIGH_BIT_DEPTH
     HADDUW m0, m1
 %else
@@ -1467,15 +1460,15 @@ cglobal pixel_sa8d_8x8_%1, 4,7
     mov   esp, r6
     RET
 
-cglobal pixel_sa8d_16x16_%1, 4,7
+cglobal pixel_sa8d_16x16, 4,7
     FIX_STRIDES r1, r3
     mov  r6, esp
     and  esp, ~15
     sub  esp, 64
     lea  r4, [3*r1]
     lea  r5, [3*r3]
-    call pixel_sa8d_8x8_internal_%1
-%ifidn %1, mmxext
+    call pixel_sa8d_8x8_internal
+%if mmsize == 8
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
 %endif
@@ -1483,23 +1476,22 @@ cglobal pixel_sa8d_16x16_%1, 4,7
     HADDUW m0, m1
 %endif
     mova [esp+48], m0
-    call pixel_sa8d_8x8_internal_%1
+    call pixel_sa8d_8x8_internal
     mov  r0, [r6+20]
     mov  r2, [r6+28]
     add  r0, 8*SIZEOF_PIXEL
     add  r2, 8*SIZEOF_PIXEL
     SA8D_INTER
     mova [esp+48], m0
-    call pixel_sa8d_8x8_internal_%1
-%ifidn %1, mmxext
+    call pixel_sa8d_8x8_internal
+%if mmsize == 8
     lea  r0, [r0+4*r1]
     lea  r2, [r2+4*r3]
-%endif
-%if mmsize == 16
+%else
     SA8D_INTER
 %endif
     mova [esp+64-mmsize], m0
-    call pixel_sa8d_8x8_internal_%1
+    call pixel_sa8d_8x8_internal
 %ifdef HIGH_BIT_DEPTH
     SA8D_INTER
 %else ; !HIGH_BIT_DEPTH
@@ -1533,12 +1525,12 @@ cglobal pixel_sa8d_16x16_%1, 4,7
 ; INTRA SATD
 ;=============================================================================
 
-%macro INTRA_SA8D_SSE2 1
+%macro INTRA_SA8D_SSE2 0
 %ifdef ARCH_X86_64
 ;-----------------------------------------------------------------------------
 ; void intra_sa8d_x3_8x8_core( uint8_t *fenc, int16_t edges[2][8], int *res )
 ;-----------------------------------------------------------------------------
-cglobal intra_sa8d_x3_8x8_core_%1, 3,3,16
+cglobal intra_sa8d_x3_8x8_core, 3,3,16
     ; 8x8 hadamard
     pxor        m8, m8
     movq        m0, [r0+0*FENC_STRIDE]
@@ -1572,20 +1564,12 @@ cglobal intra_sa8d_x3_8x8_core_%1, 3,3,16
     movdqa      m9,  m3
     movdqa      m10, m4
     movdqa      m11, m5
-    ABS4        m8, m9, m10, m11, m12, m13
+    ABSW2       m8,  m9,  m8,  m9,  m12, m13
+    ABSW2       m10, m11, m10, m11, m12, m13
     paddusw     m8,  m10
     paddusw     m9,  m11
-%ifidn %1, ssse3
-    pabsw       m10, m6
-    pabsw       m11, m7
-    pabsw       m15, m1
-%else
-    movdqa      m10, m6
-    movdqa      m11, m7
-    movdqa      m15, m1
-    ABS2        m10, m11, m13, m14
-    ABS1        m15, m13
-%endif
+    ABSW2       m10, m11, m6,  m7,  m6,  m7
+    ABSW        m15, m1,  m1
     paddusw     m10, m11
     paddusw     m8,  m9
     paddusw     m15, m10
@@ -1596,8 +1580,7 @@ cglobal intra_sa8d_x3_8x8_core_%1, 3,3,16
     psllw       m8,  3
     psubw       m8,  m0
     psubw       m9,  m0
-    ABS1        m8,  m10
-    ABS1        m9,  m11 ; 1x8 sum
+    ABSW2       m8,  m9,  m8,  m9,  m10, m11 ; 1x8 sum
     paddusw     m14, m15, m8
     paddusw     m15, m9
     punpcklwd   m0,  m1
@@ -1611,7 +1594,7 @@ cglobal intra_sa8d_x3_8x8_core_%1, 3,3,16
     psllw       m1,  3
     psrldq      m2,  m15, 2  ; 8x7 sum
     psubw       m0,  m1  ; 8x1 sum
-    ABS1        m0,  m1
+    ABSW        m0,  m0,  m1
     paddusw     m2,  m0
 
     ; 3x HADDW
@@ -1621,7 +1604,7 @@ cglobal intra_sa8d_x3_8x8_core_%1, 3,3,16
     pmaddwd     m15, m7
     punpckhdq   m3,  m2, m14
     punpckldq   m2,  m14
-    pshufd      m5,  m15, 0xf5
+    pshufd      m5,  m15, q3311
     paddd       m2,  m3
     paddd       m5,  m15
     punpckhqdq  m3,  m2, m5
@@ -1651,7 +1634,7 @@ cglobal hadamard_load
     punpcklbw   m2, m7
     punpcklbw   m3, m7
     HADAMARD4_2D 0, 1, 2, 3, 4
-    SAVE_MM_PERMUTATION hadamard_load
+    SAVE_MM_PERMUTATION
     ret
 
 %macro SCALAR_SUMSUB 4
@@ -1697,18 +1680,18 @@ cglobal hadamard_load
 
 %macro SUM_MM_X3 8 ; 3x sum, 4x tmp, op
     pxor        %7, %7
-    pshufw      %4, %1, 01001110b
-    pshufw      %5, %2, 01001110b
-    pshufw      %6, %3, 01001110b
+    pshufw      %4, %1, q1032
+    pshufw      %5, %2, q1032
+    pshufw      %6, %3, q1032
     paddw       %1, %4
     paddw       %2, %5
     paddw       %3, %6
     punpcklwd   %1, %7
     punpcklwd   %2, %7
     punpcklwd   %3, %7
-    pshufw      %4, %1, 01001110b
-    pshufw      %5, %2, 01001110b
-    pshufw      %6, %3, 01001110b
+    pshufw      %4, %1, q1032
+    pshufw      %5, %2, q1032
+    pshufw      %6, %3, q1032
     %8          %1, %4
     %8          %2, %5
     %8          %3, %6
@@ -1730,20 +1713,10 @@ cglobal hadamard_load
 ; in: m1..m3
 ; out: m7
 ; clobber: m4..m6
-%macro SUM3x4 1
-%ifidn %1, ssse3
-    pabsw       m4, m1
-    pabsw       m5, m2
-    pabsw       m7, m3
+%macro SUM3x4 0
+    ABSW2       m4, m5, m1, m2, m1, m2
+    ABSW        m7, m3, m3
     paddw       m4, m5
-%else
-    movq        m4, m1
-    movq        m5, m2
-    ABS2        m4, m5, m6, m7
-    movq        m7, m3
-    paddw       m4, m5
-    ABS1        m7, m6
-%endif
     paddw       m7, m4
 %endmacro
 
@@ -1762,15 +1735,15 @@ cglobal hadamard_load
     movq        m1, %3
     psllw       m1, 2
     psubw       m0, m1
-    ABS2        m4, m5, m2, m3 ; 1x4 sum
-    ABS1        m0, m1 ; 4x1 sum
+    ABSW2       m4, m5, m4, m5, m2, m3 ; 1x4 sum
+    ABSW        m0, m0, m1 ; 4x1 sum
 %endmacro
 
-%macro INTRA_SATDS_MMX 1
+%macro INTRA_SATDS_MMX 0
 ;-----------------------------------------------------------------------------
 ; void intra_satd_x3_4x4( uint8_t *fenc, uint8_t *fdec, int *res )
 ;-----------------------------------------------------------------------------
-cglobal intra_satd_x3_4x4_%1, 2,6
+cglobal intra_satd_x3_4x4, 2,6
 %ifdef ARCH_X86_64
     ; stack is 16 byte aligned because abi says so
     %define  top_1d  rsp-8  ; size 8
@@ -1792,7 +1765,7 @@ cglobal intra_satd_x3_4x4_%1, 2,6
     and         t0d, -8
     shl         t0d, 1 ; dc
 
-    SUM3x4 %1
+    SUM3x4
     SUM4x3 t0d, [left_1d], [top_1d]
     paddw       m4, m7
     paddw       m5, m7
@@ -1823,7 +1796,7 @@ cglobal intra_satd_x3_4x4_%1, 2,6
 ;-----------------------------------------------------------------------------
 ; void intra_satd_x3_16x16( uint8_t *fenc, uint8_t *fdec, int *res )
 ;-----------------------------------------------------------------------------
-cglobal intra_satd_x3_16x16_%1, 0,7
+cglobal intra_satd_x3_16x16, 0,7
 %ifdef ARCH_X86_64
     %assign  stack_pad  88
 %else
@@ -1859,7 +1832,7 @@ cglobal intra_satd_x3_16x16_%1, 0,7
 .loop_x:
     call hadamard_load
 
-    SUM3x4 %1
+    SUM3x4
     SUM4x3 t2d, [left_1d+8*r3], [top_1d+8*r4]
     pavgw       m4, m7
     pavgw       m5, m7
@@ -1900,7 +1873,7 @@ cglobal intra_satd_x3_16x16_%1, 0,7
 ;-----------------------------------------------------------------------------
 ; void intra_satd_x3_8x8c( uint8_t *fenc, uint8_t *fdec, int *res )
 ;-----------------------------------------------------------------------------
-cglobal intra_satd_x3_8x8c_%1, 0,6
+cglobal intra_satd_x3_8x8c, 0,6
     ; not really needed on x86_64, just shuts up valgrind about storing data below the stack across a function call
     SUB          rsp, 72
 %define  sums    rsp+48 ; size 24
@@ -1948,7 +1921,7 @@ cglobal intra_satd_x3_8x8c_%1, 0,6
 .loop_x:
     call hadamard_load
 
-    SUM3x4 %1
+    SUM3x4
     SUM4x3 [r5+4*r4], [left_1d+8*r3], [top_1d+8*r4]
     pavgw       m4, m7
     pavgw       m5, m7
@@ -1986,21 +1959,10 @@ cglobal intra_satd_x3_8x8c_%1, 0,6
 %endmacro ; INTRA_SATDS_MMX
 
 
-%macro ABS_MOV_SSSE3 2
-    pabsw   %1, %2
-%endmacro
-
-%macro ABS_MOV_MMX 2
-    pxor    %1, %1
-    psubw   %1, %2
-    pmaxsw  %1, %2
-%endmacro
-
-%define ABS_MOV ABS_MOV_MMX
-
 ; in:  r0=pix, r1=stride, r2=stride*3, r3=tmp, m6=mask_ac4, m7=0
 ; out: [tmp]=hadamard4, m0=satd
-cglobal hadamard_ac_4x4_mmxext
+INIT_MMX mmx2
+cglobal hadamard_ac_4x4
 %ifdef HIGH_BIT_DEPTH
     mova      m0, [r0]
     mova      m1, [r0+r1]
@@ -2021,25 +1983,26 @@ cglobal hadamard_ac_4x4_mmxext
     mova [r3+8],  m1
     mova [r3+16], m2
     mova [r3+24], m3
-    ABS1      m0, m4
-    ABS1      m1, m4
+    ABSW      m0, m0, m4
+    ABSW      m1, m1, m4
     pand      m0, m6
-    ABS1      m2, m4
-    ABS1      m3, m4
+    ABSW      m2, m2, m4
+    ABSW      m3, m3, m4
     paddw     m0, m1
     paddw     m2, m3
     paddw     m0, m2
-    SAVE_MM_PERMUTATION hadamard_ac_4x4_mmxext
+    SAVE_MM_PERMUTATION
     ret
 
-cglobal hadamard_ac_2x2max_mmxext
+cglobal hadamard_ac_2x2max
     mova      m0, [r3+0x00]
     mova      m1, [r3+0x20]
     mova      m2, [r3+0x40]
     mova      m3, [r3+0x60]
     sub       r3, 8
     SUMSUB_BADC w, 0, 1, 2, 3, 4
-    ABS4 m0, m2, m1, m3, m4, m5
+    ABSW2 m0, m2, m0, m2, m4, m5
+    ABSW2 m1, m3, m1, m3, m4, m5
     HADAMARD 0, max, 0, 2, 4, 5
     HADAMARD 0, max, 1, 3, 4, 5
 %ifdef HIGH_BIT_DEPTH
@@ -2051,7 +2014,7 @@ cglobal hadamard_ac_2x2max_mmxext
     paddw     m7, m0
     paddw     m7, m1
 %endif ; HIGH_BIT_DEPTH
-    SAVE_MM_PERMUTATION hadamard_ac_2x2max_mmxext
+    SAVE_MM_PERMUTATION
     ret
 
 %macro AC_PREP 2
@@ -2069,27 +2032,27 @@ cglobal hadamard_ac_2x2max_mmxext
 %endif ; HIGH_BIT_DEPTH
 %endmacro
 
-cglobal hadamard_ac_8x8_mmxext
+cglobal hadamard_ac_8x8
     mova      m6, [mask_ac4]
 %ifdef HIGH_BIT_DEPTH
     mova      m7, [pw_1]
 %else
     pxor      m7, m7
 %endif ; HIGH_BIT_DEPTH
-    call hadamard_ac_4x4_mmxext
+    call hadamard_ac_4x4_mmx2
     add       r0, 4*SIZEOF_PIXEL
     add       r3, 32
     mova      m5, m0
     AC_PREP   m5, m7
-    call hadamard_ac_4x4_mmxext
+    call hadamard_ac_4x4_mmx2
     lea       r0, [r0+4*r1]
     add       r3, 64
     AC_PADD   m5, m0, m7
-    call hadamard_ac_4x4_mmxext
+    call hadamard_ac_4x4_mmx2
     sub       r0, 4*SIZEOF_PIXEL
     sub       r3, 32
     AC_PADD   m5, m0, m7
-    call hadamard_ac_4x4_mmxext
+    call hadamard_ac_4x4_mmx2
     AC_PADD   m5, m0, m7
     sub       r3, 40
     mova [rsp+gprsize+8], m5 ; save satd
@@ -2097,7 +2060,7 @@ cglobal hadamard_ac_8x8_mmxext
     pxor      m6, m6
 %endif
 %rep 3
-    call hadamard_ac_2x2max_mmxext
+    call hadamard_ac_2x2max_mmx2
 %endrep
     mova      m0, [r3+0x00]
     mova      m1, [r3+0x20]
@@ -2105,7 +2068,8 @@ cglobal hadamard_ac_8x8_mmxext
     mova      m3, [r3+0x60]
     SUMSUB_BADC w, 0, 1, 2, 3, 4
     HADAMARD 0, sumsub, 0, 2, 4, 5
-    ABS4 m1, m3, m0, m2, m4, m5
+    ABSW2 m1, m3, m1, m3, m4, m5
+    ABSW2 m0, m2, m0, m2, m4, m5
     HADAMARD 0, max, 1, 3, 4, 5
 %ifdef HIGH_BIT_DEPTH
     pand      m0, [mask_ac4]
@@ -2126,10 +2090,10 @@ cglobal hadamard_ac_8x8_mmxext
 %endif ; HIGH_BIT_DEPTH
     mova [rsp+gprsize], m6 ; save sa8d
     SWAP       0,  6
-    SAVE_MM_PERMUTATION hadamard_ac_8x8_mmxext
+    SAVE_MM_PERMUTATION
     ret
 
-%macro HADAMARD_AC_WXH_SUM_MMXEXT 2
+%macro HADAMARD_AC_WXH_SUM_MMX 2
     mova    m1, [rsp+1*mmsize]
 %ifdef HIGH_BIT_DEPTH
 %if %1*%2 >= 128
@@ -2174,33 +2138,33 @@ cglobal hadamard_ac_8x8_mmxext
 %endmacro
 
 %macro HADAMARD_AC_WXH_MMX 2
-cglobal pixel_hadamard_ac_%1x%2_mmxext, 2,4
+cglobal pixel_hadamard_ac_%1x%2, 2,4
     %assign pad 16-gprsize-(stack_offset&15)
     %define ysub r1
     FIX_STRIDES r1
     sub  rsp, 16+128+pad
     lea  r2, [r1*3]
     lea  r3, [rsp+16]
-    call hadamard_ac_8x8_mmxext
+    call hadamard_ac_8x8_mmx2
 %if %2==16
     %define ysub r2
     lea  r0, [r0+r1*4]
     sub  rsp, 16
-    call hadamard_ac_8x8_mmxext
+    call hadamard_ac_8x8_mmx2
 %endif
 %if %1==16
     neg  ysub
     sub  rsp, 16
     lea  r0, [r0+ysub*4+8*SIZEOF_PIXEL]
     neg  ysub
-    call hadamard_ac_8x8_mmxext
+    call hadamard_ac_8x8_mmx2
 %if %2==16
     lea  r0, [r0+r1*4]
     sub  rsp, 16
-    call hadamard_ac_8x8_mmxext
+    call hadamard_ac_8x8_mmx2
 %endif
 %endif
-    HADAMARD_AC_WXH_SUM_MMXEXT %1, %2
+    HADAMARD_AC_WXH_SUM_MMX %1, %2
     movd edx, m0
     movd eax, m1
     shr  edx, 1
@@ -2249,10 +2213,10 @@ HADAMARD_AC_WXH_MMX  8,  8
     HSUMSUB %1, %2, %3, %4, %5
 %endmacro
 
-%macro HADAMARD_AC_SSE2 1
+%macro HADAMARD_AC_SSE2 0
 ; in:  r0=pix, r1=stride, r2=stride*3
 ; out: [esp+16]=sa8d, [esp+32]=satd, r0+=stride*4
-cglobal hadamard_ac_8x8_%1
+cglobal hadamard_ac_8x8
 %ifdef ARCH_X86_64
     %define spill0 m8
     %define spill1 m9
@@ -2264,14 +2228,14 @@ cglobal hadamard_ac_8x8_%1
 %endif
 %ifdef HIGH_BIT_DEPTH
     %define vertical 1
-%elifidn %1, sse2
-    %define vertical 1
-    ;LOAD_INC only unpacks to words
-    pxor      m7, m7
-%else
+%elif cpuflag(ssse3)
     %define vertical 0
     ;LOAD_INC loads sumsubs
     mova      m7, [hmul_8p]
+%else
+    %define vertical 1
+    ;LOAD_INC only unpacks to words
+    pxor      m7, m7
 %endif
     LOAD_INC_8x4W 0, 1, 2, 3, 7
 %if vertical
@@ -2286,6 +2250,7 @@ cglobal hadamard_ac_8x8_%1
     HADAMARD4_2D_SSE 4, 5, 6, 7, 1
 %else
     HADAMARD4_V 4, 5, 6, 7, 1
+    ; FIXME SWAP
     mova      m1, spill0
     mova      spill0, m6
     mova      spill1, m7
@@ -2301,9 +2266,9 @@ cglobal hadamard_ac_8x8_%1
 %endif
     mova  spill1, m2
     mova  spill2, m3
-    ABS_MOV   m1, m0
-    ABS_MOV   m2, m4
-    ABS_MOV   m3, m5
+    ABSW      m1, m0, m0
+    ABSW      m2, m4, m4
+    ABSW      m3, m5, m5
     paddw     m1, m2
     SUMSUB_BA w, 0, 4
 %if vertical
@@ -2312,15 +2277,15 @@ cglobal hadamard_ac_8x8_%1
     pand      m1, [mask_ac4b]
 %endif
     AC_PREP   m1, [pw_1]
-    ABS_MOV   m2, spill0
+    ABSW      m2, spill0
     AC_PADD   m1, m3, [pw_1]
-    ABS_MOV   m3, spill1
+    ABSW      m3, spill1
     AC_PADD   m1, m2, [pw_1]
-    ABS_MOV   m2, spill2
+    ABSW      m2, spill2
     AC_PADD   m1, m3, [pw_1]
-    ABS_MOV   m3, m6
+    ABSW      m3, m6, m6
     AC_PADD   m1, m2, [pw_1]
-    ABS_MOV   m2, m7
+    ABSW      m2, m7, m7
     AC_PADD   m1, m3, [pw_1]
     mova      m3, m7
     AC_PADD   m1, m2, [pw_1]
@@ -2351,20 +2316,20 @@ cglobal hadamard_ac_8x8_%1
 %else
     paddw     m2, m2
 %endif ; HIGH_BIT_DEPTH
-    ABS1      m4, m7
+    ABSW      m4, m4, m7
     pand      m0, [mask_ac8]
-    ABS1      m0, m7
+    ABSW      m0, m0, m7
     AC_PADD   m2, m4, [pw_1]
     AC_PADD   m2, m0, [pw_1]
     mova [rsp+gprsize+16], m2 ; save sa8d
     SWAP       0, 2
-    SAVE_MM_PERMUTATION hadamard_ac_8x8_%1
+    SAVE_MM_PERMUTATION
     ret
 
-HADAMARD_AC_WXH_SSE2 16, 16, %1
-HADAMARD_AC_WXH_SSE2  8, 16, %1
-HADAMARD_AC_WXH_SSE2 16,  8, %1
-HADAMARD_AC_WXH_SSE2  8,  8, %1
+HADAMARD_AC_WXH_SSE2 16, 16
+HADAMARD_AC_WXH_SSE2  8, 16
+HADAMARD_AC_WXH_SSE2 16,  8
+HADAMARD_AC_WXH_SSE2  8,  8
 %endmacro ; HADAMARD_AC_SSE2
 
 %macro HADAMARD_AC_WXH_SUM_SSE2 2
@@ -2401,30 +2366,30 @@ HADAMARD_AC_WXH_SSE2  8,  8, %1
 %endmacro
 
 ; struct { int satd, int sa8d; } pixel_hadamard_ac_16x16( uint8_t *pix, int stride )
-%macro HADAMARD_AC_WXH_SSE2 3
-cglobal pixel_hadamard_ac_%1x%2_%3, 2,3,11
+%macro HADAMARD_AC_WXH_SSE2 2
+cglobal pixel_hadamard_ac_%1x%2, 2,3,11
     %assign pad 16-gprsize-(stack_offset&15)
     %define ysub r1
     FIX_STRIDES r1
     sub  rsp, 48+pad
     lea  r2, [r1*3]
-    call hadamard_ac_8x8_%3
+    call hadamard_ac_8x8
 %if %2==16
     %define ysub r2
     lea  r0, [r0+r1*4]
     sub  rsp, 32
-    call hadamard_ac_8x8_%3
+    call hadamard_ac_8x8
 %endif
 %if %1==16
     neg  ysub
     sub  rsp, 32
     lea  r0, [r0+ysub*4+8*SIZEOF_PIXEL]
     neg  ysub
-    call hadamard_ac_8x8_%3
+    call hadamard_ac_8x8
 %if %2==16
     lea  r0, [r0+r1*4]
     sub  rsp, 32
-    call hadamard_ac_8x8_%3
+    call hadamard_ac_8x8
 %endif
 %endif
     HADAMARD_AC_WXH_SUM_SSE2 %1, %2
@@ -2443,67 +2408,60 @@ cglobal pixel_hadamard_ac_%1x%2_%3, 2,3,11
 ; instantiate satds
 
 %ifndef ARCH_X86_64
-cextern pixel_sa8d_8x8_internal_mmxext
-SA8D mmxext
+cextern pixel_sa8d_8x8_internal_mmx2
+INIT_MMX mmx2
+SA8D
 %endif
 
 %define TRANS TRANS_SSE2
-%define ABS1 ABS1_MMX
-%define ABS2 ABS2_MMX
 %define DIFFOP DIFF_UNPACK_SSE2
-%define JDUP JDUP_SSE2
 %define LOAD_INC_8x4W LOAD_INC_8x4W_SSE2
 %define LOAD_SUMSUB_8x4P LOAD_DIFF_8x4P
 %define LOAD_SUMSUB_16P  LOAD_SUMSUB_16P_SSE2
 %define movdqa movaps ; doesn't hurt pre-nehalem, might as well save size
 %define movdqu movups
 %define punpcklqdq movlhps
-INIT_XMM
-SA8D sse2
-SATDS_SSE2 sse2
-INTRA_SA8D_SSE2 sse2
+INIT_XMM sse2
+SA8D
+SATDS_SSE2
+INTRA_SA8D_SSE2
 %ifndef HIGH_BIT_DEPTH
-INIT_MMX
-INTRA_SATDS_MMX mmxext
+INIT_MMX mmx2
+INTRA_SATDS_MMX
 %endif
-INIT_XMM
-HADAMARD_AC_SSE2 sse2
+INIT_XMM sse2
+HADAMARD_AC_SSE2
 
-%define ABS1 ABS1_SSSE3
-%define ABS2 ABS2_SSSE3
-%define ABS_MOV ABS_MOV_SSSE3
 %define DIFFOP DIFF_SUMSUB_SSSE3
-%define JDUP JDUP_CONROE
 %define LOAD_DUP_4x8P LOAD_DUP_4x8P_CONROE
 %ifndef HIGH_BIT_DEPTH
 %define LOAD_INC_8x4W LOAD_INC_8x4W_SSSE3
 %define LOAD_SUMSUB_8x4P LOAD_SUMSUB_8x4P_SSSE3
 %define LOAD_SUMSUB_16P  LOAD_SUMSUB_16P_SSSE3
 %endif
-INIT_XMM
-SATDS_SSE2 ssse3
-SA8D ssse3
-HADAMARD_AC_SSE2 ssse3
+INIT_XMM ssse3
+SATDS_SSE2
+SA8D
+HADAMARD_AC_SSE2
 %undef movdqa ; nehalem doesn't like movaps
 %undef movdqu ; movups
 %undef punpcklqdq ; or movlhps
-INTRA_SA8D_SSE2 ssse3
-INIT_MMX
-INTRA_SATDS_MMX ssse3
+INTRA_SA8D_SSE2
+INIT_MMX ssse3
+INTRA_SATDS_MMX
 
 %define TRANS TRANS_SSE4
-%define JDUP JDUP_PENRYN
 %define LOAD_DUP_4x8P LOAD_DUP_4x8P_PENRYN
-INIT_XMM
-SATDS_SSE2 sse4
-SA8D sse4
-HADAMARD_AC_SSE2 sse4
+INIT_XMM sse4
+SATDS_SSE2
+SA8D
+HADAMARD_AC_SSE2
 
-INIT_AVX
-SATDS_SSE2 avx
-SA8D avx
-INTRA_SA8D_SSE2 avx
-HADAMARD_AC_SSE2 avx
+INIT_XMM avx
+SATDS_SSE2
+SA8D
+INTRA_SA8D_SSE2
+HADAMARD_AC_SSE2
 
 ;=============================================================================
 ; SSIM
@@ -2547,8 +2505,8 @@ HADAMARD_AC_SSE2 avx
     paddd     m3, m6
 %endmacro
 
-%macro SSIM 1
-cglobal pixel_ssim_4x4x2_core_%1, 4,4,8
+%macro SSIM 0
+cglobal pixel_ssim_4x4x2_core, 4,4,8
     FIX_STRIDES r1, r3
     pxor      m0, m0
     SSIM_ITER 0
@@ -2558,13 +2516,13 @@ cglobal pixel_ssim_4x4x2_core_%1, 4,4,8
     ; PHADDW m1, m2
     ; PHADDD m3, m4
     movdqa    m7, [pw_1]
-    pshufd    m5, m3, 0xb1
+    pshufd    m5, m3, q2301
     pmaddwd   m1, m7
     pmaddwd   m2, m7
-    pshufd    m6, m4, 0xb1
+    pshufd    m6, m4, q2301
     packssdw  m1, m2
     paddd     m3, m5
-    pshufd    m1, m1, 0xd8
+    pshufd    m1, m1, q3120
     paddd     m4, m6
     pmaddwd   m1, m7
     punpckhdq m5, m3, m4
@@ -2586,7 +2544,7 @@ cglobal pixel_ssim_4x4x2_core_%1, 4,4,8
 ;-----------------------------------------------------------------------------
 ; float pixel_ssim_end( int sum0[5][4], int sum1[5][4], int width )
 ;-----------------------------------------------------------------------------
-cglobal pixel_ssim_end4_%1, 3,3,7
+cglobal pixel_ssim_end4, 3,3,7
     movdqa    m0, [r0+ 0]
     movdqa    m1, [r0+16]
     movdqa    m2, [r0+32]
@@ -2661,7 +2619,7 @@ cglobal pixel_ssim_end4_%1, 3,3,7
 .skip:
     movhlps   m0, m4
     addps     m0, m4
-    pshuflw   m4, m0, 0xE
+    pshuflw   m4, m0, q0032
     addss     m0, m4
 %ifndef ARCH_X86_64
     movd     r0m, m0
@@ -2670,10 +2628,10 @@ cglobal pixel_ssim_end4_%1, 3,3,7
     RET
 %endmacro ; SSIM
 
-INIT_XMM
-SSIM sse2
-INIT_AVX
-SSIM avx
+INIT_XMM sse2
+SSIM
+INIT_XMM avx
+SSIM
 
 ;=============================================================================
 ; Successive Elimination ADS
@@ -2699,34 +2657,33 @@ SSIM avx
     jmp ads_mvs
 %endmacro
 
-%define ABS1 ABS1_MMX
-
 ;-----------------------------------------------------------------------------
 ; int pixel_ads4( int enc_dc[4], uint16_t *sums, int delta,
 ;                 uint16_t *cost_mvx, int16_t *mvs, int width, int thresh )
 ;-----------------------------------------------------------------------------
-cglobal pixel_ads4_mmxext, 6,7
+INIT_MMX mmx2
+cglobal pixel_ads4, 6,7
     movq    mm6, [r0]
     movq    mm4, [r0+8]
     pshufw  mm7, mm6, 0
-    pshufw  mm6, mm6, 0xAA
+    pshufw  mm6, mm6, q2222
     pshufw  mm5, mm4, 0
-    pshufw  mm4, mm4, 0xAA
+    pshufw  mm4, mm4, q2222
     ADS_START
 .loop:
     movq    mm0, [r1]
     movq    mm1, [r1+16]
     psubw   mm0, mm7
     psubw   mm1, mm6
-    ABS1    mm0, mm2
-    ABS1    mm1, mm3
+    ABSW    mm0, mm0, mm2
+    ABSW    mm1, mm1, mm3
     movq    mm2, [r1+r2]
     movq    mm3, [r1+r2+16]
     psubw   mm2, mm5
     psubw   mm3, mm4
     paddw   mm0, mm1
-    ABS1    mm2, mm1
-    ABS1    mm3, mm1
+    ABSW    mm2, mm2, mm1
+    ABSW    mm3, mm3, mm1
     paddw   mm0, mm2
     paddw   mm0, mm3
     pshufw  mm1, r6m, 0
@@ -2736,19 +2693,19 @@ cglobal pixel_ads4_mmxext, 6,7
     movd    [r6], mm1
     ADS_END 1
 
-cglobal pixel_ads2_mmxext, 6,7
+cglobal pixel_ads2, 6,7
     movq    mm6, [r0]
     pshufw  mm5, r6m, 0
     pshufw  mm7, mm6, 0
-    pshufw  mm6, mm6, 0xAA
+    pshufw  mm6, mm6, q2222
     ADS_START
 .loop:
     movq    mm0, [r1]
     movq    mm1, [r1+r2]
     psubw   mm0, mm7
     psubw   mm1, mm6
-    ABS1    mm0, mm2
-    ABS1    mm1, mm3
+    ABSW    mm0, mm0, mm2
+    ABSW    mm1, mm1, mm3
     paddw   mm0, mm1
     paddusw mm0, [r3]
     movq    mm4, mm5
@@ -2757,7 +2714,7 @@ cglobal pixel_ads2_mmxext, 6,7
     movd    [r6], mm4
     ADS_END 1
 
-cglobal pixel_ads1_mmxext, 6,7
+cglobal pixel_ads1, 6,7
     pshufw  mm7, [r0], 0
     pshufw  mm6, r6m, 0
     ADS_START
@@ -2766,8 +2723,8 @@ cglobal pixel_ads1_mmxext, 6,7
     movq    mm1, [r1+8]
     psubw   mm0, mm7
     psubw   mm1, mm7
-    ABS1    mm0, mm2
-    ABS1    mm1, mm3
+    ABSW    mm0, mm0, mm2
+    ABSW    mm1, mm1, mm3
     paddusw mm0, [r3]
     paddusw mm1, [r3+8]
     movq    mm4, mm6
@@ -2778,13 +2735,13 @@ cglobal pixel_ads1_mmxext, 6,7
     movq    [r6], mm4
     ADS_END 2
 
-%macro ADS_SSE2 1
-cglobal pixel_ads4_%1, 6,7,12
+%macro ADS_XMM 0
+cglobal pixel_ads4, 6,7,12
     movdqa  xmm4, [r0]
     pshuflw xmm7, xmm4, 0
-    pshuflw xmm6, xmm4, 0xAA
+    pshuflw xmm6, xmm4, q2222
     pshufhw xmm5, xmm4, 0
-    pshufhw xmm4, xmm4, 0xAA
+    pshufhw xmm4, xmm4, q2222
     punpcklqdq xmm7, xmm7
     punpcklqdq xmm6, xmm6
     punpckhqdq xmm5, xmm5
@@ -2799,15 +2756,15 @@ cglobal pixel_ads4_%1, 6,7,12
     psubw   xmm0, xmm10, xmm7
     movdqu xmm10, [r1+16]
     psubw   xmm1, xmm10, xmm6
-    ABS1    xmm0, xmm2
-    ABS1    xmm1, xmm3
+    ABSW    xmm0, xmm0, xmm2
+    ABSW    xmm1, xmm1, xmm3
     psubw   xmm2, xmm11, xmm5
     movdqu xmm11, [r1+r2+16]
     paddw   xmm0, xmm1
     psubw   xmm3, xmm11, xmm4
     movdqu  xmm9, [r3]
-    ABS1    xmm2, xmm1
-    ABS1    xmm3, xmm1
+    ABSW    xmm2, xmm2, xmm1
+    ABSW    xmm3, xmm3, xmm1
     paddw   xmm0, xmm2
     paddw   xmm0, xmm3
     paddusw xmm0, xmm9
@@ -2821,15 +2778,15 @@ cglobal pixel_ads4_%1, 6,7,12
     movdqu  xmm1, [r1+16]
     psubw   xmm0, xmm7
     psubw   xmm1, xmm6
-    ABS1    xmm0, xmm2
-    ABS1    xmm1, xmm3
+    ABSW    xmm0, xmm0, xmm2
+    ABSW    xmm1, xmm1, xmm3
     movdqu  xmm2, [r1+r2]
     movdqu  xmm3, [r1+r2+16]
     psubw   xmm2, xmm5
     psubw   xmm3, xmm4
     paddw   xmm0, xmm1
-    ABS1    xmm2, xmm1
-    ABS1    xmm3, xmm1
+    ABSW    xmm2, xmm2, xmm1
+    ABSW    xmm3, xmm3, xmm1
     paddw   xmm0, xmm2
     paddw   xmm0, xmm3
     movd    xmm1, r6m
@@ -2843,11 +2800,11 @@ cglobal pixel_ads4_%1, 6,7,12
 %endif ; ARCH
     ADS_END 2
 
-cglobal pixel_ads2_%1, 6,7,8
+cglobal pixel_ads2, 6,7,8
     movq    xmm6, [r0]
     movd    xmm5, r6m
     pshuflw xmm7, xmm6, 0
-    pshuflw xmm6, xmm6, 0xAA
+    pshuflw xmm6, xmm6, q2222
     pshuflw xmm5, xmm5, 0
     punpcklqdq xmm7, xmm7
     punpcklqdq xmm6, xmm6
@@ -2859,8 +2816,8 @@ cglobal pixel_ads2_%1, 6,7,8
     psubw   xmm0, xmm7
     psubw   xmm1, xmm6
     movdqu  xmm4, [r3]
-    ABS1    xmm0, xmm2
-    ABS1    xmm1, xmm3
+    ABSW    xmm0, xmm0, xmm2
+    ABSW    xmm1, xmm1, xmm3
     paddw   xmm0, xmm1
     paddusw xmm0, xmm4
     psubusw xmm1, xmm5, xmm0
@@ -2868,7 +2825,7 @@ cglobal pixel_ads2_%1, 6,7,8
     movq    [r6], xmm1
     ADS_END 2
 
-cglobal pixel_ads1_%1, 6,7,8
+cglobal pixel_ads1, 6,7,8
     movd    xmm7, [r0]
     movd    xmm6, r6m
     pshuflw xmm7, xmm7, 0
@@ -2883,8 +2840,8 @@ cglobal pixel_ads1_%1, 6,7,8
     psubw   xmm1, xmm7
     movdqu  xmm2, [r3]
     movdqu  xmm3, [r3+16]
-    ABS1    xmm0, xmm4
-    ABS1    xmm1, xmm5
+    ABSW    xmm0, xmm0, xmm4
+    ABSW    xmm1, xmm1, xmm5
     paddusw xmm0, xmm2
     paddusw xmm1, xmm3
     psubusw xmm4, xmm6, xmm0
@@ -2894,12 +2851,12 @@ cglobal pixel_ads1_%1, 6,7,8
     ADS_END 4
 %endmacro
 
-INIT_XMM
-ADS_SSE2 sse2
-%define ABS1 ABS1_SSSE3
-ADS_SSE2 ssse3
-INIT_AVX
-ADS_SSE2 avx
+INIT_XMM sse2
+ADS_XMM
+INIT_XMM ssse3
+ADS_XMM
+INIT_XMM avx
+ADS_XMM
 
 ; int pixel_ads_mvs( int16_t *mvs, uint8_t *masks, int width )
 ; {
@@ -2924,6 +2881,7 @@ ADS_SSE2 avx
     inc     r1d
 %endmacro
 
+INIT_MMX
 cglobal pixel_ads_mvs, 0,7,0
 ads_mvs:
     lea     r6,  [r4+r5+15]

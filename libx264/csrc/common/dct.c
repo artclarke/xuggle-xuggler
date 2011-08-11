@@ -460,7 +460,7 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
         dctf->add16x16_idct_dc = x264_add16x16_idct_dc_mmx;
         dctf->dct4x4dc      = x264_dct4x4dc_mmx;
         dctf->idct4x4dc     = x264_idct4x4dc_mmx;
-        dctf->sub8x8_dct_dc = x264_sub8x8_dct_dc_mmxext;
+        dctf->sub8x8_dct_dc = x264_sub8x8_dct_dc_mmx2;
 
 #if !ARCH_X86_64
         dctf->sub8x8_dct    = x264_sub8x8_dct_mmx;
@@ -783,11 +783,11 @@ void x264_zigzag_init( int cpu, x264_zigzag_function_t *pf_progressive, x264_zig
 #if HAVE_MMX
     if( cpu&X264_CPU_MMX )
         pf_progressive->scan_4x4 = x264_zigzag_scan_4x4_frame_mmx;
-    if( cpu&X264_CPU_MMXEXT )
+    if( cpu&X264_CPU_MMX2 )
     {
-        pf_interlaced->scan_4x4  = x264_zigzag_scan_4x4_field_mmxext;
-        pf_interlaced->scan_8x8  = x264_zigzag_scan_8x8_field_mmxext;
-        pf_progressive->scan_8x8 = x264_zigzag_scan_8x8_frame_mmxext;
+        pf_interlaced->scan_4x4  = x264_zigzag_scan_4x4_field_mmx2;
+        pf_interlaced->scan_8x8  = x264_zigzag_scan_8x8_field_mmx2;
+        pf_progressive->scan_8x8 = x264_zigzag_scan_8x8_frame_mmx2;
     }
     if( cpu&X264_CPU_SSE2_IS_FAST )
         pf_progressive->scan_8x8 = x264_zigzag_scan_8x8_frame_sse2;

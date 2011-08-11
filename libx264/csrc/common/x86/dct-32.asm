@@ -141,11 +141,9 @@ load_diff_4x8_mmx:
     movq  m0, [r0]
     ret
 
-INIT_MMX
-ALIGN 16
-dct8_mmx:
+cglobal dct8_mmx
     DCT8_1D 0,1,2,3,4,5,6,7,r0
-    SAVE_MM_PERMUTATION dct8_mmx
+    SAVE_MM_PERMUTATION
     ret
 
 %macro SPILL_SHUFFLE 3-* ; ptr, list of regs, list of memory offsets
@@ -182,7 +180,7 @@ dct8_mmx:
 cglobal sub8x8_dct8_mmx, 3,3
 global sub8x8_dct8_mmx.skip_prologue
 .skip_prologue:
-    INIT_MMX
+    RESET_MM_PERMUTATION
     call load_diff_4x8_mmx
     call dct8_mmx
     UNSPILL r0, 0
@@ -191,7 +189,7 @@ global sub8x8_dct8_mmx.skip_prologue
     UNSPILL r0, 4,6
     TRANSPOSE4x4W 4,5,6,7,0
     SPILL r0, 4,5,6,7
-    INIT_MMX
+    RESET_MM_PERMUTATION
     add   r1, 4
     add   r2, 4
     add   r0, 8
@@ -212,23 +210,21 @@ global sub8x8_dct8_mmx.skip_prologue
     movq  mm1, m5
     movq  mm2, mm4
     movq  mm3, m7
-    INIT_MMX
+    RESET_MM_PERMUTATION
     UNSPILL r0+8, 4,5,6,7
     add   r0, 8
     call dct8_mmx
     sub   r0, 8
     SPILL r0+8, 1,2,3,5,7
-    INIT_MMX
+    RESET_MM_PERMUTATION
     UNSPILL r0, 0,1,2,3,4,5,6,7
     call dct8_mmx
     SPILL r0, 1,2,3,5,7
     ret
 
-INIT_MMX
-ALIGN 16
-idct8_mmx:
+cglobal idct8_mmx
     IDCT8_1D 0,1,2,3,4,5,6,7,r1
-    SAVE_MM_PERMUTATION idct8_mmx
+    SAVE_MM_PERMUTATION
     ret
 
 %macro ADD_STORE_ROW 3
@@ -330,12 +326,12 @@ global add8x8_idct8_mmx.skip_prologue
     ADD_STORE_ROW 7, m7, [r1+0x78]
     ret
 
-%macro DCT_SUB8 1
-cglobal sub8x8_dct_%1, 3,3
+%macro DCT_SUB8 0
+cglobal sub8x8_dct, 3,3
     add r2, 4*FDEC_STRIDE
-global sub8x8_dct_%1.skip_prologue
+global current_function %+ .skip_prologue
 .skip_prologue:
-%ifnidn %1, sse2
+%if cpuflag(ssse3)
     mova m7, [hsub_mul]
 %endif
     LOAD_DIFF8x4 0, 1, 2, 3, 6, 7, r1, r2-4*FDEC_STRIDE
@@ -364,11 +360,18 @@ global sub8x8_dct_%1.skip_prologue
 ;-----------------------------------------------------------------------------
 ; void sub8x8_dct8( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
-cglobal sub8x8_dct8_%1, 3,3
+cglobal sub8x8_dct8, 3,3
     add r2, 4*FDEC_STRIDE
-global sub8x8_dct8_%1.skip_prologue
+global current_function %+ .skip_prologue
 .skip_prologue:
-%ifidn %1, sse2
+%if cpuflag(ssse3)
+    mova m7, [hsub_mul]
+    LOAD_DIFF8x4 0, 1, 2, 3, 4, 7, r1, r2-4*FDEC_STRIDE
+    SPILL r0, 0,1
+    SWAP 1, 7
+    LOAD_DIFF8x4 4, 5, 6, 7, 0, 1, r1, r2-4*FDEC_STRIDE
+    UNSPILL r0, 0,1
+%else
     LOAD_DIFF m0, m7, none, [r1+0*FENC_STRIDE], [r2-4*FDEC_STRIDE]
     LOAD_DIFF m1, m7, none, [r1+1*FENC_STRIDE], [r2-3*FDEC_STRIDE]
     LOAD_DIFF m2, m7, none, [r1+2*FENC_STRIDE], [r2-2*FDEC_STRIDE]
@@ -379,13 +382,6 @@ global sub8x8_dct8_%1.skip_prologue
     LOAD_DIFF m6, m7, none, [r1+6*FENC_STRIDE], [r2+2*FDEC_STRIDE]
     LOAD_DIFF m7, m0, none, [r1+7*FENC_STRIDE], [r2+3*FDEC_STRIDE]
     UNSPILL r0, 0
-%else
-    mova m7, [hsub_mul]
-    LOAD_DIFF8x4 0, 1, 2, 3, 4, 7, r1, r2-4*FDEC_STRIDE
-    SPILL r0, 0,1
-    SWAP 1, 7
-    LOAD_DIFF8x4 4, 5, 6, 7, 0, 1, r1, r2-4*FDEC_STRIDE
-    UNSPILL r0, 0,1
 %endif
     DCT8_1D 0,1,2,3,4,5,6,7,r0
     UNSPILL r0, 0,4
@@ -396,25 +392,24 @@ global sub8x8_dct8_%1.skip_prologue
     ret
 %endmacro
 
-INIT_XMM
-%define LOAD_DIFF8x4 LOAD_DIFF8x4_SSE2
+INIT_XMM sse2
 %define movdqa movaps
 %define punpcklqdq movlhps
-DCT_SUB8 sse2
+DCT_SUB8
 %undef movdqa
 %undef punpcklqdq
-%define LOAD_DIFF8x4 LOAD_DIFF8x4_SSSE3
-DCT_SUB8 ssse3
-INIT_AVX
-DCT_SUB8 avx
+INIT_XMM ssse3
+DCT_SUB8
+INIT_XMM avx
+DCT_SUB8
 
 ;-----------------------------------------------------------------------------
 ; void add8x8_idct( uint8_t *pix, int16_t dct[4][4][4] )
 ;-----------------------------------------------------------------------------
-%macro ADD8x8 1
-cglobal add8x8_idct_%1, 2,2
+%macro ADD8x8 0
+cglobal add8x8_idct, 2,2
     add r0, 4*FDEC_STRIDE
-global add8x8_idct_%1.skip_prologue
+global current_function %+ .skip_prologue
 .skip_prologue:
     UNSPILL_SHUFFLE r1, 0,2,1,3, 0,1,2,3
     SBUTTERFLY qdq, 0, 1, 4
@@ -447,18 +442,18 @@ global add8x8_idct_%1.skip_prologue
     ret
 %endmacro ; ADD8x8
 
-INIT_XMM
-ADD8x8 sse2
-INIT_AVX
-ADD8x8 avx
+INIT_XMM sse2
+ADD8x8
+INIT_XMM avx
+ADD8x8
 
 ;-----------------------------------------------------------------------------
 ; void add8x8_idct8( uint8_t *p_dst, int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
-%macro ADD8x8_IDCT8 1
-cglobal add8x8_idct8_%1, 2,2
+%macro ADD8x8_IDCT8 0
+cglobal add8x8_idct8, 2,2
     add r0, 4*FDEC_STRIDE
-global add8x8_idct8_%1.skip_prologue
+global current_function %+ .skip_prologue
 .skip_prologue:
     UNSPILL r1, 1,2,3,5,6,7
     IDCT8_1D   0,1,2,3,4,5,6,7,r1
@@ -478,8 +473,8 @@ global add8x8_idct8_%1.skip_prologue
     ret
 %endmacro ; ADD8x8_IDCT8
 
-INIT_XMM
-ADD8x8_IDCT8 sse2
-INIT_AVX
-ADD8x8_IDCT8 avx
+INIT_XMM sse2
+ADD8x8_IDCT8
+INIT_XMM avx
+ADD8x8_IDCT8
 %endif ; !HIGH_BIT_DEPTH

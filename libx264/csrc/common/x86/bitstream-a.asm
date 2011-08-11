@@ -62,9 +62,9 @@ ALIGN 16
     jl %1
 %endmacro
 
-%macro NAL_ESCAPE 1
+%macro NAL_ESCAPE 0
 
-cglobal nal_escape_%1, 3,5
+cglobal nal_escape, 3,5
     mov      r3w, [r1]
     sub       r1, r2 ; r1 = offset of current src pointer from end of src
     pxor      m4, m4
@@ -123,9 +123,9 @@ ALIGN 16
     jmp .no_escape
 %endmacro
 
-INIT_MMX
-NAL_ESCAPE mmxext
-INIT_XMM
-NAL_ESCAPE sse2
-INIT_AVX
-NAL_ESCAPE avx
+INIT_MMX mmx2
+NAL_ESCAPE
+INIT_XMM sse2
+NAL_ESCAPE
+INIT_XMM avx
+NAL_ESCAPE

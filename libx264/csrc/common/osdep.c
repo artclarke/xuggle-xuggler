@@ -115,7 +115,7 @@ void __intel_cpu_indicator_init( void )
         __intel_cpu_indicator = 0x200;
     else if( cpu&X264_CPU_SSE )
         __intel_cpu_indicator = 0x80;
-    else if( cpu&X264_CPU_MMXEXT )
+    else if( cpu&X264_CPU_MMX2 )
         __intel_cpu_indicator = 8;
     else
         __intel_cpu_indicator = 1;

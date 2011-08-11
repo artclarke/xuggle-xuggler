@@ -2050,9 +2050,9 @@ static int check_all_flags( void )
     int ret = 0;
     int cpu0 = 0, cpu1 = 0;
 #if HAVE_MMX
-    if( x264_cpu_detect() & X264_CPU_MMXEXT )
+    if( x264_cpu_detect() & X264_CPU_MMX2 )
     {
-        ret |= add_flags( &cpu0, &cpu1, X264_CPU_MMX | X264_CPU_MMXEXT, "MMX" );
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_MMX | X264_CPU_MMX2, "MMX" );
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_CACHELINE_64, "MMX Cache64" );
         cpu1 &= ~X264_CPU_CACHELINE_64;
 #if ARCH_X86

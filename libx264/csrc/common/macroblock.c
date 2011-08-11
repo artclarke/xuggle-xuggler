@@ -824,7 +824,7 @@ static void ALWAYS_INLINE x264_macroblock_cache_load_neighbours( x264_t *h, int 
 #   define LBOT 0
 #endif
 
-void ALWAYS_INLINE x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y, int b_mbaff )
+static void ALWAYS_INLINE x264_macroblock_cache_load( x264_t *h, int mb_x, int mb_y, int b_mbaff )
 {
     x264_macroblock_cache_load_neighbours( h, mb_x, mb_y, b_mbaff );
 
