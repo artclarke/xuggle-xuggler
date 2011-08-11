@@ -96,12 +96,12 @@ static NOINLINE pixel *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fenc
     return ref->lowres[0];
 }
 
-/* How data is organized for chroma weightp:
+/* How data is organized for chroma weightp 4:2:0:
  * [U: ref] [U: fenc]
  * [V: ref] [V: fenc]
  * fenc = ref + offset
  * v = u + stride * chroma height
- * We'll need more room if we do 4:2:2 or 4:4:4. */
+ * We'll need more room if we do 4:2:2. */
 
 static NOINLINE void x264_weight_cost_init_chroma( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, pixel *dstu, pixel *dstv )
 {
@@ -289,6 +289,7 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
     SET_WEIGHT( weights[0], 0, 1, 0, 0 );
     SET_WEIGHT( weights[1], 0, 1, 0, 0 );
     SET_WEIGHT( weights[2], 0, 1, 0, 0 );
+    int chroma_initted = 0;
     /* Don't check chroma in lookahead, or if there wasn't a luma weight. */
     for( int plane = 0; plane <= 2 && !( plane && ( !weights[0].weightfn || b_lookahead ) ); plane++ )
     {
@@ -350,8 +351,7 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
             {
                 pixel *dstu = h->mb.p_weight_buf[0];
                 pixel *dstv = h->mb.p_weight_buf[0]+fenc->i_stride[1]*fenc->i_lines[1];
-                /* Only initialize chroma data once. */
-                if( plane == 1 )
+                if( !chroma_initted++ )
                     x264_weight_cost_init_chroma( h, fenc, ref, dstu, dstv );
                 mcbuf = plane == 1 ? dstu : dstv;
                 origscore = minscore = x264_weight_cost_chroma( h, fenc, mcbuf, NULL );
