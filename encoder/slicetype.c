@@ -622,7 +622,7 @@ skip_motionest:
 lowres_intra_mb:
     if( !fenc->b_intra_calculated )
     {
-        ALIGNED_ARRAY_16( pixel, edge,[33] );
+        ALIGNED_ARRAY_16( pixel, edge,[36] );
         pixel *pix = &pix1[8+FDEC_STRIDE - 1];
         pixel *src = &fenc->lowres[0][i_pel_offset - 1];
         const int intra_penalty = 5 * a->i_lambda;

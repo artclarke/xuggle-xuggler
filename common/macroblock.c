@@ -350,8 +350,7 @@ int x264_macroblock_thread_allocate( x264_t *h, int b_lookahead )
         for( int i = 0; i <= 4*PARAM_INTERLACED; i++ )
             for( int j = 0; j < (CHROMA444 ? 3 : 2); j++ )
             {
-                /* shouldn't really be initialized, just silences a valgrind false-positive in predict_8x8_filter_mmx */
-                CHECKED_MALLOCZERO( h->intra_border_backup[i][j], (h->sps->i_mb_width*16+32) * sizeof(pixel) );
+                CHECKED_MALLOC( h->intra_border_backup[i][j], (h->sps->i_mb_width*16+32) * sizeof(pixel) );
                 h->intra_border_backup[i][j] += 16;
                 if( !PARAM_INTERLACED )
                     h->intra_border_backup[1][j] = h->intra_border_backup[i][j];

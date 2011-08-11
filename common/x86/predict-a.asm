@@ -37,6 +37,8 @@ pw_m3:       times 8 dw -3
 pb_00s_ff:   times 8 db 0
 pb_0s_ff:    times 7 db 0
              db 0xff
+shuf_fixtr:  db 0, 1, 2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7
+shuf_nop:    db 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
 
 SECTION .text
 
@@ -596,9 +598,9 @@ cglobal predict_4x4_dc_mmx2, 1,4
 
 %macro PREDICT_FILTER 5
 ;-----------------------------------------------------------------------------
-;void predict_8x8_filter( pixel *src, pixel edge[33], int i_neighbor, int i_filters )
+;void predict_8x8_filter( pixel *src, pixel edge[36], int i_neighbor, int i_filters )
 ;-----------------------------------------------------------------------------
-cglobal predict_8x8_filter, 4,5,7
+cglobal predict_8x8_filter, 4,6,6
     add          r0, 0x58*SIZEOF_PIXEL
 %define src r0-0x58*SIZEOF_PIXEL
 %ifndef ARCH_X86_64
@@ -609,10 +611,13 @@ cglobal predict_8x8_filter, 4,5,7
 %define t1 r1
 %define t4 r4
 %endif
-    test       r3b, 0x01
+    test       r3b, 1
     je .check_top
+    mov        t4d, r2d
+    and        t4d, 8
+    neg         t4
     mova        m0, [src+0*FDEC_STRIDEB-8*SIZEOF_PIXEL]
-    punpckh%1%2 m0, [src-1*FDEC_STRIDEB-8*SIZEOF_PIXEL]
+    punpckh%1%2 m0, [src+0*FDEC_STRIDEB-8*SIZEOF_PIXEL+t4*(FDEC_STRIDEB/8)]
     mova        m1, [src+2*FDEC_STRIDEB-8*SIZEOF_PIXEL]
     punpckh%1%2 m1, [src+1*FDEC_STRIDEB-8*SIZEOF_PIXEL]
     punpckh%2%3 m1, m0
@@ -628,74 +633,79 @@ cglobal predict_8x8_filter, 4,5,7
     mova        m2, m3
     PALIGNR     m4, m0, 7*SIZEOF_PIXEL, m0
     PALIGNR     m1, m2, 1*SIZEOF_PIXEL, m2
-    test       r2b, 0x08
-    je .fix_lt_1
-.do_left:
-    mova        m0, m4
     PRED8x8_LOWPASS %1, m2, m1, m4, m3, m5
     mova        [t1+8*SIZEOF_PIXEL], m2
-    mova        m4, m0
-    PRED8x8_LOWPASS %1, m1, m3, m0, m4, m5
-    movd        t4, m1
+    movzx      t4d, pixel [src+7*FDEC_STRIDEB-1*SIZEOF_PIXEL]
+    movzx      r5d, pixel [src+6*FDEC_STRIDEB-1*SIZEOF_PIXEL]
+    lea        t4d, [t4*3+2]
+    add        t4d, r5d
+    shr        t4d, 2
     mov         [t1+7*SIZEOF_PIXEL], t4%1
-.check_top:
-    test        r3b, 0x02
+    test       r3b, 2
     je .done
+.check_top:
+%if SIZEOF_PIXEL==1 && cpuflag(ssse3)
+INIT_XMM cpuname
+    movu        m3, [src-1*FDEC_STRIDEB]
+    movhps      m0, [src-1*FDEC_STRIDEB-8]
+    test       r2b, 8
+    je .fix_lt_2
+.do_top:
+    and        r2d, 4
+%ifdef PIC
+    lea         r3, [shuf_fixtr]
+    pshufb      m3, [r3+r2*4]
+%else
+    pshufb      m3, [shuf_fixtr+r2*4] ; neighbor&MB_TOPRIGHT ? shuf_nop : shuf_fixtr
+%endif
+    psrldq      m1, m3, 15
+    PALIGNR     m2, m3, m0, 15, m0
+    PALIGNR     m1, m3, 1, m5
+    PRED8x8_LOWPASS %1, m0, m2, m1, m3, m5
+    mova        [t1+16*SIZEOF_PIXEL], m0
+    psrldq      m0, 15
+    movd        [t1+32*SIZEOF_PIXEL], m0
+.done:
+    REP_RET
+.fix_lt_2:
+    pslldq      m0, m3, 15
+    jmp .do_top
+
+%else
     mova        m0, [src-1*FDEC_STRIDEB-8*SIZEOF_PIXEL]
     mova        m3, [src-1*FDEC_STRIDEB]
     mova        m1, [src-1*FDEC_STRIDEB+8*SIZEOF_PIXEL]
-    mova        m2, m3
-    mova        m4, m3
-    PALIGNR     m2, m0, 7*SIZEOF_PIXEL, m0
-    PALIGNR     m1, m4, 1*SIZEOF_PIXEL, m4
-    test        r2b, 0x08
+    test       r2b, 8
     je .fix_lt_2
-    test        r2b, 0x04
+    test       r2b, 4
     je .fix_tr_1
 .do_top:
-    PRED8x8_LOWPASS %1, m4, m2, m1, m3, m5
+    PALIGNR     m2, m3, m0, 7*SIZEOF_PIXEL, m0
+    PALIGNR     m0, m1, m3, 1*SIZEOF_PIXEL, m5
+    PRED8x8_LOWPASS %1, m4, m2, m0, m3, m5
     mova        [t1+16*SIZEOF_PIXEL], m4
-    test        r3b, 0x04
+    test       r3b, 4
     je .done
-    test        r2b, 0x04
-    je .fix_tr_2
-    mova        m0, [src-1*FDEC_STRIDEB+8*SIZEOF_PIXEL]
-    mova        m2, m0
-    mova        m4, m0
-    psrl%4      m5, m0, 7*%5
+    mova        m2, m1
+    mova        m4, m1
+    psrl%4      m5, m1, 7*%5
     PALIGNR     m2, m3, 7*SIZEOF_PIXEL, m3
     PALIGNR     m5, m4, 1*SIZEOF_PIXEL, m4
-    PRED8x8_LOWPASS %1, m1, m2, m5, m0, m4
-    jmp .do_topright
-.fix_tr_2:
-    punpckh%1%2 m3, m3
-    pshuf%2     m1, m3, q3333
-.do_topright:
-    mova        [t1+24*SIZEOF_PIXEL], m1
-    psrl%4      m1, 7*%5
-    movd        t4, m1
-    mov         [t1+32*SIZEOF_PIXEL], t4%1
+    PRED8x8_LOWPASS %1, m0, m2, m5, m1, m4
+    mova        [t1+24*SIZEOF_PIXEL], m0
+    psrl%4      m0, 7*%5
+    movd        [t1+32*SIZEOF_PIXEL], m0
 .done:
     REP_RET
-.fix_lt_1:
-    pxor        m5, m3, m4
-    psrl%4      m5, 7*%5
-    psll%4      m5, 6*%5
-    pxor        m1, m5
-    jmp .do_left
 .fix_lt_2:
-    pxor        m5, m3, m2
-    psll%4      m5, 7*%5
-    psrl%4      m5, 7*%5
-    pxor        m2, m5
-    test       r2b, 0x04
+    psll%4      m0, m3, 7*%5
+    test       r2b, 4
     jne .do_top
 .fix_tr_1:
-    pxor        m5, m3, m1
-    psrl%4      m5, 7*%5
-    psll%4      m5, 7*%5
-    pxor        m1, m5
+    punpckh%1%2 m1, m3, m3
+    pshuf%2     m1, m1, q3333
     jmp .do_top
+%endif
 %endmacro
 
 %ifdef HIGH_BIT_DEPTH
@@ -731,7 +741,7 @@ PREDICT_8x8_V
 %endif
 
 ;-----------------------------------------------------------------------------
-; void predict_8x8_h( pixel *src, pixel edge[33] )
+; void predict_8x8_h( pixel *src, pixel edge[36] )
 ;-----------------------------------------------------------------------------
 %macro PREDICT_8x8_H 2
 cglobal predict_8x8_h, 2,2

@@ -39,8 +39,8 @@ void x264_predict_8x8c_h_neon( uint8_t *src );
 void x264_predict_8x8c_v_neon( uint8_t *src );
 void x264_predict_8x8c_p_neon( uint8_t *src );
 
-void x264_predict_8x8_dc_neon( uint8_t *src, uint8_t edge[33] );
-void x264_predict_8x8_h_neon( uint8_t *src, uint8_t edge[33] );
+void x264_predict_8x8_dc_neon( uint8_t *src, uint8_t edge[36] );
+void x264_predict_8x8_h_neon( uint8_t *src, uint8_t edge[36] );
 
 void x264_predict_16x16_dc_neon( uint8_t *src );
 void x264_predict_16x16_dc_top_neon( uint8_t *src );
