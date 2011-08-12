@@ -185,9 +185,11 @@ static int select_frame(AVFilterContext *ctx, AVFilterBufferRef *picref)
 
     if (isnan(select->var_values[VAR_START_PTS]))
         select->var_values[VAR_START_PTS] = TS2D(picref->pts);
+    if (isnan(select->var_values[VAR_START_T]))
+        select->var_values[VAR_START_T] = TS2D(picref->pts) * av_q2d(inlink->time_base);
 
     select->var_values[VAR_PTS] = TS2D(picref->pts);
-    select->var_values[VAR_T  ] = picref->pts * av_q2d(inlink->time_base);
+    select->var_values[VAR_T  ] = TS2D(picref->pts) * av_q2d(inlink->time_base);
     select->var_values[VAR_POS] = picref->pos == -1 ? NAN : picref->pos;
     select->var_values[VAR_PREV_PTS] = TS2D(picref ->pts);
 
@@ -317,14 +319,18 @@ static av_cold void uninit(AVFilterContext *ctx)
     AVFilterBufferRef *picref;
     int i;
 
-    av_expr_free(select->expr);
+    if (select->expr)
+        av_expr_free(select->expr);
     select->expr = NULL;
 
-    for (i = 0; i < av_fifo_size(select->pending_frames)/sizeof(picref); i++) {
-        av_fifo_generic_read(select->pending_frames, &picref, sizeof(picref), NULL);
-        avfilter_unref_buffer(picref);
+    if (select->pending_frames) {
+        for (i = 0; i < av_fifo_size(select->pending_frames)/sizeof(picref); i++) {
+            av_fifo_generic_read(select->pending_frames, &picref, sizeof(picref), NULL);
+            avfilter_unref_buffer(picref);
+        }
+        av_fifo_free(select->pending_frames);
     }
-    av_fifo_free(select->pending_frames);
+    select->pending_frames = NULL;
 }
 
 AVFilter avfilter_vf_select = {
