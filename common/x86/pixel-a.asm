@@ -54,16 +54,22 @@ hmul_8p:   times 8 db 1
            times 4 db 1, -1
 mask_10:   times 4 dw 0, -1
 mask_1100: times 2 dd 0, -1
+pb_pppm:   times 4 db 1,1,1,-1
 deinterleave_shuf: db 0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15
+intrax3_shuf: db 7,6,7,6,5,4,5,4,3,2,3,2,1,0,1,0
 
+sw_f0:     dq 0xfff0, 0
 pd_f0:     times 4 dd 0xffff0000
 sq_0f:     times 1 dq 0xffffffff
 
 SECTION .text
 
 cextern pw_1
+cextern pw_8
 cextern pw_00ff
-
+cextern pw_ppppmmmm
+cextern pw_ppmmppmm
+cextern pw_pmpmpmpm
 cextern hsub_mul
 
 ;=============================================================================
@@ -1525,12 +1531,21 @@ cglobal pixel_sa8d_16x16, 4,7
 ; INTRA SATD
 ;=============================================================================
 
+%macro HSUMSUB2 8
+    pshufd %4, %2, %7
+    pshufd %5, %3, %7
+    %1     %2, %8
+    %1     %6, %8
+    paddw  %2, %4
+    paddw  %3, %5
+%endmacro
+
 %macro INTRA_SA8D_SSE2 0
 %ifdef ARCH_X86_64
 ;-----------------------------------------------------------------------------
-; void intra_sa8d_x3_8x8_core( uint8_t *fenc, int16_t edges[2][8], int *res )
+; void intra_sa8d_x3_8x8( uint8_t *fenc, uint8_t edge[36], int *res )
 ;-----------------------------------------------------------------------------
-cglobal intra_sa8d_x3_8x8_core, 3,3,16
+cglobal intra_sa8d_x3_8x8, 3,3,16
     ; 8x8 hadamard
     pxor        m8, m8
     movq        m0, [r0+0*FENC_STRIDE]
@@ -1550,39 +1565,57 @@ cglobal intra_sa8d_x3_8x8_core, 3,3,16
     punpcklbw   m6, m8
     punpcklbw   m7, m8
 
-    HADAMARD8_2D 0,  1,  2,  3,  4,  5,  6,  7,  8
+    HADAMARD8_2D 0, 1, 2, 3, 4, 5, 6, 7, 8
 
-    ; dc
-    movzx       r0d, word [r1+0]
-    add         r0w, word [r1+16]
-    add         r0d, 8
-    and         r0d, -16
-    shl         r0d, 2
-
-    pxor        m15, m15
-    movdqa      m8,  m2
-    movdqa      m9,  m3
-    movdqa      m10, m4
-    movdqa      m11, m5
-    ABSW2       m8,  m9,  m8,  m9,  m12, m13
-    ABSW2       m10, m11, m10, m11, m12, m13
+    ABSW2       m8,  m9,  m2, m3, m2, m3
+    ABSW2       m10, m11, m4, m5, m4, m5
     paddusw     m8,  m10
     paddusw     m9,  m11
-    ABSW2       m10, m11, m6,  m7,  m6,  m7
+    ABSW2       m10, m11, m6, m7, m6, m7
     ABSW        m15, m1,  m1
     paddusw     m10, m11
     paddusw     m8,  m9
     paddusw     m15, m10
     paddusw     m15, m8
 
-    movdqa      m8,  [r1+0] ; left edge
-    movd        m9,  r0d
-    psllw       m8,  3
+    ; 1D hadamard of edges
+    movq        m8,  [r1+7]
+    movq        m9,  [r1+16]
+%if cpuflag(ssse3)
+    punpcklwd   m8,  m8
+    pshufb      m9,  [intrax3_shuf]
+    pmaddubsw   m8,  [pb_pppm]
+    pmaddubsw   m9,  [pb_pppm]
+    HSUMSUB2 psignw, m8, m9, m10, m11, m9, q1032, [pw_ppppmmmm]
+    HSUMSUB2 psignw, m8, m9, m10, m11, m9, q2301, [pw_ppmmppmm]
+%else ; sse2
+    pxor        m10, m10
+    punpcklbw   m8,  m10
+    punpcklbw   m9,  m10
+    HSUMSUB2 pmullw, m8, m9, m10, m11, m11, q1032, [pw_ppppmmmm]
+    HSUMSUB2 pmullw, m8, m9, m10, m11, m11, q2301, [pw_ppmmppmm]
+    pshuflw     m10, m8,  q2301
+    pshuflw     m11, m9,  q2301
+    pshufhw     m10, m10, q2301
+    pshufhw     m11, m11, q2301
+    pmullw      m8,  [pw_pmpmpmpm]
+    pmullw      m11, [pw_pmpmpmpm]
+    paddw       m8,  m10
+    paddw       m9,  m11
+%endif
+
+    ; differences
+    paddw       m10, m8, m9
+    paddw       m10, [pw_8]
+    pand        m10, [sw_f0]
+    psllw       m10, 2 ; dc
+
+    psllw       m8,  3 ; left edge
     psubw       m8,  m0
-    psubw       m9,  m0
-    ABSW2       m8,  m9,  m8,  m9,  m10, m11 ; 1x8 sum
-    paddusw     m14, m15, m8
-    paddusw     m15, m9
+    psubw       m10, m0
+    ABSW2       m8, m10, m8, m10, m11, m12 ; 1x8 sum
+    paddusw     m14, m8, m15
+    paddusw     m15, m10
     punpcklwd   m0,  m1
     punpcklwd   m2,  m3
     punpcklwd   m4,  m5
@@ -1590,11 +1623,10 @@ cglobal intra_sa8d_x3_8x8_core, 3,3,16
     punpckldq   m0,  m2
     punpckldq   m4,  m6
     punpcklqdq  m0,  m4 ; transpose
-    movdqa      m1,  [r1+16] ; top edge
-    psllw       m1,  3
-    psrldq      m2,  m15, 2  ; 8x7 sum
-    psubw       m0,  m1  ; 8x1 sum
-    ABSW        m0,  m0,  m1
+    psllw       m9,  3 ; top edge
+    psrldq      m2,  m15, 2 ; 8x7 sum
+    psubw       m0,  m9  ; 8x1 sum
+    ABSW        m0,  m0,  m9
     paddusw     m2,  m0
 
     ; 3x HADDW
@@ -2424,8 +2456,8 @@ SA8D
 INIT_XMM sse2
 SA8D
 SATDS_SSE2
-INTRA_SA8D_SSE2
 %ifndef HIGH_BIT_DEPTH
+INTRA_SA8D_SSE2
 INIT_MMX mmx2
 INTRA_SATDS_MMX
 %endif
@@ -2446,9 +2478,11 @@ HADAMARD_AC_SSE2
 %undef movdqa ; nehalem doesn't like movaps
 %undef movdqu ; movups
 %undef punpcklqdq ; or movlhps
+%ifndef HIGH_BIT_DEPTH
 INTRA_SA8D_SSE2
 INIT_MMX ssse3
 INTRA_SATDS_MMX
+%endif
 
 %define TRANS TRANS_SSE4
 %define LOAD_DUP_4x8P LOAD_DUP_4x8P_PENRYN
@@ -2460,7 +2494,9 @@ HADAMARD_AC_SSE2
 INIT_XMM avx
 SATDS_SSE2
 SA8D
+%ifndef HIGH_BIT_DEPTH
 INTRA_SA8D_SSE2
+%endif
 HADAMARD_AC_SSE2
 
 ;=============================================================================
