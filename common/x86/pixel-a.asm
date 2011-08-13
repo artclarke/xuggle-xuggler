@@ -66,6 +66,7 @@ SECTION .text
 
 cextern pw_1
 cextern pw_8
+cextern pw_64
 cextern pw_00ff
 cextern pw_ppppmmmm
 cextern pw_ppmmppmm
@@ -1669,45 +1670,37 @@ cglobal hadamard_load
     SAVE_MM_PERMUTATION
     ret
 
-%macro SCALAR_SUMSUB 4
-    add %1, %2
-    add %3, %4
-    add %2, %2
-    add %4, %4
-    sub %2, %1
-    sub %4, %3
-%endmacro
-
-%macro SCALAR_HADAMARD_LEFT 5 ; y, 4x tmp
-%ifnidn %1, 0
-    shl         %1d, 5 ; log(FDEC_STRIDE)
+%macro SCALAR_HADAMARD 4-5 ; direction, offset, 3x tmp
+%ifidn %1, top
+    movd        %3, [r1+%2-FDEC_STRIDE]
+    pxor        %5, %5
+    punpcklbw   %3, %5
+%else ; left
+%ifnidn %2, 0
+    shl         %2d, 5 ; log(FDEC_STRIDE)
 %endif
-    movzx       %2d, byte [r1+%1-1+0*FDEC_STRIDE]
-    movzx       %3d, byte [r1+%1-1+1*FDEC_STRIDE]
-    movzx       %4d, byte [r1+%1-1+2*FDEC_STRIDE]
-    movzx       %5d, byte [r1+%1-1+3*FDEC_STRIDE]
-%ifnidn %1, 0
-    shr         %1d, 5
+    movd        %3, [r1+%2-4+1*FDEC_STRIDE]
+    pinsrw      %3, [r1+%2-2+0*FDEC_STRIDE], 0
+    pinsrw      %3, [r1+%2-2+2*FDEC_STRIDE], 2
+    pinsrw      %3, [r1+%2-2+3*FDEC_STRIDE], 3
+    psrlw       %3, 8
+%ifnidn %2, 0
+    shr         %2d, 5
 %endif
-    SCALAR_SUMSUB %2d, %3d, %4d, %5d
-    SCALAR_SUMSUB %2d, %4d, %3d, %5d
-    mov         [left_1d+2*%1+0], %2w
-    mov         [left_1d+2*%1+2], %3w
-    mov         [left_1d+2*%1+4], %4w
-    mov         [left_1d+2*%1+6], %5w
-%endmacro
-
-%macro SCALAR_HADAMARD_TOP 5 ; x, 4x tmp
-    movzx       %2d, byte [r1+%1-FDEC_STRIDE+0]
-    movzx       %3d, byte [r1+%1-FDEC_STRIDE+1]
-    movzx       %4d, byte [r1+%1-FDEC_STRIDE+2]
-    movzx       %5d, byte [r1+%1-FDEC_STRIDE+3]
-    SCALAR_SUMSUB %2d, %3d, %4d, %5d
-    SCALAR_SUMSUB %2d, %4d, %3d, %5d
-    mov         [top_1d+2*%1+0], %2w
-    mov         [top_1d+2*%1+2], %3w
-    mov         [top_1d+2*%1+4], %4w
-    mov         [top_1d+2*%1+6], %5w
+%endif ; direction
+%if cpuflag(ssse3)
+    %define %%sign psignw
+%else
+    %define %%sign pmullw
+%endif
+    pshufw      %4, %3, q1032
+    %%sign      %4, [pw_ppmmppmm]
+    paddw       %3, %4
+    pshufw      %4, %3, q2301
+    %%sign      %4, [pw_pmpmpmpm]
+    paddw       %3, %4
+    psllw       %3, 2
+    mova        [%1_1d+2*%2], %3
 %endmacro
 
 %macro SUM_MM_X3 8 ; 3x sum, 4x tmp, op
@@ -1752,21 +1745,22 @@ cglobal hadamard_load
     paddw       m7, m4
 %endmacro
 
-; in: m0..m3 (4x4), m7 (3x4)
+; in: m0..m3 (4x4)
 ; out: m0 v, m4 h, m5 dc
-; clobber: m6
+; clobber: m1..m3
 %macro SUM4x3 3 ; dc, left, top
     movq        m4, %2
+%ifid %1
+    movq        m5, %1
+%else
     movd        m5, %1
-    psllw       m4, 2
+%endif
     psubw       m4, m0
     psubw       m5, m0
     punpcklwd   m0, m1
     punpcklwd   m2, m3
     punpckldq   m0, m2 ; transpose
-    movq        m1, %3
-    psllw       m1, 2
-    psubw       m0, m1
+    psubw       m0, %3
     ABSW2       m4, m5, m4, m5, m2, m3 ; 1x4 sum
     ABSW        m0, m0, m1 ; 4x1 sum
 %endmacro
@@ -1775,30 +1769,28 @@ cglobal hadamard_load
 ;-----------------------------------------------------------------------------
 ; void intra_satd_x3_4x4( uint8_t *fenc, uint8_t *fdec, int *res )
 ;-----------------------------------------------------------------------------
-cglobal intra_satd_x3_4x4, 2,6
+cglobal intra_satd_x3_4x4, 3,3
 %ifdef ARCH_X86_64
     ; stack is 16 byte aligned because abi says so
     %define  top_1d  rsp-8  ; size 8
     %define  left_1d rsp-16 ; size 8
-    %define  t0 r10
 %else
     ; stack is 16 byte aligned at least in gcc, and we've pushed 3 regs + return address, so it's still aligned
     SUB         esp, 16
     %define  top_1d  esp+8
     %define  left_1d esp
-    %define  t0 r2
 %endif
 
     call hadamard_load
-    SCALAR_HADAMARD_LEFT 0, r0, r3, r4, r5
-    mov         t0d, r0d
-    SCALAR_HADAMARD_TOP  0, r0, r3, r4, r5
-    lea         t0d, [t0d + r0d + 4]
-    and         t0d, -8
-    shl         t0d, 1 ; dc
+    SCALAR_HADAMARD left, 0, m4, m5
+    SCALAR_HADAMARD top,  0, m6, m5, m7
+    paddw       m6, m4
+    psrlw       m6, 1
+    paddw       m6, [pw_8]
+    pand        m6, [sw_f0] ; dc
 
     SUM3x4
-    SUM4x3 t0d, [left_1d], [top_1d]
+    SUM4x3 m6, [left_1d], [top_1d]
     paddw       m4, m7
     paddw       m5, m7
     movq        m1, m5
@@ -1806,9 +1798,6 @@ cglobal intra_satd_x3_4x4, 2,6
     paddw       m0, m1
 
     SUM_MM_X3   m0, m4, m5, m1, m2, m3, m6, pavgw
-%ifndef ARCH_X86_64
-    mov         r2,  r2mp
-%endif
     movd        [r2+0], m0 ; i4x4_v satd
     movd        [r2+4], m4 ; i4x4_h satd
     movd        [r2+8], m5 ; i4x4_dc satd
@@ -1828,12 +1817,8 @@ cglobal intra_satd_x3_4x4, 2,6
 ;-----------------------------------------------------------------------------
 ; void intra_satd_x3_16x16( uint8_t *fenc, uint8_t *fdec, int *res )
 ;-----------------------------------------------------------------------------
-cglobal intra_satd_x3_16x16, 0,7
-%ifdef ARCH_X86_64
-    %assign  stack_pad  88
-%else
-    %assign  stack_pad  88 + ((stack_offset+88+4)&15)
-%endif
+cglobal intra_satd_x3_16x16, 0,5
+    %assign  stack_pad  88 + ((stack_offset+88+gprsize)&15)
     ; not really needed on x86_64, just shuts up valgrind about storing data below the stack across a function call
     SUB         rsp, stack_pad
 %define sums    rsp+64 ; size 24
@@ -1843,29 +1828,28 @@ cglobal intra_satd_x3_16x16, 0,7
     CLEAR_SUMS
 
     ; 1D hadamards
-    xor         t2d, t2d
     mov         t0d, 12
+    movd        m6,  [pw_64]
 .loop_edge:
-    SCALAR_HADAMARD_LEFT t0, r3, r4, r5, r6
-    add         t2d, r3d
-    SCALAR_HADAMARD_TOP  t0, r3, r4, r5, r6
-    add         t2d, r3d
+    SCALAR_HADAMARD left, t0, m0, m1
+    SCALAR_HADAMARD top,  t0, m1, m2, m3
+    paddw       m6,  m0
+    paddw       m6,  m1
     sub         t0d, 4
     jge .loop_edge
-    shr         t2d, 1
-    add         t2d, 8
-    and         t2d, -16 ; dc
+    psrlw       m6,  3
+    pand        m6,  [sw_f0] ; dc
 
     ; 2D hadamards
     movifnidn   r0,  r0mp
-    xor         r3d, r3d
+    mov         r3,  -4
 .loop_y:
-    xor         r4d, r4d
+    mov         r4,  -4
 .loop_x:
     call hadamard_load
 
     SUM3x4
-    SUM4x3 t2d, [left_1d+8*r3], [top_1d+8*r4]
+    SUM4x3 m6, [left_1d+8*(r3+4)], [top_1d+8*(r4+4)]
     pavgw       m4, m7
     pavgw       m5, m7
     paddw       m0, [sums+0]  ; i16x16_v satd
@@ -1876,12 +1860,10 @@ cglobal intra_satd_x3_16x16, 0,7
     movq        [sums+16], m5
 
     add         r0, 4
-    inc         r4d
-    cmp         r4d, 4
+    inc         r4
     jl  .loop_x
     add         r0, 4*FENC_STRIDE-16
-    inc         r3d
-    cmp         r3d, 4
+    inc         r3
     jl  .loop_y
 
 ; horizontal sum
@@ -1918,8 +1900,8 @@ cglobal intra_satd_x3_8x8c, 0,6
     ; 1D hadamards
     mov         t0d, 4
 .loop_edge:
-    SCALAR_HADAMARD_LEFT t0, t2, r3, r4, r5
-    SCALAR_HADAMARD_TOP  t0, t2, r3, r4, r5
+    SCALAR_HADAMARD left, t0, m0, m1
+    SCALAR_HADAMARD top,  t0, m0, m1, m2
     sub         t0d, 4
     jge .loop_edge
 
@@ -1928,12 +1910,12 @@ cglobal intra_satd_x3_8x8c, 0,6
     movzx       r3d, word [top_1d+0]
     movzx       r4d, word [left_1d+8]
     movzx       r5d, word [top_1d+8]
-    add         t2d, r3d
-    lea         r3, [r4 + r5]
-    lea         t2, [2*t2 + 8]
-    lea         r3, [2*r3 + 8]
-    lea         r4, [4*r4 + 8]
-    lea         r5, [4*r5 + 8]
+    lea         t2d, [t2 + r3 + 16]
+    lea         r3d, [r4 + r5 + 16]
+    shr         t2d, 1
+    shr         r3d, 1
+    add         r4d, 8
+    add         r5d, 8
     and         t2d, -16 ; tl
     and         r3d, -16 ; br
     and         r4d, -16 ; bl
@@ -1947,14 +1929,14 @@ cglobal intra_satd_x3_8x8c, 0,6
     ; 2D hadamards
     movifnidn   r0,  r0mp
     movifnidn   r2,  r2mp
-    xor         r3d, r3d
+    mov         r3,  -2
 .loop_y:
-    xor         r4d, r4d
+    mov         r4,  -2
 .loop_x:
     call hadamard_load
 
     SUM3x4
-    SUM4x3 [r5+4*r4], [left_1d+8*r3], [top_1d+8*r4]
+    SUM4x3 [r5+4*(r4+2)], [left_1d+8*(r3+2)], [top_1d+8*(r4+2)]
     pavgw       m4, m7
     pavgw       m5, m7
     paddw       m0, [sums+16] ; i4x4_v satd
@@ -1965,13 +1947,11 @@ cglobal intra_satd_x3_8x8c, 0,6
     movq        [sums+0], m5
 
     add         r0, 4
-    inc         r4d
-    cmp         r4d, 2
+    inc         r4
     jl  .loop_x
     add         r0, 4*FENC_STRIDE-8
     add         r5, 8
-    inc         r3d
-    cmp         r3d, 2
+    inc         r3
     jl  .loop_y
 
 ; horizontal sum
