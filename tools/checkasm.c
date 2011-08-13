@@ -1815,48 +1815,52 @@ static int check_intra( int cpu_ref, int cpu_new )
 
     ip_c.predict_8x8_filter( fdec+48, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
 
-#define INTRA_TEST( name, dir, w, bench, ... )\
+#define INTRA_TEST( name, dir, w, align, bench, ... )\
     if( ip_a.name[dir] != ip_ref.name[dir] )\
     {\
         set_func_name( "intra_%s_%s", #name, intra_##name##_names[dir] );\
         used_asm = 1;\
         memcpy( pbuf3, fdec, FDEC_STRIDE*20 * sizeof(pixel) );\
         memcpy( pbuf4, fdec, FDEC_STRIDE*20 * sizeof(pixel) );\
-        call_c##bench( ip_c.name[dir], pbuf3+48, ##__VA_ARGS__ );\
-        call_a##bench( ip_a.name[dir], pbuf4+48, ##__VA_ARGS__ );\
-        if( memcmp( pbuf3, pbuf4, FDEC_STRIDE*20 * sizeof(pixel) ) )\
+        for( int a = 0; a < (do_bench ? 64/sizeof(pixel) : 1); a += align )\
         {\
-            fprintf( stderr, #name "[%d] :  [FAILED]\n", dir );\
-            ok = 0;\
-            for( int k = -1; k < 16; k++ )\
-                printf( "%2x ", edge[16+k] );\
-            printf( "\n" );\
-            for( int j = 0; j < w; j++ )\
+            call_c##bench( ip_c.name[dir], pbuf3+48+a, ##__VA_ARGS__ );\
+            call_a##bench( ip_a.name[dir], pbuf4+48+a, ##__VA_ARGS__ );\
+            if( memcmp( pbuf3, pbuf4, FDEC_STRIDE*20 * sizeof(pixel) ) )\
             {\
-                printf( "%2x ", edge[14-j] );\
-                for( int k = 0; k < w; k++ )\
-                    printf( "%2x ", pbuf4[48+k+j*FDEC_STRIDE] );\
+                fprintf( stderr, #name "[%d] :  [FAILED]\n", dir );\
+                ok = 0;\
+                for( int k = -1; k < 16; k++ )\
+                    printf( "%2x ", edge[16+k] );\
                 printf( "\n" );\
-            }\
-            printf( "\n" );\
-            for( int j = 0; j < w; j++ )\
-            {\
-                printf( "   " );\
-                for( int k = 0; k < w; k++ )\
-                    printf( "%2x ", pbuf3[48+k+j*FDEC_STRIDE] );\
+                for( int j = 0; j < w; j++ )\
+                {\
+                    printf( "%2x ", edge[14-j] );\
+                    for( int k = 0; k < w; k++ )\
+                        printf( "%2x ", pbuf4[48+k+j*FDEC_STRIDE] );\
+                    printf( "\n" );\
+                }\
                 printf( "\n" );\
+                for( int j = 0; j < w; j++ )\
+                {\
+                    printf( "   " );\
+                    for( int k = 0; k < w; k++ )\
+                        printf( "%2x ", pbuf3[48+k+j*FDEC_STRIDE] );\
+                    printf( "\n" );\
+                }\
+                break;\
             }\
         }\
     }
 
     for( int i = 0; i < 12; i++ )
-        INTRA_TEST(   predict_4x4, i,  4, );
+        INTRA_TEST(   predict_4x4, i,  4,  4, );
     for( int i = 0; i < 7; i++ )
-        INTRA_TEST(  predict_8x8c, i,  8, );
+        INTRA_TEST(  predict_8x8c, i,  8, 16, );
     for( int i = 0; i < 7; i++ )
-        INTRA_TEST( predict_16x16, i, 16, );
+        INTRA_TEST( predict_16x16, i, 16, 16, );
     for( int i = 0; i < 12; i++ )
-        INTRA_TEST(   predict_8x8, i,  8, , edge );
+        INTRA_TEST(   predict_8x8, i,  8,  8, , edge );
 
     set_func_name("intra_predict_8x8_filter");
     if( ip_a.predict_8x8_filter != ip_ref.predict_8x8_filter )
@@ -1903,9 +1907,9 @@ static int check_intra( int cpu_ref, int cpu_new )
         for( int i = 0; i < 128 && ok; i++ )
         {
             EXTREMAL_PLANE(  8 );
-            INTRA_TEST(  predict_8x8c, I_PRED_CHROMA_P,  8, 1 );
+            INTRA_TEST(  predict_8x8c, I_PRED_CHROMA_P,  8, 64, 1 );
             EXTREMAL_PLANE( 16 );
-            INTRA_TEST( predict_16x16,  I_PRED_16x16_P, 16, 1 );
+            INTRA_TEST( predict_16x16,  I_PRED_16x16_P, 16, 64, 1 );
         }
     report( "intra pred :" );
     return ret;
