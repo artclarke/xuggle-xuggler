@@ -229,7 +229,7 @@ const AVOption *av_set_int(void *obj, const char *name, int64_t n)
  */
 const char *av_get_string(void *obj, const char *name, const AVOption **o_out, char *buf, int buf_len)
 {
-    const AVOption *o = av_opt_find(obj, name, NULL, 0, 0);
+    const AVOption *o = av_opt_find(obj, name, NULL, 0, AV_OPT_SEARCH_CHILDREN);
     void *dst;
     uint8_t *bin;
     int len, i;
@@ -262,7 +262,7 @@ const char *av_get_string(void *obj, const char *name, const AVOption **o_out, c
 
 static int av_get_number(void *obj, const char *name, const AVOption **o_out, double *num, int *den, int64_t *intnum)
 {
-    const AVOption *o = av_opt_find(obj, name, NULL, 0, 0);
+    const AVOption *o = av_opt_find(obj, name, NULL, 0, AV_OPT_SEARCH_CHILDREN);
     void *dst;
     if (!o || (o->offset<=0 && o->type != FF_OPT_TYPE_CONST))
         goto error;
