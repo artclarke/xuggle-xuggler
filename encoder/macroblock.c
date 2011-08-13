@@ -171,7 +171,7 @@ void x264_mb_encode_i8x8( x264_t *h, int p, int idx, int i_qp, int i_mode, pixel
     pixel *p_src = &h->mb.pic.p_fenc[p][8*x + 8*y*FENC_STRIDE];
     pixel *p_dst = &h->mb.pic.p_fdec[p][8*x + 8*y*FDEC_STRIDE];
     ALIGNED_ARRAY_16( dctcoef, dct8x8,[64] );
-    ALIGNED_ARRAY_16( pixel, edge_buf,[36] );
+    ALIGNED_ARRAY_32( pixel, edge_buf,[36] );
 
     if( !edge )
     {

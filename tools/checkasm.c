@@ -1784,8 +1784,8 @@ static int check_quant( int cpu_ref, int cpu_new )
 static int check_intra( int cpu_ref, int cpu_new )
 {
     int ret = 0, ok = 1, used_asm = 0;
-    ALIGNED_16( pixel edge[36] );
-    ALIGNED_16( pixel edge2[36] );
+    ALIGNED_ARRAY_32( pixel, edge,[36] );
+    ALIGNED_ARRAY_32( pixel, edge2,[36] );
     ALIGNED_16( pixel fdec[FDEC_STRIDE*20] );
     struct
     {
@@ -1871,8 +1871,8 @@ static int check_intra( int cpu_ref, int cpu_new )
             if( !(i&7) || ((i&MB_TOPRIGHT) && !(i&MB_TOP)) )
                 continue;
             int neighbor = (i&24)>>1;
-            memset( edge,  0, sizeof(edge) );
-            memset( edge2, 0, sizeof(edge2) );
+            memset( edge,  0, 36*sizeof(pixel) );
+            memset( edge2, 0, 36*sizeof(pixel) );
             call_c( ip_c.predict_8x8_filter, pbuf1+48, edge,  neighbor, i&7 );
             call_a( ip_a.predict_8x8_filter, pbuf1+48, edge2, neighbor, i&7 );
             if( !(neighbor&MB_TOPLEFT) )

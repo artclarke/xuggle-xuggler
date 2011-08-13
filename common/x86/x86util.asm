@@ -322,6 +322,22 @@
     %endif
 %endmacro
 
+; shift a mmxreg by n bytes, or a xmmreg by 2*n bytes
+; values shifted in are undefined
+; faster if dst==src
+%define PSLLPIX PSXLPIX l, -1, ;dst, src, shift
+%define PSRLPIX PSXLPIX r,  1, ;dst, src, shift
+%macro PSXLPIX 5
+    %if mmsize == 8
+        %if %5&1
+            ps%1lq %3, %4, %5*8
+        %else
+            pshufw %3, %4, (q3210<<8>>(8+%2*%5))&0xff
+        %endif
+    %else
+        ps%1ldq %3, %4, %5*2
+    %endif
+%endmacro
 
 %macro DEINTB 5 ; mask, reg1, mask, reg2, optional src to fill masks from
 %ifnum %5

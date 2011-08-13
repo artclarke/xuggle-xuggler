@@ -834,7 +834,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     /* 8x8 prediction selection */
     if( flags & X264_ANALYSE_I8x8 )
     {
-        ALIGNED_ARRAY_16( pixel, edge,[36] );
+        ALIGNED_ARRAY_32( pixel, edge,[36] );
         x264_pixel_cmp_t sa8d = (h->pixf.mbcmp[0] == h->pixf.satd[0]) ? h->pixf.sa8d[PIXEL_8x8] : h->pixf.mbcmp[PIXEL_8x8];
         int i_satd_thresh = a->i_mbrd ? COST_MAX : X264_MIN( i_satd_inter, a->i_satd_i16x16 );
 
@@ -1189,7 +1189,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
     }
     else if( h->mb.i_type == I_8x8 )
     {
-        ALIGNED_ARRAY_16( pixel, edge,[3],[48] );
+        ALIGNED_ARRAY_32( pixel, edge,[4],[32] ); // really [3][36], but they can overlap
         pixel4 pels_h[3][2] = {{0}};
         pixel pels_v[3][7] = {{0}};
         uint16_t nnz[3][2] = {{0}}; //shut up gcc

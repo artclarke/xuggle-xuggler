@@ -59,5 +59,4 @@ const pd_ffff,     times 4 dd 0xffff
 const pw_00ff,     times 8 dw 0x00ff
 const pw_ff00,     times 8 dw 0xff00
 
-const pb_reverse,  db 7, 6, 5, 4, 3, 2, 1, 0
 const sw_64,       dd 64
