@@ -102,6 +102,7 @@ static x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
     else
         goto fail;
 
+    frame->i_csp = i_csp;
     frame->i_width_lowres = frame->i_width[0]/2;
     frame->i_lines_lowres = frame->i_lines[0]/2;
     frame->i_stride_lowres = align_stride( frame->i_width_lowres + 2*PADH, align, disalign<<1 );

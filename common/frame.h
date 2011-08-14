@@ -64,6 +64,7 @@ typedef struct x264_frame
     int     i_poc_l0ref0; /* poc of first refframe in L0, used to check if direct temporal is possible */
 
     /* YUV buffer */
+    int     i_csp; /* Internal csp */
     int     i_plane;
     int     i_stride[3];
     int     i_width[3];

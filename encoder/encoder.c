@@ -3023,12 +3023,12 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     if( pic_out->i_pts < pic_out->i_dts )
         x264_log( h, X264_LOG_WARNING, "invalid DTS: PTS is less than DTS\n" );
 
-    pic_out->img.i_csp = X264_CSP_NV12;
+    pic_out->img.i_csp = h->fdec->i_csp;
 #if HIGH_BIT_DEPTH
     pic_out->img.i_csp |= X264_CSP_HIGH_DEPTH;
 #endif
     pic_out->img.i_plane = h->fdec->i_plane;
-    for( int i = 0; i < 2; i++ )
+    for( int i = 0; i < pic_out->img.i_plane; i++ )
     {
         pic_out->img.i_stride[i] = h->fdec->i_stride[i] * sizeof(pixel);
         pic_out->img.plane[i] = (uint8_t*)h->fdec->plane[i];
