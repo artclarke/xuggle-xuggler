@@ -160,11 +160,13 @@ static int pick_closest_supported_csp( int csp )
         case PIX_FMT_YUV422P:
         case PIX_FMT_YUYV422:
         case PIX_FMT_UYVY422:
+        case PIX_FMT_YUVJ422P:
             return X264_CSP_I422;
         case PIX_FMT_YUV422P16LE:
         case PIX_FMT_YUV422P16BE:
             return X264_CSP_I422 | X264_CSP_HIGH_DEPTH;
         case PIX_FMT_YUV444P:
+        case PIX_FMT_YUVJ444P:
             return X264_CSP_I444;
         case PIX_FMT_YUV444P16LE:
         case PIX_FMT_YUV444P16BE:
