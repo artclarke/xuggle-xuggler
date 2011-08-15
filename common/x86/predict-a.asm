@@ -1744,7 +1744,7 @@ cglobal predict_8x8c_dc_top_mmx2, 1,1
 ;-----------------------------------------------------------------------------
 %ifdef HIGH_BIT_DEPTH
 INIT_MMX
-cglobal predict_16x16_v_mmx, 1,2
+cglobal predict_16x16_v_mmx2, 1,2
     mova        m0, [r0 - FDEC_STRIDEB+ 0]
     mova        m1, [r0 - FDEC_STRIDEB+ 8]
     mova        m2, [r0 - FDEC_STRIDEB+16]
@@ -1759,7 +1759,7 @@ cglobal predict_16x16_v_sse2, 2,2
     REP_RET
 %else ; !HIGH_BIT_DEPTH
 INIT_MMX
-cglobal predict_16x16_v_mmx, 1,2
+cglobal predict_16x16_v_mmx2, 1,2
     movq        m0, [r0 - FDEC_STRIDE + 0]
     movq        m1, [r0 - FDEC_STRIDE + 8]
     STORE16x16  m0, m1

@@ -29,6 +29,7 @@
 
 #if HAVE_MMX
 #   include "x86/pixel.h"
+#   include "x86/predict.h"
 #endif
 #if ARCH_PPC
 #   include "ppc/pixel.h"
@@ -498,57 +499,57 @@ SATD_X_DECL7( _neon )
 #endif
 #endif // !HIGH_BIT_DEPTH
 
-#define INTRA_MBCMP_8x8( mbcmp, cpu )\
+#define INTRA_MBCMP_8x8( mbcmp, cpu, cpu2 )\
 void x264_intra_##mbcmp##_x3_8x8##cpu( pixel *fenc, pixel edge[36], int res[3] )\
 {\
     ALIGNED_ARRAY_16( pixel, pix, [8*FDEC_STRIDE] );\
-    x264_predict_8x8_v_c( pix, edge );\
+    x264_predict_8x8_v##cpu2( pix, edge );\
     res[0] = x264_pixel_##mbcmp##_8x8##cpu( pix, FDEC_STRIDE, fenc, FENC_STRIDE );\
-    x264_predict_8x8_h_c( pix, edge );\
+    x264_predict_8x8_h##cpu2( pix, edge );\
     res[1] = x264_pixel_##mbcmp##_8x8##cpu( pix, FDEC_STRIDE, fenc, FENC_STRIDE );\
-    x264_predict_8x8_dc_c( pix, edge );\
+    x264_predict_8x8_dc##cpu2( pix, edge );\
     res[2] = x264_pixel_##mbcmp##_8x8##cpu( pix, FDEC_STRIDE, fenc, FENC_STRIDE );\
 }
 
-INTRA_MBCMP_8x8( sad, )
-INTRA_MBCMP_8x8(sa8d, )
+INTRA_MBCMP_8x8( sad,, _c )
+INTRA_MBCMP_8x8(sa8d,, _c )
 #if HIGH_BIT_DEPTH && HAVE_MMX
-INTRA_MBCMP_8x8( sad, _mmx2  )
-INTRA_MBCMP_8x8( sad, _sse2  )
-INTRA_MBCMP_8x8( sad, _ssse3 )
-INTRA_MBCMP_8x8(sa8d, _sse2  )
+INTRA_MBCMP_8x8( sad, _mmx2,  _c )
+INTRA_MBCMP_8x8( sad, _sse2,  _sse2 )
+INTRA_MBCMP_8x8( sad, _ssse3, _sse2 )
+INTRA_MBCMP_8x8(sa8d, _sse2,  _sse2 )
 #endif
 
-#define INTRA_MBCMP( mbcmp, size, pred1, pred2, pred3, chroma, cpu )\
-void x264_intra_##mbcmp##_x3_##size##x##size##chroma##cpu( pixel *fenc, pixel *fdec, int res[3] )\
+#define INTRA_MBCMP( mbcmp, size, pred1, pred2, pred3, chroma, cpu, cpu2 )\
+void x264_intra_##mbcmp##_x3_##size##chroma##cpu( pixel *fenc, pixel *fdec, int res[3] )\
 {\
-    x264_predict_##size##x##size##chroma##_##pred1##_c( fdec );\
-    res[0] = x264_pixel_##mbcmp##_##size##x##size##cpu( fdec, FDEC_STRIDE, fenc, FENC_STRIDE );\
-    x264_predict_##size##x##size##chroma##_##pred2##_c( fdec );\
-    res[1] = x264_pixel_##mbcmp##_##size##x##size##cpu( fdec, FDEC_STRIDE, fenc, FENC_STRIDE );\
-    x264_predict_##size##x##size##chroma##_##pred3##_c( fdec );\
-    res[2] = x264_pixel_##mbcmp##_##size##x##size##cpu( fdec, FDEC_STRIDE, fenc, FENC_STRIDE );\
+    x264_predict_##size##chroma##_##pred1##cpu2( fdec );\
+    res[0] = x264_pixel_##mbcmp##_##size##cpu( fdec, FDEC_STRIDE, fenc, FENC_STRIDE );\
+    x264_predict_##size##chroma##_##pred2##cpu2( fdec );\
+    res[1] = x264_pixel_##mbcmp##_##size##cpu( fdec, FDEC_STRIDE, fenc, FENC_STRIDE );\
+    x264_predict_##size##chroma##_##pred3##cpu2( fdec );\
+    res[2] = x264_pixel_##mbcmp##_##size##cpu( fdec, FDEC_STRIDE, fenc, FENC_STRIDE );\
 }
 
-INTRA_MBCMP( sad,  4,  v, h, dc,  , )
-INTRA_MBCMP(satd,  4,  v, h, dc,  , )
-INTRA_MBCMP( sad,  8, dc, h,  v, c, )
-INTRA_MBCMP(satd,  8, dc, h,  v, c, )
-INTRA_MBCMP( sad, 16,  v, h, dc,  , )
-INTRA_MBCMP(satd, 16,  v, h, dc,  , )
+INTRA_MBCMP( sad,  4x4,   v, h, dc,  ,, _c )
+INTRA_MBCMP(satd,  4x4,   v, h, dc,  ,, _c )
+INTRA_MBCMP( sad,  8x8,  dc, h,  v, c,, _c )
+INTRA_MBCMP(satd,  8x8,  dc, h,  v, c,, _c )
+INTRA_MBCMP( sad, 16x16,  v, h, dc,  ,, _c )
+INTRA_MBCMP(satd, 16x16,  v, h, dc,  ,, _c )
 
 #if HIGH_BIT_DEPTH && HAVE_MMX
-INTRA_MBCMP( sad,  4,  v, h, dc,  , _mmx2 )
-INTRA_MBCMP(satd,  4,  v, h, dc,  , _mmx2 )
-INTRA_MBCMP( sad,  8, dc, h,  v, c, _mmx2 )
-INTRA_MBCMP(satd,  8, dc, h,  v, c, _mmx2 )
-INTRA_MBCMP( sad, 16,  v, h, dc,  , _mmx2 )
-INTRA_MBCMP(satd, 16,  v, h, dc,  , _mmx2 )
-INTRA_MBCMP( sad,  8, dc, h,  v, c, _sse2 )
-INTRA_MBCMP( sad, 16,  v, h, dc,  , _sse2 )
-INTRA_MBCMP( sad,  4,  v, h, dc,  , _ssse3 )
-INTRA_MBCMP( sad,  8, dc, h,  v, c, _ssse3 )
-INTRA_MBCMP( sad, 16,  v, h, dc,  , _ssse3 )
+INTRA_MBCMP( sad,  4x4,   v, h, dc,  , _mmx2, _c )
+INTRA_MBCMP(satd,  4x4,   v, h, dc,  , _mmx2, _c )
+INTRA_MBCMP( sad,  8x8,  dc, h,  v, c, _mmx2, _c )
+INTRA_MBCMP(satd,  8x8,  dc, h,  v, c, _mmx2, _c )
+INTRA_MBCMP( sad, 16x16,  v, h, dc,  , _mmx2, _mmx2 )
+INTRA_MBCMP(satd, 16x16,  v, h, dc,  , _mmx2, _mmx2 )
+INTRA_MBCMP( sad,  8x8,  dc, h,  v, c, _sse2, _sse2 )
+INTRA_MBCMP( sad, 16x16,  v, h, dc,  , _sse2, _sse2 )
+INTRA_MBCMP( sad,  4x4,   v, h, dc,  , _ssse3, _c )
+INTRA_MBCMP( sad,  8x8,  dc, h,  v, c, _ssse3, _sse2 )
+INTRA_MBCMP( sad, 16x16,  v, h, dc,  , _ssse3, _sse2 )
 #endif
 
 /****************************************************************************

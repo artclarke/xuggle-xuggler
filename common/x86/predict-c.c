@@ -29,94 +29,8 @@
 #include "predict.h"
 #include "pixel.h"
 
- void x264_predict_16x16_v_mmx( pixel *src );
- void x264_predict_16x16_v_sse2( pixel *src );
- void x264_predict_16x16_h_mmx2( pixel *src );
- void x264_predict_16x16_h_sse2( uint16_t *src );
- void x264_predict_16x16_h_ssse3( uint8_t *src );
- void x264_predict_16x16_dc_core_mmx2( pixel *src, int i_dc_left );
- void x264_predict_16x16_dc_core_sse2( pixel *src, int i_dc_left );
- void x264_predict_16x16_dc_left_core_mmx2( pixel *src, int i_dc_left );
- void x264_predict_16x16_dc_left_core_sse2( pixel *src, int i_dc_left );
- void x264_predict_16x16_dc_top_mmx2( pixel *src );
- void x264_predict_16x16_dc_top_sse2( pixel *src );
- void x264_predict_16x16_dc_top_ssse3( uint16_t *src );
- void x264_predict_16x16_p_core_mmx2( uint8_t *src, int i00, int b, int c );
- void x264_predict_16x16_p_core_sse2( pixel *src, int i00, int b, int c );
- void x264_predict_16x16_p_core_avx( pixel *src, int i00, int b, int c );
- void x264_predict_8x8c_p_core_mmx2( uint8_t *src, int i00, int b, int c );
- void x264_predict_8x8c_p_core_sse2( pixel *src, int i00, int b, int c );
- void x264_predict_8x8c_dc_mmx2( pixel *src );
- void x264_predict_8x8c_dc_sse2( uint16_t *src );
- void x264_predict_8x8c_dc_top_mmx2( uint8_t *src );
- void x264_predict_8x8c_dc_top_sse2( uint16_t *src );
- void x264_predict_8x8c_v_mmx( pixel *src );
- void x264_predict_8x8c_v_sse2( uint16_t *src );
- void x264_predict_8x8c_h_mmx2( uint8_t *src );
- void x264_predict_8x8c_h_sse2( pixel *src );
- void x264_predict_8x8c_h_ssse3( uint8_t *src );
- void x264_predict_8x8_v_mmx2( uint8_t *src, uint8_t edge[36] );
- void x264_predict_8x8_v_sse2( uint16_t *src, uint16_t edge[36] );
- void x264_predict_8x8_h_mmx2( uint8_t *src, uint8_t edge[36] );
- void x264_predict_8x8_h_sse2( uint16_t *src, uint16_t edge[36] );
- void x264_predict_8x8_hd_mmx2( uint8_t *src, uint8_t edge[36] );
- void x264_predict_8x8_hu_mmx2( uint8_t *src, uint8_t edge[36] );
- void x264_predict_8x8_dc_mmx2( uint8_t *src, uint8_t edge[36] );
- void x264_predict_8x8_dc_sse2( uint16_t *src, uint16_t edge[36] );
- void x264_predict_8x8_dc_top_mmx2( uint8_t *src, uint8_t edge[36] );
- void x264_predict_8x8_dc_top_sse2( uint16_t *src, uint16_t edge[36] );
- void x264_predict_8x8_dc_left_mmx2( uint8_t *src, uint8_t edge[36] );
- void x264_predict_8x8_dc_left_sse2( uint16_t *src, uint16_t edge[36] );
- void x264_predict_8x8_ddl_mmx2( uint8_t *src, uint8_t edge[36] );
- void x264_predict_8x8_ddl_sse2( pixel *src, pixel edge[36] );
- void x264_predict_8x8_ddl_ssse3( pixel *src, pixel edge[36] );
- void x264_predict_8x8_ddl_ssse3_cache64( pixel *src, pixel edge[36] );
- void x264_predict_8x8_ddl_avx( pixel *src, pixel edge[36] );
- void x264_predict_8x8_ddr_mmx2( uint8_t *src, uint8_t edge[36] );
- void x264_predict_8x8_ddr_sse2( pixel *src, pixel edge[36] );
- void x264_predict_8x8_ddr_ssse3( pixel *src, pixel edge[36] );
- void x264_predict_8x8_ddr_ssse3_cache64( pixel *src, pixel edge[36] );
- void x264_predict_8x8_ddr_avx( pixel *src, pixel edge[36] );
- void x264_predict_8x8_vl_sse2( uint8_t *src, uint8_t edge[36] );
- void x264_predict_8x8_vl_avx( uint8_t *src, uint8_t edge[36] );
- void x264_predict_8x8_vr_mmx2( uint8_t *src, uint8_t edge[36] );
- void x264_predict_8x8_vr_sse2( pixel *src, pixel edge[36] );
- void x264_predict_8x8_vr_ssse3( pixel *src, pixel edge[36] );
- void x264_predict_8x8_vr_avx( pixel *src, pixel edge[36] );
- void x264_predict_8x8_hu_sse2( pixel *src, pixel edge[36] );
- void x264_predict_8x8_hu_ssse3( pixel *src, pixel edge[36] );
- void x264_predict_8x8_hu_avx( pixel *src, pixel edge[36] );
- void x264_predict_8x8_hd_sse2( pixel *src, pixel edge[36] );
- void x264_predict_8x8_hd_ssse3( pixel *src, pixel edge[36] );
- void x264_predict_8x8_hd_avx( pixel *src, pixel edge[36] );
- void x264_predict_8x8_filter_mmx2( uint8_t *src, uint8_t edge[36], int i_neighbor, int i_filters );
- void x264_predict_8x8_filter_sse2( uint16_t *src, uint16_t edge[36], int i_neighbor, int i_filters );
- void x264_predict_8x8_filter_ssse3( pixel *src, pixel edge[36], int i_neighbor, int i_filters );
- void x264_predict_8x8_filter_avx( uint16_t *src, uint16_t edge[36], int i_neighbor, int i_filters );
- void x264_predict_4x4_ddl_mmx2( pixel *src );
- void x264_predict_4x4_ddl_sse2( uint16_t *src );
- void x264_predict_4x4_ddl_avx( uint16_t *src );
- void x264_predict_4x4_ddr_mmx2( pixel *src );
- void x264_predict_4x4_vl_mmx2( pixel *src );
- void x264_predict_4x4_vl_sse2( uint16_t *src );
- void x264_predict_4x4_vl_avx( uint16_t *src );
- void x264_predict_4x4_vr_mmx2( uint8_t *src );
- void x264_predict_4x4_vr_sse2( uint16_t *src );
- void x264_predict_4x4_vr_ssse3( pixel *src );
- void x264_predict_4x4_vr_ssse3_cache64( uint8_t *src );
- void x264_predict_4x4_vr_avx( uint16_t *src );
- void x264_predict_4x4_hd_mmx2( pixel *src );
- void x264_predict_4x4_hd_sse2( uint16_t *src );
- void x264_predict_4x4_hd_ssse3( pixel *src );
- void x264_predict_4x4_hd_avx( uint16_t *src );
- void x264_predict_4x4_dc_mmx2( pixel *src );
- void x264_predict_4x4_ddr_sse2( uint16_t *src );
- void x264_predict_4x4_ddr_ssse3( pixel *src );
- void x264_predict_4x4_ddr_avx( uint16_t *src );
- void x264_predict_4x4_hu_mmx2( pixel *src );
-
 #define PREDICT_16x16_DC(name)\
-static void x264_predict_16x16_dc_##name( pixel *src )\
+void x264_predict_16x16_dc_##name( pixel *src )\
 {\
     uint32_t dc = 16;\
     for( int i = 0; i < 16; i += 2 )\
@@ -362,16 +276,13 @@ static void x264_predict_8x8c_dc_left( uint8_t *src )
  ****************************************************************************/
 void x264_predict_16x16_init_mmx( int cpu, x264_predict_t pf[7] )
 {
-    if( !(cpu&X264_CPU_MMX) )
+    if( !(cpu&X264_CPU_MMX2) )
         return;
-    pf[I_PRED_16x16_V]       = x264_predict_16x16_v_mmx;
-    if( cpu&X264_CPU_MMX2 )
-    {
-        pf[I_PRED_16x16_DC]      = x264_predict_16x16_dc_mmx2;
-        pf[I_PRED_16x16_DC_TOP]  = x264_predict_16x16_dc_top_mmx2;
-        pf[I_PRED_16x16_DC_LEFT] = x264_predict_16x16_dc_left_mmx2;
-        pf[I_PRED_16x16_H]       = x264_predict_16x16_h_mmx2;
-    }
+    pf[I_PRED_16x16_DC]      = x264_predict_16x16_dc_mmx2;
+    pf[I_PRED_16x16_DC_TOP]  = x264_predict_16x16_dc_top_mmx2;
+    pf[I_PRED_16x16_DC_LEFT] = x264_predict_16x16_dc_left_mmx2;
+    pf[I_PRED_16x16_V]       = x264_predict_16x16_v_mmx2;
+    pf[I_PRED_16x16_H]       = x264_predict_16x16_h_mmx2;
 #if HIGH_BIT_DEPTH
     if( !(cpu&X264_CPU_SSE2) )
         return;
