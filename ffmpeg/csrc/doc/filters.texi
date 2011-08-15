@@ -99,6 +99,27 @@ build.
 
 Below is a description of the currently available audio filters.
 
+@section aformat
+
+Convert the input audio to one of the specified formats. The framework will
+negotiate the most appropriate format to minimize conversions.
+
+The filter accepts three lists of formats, separated by ":", in the form:
+"@var{sample_formats}:@var{channel_layouts}:@var{packing_formats}".
+
+Elements in each list are separated by "," which has to be escaped in the
+filtergraph specification.
+
+The special parameter "all", in place of a list of elements, signifies all
+supported formats.
+
+Some examples follow:
+@example
+aformat=u8\\,s16:mono:packed
+
+aformat=s16:mono\\,stereo:all
+@end example
+
 @section anull
 
 Pass the audio source unchanged to the output.
@@ -404,6 +425,58 @@ This can be useful when channel logos distort the video area. 0
 indicates never reset and return the largest area encountered during
 playback.
 @end table
+
+@section delogo
+
+Suppress a TV station logo by a simple interpolation of the surrounding
+pixels. Just set a rectangle covering the logo and watch it disappear
+(and sometimes something even uglier appear - your mileage may vary).
+
+The filter accepts parameters as a string of the form
+"@var{x}:@var{y}:@var{w}:@var{h}:@var{band}", or as a list of
+@var{key}=@var{value} pairs, separated by ":".
+
+The description of the accepted parameters follows.
+
+@table @option
+
+@item x, y
+Specify the top left corner coordinates of the logo. They must be
+specified.
+
+@item w, h
+Specify the width and height of the logo to clear. They must be
+specified.
+
+@item band, t
+Specify the thickness of the fuzzy edge of the rectangle (added to
+@var{w} and @var{h}). The default value is 4.
+
+@item show
+When set to 1, a green rectangle is drawn on the screen to simplify
+finding the right @var{x}, @var{y}, @var{w}, @var{h} parameters, and
+@var{band} is set to 4. The default value is 0.
+
+@end table
+
+Some examples follow.
+
+@itemize
+
+@item
+Set a rectangle covering the area with top left corner coordinates 0,0
+and size 100x77, setting a band of size 10:
+@example
+delogo=0:0:100:77:10
+@end example
+
+@item
+As the previous example, but use named options:
+@example
+delogo=x=0:y=0:w=100:h=77:band=10
+@end example
+
+@end itemize
 
 @section drawbox
 
@@ -920,7 +993,6 @@ The list of the currently supported filters follows:
 @table @var
 @item 2xsai
 @item decimate
-@item delogo
 @item denoise3d
 @item detc
 @item dint
@@ -1778,7 +1850,7 @@ It accepts the following parameters:
 
 Negative values for the amount will blur the input video, while positive
 values will sharpen. All parameters are optional and default to the
-equivalent of the string '5:5:1.0:0:0:0.0'.
+equivalent of the string '5:5:1.0:5:5:0.0'.
 
 @table @option
 
@@ -1796,11 +1868,11 @@ and 5.0, default value is 1.0.
 
 @item chroma_msize_x
 Set the chroma matrix horizontal size. It can be an integer between 3
-and 13, default value is 0.
+and 13, default value is 5.
 
 @item chroma_msize_y
 Set the chroma matrix vertical size. It can be an integer between 3
-and 13, default value is 0.
+and 13, default value is 5.
 
 @item chroma_amount
 Set the chroma effect strength. It can be a float number between -2.0

@@ -18,6 +18,7 @@ OBJS = allfilters.o                                                     \
 
 OBJS-$(CONFIG_AVCODEC)                       += avcodec.o
 
+OBJS-$(CONFIG_AFORMAT_FILTER)                += af_aformat.o
 OBJS-$(CONFIG_ANULL_FILTER)                  += af_anull.o
 
 OBJS-$(CONFIG_ANULLSRC_FILTER)               += asrc_anullsrc.o
@@ -30,6 +31,7 @@ OBJS-$(CONFIG_BOXBLUR_FILTER)                += vf_boxblur.o
 OBJS-$(CONFIG_COPY_FILTER)                   += vf_copy.o
 OBJS-$(CONFIG_CROP_FILTER)                   += vf_crop.o
 OBJS-$(CONFIG_CROPDETECT_FILTER)             += vf_cropdetect.o
+OBJS-$(CONFIG_DELOGO_FILTER)                 += vf_delogo.o
 OBJS-$(CONFIG_DRAWBOX_FILTER)                += vf_drawbox.o
 OBJS-$(CONFIG_DRAWTEXT_FILTER)               += vf_drawtext.o
 OBJS-$(CONFIG_FADE_FILTER)                   += vf_fade.o
@@ -82,7 +84,6 @@ OBJS-$(CONFIG_MP_FILTER) += libmpcodecs/mp_image.o
 OBJS-$(CONFIG_MP_FILTER) += libmpcodecs/img_format.o
 OBJS-$(CONFIG_MP_FILTER) += libmpcodecs/vf_2xsai.o
 OBJS-$(CONFIG_MP_FILTER) += libmpcodecs/vf_decimate.o
-OBJS-$(CONFIG_MP_FILTER) += libmpcodecs/vf_delogo.o
 OBJS-$(CONFIG_MP_FILTER) += libmpcodecs/vf_denoise3d.o
 OBJS-$(CONFIG_MP_FILTER) += libmpcodecs/vf_detc.o
 OBJS-$(CONFIG_MP_FILTER) += libmpcodecs/vf_dint.o
