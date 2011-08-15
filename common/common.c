@@ -620,6 +620,8 @@ int x264_param_parse( x264_param_t *p, const char *name, const char *value )
     }
     OPT2("deterministic", "n-deterministic")
         p->b_deterministic = atobool(value);
+    OPT("cpu-independent")
+        p->b_cpu_independent = atobool(value);
     OPT2("level", "level-idc")
     {
         if( !strcmp(value, "1b") )

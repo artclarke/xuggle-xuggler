@@ -276,6 +276,7 @@ static void x264_analyse_update_cache( x264_t *h, x264_mb_analysis_t *a );
 
 static uint16_t x264_cost_ref[QP_MAX+1][3][33];
 static UNUSED x264_pthread_mutex_t cost_ref_mutex = X264_PTHREAD_MUTEX_INITIALIZER;
+static uint16_t x264_cost_i4x4_mode[(QP_MAX+2)*32];
 
 float *x264_analyse_prepare_costs( x264_t *h )
 {
@@ -316,6 +317,9 @@ int x264_analyse_init_costs( x264_t *h, float *logs, int qp )
                 h->cost_mv_fpel[qp][j][i] = h->cost_mv[qp][i*4+j];
         }
     }
+    uint16_t *cost_i4x4_mode = (uint16_t*)ALIGN((intptr_t)x264_cost_i4x4_mode,64) + qp*32;
+    for( int i = 0; i < 17; i++ )
+        cost_i4x4_mode[i] = 3*lambda*(i!=8);
     return 0;
 fail:
     return -1;
@@ -938,6 +942,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     {
         int i_cost = lambda * (24+16); /* 24from JVT (SATD0), 16 from base predmode costs */
         int i_satd_thresh = a->b_early_terminate ? X264_MIN3( i_satd_inter, a->i_satd_i16x16, a->i_satd_i8x8 ) : COST_MAX;
+        uint16_t *cost_i4x4_mode = (uint16_t*)ALIGN((intptr_t)x264_cost_i4x4_mode,64) + a->i_qp*32 + 8;
         h->mb.i_cbp_luma = 0;
 
         if( a->b_early_terminate && a->i_mbrd )
@@ -959,51 +964,63 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
                 /* emulate missing topright samples */
                 MPIXEL_X4( &p_dst_by[4 - FDEC_STRIDE] ) = PIXEL_SPLAT_X4( p_dst_by[3 - FDEC_STRIDE] );
 
-            if( !h->mb.b_lossless && predict_mode[5] >= 0 )
+            if( h->pixf.intra_mbcmp_x9_4x4 && predict_mode[8] >= 0 )
             {
-                int satd[9];
-                h->pixf.intra_mbcmp_x3_4x4( p_src_by, p_dst_by, satd );
-                int favor_vertical = satd[I_PRED_4x4_H] > satd[I_PRED_4x4_V];
-                satd[i_pred_mode] -= 3 * lambda;
-                for( int i = 2; i >= 0; i-- )
-                    COPY2_IF_LT( i_best, satd[i], a->i_predict4x4[idx], i );
-
-                /* Take analysis shortcuts: don't analyse modes that are too
-                 * far away direction-wise from the favored mode. */
-                if( a->i_mbrd < 1 + a->b_fast_intra )
-                    predict_mode = intra_analysis_shortcut[a->b_avoid_topright][predict_mode[8] >= 0][favor_vertical];
-                else
-                    predict_mode += 3;
+                /* No shortcuts here. The SSSE3 implementation of intra_mbcmp_x9 is fast enough. */
+                i_best = h->pixf.intra_mbcmp_x9_4x4( p_src_by, p_dst_by, cost_i4x4_mode-i_pred_mode );
+                a->i_predict4x4[idx] = i_best >> 16;
+                i_best &= 0xffff;
             }
-
-            if( i_best > 0 )
+            else
             {
-                for( ; *predict_mode >= 0; predict_mode++ )
+                if( !h->mb.b_lossless && predict_mode[5] >= 0 )
                 {
-                    int i_satd;
-                    int i_mode = *predict_mode;
+                    int satd[9];
+                    h->pixf.intra_mbcmp_x3_4x4( p_src_by, p_dst_by, satd );
+                    int favor_vertical = satd[I_PRED_4x4_H] > satd[I_PRED_4x4_V];
+                    satd[i_pred_mode] -= 3 * lambda;
+                    i_best = satd[I_PRED_4x4_DC]; a->i_predict4x4[idx] = I_PRED_4x4_DC;
+                    COPY2_IF_LT( i_best, satd[I_PRED_4x4_H], a->i_predict4x4[idx], I_PRED_4x4_H );
+                    COPY2_IF_LT( i_best, satd[I_PRED_4x4_V], a->i_predict4x4[idx], I_PRED_4x4_V );
 
-                    if( h->mb.b_lossless )
-                        x264_predict_lossless_4x4( h, p_dst_by, 0, idx, i_mode );
+                    /* Take analysis shortcuts: don't analyse modes that are too
+                     * far away direction-wise from the favored mode. */
+                    if( a->i_mbrd < 1 + a->b_fast_intra )
+                        predict_mode = intra_analysis_shortcut[a->b_avoid_topright][predict_mode[8] >= 0][favor_vertical];
                     else
-                        h->predict_4x4[i_mode]( p_dst_by );
-
-                    i_satd = h->pixf.mbcmp[PIXEL_4x4]( p_dst_by, FDEC_STRIDE, p_src_by, FENC_STRIDE );
-                    if( i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) )
-                    {
-                        i_satd -= lambda * 3;
-                        if( i_satd <= 0 )
-                        {
-                            i_best = i_satd;
-                            a->i_predict4x4[idx] = i_mode;
-                            break;
-                        }
-                    }
-
-                    COPY2_IF_LT( i_best, i_satd, a->i_predict4x4[idx], i_mode );
+                        predict_mode += 3;
                 }
+
+                if( i_best > 0 )
+                {
+                    for( ; *predict_mode >= 0; predict_mode++ )
+                    {
+                        int i_satd;
+                        int i_mode = *predict_mode;
+
+                        if( h->mb.b_lossless )
+                            x264_predict_lossless_4x4( h, p_dst_by, 0, idx, i_mode );
+                        else
+                            h->predict_4x4[i_mode]( p_dst_by );
+
+                        i_satd = h->pixf.mbcmp[PIXEL_4x4]( p_dst_by, FDEC_STRIDE, p_src_by, FENC_STRIDE );
+                        if( i_pred_mode == x264_mb_pred_mode4x4_fix(i_mode) )
+                        {
+                            i_satd -= lambda * 3;
+                            if( i_satd <= 0 )
+                            {
+                                i_best = i_satd;
+                                a->i_predict4x4[idx] = i_mode;
+                                break;
+                            }
+                        }
+
+                        COPY2_IF_LT( i_best, i_satd, a->i_predict4x4[idx], i_mode );
+                    }
+                }
+                i_best += 3 * lambda;
             }
-            i_cost += i_best + 3 * lambda;
+            i_cost += i_best;
 
             if( i_cost > i_satd_thresh || idx == 15 )
                 break;

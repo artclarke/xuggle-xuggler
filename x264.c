@@ -756,6 +756,8 @@ static void help( x264_param_t *defaults, int longhelp )
     H2( "      --thread-input          Run Avisynth in its own thread\n" );
     H2( "      --sync-lookahead <integer> Number of buffer frames for threaded lookahead\n" );
     H2( "      --non-deterministic     Slightly improve quality of SMP, at the cost of repeatability\n" );
+    H2( "      --cpu-independent       Ensure exact reproducibility across different cpus,\n"
+        "                                  as opposed to letting them select different algorithms\n" );
     H2( "      --asm <integer>         Override CPU detection\n" );
     H2( "      --no-asm                Disable all CPU optimizations\n" );
     H2( "      --visualize             Show MB types overlayed on the encoded video\n" );
@@ -924,6 +926,7 @@ static struct option long_options[] =
     { "thread-input",      no_argument, NULL, OPT_THREAD_INPUT },
     { "sync-lookahead",    required_argument, NULL, 0 },
     { "non-deterministic", no_argument, NULL, 0 },
+    { "cpu-independent",   no_argument, NULL, 0 },
     { "psnr",              no_argument, NULL, 0 },
     { "ssim",              no_argument, NULL, 0 },
     { "quiet",             no_argument, NULL, OPT_QUIET },

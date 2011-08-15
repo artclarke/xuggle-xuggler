@@ -242,7 +242,8 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_pixel_function_t pixel_c;
     x264_pixel_function_t pixel_ref;
     x264_pixel_function_t pixel_asm;
-    x264_predict8x8_t predict_8x8[9+3];
+    x264_predict_t predict_4x4[12];
+    x264_predict8x8_t predict_8x8[12];
     x264_predict_8x8_filter_t predict_8x8_filter;
     ALIGNED_16( pixel edge[36] );
     uint16_t cost_mv[32];
@@ -251,6 +252,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_pixel_init( 0, &pixel_c );
     x264_pixel_init( cpu_ref, &pixel_ref );
     x264_pixel_init( cpu_new, &pixel_asm );
+    x264_predict_4x4_init( 0, predict_4x4 );
     x264_predict_8x8_init( 0, predict_8x8, &predict_8x8_filter );
     predict_8x8_filter( pbuf2+40, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
 
@@ -437,7 +439,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     }
     report( "pixel vsad :" );
 
-#define TEST_INTRA_MBCMP( name, pred, satd, i8x8, ... ) \
+#define TEST_INTRA_X3( name, i8x8, ... ) \
     if( pixel_asm.name && pixel_asm.name != pixel_ref.name ) \
     { \
         int res_c[3], res_asm[3]; \
@@ -454,17 +456,56 @@ static int check_pixel( int cpu_ref, int cpu_new )
         } \
     }
 
+#define TEST_INTRA_X9( name, cmp ) \
+    if( pixel_asm.name && pixel_asm.name != pixel_ref.name ) \
+    { \
+        set_func_name( #name ); \
+        used_asm = 1; \
+        ALIGNED_ARRAY_64( uint16_t, bitcosts,[17] ); \
+        for( int i=0; i<17; i++ ) \
+            bitcosts[i] = 9*(i!=8); \
+        for( int i=0; i<32; i++ ) \
+        { \
+            pixel *fenc = pbuf1+48+i*12; \
+            pixel *fdec = pbuf3+48+i*12; \
+            int pred_mode = i%9; \
+            int res_c = INT_MAX; \
+            for( int j=0; j<9; j++ ) \
+            { \
+                predict_4x4[j]( fdec ); \
+                int cost = pixel_c.cmp[PIXEL_4x4]( fenc, FENC_STRIDE, fdec, FDEC_STRIDE ) + 9*(j!=pred_mode); \
+                if( cost < (uint16_t)res_c ) \
+                    res_c = cost + (j<<16); \
+            } \
+            int res_a = call_a( pixel_asm.name, fenc, fdec, bitcosts+8-pred_mode ); \
+            if( res_c != res_a ) \
+            { \
+                ok = 0; \
+                fprintf( stderr, #name": %d,%d != %d,%d [FAILED]\n", res_c>>16, res_c&0xffff, res_a>>16, res_a&0xffff ); \
+                break; \
+            } \
+        } \
+    }
+
+    memcpy( pbuf3, pbuf2, 20*FDEC_STRIDE*sizeof(pixel) );
     ok = 1; used_asm = 0;
-    TEST_INTRA_MBCMP( intra_satd_x3_16x16, predict_16x16, satd[PIXEL_16x16], 0 );
-    TEST_INTRA_MBCMP( intra_satd_x3_8x8c , predict_8x8c , satd[PIXEL_8x8]  , 0 );
-    TEST_INTRA_MBCMP( intra_satd_x3_4x4  , predict_4x4  , satd[PIXEL_4x4]  , 0 );
-    TEST_INTRA_MBCMP( intra_sa8d_x3_8x8  , predict_8x8  , sa8d[PIXEL_8x8]  , 1, edge );
+    TEST_INTRA_X3( intra_satd_x3_16x16, 0 );
+    TEST_INTRA_X3( intra_satd_x3_8x8c, 0 );
+    TEST_INTRA_X3( intra_sa8d_x3_8x8, 1, edge );
+    TEST_INTRA_X3( intra_satd_x3_4x4, 0 );
     report( "intra satd_x3 :" );
-    TEST_INTRA_MBCMP( intra_sad_x3_16x16 , predict_16x16, sad [PIXEL_16x16], 0 );
-    TEST_INTRA_MBCMP( intra_sad_x3_8x8c  , predict_8x8c , sad [PIXEL_8x8]  , 0 );
-    TEST_INTRA_MBCMP( intra_sad_x3_8x8   , predict_8x8  , sad [PIXEL_8x8]  , 1, edge );
-    TEST_INTRA_MBCMP( intra_sad_x3_4x4   , predict_4x4  , sad [PIXEL_4x4]  , 0 );
+    ok = 1; used_asm = 0;
+    TEST_INTRA_X3( intra_sad_x3_16x16, 0 );
+    TEST_INTRA_X3( intra_sad_x3_8x8c, 0 );
+    TEST_INTRA_X3( intra_sad_x3_8x8, 1, edge );
+    TEST_INTRA_X3( intra_sad_x3_4x4, 0 );
     report( "intra sad_x3 :" );
+    ok = 1; used_asm = 0;
+    TEST_INTRA_X9( intra_satd_x9_4x4, satd );
+    report( "intra satd_x9 :" );
+    ok = 1; used_asm = 0;
+    TEST_INTRA_X9( intra_sad_x9_4x4, sad );
+    report( "intra sad_x9 :" );
 
     ok = 1; used_asm = 0;
     if( pixel_asm.ssd_nv12_core != pixel_ref.ssd_nv12_core )

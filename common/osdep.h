@@ -114,6 +114,7 @@
 #endif
 
 #define ALIGNED_ARRAY_32( ... ) ALIGNED_ARRAY_EMU( 31, __VA_ARGS__ )
+#define ALIGNED_ARRAY_64( ... ) ALIGNED_ARRAY_EMU( 63, __VA_ARGS__ )
 
 #define UNINIT(x) x=x
 

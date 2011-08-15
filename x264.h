@@ -41,7 +41,7 @@
 
 #include "x264_config.h"
 
-#define X264_BUILD 116
+#define X264_BUILD 117
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -236,6 +236,7 @@ typedef struct x264_param_t
     int         i_threads;       /* encode multiple frames in parallel */
     int         b_sliced_threads;  /* Whether to use slice-based threading. */
     int         b_deterministic; /* whether to allow non-deterministic optimizations when threaded */
+    int         b_cpu_independent; /* force canonical behavior rather than cpu-dependent optimal algorithms */
     int         i_sync_lookahead; /* threaded lookahead buffer */
 
     /* Video Properties */
