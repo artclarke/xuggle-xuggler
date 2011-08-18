@@ -1640,12 +1640,13 @@ static int input_query_formats(AVFilterContext *ctx)
 static int input_config_props(AVFilterLink *link)
 {
     FilterPriv *priv  = link->src->priv;
-    AVCodecContext *c = priv->is->video_st->codec;
+    AVStream *s = priv->is->video_st;
 
-    link->w = c->width;
-    link->h = c->height;
-    link->sample_aspect_ratio = priv->is->video_st->sample_aspect_ratio;
-    link->time_base = priv->is->video_st->time_base;
+    link->w = s->codec->width;
+    link->h = s->codec->height;
+    link->sample_aspect_ratio = s->sample_aspect_ratio.num ?
+        s->sample_aspect_ratio : s->codec->sample_aspect_ratio;
+    link->time_base = s->time_base;
 
     return 0;
 }
@@ -1701,7 +1702,6 @@ static int configure_video_filters(AVFilterGraph *graph, VideoState *is, const c
 
         if ((ret = avfilter_graph_parse(graph, vfilters, &inputs, &outputs, NULL)) < 0)
             return ret;
-        av_freep(&vfilters);
     } else {
         if ((ret = avfilter_link(filt_src, 0, filt_out, 0)) < 0)
             return ret;
@@ -1748,8 +1748,8 @@ static int video_thread(void *arg)
 #if CONFIG_AVFILTER
         if (   last_w != is->video_st->codec->width
             || last_h != is->video_st->codec->height) {
-            av_dlog(NULL, "Changing size %dx%d -> %dx%d\n", last_w, last_h,
-                    is->video_st->codec->width, is->video_st->codec->height);
+            av_log(NULL, AV_LOG_INFO, "Frame changed from size:%dx%d to size:%dx%d\n",
+                   last_w, last_h, is->video_st->codec->width, is->video_st->codec->height);
             avfilter_graph_free(&graph);
             graph = avfilter_graph_alloc();
             if ((ret = configure_video_filters(graph, is, vfilters)) < 0)
