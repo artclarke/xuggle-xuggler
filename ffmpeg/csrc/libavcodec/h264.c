@@ -1852,16 +1852,16 @@ static av_always_inline void hl_decode_mb_internal(H264Context *h, int simple, i
                         }
                     }
                 } else {
-                for (i = 0; i < block_h; i++) {
-                    uint16_t *tmp_cb = (uint16_t*)(dest_cb + i*uvlinesize);
-                    for (j = 0; j < 8; j++)
-                        tmp_cb[j] = get_bits(&gb, bit_depth);
-                }
-                for (i = 0; i < block_h; i++) {
-                    uint16_t *tmp_cr = (uint16_t*)(dest_cr + i*uvlinesize);
-                    for (j = 0; j < 8; j++)
-                        tmp_cr[j] = get_bits(&gb, bit_depth);
-                }
+                    for (i = 0; i < block_h; i++) {
+                        uint16_t *tmp_cb = (uint16_t*)(dest_cb + i*uvlinesize);
+                        for (j = 0; j < 8; j++)
+                            tmp_cb[j] = get_bits(&gb, bit_depth);
+                    }
+                    for (i = 0; i < block_h; i++) {
+                        uint16_t *tmp_cr = (uint16_t*)(dest_cr + i*uvlinesize);
+                        for (j = 0; j < 8; j++)
+                            tmp_cr[j] = get_bits(&gb, bit_depth);
+                    }
                 }
             }
         } else {
@@ -1875,10 +1875,10 @@ static av_always_inline void hl_decode_mb_internal(H264Context *h, int simple, i
                         memset(dest_cr+ i*uvlinesize, 1 << (bit_depth - 1), 8);
                     }
                 } else {
-                for (i=0; i<block_h; i++) {
-                    memcpy(dest_cb+ i*uvlinesize, h->mb + 128 + i*4,  8);
-                    memcpy(dest_cr+ i*uvlinesize, h->mb + 160 + i*4,  8);
-                }
+                    for (i=0; i<block_h; i++) {
+                        memcpy(dest_cb+ i*uvlinesize, h->mb + 128 + i*4,  8);
+                        memcpy(dest_cr+ i*uvlinesize, h->mb + 160 + i*4,  8);
+                    }
                 }
             }
         }
@@ -2204,17 +2204,17 @@ static void implicit_weight_table(H264Context *h, int field){
     for(ref0=ref_start; ref0 < ref_count0; ref0++){
         int poc0 = h->ref_list[0][ref0].poc;
         for(ref1=ref_start; ref1 < ref_count1; ref1++){
-            int w= 32;
-            if (!h->ref_list[0][ref0].long_ref && !h->ref_list[1][ref1].long_ref){
-            int poc1 = h->ref_list[1][ref1].poc;
-            int td = av_clip(poc1 - poc0, -128, 127);
-            if(td){
-                int tb = av_clip(cur_poc - poc0, -128, 127);
-                int tx = (16384 + (FFABS(td) >> 1)) / td;
-                int dist_scale_factor = (tb*tx + 32) >> 8;
-                if(dist_scale_factor >= -64 && dist_scale_factor <= 128)
-                    w = 64 - dist_scale_factor;
-            }
+            int w = 32;
+            if (!h->ref_list[0][ref0].long_ref && !h->ref_list[1][ref1].long_ref) {
+                int poc1 = h->ref_list[1][ref1].poc;
+                int td = av_clip(poc1 - poc0, -128, 127);
+                if(td){
+                    int tb = av_clip(cur_poc - poc0, -128, 127);
+                    int tx = (16384 + (FFABS(td) >> 1)) / td;
+                    int dist_scale_factor = (tb*tx + 32) >> 8;
+                    if(dist_scale_factor >= -64 && dist_scale_factor <= 128)
+                        w = 64 - dist_scale_factor;
+                }
             }
             if(field<0){
                 h->implicit_weight[ref0][ref1][0]=
