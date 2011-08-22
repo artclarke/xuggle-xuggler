@@ -49,7 +49,7 @@ static int volatile entangled_thread_counter=0;
 static int (*ff_lockmgr_cb)(void **mutex, enum AVLockOp op);
 static void *codec_mutex;
 
-void *av_fast_realloc(void *ptr, unsigned int *size, size_t min_size)
+void *av_fast_realloc(void *ptr, unsigned int *size, FF_INTERNALC_MEM_TYPE min_size)
 {
     if(min_size < *size)
         return ptr;
@@ -65,7 +65,7 @@ void *av_fast_realloc(void *ptr, unsigned int *size, size_t min_size)
     return ptr;
 }
 
-void av_fast_malloc(void *ptr, unsigned int *size, size_t min_size)
+void av_fast_malloc(void *ptr, unsigned int *size, FF_INTERNALC_MEM_TYPE min_size)
 {
     void **p = ptr;
     if (min_size < *size)
@@ -94,6 +94,13 @@ void avcodec_register(AVCodec *codec)
     *p = codec;
     codec->next = NULL;
 }
+
+#if LIBAVCODEC_VERSION_MAJOR < 53
+void register_avcodec(AVCodec *codec)
+{
+    avcodec_register(codec);
+}
+#endif
 
 unsigned avcodec_get_edge_width(void)
 {
@@ -223,6 +230,12 @@ void avcodec_align_dimensions(AVCodecContext *s, int *width, int *height){
     align = FFMAX3(align, linesize_align[1], linesize_align[2]);
     *width=FFALIGN(*width, align);
 }
+
+#if LIBAVCODEC_VERSION_MAJOR < 53
+int avcodec_check_dimensions(void *av_log_ctx, unsigned int w, unsigned int h){
+    return av_image_check_size(w, h, 0, av_log_ctx);
+}
+#endif
 
 int avcodec_default_get_buffer(AVCodecContext *s, AVFrame *pic){
     int i;
@@ -531,7 +544,7 @@ int attribute_align_arg avcodec_open2(AVCodecContext *avctx, AVCodec *codec, AVD
             av_opt_set_defaults(avctx->priv_data);
         }
       }
-      if (codec->priv_class && (ret = av_opt_set_dict(avctx->priv_data, &tmp)) < 0)
+      if (codec->priv_class && (ret = av_opt_set_dict(avctx->priv_data, &tmp) < 0))
           goto free_and_end;
     } else {
         avctx->priv_data = NULL;
@@ -749,6 +762,22 @@ static int64_t guess_correct_pts(AVCodecContext *ctx,
     return pts;
 }
 
+#if FF_API_VIDEO_OLD
+int attribute_align_arg avcodec_decode_video(AVCodecContext *avctx, AVFrame *picture,
+                         int *got_picture_ptr,
+                         const uint8_t *buf, int buf_size)
+{
+    AVPacket avpkt;
+    av_init_packet(&avpkt);
+    avpkt.data = buf;
+    avpkt.size = buf_size;
+    // HACK for CorePNG to decode as normal PNG by default
+    avpkt.flags = AV_PKT_FLAG_KEY;
+
+    return avcodec_decode_video2(avctx, picture, got_picture_ptr, &avpkt);
+}
+#endif
+
 int attribute_align_arg avcodec_decode_video2(AVCodecContext *avctx, AVFrame *picture,
                          int *got_picture_ptr,
                          AVPacket *avpkt)
@@ -760,7 +789,6 @@ int attribute_align_arg avcodec_decode_video2(AVCodecContext *avctx, AVFrame *pi
         return -1;
 
     if((avctx->codec->capabilities & CODEC_CAP_DELAY) || avpkt->size || (avctx->active_thread_type&FF_THREAD_FRAME)){
-        av_packet_split_side_data(avpkt);
         avctx->pkt = avpkt;
         if (HAVE_PTHREADS && avctx->active_thread_type&FF_THREAD_FRAME)
              ret = ff_thread_decode_frame(avctx, picture, got_picture_ptr,
@@ -799,6 +827,20 @@ int attribute_align_arg avcodec_decode_video2(AVCodecContext *avctx, AVFrame *pi
     return ret;
 }
 
+#if FF_API_AUDIO_OLD
+int attribute_align_arg avcodec_decode_audio2(AVCodecContext *avctx, int16_t *samples,
+                         int *frame_size_ptr,
+                         const uint8_t *buf, int buf_size)
+{
+    AVPacket avpkt;
+    av_init_packet(&avpkt);
+    avpkt.data = buf;
+    avpkt.size = buf_size;
+
+    return avcodec_decode_audio3(avctx, samples, frame_size_ptr, &avpkt);
+}
+#endif
+
 int attribute_align_arg avcodec_decode_audio3(AVCodecContext *avctx, int16_t *samples,
                          int *frame_size_ptr,
                          AVPacket *avpkt)
@@ -827,6 +869,20 @@ int attribute_align_arg avcodec_decode_audio3(AVCodecContext *avctx, int16_t *sa
     }
     return ret;
 }
+
+#if FF_API_SUBTITLE_OLD
+int avcodec_decode_subtitle(AVCodecContext *avctx, AVSubtitle *sub,
+                            int *got_sub_ptr,
+                            const uint8_t *buf, int buf_size)
+{
+    AVPacket avpkt;
+    av_init_packet(&avpkt);
+    avpkt.data = buf;
+    avpkt.size = buf_size;
+
+    return avcodec_decode_subtitle2(avctx, sub, got_sub_ptr, &avpkt);
+}
+#endif
 
 int avcodec_decode_subtitle2(AVCodecContext *avctx, AVSubtitle *sub,
                             int *got_sub_ptr,
@@ -1144,9 +1200,6 @@ const char *avcodec_license(void)
     return LICENSE_PREFIX FFMPEG_LICENSE + sizeof(LICENSE_PREFIX) - 1;
 }
 
-#if !FF_API_AVCODEC_INIT
-static
-#endif
 void avcodec_init(void)
 {
     static int initialized = 0;
@@ -1262,6 +1315,20 @@ unsigned int av_xiphlacing(unsigned char *s, unsigned int v)
     n++;
     return n;
 }
+
+#if LIBAVCODEC_VERSION_MAJOR < 53
+#include "libavutil/parseutils.h"
+
+int av_parse_video_frame_size(int *width_ptr, int *height_ptr, const char *str)
+{
+    return av_parse_video_size(width_ptr, height_ptr, str);
+}
+
+int av_parse_video_frame_rate(AVRational *frame_rate, const char *arg)
+{
+    return av_parse_video_rate(frame_rate, arg);
+}
+#endif
 
 int ff_match_2uint16(const uint16_t (*tab)[2], int size, int a, int b){
     int i;
@@ -1379,18 +1446,12 @@ int avcodec_thread_init(AVCodecContext *s, int thread_count)
     s->thread_count = thread_count;
     return ff_thread_init(s);
 }
-#endif
 
-enum AVMediaType avcodec_get_type(enum CodecID codec_id)
+void avcodec_thread_free(AVCodecContext *s)
 {
-    if (codec_id <= CODEC_ID_NONE)
-        return AVMEDIA_TYPE_UNKNOWN;
-    else if (codec_id < CODEC_ID_FIRST_AUDIO)
-        return AVMEDIA_TYPE_VIDEO;
-    else if (codec_id < CODEC_ID_FIRST_SUBTITLE)
-        return AVMEDIA_TYPE_AUDIO;
-    else if (codec_id < CODEC_ID_FIRST_UNKNOWN)
-        return AVMEDIA_TYPE_SUBTITLE;
-
-    return AVMEDIA_TYPE_UNKNOWN;
+#if HAVE_THREADS
+    ff_thread_free(s);
+#endif
 }
+
+#endif

@@ -581,8 +581,6 @@ static av_cold int aac_decode_init(AVCodecContext *avctx)
         sr = sample_rate_idx(avctx->sample_rate);
         ac->m4ac.sampling_index = sr;
         ac->m4ac.channels = avctx->channels;
-        ac->m4ac.sbr = -1;
-        ac->m4ac.ps = -1;
 
         for (i = 0; i < FF_ARRAY_ELEMS(ff_mpeg4audio_channels); i++)
             if (ff_mpeg4audio_channels[i] == avctx->channels)
@@ -593,11 +591,8 @@ static av_cold int aac_decode_init(AVCodecContext *avctx)
         ac->m4ac.chan_config = i;
 
         if (ac->m4ac.chan_config) {
-            int ret = set_default_channel_config(avctx, new_che_pos, ac->m4ac.chan_config);
-            if (!ret)
-                output_configure(ac, ac->che_pos, new_che_pos, ac->m4ac.chan_config, OC_GLOBAL_HDR);
-            else if (avctx->error_recognition >= FF_ER_EXPLODE)
-                return AVERROR_INVALIDDATA;
+            set_default_channel_config(avctx, new_che_pos, ac->m4ac.chan_config);
+            output_configure(ac, ac->che_pos, new_che_pos, ac->m4ac.chan_config, OC_GLOBAL_HDR);
         }
     }
 
@@ -2094,10 +2089,10 @@ static int parse_adts_frame_header(AACContext *ac, GetBitContext *gb)
         if (ac->output_configured != OC_LOCKED) {
             ac->m4ac.sbr = -1;
             ac->m4ac.ps  = -1;
-            ac->m4ac.sample_rate     = hdr_info.sample_rate;
-            ac->m4ac.sampling_index  = hdr_info.sampling_index;
-            ac->m4ac.object_type     = hdr_info.object_type;
         }
+        ac->m4ac.sample_rate     = hdr_info.sample_rate;
+        ac->m4ac.sampling_index  = hdr_info.sampling_index;
+        ac->m4ac.object_type     = hdr_info.object_type;
         if (!ac->avctx->sample_rate)
             ac->avctx->sample_rate = hdr_info.sample_rate;
         if (hdr_info.num_aac_frames == 1) {
@@ -2118,7 +2113,7 @@ static int aac_decode_frame_int(AVCodecContext *avctx, void *data,
     ChannelElement *che = NULL, *che_prev = NULL;
     enum RawDataBlockType elem_type, elem_type_prev = TYPE_END;
     int err, elem_id, data_size_tmp;
-    int samples = 0, multiplier, audio_found = 0;
+    int samples = 0, multiplier;
 
     if (show_bits(gb, 12) == 0xfff) {
         if (parse_adts_frame_header(ac, gb) < 0) {
@@ -2149,12 +2144,10 @@ static int aac_decode_frame_int(AVCodecContext *avctx, void *data,
 
         case TYPE_SCE:
             err = decode_ics(ac, &che->ch[0], gb, 0, 0);
-            audio_found = 1;
             break;
 
         case TYPE_CPE:
             err = decode_cpe(ac, gb, che);
-            audio_found = 1;
             break;
 
         case TYPE_CCE:
@@ -2163,7 +2156,6 @@ static int aac_decode_frame_int(AVCodecContext *avctx, void *data,
 
         case TYPE_LFE:
             err = decode_ics(ac, &che->ch[0], gb, 0, 0);
-            audio_found = 1;
             break;
 
         case TYPE_DSE:
@@ -2240,7 +2232,7 @@ static int aac_decode_frame_int(AVCodecContext *avctx, void *data,
                                                    samples, avctx->channels);
     }
 
-    if (ac->output_configured && audio_found)
+    if (ac->output_configured)
         ac->output_configured = OC_LOCKED;
 
     return 0;

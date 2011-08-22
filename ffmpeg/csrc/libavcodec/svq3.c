@@ -927,10 +927,7 @@ static av_cold int svq3_decode_init(AVCodecContext *avctx)
 
         h->b_stride = 4*s->mb_width;
 
-        if (ff_h264_alloc_tables(h) < 0) {
-            av_log(avctx, AV_LOG_ERROR, "svq3 memory allocation failed\n");
-            return AVERROR(ENOMEM);
-        }
+        ff_h264_alloc_tables(h);
     }
 
     return 0;
@@ -991,6 +988,14 @@ static int svq3_decode_frame(AVCodecContext *avctx,
     /* Skip B-frames if we do not have reference frames. */
     if (s->last_picture_ptr == NULL && s->pict_type == AV_PICTURE_TYPE_B)
         return 0;
+#if FF_API_HURRY_UP
+    /* Skip B-frames if we are in a hurry. */
+    if (avctx->hurry_up && s->pict_type == FF_B_TYPE)
+        return 0;
+    /* Skip everything if we are in a hurry >= 5. */
+    if (avctx->hurry_up >= 5)
+        return 0;
+#endif
     if (  (avctx->skip_frame >= AVDISCARD_NONREF && s->pict_type == AV_PICTURE_TYPE_B)
         ||(avctx->skip_frame >= AVDISCARD_NONKEY && s->pict_type != AV_PICTURE_TYPE_I)
         || avctx->skip_frame >= AVDISCARD_ALL)

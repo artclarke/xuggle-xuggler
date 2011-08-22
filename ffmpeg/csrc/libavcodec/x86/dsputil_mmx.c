@@ -1799,16 +1799,28 @@ PREFETCH(prefetch_3dnow, prefetch)
 
 void ff_put_h264_chroma_mc8_mmx_rnd   (uint8_t *dst, uint8_t *src,
                                        int stride, int h, int x, int y);
+void ff_put_rv40_chroma_mc8_mmx       (uint8_t *dst, uint8_t *src,
+                                       int stride, int h, int x, int y);
 void ff_avg_h264_chroma_mc8_mmx2_rnd  (uint8_t *dst, uint8_t *src,
                                        int stride, int h, int x, int y);
+void ff_avg_rv40_chroma_mc8_mmx2      (uint8_t *dst, uint8_t *src,
+                                       int stride, int h, int x, int y);
 void ff_avg_h264_chroma_mc8_3dnow_rnd (uint8_t *dst, uint8_t *src,
+                                       int stride, int h, int x, int y);
+void ff_avg_rv40_chroma_mc8_3dnow     (uint8_t *dst, uint8_t *src,
                                        int stride, int h, int x, int y);
 
 void ff_put_h264_chroma_mc4_mmx       (uint8_t *dst, uint8_t *src,
                                        int stride, int h, int x, int y);
+void ff_put_rv40_chroma_mc4_mmx       (uint8_t *dst, uint8_t *src,
+                                       int stride, int h, int x, int y);
 void ff_avg_h264_chroma_mc4_mmx2      (uint8_t *dst, uint8_t *src,
                                        int stride, int h, int x, int y);
+void ff_avg_rv40_chroma_mc4_mmx2      (uint8_t *dst, uint8_t *src,
+                                       int stride, int h, int x, int y);
 void ff_avg_h264_chroma_mc4_3dnow     (uint8_t *dst, uint8_t *src,
+                                       int stride, int h, int x, int y);
+void ff_avg_rv40_chroma_mc4_3dnow     (uint8_t *dst, uint8_t *src,
                                        int stride, int h, int x, int y);
 
 void ff_put_h264_chroma_mc2_mmx2      (uint8_t *dst, uint8_t *src,
@@ -2451,7 +2463,7 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
         c->add_bytes= add_bytes_mmx;
 
         if (!high_bit_depth)
-            c->draw_edges = draw_edges_mmx;
+        c->draw_edges = draw_edges_mmx;
 
         if (CONFIG_H263_DECODER || CONFIG_H263_ENCODER) {
             c->h263_v_loop_filter= h263_v_loop_filter_mmx;
@@ -2463,6 +2475,9 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
         c->put_h264_chroma_pixels_tab[0]= ff_put_h264_chroma_mc8_mmx_rnd;
         c->put_h264_chroma_pixels_tab[1]= ff_put_h264_chroma_mc4_mmx;
         }
+
+        c->put_rv40_chroma_pixels_tab[0]= ff_put_rv40_chroma_mc8_mmx;
+        c->put_rv40_chroma_pixels_tab[1]= ff_put_rv40_chroma_mc4_mmx;
 
         c->vector_clip_int32 = ff_vector_clip_int32_mmx;
 #endif
@@ -2563,6 +2578,9 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
             SET_QPEL_FUNCS(avg_2tap_qpel, 1, 8, mmx2, );
 
 #if HAVE_YASM
+            c->avg_rv40_chroma_pixels_tab[0]= ff_avg_rv40_chroma_mc8_mmx2;
+            c->avg_rv40_chroma_pixels_tab[1]= ff_avg_rv40_chroma_mc4_mmx2;
+
             if (!high_bit_depth) {
             c->avg_h264_chroma_pixels_tab[0]= ff_avg_h264_chroma_mc8_mmx2_rnd;
             c->avg_h264_chroma_pixels_tab[1]= ff_avg_h264_chroma_mc4_mmx2;
@@ -2579,11 +2597,11 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
             c->add_hfyu_median_prediction = ff_add_hfyu_median_prediction_mmx2;
 #endif
 #if HAVE_7REGS
-            if (HAVE_AMD3DNOW && (mm_flags & AV_CPU_FLAG_3DNOW))
+            if( mm_flags&AV_CPU_FLAG_3DNOW )
                 c->add_hfyu_median_prediction = add_hfyu_median_prediction_cmov;
 #endif
 
-        } else if (HAVE_AMD3DNOW && (mm_flags & AV_CPU_FLAG_3DNOW)) {
+        } else if (mm_flags & AV_CPU_FLAG_3DNOW) {
             c->prefetch = prefetch_3dnow;
 
             if (!high_bit_depth) {
@@ -2644,6 +2662,8 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
             c->avg_h264_chroma_pixels_tab[1]= ff_avg_h264_chroma_mc4_3dnow;
             }
 
+            c->avg_rv40_chroma_pixels_tab[0]= ff_avg_rv40_chroma_mc8_3dnow;
+            c->avg_rv40_chroma_pixels_tab[1]= ff_avg_rv40_chroma_mc4_3dnow;
 #endif
         }
 
@@ -2732,11 +2752,11 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
         }
 #endif
 
-        if (HAVE_AMD3DNOW && (mm_flags & AV_CPU_FLAG_3DNOW)) {
+        if(mm_flags & AV_CPU_FLAG_3DNOW){
             c->vorbis_inverse_coupling = vorbis_inverse_coupling_3dnow;
             c->vector_fmul = vector_fmul_3dnow;
         }
-        if (HAVE_AMD3DNOWEXT && (mm_flags & AV_CPU_FLAG_3DNOWEXT)) {
+        if(mm_flags & AV_CPU_FLAG_3DNOWEXT){
             c->vector_fmul_reverse = vector_fmul_reverse_3dnow2;
 #if HAVE_6REGS
             c->vector_fmul_window = vector_fmul_window_3dnow2;
@@ -2767,7 +2787,7 @@ void dsputil_init_mmx(DSPContext* c, AVCodecContext *avctx)
             c->scalarproduct_float = ff_scalarproduct_float_sse;
 #endif
         }
-        if (HAVE_AMD3DNOW && (mm_flags & AV_CPU_FLAG_3DNOW))
+        if(mm_flags & AV_CPU_FLAG_3DNOW)
             c->vector_fmul_add = vector_fmul_add_3dnow; // faster than sse
         if(mm_flags & AV_CPU_FLAG_SSE2){
 #if HAVE_YASM

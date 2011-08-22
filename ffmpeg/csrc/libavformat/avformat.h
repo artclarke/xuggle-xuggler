@@ -145,6 +145,20 @@ typedef struct AVMetadataConv AVMetadataConv;
 attribute_deprecated AVDictionaryEntry *
 av_metadata_get(AVDictionary *m, const char *key, const AVDictionaryEntry *prev, int flags);
 
+#if FF_API_OLD_METADATA
+/**
+ * Set the given tag in *pm, overwriting an existing tag.
+ *
+ * @param pm pointer to a pointer to a metadata struct. If *pm is NULL
+ * a metadata struct is allocated and put in *pm.
+ * @param key tag key to add to *pm (will be av_strduped)
+ * @param value tag value to add to *pm (will be av_strduped)
+ * @return >= 0 on success otherwise an error code <0
+ * @deprecated Use av_metadata_set2() instead.
+ */
+attribute_deprecated int av_metadata_set(AVMetadata **pm, const char *key, const char *value);
+#endif
+
 /**
  * Set the given tag in *pm, overwriting an existing tag.
  *
@@ -257,6 +271,10 @@ typedef struct AVFormatParameters {
                                                                   immediately (RTSP only). */
     attribute_deprecated unsigned int prealloced_context:1;
 #endif
+#if FF_API_PARAMETERS_CODEC_ID
+    attribute_deprecated enum CodecID video_codec_id;
+    attribute_deprecated enum CodecID audio_codec_id;
+#endif
 } AVFormatParameters;
 
 //! Demuxer will use avio_open, no opened file should be provided by the caller.
@@ -323,14 +341,6 @@ typedef struct AVOutputFormat {
 #endif
 
     const AVClass *priv_class; ///< AVClass for the private context
-
-    /**
-     * Test if the given codec can be stored in this container.
-     *
-     * @return 1 if the codec is supported, 0 if it is not.
-     *         A negative number if unknown.
-     */
-    int (*query_codec)(enum CodecID id, int std_compliance);
 
     void (*get_output_timestamp)(struct AVFormatContext *s, int stream,
                                  int64_t *dts, int64_t *wall);
@@ -562,6 +572,10 @@ typedef struct AVStream {
      */
     int64_t duration;
 
+#if FF_API_OLD_METADATA
+    attribute_deprecated char language[4]; /**< ISO 639-2/B 3-letter language code (empty string if undefined) */
+#endif
+
     /* av_read_frame() support */
     enum AVStreamParseType need_parsing;
     struct AVCodecParserContext *parser;
@@ -576,6 +590,14 @@ typedef struct AVStream {
     unsigned int index_entries_allocated_size;
 
     int64_t nb_frames;                 ///< number of frames in this stream if known or 0
+
+#if FF_API_LAVF_UNUSED
+    attribute_deprecated int64_t unused[4+1];
+#endif
+
+#if FF_API_OLD_METADATA
+    attribute_deprecated char *filename; /**< source filename of the stream */
+#endif
 
     int disposition; /**< AV_DISPOSITION_* bit field */
 
@@ -667,6 +689,10 @@ typedef struct AVStream {
  */
 typedef struct AVProgram {
     int            id;
+#if FF_API_OLD_METADATA
+    attribute_deprecated char           *provider_name; ///< network name for DVB streams
+    attribute_deprecated char           *name;          ///< service name for DVB streams
+#endif
     int            flags;
     enum AVDiscard discard;        ///< selects which program to discard and which to feed to the caller
     unsigned int   *stream_index;
@@ -685,8 +711,15 @@ typedef struct AVChapter {
     int id;                 ///< unique ID to identify the chapter
     AVRational time_base;   ///< time base in which the start/end timestamps are specified
     int64_t start, end;     ///< chapter start/end time in time_base units
+#if FF_API_OLD_METADATA
+    attribute_deprecated char *title;            ///< chapter title
+#endif
     AVDictionary *metadata;
 } AVChapter;
+
+#if FF_API_MAX_STREAMS
+#define MAX_STREAMS 20
+#endif
 
 /**
  * Format I/O context.
@@ -703,7 +736,11 @@ typedef struct AVFormatContext {
     void *priv_data;
     AVIOContext *pb;
     unsigned int nb_streams;
+#if FF_API_MAX_STREAMS
+    AVStream *streams[MAX_STREAMS];
+#else
     AVStream **streams;
+#endif
     char filename[1024]; /**< input or output filename */
     /* stream info */
 #if FF_API_TIMESTAMP
@@ -711,6 +748,16 @@ typedef struct AVFormatContext {
      * @deprecated use 'creation_time' metadata tag instead
      */
     attribute_deprecated int64_t timestamp;
+#endif
+#if FF_API_OLD_METADATA
+    attribute_deprecated char title[512];
+    attribute_deprecated char author[512];
+    attribute_deprecated char copyright[512];
+    attribute_deprecated char comment[512];
+    attribute_deprecated char album[512];
+    attribute_deprecated int year;  /**< ID3 year, 0 if none */
+    attribute_deprecated int track; /**< track number, 0 if none */
+    attribute_deprecated char genre[32]; /**< ID3 genre */
 #endif
 
     int ctx_flags; /**< Format-specific flags, see AVFMTCTX_xx */
@@ -751,9 +798,17 @@ typedef struct AVFormatContext {
 
     /* av_read_frame() support */
     AVStream *cur_st;
+#if FF_API_LAVF_UNUSED
+    const uint8_t *cur_ptr_deprecated;
+    int cur_len_deprecated;
+    AVPacket cur_pkt_deprecated;
+#endif
 
     /* av_seek_frame() support */
     int64_t data_offset; /**< offset of the first packet */
+#if FF_API_INDEX_BUILT
+    attribute_deprecated int index_built;
+#endif
 
     int mux_rate;
     unsigned int packet_size;
@@ -892,14 +947,6 @@ typedef struct AVFormatContext {
     int fps_probe_size;
 
     /**
-     * Error recognition; higher values will detect more errors but may
-     * misdetect some more or less valid parts as errors.
-     * - encoding: unused
-     * - decoding: Set by user.
-     */
-    int error_recognition;
-
-    /**
      * Transport stream id.
      * This will be moved into demuxer private options. Thus no API/ABI compatibility
      */
@@ -910,6 +957,11 @@ typedef struct AVPacketList {
     AVPacket pkt;
     struct AVPacketList *next;
 } AVPacketList;
+
+#if FF_API_FIRST_FORMAT
+attribute_deprecated extern AVInputFormat *first_iformat;
+attribute_deprecated extern AVOutputFormat *first_oformat;
+#endif
 
 /**
  * If f is NULL, returns the first registered input format,
@@ -935,6 +987,18 @@ attribute_deprecated enum CodecID av_guess_image2_codec(const char *filename);
 /* utils.c */
 void av_register_input_format(AVInputFormat *format);
 void av_register_output_format(AVOutputFormat *format);
+#if FF_API_GUESS_FORMAT
+attribute_deprecated AVOutputFormat *guess_stream_format(const char *short_name,
+                                    const char *filename,
+                                    const char *mime_type);
+
+/**
+ * @deprecated Use av_guess_format() instead.
+ */
+attribute_deprecated AVOutputFormat *guess_format(const char *short_name,
+                                                  const char *filename,
+                                                  const char *mime_type);
+#endif
 
 /**
  * Return the output format in the list of registered output formats
@@ -1151,6 +1215,12 @@ attribute_deprecated int av_open_input_file(AVFormatContext **ic_ptr, const char
  */
 int avformat_open_input(AVFormatContext **ps, const char *filename, AVInputFormat *fmt, AVDictionary **options);
 
+#if FF_API_ALLOC_FORMAT_CONTEXT
+/**
+ * @deprecated Use avformat_alloc_context() instead.
+ */
+attribute_deprecated AVFormatContext *av_alloc_format_context(void);
+#endif
 int av_demuxer_open(AVFormatContext *ic, AVFormatParameters *ap);
 
 /**
@@ -1623,6 +1693,22 @@ void av_dump_format(AVFormatContext *ic,
                     const char *url,
                     int is_output);
 
+#if FF_API_PARSE_FRAME_PARAM
+/**
+ * Parse width and height out of string str.
+ * @deprecated Use av_parse_video_frame_size instead.
+ */
+attribute_deprecated int parse_image_size(int *width_ptr, int *height_ptr,
+                                          const char *str);
+
+/**
+ * Convert framerate from a string to a fraction.
+ * @deprecated Use av_parse_video_frame_rate instead.
+ */
+attribute_deprecated int parse_frame_rate(int *frame_rate, int *frame_rate_base,
+                                          const char *arg);
+#endif
+
 #if FF_API_PARSE_DATE
 /**
  * Parse datestr and return a corresponding number of microseconds.
@@ -1697,15 +1783,5 @@ attribute_deprecated int avf_sdp_create(AVFormatContext *ac[], int n_files, char
  * @param extensions a comma-separated list of filename extensions
  */
 int av_match_ext(const char *filename, const char *extensions);
-
-/**
- * Test if the given container can store a codec.
- *
- * @param std_compliance standards compliance level, one of FF_COMPLIANCE_*
- *
- * @return 1 if codec with ID codec_id can be stored in ofmt, 0 if it cannot.
- *         A negative number if this information is not available.
- */
-int avformat_query_codec(AVOutputFormat *ofmt, enum CodecID codec_id, int std_compliance);
 
 #endif /* AVFORMAT_AVFORMAT_H */

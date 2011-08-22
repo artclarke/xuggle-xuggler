@@ -119,9 +119,15 @@ static void frac_add(AVFrac *f, int64_t incr)
 }
 
 /** head of registered input format linked list */
-static AVInputFormat *first_iformat = NULL;
+#if !FF_API_FIRST_FORMAT
+static
+#endif
+AVInputFormat *first_iformat = NULL;
 /** head of registered output format linked list */
-static AVOutputFormat *first_oformat = NULL;
+#if !FF_API_FIRST_FORMAT
+static
+#endif
+AVOutputFormat *first_oformat = NULL;
 
 AVInputFormat  *av_iformat_next(AVInputFormat  *f)
 {
@@ -198,6 +204,14 @@ static int match_format(const char *name, const char *names)
     return !strcasecmp(name, names);
 }
 
+#if FF_API_GUESS_FORMAT
+AVOutputFormat *guess_format(const char *short_name, const char *filename,
+                             const char *mime_type)
+{
+    return av_guess_format(short_name, filename, mime_type);
+}
+#endif
+
 AVOutputFormat *av_guess_format(const char *short_name, const char *filename,
                                 const char *mime_type)
 {
@@ -233,6 +247,27 @@ AVOutputFormat *av_guess_format(const char *short_name, const char *filename,
     return fmt_found;
 }
 
+#if FF_API_GUESS_FORMAT
+AVOutputFormat *guess_stream_format(const char *short_name, const char *filename,
+                             const char *mime_type)
+{
+    AVOutputFormat *fmt = av_guess_format(short_name, filename, mime_type);
+
+    if (fmt) {
+        AVOutputFormat *stream_fmt;
+        char stream_format_name[64];
+
+        snprintf(stream_format_name, sizeof(stream_format_name), "%s_stream", fmt->name);
+        stream_fmt = av_guess_format(stream_format_name, NULL, NULL);
+
+        if (stream_fmt)
+            fmt = stream_fmt;
+    }
+
+    return fmt;
+}
+#endif
+
 enum CodecID av_guess_codec(AVOutputFormat *fmt, const char *short_name,
                             const char *filename, const char *mime_type, enum AVMediaType type){
     if(type == AVMEDIA_TYPE_VIDEO){
@@ -264,6 +299,38 @@ AVInputFormat *av_find_input_format(const char *short_name)
     return NULL;
 }
 
+#if FF_API_SYMVER && CONFIG_SHARED && HAVE_SYMVER
+FF_SYMVER(void, av_destruct_packet_nofree, (AVPacket *pkt), "LIBAVFORMAT_52")
+{
+    av_destruct_packet_nofree(pkt);
+}
+
+FF_SYMVER(void, av_destruct_packet, (AVPacket *pkt), "LIBAVFORMAT_52")
+{
+    av_destruct_packet(pkt);
+}
+
+FF_SYMVER(int, av_new_packet, (AVPacket *pkt, int size), "LIBAVFORMAT_52")
+{
+    return av_new_packet(pkt, size);
+}
+
+FF_SYMVER(int, av_dup_packet, (AVPacket *pkt), "LIBAVFORMAT_52")
+{
+    return av_dup_packet(pkt);
+}
+
+FF_SYMVER(void, av_free_packet, (AVPacket *pkt), "LIBAVFORMAT_52")
+{
+    av_free_packet(pkt);
+}
+
+FF_SYMVER(void, av_init_packet, (AVPacket *pkt), "LIBAVFORMAT_52")
+{
+    av_log(NULL, AV_LOG_WARNING, "Diverting av_*_packet function calls to libavcodec. Recompile to improve performance\n");
+    av_init_packet(pkt);
+}
+#endif
 
 int av_get_packet(AVIOContext *s, AVPacket *pkt, int size)
 {
@@ -369,7 +436,6 @@ static int set_codec_from_probe_data(AVFormatContext *s, AVStream *st, AVProbeDa
         { "dts"      , CODEC_ID_DTS       , AVMEDIA_TYPE_AUDIO },
         { "eac3"     , CODEC_ID_EAC3      , AVMEDIA_TYPE_AUDIO },
         { "h264"     , CODEC_ID_H264      , AVMEDIA_TYPE_VIDEO },
-        { "loas"     , CODEC_ID_AAC_LATM  , AVMEDIA_TYPE_AUDIO },
         { "m4v"      , CODEC_ID_MPEG4     , AVMEDIA_TYPE_VIDEO },
         { "mp3"      , CODEC_ID_MP3       , AVMEDIA_TYPE_AUDIO },
         { "mpegvideo", CODEC_ID_MPEG2VIDEO, AVMEDIA_TYPE_VIDEO },
@@ -476,6 +542,9 @@ int av_open_input_stream(AVFormatContext **ic_ptr,
         goto fail;
     ic->pb = ic->pb ? ic->pb : pb; // don't leak custom pb if it wasn't set above
 
+#if FF_API_OLD_METADATA
+    ff_metadata_demux_compat(ic);
+#endif
     *ic_ptr = ic;
 fail:
     av_dict_free(&opts);
@@ -609,7 +678,7 @@ static int init_input(AVFormatContext *s, const char *filename)
         (!s->iformat && (s->iformat = av_probe_input_format(&pd, 0))))
         return 0;
 
-    if ((ret = avio_open(&s->pb, filename, AVIO_FLAG_READ)) < 0)
+    if ((ret = avio_open(&s->pb, filename, AVIO_RDONLY)) < 0)
        return ret;
     if (s->iformat)
         return 0;
@@ -746,9 +815,6 @@ int av_read_packet(AVFormatContext *s, AVPacket *pkt)
                    pkt->stream_index);
             continue;
         }
-
-        if(!(s->flags & AVFMT_FLAG_KEEP_SIDE_DATA))
-            av_packet_merge_side_data(pkt);
 
         st= s->streams[pkt->stream_index];
 
@@ -2677,24 +2743,34 @@ void avformat_free_context(AVFormatContext *s)
         av_free(st->codec->extradata);
         av_free(st->codec->subtitle_header);
         av_free(st->codec);
+#if FF_API_OLD_METADATA
+        av_free(st->filename);
+#endif
         av_free(st->priv_data);
         av_free(st->info);
         av_free(st);
     }
     for(i=s->nb_programs-1; i>=0; i--) {
-        av_dict_free(&s->programs[i]->metadata);
+#if FF_API_OLD_METADATA
+        av_freep(&s->programs[i]->provider_name);
+        av_freep(&s->programs[i]->name);
+#endif
+        av_metadata_free(&s->programs[i]->metadata);
         av_freep(&s->programs[i]->stream_index);
         av_freep(&s->programs[i]);
     }
     av_freep(&s->programs);
     av_freep(&s->priv_data);
     while(s->nb_chapters--) {
+#if FF_API_OLD_METADATA
+        av_free(s->chapters[s->nb_chapters]->title);
+#endif
         av_dict_free(&s->chapters[s->nb_chapters]->metadata);
         av_free(s->chapters[s->nb_chapters]);
     }
     av_freep(&s->chapters);
-    av_dict_free(&s->metadata);
-    av_freep(&s->streams);
+    av_metadata_free(&s->metadata);
+//    av_freep(&s->key);
     av_free(s);
 }
 
@@ -2711,6 +2787,13 @@ AVStream *av_new_stream(AVFormatContext *s, int id)
 {
     AVStream *st;
     int i;
+
+#if FF_API_MAX_STREAMS
+    if (s->nb_streams >= MAX_STREAMS){
+        av_log(s, AV_LOG_ERROR, "Too many streams\n");
+        return NULL;
+    }
+#else
     AVStream **streams;
 
     if (s->nb_streams >= INT_MAX/sizeof(*streams))
@@ -2719,6 +2802,7 @@ AVStream *av_new_stream(AVFormatContext *s, int id)
     if (!streams)
         return NULL;
     s->streams = streams;
+#endif
 
     st = av_mallocz(sizeof(AVStream));
     if (!st)
@@ -2796,6 +2880,9 @@ AVChapter *ff_new_chapter(AVFormatContext *s, int id, AVRational time_base, int6
             return NULL;
         dynarray_add(&s->chapters, &s->nb_chapters, chapter);
     }
+#if FF_API_OLD_METADATA
+    av_free(chapter->title);
+#endif
     av_dict_set(&chapter->metadata, "title", title, 0);
     chapter->id    = id;
     chapter->time_base= time_base;
@@ -3020,6 +3107,10 @@ int avformat_write_header(AVFormatContext *s, AVDictionary **options)
                 goto fail;
         }
     }
+
+#if FF_API_OLD_METADATA
+    ff_metadata_mux_compat(s);
+#endif
 
     /* set muxer identification string */
     if (s->nb_streams && !(s->streams[0]->codec->flags & CODEC_FLAG_BITEXACT)) {
@@ -3539,6 +3630,24 @@ void av_dump_format(AVFormatContext *ic,
     av_free(printed);
 }
 
+#if FF_API_PARSE_FRAME_PARAM
+#include "libavutil/parseutils.h"
+
+int parse_image_size(int *width_ptr, int *height_ptr, const char *str)
+{
+    return av_parse_video_size(width_ptr, height_ptr, str);
+}
+
+int parse_frame_rate(int *frame_rate_num, int *frame_rate_den, const char *arg)
+{
+    AVRational frame_rate;
+    int ret = av_parse_video_rate(&frame_rate, arg);
+    *frame_rate_num= frame_rate.num;
+    *frame_rate_den= frame_rate.den;
+    return ret;
+}
+#endif
+
 int64_t av_gettime(void)
 {
     struct timeval tv;
@@ -3717,6 +3826,24 @@ void av_pkt_dump_log2(void *avcl, int level, AVPacket *pkt, int dump_payload,
 {
     pkt_dump_internal(avcl, NULL, level, pkt, dump_payload, st->time_base);
 }
+
+#if FF_API_URL_SPLIT
+attribute_deprecated
+void ff_url_split(char *proto, int proto_size,
+                  char *authorization, int authorization_size,
+                  char *hostname, int hostname_size,
+                  int *port_ptr,
+                  char *path, int path_size,
+                  const char *url)
+{
+    av_url_split(proto, proto_size,
+                 authorization, authorization_size,
+                 hostname, hostname_size,
+                 port_ptr,
+                 path, path_size,
+                 url);
+}
+#endif
 
 void av_url_split(char *proto, int proto_size,
                   char *authorization, int authorization_size,
@@ -4035,18 +4162,4 @@ int64_t ff_iso8601_to_unix_time(const char *datestr)
                                  "the date string.\n");
     return 0;
 #endif
-}
-
-int avformat_query_codec(AVOutputFormat *ofmt, enum CodecID codec_id, int std_compliance)
-{
-    if (ofmt) {
-        if (ofmt->query_codec)
-            return ofmt->query_codec(codec_id, std_compliance);
-        else if (ofmt->codec_tag)
-            return !!av_codec_get_tag(ofmt->codec_tag, codec_id);
-        else if (codec_id == ofmt->video_codec || codec_id == ofmt->audio_codec ||
-                 codec_id == ofmt->subtitle_codec)
-                return 1;
-    }
-    return AVERROR_PATCHWELCOME;
 }

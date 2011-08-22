@@ -65,24 +65,8 @@ typedef int32_t CoefType;
 typedef int64_t CoefSumType;
 #endif
 
-/* common option values */
-#define AC3ENC_OPT_NONE            -1
-#define AC3ENC_OPT_AUTO            -1
-#define AC3ENC_OPT_OFF              0
-#define AC3ENC_OPT_ON               1
-#define AC3ENC_OPT_NOT_INDICATED    0
-#define AC3ENC_OPT_MODE_ON          1
-#define AC3ENC_OPT_MODE_OFF         2
 
-/* specific option values */
-#define AC3ENC_OPT_LARGE_ROOM       1
-#define AC3ENC_OPT_SMALL_ROOM       2
-#define AC3ENC_OPT_DOWNMIX_LTRT     1
-#define AC3ENC_OPT_DOWNMIX_LORO     2
-#define AC3ENC_OPT_ADCONV_STANDARD  0
-#define AC3ENC_OPT_ADCONV_HDCD      1
-
-
+#if 0
 /**
  * Encoding Options used by AVOption.
  */
@@ -117,7 +101,7 @@ typedef struct AC3EncOptions {
     int channel_coupling;
     int cpl_start;
 } AC3EncOptions;
-
+#endif
 /**
  * Data for a single audio block.
  */
@@ -140,7 +124,7 @@ typedef struct AC3Block {
     int      cpl_in_use;                        ///< coupling in use for this block     (cplinu)
     uint8_t  channel_in_cpl[AC3_MAX_CHANNELS];  ///< channel in coupling                (chincpl)
     int      num_cpl_channels;                  ///< number of channels in coupling
-    uint8_t  new_cpl_coords[AC3_MAX_CHANNELS];  ///< send new coupling coordinates      (cplcoe)
+    uint8_t  new_cpl_coords;                    ///< send new coupling coordinates      (cplcoe)
     uint8_t  cpl_master_exp[AC3_MAX_CHANNELS];  ///< coupling coord master exponents    (mstrcplco)
     int      new_snr_offsets;                   ///< send new SNR offsets
     int      new_cpl_leak;                      ///< send new coupling leak info
@@ -256,8 +240,6 @@ typedef struct AC3EncodeContext {
 } AC3EncodeContext;
 
 
-extern const int64_t ff_ac3_channel_layouts[19];
-
 int ff_ac3_encode_init(AVCodecContext *avctx);
 
 int ff_ac3_encode_close(AVCodecContext *avctx);
@@ -273,8 +255,6 @@ void ff_ac3_apply_rematrixing(AC3EncodeContext *s);
 void ff_ac3_process_exponents(AC3EncodeContext *s);
 
 int ff_ac3_compute_bit_allocation(AC3EncodeContext *s);
-
-void ff_ac3_group_exponents(AC3EncodeContext *s);
 
 void ff_ac3_quantize_mantissas(AC3EncodeContext *s);
 

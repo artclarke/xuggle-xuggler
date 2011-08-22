@@ -34,15 +34,10 @@ void avfilter_register_all(void)
         return;
     initialized = 1;
 
-    REGISTER_FILTER (AFORMAT,     aformat,     af);
     REGISTER_FILTER (ANULL,       anull,       af);
-    REGISTER_FILTER (ARESAMPLE,   aresample,   af);
-    REGISTER_FILTER (ASHOWINFO,   ashowinfo,   af);
 
-    REGISTER_FILTER (ABUFFER,     abuffer,     asrc);
     REGISTER_FILTER (ANULLSRC,    anullsrc,    asrc);
 
-    REGISTER_FILTER (ABUFFERSINK, abuffersink, asink);
     REGISTER_FILTER (ANULLSINK,   anullsink,   asink);
 
     REGISTER_FILTER (BLACKFRAME,  blackframe,  vf);
@@ -50,7 +45,6 @@ void avfilter_register_all(void)
     REGISTER_FILTER (COPY,        copy,        vf);
     REGISTER_FILTER (CROP,        crop,        vf);
     REGISTER_FILTER (CROPDETECT,  cropdetect,  vf);
-    REGISTER_FILTER (DELOGO,      delogo,      vf);
     REGISTER_FILTER (DRAWBOX,     drawbox,     vf);
     REGISTER_FILTER (DRAWTEXT,    drawtext,    vf);
     REGISTER_FILTER (FADE,        fade,        vf);
@@ -90,11 +84,10 @@ void avfilter_register_all(void)
     REGISTER_FILTER (COLOR,       color,       vsrc);
     REGISTER_FILTER (FREI0R,      frei0r_src,  vsrc);
     REGISTER_FILTER (MOVIE,       movie,       vsrc);
-    REGISTER_FILTER (MPTESTSRC,   mptestsrc,   vsrc);
     REGISTER_FILTER (NULLSRC,     nullsrc,     vsrc);
     REGISTER_FILTER (RGBTESTSRC,  rgbtestsrc,  vsrc);
     REGISTER_FILTER (TESTSRC,     testsrc,     vsrc);
 
-    REGISTER_FILTER (BUFFERSINK,  buffersink,  vsink);
+    REGISTER_FILTER (BUFFER,      buffersink,  vsink);
     REGISTER_FILTER (NULLSINK,    nullsink,    vsink);
 }

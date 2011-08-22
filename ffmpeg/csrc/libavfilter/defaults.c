@@ -174,6 +174,29 @@ void avfilter_default_filter_samples(AVFilterLink *inlink, AVFilterBufferRef *sa
     inlink->cur_buf = NULL;
 }
 
+/**
+ * default config_link() implementation for output video links to simplify
+ * the implementation of one input one output video filters */
+int avfilter_default_config_output_link(AVFilterLink *link)
+{
+    if (link->src->input_count && link->src->inputs[0]) {
+        if (link->type == AVMEDIA_TYPE_VIDEO) {
+            link->w = link->src->inputs[0]->w;
+            link->h = link->src->inputs[0]->h;
+            link->time_base = link->src->inputs[0]->time_base;
+        } else if (link->type == AVMEDIA_TYPE_AUDIO) {
+            link->channel_layout = link->src->inputs[0]->channel_layout;
+            link->sample_rate    = link->src->inputs[0]->sample_rate;
+        }
+    } else {
+        /* XXX: any non-simple filter which would cause this branch to be taken
+         * really should implement its own config_props() for this link. */
+        return -1;
+    }
+
+    return 0;
+}
+
 static void set_common_formats(AVFilterContext *ctx, AVFilterFormats *fmts,
                                enum AVMediaType type, int offin, int offout)
 {
@@ -181,12 +204,12 @@ static void set_common_formats(AVFilterContext *ctx, AVFilterFormats *fmts,
     for (i = 0; i < ctx->input_count; i++)
         if (ctx->inputs[i] && ctx->inputs[i]->type == type)
             avfilter_formats_ref(fmts,
-                                 (AVFilterFormats **)((uint8_t *)ctx->inputs[i]+offout));
+                                 (AVFilterFormats**)((void*)ctx->inputs[i]+offout));
 
     for (i = 0; i < ctx->output_count; i++)
         if (ctx->outputs[i] && ctx->outputs[i]->type == type)
             avfilter_formats_ref(fmts,
-                                 (AVFilterFormats **)((uint8_t *)ctx->outputs[i]+offin));
+                                 (AVFilterFormats**)((void*)ctx->outputs[i]+offin));
 
     if (!fmts->refcount) {
         av_free(fmts->formats);
@@ -216,19 +239,11 @@ void avfilter_set_common_channel_layouts(AVFilterContext *ctx, AVFilterFormats *
                        offsetof(AVFilterLink, out_chlayouts));
 }
 
-void avfilter_set_common_packing_formats(AVFilterContext *ctx, AVFilterFormats *formats)
-{
-    set_common_formats(ctx, formats, AVMEDIA_TYPE_AUDIO,
-                       offsetof(AVFilterLink, in_packing),
-                       offsetof(AVFilterLink, out_packing));
-}
-
 int avfilter_default_query_formats(AVFilterContext *ctx)
 {
     avfilter_set_common_pixel_formats(ctx, avfilter_all_formats(AVMEDIA_TYPE_VIDEO));
     avfilter_set_common_sample_formats(ctx, avfilter_all_formats(AVMEDIA_TYPE_AUDIO));
     avfilter_set_common_channel_layouts(ctx, avfilter_all_channel_layouts());
-    avfilter_set_common_packing_formats(ctx, avfilter_all_packing_formats());
 
     return 0;
 }

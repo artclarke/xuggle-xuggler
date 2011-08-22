@@ -640,7 +640,7 @@ static void new_pes_packet(PESContext *pes, AVPacket *pkt)
 
     if(pes->total_size != MAX_PES_PAYLOAD &&
        pes->pes_header_size + pes->data_index != pes->total_size + 6) {
-        av_log(pes->stream, AV_LOG_WARNING, "PES packet size mismatch\n");
+        av_log(pes->ts, AV_LOG_WARNING, "PES packet size mismatch\n");
         pes->flags |= AV_PKT_FLAG_CORRUPT;
     }
     memset(pkt->data+pkt->size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
@@ -709,6 +709,11 @@ static int mpegts_push_data(MpegTSFilter *filter,
                     if ((pes->st && pes->st->discard == AVDISCARD_ALL) ||
                         code == 0x1be) /* padding_stream */
                         goto skip;
+
+#if FF_API_MAX_STREAMS
+                    if (!pes->st && pes->stream->nb_streams == MAX_STREAMS)
+                        goto skip;
+#endif
 
                     /* stream not present in PMT */
                     if (!pes->st) {
@@ -1314,7 +1319,7 @@ static int handle_packet(MpegTSContext *ts, const uint8_t *packet)
 
     tss->last_cc = cc;
     if (!cc_ok) {
-        av_log(ts->stream, AV_LOG_WARNING, "Continuity Check Failed\n");
+        av_log(ts, AV_LOG_WARNING, "Continuity Check Failed\n");
         if(tss->type == MPEGTS_PES) {
             PESContext *pc = tss->u.pes_filter.opaque;
             pc->flags |= AV_PKT_FLAG_CORRUPT;
@@ -1528,6 +1533,13 @@ static int mpegts_read_header(AVFormatContext *s,
     uint8_t buf[8*1024];
     int len;
     int64_t pos;
+
+#if FF_API_FORMAT_PARAMETERS
+    if (ap) {
+        if (ap->mpeg2ts_compute_pcr)
+            ts->mpeg2ts_compute_pcr = ap->mpeg2ts_compute_pcr;
+    }
+#endif
 
     /* read the first 1024 bytes to get packet size */
     pos = avio_tell(pb);

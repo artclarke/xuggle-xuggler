@@ -3418,8 +3418,8 @@ static av_cold int vc1_decode_init(AVCodecContext *avctx)
     if (vc1_init_common(v) < 0) return -1;
     ff_vc1dsp_init(&v->vc1dsp);
 
-    cur_width = avctx->coded_width;
-    cur_height = avctx->coded_height;
+    cur_width = avctx->coded_width = avctx->width;
+    cur_height = avctx->coded_height = avctx->height;
     if (avctx->codec_id == CODEC_ID_WMV3)
     {
         int count = 0;
@@ -3494,11 +3494,13 @@ static av_cold int vc1_decode_init(AVCodecContext *avctx)
     // yet when ff_msmpeg4_decode_init was called the fist time
     // above.  If sequence information changes, we need to call
     // it again.
-    if (cur_width != avctx->coded_width ||
-        cur_height != avctx->coded_height) {
+    if (cur_width != avctx->width ||
+        cur_height != avctx->height) {
         MPV_common_end(s);
         if(ff_msmpeg4_decode_init(avctx) < 0)
             return -1;
+        avctx->coded_width = avctx->width;
+        avctx->coded_height = avctx->height;
     }
 
     avctx->profile = v->profile;
@@ -3713,11 +3715,21 @@ static int vc1_decode_frame(AVCodecContext *avctx,
     if(s->last_picture_ptr==NULL && (s->pict_type==AV_PICTURE_TYPE_B || s->dropable)){
         goto err;
     }
+#if FF_API_HURRY_UP
+    /* skip b frames if we are in a hurry */
+    if(avctx->hurry_up && s->pict_type==FF_B_TYPE) return -1;//buf_size;
+#endif
     if(   (avctx->skip_frame >= AVDISCARD_NONREF && s->pict_type==AV_PICTURE_TYPE_B)
        || (avctx->skip_frame >= AVDISCARD_NONKEY && s->pict_type!=AV_PICTURE_TYPE_I)
        ||  avctx->skip_frame >= AVDISCARD_ALL) {
         goto end;
     }
+#if FF_API_HURRY_UP
+    /* skip everything if we are in a hurry>=5 */
+    if(avctx->hurry_up>=5) {
+        goto err;
+    }
+#endif
 
     if(s->next_p_frame_damaged){
         if(s->pict_type==AV_PICTURE_TYPE_B)

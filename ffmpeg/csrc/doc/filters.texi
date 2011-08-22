@@ -99,93 +99,9 @@ build.
 
 Below is a description of the currently available audio filters.
 
-@section aformat
-
-Convert the input audio to one of the specified formats. The framework will
-negotiate the most appropriate format to minimize conversions.
-
-The filter accepts three lists of formats, separated by ":", in the form:
-"@var{sample_formats}:@var{channel_layouts}:@var{packing_formats}".
-
-Elements in each list are separated by "," which has to be escaped in the
-filtergraph specification.
-
-The special parameter "all", in place of a list of elements, signifies all
-supported formats.
-
-Some examples follow:
-@example
-aformat=u8\\,s16:mono:packed
-
-aformat=s16:mono\\,stereo:all
-@end example
-
 @section anull
 
 Pass the audio source unchanged to the output.
-
-@section aresample
-
-Resample the input audio to the specified sample rate.
-
-The filter accepts exactly one parameter, the output sample rate. If not
-specified then the filter will automatically convert between its input
-and output sample rates.
-
-For example, to resample the input audio to 44100Hz:
-@example
-aresample=44100
-@end example
-
-@section ashowinfo
-
-Show a line containing various information for each input audio frame.
-The input audio is not modified.
-
-The shown line contains a sequence of key/value pairs of the form
-@var{key}:@var{value}.
-
-A description of each shown parameter follows:
-
-@table @option
-@item n
-sequential number of the input frame, starting from 0
-
-@item pts
-presentation TimeStamp of the input frame, expressed as a number of
-time base units. The time base unit depends on the filter input pad, and
-is usually 1/@var{sample_rate}.
-
-@item pts_time
-presentation TimeStamp of the input frame, expressed as a number of
-seconds
-
-@item pos
-position of the frame in the input stream, -1 if this information in
-unavailable and/or meanigless (for example in case of synthetic audio)
-
-@item fmt
-sample format name
-
-@item chlayout
-channel layout description
-
-@item nb_samples
-number of samples (per each channel) contained in the filtered frame
-
-@item rate
-sample rate for the audio frame
-
-@item planar
-if the packing format is planar, 0 if packed
-
-@item checksum
-Adler-32 checksum of all the planes of the input frame
-
-@item plane_checksum
-Adler-32 checksum for each input frame plane, expressed in the form
-"[@var{c0} @var{c1} @var{c2} @var{c3} @var{c4} @var{c5} @var{c6} @var{c7}]"
-@end table
 
 @c man end AUDIO FILTERS
 
@@ -193,51 +109,6 @@ Adler-32 checksum for each input frame plane, expressed in the form
 @c man begin AUDIO SOURCES
 
 Below is a description of the currently available audio sources.
-
-@section abuffer
-
-Buffer audio frames, and make them available to the filter chain.
-
-This source is mainly intended for a programmatic use, in particular
-through the interface defined in @file{libavfilter/asrc_abuffer.h}.
-
-It accepts the following mandatory parameters:
-@var{sample_rate}:@var{sample_fmt}:@var{channel_layout}:@var{packing}
-
-@table @option
-
-@item sample_rate
-The sample rate of the incoming audio buffers.
-
-@item sample_fmt
-The sample format of the incoming audio buffers.
-Either a sample format name or its corresponging integer representation from
-the enum AVSampleFormat in @file{libavutil/samplefmt.h}
-
-@item channel_layout
-The channel layout of the incoming audio buffers.
-Either a channel layout name from channel_layout_map in
-@file{libavutil/audioconvert.c} or its corresponding integer representation
-from the AV_CH_LAYOUT_* macros in @file{libavutil/audioconvert.h}
-
-@item packing
-Either "packed" or "planar", or their integer representation: 0 or 1
-respectively.
-
-@end table
-
-For example:
-@example
-abuffer=44100:s16:stereo:planar
-@end example
-
-will instruct the source to accept planar 16bit signed stereo at 44100Hz.
-Since the sample format with name "s16" corresponds to the number
-1 and the "stereo" channel layout corresponds to the value 3, this is
-equivalent to:
-@example
-abuffer=44100:1:3:1
-@end example
 
 @section anullsrc
 
@@ -272,17 +143,6 @@ anullsrc=48000:mono
 @c man begin AUDIO SINKS
 
 Below is a description of the currently available audio sinks.
-
-@section abuffersink
-
-Buffer audio frames, and make them available to the end of filter chain.
-
-This sink is mainly intended for programmatic use, in particular
-through the interface defined in @file{libavfilter/asink_abuffer.h}.
-
-It requires a pointer to a ABufferSinkContext structure, which defines the
-incoming buffers' format, to be passed as the opaque parameter to
-@code{avfilter_init_filter} for initialization.
 
 @section anullsink
 
@@ -533,58 +393,6 @@ This can be useful when channel logos distort the video area. 0
 indicates never reset and return the largest area encountered during
 playback.
 @end table
-
-@section delogo
-
-Suppress a TV station logo by a simple interpolation of the surrounding
-pixels. Just set a rectangle covering the logo and watch it disappear
-(and sometimes something even uglier appear - your mileage may vary).
-
-The filter accepts parameters as a string of the form
-"@var{x}:@var{y}:@var{w}:@var{h}:@var{band}", or as a list of
-@var{key}=@var{value} pairs, separated by ":".
-
-The description of the accepted parameters follows.
-
-@table @option
-
-@item x, y
-Specify the top left corner coordinates of the logo. They must be
-specified.
-
-@item w, h
-Specify the width and height of the logo to clear. They must be
-specified.
-
-@item band, t
-Specify the thickness of the fuzzy edge of the rectangle (added to
-@var{w} and @var{h}). The default value is 4.
-
-@item show
-When set to 1, a green rectangle is drawn on the screen to simplify
-finding the right @var{x}, @var{y}, @var{w}, @var{h} parameters, and
-@var{band} is set to 4. The default value is 0.
-
-@end table
-
-Some examples follow.
-
-@itemize
-
-@item
-Set a rectangle covering the area with top left corner coordinates 0,0
-and size 100x77, setting a band of size 10:
-@example
-delogo=0:0:100:77:10
-@end example
-
-@item
-As the previous example, but use named options:
-@example
-delogo=x=0:y=0:w=100:h=77:band=10
-@end example
-
-@end itemize
 
 @section drawbox
 
@@ -1101,6 +909,7 @@ The list of the currently supported filters follows:
 @table @var
 @item 2xsai
 @item decimate
+@item delogo
 @item denoise3d
 @item detc
 @item dint
@@ -1115,6 +924,7 @@ The list of the currently supported filters follows:
 @item framestep
 @item fspp
 @item geq
+@item gradfun
 @item harddup
 @item hqdn3d
 @item hue
@@ -1143,6 +953,7 @@ The list of the currently supported filters follows:
 @item spp
 @item swapuv
 @item telecine
+@item test
 @item tile
 @item tinterlace
 @item unsharp
@@ -1958,7 +1769,7 @@ It accepts the following parameters:
 
 Negative values for the amount will blur the input video, while positive
 values will sharpen. All parameters are optional and default to the
-equivalent of the string '5:5:1.0:5:5:0.0'.
+equivalent of the string '5:5:1.0:0:0:0.0'.
 
 @table @option
 
@@ -1976,13 +1787,13 @@ and 5.0, default value is 1.0.
 
 @item chroma_msize_x
 Set the chroma matrix horizontal size. It can be an integer between 3
-and 13, default value is 5.
+and 13, default value is 0.
 
 @item chroma_msize_y
 Set the chroma matrix vertical size. It can be an integer between 3
-and 13, default value is 5.
+and 13, default value is 0.
 
-@item chroma_amount
+@item luma_amount
 Set the chroma effect strength. It can be a float number between -2.0
 and 5.0, default value is 0.0.
 
@@ -2213,63 +2024,6 @@ movie=/dev/video0:f=video4linux2, scale=180:-1, setpts=PTS-STARTPTS [movie];
 
 @end example
 
-@section mptestsrc
-
-Generate various test patterns, as generated by the MPlayer test filter.
-
-The size of the generated video is fixed, and is 256x256.
-This source is useful in particular for testing encoding features.
-
-This source accepts an optional sequence of @var{key}=@var{value} pairs,
-separated by ":". The description of the accepted options follows.
-
-@table @option
-
-@item rate, r
-Specify the frame rate of the sourced video, as the number of frames
-generated per second. It has to be a string in the format
-@var{frame_rate_num}/@var{frame_rate_den}, an integer number, a float
-number or a valid video frame rate abbreviation. The default value is
-"25".
-
-@item duration, d
-Set the video duration of the sourced video. The accepted syntax is:
-@example
-[-]HH[:MM[:SS[.m...]]]
-[-]S+[.m...]
-@end example
-See also the function @code{av_parse_time()}.
-
-If not specified, or the expressed duration is negative, the video is
-supposed to be generated forever.
-
-@item test, t
-
-Set the number or the name of the test to perform. Supported tests are:
-@table @option
-@item dc_luma
-@item dc_chroma
-@item freq_luma
-@item freq_chroma
-@item amp_luma
-@item amp_chroma
-@item cbp
-@item mv
-@item ring1
-@item ring2
-@item all
-@end table
-
-Default value is "all", which will cycle through the list of all tests.
-@end table
-
-For example the following:
-@example
-testsrc=t=dc_luma
-@end example
-
-will generate a "dc_luma" test pattern.
-
 @section nullsrc
 
 Null video source, never return images. It is mainly useful as a
@@ -2339,9 +2093,6 @@ generated per second. It has to be a string in the format
 @var{frame_rate_num}/@var{frame_rate_den}, an integer number, a float
 number or a valid video frame rate abbreviation. The default value is
 "25".
-
-@item sar
-Set the sample aspect ratio of the sourced video.
 
 @item duration
 Set the video duration of the sourced video. The accepted syntax is:

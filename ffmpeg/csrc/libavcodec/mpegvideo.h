@@ -36,7 +36,6 @@
 #include "parser.h"
 #include "mpeg12data.h"
 #include "rl.h"
-#include "timecode.h"
 
 #define FRAME_SKIPPED 100 ///< return value for header parsers if frame is not coded
 
@@ -200,7 +199,6 @@ typedef struct MotionEstContext{
  * MpegEncContext.
  */
 typedef struct MpegEncContext {
-    AVClass *av_class;
     struct AVCodecContext *avctx;
     /* the following parameters must be initialized before encoding */
     int width, height;///< picture size. must be a multiple of 16
@@ -394,6 +392,11 @@ typedef struct MpegEncContext {
 
     int no_rounding;  /**< apply no rounding to motion compensation (MPEG4, msmpeg4, ...)
                         for b-frames rounding mode is always 0 */
+
+#if FF_API_HURRY_UP
+    int hurry_up;     /**< when set to 1 during decoding, b frames will be skipped
+                         when set to 2 idct/dequant will be skipped too */
+#endif
 
     /* macroblock layer */
     int mb_x, mb_y;
@@ -648,8 +651,6 @@ typedef struct MpegEncContext {
 
     /* RTP specific */
     int rtp_mode;
-
-    struct ff_timecode tc;
 
     uint8_t *ptr_lastgob;
     int swap_uv;             //vcr2 codec is an MPEG-2 variant with U and V swapped

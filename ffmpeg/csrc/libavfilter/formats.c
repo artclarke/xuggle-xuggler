@@ -19,7 +19,6 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#include "libavutil/eval.h"
 #include "libavutil/pixdesc.h"
 #include "libavutil/audioconvert.h"
 #include "avfilter.h"
@@ -174,17 +173,6 @@ AVFilterFormats *avfilter_all_channel_layouts(void)
     return avfilter_make_format64_list(chlayouts);
 }
 
-AVFilterFormats *avfilter_all_packing_formats(void)
-{
-    static int packing[] = {
-        AVFILTER_PACKED,
-        AVFILTER_PLANAR,
-        -1,
-    };
-
-    return avfilter_make_format_list(packing);
-}
-
 void avfilter_formats_ref(AVFilterFormats *f, AVFilterFormats **ref)
 {
     *ref = f;
@@ -232,66 +220,5 @@ void avfilter_formats_changeref(AVFilterFormats **oldref,
         *newref = *oldref;
         *oldref = NULL;
     }
-}
-
-/* internal functions for parsing audio format arguments */
-
-int ff_parse_sample_format(int *ret, const char *arg, void *log_ctx)
-{
-    char *tail;
-    int sfmt = av_get_sample_fmt(arg);
-    if (sfmt == AV_SAMPLE_FMT_NONE) {
-        sfmt = strtol(arg, &tail, 0);
-        if (*tail || (unsigned)sfmt >= AV_SAMPLE_FMT_NB) {
-            av_log(log_ctx, AV_LOG_ERROR, "Invalid sample format '%s'\n", arg);
-            return AVERROR(EINVAL);
-        }
-    }
-    *ret = sfmt;
-    return 0;
-}
-
-int ff_parse_sample_rate(unsigned *ret, const char *arg, void *log_ctx)
-{
-    char *tail;
-    double srate = av_strtod(arg, &tail);
-    if (*tail || srate < 1 || (int)srate != srate) {
-        av_log(log_ctx, AV_LOG_ERROR, "Invalid sample rate '%s'\n", arg);
-        return AVERROR(EINVAL);
-    }
-    *ret = srate;
-    return 0;
-}
-
-int ff_parse_channel_layout(int64_t *ret, const char *arg, void *log_ctx)
-{
-    char *tail;
-    int64_t chlayout = av_get_channel_layout(arg);
-    if (chlayout == 0) {
-        chlayout = strtol(arg, &tail, 10);
-        if (*tail || chlayout == 0) {
-            av_log(log_ctx, AV_LOG_ERROR, "Invalid channel layout '%s'\n", arg);
-            return AVERROR(EINVAL);
-        }
-    }
-    *ret = chlayout;
-    return 0;
-}
-
-int ff_parse_packing_format(int *ret, const char *arg, void *log_ctx)
-{
-    char *tail;
-    int planar = strtol(arg, &tail, 10);
-    if (*tail) {
-        planar = !strcmp(arg, "packed") ? 0:
-                 !strcmp(arg, "planar") ? 1: -1;
-    }
-
-    if (planar != 0 && planar != 1) {
-        av_log(log_ctx, AV_LOG_ERROR, "Invalid packing format '%s'\n", arg);
-        return AVERROR(EINVAL);
-    }
-    *ret = planar;
-    return 0;
 }
 

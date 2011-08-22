@@ -101,7 +101,9 @@ typedef struct {
  * @deprecated This struct will be made private
  */
 typedef struct URLContext {
+#if FF_API_URL_CLASS
     const AVClass *av_class; ///< information for av_log(). Set by url_open().
+#endif
     struct URLProtocol *prot;
     int flags;
     int is_streamed;  /**< true if streamed (no seek possible), default = false */
@@ -150,9 +152,9 @@ attribute_deprecated int url_poll(URLPollEntry *poll_table, int n, int timeout);
  * constants, optionally ORed with other flags.
  * @{
  */
-#define URL_RDONLY 1  /**< read-only */
-#define URL_WRONLY 2  /**< write-only */
-#define URL_RDWR   (URL_RDONLY|URL_WRONLY)  /**< read-write */
+#define URL_RDONLY 0  /**< read-only */
+#define URL_WRONLY 1  /**< write-only */
+#define URL_RDWR   2  /**< read-write */
 /**
  * @}
  */
@@ -340,7 +342,7 @@ attribute_deprecated int url_exist(const char *url);
 #endif // FF_API_OLD_AVIO
 
 /**
- * Return AVIO_FLAG_* access flags corresponding to the access permissions
+ * Return AVIO_* access flags corresponding to the access permissions
  * of the resource in url, or a negative value corresponding to an
  * AVERROR code in case of failure. The returned access flags are
  * masked by the value in flags.
@@ -350,6 +352,9 @@ attribute_deprecated int url_exist(const char *url);
  * one call to another. Thus you should not trust the returned value,
  * unless you are sure that no other processes are accessing the
  * checked resource.
+ *
+ * @note This function is slightly broken until next major bump
+ *       because of AVIO_RDONLY == 0. Don't use it until then.
  */
 int avio_check(const char *url, int flags);
 
@@ -360,6 +365,22 @@ int avio_check(const char *url, int flags);
  * callback is given.
  */
 void avio_set_interrupt_cb(int (*interrupt_cb)(void));
+
+#if FF_API_REGISTER_PROTOCOL
+extern URLProtocol *first_protocol;
+#endif
+
+#if FF_API_REGISTER_PROTOCOL
+/**
+ * @deprecated Use av_register_protocol() instead.
+ */
+attribute_deprecated int register_protocol(URLProtocol *protocol);
+
+/**
+ * @deprecated Use av_register_protocol2() instead.
+ */
+attribute_deprecated int av_register_protocol(URLProtocol *protocol);
+#endif
 
 /**
  * Allocate and initialize an AVIOContext for buffered I/O. It must be later
@@ -514,15 +535,29 @@ int avio_get_str16le(AVIOContext *pb, int maxlen, char *buf, int buflen);
 int avio_get_str16be(AVIOContext *pb, int maxlen, char *buf, int buflen);
 
 
+#if FF_API_URL_RESETBUF
+/** Reset the buffer for reading or writing.
+ * @note Will drop any data currently in the buffer without transmitting it.
+ * @param flags URL_RDONLY to set up the buffer for reading, or URL_WRONLY
+ *        to set up the buffer for writing. */
+int url_resetbuf(AVIOContext *s, int flags);
+#endif
+
 /**
  * @name URL open modes
  * The flags argument to avio_open must be one of the following
  * constants, optionally ORed with other flags.
  * @{
  */
-#define AVIO_FLAG_READ  1                                      /**< read-only */
-#define AVIO_FLAG_WRITE 2                                      /**< write-only */
-#define AVIO_FLAG_READ_WRITE (AVIO_FLAG_READ|AVIO_FLAG_WRITE)  /**< read-write pseudo flag */
+#if LIBAVFORMAT_VERSION_MAJOR < 53
+#define AVIO_RDONLY 0  /**< read-only */
+#define AVIO_WRONLY 1  /**< write-only */
+#define AVIO_RDWR   2  /**< read-write */
+#else
+#define AVIO_RDONLY 1  /**< read-only */
+#define AVIO_WRONLY 2  /**< write-only */
+#define AVIO_RDWR   4  /**< read-write */
+#endif
 /**
  * @}
  */
@@ -539,7 +574,11 @@ int avio_get_str16be(AVIOContext *pb, int maxlen, char *buf, int buflen);
  * Warning: non-blocking protocols is work-in-progress; this flag may be
  * silently ignored.
  */
+#if LIBAVFORMAT_VERSION_MAJOR < 53
+#define AVIO_FLAG_NONBLOCK 4
+#else
 #define AVIO_FLAG_NONBLOCK 8
+#endif
 
 /**
  * Create and initialize a AVIOContext for accessing the
@@ -582,6 +621,10 @@ int avio_open_dyn_buf(AVIOContext **s);
  * @return the length of the byte buffer
  */
 int avio_close_dyn_buf(AVIOContext *s, uint8_t **pbuffer);
+
+#if FF_API_UDP_GET_FILE
+int udp_get_file_handle(URLContext *h);
+#endif
 
 /**
  * Iterate through names of available protocols.

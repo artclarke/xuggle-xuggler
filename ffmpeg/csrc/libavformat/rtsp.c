@@ -1111,7 +1111,7 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
                                 "?localport=%d", j);
                     /* we will use two ports per rtp stream (rtp and rtcp) */
                     j += 2;
-                    if (ffurl_open(&rtsp_st->rtp_handle, buf, AVIO_FLAG_READ_WRITE) == 0)
+                    if (ffurl_open(&rtsp_st->rtp_handle, buf, AVIO_RDWR) == 0)
                         goto rtp_opened;
                 }
             }
@@ -1256,7 +1256,7 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
                         namebuf, sizeof(namebuf), NULL, 0, NI_NUMERICHOST);
             ff_url_join(url, sizeof(url), "rtp", NULL, namebuf,
                         port, "?ttl=%d", ttl);
-            if (ffurl_open(&rtsp_st->rtp_handle, url, AVIO_FLAG_READ_WRITE) < 0) {
+            if (ffurl_open(&rtsp_st->rtp_handle, url, AVIO_RDWR) < 0) {
                 err = AVERROR_INVALIDDATA;
                 goto fail;
             }
@@ -1383,7 +1383,7 @@ redirect:
                  av_get_random_seed(), av_get_random_seed());
 
         /* GET requests */
-        if (ffurl_alloc(&rt->rtsp_hd, httpname, AVIO_FLAG_READ) < 0) {
+        if (ffurl_alloc(&rt->rtsp_hd, httpname, AVIO_RDONLY) < 0) {
             err = AVERROR(EIO);
             goto fail;
         }
@@ -1404,7 +1404,7 @@ redirect:
         }
 
         /* POST requests */
-        if (ffurl_alloc(&rt->rtsp_hd_out, httpname, AVIO_FLAG_WRITE) < 0 ) {
+        if (ffurl_alloc(&rt->rtsp_hd_out, httpname, AVIO_WRONLY) < 0 ) {
             err = AVERROR(EIO);
             goto fail;
         }
@@ -1447,7 +1447,7 @@ redirect:
     } else {
         /* open the tcp connection */
         ff_url_join(tcpname, sizeof(tcpname), "tcp", NULL, host, port, NULL);
-        if (ffurl_open(&rt->rtsp_hd, tcpname, AVIO_FLAG_READ_WRITE) < 0) {
+        if (ffurl_open(&rt->rtsp_hd, tcpname, AVIO_RDWR) < 0) {
             err = AVERROR(EIO);
             goto fail;
         }
@@ -1794,7 +1794,7 @@ static int sdp_read_header(AVFormatContext *s, AVFormatParameters *ap)
                     namebuf, rtsp_st->sdp_port,
                     "?localport=%d&ttl=%d", rtsp_st->sdp_port,
                     rtsp_st->sdp_ttl);
-        if (ffurl_open(&rtsp_st->rtp_handle, url, AVIO_FLAG_READ_WRITE) < 0) {
+        if (ffurl_open(&rtsp_st->rtp_handle, url, AVIO_RDWR) < 0) {
             err = AVERROR_INVALIDDATA;
             goto fail;
         }
@@ -1850,7 +1850,7 @@ static int rtp_read_header(AVFormatContext *s,
     if (!ff_network_init())
         return AVERROR(EIO);
 
-    ret = ffurl_open(&in, s->filename, AVIO_FLAG_READ);
+    ret = ffurl_open(&in, s->filename, AVIO_RDONLY);
     if (ret)
         goto fail;
 

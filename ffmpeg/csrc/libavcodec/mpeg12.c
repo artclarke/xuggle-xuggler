@@ -2296,6 +2296,18 @@ static int mpeg_decode_frame(AVCodecContext *avctx,
             return buf_size;
     }
 
+#if 0
+    if (s->repeat_field % 2 == 1) {
+        s->repeat_field++;
+        //fprintf(stderr,"\nRepeating last frame: %d -> %d! pict: %d %d", avctx->frame_number-1, avctx->frame_number,
+        //        s2->picture_number, s->repeat_field);
+        if (avctx->flags & CODEC_FLAG_REPEAT_FIELD) {
+            *data_size = sizeof(AVPicture);
+            goto the_end;
+        }
+    }
+#endif
+
     if(s->mpeg_enc_ctx_allocated==0 && avctx->codec_tag == AV_RL32("VCR2"))
         vcr2_init_sequence(avctx);
 
@@ -2461,10 +2473,18 @@ static int decode_chunks(AVCodecContext *avctx,
                 /* Skip P-frames if we do not have a reference frame or we have an invalid header. */
                     if(s2->pict_type==AV_PICTURE_TYPE_P && !s->sync) break;
                 }
+#if FF_API_HURRY_UP
+                /* Skip B-frames if we are in a hurry. */
+                if(avctx->hurry_up && s2->pict_type==FF_B_TYPE) break;
+#endif
                 if(  (avctx->skip_frame >= AVDISCARD_NONREF && s2->pict_type==AV_PICTURE_TYPE_B)
                     ||(avctx->skip_frame >= AVDISCARD_NONKEY && s2->pict_type!=AV_PICTURE_TYPE_I)
                     || avctx->skip_frame >= AVDISCARD_ALL)
                     break;
+#if FF_API_HURRY_UP
+                /* Skip everything if we are in a hurry>=5. */
+                if(avctx->hurry_up>=5) break;
+#endif
 
                 if (!s->mpeg_enc_ctx_allocated) break;
 

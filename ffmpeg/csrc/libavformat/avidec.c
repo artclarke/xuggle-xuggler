@@ -78,7 +78,7 @@ typedef struct {
 
 
 static const AVOption options[] = {
-    { "use_odml", "use odml index", offsetof(AVIContext, use_odml), FF_OPT_TYPE_INT, {.dbl = 1}, -1, 1, AV_OPT_FLAG_DECODING_PARAM},
+    { "use_odml", "use odml index", offsetof(AVIContext, use_odml), FF_OPT_TYPE_INT, 1, -1, 1, AV_OPT_FLAG_DECODING_PARAM},
     { NULL },
 };
 
@@ -608,18 +608,15 @@ static int avi_read_header(AVFormatContext *s, AVFormatParameters *ap)
                     /* This code assumes that extradata contains only palette. */
                     /* This is true for all paletted codecs implemented in FFmpeg. */
                     if (st->codec->extradata_size && (st->codec->bits_per_coded_sample <= 8)) {
-                        int pal_size = (1 << st->codec->bits_per_coded_sample) << 2;
-                        const uint8_t *pal_src;
-
-                        pal_size = FFMIN(pal_size, st->codec->extradata_size);
-                        pal_src = st->codec->extradata + st->codec->extradata_size - pal_size;
+                        st->codec->palctrl = av_mallocz(sizeof(AVPaletteControl));
 #if HAVE_BIGENDIAN
-                        for (i = 0; i < pal_size/4; i++)
-                            ast->pal[i] = AV_RL32(pal_src+4*i);
+                        for (i = 0; i < FFMIN(st->codec->extradata_size, AVPALETTE_SIZE)/4; i++)
+                            st->codec->palctrl->palette[i] = av_bswap32(((uint32_t*)st->codec->extradata)[i]);
 #else
-                        memcpy(ast->pal, pal_src, pal_size);
+                        memcpy(st->codec->palctrl->palette, st->codec->extradata,
+                               FFMIN(st->codec->extradata_size, AVPALETTE_SIZE));
 #endif
-                        ast->has_pal = 1;
+                        st->codec->palctrl->palette_changed = 1;
                     }
 
                     print_tag("video", tag1, 0);
@@ -690,9 +687,9 @@ static int avi_read_header(AVFormatContext *s, AVFormatParameters *ap)
             break;
         case MKTAG('i', 'n', 'd', 'x'):
             i= avio_tell(pb);
-            if(pb->seekable && !(s->flags & AVFMT_FLAG_IGNIDX) && avi->use_odml &&
-               read_braindead_odml_indx(s, 0) < 0 && s->error_recognition >= FF_ER_EXPLODE){
-                goto fail;            }
+            if(pb->seekable && !(s->flags & AVFMT_FLAG_IGNIDX) && avi->use_odml){
+                read_braindead_odml_indx(s, 0);
+            }
             avio_seek(pb, i+size, SEEK_SET);
             break;
         case MKTAG('v', 'p', 'r', 'p'):
@@ -729,7 +726,6 @@ static int avi_read_header(AVFormatContext *s, AVFormatParameters *ap)
             if(size > 1000000){
                 av_log(s, AV_LOG_ERROR, "Something went wrong during header parsing, "
                                         "I will ignore it and try to continue anyway.\n");
-                if (s->error_recognition >= FF_ER_EXPLODE) goto fail;
                 avi->movi_list = avio_tell(pb) - 4;
                 avi->movi_end  = avio_size(pb);
                 goto end_of_header;
@@ -1091,14 +1087,14 @@ resync:
             return err;
 
         if(ast->has_pal && pkt->data && pkt->size<(unsigned)INT_MAX/2){
-            uint8_t *pal;
-            pal = av_packet_new_side_data(pkt, AV_PKT_DATA_PALETTE, AVPALETTE_SIZE);
-            if(!pal){
-                av_log(s, AV_LOG_ERROR, "Failed to allocate data for palette\n");
-            }else{
-                memcpy(pal, ast->pal, AVPALETTE_SIZE);
-                ast->has_pal = 0;
-            }
+            void *ptr= av_realloc(pkt->data, pkt->size + 4*256 + FF_INPUT_BUFFER_PADDING_SIZE);
+            if(ptr){
+            ast->has_pal=0;
+            pkt->size += 4*256;
+            pkt->data= ptr;
+                memcpy(pkt->data + pkt->size - 4*256, ast->pal, 4*256);
+            }else
+                av_log(s, AV_LOG_ERROR, "Failed to append palette\n");
         }
 
         if (CONFIG_DV_DEMUXER && avi->dv_demux) {
@@ -1431,6 +1427,7 @@ static int avi_read_close(AVFormatContext *s)
     for(i=0;i<s->nb_streams;i++) {
         AVStream *st = s->streams[i];
         AVIStream *ast = st->priv_data;
+        av_free(st->codec->palctrl);
         if (ast) {
             if (ast->sub_ctx) {
                 av_freep(&ast->sub_ctx->pb);

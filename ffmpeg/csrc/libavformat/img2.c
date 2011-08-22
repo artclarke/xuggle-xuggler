@@ -145,11 +145,11 @@ static int find_image_range(int *pfirst_index, int *plast_index,
         if (av_get_frame_filename(buf, sizeof(buf), path, first_index) < 0){
             *pfirst_index =
             *plast_index = 1;
-            if (avio_check(buf, AVIO_FLAG_READ) > 0)
+            if(url_exist(buf))
                 return 0;
             return -1;
         }
-        if (avio_check(buf, AVIO_FLAG_READ) > 0)
+        if (url_exist(buf))
             break;
     }
     if (first_index == 5)
@@ -167,7 +167,7 @@ static int find_image_range(int *pfirst_index, int *plast_index,
             if (av_get_frame_filename(buf, sizeof(buf), path,
                                       last_index + range1) < 0)
                 goto fail;
-            if (avio_check(buf, AVIO_FLAG_READ) <= 0)
+            if (!url_exist(buf))
                 break;
             range = range1;
             /* just in case... */
@@ -237,6 +237,16 @@ static int read_header(AVFormatContext *s1, AVFormatParameters *ap)
         av_log(s, AV_LOG_ERROR, "Could not parse framerate: %s.\n", s->framerate);
         return ret;
     }
+#if FF_API_FORMAT_PARAMETERS
+    if (ap->pix_fmt != PIX_FMT_NONE)
+        pix_fmt = ap->pix_fmt;
+    if (ap->width > 0)
+        width = ap->width;
+    if (ap->height > 0)
+        height = ap->height;
+    if (ap->time_base.num)
+        framerate = (AVRational){ap->time_base.den, ap->time_base.num};
+#endif
 
 #if FF_API_LOOP_INPUT
     if (s1->loop_input)
@@ -311,7 +321,7 @@ static int read_packet(AVFormatContext *s1, AVPacket *pkt)
                                   s->path, s->img_number)<0 && s->img_number > 1)
             return AVERROR(EIO);
         for(i=0; i<3; i++){
-            if (avio_open(&f[i], filename, AVIO_FLAG_READ) < 0) {
+            if (avio_open(&f[i], filename, AVIO_RDONLY) < 0) {
                 if(i==1)
                     break;
                 av_log(s1, AV_LOG_ERROR, "Could not open file : %s\n",filename);
@@ -398,7 +408,7 @@ static int write_packet(AVFormatContext *s, AVPacket *pkt)
             return AVERROR(EINVAL);
         }
         for(i=0; i<3; i++){
-            if (avio_open(&pb[i], filename, AVIO_FLAG_WRITE) < 0) {
+            if (avio_open(&pb[i], filename, AVIO_WRONLY) < 0) {
                 av_log(s, AV_LOG_ERROR, "Could not open file : %s\n",filename);
                 return AVERROR(EIO);
             }

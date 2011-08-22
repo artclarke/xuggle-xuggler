@@ -31,7 +31,7 @@
 #include "libavformat/avformat.h"
 #include "libavdevice/avdevice.h"
 #include "libswscale/swscale.h"
-#include "libavutil/opt.h"
+#include "libavcodec/opt.h"
 #include "libavcodec/audioconvert.h"
 #include "libavutil/audioconvert.h"
 #include "libavutil/parseutils.h"
@@ -114,7 +114,9 @@ typedef struct ChapterMap {
 static const OptionDef options[];
 
 #define MAX_FILES 100
+#if !FF_API_MAX_STREAMS
 #define MAX_STREAMS 1024    /* arbitrary sanity check value */
+#endif
 static const char *last_asked_format = NULL;
 static double *ts_scale;
 static int  nb_ts_scale;
@@ -639,7 +641,6 @@ static void choose_sample_fmt(AVStream *st, AVCodec *codec)
         if (*p == -1) {
             if((codec->capabilities & CODEC_CAP_LOSSLESS) && av_get_sample_fmt_name(st->codec->sample_fmt) > av_get_sample_fmt_name(codec->sample_fmts[0]))
                 av_log(NULL, AV_LOG_ERROR, "Convertion will not be lossless'\n");
-            if(av_get_sample_fmt_name(st->codec->sample_fmt))
             av_log(NULL, AV_LOG_WARNING,
                    "Incompatible sample format '%s' for codec '%s', auto-selecting format '%s'\n",
                    av_get_sample_fmt_name(st->codec->sample_fmt),
@@ -724,7 +725,7 @@ static OutputStream *new_output_stream(AVFormatContext *oc, int file_idx, AVCode
     ost->st    = st;
     ost->enc   = codec;
     if (codec)
-        ost->opts  = filter_codec_opts(codec_opts, codec->id, oc, st);
+        ost->opts  = filter_codec_opts(codec_opts, codec->id, 1);
 
     avcodec_get_context_defaults3(st->codec, codec);
 
@@ -736,6 +737,7 @@ static int read_ffserver_streams(AVFormatContext *s, const char *filename)
 {
     int i, err;
     AVFormatContext *ic = NULL;
+    int nopts = 0;
 
     err = avformat_open_input(&ic, filename, NULL, NULL);
     if (err < 0)
@@ -751,7 +753,7 @@ static int read_ffserver_streams(AVFormatContext *s, const char *filename)
         st    = ost->st;
 
         // FIXME: a more elegant solution is needed
-        memcpy(st, ic->streams[i], sizeof(AVStream));
+        memcpy(st, &ic->streams[i], sizeof(AVStream));
         st->info = av_malloc(sizeof(*st->info));
         memcpy(st->info, ic->streams[i]->info, sizeof(*st->info));
         avcodec_copy_context(st->codec, ic->streams[i]->codec);
@@ -767,6 +769,9 @@ static int read_ffserver_streams(AVFormatContext *s, const char *filename)
             } else
                 choose_pixel_fmt(st, codec);
         }
+
+        if(st->codec->flags & CODEC_FLAG_BITEXACT)
+            nopts = 1;
     }
 
     av_close_input_file(ic);
@@ -1721,14 +1726,6 @@ static int output_packet(InputStream *ist, int ist_index,
                 int frame_size;
 
                 ost = ost_table[i];
-
-                /* finish if recording time exhausted */
-                if (recording_time != INT64_MAX &&
-                        av_compare_ts(ist->pts, AV_TIME_BASE_Q, recording_time + start_time, (AVRational){1, 1000000})
-                    >= 0) {
-                    ist->is_past_recording_time = 1;
-                    continue;
-                }
                 if (ost->source_index == ist_index) {
 #if CONFIG_AVFILTER
                 frame_available = ist->st->codec->codec_type != AVMEDIA_TYPE_VIDEO ||
@@ -2486,6 +2483,8 @@ static int transcode(AVFormatContext **output_files,
             }
             assert_codec_experimental(ist->st->codec, 0);
             assert_avoptions(ost->opts);
+            //if (ist->st->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+            //    ist->st->codec->flags |= CODEC_FLAG_REPEAT_FIELD;
         }
     }
 
@@ -2806,6 +2805,17 @@ static int transcode(AVFormatContext **output_files,
                 if(pkt.pts != AV_NOPTS_VALUE)
                     pkt.pts-= av_rescale_q(delta, AV_TIME_BASE_Q, ist->st->time_base);
             }
+        }
+
+        /* finish if recording time exhausted */
+        if (recording_time != INT64_MAX &&
+            (pkt.pts != AV_NOPTS_VALUE ?
+                av_compare_ts(pkt.pts, ist->st->time_base, recording_time + start_time, (AVRational){1, 1000000})
+                    :
+                av_compare_ts(ist->pts, AV_TIME_BASE_Q, recording_time + start_time, (AVRational){1, 1000000})
+            )>= 0) {
+            ist->is_past_recording_time = 1;
+            goto discard_packet;
         }
 
         //fprintf(stderr,"read #%d.%d size=%d\n", ist->file_index, ist->st->index, pkt.size);
@@ -3419,7 +3429,7 @@ static int opt_input_file(const char *opt, const char *filename)
         ist->st = st;
         ist->file_index = nb_input_files;
         ist->discard = 1;
-        ist->opts = filter_codec_opts(codec_opts, ist->st->codec->codec_id, ic, st);
+        ist->opts = filter_codec_opts(codec_opts, ist->st->codec->codec_id, 0);
 
         if (i < nb_ts_scale)
             ist->ts_scale = ts_scale[i];
@@ -3936,7 +3946,7 @@ static int opt_output_file(const char *opt, const char *filename)
     /* check filename in case of an image number is expected */
     if (oc->oformat->flags & AVFMT_NEEDNUMBER) {
         if (!av_filename_number_test(oc->filename)) {
-            print_error(oc->filename, AVERROR(EINVAL));
+            print_error(oc->filename, AVERROR_NUMEXPECTED);
             ffmpeg_exit(1);
         }
     }
@@ -3947,7 +3957,7 @@ static int opt_output_file(const char *opt, const char *filename)
             (strchr(filename, ':') == NULL ||
              filename[1] == ':' ||
              av_strstart(filename, "file:", NULL))) {
-            if (avio_check(filename, 0) == 0) {
+            if (url_exist(filename)) {
                 if (!using_stdin) {
                     fprintf(stderr,"File '%s' already exists. Overwrite ? [y/N] ", filename);
                     fflush(stderr);
@@ -3964,7 +3974,7 @@ static int opt_output_file(const char *opt, const char *filename)
         }
 
         /* open the file */
-        if ((err = avio_open(&oc->pb, filename, AVIO_FLAG_WRITE)) < 0) {
+        if ((err = avio_open(&oc->pb, filename, AVIO_WRONLY)) < 0) {
             print_error(filename, err);
             ffmpeg_exit(1);
         }
@@ -4444,8 +4454,8 @@ static const OptionDef options[] = {
     { "rc_override", HAS_ARG | OPT_EXPERT | OPT_VIDEO, {(void*)opt_video_rc_override_string}, "rate control override for specific intervals", "override" },
     { "vcodec", HAS_ARG | OPT_VIDEO, {(void*)opt_codec}, "force video codec ('copy' to copy stream)", "codec" },
     { "me_threshold", HAS_ARG | OPT_EXPERT | OPT_VIDEO, {(void*)opt_me_threshold}, "motion estimaton threshold",  "threshold" },
-    { "sameq", OPT_BOOL | OPT_VIDEO, {(void*)&same_quality}, "use same quantizer as source (implies VBR)" },
-    { "same_quant", OPT_BOOL | OPT_VIDEO, {(void*)&same_quality}, "use same quantizer as source (implies VBR)" },
+    { "sameq", OPT_BOOL | OPT_VIDEO, {(void*)&same_quality},
+      "use same quantizer as source (implies VBR)" },
     { "pass", HAS_ARG | OPT_VIDEO, {(void*)opt_pass}, "select the pass number (1 or 2)", "n" },
     { "passlogfile", HAS_ARG | OPT_VIDEO, {(void*)&opt_passlogfile}, "select two pass log file name prefix", "prefix" },
     { "deinterlace", OPT_BOOL | OPT_EXPERT | OPT_VIDEO, {(void*)&do_deinterlace},

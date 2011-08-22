@@ -17,7 +17,6 @@ ref=${7:-"${base}/ref/fate/${test}"}
 fuzz=$8
 threads=${9:-1}
 thread_type=${10:-3}
-tool=${11}
 
 outdir="tests/data/fate"
 outfile="${outdir}/${test}"
@@ -50,34 +49,34 @@ run(){
     $target_exec $target_path/"$@"
 }
 
-avconv(){
-    run $tool -v 0 -threads $threads -thread_type $thread_type "$@"
+ffmpeg(){
+    run ffmpeg -v 0 -threads $threads -thread_type $thread_type "$@"
 }
 
 framecrc(){
-    avconv "$@" -f framecrc -
+    ffmpeg "$@" -f framecrc -
 }
 
 framemd5(){
-    avconv "$@" -f framemd5 -
+    ffmpeg "$@" -f framemd5 -
 }
 
 crc(){
-    avconv "$@" -f crc -
+    ffmpeg "$@" -f crc -
 }
 
 md5(){
-    avconv "$@" md5:
+    ffmpeg "$@" md5:
 }
 
 pcm(){
-    avconv "$@" -vn -f s16le -
+    ffmpeg "$@" -vn -f s16le -
 }
 
 regtest(){
     t="${test#$2-}"
     ref=${base}/ref/$2/$t
-    ${base}/${1}-regression.sh $t $2 $3 "$target_exec" "$target_path" "$threads" "$thread_type" "$tool"
+    ${base}/${1}-regression.sh $t $2 $3 "$target_exec" "$target_path" "$threads" "$thread_type"
 }
 
 codectest(){

@@ -115,8 +115,7 @@ static inline int get_ue_code(GetBitContext *gb, int order) {
 static int decode_residual_block(AVSContext *h, GetBitContext *gb,
                                  const struct dec_2dvlc *r, int esc_golomb_order,
                                  int qp, uint8_t *dst, int stride) {
-    int i, esc_code, level, mask;
-    unsigned int level_code, run;
+    int i, level_code, esc_code, level, run, mask;
     DCTELEM level_buf[65];
     uint8_t run_buf[65];
     DCTELEM *block = h->block;
@@ -125,8 +124,6 @@ static int decode_residual_block(AVSContext *h, GetBitContext *gb,
         level_code = get_ue_code(gb,r->golomb_order);
         if(level_code >= ESCAPE_CODE) {
             run = ((level_code - ESCAPE_CODE) >> 1) + 1;
-            if(run > 64)
-                return -1;
             esc_code = get_ue_code(gb,esc_golomb_order);
             level = esc_code + (run > r->max_run ? 1 : r->level_add[run]);
             while(level > r->inc_limit)
@@ -166,7 +163,7 @@ static inline int decode_residual_inter(AVSContext *h) {
 
     /* get coded block pattern */
     int cbp= get_ue_golomb(&h->s.gb);
-    if(cbp > 63U){
+    if(cbp > 63){
         av_log(h->s.avctx, AV_LOG_ERROR, "illegal inter cbp\n");
         return -1;
     }
@@ -192,8 +189,7 @@ static inline int decode_residual_inter(AVSContext *h) {
 
 static int decode_mb_i(AVSContext *h, int cbp_code) {
     GetBitContext *gb = &h->s.gb;
-    unsigned pred_mode_uv;
-    int block;
+    int block, pred_mode_uv;
     uint8_t top[18];
     uint8_t *left = NULL;
     uint8_t *d;
@@ -226,7 +222,7 @@ static int decode_mb_i(AVSContext *h, int cbp_code) {
     /* get coded block pattern */
     if(h->pic_type == AV_PICTURE_TYPE_I)
         cbp_code = get_ue_golomb(gb);
-    if(cbp_code > 63U){
+    if(cbp_code > 63){
         av_log(h->s.avctx, AV_LOG_ERROR, "illegal intra cbp\n");
         return -1;
     }
@@ -449,8 +445,6 @@ static inline int check_for_slice(AVSContext *h) {
     if((show_bits_long(gb,24+align) & 0xFFFFFF) == 0x000001) {
         skip_bits_long(gb,24+align);
         h->stc = get_bits(gb,8);
-        if (h->stc >= h->mb_height)
-            return 0;
         decode_slice_header(h,gb);
         return 1;
     }
@@ -665,7 +659,7 @@ static int cavs_decode_frame(AVCodecContext * avctx,void *data, int *data_size,
     buf_end = buf + buf_size;
     for(;;) {
         buf_ptr = ff_find_start_code(buf_ptr,buf_end, &stc);
-        if((stc & 0xFFFFFE00) || buf_ptr == buf_end)
+        if(stc & 0xFFFFFE00)
             return FFMAX(0, buf_ptr - buf - s->parse_context.last_index);
         input_size = (buf_end - buf_ptr)*8;
         switch(stc) {

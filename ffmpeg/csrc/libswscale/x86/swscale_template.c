@@ -2472,9 +2472,9 @@ static av_cold void RENAME(sws_init_swScale)(SwsContext *c)
         }
     }
 
-    if (c->srcBpc == 8 && c->dstBpc <= 10) {
+    if (c->scalingBpp == 8) {
 #if !COMPILE_TEMPLATE_MMX2
-    c->hyScale = c->hcScale = RENAME(hScale      );
+    c->hScale       = RENAME(hScale      );
 #endif /* !COMPILE_TEMPLATE_MMX2 */
 
     // Use the new MMX scaler if the MMX2 one can't be used (it is faster than the x86 ASM one).
@@ -2532,6 +2532,6 @@ static av_cold void RENAME(sws_init_swScale)(SwsContext *c)
 #endif /* !COMPILE_TEMPLATE_MMX2 */
     if(isAnyRGB(c->srcFormat) && av_pix_fmt_descriptors[c->srcFormat].comp[0].depth_minus1<15)
         c->hScale16= RENAME(hScale16);
-    if(c->dstBpc > 10)
+    if(c->scalingBpp != 8)
         c->hScale16 = NULL;
 }

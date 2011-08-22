@@ -23,7 +23,7 @@
 
 #include "libavformat/avformat.h"
 #include "libavcodec/avcodec.h"
-#include "libavutil/opt.h"
+#include "libavcodec/opt.h"
 #include "libavutil/pixdesc.h"
 #include "libavutil/dict.h"
 #include "libavdevice/avdevice.h"
@@ -83,11 +83,9 @@ static char *value_string(char *buf, int buf_size, double val, const char *unit)
             prefix_string = decimal_unit_prefixes[index];
         }
 
-        snprintf(buf, buf_size, "%.3f%s%s%s", val, prefix_string || show_value_unit ? " " : "",
-                 prefix_string, show_value_unit ? unit : "");
+        snprintf(buf, buf_size, "%.3f %s%s", val, prefix_string, show_value_unit ? unit : "");
     } else {
-        snprintf(buf, buf_size, "%f%s%s", val, show_value_unit ? " " : "",
-                 show_value_unit ? unit : "");
+        snprintf(buf, buf_size, "%f %s", val, show_value_unit ? unit : "");
     }
 
     return buf;
@@ -117,8 +115,14 @@ static char *ts_value_string (char *buf, int buf_size, int64_t ts)
 
 static const char *media_type_string(enum AVMediaType media_type)
 {
-    const char *s = av_get_media_type_string(media_type);
-    return s ? s : "unknown";
+    switch (media_type) {
+    case AVMEDIA_TYPE_VIDEO:      return "video";
+    case AVMEDIA_TYPE_AUDIO:      return "audio";
+    case AVMEDIA_TYPE_DATA:       return "data";
+    case AVMEDIA_TYPE_SUBTITLE:   return "subtitle";
+    case AVMEDIA_TYPE_ATTACHMENT: return "attachment";
+    default:                      return "unknown";
+    }
 }
 
 static void show_packet(AVFormatContext *fmt_ctx, AVPacket *pkt)
@@ -326,7 +330,7 @@ static int probe_file(const char *filename)
 static void show_usage(void)
 {
     printf("Simple multimedia streams analyzer\n");
-    printf("usage: %s [OPTIONS] [INPUT_FILE]\n", program_name);
+    printf("usage: ffprobe [OPTIONS] [INPUT_FILE]\n");
     printf("\n");
 }
 
@@ -408,7 +412,7 @@ int main(int argc, char **argv)
     if (!input_filename) {
         show_usage();
         fprintf(stderr, "You have to specify one input file.\n");
-        fprintf(stderr, "Use -h to get full help or, even better, run 'man %s'.\n", program_name);
+        fprintf(stderr, "Use -h to get full help or, even better, run 'man ffprobe'.\n");
         exit(1);
     }
 

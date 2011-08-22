@@ -23,16 +23,13 @@
  * buffer video sink
  */
 
-#include "libavutil/fifo.h"
 #include "avfilter.h"
 #include "vsink_buffer.h"
 
 typedef struct {
-    AVFifoBuffer *fifo;          ///< FIFO buffer of video frame references
+    AVFilterBufferRef *picref;   ///< cached picref
     enum PixelFormat *pix_fmts;  ///< accepted pixel formats, must be terminated with -1
 } BufferSinkContext;
-
-#define FIFO_INIT_SIZE 8
 
 static av_cold int init(AVFilterContext *ctx, const char *args, void *opaque)
 {
@@ -43,12 +40,6 @@ static av_cold int init(AVFilterContext *ctx, const char *args, void *opaque)
         return AVERROR(EINVAL);
     }
 
-    buf->fifo = av_fifo_alloc(FIFO_INIT_SIZE*sizeof(AVFilterBufferRef *));
-    if (!buf->fifo) {
-        av_log(ctx, AV_LOG_ERROR, "Failed to allocate fifo\n");
-        return AVERROR(ENOMEM);
-    }
-
     buf->pix_fmts = opaque;
     return 0;
 }
@@ -56,36 +47,19 @@ static av_cold int init(AVFilterContext *ctx, const char *args, void *opaque)
 static av_cold void uninit(AVFilterContext *ctx)
 {
     BufferSinkContext *buf = ctx->priv;
-    AVFilterBufferRef *picref;
 
-    if (buf->fifo) {
-        while (av_fifo_size(buf->fifo) >= sizeof(AVFilterBufferRef *)) {
-            av_fifo_generic_read(buf->fifo, &picref, sizeof(picref), NULL);
-            avfilter_unref_buffer(picref);
-        }
-        av_fifo_free(buf->fifo);
-        buf->fifo = NULL;
-    }
+    if (buf->picref)
+        avfilter_unref_buffer(buf->picref);
+    buf->picref = NULL;
 }
 
 static void end_frame(AVFilterLink *inlink)
 {
-    AVFilterContext *ctx = inlink->dst;
     BufferSinkContext *buf = inlink->dst->priv;
 
-    if (av_fifo_space(buf->fifo) < sizeof(AVFilterBufferRef *)) {
-        /* realloc fifo size */
-        if (av_fifo_realloc2(buf->fifo, av_fifo_size(buf->fifo) * 2) < 0) {
-            av_log(ctx, AV_LOG_ERROR,
-                   "Cannot buffer more frames. Consume some available frames "
-                   "before adding new ones.\n");
-            return;
-        }
-    }
-
-    /* cache frame */
-    av_fifo_generic_write(buf->fifo,
-                          &inlink->cur_buf, sizeof(AVFilterBufferRef *), NULL);
+    if (buf->picref)            /* drop the last cached frame */
+        avfilter_unref_buffer(buf->picref);
+    buf->picref = inlink->cur_buf;
 }
 
 static int query_formats(AVFilterContext *ctx)
@@ -105,18 +79,17 @@ int av_vsink_buffer_get_video_buffer_ref(AVFilterContext *ctx,
     *picref = NULL;
 
     /* no picref available, fetch it from the filterchain */
-    if (!av_fifo_size(buf->fifo)) {
+    if (!buf->picref) {
         if ((ret = avfilter_request_frame(inlink)) < 0)
             return ret;
     }
 
-    if (!av_fifo_size(buf->fifo))
+    if (!buf->picref)
         return AVERROR(EINVAL);
 
-    if (flags & AV_VSINK_BUF_FLAG_PEEK)
-        *picref = (AVFilterBufferRef *)av_fifo_peek2(buf->fifo, 0);
-    else
-        av_fifo_generic_read(buf->fifo, picref, sizeof(*picref), NULL);
+    *picref = buf->picref;
+    if (!(flags & AV_VSINK_BUF_FLAG_PEEK))
+        buf->picref = NULL;
 
     return 0;
 }

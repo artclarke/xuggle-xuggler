@@ -67,13 +67,6 @@ struct vdpau_render_state {
 
     int state; ///< Holds FF_VDPAU_STATE_* values.
 
-    /** Describe size/location of the compressed video data.
-        Set to 0 when freeing bitstream_buffers. */
-    int bitstream_buffers_allocated;
-    int bitstream_buffers_used;
-    /** The user is responsible for freeing this buffer using av_freep(). */
-    VdpBitstreamBuffer *bitstream_buffers;
-
     /** picture parameter information for all supported codecs */
     union VdpPictureInfo {
         VdpPictureInfoH264        h264;
@@ -81,6 +74,13 @@ struct vdpau_render_state {
         VdpPictureInfoVC1          vc1;
         VdpPictureInfoMPEG4Part2 mpeg4;
     } info;
+
+    /** Describe size/location of the compressed video data.
+        Set to 0 when freeing bitstream_buffers. */
+    int bitstream_buffers_allocated;
+    int bitstream_buffers_used;
+    /** The user is responsible for freeing this buffer using av_freep(). */
+    VdpBitstreamBuffer *bitstream_buffers;
 };
 
 /* @}*/

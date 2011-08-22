@@ -114,7 +114,7 @@ static int parse_playlist(URLContext *h, const char *url)
     char line[1024];
     const char *ptr;
 
-    if ((ret = avio_open(&in, url, AVIO_FLAG_READ)) < 0)
+    if ((ret = avio_open(&in, url, AVIO_RDONLY)) < 0)
         return ret;
 
     read_chomp_line(in, line, sizeof(line));
@@ -179,7 +179,7 @@ static int applehttp_open(URLContext *h, const char *uri, int flags)
     int ret, i;
     const char *nested_url;
 
-    if (flags & AVIO_FLAG_WRITE)
+    if (flags & (AVIO_WRONLY | AVIO_RDWR))
         return AVERROR(ENOSYS);
 
     s = av_mallocz(sizeof(AppleHTTPContext));
@@ -194,7 +194,7 @@ static int applehttp_open(URLContext *h, const char *uri, int flags)
         av_strlcpy(s->playlisturl, "http://", sizeof(s->playlisturl));
         av_strlcat(s->playlisturl, nested_url, sizeof(s->playlisturl));
     } else {
-        av_log(h, AV_LOG_ERROR, "Unsupported url %s\n", uri);
+        av_log(NULL, AV_LOG_ERROR, "Unsupported url %s\n", uri);
         ret = AVERROR(EINVAL);
         goto fail;
     }
@@ -217,7 +217,7 @@ static int applehttp_open(URLContext *h, const char *uri, int flags)
     }
 
     if (s->n_segments == 0) {
-        av_log(h, AV_LOG_WARNING, "Empty playlist\n");
+        av_log(NULL, AV_LOG_WARNING, "Empty playlist\n");
         ret = AVERROR(EIO);
         goto fail;
     }
@@ -257,7 +257,7 @@ retry:
                 return ret;
     }
     if (s->cur_seq_no < s->start_seq_no) {
-        av_log(h, AV_LOG_WARNING,
+        av_log(NULL, AV_LOG_WARNING,
                "skipping %d segments ahead, expired from playlist\n",
                s->start_seq_no - s->cur_seq_no);
         s->cur_seq_no = s->start_seq_no;
@@ -273,12 +273,12 @@ retry:
         goto retry;
     }
     url = s->segments[s->cur_seq_no - s->start_seq_no]->url,
-    av_log(h, AV_LOG_DEBUG, "opening %s\n", url);
-    ret = ffurl_open(&s->seg_hd, url, AVIO_FLAG_READ);
+    av_log(NULL, AV_LOG_DEBUG, "opening %s\n", url);
+    ret = ffurl_open(&s->seg_hd, url, AVIO_RDONLY);
     if (ret < 0) {
         if (url_interrupt_cb())
             return AVERROR_EXIT;
-        av_log(h, AV_LOG_WARNING, "Unable to open %s\n", url);
+        av_log(NULL, AV_LOG_WARNING, "Unable to open %s\n", url);
         s->cur_seq_no++;
         goto retry;
     }
