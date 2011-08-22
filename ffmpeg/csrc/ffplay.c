@@ -207,6 +207,7 @@ typedef struct VideoState {
 
     char filename[1024];
     int width, height, xleft, ytop;
+    int step;
 
 #if CONFIG_AVFILTER
     AVFilterContext *out_video_filter;          ///<the last filter in the video chain
@@ -240,7 +241,6 @@ static int show_status = 1;
 static int av_sync_type = AV_SYNC_AUDIO_MASTER;
 static int64_t start_time = AV_NOPTS_VALUE;
 static int64_t duration = AV_NOPTS_VALUE;
-static int step = 0;
 static int thread_count = 1;
 static int workaround_bugs = 1;
 static int fast = 0;
@@ -267,7 +267,6 @@ static char *vfilters = NULL;
 
 /* current context */
 static int is_full_screen;
-static VideoState *cur_stream;
 static int64_t audio_callback_time;
 
 static AVPacket flush_pkt;
@@ -887,11 +886,10 @@ static void stream_close(VideoState *is)
     av_free(is);
 }
 
-static void do_exit(void)
+static void do_exit(VideoState *is)
 {
-    if (cur_stream) {
-        stream_close(cur_stream);
-        cur_stream = NULL;
+    if (is) {
+        stream_close(is);
     }
     uninit_opts();
 #if CONFIG_AVFILTER
@@ -942,7 +940,7 @@ static int video_open(VideoState *is){
 #endif
     if (!screen) {
         fprintf(stderr, "SDL: could not set video mode - exiting\n");
-        do_exit();
+        do_exit(is);
     }
     if (!window_title)
         window_title = input_filename;
@@ -958,7 +956,7 @@ static int video_open(VideoState *is){
 static void video_display(VideoState *is)
 {
     if(!screen)
-        video_open(cur_stream);
+        video_open(is);
     if (is->audio_st && is->show_mode != SHOW_MODE_VIDEO)
         video_audio_display(is);
     else if (is->video_st)
@@ -1280,7 +1278,7 @@ static void alloc_picture(void *opaque)
         fprintf(stderr, "Error: the video system does not support an image\n"
                         "size of %dx%d pixels. Try using -lowres or -vf \"scale=w:h\"\n"
                         "to reduce the image size.\n", vp->width, vp->height );
-        do_exit();
+        do_exit(is);
     }
 
     SDL_LockMutex(is->pictq_mutex);
@@ -1794,9 +1792,8 @@ static int video_thread(void *arg)
         if (ret < 0)
             goto the_end;
 
-        if (step)
-            if (cur_stream)
-                stream_toggle_pause(cur_stream);
+        if (is->step)
+            stream_toggle_pause(is);
     }
  the_end:
 #if CONFIG_AVFILTER
@@ -2497,7 +2494,7 @@ static int read_thread(void *arg)
             SDL_Delay(10);
             if(is->audioq.size + is->videoq.size + is->subtitleq.size ==0){
                 if(loop!=1 && (!loop || --loop)){
-                    stream_seek(cur_stream, start_time != AV_NOPTS_VALUE ? start_time : 0, 0, 0);
+                    stream_seek(is, start_time != AV_NOPTS_VALUE ? start_time : 0, 0, 0);
                 }else if(autoexit){
                     ret=AVERROR_EOF;
                     goto fail;
@@ -2642,43 +2639,38 @@ static void stream_cycle_channel(VideoState *is, int codec_type)
 }
 
 
-static void toggle_full_screen(void)
+static void toggle_full_screen(VideoState *is)
 {
     is_full_screen = !is_full_screen;
-    video_open(cur_stream);
+    video_open(is);
 }
 
-static void toggle_pause(void)
+static void toggle_pause(VideoState *is)
 {
-    if (cur_stream)
-        stream_toggle_pause(cur_stream);
-    step = 0;
+    stream_toggle_pause(is);
+    is->step = 0;
 }
 
-static void step_to_next_frame(void)
+static void step_to_next_frame(VideoState *is)
 {
-    if (cur_stream) {
-        /* if the stream is paused unpause it, then step */
-        if (cur_stream->paused)
-            stream_toggle_pause(cur_stream);
-    }
-    step = 1;
+    /* if the stream is paused unpause it, then step */
+    if (is->paused)
+        stream_toggle_pause(is);
+    is->step = 1;
 }
 
-static void toggle_audio_display(void)
+static void toggle_audio_display(VideoState *is)
 {
-    if (cur_stream) {
-        int bgcolor = SDL_MapRGB(screen->format, 0x00, 0x00, 0x00);
-        cur_stream->show_mode = (cur_stream->show_mode + 1) % SHOW_MODE_NB;
-        fill_rectangle(screen,
-                    cur_stream->xleft, cur_stream->ytop, cur_stream->width, cur_stream->height,
-                    bgcolor);
-        SDL_UpdateRect(screen, cur_stream->xleft, cur_stream->ytop, cur_stream->width, cur_stream->height);
-    }
+    int bgcolor = SDL_MapRGB(screen->format, 0x00, 0x00, 0x00);
+    is->show_mode = (is->show_mode + 1) % SHOW_MODE_NB;
+    fill_rectangle(screen,
+                is->xleft, is->ytop, is->width, is->height,
+                bgcolor);
+    SDL_UpdateRect(screen, is->xleft, is->ytop, is->width, is->height);
 }
 
 /* handle an event sent by the GUI */
-static void event_loop(void)
+static void event_loop(VideoState *cur_stream)
 {
     SDL_Event event;
     double incr, pos, frac;
@@ -2689,38 +2681,35 @@ static void event_loop(void)
         switch(event.type) {
         case SDL_KEYDOWN:
             if (exit_on_keydown) {
-                do_exit();
+                do_exit(cur_stream);
                 break;
             }
             switch(event.key.keysym.sym) {
             case SDLK_ESCAPE:
             case SDLK_q:
-                do_exit();
+                do_exit(cur_stream);
                 break;
             case SDLK_f:
-                toggle_full_screen();
+                toggle_full_screen(cur_stream);
                 break;
             case SDLK_p:
             case SDLK_SPACE:
-                toggle_pause();
+                toggle_pause(cur_stream);
                 break;
             case SDLK_s: //S: Step to next frame
-                step_to_next_frame();
+                step_to_next_frame(cur_stream);
                 break;
             case SDLK_a:
-                if (cur_stream)
-                    stream_cycle_channel(cur_stream, AVMEDIA_TYPE_AUDIO);
+                stream_cycle_channel(cur_stream, AVMEDIA_TYPE_AUDIO);
                 break;
             case SDLK_v:
-                if (cur_stream)
-                    stream_cycle_channel(cur_stream, AVMEDIA_TYPE_VIDEO);
+                stream_cycle_channel(cur_stream, AVMEDIA_TYPE_VIDEO);
                 break;
             case SDLK_t:
-                if (cur_stream)
-                    stream_cycle_channel(cur_stream, AVMEDIA_TYPE_SUBTITLE);
+                stream_cycle_channel(cur_stream, AVMEDIA_TYPE_SUBTITLE);
                 break;
             case SDLK_w:
-                toggle_audio_display();
+                toggle_audio_display(cur_stream);
                 break;
             case SDLK_LEFT:
                 incr = -10.0;
@@ -2734,25 +2723,23 @@ static void event_loop(void)
             case SDLK_DOWN:
                 incr = -60.0;
             do_seek:
-                if (cur_stream) {
-                    if (seek_by_bytes) {
-                        if (cur_stream->video_stream >= 0 && cur_stream->video_current_pos>=0){
-                            pos= cur_stream->video_current_pos;
-                        }else if(cur_stream->audio_stream >= 0 && cur_stream->audio_pkt.pos>=0){
-                            pos= cur_stream->audio_pkt.pos;
-                        }else
-                            pos = avio_tell(cur_stream->ic->pb);
-                        if (cur_stream->ic->bit_rate)
-                            incr *= cur_stream->ic->bit_rate / 8.0;
-                        else
-                            incr *= 180000.0;
-                        pos += incr;
-                        stream_seek(cur_stream, pos, incr, 1);
-                    } else {
-                        pos = get_master_clock(cur_stream);
-                        pos += incr;
-                        stream_seek(cur_stream, (int64_t)(pos * AV_TIME_BASE), (int64_t)(incr * AV_TIME_BASE), 0);
-                    }
+                if (seek_by_bytes) {
+                    if (cur_stream->video_stream >= 0 && cur_stream->video_current_pos>=0){
+                        pos= cur_stream->video_current_pos;
+                    }else if(cur_stream->audio_stream >= 0 && cur_stream->audio_pkt.pos>=0){
+                        pos= cur_stream->audio_pkt.pos;
+                    }else
+                        pos = avio_tell(cur_stream->ic->pb);
+                    if (cur_stream->ic->bit_rate)
+                        incr *= cur_stream->ic->bit_rate / 8.0;
+                    else
+                        incr *= 180000.0;
+                    pos += incr;
+                    stream_seek(cur_stream, pos, incr, 1);
+                } else {
+                    pos = get_master_clock(cur_stream);
+                    pos += incr;
+                    stream_seek(cur_stream, (int64_t)(pos * AV_TIME_BASE), (int64_t)(incr * AV_TIME_BASE), 0);
                 }
                 break;
             default:
@@ -2761,7 +2748,7 @@ static void event_loop(void)
             break;
         case SDL_MOUSEBUTTONDOWN:
             if (exit_on_mousedown) {
-                do_exit();
+                do_exit(cur_stream);
                 break;
             }
         case SDL_MOUSEMOTION:
@@ -2772,43 +2759,39 @@ static void event_loop(void)
                     break;
                 x= event.motion.x;
             }
-            if (cur_stream) {
-                if(seek_by_bytes || cur_stream->ic->duration<=0){
-                    uint64_t size=  avio_size(cur_stream->ic->pb);
-                    stream_seek(cur_stream, size*x/cur_stream->width, 0, 1);
-                }else{
-                    int64_t ts;
-                    int ns, hh, mm, ss;
-                    int tns, thh, tmm, tss;
-                    tns = cur_stream->ic->duration/1000000LL;
-                    thh = tns/3600;
-                    tmm = (tns%3600)/60;
-                    tss = (tns%60);
-                    frac = x/cur_stream->width;
-                    ns = frac*tns;
-                    hh = ns/3600;
-                    mm = (ns%3600)/60;
-                    ss = (ns%60);
-                    fprintf(stderr, "Seek to %2.0f%% (%2d:%02d:%02d) of total duration (%2d:%02d:%02d)       \n", frac*100,
-                            hh, mm, ss, thh, tmm, tss);
-                    ts = frac*cur_stream->ic->duration;
-                    if (cur_stream->ic->start_time != AV_NOPTS_VALUE)
-                        ts += cur_stream->ic->start_time;
-                    stream_seek(cur_stream, ts, 0, 0);
-                }
+            if(seek_by_bytes || cur_stream->ic->duration<=0){
+                uint64_t size=  avio_size(cur_stream->ic->pb);
+                stream_seek(cur_stream, size*x/cur_stream->width, 0, 1);
+            }else{
+                int64_t ts;
+                int ns, hh, mm, ss;
+                int tns, thh, tmm, tss;
+                tns = cur_stream->ic->duration/1000000LL;
+                thh = tns/3600;
+                tmm = (tns%3600)/60;
+                tss = (tns%60);
+                frac = x/cur_stream->width;
+                ns = frac*tns;
+                hh = ns/3600;
+                mm = (ns%3600)/60;
+                ss = (ns%60);
+                fprintf(stderr, "Seek to %2.0f%% (%2d:%02d:%02d) of total duration (%2d:%02d:%02d)       \n", frac*100,
+                        hh, mm, ss, thh, tmm, tss);
+                ts = frac*cur_stream->ic->duration;
+                if (cur_stream->ic->start_time != AV_NOPTS_VALUE)
+                    ts += cur_stream->ic->start_time;
+                stream_seek(cur_stream, ts, 0, 0);
             }
             break;
         case SDL_VIDEORESIZE:
-            if (cur_stream) {
-                screen = SDL_SetVideoMode(event.resize.w, event.resize.h, 0,
-                                          SDL_HWSURFACE|SDL_RESIZABLE|SDL_ASYNCBLIT|SDL_HWACCEL);
-                screen_width = cur_stream->width = event.resize.w;
-                screen_height= cur_stream->height= event.resize.h;
-            }
+            screen = SDL_SetVideoMode(event.resize.w, event.resize.h, 0,
+                                      SDL_HWSURFACE|SDL_RESIZABLE|SDL_ASYNCBLIT|SDL_HWACCEL);
+            screen_width = cur_stream->width = event.resize.w;
+            screen_height= cur_stream->height= event.resize.h;
             break;
         case SDL_QUIT:
         case FF_QUIT_EVENT:
-            do_exit();
+            do_exit(cur_stream);
             break;
         case FF_ALLOC_EVENT:
             video_open(event.user.data1);
@@ -3009,6 +2992,7 @@ static int opt_help(const char *opt, const char *arg)
 int main(int argc, char **argv)
 {
     int flags;
+    VideoState *is;
 
     av_log_set_flags(AV_LOG_SKIP_REPEATED);
 
@@ -3065,9 +3049,13 @@ int main(int argc, char **argv)
     av_init_packet(&flush_pkt);
     flush_pkt.data= "FLUSH";
 
-    cur_stream = stream_open(input_filename, file_iformat);
+    is = stream_open(input_filename, file_iformat);
+    if (!is) {
+        fprintf(stderr, "Failed to initialize VideoState!\n");
+        do_exit(NULL);
+    }
 
-    event_loop();
+    event_loop(is);
 
     /* never returns */
 
