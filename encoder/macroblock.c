@@ -1187,7 +1187,7 @@ static ALWAYS_INLINE void x264_macroblock_encode_p8x8_internal( x264_t *h, int i
                 h->dctf.sub8x8_dct( dct4x4, p_fenc, p_fdec );
                 for( int i4 = 0; i4 < 4; i4++ )
                 {
-                    nz = x264_quant_4x4( h, dct4x4[i4], i_qp, ctx_cat_plane[DCT_LUMA_4x4][p], 0, p, 8*4+i4 );
+                    nz = x264_quant_4x4( h, dct4x4[i4], i_qp, ctx_cat_plane[DCT_LUMA_4x4][p], 0, p, i8*4+i4 );
                     h->mb.cache.non_zero_count[x264_scan8[p*16+i8*4+i4]] = nz;
                     if( nz )
                     {
