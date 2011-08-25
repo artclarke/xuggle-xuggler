@@ -117,9 +117,9 @@ typedef struct
     void (*intra_mbcmp_x3_4x4)  ( pixel *fenc, pixel *fdec  , int res[3] );
     void (*intra_satd_x3_4x4)   ( pixel *fenc, pixel *fdec  , int res[3] );
     void (*intra_sad_x3_4x4)    ( pixel *fenc, pixel *fdec  , int res[3] );
-    void (*intra_mbcmp_x3_8x8)  ( pixel *fenc, pixel edge[33], int res[3] );
-    void (*intra_sa8d_x3_8x8)   ( pixel *fenc, pixel edge[33], int res[3] );
-    void (*intra_sad_x3_8x8)    ( pixel *fenc, pixel edge[33], int res[3] );
+    void (*intra_mbcmp_x3_8x8)  ( pixel *fenc, pixel edge[36], int res[3] );
+    void (*intra_sa8d_x3_8x8)   ( pixel *fenc, pixel edge[36], int res[3] );
+    void (*intra_sad_x3_8x8)    ( pixel *fenc, pixel edge[36], int res[3] );
 } x264_pixel_function_t;
 
 void x264_pixel_init( int cpu, x264_pixel_function_t *pixf );

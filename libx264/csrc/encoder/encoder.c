@@ -1381,7 +1381,11 @@ static int x264_nal_check_buffer( x264_t *h )
 static int x264_nal_end( x264_t *h )
 {
     x264_nal_t *nal = &h->out.nal[h->out.i_nal];
-    nal->i_payload = &h->out.p_bitstream[bs_pos( &h->out.bs ) / 8] - nal->p_payload;
+    uint8_t *end = &h->out.p_bitstream[bs_pos( &h->out.bs ) / 8];
+    nal->i_payload = end - nal->p_payload;
+    /* nal_escape_mmx reads past the end of the input.
+     * While undefined padding wouldn't actually affect the output, it makes valgrind unhappy. */
+    memset( end, 0xff, 32 );
     if( h->param.nalu_process )
         h->param.nalu_process( h, nal );
     h->out.i_nal++;
@@ -3023,12 +3027,12 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     if( pic_out->i_pts < pic_out->i_dts )
         x264_log( h, X264_LOG_WARNING, "invalid DTS: PTS is less than DTS\n" );
 
-    pic_out->img.i_csp = X264_CSP_NV12;
+    pic_out->img.i_csp = h->fdec->i_csp;
 #if HIGH_BIT_DEPTH
     pic_out->img.i_csp |= X264_CSP_HIGH_DEPTH;
 #endif
     pic_out->img.i_plane = h->fdec->i_plane;
-    for( int i = 0; i < 2; i++ )
+    for( int i = 0; i < pic_out->img.i_plane; i++ )
     {
         pic_out->img.i_stride[i] = h->fdec->i_stride[i] * sizeof(pixel);
         pic_out->img.plane[i] = (uint8_t*)h->fdec->plane[i];

@@ -96,12 +96,12 @@ static NOINLINE pixel *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fenc
     return ref->lowres[0];
 }
 
-/* How data is organized for chroma weightp:
+/* How data is organized for chroma weightp 4:2:0:
  * [U: ref] [U: fenc]
  * [V: ref] [V: fenc]
  * fenc = ref + offset
  * v = u + stride * chroma height
- * We'll need more room if we do 4:2:2 or 4:4:4. */
+ * We'll need more room if we do 4:2:2. */
 
 static NOINLINE void x264_weight_cost_init_chroma( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, pixel *dstu, pixel *dstv )
 {
@@ -115,6 +115,7 @@ static NOINLINE void x264_weight_cost_init_chroma( x264_t *h, x264_frame_t *fenc
 
     if( fenc->lowres_mvs[0][ref0_distance][0][0] != 0x7FFF )
     {
+        x264_frame_expand_border_chroma( h, ref, 1 );
         for( int y = 0, mb_xy = 0, pel_offset_y = 0; y < i_lines; y += 8, pel_offset_y = y*i_stride )
             for( int x = 0, pel_offset_x = 0; x < i_width; x += 8, mb_xy++, pel_offset_x += 8 )
             {
@@ -141,11 +142,12 @@ static NOINLINE pixel *x264_weight_cost_init_chroma444( x264_t *h, x264_frame_t 
 
     if( fenc->lowres_mvs[0][ref0_distance][0][0] != 0x7FFF )
     {
+        x264_frame_expand_border_chroma( h, ref, p );
         for( int y = 0, mb_xy = 0, pel_offset_y = 0; y < i_lines; y += 16, pel_offset_y = y*i_stride )
             for( int x = 0, pel_offset_x = 0; x < i_width; x += 16, mb_xy++, pel_offset_x += 16 )
             {
                 pixel *pix = dst + pel_offset_y + pel_offset_x;
-                pixel *src = fenc->plane[p] + pel_offset_y + pel_offset_x;
+                pixel *src = ref->plane[p] + pel_offset_y + pel_offset_x;
                 int mvx = fenc->lowres_mvs[0][ref0_distance][mb_xy][0] / 2;
                 int mvy = fenc->lowres_mvs[0][ref0_distance][mb_xy][1] / 2;
                 /* We don't want to calculate hpels for fenc frames, so we round the motion
@@ -156,7 +158,7 @@ static NOINLINE pixel *x264_weight_cost_init_chroma444( x264_t *h, x264_frame_t 
         return dst;
     }
     x264_emms();
-    return fenc->plane[p];
+    return ref->plane[p];
 }
 
 static int x264_weight_slice_header_cost( x264_t *h, x264_weight_t *w, int b_chroma )
@@ -287,6 +289,7 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
     SET_WEIGHT( weights[0], 0, 1, 0, 0 );
     SET_WEIGHT( weights[1], 0, 1, 0, 0 );
     SET_WEIGHT( weights[2], 0, 1, 0, 0 );
+    int chroma_initted = 0;
     /* Don't check chroma in lookahead, or if there wasn't a luma weight. */
     for( int plane = 0; plane <= 2 && !( plane && ( !weights[0].weightfn || b_lookahead ) ); plane++ )
     {
@@ -348,8 +351,7 @@ void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int
             {
                 pixel *dstu = h->mb.p_weight_buf[0];
                 pixel *dstv = h->mb.p_weight_buf[0]+fenc->i_stride[1]*fenc->i_lines[1];
-                /* Only initialize chroma data once. */
-                if( plane == 1 )
+                if( !chroma_initted++ )
                     x264_weight_cost_init_chroma( h, fenc, ref, dstu, dstv );
                 mcbuf = plane == 1 ? dstu : dstv;
                 origscore = minscore = x264_weight_cost_chroma( h, fenc, mcbuf, NULL );
@@ -620,7 +622,7 @@ skip_motionest:
 lowres_intra_mb:
     if( !fenc->b_intra_calculated )
     {
-        ALIGNED_ARRAY_16( pixel, edge,[33] );
+        ALIGNED_ARRAY_16( pixel, edge,[36] );
         pixel *pix = &pix1[8+FDEC_STRIDE - 1];
         pixel *src = &fenc->lowres[0][i_pel_offset - 1];
         const int intra_penalty = 5 * a->i_lambda;

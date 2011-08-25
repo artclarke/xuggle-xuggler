@@ -834,7 +834,7 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
     /* 8x8 prediction selection */
     if( flags & X264_ANALYSE_I8x8 )
     {
-        ALIGNED_ARRAY_16( pixel, edge,[33] );
+        ALIGNED_ARRAY_16( pixel, edge,[36] );
         x264_pixel_cmp_t sa8d = (h->pixf.mbcmp[0] == h->pixf.satd[0]) ? h->pixf.sa8d[PIXEL_8x8] : h->pixf.mbcmp[PIXEL_8x8];
         int i_satd_thresh = a->i_mbrd ? COST_MAX : X264_MIN( i_satd_inter, a->i_satd_i16x16 );
 
@@ -3358,7 +3358,7 @@ intra_analysis:
                 for( int i = 1; i < h->mb.pic.i_fref[0]; i++ )
                     M32( h->mb.mvr[0][i][h->mb.i_mb_xy] ) = 0;
                 for( int i = 1; i < h->mb.pic.i_fref[1]; i++ )
-                    M32( h->mb.mvr[0][i][h->mb.i_mb_xy] ) = 0;
+                    M32( h->mb.mvr[1][i][h->mb.i_mb_xy] ) = 0;
                 return;
             }
 

@@ -1578,6 +1578,7 @@ cglobal frame_init_lowres_core, 6,7,(12-4*(BIT_DEPTH/9)) ; 8 for HIGH_BIT_DEPTH,
     mova      m0, m2
     mova      m1, m3
     sub      r6d, 8
+    jz .skip
 %endif ; mmsize
 .hloop:
     sub       r0, mmsize*2

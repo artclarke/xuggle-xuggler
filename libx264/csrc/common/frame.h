@@ -64,6 +64,7 @@ typedef struct x264_frame
     int     i_poc_l0ref0; /* poc of first refframe in L0, used to check if direct temporal is possible */
 
     /* YUV buffer */
+    int     i_csp; /* Internal csp */
     int     i_plane;
     int     i_stride[3];
     int     i_width[3];
@@ -198,6 +199,7 @@ int           x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_pictur
 void          x264_frame_expand_border( x264_t *h, x264_frame_t *frame, int mb_y, int b_end );
 void          x264_frame_expand_border_filtered( x264_t *h, x264_frame_t *frame, int mb_y, int b_end );
 void          x264_frame_expand_border_lowres( x264_frame_t *frame );
+void          x264_frame_expand_border_chroma( x264_t *h, x264_frame_t *frame, int plane );
 void          x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame );
 void          x264_expand_border_mbpair( x264_t *h, int mb_x, int mb_y );
 

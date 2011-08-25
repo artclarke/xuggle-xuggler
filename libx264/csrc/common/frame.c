@@ -102,6 +102,7 @@ static x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
     else
         goto fail;
 
+    frame->i_csp = i_csp;
     frame->i_width_lowres = frame->i_width[0]/2;
     frame->i_lines_lowres = frame->i_lines[0]/2;
     frame->i_stride_lowres = align_stride( frame->i_width_lowres + 2*PADH, align, disalign<<1 );
@@ -542,6 +543,13 @@ void x264_frame_expand_border_lowres( x264_frame_t *frame )
         plane_expand_border( frame->lowres[i], frame->i_stride_lowres, frame->i_width_lowres, frame->i_lines_lowres, PADH, PADV, 1, 1, 0 );
 }
 
+void x264_frame_expand_border_chroma( x264_t *h, x264_frame_t *frame, int plane )
+{
+    int shift = !CHROMA444;
+    plane_expand_border( frame->plane[plane], frame->i_stride[plane], 16*h->mb.i_mb_width, 16*h->mb.i_mb_height>>shift,
+                         PADH, PADV>>shift, 1, 1, shift );
+}
+
 void x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame )
 {
     for( int i = 0; i < frame->i_plane; i++ )
@@ -698,8 +706,11 @@ void x264_weight_scale_plane( x264_t *h, pixel *dst, int i_dst_stride, pixel *sr
      * in terms of the cache loads. */
     while( i_height > 0 )
     {
-        for( int x = 0; x < i_width; x += 16 )
+        int x;
+        for( x = 0; x < i_width-8; x += 16 )
             w->weightfn[16>>2]( dst+x, i_dst_stride, src+x, i_src_stride, w, X264_MIN( i_height, 16 ) );
+        if( x < i_width )
+            w->weightfn[ 8>>2]( dst+x, i_dst_stride, src+x, i_src_stride, w, X264_MIN( i_height, 16 ) );
         i_height -= 16;
         dst += 16 * i_dst_stride;
         src += 16 * i_src_stride;

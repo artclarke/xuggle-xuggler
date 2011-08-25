@@ -171,7 +171,7 @@ void x264_mb_encode_i8x8( x264_t *h, int p, int idx, int i_qp, int i_mode, pixel
     pixel *p_src = &h->mb.pic.p_fenc[p][8*x + 8*y*FENC_STRIDE];
     pixel *p_dst = &h->mb.pic.p_fdec[p][8*x + 8*y*FDEC_STRIDE];
     ALIGNED_ARRAY_16( dctcoef, dct8x8,[64] );
-    ALIGNED_ARRAY_16( pixel, edge_buf,[33] );
+    ALIGNED_ARRAY_16( pixel, edge_buf,[36] );
 
     if( !edge )
     {
@@ -519,7 +519,7 @@ void x264_predict_lossless_4x4( x264_t *h, pixel *p_dst, int p, int idx, int i_m
         h->predict_4x4[i_mode]( p_dst );
 }
 
-void x264_predict_lossless_8x8( x264_t *h, pixel *p_dst, int p, int idx, int i_mode, pixel edge[33] )
+void x264_predict_lossless_8x8( x264_t *h, pixel *p_dst, int p, int idx, int i_mode, pixel edge[36] )
 {
     int stride = h->fenc->i_stride[p] << MB_INTERLACED;
     pixel *p_src = h->mb.pic.p_fenc_plane[p] + (idx&1)*8 + (idx>>1)*8*stride;
@@ -1187,7 +1187,7 @@ static ALWAYS_INLINE void x264_macroblock_encode_p8x8_internal( x264_t *h, int i
                 h->dctf.sub8x8_dct( dct4x4, p_fenc, p_fdec );
                 for( int i4 = 0; i4 < 4; i4++ )
                 {
-                    nz = x264_quant_4x4( h, dct4x4[i4], i_qp, ctx_cat_plane[DCT_LUMA_4x4][p], 0, p, 8*4+i4 );
+                    nz = x264_quant_4x4( h, dct4x4[i4], i_qp, ctx_cat_plane[DCT_LUMA_4x4][p], 0, p, i8*4+i4 );
                     h->mb.cache.non_zero_count[x264_scan8[p*16+i8*4+i4]] = nz;
                     if( nz )
                     {

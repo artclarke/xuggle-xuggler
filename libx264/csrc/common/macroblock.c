@@ -247,7 +247,6 @@ int x264_macroblock_cache_allocate( x264_t *h )
 
     CHECKED_MALLOC( h->mb.qp, i_mb_count * sizeof(int8_t) );
     CHECKED_MALLOC( h->mb.cbp, i_mb_count * sizeof(int16_t) );
-    CHECKED_MALLOC( h->mb.skipbp, i_mb_count * sizeof(int8_t) );
     CHECKED_MALLOC( h->mb.mb_transform_size, i_mb_count * sizeof(int8_t) );
     CHECKED_MALLOC( h->mb.slice_table, i_mb_count * sizeof(uint16_t) );
     memset( h->mb.slice_table, -1, i_mb_count * sizeof(uint16_t) );
@@ -260,9 +259,11 @@ int x264_macroblock_cache_allocate( x264_t *h )
 
     if( h->param.b_cabac )
     {
+        CHECKED_MALLOC( h->mb.skipbp, i_mb_count * sizeof(int8_t) );
         CHECKED_MALLOC( h->mb.chroma_pred_mode, i_mb_count * sizeof(int8_t) );
         CHECKED_MALLOC( h->mb.mvd[0], i_mb_count * sizeof( **h->mb.mvd ) );
-        CHECKED_MALLOC( h->mb.mvd[1], i_mb_count * sizeof( **h->mb.mvd ) );
+        if( h->param.i_bframe )
+            CHECKED_MALLOC( h->mb.mvd[1], i_mb_count * sizeof( **h->mb.mvd ) );
     }
 
     for( int i = 0; i < 2; i++ )
@@ -329,6 +330,7 @@ void x264_macroblock_cache_free( x264_t *h )
 
     if( h->param.b_cabac )
     {
+        x264_free( h->mb.skipbp );
         x264_free( h->mb.chroma_pred_mode );
         x264_free( h->mb.mvd[0] );
         x264_free( h->mb.mvd[1] );
@@ -337,7 +339,6 @@ void x264_macroblock_cache_free( x264_t *h )
     x264_free( h->mb.intra4x4_pred_mode );
     x264_free( h->mb.non_zero_count );
     x264_free( h->mb.mb_transform_size );
-    x264_free( h->mb.skipbp );
     x264_free( h->mb.cbp );
     x264_free( h->mb.qp );
 }
@@ -349,8 +350,7 @@ int x264_macroblock_thread_allocate( x264_t *h, int b_lookahead )
         for( int i = 0; i <= 4*PARAM_INTERLACED; i++ )
             for( int j = 0; j < (CHROMA444 ? 3 : 2); j++ )
             {
-                /* shouldn't really be initialized, just silences a valgrind false-positive in predict_8x8_filter_mmx */
-                CHECKED_MALLOCZERO( h->intra_border_backup[i][j], (h->sps->i_mb_width*16+32) * sizeof(pixel) );
+                CHECKED_MALLOC( h->intra_border_backup[i][j], (h->sps->i_mb_width*16+32) * sizeof(pixel) );
                 h->intra_border_backup[i][j] += 16;
                 if( !PARAM_INTERLACED )
                     h->intra_border_backup[1][j] = h->intra_border_backup[i][j];

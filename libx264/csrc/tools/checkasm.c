@@ -244,7 +244,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
     x264_pixel_function_t pixel_asm;
     x264_predict8x8_t predict_8x8[9+3];
     x264_predict_8x8_filter_t predict_8x8_filter;
-    ALIGNED_16( pixel edge[33] );
+    ALIGNED_16( pixel edge[36] );
     uint16_t cost_mv[32];
     int ret = 0, ok, used_asm;
 
@@ -1784,8 +1784,8 @@ static int check_quant( int cpu_ref, int cpu_new )
 static int check_intra( int cpu_ref, int cpu_new )
 {
     int ret = 0, ok = 1, used_asm = 0;
-    ALIGNED_16( pixel edge[33] );
-    ALIGNED_16( pixel edge2[33] );
+    ALIGNED_16( pixel edge[36] );
+    ALIGNED_16( pixel edge2[36] );
     ALIGNED_16( pixel fdec[FDEC_STRIDE*20] );
     struct
     {
@@ -1864,10 +1864,16 @@ static int check_intra( int cpu_ref, int cpu_new )
         used_asm = 1;
         for( int i = 0; i < 32; i++ )
         {
-            memcpy( edge2, edge, 33 * sizeof(pixel) );
-            call_c(ip_c.predict_8x8_filter, pbuf1+48, edge, (i&24)>>1, i&7);
-            call_a(ip_a.predict_8x8_filter, pbuf1+48, edge2, (i&24)>>1, i&7);
-            if( memcmp( edge, edge2, 33 * sizeof(pixel) ) )
+            if( !(i&7) || ((i&MB_TOPRIGHT) && !(i&MB_TOP)) )
+                continue;
+            int neighbor = (i&24)>>1;
+            memset( edge,  0, sizeof(edge) );
+            memset( edge2, 0, sizeof(edge2) );
+            call_c( ip_c.predict_8x8_filter, pbuf1+48, edge,  neighbor, i&7 );
+            call_a( ip_a.predict_8x8_filter, pbuf1+48, edge2, neighbor, i&7 );
+            if( !(neighbor&MB_TOPLEFT) )
+                edge[15] = edge2[15] = 0;
+            if( memcmp( edge+7, edge2+7, (i&MB_TOPRIGHT ? 26 : i&MB_TOP ? 17 : 8) * sizeof(pixel) ) )
             {
                 fprintf( stderr, "predict_8x8_filter :  [FAILED] %d %d\n", (i&24)>>1, i&7);
                 ok = 0;
@@ -1996,7 +2002,7 @@ static int check_bitstream( int cpu_ref, int cpu_new )
             /* Test corner-case sizes */
             int test_size = i < 10 ? i+1 : rand() & 0x3fff;
             /* Test 8 different probability distributions of zeros */
-            for( int j = 0; j < test_size; j++ )
+            for( int j = 0; j < test_size+32; j++ )
                 input[j] = (rand()&((1 << ((i&7)+1)) - 1)) * rand();
             uint8_t *end_c = (uint8_t*)call_c1( bs_c.nal_escape, output1, input, input+test_size );
             uint8_t *end_a = (uint8_t*)call_a1( bs_a.nal_escape, output2, input, input+test_size );
@@ -2009,7 +2015,7 @@ static int check_bitstream( int cpu_ref, int cpu_new )
                 break;
             }
         }
-        for( int j = 0; j < size; j++ )
+        for( int j = 0; j < size+32; j++ )
             input[j] = rand();
         call_c2( bs_c.nal_escape, output1, input, input+size );
         call_a2( bs_a.nal_escape, output2, input, input+size );

@@ -113,10 +113,6 @@ void x264_intra_sad_x3_8x8_mmx2    ( pixel   *, pixel   *, int * );
 void x264_intra_sad_x3_8x8_sse2    ( pixel   *, pixel   *, int * );
 void x264_intra_sad_x3_8x8_ssse3   ( pixel   *, pixel   *, int * );
 void x264_intra_sad_x3_8x8_avx     ( pixel   *, pixel   *, int * );
-void x264_intra_sa8d_x3_8x8_core_mmx2 ( uint8_t *, int16_t [2][8], int * );
-void x264_intra_sa8d_x3_8x8_core_sse2 ( uint8_t *, int16_t [2][8], int * );
-void x264_intra_sa8d_x3_8x8_core_ssse3( uint8_t *, int16_t [2][8], int * );
-void x264_intra_sa8d_x3_8x8_core_avx  ( uint8_t *, int16_t [2][8], int * );
 
 void x264_pixel_ssd_nv12_core_mmx2( pixel *pixuv1, int stride1,
                                     pixel *pixuv2, int stride2, int width,

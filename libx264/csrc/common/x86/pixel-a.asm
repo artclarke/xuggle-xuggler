@@ -54,16 +54,23 @@ hmul_8p:   times 8 db 1
            times 4 db 1, -1
 mask_10:   times 4 dw 0, -1
 mask_1100: times 2 dd 0, -1
+pb_pppm:   times 4 db 1,1,1,-1
 deinterleave_shuf: db 0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15
+intrax3_shuf: db 7,6,7,6,5,4,5,4,3,2,3,2,1,0,1,0
 
+sw_f0:     dq 0xfff0, 0
 pd_f0:     times 4 dd 0xffff0000
 sq_0f:     times 1 dq 0xffffffff
 
 SECTION .text
 
 cextern pw_1
+cextern pw_8
+cextern pw_64
 cextern pw_00ff
-
+cextern pw_ppppmmmm
+cextern pw_ppmmppmm
+cextern pw_pmpmpmpm
 cextern hsub_mul
 
 ;=============================================================================
@@ -1525,12 +1532,21 @@ cglobal pixel_sa8d_16x16, 4,7
 ; INTRA SATD
 ;=============================================================================
 
+%macro HSUMSUB2 8
+    pshufd %4, %2, %7
+    pshufd %5, %3, %7
+    %1     %2, %8
+    %1     %6, %8
+    paddw  %2, %4
+    paddw  %3, %5
+%endmacro
+
 %macro INTRA_SA8D_SSE2 0
 %ifdef ARCH_X86_64
 ;-----------------------------------------------------------------------------
-; void intra_sa8d_x3_8x8_core( uint8_t *fenc, int16_t edges[2][8], int *res )
+; void intra_sa8d_x3_8x8( uint8_t *fenc, uint8_t edge[36], int *res )
 ;-----------------------------------------------------------------------------
-cglobal intra_sa8d_x3_8x8_core, 3,3,16
+cglobal intra_sa8d_x3_8x8, 3,3,16
     ; 8x8 hadamard
     pxor        m8, m8
     movq        m0, [r0+0*FENC_STRIDE]
@@ -1550,39 +1566,57 @@ cglobal intra_sa8d_x3_8x8_core, 3,3,16
     punpcklbw   m6, m8
     punpcklbw   m7, m8
 
-    HADAMARD8_2D 0,  1,  2,  3,  4,  5,  6,  7,  8
+    HADAMARD8_2D 0, 1, 2, 3, 4, 5, 6, 7, 8
 
-    ; dc
-    movzx       r0d, word [r1+0]
-    add         r0w, word [r1+16]
-    add         r0d, 8
-    and         r0d, -16
-    shl         r0d, 2
-
-    pxor        m15, m15
-    movdqa      m8,  m2
-    movdqa      m9,  m3
-    movdqa      m10, m4
-    movdqa      m11, m5
-    ABSW2       m8,  m9,  m8,  m9,  m12, m13
-    ABSW2       m10, m11, m10, m11, m12, m13
+    ABSW2       m8,  m9,  m2, m3, m2, m3
+    ABSW2       m10, m11, m4, m5, m4, m5
     paddusw     m8,  m10
     paddusw     m9,  m11
-    ABSW2       m10, m11, m6,  m7,  m6,  m7
+    ABSW2       m10, m11, m6, m7, m6, m7
     ABSW        m15, m1,  m1
     paddusw     m10, m11
     paddusw     m8,  m9
     paddusw     m15, m10
     paddusw     m15, m8
 
-    movdqa      m8,  [r1+0] ; left edge
-    movd        m9,  r0d
-    psllw       m8,  3
+    ; 1D hadamard of edges
+    movq        m8,  [r1+7]
+    movq        m9,  [r1+16]
+%if cpuflag(ssse3)
+    punpcklwd   m8,  m8
+    pshufb      m9,  [intrax3_shuf]
+    pmaddubsw   m8,  [pb_pppm]
+    pmaddubsw   m9,  [pb_pppm]
+    HSUMSUB2 psignw, m8, m9, m10, m11, m9, q1032, [pw_ppppmmmm]
+    HSUMSUB2 psignw, m8, m9, m10, m11, m9, q2301, [pw_ppmmppmm]
+%else ; sse2
+    pxor        m10, m10
+    punpcklbw   m8,  m10
+    punpcklbw   m9,  m10
+    HSUMSUB2 pmullw, m8, m9, m10, m11, m11, q1032, [pw_ppppmmmm]
+    HSUMSUB2 pmullw, m8, m9, m10, m11, m11, q2301, [pw_ppmmppmm]
+    pshuflw     m10, m8,  q2301
+    pshuflw     m11, m9,  q2301
+    pshufhw     m10, m10, q2301
+    pshufhw     m11, m11, q2301
+    pmullw      m8,  [pw_pmpmpmpm]
+    pmullw      m11, [pw_pmpmpmpm]
+    paddw       m8,  m10
+    paddw       m9,  m11
+%endif
+
+    ; differences
+    paddw       m10, m8, m9
+    paddw       m10, [pw_8]
+    pand        m10, [sw_f0]
+    psllw       m10, 2 ; dc
+
+    psllw       m8,  3 ; left edge
     psubw       m8,  m0
-    psubw       m9,  m0
-    ABSW2       m8,  m9,  m8,  m9,  m10, m11 ; 1x8 sum
-    paddusw     m14, m15, m8
-    paddusw     m15, m9
+    psubw       m10, m0
+    ABSW2       m8, m10, m8, m10, m11, m12 ; 1x8 sum
+    paddusw     m14, m8, m15
+    paddusw     m15, m10
     punpcklwd   m0,  m1
     punpcklwd   m2,  m3
     punpcklwd   m4,  m5
@@ -1590,11 +1624,10 @@ cglobal intra_sa8d_x3_8x8_core, 3,3,16
     punpckldq   m0,  m2
     punpckldq   m4,  m6
     punpcklqdq  m0,  m4 ; transpose
-    movdqa      m1,  [r1+16] ; top edge
-    psllw       m1,  3
-    psrldq      m2,  m15, 2  ; 8x7 sum
-    psubw       m0,  m1  ; 8x1 sum
-    ABSW        m0,  m0,  m1
+    psllw       m9,  3 ; top edge
+    psrldq      m2,  m15, 2 ; 8x7 sum
+    psubw       m0,  m9  ; 8x1 sum
+    ABSW        m0,  m0,  m9
     paddusw     m2,  m0
 
     ; 3x HADDW
@@ -1637,45 +1670,37 @@ cglobal hadamard_load
     SAVE_MM_PERMUTATION
     ret
 
-%macro SCALAR_SUMSUB 4
-    add %1, %2
-    add %3, %4
-    add %2, %2
-    add %4, %4
-    sub %2, %1
-    sub %4, %3
-%endmacro
-
-%macro SCALAR_HADAMARD_LEFT 5 ; y, 4x tmp
-%ifnidn %1, 0
-    shl         %1d, 5 ; log(FDEC_STRIDE)
+%macro SCALAR_HADAMARD 4-5 ; direction, offset, 3x tmp
+%ifidn %1, top
+    movd        %3, [r1+%2-FDEC_STRIDE]
+    pxor        %5, %5
+    punpcklbw   %3, %5
+%else ; left
+%ifnidn %2, 0
+    shl         %2d, 5 ; log(FDEC_STRIDE)
 %endif
-    movzx       %2d, byte [r1+%1-1+0*FDEC_STRIDE]
-    movzx       %3d, byte [r1+%1-1+1*FDEC_STRIDE]
-    movzx       %4d, byte [r1+%1-1+2*FDEC_STRIDE]
-    movzx       %5d, byte [r1+%1-1+3*FDEC_STRIDE]
-%ifnidn %1, 0
-    shr         %1d, 5
+    movd        %3, [r1+%2-4+1*FDEC_STRIDE]
+    pinsrw      %3, [r1+%2-2+0*FDEC_STRIDE], 0
+    pinsrw      %3, [r1+%2-2+2*FDEC_STRIDE], 2
+    pinsrw      %3, [r1+%2-2+3*FDEC_STRIDE], 3
+    psrlw       %3, 8
+%ifnidn %2, 0
+    shr         %2d, 5
 %endif
-    SCALAR_SUMSUB %2d, %3d, %4d, %5d
-    SCALAR_SUMSUB %2d, %4d, %3d, %5d
-    mov         [left_1d+2*%1+0], %2w
-    mov         [left_1d+2*%1+2], %3w
-    mov         [left_1d+2*%1+4], %4w
-    mov         [left_1d+2*%1+6], %5w
-%endmacro
-
-%macro SCALAR_HADAMARD_TOP 5 ; x, 4x tmp
-    movzx       %2d, byte [r1+%1-FDEC_STRIDE+0]
-    movzx       %3d, byte [r1+%1-FDEC_STRIDE+1]
-    movzx       %4d, byte [r1+%1-FDEC_STRIDE+2]
-    movzx       %5d, byte [r1+%1-FDEC_STRIDE+3]
-    SCALAR_SUMSUB %2d, %3d, %4d, %5d
-    SCALAR_SUMSUB %2d, %4d, %3d, %5d
-    mov         [top_1d+2*%1+0], %2w
-    mov         [top_1d+2*%1+2], %3w
-    mov         [top_1d+2*%1+4], %4w
-    mov         [top_1d+2*%1+6], %5w
+%endif ; direction
+%if cpuflag(ssse3)
+    %define %%sign psignw
+%else
+    %define %%sign pmullw
+%endif
+    pshufw      %4, %3, q1032
+    %%sign      %4, [pw_ppmmppmm]
+    paddw       %3, %4
+    pshufw      %4, %3, q2301
+    %%sign      %4, [pw_pmpmpmpm]
+    paddw       %3, %4
+    psllw       %3, 2
+    mova        [%1_1d+2*%2], %3
 %endmacro
 
 %macro SUM_MM_X3 8 ; 3x sum, 4x tmp, op
@@ -1720,21 +1745,22 @@ cglobal hadamard_load
     paddw       m7, m4
 %endmacro
 
-; in: m0..m3 (4x4), m7 (3x4)
+; in: m0..m3 (4x4)
 ; out: m0 v, m4 h, m5 dc
-; clobber: m6
+; clobber: m1..m3
 %macro SUM4x3 3 ; dc, left, top
     movq        m4, %2
+%ifid %1
+    movq        m5, %1
+%else
     movd        m5, %1
-    psllw       m4, 2
+%endif
     psubw       m4, m0
     psubw       m5, m0
     punpcklwd   m0, m1
     punpcklwd   m2, m3
     punpckldq   m0, m2 ; transpose
-    movq        m1, %3
-    psllw       m1, 2
-    psubw       m0, m1
+    psubw       m0, %3
     ABSW2       m4, m5, m4, m5, m2, m3 ; 1x4 sum
     ABSW        m0, m0, m1 ; 4x1 sum
 %endmacro
@@ -1743,30 +1769,28 @@ cglobal hadamard_load
 ;-----------------------------------------------------------------------------
 ; void intra_satd_x3_4x4( uint8_t *fenc, uint8_t *fdec, int *res )
 ;-----------------------------------------------------------------------------
-cglobal intra_satd_x3_4x4, 2,6
+cglobal intra_satd_x3_4x4, 3,3
 %ifdef ARCH_X86_64
     ; stack is 16 byte aligned because abi says so
     %define  top_1d  rsp-8  ; size 8
     %define  left_1d rsp-16 ; size 8
-    %define  t0 r10
 %else
     ; stack is 16 byte aligned at least in gcc, and we've pushed 3 regs + return address, so it's still aligned
     SUB         esp, 16
     %define  top_1d  esp+8
     %define  left_1d esp
-    %define  t0 r2
 %endif
 
     call hadamard_load
-    SCALAR_HADAMARD_LEFT 0, r0, r3, r4, r5
-    mov         t0d, r0d
-    SCALAR_HADAMARD_TOP  0, r0, r3, r4, r5
-    lea         t0d, [t0d + r0d + 4]
-    and         t0d, -8
-    shl         t0d, 1 ; dc
+    SCALAR_HADAMARD left, 0, m4, m5
+    SCALAR_HADAMARD top,  0, m6, m5, m7
+    paddw       m6, m4
+    psrlw       m6, 1
+    paddw       m6, [pw_8]
+    pand        m6, [sw_f0] ; dc
 
     SUM3x4
-    SUM4x3 t0d, [left_1d], [top_1d]
+    SUM4x3 m6, [left_1d], [top_1d]
     paddw       m4, m7
     paddw       m5, m7
     movq        m1, m5
@@ -1774,9 +1798,6 @@ cglobal intra_satd_x3_4x4, 2,6
     paddw       m0, m1
 
     SUM_MM_X3   m0, m4, m5, m1, m2, m3, m6, pavgw
-%ifndef ARCH_X86_64
-    mov         r2,  r2mp
-%endif
     movd        [r2+0], m0 ; i4x4_v satd
     movd        [r2+4], m4 ; i4x4_h satd
     movd        [r2+8], m5 ; i4x4_dc satd
@@ -1796,12 +1817,8 @@ cglobal intra_satd_x3_4x4, 2,6
 ;-----------------------------------------------------------------------------
 ; void intra_satd_x3_16x16( uint8_t *fenc, uint8_t *fdec, int *res )
 ;-----------------------------------------------------------------------------
-cglobal intra_satd_x3_16x16, 0,7
-%ifdef ARCH_X86_64
-    %assign  stack_pad  88
-%else
-    %assign  stack_pad  88 + ((stack_offset+88+4)&15)
-%endif
+cglobal intra_satd_x3_16x16, 0,5
+    %assign  stack_pad  88 + ((stack_offset+88+gprsize)&15)
     ; not really needed on x86_64, just shuts up valgrind about storing data below the stack across a function call
     SUB         rsp, stack_pad
 %define sums    rsp+64 ; size 24
@@ -1811,29 +1828,28 @@ cglobal intra_satd_x3_16x16, 0,7
     CLEAR_SUMS
 
     ; 1D hadamards
-    xor         t2d, t2d
     mov         t0d, 12
+    movd        m6,  [pw_64]
 .loop_edge:
-    SCALAR_HADAMARD_LEFT t0, r3, r4, r5, r6
-    add         t2d, r3d
-    SCALAR_HADAMARD_TOP  t0, r3, r4, r5, r6
-    add         t2d, r3d
+    SCALAR_HADAMARD left, t0, m0, m1
+    SCALAR_HADAMARD top,  t0, m1, m2, m3
+    paddw       m6,  m0
+    paddw       m6,  m1
     sub         t0d, 4
     jge .loop_edge
-    shr         t2d, 1
-    add         t2d, 8
-    and         t2d, -16 ; dc
+    psrlw       m6,  3
+    pand        m6,  [sw_f0] ; dc
 
     ; 2D hadamards
     movifnidn   r0,  r0mp
-    xor         r3d, r3d
+    mov         r3,  -4
 .loop_y:
-    xor         r4d, r4d
+    mov         r4,  -4
 .loop_x:
     call hadamard_load
 
     SUM3x4
-    SUM4x3 t2d, [left_1d+8*r3], [top_1d+8*r4]
+    SUM4x3 m6, [left_1d+8*(r3+4)], [top_1d+8*(r4+4)]
     pavgw       m4, m7
     pavgw       m5, m7
     paddw       m0, [sums+0]  ; i16x16_v satd
@@ -1844,12 +1860,10 @@ cglobal intra_satd_x3_16x16, 0,7
     movq        [sums+16], m5
 
     add         r0, 4
-    inc         r4d
-    cmp         r4d, 4
+    inc         r4
     jl  .loop_x
     add         r0, 4*FENC_STRIDE-16
-    inc         r3d
-    cmp         r3d, 4
+    inc         r3
     jl  .loop_y
 
 ; horizontal sum
@@ -1886,8 +1900,8 @@ cglobal intra_satd_x3_8x8c, 0,6
     ; 1D hadamards
     mov         t0d, 4
 .loop_edge:
-    SCALAR_HADAMARD_LEFT t0, t2, r3, r4, r5
-    SCALAR_HADAMARD_TOP  t0, t2, r3, r4, r5
+    SCALAR_HADAMARD left, t0, m0, m1
+    SCALAR_HADAMARD top,  t0, m0, m1, m2
     sub         t0d, 4
     jge .loop_edge
 
@@ -1896,12 +1910,12 @@ cglobal intra_satd_x3_8x8c, 0,6
     movzx       r3d, word [top_1d+0]
     movzx       r4d, word [left_1d+8]
     movzx       r5d, word [top_1d+8]
-    add         t2d, r3d
-    lea         r3, [r4 + r5]
-    lea         t2, [2*t2 + 8]
-    lea         r3, [2*r3 + 8]
-    lea         r4, [4*r4 + 8]
-    lea         r5, [4*r5 + 8]
+    lea         t2d, [t2 + r3 + 16]
+    lea         r3d, [r4 + r5 + 16]
+    shr         t2d, 1
+    shr         r3d, 1
+    add         r4d, 8
+    add         r5d, 8
     and         t2d, -16 ; tl
     and         r3d, -16 ; br
     and         r4d, -16 ; bl
@@ -1915,14 +1929,14 @@ cglobal intra_satd_x3_8x8c, 0,6
     ; 2D hadamards
     movifnidn   r0,  r0mp
     movifnidn   r2,  r2mp
-    xor         r3d, r3d
+    mov         r3,  -2
 .loop_y:
-    xor         r4d, r4d
+    mov         r4,  -2
 .loop_x:
     call hadamard_load
 
     SUM3x4
-    SUM4x3 [r5+4*r4], [left_1d+8*r3], [top_1d+8*r4]
+    SUM4x3 [r5+4*(r4+2)], [left_1d+8*(r3+2)], [top_1d+8*(r4+2)]
     pavgw       m4, m7
     pavgw       m5, m7
     paddw       m0, [sums+16] ; i4x4_v satd
@@ -1933,13 +1947,11 @@ cglobal intra_satd_x3_8x8c, 0,6
     movq        [sums+0], m5
 
     add         r0, 4
-    inc         r4d
-    cmp         r4d, 2
+    inc         r4
     jl  .loop_x
     add         r0, 4*FENC_STRIDE-8
     add         r5, 8
-    inc         r3d
-    cmp         r3d, 2
+    inc         r3
     jl  .loop_y
 
 ; horizontal sum
@@ -2424,8 +2436,8 @@ SA8D
 INIT_XMM sse2
 SA8D
 SATDS_SSE2
-INTRA_SA8D_SSE2
 %ifndef HIGH_BIT_DEPTH
+INTRA_SA8D_SSE2
 INIT_MMX mmx2
 INTRA_SATDS_MMX
 %endif
@@ -2446,9 +2458,11 @@ HADAMARD_AC_SSE2
 %undef movdqa ; nehalem doesn't like movaps
 %undef movdqu ; movups
 %undef punpcklqdq ; or movlhps
+%ifndef HIGH_BIT_DEPTH
 INTRA_SA8D_SSE2
 INIT_MMX ssse3
 INTRA_SATDS_MMX
+%endif
 
 %define TRANS TRANS_SSE4
 %define LOAD_DUP_4x8P LOAD_DUP_4x8P_PENRYN
@@ -2460,7 +2474,9 @@ HADAMARD_AC_SSE2
 INIT_XMM avx
 SATDS_SSE2
 SA8D
+%ifndef HIGH_BIT_DEPTH
 INTRA_SA8D_SSE2
+%endif
 HADAMARD_AC_SSE2
 
 ;=============================================================================

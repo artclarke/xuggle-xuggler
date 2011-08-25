@@ -527,6 +527,16 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
         i++; \
     }
 
+#define SET_IMVP(xy) \
+    if( xy >= 0 ) \
+    { \
+        int shift = 1 + MB_INTERLACED - h->mb.field[xy]; \
+        int16_t *mvp = h->mb.mvr[i_list][i_ref<<1>>shift][xy]; \
+        mvc[i][0] = mvp[0]; \
+        mvc[i][1] = mvp[1]<<1>>shift; \
+        i++; \
+    }
+
     /* b_direct */
     if( h->sh.i_type == SLICE_TYPE_B
         && h->mb.cache.ref[i_list][x264_scan8[12]] == i_ref )
@@ -550,10 +560,21 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
     }
 
     /* spatial predictors */
-    SET_MVP( mvr[h->mb.i_mb_left_xy[0]] );
-    SET_MVP( mvr[h->mb.i_mb_top_xy] );
-    SET_MVP( mvr[h->mb.i_mb_topleft_xy] );
-    SET_MVP( mvr[h->mb.i_mb_topright_xy] );
+    if( SLICE_MBAFF )
+    {
+        SET_IMVP( h->mb.i_mb_left_xy[0] );
+        SET_IMVP( h->mb.i_mb_top_xy );
+        SET_IMVP( h->mb.i_mb_topleft_xy );
+        SET_IMVP( h->mb.i_mb_topright_xy );
+    }
+    else
+    {
+        SET_MVP( mvr[h->mb.i_mb_left_xy[0]] );
+        SET_MVP( mvr[h->mb.i_mb_top_xy] );
+        SET_MVP( mvr[h->mb.i_mb_topleft_xy] );
+        SET_MVP( mvr[h->mb.i_mb_topright_xy] );
+    }
+#undef SET_IMVP
 #undef SET_MVP
 
     /* temporal predictors */

@@ -499,7 +499,7 @@ SATD_X_DECL7( _neon )
 #endif // !HIGH_BIT_DEPTH
 
 #define INTRA_MBCMP_8x8( mbcmp, cpu )\
-void x264_intra_##mbcmp##_x3_8x8##cpu( pixel *fenc, pixel edge[33], int res[3] )\
+void x264_intra_##mbcmp##_x3_8x8##cpu( pixel *fenc, pixel edge[36], int res[3] )\
 {\
     ALIGNED_ARRAY_16( pixel, pix, [8*FDEC_STRIDE] );\
     x264_predict_8x8_v_c( pix, edge );\
