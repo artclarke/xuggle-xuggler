@@ -62,30 +62,27 @@ extern const x264_weight_t x264_weight_none[3];
 
 typedef struct
 {
-    void (*mc_luma)(pixel *dst, int i_dst, pixel **src, int i_src,
-                    int mvx, int mvy,
-                    int i_width, int i_height, const x264_weight_t *weight );
+    void (*mc_luma)( pixel *dst, int i_dst, pixel **src, int i_src,
+                     int mvx, int mvy, int i_width, int i_height, const x264_weight_t *weight );
 
     /* may round up the dimensions if they're not a power of 2 */
-    pixel* (*get_ref)(pixel *dst, int *i_dst, pixel **src, int i_src,
-                      int mvx, int mvy,
-                      int i_width, int i_height, const x264_weight_t *weight );
+    pixel* (*get_ref)( pixel *dst, int *i_dst, pixel **src, int i_src,
+                       int mvx, int mvy, int i_width, int i_height, const x264_weight_t *weight );
 
     /* mc_chroma may write up to 2 bytes of garbage to the right of dst,
      * so it must be run from left to right. */
-    void (*mc_chroma)(pixel *dstu, pixel *dstv, int i_dst, pixel *src, int i_src,
-                      int mvx, int mvy,
-                      int i_width, int i_height );
+    void (*mc_chroma)( pixel *dstu, pixel *dstv, int i_dst, pixel *src, int i_src,
+                       int mvx, int mvy, int i_width, int i_height );
 
-    void (*avg[10])( pixel *dst, int, pixel *src1, int, pixel *src2, int, int i_weight );
+    void (*avg[12])( pixel *dst, int, pixel *src1, int, pixel *src2, int, int i_weight );
 
     /* only 16x16, 8x8, and 4x4 defined */
     void (*copy[7])( pixel *dst, int, pixel *src, int, int i_height );
     void (*copy_16x16_unaligned)( pixel *dst, int, pixel *src, int, int i_height );
 
-    void (*store_interleave_8x8x2)( pixel *dst, int i_dst, pixel *srcu, pixel *srcv );
-    void (*load_deinterleave_8x8x2_fenc)( pixel *dst, pixel *src, int i_src );
-    void (*load_deinterleave_8x8x2_fdec)( pixel *dst, pixel *src, int i_src );
+    void (*store_interleave_chroma)( pixel *dst, int i_dst, pixel *srcu, pixel *srcv, int height );
+    void (*load_deinterleave_chroma_fenc)( pixel *dst, pixel *src, int i_src, int height );
+    void (*load_deinterleave_chroma_fdec)( pixel *dst, pixel *src, int i_src, int height );
 
     void (*plane_copy)( pixel *dst, int i_dst,
                         pixel *src, int i_src, int w, int h );

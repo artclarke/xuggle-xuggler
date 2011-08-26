@@ -670,10 +670,10 @@ DEQUANT_DC w, pmullw
 %endif
 
 ;-----------------------------------------------------------------------------
-; x264_optimize_chroma_dc( dctcoef dct[4], int dequant_mf )
+; x264_optimize_chroma_2x2_dc( dctcoef dct[4], int dequant_mf )
 ;-----------------------------------------------------------------------------
 
-%macro OPTIMIZE_CHROMA_DC 0
+%macro OPTIMIZE_CHROMA_2x2_DC 0
 %assign %%regs 5
 %if cpuflag(sse4)
     %assign %%regs %%regs-1
@@ -681,7 +681,7 @@ DEQUANT_DC w, pmullw
 %ifndef ARCH_X86_64
     %assign %%regs %%regs+1      ; t0-t4 are volatile on x86-64
 %endif
-cglobal optimize_chroma_dc, 0,%%regs,7
+cglobal optimize_chroma_2x2_dc, 0,%%regs,7
     movifnidn t0, r0mp
     movd      m2, r1m
     movq      m1, [t0]
@@ -775,13 +775,13 @@ cglobal optimize_chroma_dc, 0,%%regs,7
 
 %ifndef HIGH_BIT_DEPTH
 INIT_XMM sse2
-OPTIMIZE_CHROMA_DC
+OPTIMIZE_CHROMA_2x2_DC
 INIT_XMM ssse3
-OPTIMIZE_CHROMA_DC
+OPTIMIZE_CHROMA_2x2_DC
 INIT_XMM sse4
-OPTIMIZE_CHROMA_DC
+OPTIMIZE_CHROMA_2x2_DC
 INIT_XMM avx
-OPTIMIZE_CHROMA_DC
+OPTIMIZE_CHROMA_2x2_DC
 %endif ; !HIGH_BIT_DEPTH
 
 %ifdef HIGH_BIT_DEPTH

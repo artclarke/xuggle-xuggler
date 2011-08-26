@@ -96,12 +96,11 @@ static NOINLINE pixel *x264_weight_cost_init_luma( x264_t *h, x264_frame_t *fenc
     return ref->lowres[0];
 }
 
-/* How data is organized for chroma weightp 4:2:0:
+/* How data is organized for 4:2:0/4:2:2 chroma weightp:
  * [U: ref] [U: fenc]
  * [V: ref] [V: fenc]
  * fenc = ref + offset
- * v = u + stride * chroma height
- * We'll need more room if we do 4:2:2. */
+ * v = u + stride * chroma height */
 
 static NOINLINE void x264_weight_cost_init_chroma( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, pixel *dstu, pixel *dstv )
 {
@@ -110,21 +109,23 @@ static NOINLINE void x264_weight_cost_init_chroma( x264_t *h, x264_frame_t *fenc
     int i_offset = i_stride / 2;
     int i_lines = fenc->i_lines[1];
     int i_width = fenc->i_width[1];
-    int cw = h->mb.i_mb_width  << 3;
-    int ch = h->mb.i_mb_height << 3;
+    int v_shift = h->mb.chroma_v_shift;
+    int cw = 8*h->mb.i_mb_width;
+    int ch = 16*h->mb.i_mb_height >> v_shift;
+    int height = 16 >> v_shift;
 
     if( fenc->lowres_mvs[0][ref0_distance][0][0] != 0x7FFF )
     {
         x264_frame_expand_border_chroma( h, ref, 1 );
-        for( int y = 0, mb_xy = 0, pel_offset_y = 0; y < i_lines; y += 8, pel_offset_y = y*i_stride )
+        for( int y = 0, mb_xy = 0, pel_offset_y = 0; y < i_lines; y += height, pel_offset_y = y*i_stride )
             for( int x = 0, pel_offset_x = 0; x < i_width; x += 8, mb_xy++, pel_offset_x += 8 )
             {
                 pixel *pixu = dstu + pel_offset_y + pel_offset_x;
                 pixel *pixv = dstv + pel_offset_y + pel_offset_x;
-                pixel *src1 =  ref->plane[1] + pel_offset_y + pel_offset_x*2; /* NV12 */
+                pixel *src1 =  ref->plane[1] + pel_offset_y + pel_offset_x*2; /* NV12/NV16 */
                 int mvx = fenc->lowres_mvs[0][ref0_distance][mb_xy][0];
                 int mvy = fenc->lowres_mvs[0][ref0_distance][mb_xy][1];
-                h->mc.mc_chroma( pixu, pixv, i_stride, src1, i_stride, mvx, mvy, 8, 8 );
+                h->mc.mc_chroma( pixu, pixv, i_stride, src1, i_stride, mvx, 2*mvy>>v_shift, 8, height );
             }
     }
     else
@@ -223,15 +224,17 @@ static NOINLINE unsigned int x264_weight_cost_chroma( x264_t *h, x264_frame_t *f
     int i_lines = fenc->i_lines[1];
     int i_width = fenc->i_width[1];
     pixel *src = ref + i_offset;
-    ALIGNED_ARRAY_16( pixel, buf, [8*8] );
+    ALIGNED_ARRAY_16( pixel, buf, [8*16] );
     int pixoff = 0;
+    int chromapix = h->luma2chroma_pixel[PIXEL_16x16];
+    int height = 16 >> h->mb.chroma_v_shift;
     ALIGNED_16( static pixel flat[8] ) = {0};
     if( w )
     {
-        for( int y = 0; y < i_lines; y += 8, pixoff = y*i_stride )
+        for( int y = 0; y < i_lines; y += height, pixoff = y*i_stride )
             for( int x = 0; x < i_width; x += 8, pixoff += 8 )
             {
-                w->weightfn[8>>2]( buf, 8, &ref[pixoff], i_stride, w, 8 );
+                w->weightfn[8>>2]( buf, 8, &ref[pixoff], i_stride, w, height );
                 /* The naive and seemingly sensible algorithm is to use mbcmp as in luma.
                  * But testing shows that for chroma the DC coefficient is by far the most
                  * important part of the coding cost.  Thus a more useful chroma weight is
@@ -239,16 +242,16 @@ static NOINLINE unsigned int x264_weight_cost_chroma( x264_t *h, x264_frame_t *f
                  * pixels.
                  *
                  * FIXME: add a (faster) asm sum function to replace sad. */
-                cost += abs( h->pixf.sad_aligned[PIXEL_8x8](          buf,        8, flat, 0 ) -
-                             h->pixf.sad_aligned[PIXEL_8x8]( &src[pixoff], i_stride, flat, 0 ) );
+                cost += abs( h->pixf.sad_aligned[chromapix](          buf,        8, flat, 0 ) -
+                             h->pixf.sad_aligned[chromapix]( &src[pixoff], i_stride, flat, 0 ) );
             }
         cost += x264_weight_slice_header_cost( h, w, 1 );
     }
     else
-        for( int y = 0; y < i_lines; y += 8, pixoff = y*i_stride )
+        for( int y = 0; y < i_lines; y += height, pixoff = y*i_stride )
             for( int x = 0; x < i_width; x += 8, pixoff += 8 )
-                cost += abs( h->pixf.sad_aligned[PIXEL_8x8]( &ref[pixoff], i_stride, flat, 0 ) -
-                             h->pixf.sad_aligned[PIXEL_8x8]( &src[pixoff], i_stride, flat, 0 ) );
+                cost += abs( h->pixf.sad_aligned[chromapix]( &ref[pixoff], i_stride, flat, 0 ) -
+                             h->pixf.sad_aligned[chromapix]( &src[pixoff], i_stride, flat, 0 ) );
     x264_emms();
     return cost;
 }

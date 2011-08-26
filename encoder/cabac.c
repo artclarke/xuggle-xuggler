@@ -210,8 +210,8 @@ static void x264_cabac_mb_intra4x4_pred_mode( x264_cabac_t *cb, int i_pred, int 
 
 static void x264_cabac_mb_intra_chroma_pred_mode( x264_t *h, x264_cabac_t *cb )
 {
-    const int i_mode = x264_mb_pred_mode8x8c_fix[h->mb.i_chroma_pred_mode];
-    int       ctx = 0;
+    int i_mode = x264_mb_chroma_pred_mode_fix[h->mb.i_chroma_pred_mode];
+    int ctx = 0;
 
     /* No need to test for I4x4 or I_16x16 as cache_save handle that */
     if( (h->mb.i_neighbour & MB_LEFT) && h->mb.chroma_pred_mode[h->mb.i_mb_left_xy[0]] != 0 )
@@ -485,7 +485,7 @@ static inline void x264_cabac_mb8x8_mvd( x264_t *h, x264_cabac_t *cb, int i )
  *                1-> AC 16x16  i_idx = luma4x4idx
  *                2-> Luma4x4   i_idx = luma4x4idx
  *                3-> DC Chroma i_idx = iCbCr
- *                4-> AC Chroma i_idx = 4 * iCbCr + chroma4x4idx
+ *                4-> AC Chroma i_idx = numChroma4x4Blks * iCbCr + chroma4x4idx
  *                5-> Luma8x8   i_idx = luma8x8idx
  */
 
@@ -567,6 +567,7 @@ static const uint8_t last_coeff_flag_offset_8x8[63] =
     3, 3, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
     5, 5, 5, 5, 6, 6, 6, 6, 7, 7, 7, 7, 8, 8, 8
 };
+static const uint8_t coeff_flag_offset_chroma_422_dc[7] = { 0, 0, 1, 1, 2, 2, 2 }; /* MIN( i/2, 2 ) */
 
 // node ctx: 0..3: abslevel1 (with abslevelgt1 == 0).
 //           4..7: abslevelgt1 + 3 (and abslevel1 doesn't matter).
@@ -574,6 +575,9 @@ static const uint8_t last_coeff_flag_offset_8x8[63] =
 static const uint8_t coeff_abs_level1_ctx[8] = { 1, 2, 3, 4, 0, 0, 0, 0 };
 /* map node ctx => cabac ctx for level>1 */
 static const uint8_t coeff_abs_levelgt1_ctx[8] = { 5, 5, 5, 5, 6, 7, 8, 9 };
+/* 4:2:2 chroma dc uses a slightly different state machine for some reason, also note that
+ * 4:2:0 chroma dc doesn't use the last state so it has identical output with both arrays. */
+static const uint8_t coeff_abs_levelgt1_ctx_chroma_dc[8] = { 5, 5, 5, 5, 6, 7, 8, 8 };
 static const uint8_t coeff_abs_level_transition[2][8] = {
 /* update node ctx after coding a level=1 */
     { 1, 2, 3, 3, 4, 5, 6, 7 },
@@ -583,18 +587,17 @@ static const uint8_t coeff_abs_level_transition[2][8] = {
 static const uint8_t count_cat_m1[14] = {15, 14, 15, 3, 14, 63, 15, 14, 15, 63, 15, 14, 15, 63};
 
 #if !RDO_SKIP_BS
-static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l )
+static ALWAYS_INLINE void block_residual_write_cabac_internal( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l, int chroma422dc )
 {
-    const uint8_t *sig_offset = significant_coeff_flag_offset_8x8[MB_INTERLACED];
     int ctx_sig = significant_coeff_flag_offset[MB_INTERLACED][ctx_block_cat];
     int ctx_last = last_coeff_flag_offset[MB_INTERLACED][ctx_block_cat];
     int ctx_level = coeff_abs_level_m1_offset[ctx_block_cat];
-    int coeff_idx = -1, node_ctx = 0, last;
-    int coeffs[64];
+    int coeff_idx = -1, node_ctx = 0;
+    int last = h->quantf.coeff_last[ctx_block_cat]( l );
+    const uint8_t *levelgt1_ctx = chroma422dc ? coeff_abs_levelgt1_ctx_chroma_dc : coeff_abs_levelgt1_ctx;
+    dctcoef coeffs[64];
 
-    last = h->quantf.coeff_last[ctx_block_cat]( l );
-
-#define WRITE_SIGMAP( l8x8 )\
+#define WRITE_SIGMAP( sig_off, last_off )\
 {\
     int i = 0;\
     while( 1 )\
@@ -602,19 +605,18 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int ctx_blo
         if( l[i] )\
         {\
             coeffs[++coeff_idx] = l[i];\
-            x264_cabac_encode_decision( cb, ctx_sig + (l8x8 ? sig_offset[i] : i), 1 );\
+            x264_cabac_encode_decision( cb, ctx_sig + sig_off, 1 );\
             if( i == last )\
             {\
-                x264_cabac_encode_decision( cb, ctx_last + (l8x8 ? last_coeff_flag_offset_8x8[i] : i), 1 );\
+                x264_cabac_encode_decision( cb, ctx_last + last_off, 1 );\
                 break;\
             }\
             else\
-                x264_cabac_encode_decision( cb, ctx_last + (l8x8 ? last_coeff_flag_offset_8x8[i] : i), 0 );\
+                x264_cabac_encode_decision( cb, ctx_last + last_off, 0 );\
         }\
         else\
-            x264_cabac_encode_decision( cb, ctx_sig + (l8x8 ? sig_offset[i] : i), 0 );\
-        i++;\
-        if( i == count_m1 )\
+            x264_cabac_encode_decision( cb, ctx_sig + sig_off, 0 );\
+        if( ++i == count_m1 )\
         {\
             coeffs[++coeff_idx] = l[i];\
             break;\
@@ -622,11 +624,22 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int ctx_blo
     }\
 }
 
-    int count_m1 = count_cat_m1[ctx_block_cat];
-    if( count_m1 == 63 )
-        WRITE_SIGMAP( 1 )
+    if( chroma422dc )
+    {
+        int count_m1 = 7;
+        WRITE_SIGMAP( coeff_flag_offset_chroma_422_dc[i], coeff_flag_offset_chroma_422_dc[i] )
+    }
     else
-        WRITE_SIGMAP( 0 )
+    {
+        int count_m1 = count_cat_m1[ctx_block_cat];
+        if( count_m1 == 63 )
+        {
+            const uint8_t *sig_offset = significant_coeff_flag_offset_8x8[MB_INTERLACED];
+            WRITE_SIGMAP( sig_offset[i], last_coeff_flag_offset_8x8[i] )
+        }
+        else
+            WRITE_SIGMAP( i, i )
+    }
 
     do
     {
@@ -639,7 +652,7 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int ctx_blo
         if( abs_coeff > 1 )
         {
             x264_cabac_encode_decision( cb, ctx, 1 );
-            ctx = coeff_abs_levelgt1_ctx[node_ctx] + ctx_level;
+            ctx = levelgt1_ctx[node_ctx] + ctx_level;
             for( int i = X264_MIN( abs_coeff, 15 ) - 2; i > 0; i-- )
                 x264_cabac_encode_decision( cb, ctx, 1 );
             if( abs_coeff < 15 )
@@ -658,15 +671,23 @@ static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int ctx_blo
         x264_cabac_encode_bypass( cb, coeff_sign );
     } while( --coeff_idx >= 0 );
 }
+static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l )
+{
+    block_residual_write_cabac_internal( h, cb, ctx_block_cat, l, 0 );
+}
+static void block_residual_write_cabac_422_dc( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l )
+{
+    /* Template a version specifically for chroma 4:2:2 DC in order to avoid
+     * slowing down everything else due to the added complexity. */
+    block_residual_write_cabac_internal( h, cb, DCT_CHROMA_DC, l, 1 );
+}
 #define block_residual_write_cabac_8x8( h, cb, cat, l ) block_residual_write_cabac( h, cb, cat, l )
-
 #else
 
-/* Faster RDO by merging sigmap and level coding.  Note that for 8x8dct
- * this is slightly incorrect because the sigmap is not reversible
- * (contexts are repeated).  However, there is nearly no quality penalty
- * for this (~0.001db) and the speed boost (~30%) is worth it. */
-static void ALWAYS_INLINE block_residual_write_cabac_internal( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l, int b_8x8 )
+/* Faster RDO by merging sigmap and level coding. Note that for 8x8dct and chroma 4:2:2 dc this is
+ * slightly incorrect because the sigmap is not reversible (contexts are repeated). However, there
+ * is nearly no quality penalty for this (~0.001db) and the speed boost (~30%) is worth it. */
+static void ALWAYS_INLINE block_residual_write_cabac_internal( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l, int b_8x8, int chroma422dc )
 {
     const uint8_t *sig_offset = significant_coeff_flag_offset_8x8[MB_INTERLACED];
     int ctx_sig = significant_coeff_flag_offset[MB_INTERLACED][ctx_block_cat];
@@ -676,17 +697,20 @@ static void ALWAYS_INLINE block_residual_write_cabac_internal( x264_t *h, x264_c
     int coeff_abs = abs(l[last]);
     int ctx = coeff_abs_level1_ctx[0] + ctx_level;
     int node_ctx;
+    const uint8_t *levelgt1_ctx = chroma422dc ? coeff_abs_levelgt1_ctx_chroma_dc : coeff_abs_levelgt1_ctx;
 
-    if( last != (b_8x8 ? 63 : count_cat_m1[ctx_block_cat]) )
+    if( last != (b_8x8 ? 63 : chroma422dc ? 7 : count_cat_m1[ctx_block_cat]) )
     {
-        x264_cabac_encode_decision( cb, ctx_sig + (b_8x8 ? sig_offset[last] : last), 1 );
-        x264_cabac_encode_decision( cb, ctx_last + (b_8x8 ? last_coeff_flag_offset_8x8[last] : last), 1 );
+        x264_cabac_encode_decision( cb, ctx_sig + (b_8x8 ? sig_offset[last] :
+                                    chroma422dc ? coeff_flag_offset_chroma_422_dc[last] : last), 1 );
+        x264_cabac_encode_decision( cb, ctx_last + (b_8x8 ? last_coeff_flag_offset_8x8[last] :
+                                    chroma422dc ? coeff_flag_offset_chroma_422_dc[last] : last), 1 );
     }
 
     if( coeff_abs > 1 )
     {
         x264_cabac_encode_decision( cb, ctx, 1 );
-        ctx = coeff_abs_levelgt1_ctx[0] + ctx_level;
+        ctx = levelgt1_ctx[0] + ctx_level;
         if( coeff_abs < 15 )
         {
             cb->f8_bits_encoded += cabac_size_unary[coeff_abs-1][cb->state[ctx]];
@@ -712,14 +736,16 @@ static void ALWAYS_INLINE block_residual_write_cabac_internal( x264_t *h, x264_c
         if( l[i] )
         {
             coeff_abs = abs(l[i]);
-            x264_cabac_encode_decision( cb, ctx_sig + (b_8x8 ? sig_offset[i] : i), 1 );
-            x264_cabac_encode_decision( cb, ctx_last + (b_8x8 ? last_coeff_flag_offset_8x8[i] : i), 0 );
+            x264_cabac_encode_decision( cb, ctx_sig + (b_8x8 ? sig_offset[i] :
+                                        chroma422dc ? coeff_flag_offset_chroma_422_dc[i] : i), 1 );
+            x264_cabac_encode_decision( cb, ctx_last + (b_8x8 ? last_coeff_flag_offset_8x8[i] :
+                                        chroma422dc ? coeff_flag_offset_chroma_422_dc[i] : i), 0 );
             ctx = coeff_abs_level1_ctx[node_ctx] + ctx_level;
 
             if( coeff_abs > 1 )
             {
                 x264_cabac_encode_decision( cb, ctx, 1 );
-                ctx = coeff_abs_levelgt1_ctx[node_ctx] + ctx_level;
+                ctx = levelgt1_ctx[node_ctx] + ctx_level;
                 if( coeff_abs < 15 )
                 {
                     cb->f8_bits_encoded += cabac_size_unary[coeff_abs-1][cb->state[ctx]];
@@ -741,45 +767,49 @@ static void ALWAYS_INLINE block_residual_write_cabac_internal( x264_t *h, x264_c
             }
         }
         else
-            x264_cabac_encode_decision( cb, ctx_sig + (b_8x8 ? sig_offset[i] : i), 0 );
+            x264_cabac_encode_decision( cb, ctx_sig + (b_8x8 ? sig_offset[i] :
+                                        chroma422dc ? coeff_flag_offset_chroma_422_dc[i] : i), 0 );
     }
 }
 
 static void block_residual_write_cabac_8x8( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l )
 {
-    block_residual_write_cabac_internal( h, cb, ctx_block_cat, l, 1 );
+    block_residual_write_cabac_internal( h, cb, ctx_block_cat, l, 1, 0 );
+}
+static void block_residual_write_cabac_422_dc( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l )
+{
+    block_residual_write_cabac_internal( h, cb, DCT_CHROMA_DC, l, 0, 1 );
 }
 static void block_residual_write_cabac( x264_t *h, x264_cabac_t *cb, int ctx_block_cat, dctcoef *l )
 {
-    block_residual_write_cabac_internal( h, cb, ctx_block_cat, l, 0 );
+    block_residual_write_cabac_internal( h, cb, ctx_block_cat, l, 0, 0 );
 }
 #endif
 
-#define block_residual_write_cabac_cbf( h, cb, ctx_block_cat, i_idx, l, b_intra )\
+#define block_residual_write_cabac_cbf_internal( h, cb, ctx_block_cat, i_idx, l, b_intra, name )\
 do\
 {\
     int ctxidxinc = x264_cabac_mb_cbf_ctxidxinc( h, ctx_block_cat, i_idx, b_intra );\
     if( h->mb.cache.non_zero_count[x264_scan8[i_idx]] )\
     {\
         x264_cabac_encode_decision( cb, ctxidxinc, 1 );\
-        block_residual_write_cabac( h, cb, ctx_block_cat, l );\
+        block_residual_write_cabac##name( h, cb, ctx_block_cat, l );\
     }\
     else\
         x264_cabac_encode_decision( cb, ctxidxinc, 0 );\
 } while(0)
 
+#define block_residual_write_cabac_dc_cbf( h, cb, ctx_block_cat, i_idx, l, b_intra )\
+    block_residual_write_cabac_cbf_internal( h, cb, ctx_block_cat, i_idx, l, b_intra, )
+
+#define block_residual_write_cabac_cbf( h, cb, ctx_block_cat, i_idx, l, b_intra )\
+    block_residual_write_cabac_cbf_internal( h, cb, ctx_block_cat, i_idx, l, b_intra, )
+
 #define block_residual_write_cabac_8x8_cbf( h, cb, ctx_block_cat, i_idx, l, b_intra )\
-do\
-{\
-    int ctxidxinc = x264_cabac_mb_cbf_ctxidxinc( h, ctx_block_cat, i_idx, b_intra );\
-    if( h->mb.cache.non_zero_count[x264_scan8[i_idx]] )\
-    {\
-        x264_cabac_encode_decision( cb, ctxidxinc, 1 );\
-        block_residual_write_cabac_8x8( h, cb, ctx_block_cat, l );\
-    }\
-    else\
-        x264_cabac_encode_decision( cb, ctxidxinc, 0 );\
-} while(0)
+    block_residual_write_cabac_cbf_internal( h, cb, ctx_block_cat, i_idx, l, b_intra, _8x8 )
+
+#define block_residual_write_cabac_422_dc_cbf( h, cb, ch, b_intra )\
+    block_residual_write_cabac_cbf_internal( h, cb, DCT_CHROMA_DC, CHROMA_DC+(ch), h->dct.chroma_dc[ch], b_intra, _422_dc )
 
 static ALWAYS_INLINE void x264_macroblock_write_cabac_internal( x264_t *h, x264_cabac_t *cb, int plane_count, int chroma )
 {
@@ -808,7 +838,7 @@ static ALWAYS_INLINE void x264_macroblock_write_cabac_internal( x264_t *h, x264_
                 bs_write( &s, BIT_DEPTH, h->mb.pic.p_fenc[p][i] );
         if( chroma )
             for( int ch = 1; ch < 3; ch++ )
-                for( int i = 0; i < 8; i++ )
+                for( int i = 0; i < 16>>h->mb.chroma_v_shift; i++ )
                     for( int j = 0; j < 8; j++ )
                         bs_write( &s, BIT_DEPTH, h->mb.pic.p_fenc[ch][i*FENC_STRIDE+j] );
 
@@ -968,7 +998,7 @@ static ALWAYS_INLINE void x264_macroblock_write_cabac_internal( x264_t *h, x264_
         x264_cabac_mb_transform_size( h, cb );
     }
 
-    if( h->mb.i_cbp_luma > 0 || (chroma && h->mb.i_cbp_chroma > 0) || i_mb_type == I_16x16 )
+    if( h->mb.i_cbp_luma || (chroma && h->mb.i_cbp_chroma) || i_mb_type == I_16x16 )
     {
         const int b_intra = IS_INTRA( i_mb_type );
         x264_cabac_mb_qp_delta( h, cb );
@@ -979,7 +1009,7 @@ static ALWAYS_INLINE void x264_macroblock_write_cabac_internal( x264_t *h, x264_
             /* DC Luma */
             for( int p = 0; p < plane_count; p++ )
             {
-                block_residual_write_cabac_cbf( h, cb, ctx_cat_plane[DCT_LUMA_DC][p], LUMA_DC+p, h->dct.luma16x16_dc[p], 1 );
+                block_residual_write_cabac_dc_cbf( h, cb, ctx_cat_plane[DCT_LUMA_DC][p], LUMA_DC+p, h->dct.luma16x16_dc[p], 1 );
 
                 /* AC Luma */
                 if( h->mb.i_cbp_luma )
@@ -1054,12 +1084,24 @@ if( (h->mb.i_neighbour & MB_TOP) && !h->mb.mb_transform_size[h->mb.i_mb_top_xy] 
 
         if( chroma && h->mb.i_cbp_chroma ) /* Chroma DC residual present */
         {
-            block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_DC, CHROMA_DC+0, h->dct.chroma_dc[0], b_intra );
-            block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_DC, CHROMA_DC+1, h->dct.chroma_dc[1], b_intra );
-            if( h->mb.i_cbp_chroma&0x02 ) /* Chroma AC residual present */
-                for( int ch = 1; ch < 3; ch++ )
-                    for( int i = ch*16; i < ch*16+4; i++ )
-                        block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_AC, i, h->dct.luma4x4[i]+1, b_intra );
+            if( CHROMA_FORMAT == CHROMA_422 )
+            {
+                block_residual_write_cabac_422_dc_cbf( h, cb, 0, b_intra );
+                block_residual_write_cabac_422_dc_cbf( h, cb, 1, b_intra );
+            }
+            else
+            {
+                block_residual_write_cabac_dc_cbf( h, cb, DCT_CHROMA_DC, CHROMA_DC+0, h->dct.chroma_dc[0], b_intra );
+                block_residual_write_cabac_dc_cbf( h, cb, DCT_CHROMA_DC, CHROMA_DC+1, h->dct.chroma_dc[1], b_intra );
+            }
+
+            if( h->mb.i_cbp_chroma == 2 ) /* Chroma AC residual present */
+            {
+                int step = 8 << h->mb.chroma_v_shift;
+                for( int i = 16; i < 3*16; i += step )
+                    for( int j = i; j < i+4; j++ )
+                        block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_AC, j, h->dct.luma4x4[j]+1, b_intra );
+            }
         }
     }
 
@@ -1130,8 +1172,19 @@ static void x264_partition_size_cabac( x264_t *h, x264_cabac_t *cb, int i8, int 
 
         if( h->mb.i_cbp_chroma )
         {
-            block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_AC, 16+i8, h->dct.luma4x4[16+i8]+1, 0 );
-            block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_AC, 32+i8, h->dct.luma4x4[32+i8]+1, 0 );
+            if( CHROMA_FORMAT == CHROMA_422 )
+            {
+                int offset = (5*i8) & 0x09;
+                block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_AC, 16+offset, h->dct.luma4x4[16+offset]+1, 0 );
+                block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_AC, 18+offset, h->dct.luma4x4[18+offset]+1, 0 );
+                block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_AC, 32+offset, h->dct.luma4x4[32+offset]+1, 0 );
+                block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_AC, 34+offset, h->dct.luma4x4[34+offset]+1, 0 );
+            }
+            else
+            {
+                block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_AC, 16+i8, h->dct.luma4x4[16+i8]+1, 0 );
+                block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_AC, 32+i8, h->dct.luma4x4[32+i8]+1, 0 );
+            }
         }
 
         i8 += x264_pixel_size[i_pixel].h >> 3;
@@ -1180,19 +1233,30 @@ static void x264_partition_i4x4_size_cabac( x264_t *h, x264_cabac_t *cb, int i4,
         block_residual_write_cabac_cbf( h, cb, ctx_cat_plane[DCT_LUMA_4x4][p], i4+p*16, h->dct.luma4x4[i4+p*16], 1 );
 }
 
-static void x264_i8x8_chroma_size_cabac( x264_t *h, x264_cabac_t *cb )
+static void x264_chroma_size_cabac( x264_t *h, x264_cabac_t *cb )
 {
     x264_cabac_mb_intra_chroma_pred_mode( h, cb );
     x264_cabac_mb_cbp_chroma( h, cb );
-    if( h->mb.i_cbp_chroma > 0 )
+    if( h->mb.i_cbp_chroma )
     {
-        block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_DC, CHROMA_DC+0, h->dct.chroma_dc[0], 1 );
-        block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_DC, CHROMA_DC+1, h->dct.chroma_dc[1], 1 );
+        if( CHROMA_FORMAT == CHROMA_422 )
+        {
+            block_residual_write_cabac_422_dc_cbf( h, cb, 0, 1 );
+            block_residual_write_cabac_422_dc_cbf( h, cb, 1, 1 );
+        }
+        else
+        {
+            block_residual_write_cabac_dc_cbf( h, cb, DCT_CHROMA_DC, CHROMA_DC+0, h->dct.chroma_dc[0], 1 );
+            block_residual_write_cabac_dc_cbf( h, cb, DCT_CHROMA_DC, CHROMA_DC+1, h->dct.chroma_dc[1], 1 );
+        }
 
         if( h->mb.i_cbp_chroma == 2 )
-            for( int ch = 1; ch < 3; ch++ )
-                for( int i = ch*16; i < ch*16+4; i++ )
-                    block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_AC, i, h->dct.luma4x4[i]+1, 1 );
+        {
+            int step = 8 << h->mb.chroma_v_shift;
+            for( int i = 16; i < 3*16; i += step )
+                for( int j = i; j < i+4; j++ )
+                    block_residual_write_cabac_cbf( h, cb, DCT_CHROMA_AC, j, h->dct.luma4x4[j]+1, 1 );
+        }
     }
 }
 #endif

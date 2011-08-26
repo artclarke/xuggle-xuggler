@@ -5,6 +5,7 @@
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
+ *          Henrik Gramner <hengar-6@student.ltu.se>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -100,6 +101,42 @@ static void idct4x4dc( dctcoef d[16] )
     }
 }
 
+static void dct2x4dc( dctcoef dct[8], dctcoef dct4x4[8][16] )
+{
+    int a0 = dct4x4[0][0] + dct4x4[1][0];
+    int a1 = dct4x4[2][0] + dct4x4[3][0];
+    int a2 = dct4x4[4][0] + dct4x4[5][0];
+    int a3 = dct4x4[6][0] + dct4x4[7][0];
+    int a4 = dct4x4[0][0] - dct4x4[1][0];
+    int a5 = dct4x4[2][0] - dct4x4[3][0];
+    int a6 = dct4x4[4][0] - dct4x4[5][0];
+    int a7 = dct4x4[6][0] - dct4x4[7][0];
+    int b0 = a0 + a1;
+    int b1 = a2 + a3;
+    int b2 = a4 + a5;
+    int b3 = a6 + a7;
+    int b4 = a0 - a1;
+    int b5 = a2 - a3;
+    int b6 = a4 - a5;
+    int b7 = a6 - a7;
+    dct[0] = b0 + b1;
+    dct[1] = b2 + b3;
+    dct[2] = b0 - b1;
+    dct[3] = b2 - b3;
+    dct[4] = b4 - b5;
+    dct[5] = b6 - b7;
+    dct[6] = b4 + b5;
+    dct[7] = b6 + b7;
+    dct4x4[0][0] = 0;
+    dct4x4[1][0] = 0;
+    dct4x4[2][0] = 0;
+    dct4x4[3][0] = 0;
+    dct4x4[4][0] = 0;
+    dct4x4[5][0] = 0;
+    dct4x4[6][0] = 0;
+    dct4x4[7][0] = 0;
+}
+
 static inline void pixel_sub_wxh( dctcoef *diff, int i_size,
                                   pixel *pix1, int i_pix1, pixel *pix2, int i_pix2 )
 {
@@ -164,14 +201,10 @@ static void sub16x16_dct( dctcoef dct[16][16], pixel *pix1, pixel *pix2 )
 
 static int sub4x4_dct_dc( pixel *pix1, pixel *pix2 )
 {
-    dctcoef d[16];
     int sum = 0;
-
-    pixel_sub_wxh( d, 4, pix1, FENC_STRIDE, pix2, FDEC_STRIDE );
-
-    sum += d[0] + d[1] + d[2] + d[3] + d[4] + d[5] + d[6] + d[7];
-    sum += d[8] + d[9] + d[10] + d[11] + d[12] + d[13] + d[14] + d[15];
-
+    for( int i=0; i<4; i++, pix1 += FENC_STRIDE, pix2 += FDEC_STRIDE )
+        sum += pix1[0] + pix1[1] + pix1[2] + pix1[3]
+             - pix2[0] - pix2[1] - pix2[2] - pix2[3];
     return sum;
 }
 
@@ -188,9 +221,47 @@ static void sub8x8_dct_dc( dctcoef dct[4], pixel *pix1, pixel *pix2 )
     int d2 = dct[0] - dct[1];
     int d3 = dct[2] - dct[3];
     dct[0] = d0 + d1;
-    dct[2] = d2 + d3;
     dct[1] = d0 - d1;
+    dct[2] = d2 + d3;
     dct[3] = d2 - d3;
+}
+
+static void sub8x16_dct_dc( dctcoef dct[8], pixel *pix1, pixel *pix2 )
+{
+    int a0 = sub4x4_dct_dc( &pix1[ 0*FENC_STRIDE+0], &pix2[ 0*FDEC_STRIDE+0] );
+    int a1 = sub4x4_dct_dc( &pix1[ 0*FENC_STRIDE+4], &pix2[ 0*FDEC_STRIDE+4] );
+    int a2 = sub4x4_dct_dc( &pix1[ 4*FENC_STRIDE+0], &pix2[ 4*FDEC_STRIDE+0] );
+    int a3 = sub4x4_dct_dc( &pix1[ 4*FENC_STRIDE+4], &pix2[ 4*FDEC_STRIDE+4] );
+    int a4 = sub4x4_dct_dc( &pix1[ 8*FENC_STRIDE+0], &pix2[ 8*FDEC_STRIDE+0] );
+    int a5 = sub4x4_dct_dc( &pix1[ 8*FENC_STRIDE+4], &pix2[ 8*FDEC_STRIDE+4] );
+    int a6 = sub4x4_dct_dc( &pix1[12*FENC_STRIDE+0], &pix2[12*FDEC_STRIDE+0] );
+    int a7 = sub4x4_dct_dc( &pix1[12*FENC_STRIDE+4], &pix2[12*FDEC_STRIDE+4] );
+
+    /* 2x4 DC transform */
+    int b0 = a0 + a1;
+    int b1 = a2 + a3;
+    int b2 = a4 + a5;
+    int b3 = a6 + a7;
+    int b4 = a0 - a1;
+    int b5 = a2 - a3;
+    int b6 = a4 - a5;
+    int b7 = a6 - a7;
+    a0 = b0 + b1;
+    a1 = b2 + b3;
+    a2 = b4 + b5;
+    a3 = b6 + b7;
+    a4 = b0 - b1;
+    a5 = b2 - b3;
+    a6 = b4 - b5;
+    a7 = b6 - b7;
+    dct[0] = a0 + a1;
+    dct[1] = a2 + a3;
+    dct[2] = a0 - a1;
+    dct[3] = a2 - a3;
+    dct[4] = a4 - a5;
+    dct[5] = a6 - a7;
+    dct[6] = a4 + a5;
+    dct[7] = a6 + a7;
 }
 
 static void add4x4_idct( pixel *p_dst, dctcoef dct[16] )
@@ -408,6 +479,8 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
     dctf->add8x8_idct   = add8x8_idct;
     dctf->add8x8_idct_dc = add8x8_idct_dc;
 
+    dctf->sub8x16_dct_dc = sub8x16_dct_dc;
+
     dctf->sub16x16_dct  = sub16x16_dct;
     dctf->add16x16_idct = add16x16_idct;
     dctf->add16x16_idct_dc = add16x16_idct_dc;
@@ -420,6 +493,8 @@ void x264_dct_init( int cpu, x264_dct_function_t *dctf )
 
     dctf->dct4x4dc  = dct4x4dc;
     dctf->idct4x4dc = idct4x4dc;
+
+    dctf->dct2x4dc = dct2x4dc;
 
 #if HIGH_BIT_DEPTH
 #if HAVE_MMX

@@ -5,6 +5,7 @@
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Jason Garrett-Glaser <darkshikari@gmail.com>
+ *          Henrik Gramner <hengar-6@student.ltu.se>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,16 +27,19 @@
 
 #include "common.h"
 
-const vlc_t x264_coeff0_token[5] =
+/* [nC] */
+const vlc_t x264_coeff0_token[6] =
 {
     { 0x1, 1 }, /* str=1 */
     { 0x3, 2 }, /* str=11 */
     { 0xf, 4 }, /* str=1111 */
     { 0x3, 6 }, /* str=000011 */
     { 0x1, 2 }, /* str=01 */
+    { 0x1, 1 }, /* str=1 */
 };
 
-const vlc_t x264_coeff_token[5][16][4] =
+/* [nC][i_total_coeff-1][i_trailing] */
+const vlc_t x264_coeff_token[6][16][4] =
 {
     { /* table 0 */
         { /* i_total 1 */
@@ -440,6 +444,53 @@ const vlc_t x264_coeff_token[5][16][4] =
             { 0x0, 7 }, /* str=0000000 */
         },
     },
+    { /* table 5 */
+        { /* i_total 1 */
+            { 0xf, 7 }, /* str=0001111 */
+            { 0x1, 2 }, /* str=01 */
+        },
+        { /* i_total 2 */
+            { 0xe, 7 }, /* str=0001110 */
+            { 0xd, 7 }, /* str=0001101 */
+            { 0x1, 3 }, /* str=001 */
+        },
+        { /* i_total 3 */
+            { 0x7, 9 }, /* str=000000111 */
+            { 0xc, 7 }, /* str=0001100 */
+            { 0xb, 7 }, /* str=0001011 */
+            { 0x1, 5 }, /* str=00001 */
+        },
+        { /* i_total 4 */
+            { 0x6, 9 }, /* str=000000110 */
+            { 0x5, 9 }, /* str=000000101 */
+            { 0xa, 7 }, /* str=0001010 */
+            { 0x1, 6 }, /* str=000001 */
+        },
+        { /* i_total 5 */
+            { 0x7, 10 }, /* str=0000000111 */
+            { 0x6, 10 }, /* str=0000000110 */
+            { 0x4, 9 },  /* str=000000100 */
+            { 0x9, 7 },  /* str=0001001 */
+        },
+        { /* i_total 6 */
+            { 0x7, 11 }, /* str=00000000111 */
+            { 0x6, 11 }, /* str=00000000110 */
+            { 0x5, 10 }, /* str=0000000101 */
+            { 0x8, 7 },  /* str=0001000 */
+        },
+        { /* i_total 7 */
+            { 0x7, 12 }, /* str=000000000111 */
+            { 0x6, 12 }, /* str=000000000110 */
+            { 0x5, 11 }, /* str=00000000101 */
+            { 0x4, 10 }, /* str=0000000100 */
+        },
+        { /* i_total 8 */
+            { 0x7, 13 }, /* str=0000000000111 */
+            { 0x5, 12 }, /* str=000000000101 */
+            { 0x4, 12 }, /* str=000000000100 */
+            { 0x4, 11 }, /* str=00000000100 */
+        },
+    },
 };
 
 /* [i_total_coeff-1][i_total_zeros] */
@@ -613,7 +664,7 @@ const vlc_t x264_total_zeros[15][16] =
 };
 
 /* [i_total_coeff-1][i_total_zeros] */
-const vlc_t x264_total_zeros_dc[3][4] =
+const vlc_t x264_total_zeros_2x2_dc[3][4] =
 {
     { /* i_total 1 */
         { 0x1, 1 }, /* str=1 */
@@ -632,7 +683,61 @@ const vlc_t x264_total_zeros_dc[3][4] =
     },
 };
 
-/* x264_run_before[__MIN( i_zero_left -1, 6 )][run_before] */
+/* [i_total_coeff-1][i_total_zeros] */
+const vlc_t x264_total_zeros_2x4_dc[7][8] =
+{
+    { /* i_total 1 */
+        { 0x1, 1 }, /* str=1 */
+        { 0x2, 3 }, /* str=010 */
+        { 0x3, 3 }, /* str=011 */
+        { 0x2, 4 }, /* str=0010 */
+        { 0x3, 4 }, /* str=0011 */
+        { 0x1, 4 }, /* str=0001 */
+        { 0x1, 5 }, /* str=00001 */
+        { 0x0, 5 }, /* str=00000 */
+    },
+    { /* i_total 2 */
+        { 0x0, 3 }, /* str=000 */
+        { 0x1, 2 }, /* str=01 */
+        { 0x1, 3 }, /* str=001 */
+        { 0x4, 3 }, /* str=100 */
+        { 0x5, 3 }, /* str=101 */
+        { 0x6, 3 }, /* str=110 */
+        { 0x7, 3 }, /* str=111 */
+    },
+    { /* i_total 3 */
+        { 0x0, 3 }, /* str=000 */
+        { 0x1, 3 }, /* str=001 */
+        { 0x1, 2 }, /* str=01 */
+        { 0x2, 2 }, /* str=10 */
+        { 0x6, 3 }, /* str=110 */
+        { 0x7, 3 }, /* str=111 */
+    },
+    { /* i_total 4 */
+        { 0x6, 3 }, /* str=110 */
+        { 0x0, 2 }, /* str=00 */
+        { 0x1, 2 }, /* str=01 */
+        { 0x2, 2 }, /* str=10 */
+        { 0x7, 3 }, /* str=111 */
+    },
+    { /* i_total 5 */
+        { 0x0, 2 }, /* str=00 */
+        { 0x1, 2 }, /* str=01 */
+        { 0x2, 2 }, /* str=10 */
+        { 0x3, 2 }, /* str=11 */
+    },
+    { /* i_total 6 */
+        { 0x0, 2 }, /* str=00 */
+        { 0x1, 2 }, /* str=01 */
+        { 0x1, 1 }, /* str=1 */
+    },
+    { /* i_total 7 */
+        { 0x0, 1 }, /* str=0 */
+        { 0x1, 1 }, /* str=1 */
+    }
+};
+
+/* [MIN( i_zero_left-1, 6 )][run_before] */
 const vlc_t x264_run_before[7][16] =
 {
     { /* i_zero_left 1 */
@@ -674,7 +779,7 @@ const vlc_t x264_run_before[7][16] =
         { 0x5, 3 }, /* str=101 */
         { 0x4, 3 }, /* str=100 */
     },
-    { /* i_zero_left 7 */
+    { /* i_zero_left >6 */
         { 0x7, 3 }, /* str=111 */
         { 0x6, 3 }, /* str=110 */
         { 0x5, 3 }, /* str=101 */

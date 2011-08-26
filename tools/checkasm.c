@@ -77,11 +77,12 @@ const char *bench_pattern = "";
 char func_name[100];
 static bench_func_t benchs[MAX_FUNCS];
 
-static const char *pixel_names[10] = { "16x16", "16x8", "8x16", "8x8", "8x4", "4x8", "4x4", "4x2", "2x4", "2x2" };
+static const char *pixel_names[12] = { "16x16", "16x8", "8x16", "8x8", "8x4", "4x8", "4x4", "4x16", "4x2", "2x8", "2x4", "2x2" };
 static const char *intra_predict_16x16_names[7] = { "v", "h", "dc", "p", "dcl", "dct", "dc8" };
 static const char *intra_predict_8x8c_names[7] = { "dc", "h", "v", "p", "dcl", "dct", "dc8" };
 static const char *intra_predict_4x4_names[12] = { "v", "h", "dc", "ddl", "ddr", "vr", "hd", "vl", "hu", "dcl", "dct", "dc8" };
 static const char **intra_predict_8x8_names = intra_predict_4x4_names;
+static const char **intra_predict_8x16c_names = intra_predict_8x8c_names;
 
 #define set_func_name(...) snprintf( func_name, sizeof(func_name), __VA_ARGS__ )
 
@@ -274,7 +275,7 @@ static int check_pixel( int cpu_ref, int cpu_new )
 
 #define TEST_PIXEL( name, align ) \
     ok = 1, used_asm = 0; \
-    for( int i = 0; i < 7; i++ ) \
+    for( int i = 0; i < 8; i++ ) \
     { \
         int res_c, res_asm; \
         if( pixel_asm.name[i] != pixel_ref.name[i] ) \
@@ -374,24 +375,28 @@ static int check_pixel( int cpu_ref, int cpu_new )
 
     ok = 1; used_asm = 0;
     TEST_PIXEL_VAR( PIXEL_16x16 );
+    TEST_PIXEL_VAR( PIXEL_8x16 );
     TEST_PIXEL_VAR( PIXEL_8x8 );
     report( "pixel var :" );
 
-    ok = 1; used_asm = 0;
-    if( pixel_asm.var2_8x8 != pixel_ref.var2_8x8 )
-    {
-        int res_c, res_asm, ssd_c, ssd_asm;
-        set_func_name( "var2_8x8" );
-        used_asm = 1;
-        res_c   = call_c( pixel_c.var2_8x8, pbuf1, 16, pbuf2, 16, &ssd_c );
-        res_asm = call_a( pixel_asm.var2_8x8, pbuf1, 16, pbuf2, 16, &ssd_asm );
-        if( res_c != res_asm || ssd_c != ssd_asm )
-        {
-            ok = 0;
-            fprintf( stderr, "var2_8x8: %d != %d or %d != %d [FAILED]\n", res_c, res_asm, ssd_c, ssd_asm );
-        }
+#define TEST_PIXEL_VAR2( i ) \
+    if( pixel_asm.var2[i] != pixel_ref.var2[i] ) \
+    { \
+        int res_c, res_asm, ssd_c, ssd_asm; \
+        set_func_name( "%s_%s", "var2", pixel_names[i] ); \
+        used_asm = 1; \
+        res_c   = call_c( pixel_c.var2[i], pbuf1, 16, pbuf2, 16, &ssd_c ); \
+        res_asm = call_a( pixel_asm.var2[i], pbuf1, 16, pbuf2, 16, &ssd_asm ); \
+        if( res_c != res_asm || ssd_c != ssd_asm ) \
+        { \
+            ok = 0; \
+            fprintf( stderr, "var2[%d]: %d != %d or %d != %d [FAILED]\n", i, res_c, res_asm, ssd_c, ssd_asm ); \
+        } \
     }
 
+    ok = 1; used_asm = 0;
+    TEST_PIXEL_VAR2( PIXEL_8x16 );
+    TEST_PIXEL_VAR2( PIXEL_8x8 );
     report( "pixel var2 :" );
 
     ok = 1; used_asm = 0;
@@ -490,12 +495,14 @@ static int check_pixel( int cpu_ref, int cpu_new )
     memcpy( pbuf3, pbuf2, 20*FDEC_STRIDE*sizeof(pixel) );
     ok = 1; used_asm = 0;
     TEST_INTRA_X3( intra_satd_x3_16x16, 0 );
+    TEST_INTRA_X3( intra_satd_x3_8x16c, 0 );
     TEST_INTRA_X3( intra_satd_x3_8x8c, 0 );
     TEST_INTRA_X3( intra_sa8d_x3_8x8, 1, edge );
     TEST_INTRA_X3( intra_satd_x3_4x4, 0 );
     report( "intra satd_x3 :" );
     ok = 1; used_asm = 0;
     TEST_INTRA_X3( intra_sad_x3_16x16, 0 );
+    TEST_INTRA_X3( intra_sad_x3_8x16c, 0 );
     TEST_INTRA_X3( intra_sad_x3_8x8c, 0 );
     TEST_INTRA_X3( intra_sad_x3_8x8, 1, edge );
     TEST_INTRA_X3( intra_sad_x3_4x4, 0 );
@@ -597,7 +604,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     ALIGNED_16( dctcoef dct2[16][16] );
     ALIGNED_16( dctcoef dct4[16][16] );
     ALIGNED_16( dctcoef dct8[4][64] );
-    ALIGNED_16( dctcoef dctdc[2][4] );
+    ALIGNED_16( dctcoef dctdc[2][8] );
     x264_t h_buf;
     x264_t *h = &h_buf;
 
@@ -671,6 +678,7 @@ static int check_dct( int cpu_ref, int cpu_new )
     TEST_DCT( sub4x4_dct, dct1[0], dct2[0], 16 );
     TEST_DCT( sub8x8_dct, dct1, dct2, 16*4 );
     TEST_DCT( sub8x8_dct_dc, dctdc[0], dctdc[1], 4 );
+    TEST_DCT( sub8x16_dct_dc, dctdc[0], dctdc[1], 8 );
     TEST_DCT( sub16x16_dct, dct1, dct2, 16*16 );
     report( "sub_dct4 :" );
 
@@ -756,6 +764,36 @@ static int check_dct( int cpu_ref, int cpu_new )
     TEST_DCTDC(  dct4x4dc );
     TEST_DCTDC( idct4x4dc );
 #undef TEST_DCTDC
+
+#define TEST_DCTDC_CHROMA( name )\
+    ok = 1; used_asm = 0;\
+    if( dct_asm.name != dct_ref.name )\
+    {\
+        set_func_name( #name );\
+        used_asm = 1;\
+        uint16_t *p = (uint16_t*)buf1;\
+        for( int i = 0; i < 16 && ok; i++ )\
+        {\
+            for( int j = 0; j < 8; j++ )\
+                dct1[j][0] = !i ? (j^j>>1^j>>2)&1 ? PIXEL_MAX*16 : -PIXEL_MAX*16 /* max dc */\
+                           : i<8 ? (*p++)&1 ? PIXEL_MAX*16 : -PIXEL_MAX*16 /* max elements */\
+                           : ((*p++)&0x1fff)-0x1000; /* general case */\
+            memcpy( dct2, dct1, 8*16 * sizeof(dctcoef) );\
+            call_c1( dct_c.name, dctdc[0], dct1 );\
+            call_a1( dct_asm.name, dctdc[1], dct2 );\
+            if( memcmp( dctdc[0], dctdc[1], 8 * sizeof(dctcoef) ) || memcmp( dct1, dct2, 8*16 * sizeof(dctcoef) ) )\
+            {\
+                ok = 0;\
+                fprintf( stderr, #name " [FAILED]\n" ); \
+            }\
+        }\
+        call_c2( dct_c.name, dctdc[0], dct1 );\
+        call_a2( dct_asm.name, dctdc[1], dct2 );\
+    }\
+    report( #name " :" );
+
+    TEST_DCTDC_CHROMA( dct2x4dc );
+#undef TEST_DCTDC_CHROMA
 
     x264_zigzag_function_t zigzag_c[2];
     x264_zigzag_function_t zigzag_ref[2];
@@ -986,7 +1024,7 @@ static int check_mc( int cpu_ref, int cpu_new )
 #define MC_TEST_AVG( name, weight ) \
 { \
     ok = 1, used_asm = 0; \
-    for( int i = 0; i < 10; i++ ) \
+    for( int i = 0; i < 12; i++ ) \
     { \
         memcpy( pbuf3, pbuf1+320, 320 * sizeof(pixel) ); \
         memcpy( pbuf4, pbuf1+320, 320 * sizeof(pixel) ); \
@@ -1085,34 +1123,49 @@ static int check_mc( int cpu_ref, int cpu_new )
     report( "mc offsetsub :" );
 
     ok = 1; used_asm = 0;
-    if( mc_a.store_interleave_8x8x2 != mc_ref.store_interleave_8x8x2 )
+    for( int height = 8; height <= 16; height += 8 )
     {
-        set_func_name( "store_interleave_8x8x2" );
-        used_asm = 1;
-        memset( pbuf3, 0, 64*8 );
-        memset( pbuf4, 0, 64*8 );
-        call_c( mc_c.store_interleave_8x8x2, pbuf3, 64, pbuf1, pbuf1+16 );
-        call_a( mc_a.store_interleave_8x8x2, pbuf4, 64, pbuf1, pbuf1+16 );
-        if( memcmp( pbuf3, pbuf4, 64*8 ) )
-            ok = 0;
-    }
-    if( mc_a.load_deinterleave_8x8x2_fenc != mc_ref.load_deinterleave_8x8x2_fenc )
-    {
-        set_func_name( "load_deinterleave_8x8x2_fenc" );
-        used_asm = 1;
-        call_c( mc_c.load_deinterleave_8x8x2_fenc, pbuf3, pbuf1, 64 );
-        call_a( mc_a.load_deinterleave_8x8x2_fenc, pbuf4, pbuf1, 64 );
-        if( memcmp( pbuf3, pbuf4, FENC_STRIDE*8 ) )
-            ok = 0;
-    }
-    if( mc_a.load_deinterleave_8x8x2_fdec != mc_ref.load_deinterleave_8x8x2_fdec )
-    {
-        set_func_name( "load_deinterleave_8x8x2_fdec" );
-        used_asm = 1;
-        call_c( mc_c.load_deinterleave_8x8x2_fdec, pbuf3, pbuf1, 64 );
-        call_a( mc_a.load_deinterleave_8x8x2_fdec, pbuf4, pbuf1, 64 );
-        if( memcmp( pbuf3, pbuf4, FDEC_STRIDE*8 ) )
-            ok = 0;
+        if( mc_a.store_interleave_chroma != mc_ref.store_interleave_chroma )
+        {
+            set_func_name( "store_interleave_chroma" );
+            used_asm = 1;
+            memset( pbuf3, 0, 64*height );
+            memset( pbuf4, 0, 64*height );
+            call_c( mc_c.store_interleave_chroma, pbuf3, 64, pbuf1, pbuf1+16, height );
+            call_a( mc_a.store_interleave_chroma, pbuf4, 64, pbuf1, pbuf1+16, height );
+            if( memcmp( pbuf3, pbuf4, 64*height ) )
+            {
+                ok = 0;
+                fprintf( stderr, "store_interleave_chroma FAILED: h=%d\n", height );
+                break;
+            }
+        }
+        if( mc_a.load_deinterleave_chroma_fenc != mc_ref.load_deinterleave_chroma_fenc )
+        {
+            set_func_name( "load_deinterleave_chroma_fenc" );
+            used_asm = 1;
+            call_c( mc_c.load_deinterleave_chroma_fenc, pbuf3, pbuf1, 64, height );
+            call_a( mc_a.load_deinterleave_chroma_fenc, pbuf4, pbuf1, 64, height );
+            if( memcmp( pbuf3, pbuf4, FENC_STRIDE*height ) )
+            {
+                ok = 0;
+                fprintf( stderr, "load_deinterleave_chroma_fenc FAILED: h=%d\n", height );
+                break;
+            }
+        }
+        if( mc_a.load_deinterleave_chroma_fdec != mc_ref.load_deinterleave_chroma_fdec )
+        {
+            set_func_name( "load_deinterleave_chroma_fdec" );
+            used_asm = 1;
+            call_c( mc_c.load_deinterleave_chroma_fdec, pbuf3, pbuf1, 64, height );
+            call_a( mc_a.load_deinterleave_chroma_fdec, pbuf4, pbuf1, 64, height );
+            if( memcmp( pbuf3, pbuf4, FDEC_STRIDE*height ) )
+            {
+                ok = 0;
+                fprintf( stderr, "load_deinterleave_chroma_fdec FAILED: h=%d\n", height );
+                break;
+            }
+        }
     }
     report( "store_interleave :" );
 
@@ -1411,11 +1464,13 @@ static int check_deblock( int cpu_ref, int cpu_new )
 
     TEST_DEBLOCK( deblock_luma[0], 0, tcs[i] );
     TEST_DEBLOCK( deblock_luma[1], 1, tcs[i] );
-    TEST_DEBLOCK( deblock_chroma[0], 0, tcs[i] );
+    TEST_DEBLOCK( deblock_h_chroma_420, 0, tcs[i] );
+    TEST_DEBLOCK( deblock_h_chroma_422, 0, tcs[i] );
     TEST_DEBLOCK( deblock_chroma[1], 1, tcs[i] );
     TEST_DEBLOCK( deblock_luma_intra[0], 0 );
     TEST_DEBLOCK( deblock_luma_intra[1], 1 );
-    TEST_DEBLOCK( deblock_chroma_intra[0], 0 );
+    TEST_DEBLOCK( deblock_h_chroma_420_intra, 0 );
+    TEST_DEBLOCK( deblock_h_chroma_422_intra, 0 );
     TEST_DEBLOCK( deblock_chroma_intra[1], 1 );
 
     if( db_a.deblock_strength != db_ref.deblock_strength )
@@ -1471,6 +1526,8 @@ static int check_quant( int cpu_ref, int cpu_new )
     x264_quant_function_t qf_a;
     ALIGNED_16( dctcoef dct1[64] );
     ALIGNED_16( dctcoef dct2[64] );
+    ALIGNED_16( dctcoef dct3[8][16] );
+    ALIGNED_16( dctcoef dct4[8][16] );
     ALIGNED_16( uint8_t cqm_buf[64] );
     int ret = 0, ok, used_asm;
     int oks[3] = {1,1,1}, used_asms[3] = {0,0,0};
@@ -1602,7 +1659,7 @@ static int check_quant( int cpu_ref, int cpu_new )
             for( int qp = h->param.rc.i_qp_max; qp >= h->param.rc.i_qp_min; qp-- ) \
             { \
                 INIT_QUANT##w(1) \
-                call_c1( qf_c.qname, dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
+                qf_c.qname( dct1, h->quant##w##_mf[block][qp], h->quant##w##_bias[block][qp] ); \
                 memcpy( dct2, dct1, w*w*sizeof(dctcoef) ); \
                 call_c1( qf_c.dqname, dct1, h->dequant##w##_mf[block], qp ); \
                 call_a1( qf_a.dqname, dct2, h->dequant##w##_mf[block], qp ); \
@@ -1631,7 +1688,7 @@ static int check_quant( int cpu_ref, int cpu_new )
             { \
                 for( int i = 0; i < 16; i++ ) \
                     dct1[i] = rand()%(PIXEL_MAX*16*2+1) - PIXEL_MAX*16; \
-                call_c1( qf_c.qname, dct1, h->quant##w##_mf[block][qp][0]>>1, h->quant##w##_bias[block][qp][0]>>1 ); \
+                qf_c.qname( dct1, h->quant##w##_mf[block][qp][0]>>1, h->quant##w##_bias[block][qp][0]>>1 ); \
                 memcpy( dct2, dct1, w*w*sizeof(dctcoef) ); \
                 call_c1( qf_c.dqname, dct1, h->dequant##w##_mf[block], qp ); \
                 call_a1( qf_a.dqname, dct2, h->dequant##w##_mf[block], qp ); \
@@ -1647,27 +1704,75 @@ static int check_quant( int cpu_ref, int cpu_new )
 
         TEST_DEQUANT_DC( quant_4x4_dc, dequant_4x4_dc, CQM_4IY, 4 );
 
-#define TEST_OPTIMIZE_CHROMA_DC( qname, optname, w ) \
+        if( qf_a.idct_dequant_2x4_dc != qf_ref.idct_dequant_2x4_dc )
+        {
+            set_func_name( "idct_dequant_2x4_dc_%s", i_cqm?"cqm":"flat" );
+            used_asms[1] = 1;
+            for( int qp = h->param.rc.i_qp_max; qp >= h->param.rc.i_qp_min; qp-- )
+            {
+                for( int i = 0; i < 8; i++ )
+                    dct1[i] = rand()%(PIXEL_MAX*16*2+1) - PIXEL_MAX*16;
+                qf_c.quant_2x2_dc( &dct1[0], h->quant4_mf[CQM_4IC][qp+3][0]>>1, h->quant4_bias[CQM_4IC][qp+3][0]>>1 );
+                qf_c.quant_2x2_dc( &dct1[4], h->quant4_mf[CQM_4IC][qp+3][0]>>1, h->quant4_bias[CQM_4IC][qp+3][0]>>1 );
+                call_c( qf_c.idct_dequant_2x4_dc, dct1, dct3, h->dequant4_mf[CQM_4IC], qp+3 );
+                call_a( qf_a.idct_dequant_2x4_dc, dct1, dct4, h->dequant4_mf[CQM_4IC], qp+3 );
+                for( int i = 0; i < 8; i++ )
+                    if( dct3[i][0] != dct4[i][0] )
+                    {
+                        oks[1] = 0;
+                        fprintf( stderr, "idct_dequant_2x4_dc (qp=%d, cqm=%d): [FAILED]\n", qp, i_cqm );
+                        break;
+                    }
+            }
+        }
+
+        if( qf_a.idct_dequant_2x4_dconly != qf_ref.idct_dequant_2x4_dconly )
+        {
+            set_func_name( "idct_dequant_2x4_dc_%s", i_cqm?"cqm":"flat" );
+            used_asms[1] = 1;
+            for( int qp = h->param.rc.i_qp_max; qp >= h->param.rc.i_qp_min; qp-- )
+            {
+                for( int i = 0; i < 8; i++ )
+                    dct1[i] = rand()%(PIXEL_MAX*16*2+1) - PIXEL_MAX*16;
+                qf_c.quant_2x2_dc( &dct1[0], h->quant4_mf[CQM_4IC][qp+3][0]>>1, h->quant4_bias[CQM_4IC][qp+3][0]>>1 );
+                qf_c.quant_2x2_dc( &dct1[4], h->quant4_mf[CQM_4IC][qp+3][0]>>1, h->quant4_bias[CQM_4IC][qp+3][0]>>1 );
+                memcpy( dct2, dct1, 8*sizeof(dctcoef) );
+                call_c1( qf_c.idct_dequant_2x4_dconly, dct1, h->dequant4_mf[CQM_4IC], qp+3 );
+                call_a1( qf_a.idct_dequant_2x4_dconly, dct2, h->dequant4_mf[CQM_4IC], qp+3 );
+                if( memcmp( dct1, dct2, 8*sizeof(dctcoef) ) )
+                {
+                    oks[1] = 0;
+                    fprintf( stderr, "idct_dequant_2x4_dconly (qp=%d, cqm=%d): [FAILED]\n", qp, i_cqm );
+                    break;
+                }
+                call_c2( qf_c.idct_dequant_2x4_dconly, dct1, h->dequant4_mf[CQM_4IC], qp+3 );
+                call_a2( qf_a.idct_dequant_2x4_dconly, dct2, h->dequant4_mf[CQM_4IC], qp+3 );
+            }
+        }
+
+#define TEST_OPTIMIZE_CHROMA_DC( optname, size ) \
         if( qf_a.optname != qf_ref.optname ) \
         { \
             set_func_name( #optname ); \
             used_asms[2] = 1; \
             for( int qp = h->param.rc.i_qp_max; qp >= h->param.rc.i_qp_min; qp-- ) \
             { \
-                int dmf = h->dequant4_mf[CQM_4IC][qp%6][0] << qp/6; \
+                int qpdc = qp + (size == 8 ? 3 : 0); \
+                int dmf = h->dequant4_mf[CQM_4IC][qpdc%6][0] << qpdc/6; \
                 if( dmf > 32*64 ) \
                     continue; \
-                for( int i = 16; ; i <<= 1 )\
+                for( int i = 16; ; i <<= 1 ) \
                 { \
                     int res_c, res_asm; \
                     int max = X264_MIN( i, PIXEL_MAX*16 ); \
-                    for( int j = 0; j < w*w; j++ ) \
+                    for( int j = 0; j < size; j++ ) \
                         dct1[j] = rand()%(max*2+1) - max; \
-                    call_c1( qf_c.qname, dct1, h->quant4_mf[CQM_4IC][qp][0]>>1, h->quant4_bias[CQM_4IC][qp][0]>>1 ); \
-                    memcpy( dct2, dct1, w*w*sizeof(dctcoef) ); \
+                    for( int j = 0; i <= size; j += 4 ) \
+                        qf_c.quant_2x2_dc( &dct1[j], h->quant4_mf[CQM_4IC][qpdc][0]>>1, h->quant4_bias[CQM_4IC][qpdc][0]>>1 ); \
+                    memcpy( dct2, dct1, size*sizeof(dctcoef) ); \
                     res_c   = call_c1( qf_c.optname, dct1, dmf ); \
                     res_asm = call_a1( qf_a.optname, dct2, dmf ); \
-                    if( res_c != res_asm || memcmp( dct1, dct2, w*w*sizeof(dctcoef) ) ) \
+                    if( res_c != res_asm || memcmp( dct1, dct2, size*sizeof(dctcoef) ) ) \
                     { \
                         oks[2] = 0; \
                         fprintf( stderr, #optname "(qp=%d, res_c=%d, res_asm=%d): [FAILED]\n", qp, res_c, res_asm ); \
@@ -1680,7 +1785,8 @@ static int check_quant( int cpu_ref, int cpu_new )
             } \
         }
 
-        TEST_OPTIMIZE_CHROMA_DC( quant_2x2_dc, optimize_chroma_dc, 2 );
+        TEST_OPTIMIZE_CHROMA_DC( optimize_chroma_2x2_dc, 4 );
+        TEST_OPTIMIZE_CHROMA_DC( optimize_chroma_2x4_dc, 8 );
 
         x264_cqm_delete( h );
     }
@@ -1751,7 +1857,7 @@ static int check_quant( int cpu_ref, int cpu_new )
     TEST_DECIMATE( decimate_score15, 4, 1, 7 );
     report( "decimate_score :" );
 
-#define TEST_LAST( last, lastname, w, ac ) \
+#define TEST_LAST( last, lastname, size, ac ) \
     if( qf_a.last != qf_ref.last ) \
     { \
         set_func_name( #lastname ); \
@@ -1759,8 +1865,8 @@ static int check_quant( int cpu_ref, int cpu_new )
         for( int i = 0; i < 100; i++ ) \
         { \
             int nnz = 0; \
-            int max = rand() & (w*w-1); \
-            memset( dct1, 0, w*w*sizeof(dctcoef) ); \
+            int max = rand() & (size-1); \
+            memset( dct1, 0, size*sizeof(dctcoef) ); \
             for( int idx = ac; idx < max; idx++ ) \
                 nnz |= dct1[idx] = !(rand()&3) + (!(rand()&15))*rand(); \
             if( !nnz ) \
@@ -1777,13 +1883,14 @@ static int check_quant( int cpu_ref, int cpu_new )
     }
 
     ok = 1; used_asm = 0;
-    TEST_LAST( coeff_last[DCT_CHROMA_DC],  coeff_last4, 2, 0 );
-    TEST_LAST( coeff_last[  DCT_LUMA_AC], coeff_last15, 4, 1 );
-    TEST_LAST( coeff_last[ DCT_LUMA_4x4], coeff_last16, 4, 0 );
-    TEST_LAST( coeff_last[ DCT_LUMA_8x8], coeff_last64, 8, 0 );
+    TEST_LAST( coeff_last4              , coeff_last4,   4, 0 );
+    TEST_LAST( coeff_last8              , coeff_last8,   8, 0 );
+    TEST_LAST( coeff_last[  DCT_LUMA_AC], coeff_last15, 16, 1 );
+    TEST_LAST( coeff_last[ DCT_LUMA_4x4], coeff_last16, 16, 0 );
+    TEST_LAST( coeff_last[ DCT_LUMA_8x8], coeff_last64, 64, 0 );
     report( "coeff_last :" );
 
-#define TEST_LEVELRUN( lastname, name, w, ac ) \
+#define TEST_LEVELRUN( lastname, name, size, ac ) \
     if( qf_a.lastname != qf_ref.lastname ) \
     { \
         set_func_name( #name ); \
@@ -1792,8 +1899,8 @@ static int check_quant( int cpu_ref, int cpu_new )
         { \
             x264_run_level_t runlevel_c, runlevel_a; \
             int nnz = 0; \
-            int max = rand() & (w*w-1); \
-            memset( dct1, 0, w*w*sizeof(dctcoef) ); \
+            int max = rand() & (size-1); \
+            memset( dct1, 0, size*sizeof(dctcoef) ); \
             memcpy( &runlevel_a, buf1+i, sizeof(x264_run_level_t) ); \
             memcpy( &runlevel_c, buf1+i, sizeof(x264_run_level_t) ); \
             for( int idx = ac; idx < max; idx++ ) \
@@ -1814,9 +1921,10 @@ static int check_quant( int cpu_ref, int cpu_new )
     }
 
     ok = 1; used_asm = 0;
-    TEST_LEVELRUN( coeff_level_run[DCT_CHROMA_DC],  coeff_level_run4, 2, 0 );
-    TEST_LEVELRUN( coeff_level_run[  DCT_LUMA_AC], coeff_level_run15, 4, 1 );
-    TEST_LEVELRUN( coeff_level_run[ DCT_LUMA_4x4], coeff_level_run16, 4, 0 );
+    TEST_LEVELRUN( coeff_level_run4              , coeff_level_run4,   4, 0 );
+    TEST_LEVELRUN( coeff_level_run8              , coeff_level_run8,   8, 0 );
+    TEST_LEVELRUN( coeff_level_run[  DCT_LUMA_AC], coeff_level_run15, 16, 1 );
+    TEST_LEVELRUN( coeff_level_run[ DCT_LUMA_4x4], coeff_level_run16, 16, 0 );
     report( "coeff_level_run :" );
 
     return ret;
@@ -1832,6 +1940,7 @@ static int check_intra( int cpu_ref, int cpu_new )
     {
         x264_predict_t      predict_16x16[4+3];
         x264_predict_t      predict_8x8c[4+3];
+        x264_predict_t      predict_8x16c[4+3];
         x264_predict8x8_t   predict_8x8[9+3];
         x264_predict_t      predict_4x4[9+3];
         x264_predict_8x8_filter_t predict_8x8_filter;
@@ -1839,16 +1948,19 @@ static int check_intra( int cpu_ref, int cpu_new )
 
     x264_predict_16x16_init( 0, ip_c.predict_16x16 );
     x264_predict_8x8c_init( 0, ip_c.predict_8x8c );
+    x264_predict_8x16c_init( 0, ip_c.predict_8x16c );
     x264_predict_8x8_init( 0, ip_c.predict_8x8, &ip_c.predict_8x8_filter );
     x264_predict_4x4_init( 0, ip_c.predict_4x4 );
 
     x264_predict_16x16_init( cpu_ref, ip_ref.predict_16x16 );
     x264_predict_8x8c_init( cpu_ref, ip_ref.predict_8x8c );
+    x264_predict_8x16c_init( cpu_ref, ip_ref.predict_8x16c );
     x264_predict_8x8_init( cpu_ref, ip_ref.predict_8x8, &ip_ref.predict_8x8_filter );
     x264_predict_4x4_init( cpu_ref, ip_ref.predict_4x4 );
 
     x264_predict_16x16_init( cpu_new, ip_a.predict_16x16 );
     x264_predict_8x8c_init( cpu_new, ip_a.predict_8x8c );
+    x264_predict_8x16c_init( cpu_new, ip_a.predict_8x16c );
     x264_predict_8x8_init( cpu_new, ip_a.predict_8x8, &ip_a.predict_8x8_filter );
     x264_predict_4x4_init( cpu_new, ip_a.predict_4x4 );
 
@@ -1856,7 +1968,7 @@ static int check_intra( int cpu_ref, int cpu_new )
 
     ip_c.predict_8x8_filter( fdec+48, edge, ALL_NEIGHBORS, ALL_NEIGHBORS );
 
-#define INTRA_TEST( name, dir, w, align, bench, ... )\
+#define INTRA_TEST( name, dir, w, h, align, bench, ... )\
     if( ip_a.name[dir] != ip_ref.name[dir] )\
     {\
         set_func_name( "intra_%s_%s", #name, intra_##name##_names[dir] );\
@@ -1874,7 +1986,7 @@ static int check_intra( int cpu_ref, int cpu_new )
                 for( int k = -1; k < 16; k++ )\
                     printf( "%2x ", edge[16+k] );\
                 printf( "\n" );\
-                for( int j = 0; j < w; j++ )\
+                for( int j = 0; j < h; j++ )\
                 {\
                     printf( "%2x ", edge[14-j] );\
                     for( int k = 0; k < w; k++ )\
@@ -1882,7 +1994,7 @@ static int check_intra( int cpu_ref, int cpu_new )
                     printf( "\n" );\
                 }\
                 printf( "\n" );\
-                for( int j = 0; j < w; j++ )\
+                for( int j = 0; j < h; j++ )\
                 {\
                     printf( "   " );\
                     for( int k = 0; k < w; k++ )\
@@ -1895,13 +2007,15 @@ static int check_intra( int cpu_ref, int cpu_new )
     }
 
     for( int i = 0; i < 12; i++ )
-        INTRA_TEST(   predict_4x4, i,  4,  4, );
+        INTRA_TEST(   predict_4x4, i,  4,  4,  4, );
     for( int i = 0; i < 7; i++ )
-        INTRA_TEST(  predict_8x8c, i,  8, 16, );
+        INTRA_TEST(  predict_8x8c, i,  8,  8, 16, );
     for( int i = 0; i < 7; i++ )
-        INTRA_TEST( predict_16x16, i, 16, 16, );
+        INTRA_TEST( predict_8x16c, i,  8, 16, 16, );
+    for( int i = 0; i < 7; i++ )
+        INTRA_TEST( predict_16x16, i, 16, 16, 16, );
     for( int i = 0; i < 12; i++ )
-        INTRA_TEST(   predict_8x8, i,  8,  8, , edge );
+        INTRA_TEST(   predict_8x8, i,  8,  8,  8, , edge );
 
     set_func_name("intra_predict_8x8_filter");
     if( ip_a.predict_8x8_filter != ip_ref.predict_8x8_filter )
@@ -1926,31 +2040,33 @@ static int check_intra( int cpu_ref, int cpu_new )
         }
     }
 
-#define EXTREMAL_PLANE(size) \
+#define EXTREMAL_PLANE( w, h ) \
     { \
         int max[7]; \
         for( int j = 0; j < 7; j++ ) \
             max[j] = test ? rand()&PIXEL_MAX : PIXEL_MAX; \
         fdec[48-1-FDEC_STRIDE] = (i&1)*max[0]; \
-        for( int j = 0; j < size/2; j++ ) \
+        for( int j = 0; j < w/2; j++ ) \
             fdec[48+j-FDEC_STRIDE] = (!!(i&2))*max[1]; \
-        for( int j = size/2; j < size-1; j++ ) \
+        for( int j = w/2; j < w-1; j++ ) \
             fdec[48+j-FDEC_STRIDE] = (!!(i&4))*max[2]; \
-        fdec[48+(size-1)-FDEC_STRIDE] = (!!(i&8))*max[3]; \
-        for( int j = 0; j < size/2; j++ ) \
+        fdec[48+(w-1)-FDEC_STRIDE] = (!!(i&8))*max[3]; \
+        for( int j = 0; j < h/2; j++ ) \
             fdec[48+j*FDEC_STRIDE-1] = (!!(i&16))*max[4]; \
-        for( int j = size/2; j < size-1; j++ ) \
+        for( int j = h/2; j < h-1; j++ ) \
             fdec[48+j*FDEC_STRIDE-1] = (!!(i&32))*max[5]; \
-        fdec[48+(size-1)*FDEC_STRIDE-1] = (!!(i&64))*max[6]; \
+        fdec[48+(h-1)*FDEC_STRIDE-1] = (!!(i&64))*max[6]; \
     }
     /* Extremal test case for planar prediction. */
     for( int test = 0; test < 100 && ok; test++ )
         for( int i = 0; i < 128 && ok; i++ )
         {
-            EXTREMAL_PLANE(  8 );
-            INTRA_TEST(  predict_8x8c, I_PRED_CHROMA_P,  8, 64, 1 );
-            EXTREMAL_PLANE( 16 );
-            INTRA_TEST( predict_16x16,  I_PRED_16x16_P, 16, 64, 1 );
+            EXTREMAL_PLANE(  8,  8 );
+            INTRA_TEST(  predict_8x8c, I_PRED_CHROMA_P,  8,  8, 64, 1 );
+            EXTREMAL_PLANE(  8, 16 );
+            INTRA_TEST( predict_8x16c, I_PRED_CHROMA_P,  8, 16, 64, 1 );
+            EXTREMAL_PLANE( 16, 16 );
+            INTRA_TEST( predict_16x16,  I_PRED_16x16_P, 16, 16, 64, 1 );
         }
     report( "intra pred :" );
     return ret;

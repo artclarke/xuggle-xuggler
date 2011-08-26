@@ -1015,10 +1015,9 @@ cglobal plane_copy_interleave_core, 7,7
     RET
 
 ;-----------------------------------------------------------------------------
-; void store_interleave_8x8x2( uint8_t *dst, int i_dst, uint8_t *srcu, uint8_t *srcv )
+; void store_interleave_chroma( uint8_t *dst, int i_dst, uint8_t *srcu, uint8_t *srcv, int height )
 ;-----------------------------------------------------------------------------
-cglobal store_interleave_8x8x2, 4,5
-    mov    r4d, 4
+cglobal store_interleave_chroma, 5,5
     FIX_STRIDES r1d
 .loop:
     INTERLEAVE r0+ 0, r2+           0, r3+           0, a
@@ -1026,7 +1025,7 @@ cglobal store_interleave_8x8x2, 4,5
     add    r2, FDEC_STRIDEB*2
     add    r3, FDEC_STRIDEB*2
     lea    r0, [r0+r1*2]
-    dec    r4d
+    sub   r4d, 2
     jg .loop
     REP_RET
 %endmacro ; PLANE_INTERLEAVE
@@ -1076,34 +1075,32 @@ cglobal plane_copy_deinterleave, 6,7
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void load_deinterleave_8x8x2_fenc( pixel *dst, pixel *src, int i_src )
+; void load_deinterleave_chroma_fenc( pixel *dst, pixel *src, int i_src, int height )
 ;-----------------------------------------------------------------------------
-cglobal load_deinterleave_8x8x2_fenc, 3,4
+cglobal load_deinterleave_chroma_fenc, 4,4
     DEINTERLEAVE_START
-    mov    r3d, 4
     FIX_STRIDES r2d
 .loop:
     DEINTERLEAVE r0+           0, r0+FENC_STRIDEB*1/2, r1+ 0, 1, m4, a
     DEINTERLEAVE r0+FENC_STRIDEB, r0+FENC_STRIDEB*3/2, r1+r2, 1, m4, a
     add    r0, FENC_STRIDEB*2
     lea    r1, [r1+r2*2]
-    dec    r3d
+    sub   r3d, 2
     jg .loop
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void load_deinterleave_8x8x2_fdec( pixel *dst, pixel *src, int i_src )
+; void load_deinterleave_chroma_fdec( pixel *dst, pixel *src, int i_src, int height )
 ;-----------------------------------------------------------------------------
-cglobal load_deinterleave_8x8x2_fdec, 3,4
+cglobal load_deinterleave_chroma_fdec, 4,4
     DEINTERLEAVE_START
-    mov    r3d, 4
     FIX_STRIDES r2d
 .loop:
     DEINTERLEAVE r0+           0, r0+FDEC_STRIDEB*1/2, r1+ 0, 0, m4, a
     DEINTERLEAVE r0+FDEC_STRIDEB, r0+FDEC_STRIDEB*3/2, r1+r2, 0, m4, a
     add    r0, FDEC_STRIDEB*2
     lea    r1, [r1+r2*2]
-    dec    r3d
+    sub   r3d, 2
     jg .loop
     REP_RET
 %endmacro ; PLANE_DEINTERLEAVE
