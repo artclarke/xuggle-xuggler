@@ -384,6 +384,7 @@ SSD  8, 16
 SSD  4,  4
 SSD  8,  4
 SSD  4,  8
+SSD  4, 16
 INIT_XMM sse2slow
 SSD 16, 16
 SSD  8,  8
@@ -415,6 +416,7 @@ SSD  8,  4
 INIT_MMX ssse3
 SSD  4,  4
 SSD  4,  8
+SSD  4, 16
 %assign function_align 16
 %endif ; !HIGH_BIT_DEPTH
 
@@ -659,6 +661,12 @@ cglobal pixel_var_16x16_mmx2, 2,3
     VAR_2ROW 8*SIZEOF_PIXEL, 16
     VAR_END 16, 16
 
+cglobal pixel_var_8x16_mmx2, 2,3
+    FIX_STRIDES r1
+    VAR_START 0
+    VAR_2ROW r1, 8
+    VAR_END 8, 16
+
 cglobal pixel_var_8x8_mmx2, 2,3
     FIX_STRIDES r1
     VAR_START 0
@@ -726,6 +734,22 @@ cglobal pixel_var_8x8, 2,4,8
     dec r2d
     jg .loop
     VAR_END 8, 8
+
+cglobal pixel_var_8x16, 2,4,8
+    VAR_START 1
+    mov      r2d, 4
+    lea       r3, [r1*3]
+.loop:
+    movh      m0, [r0]
+    movh      m3, [r0+r1]
+    movhps    m0, [r0+r1*2]
+    movhps    m3, [r0+r3]
+    DEINTB    1, 0, 4, 3, 7
+    lea       r0, [r0+r1*4]
+    VAR_CORE
+    dec r2d
+    jg .loop
+    VAR_END 8, 16
 %endmacro ; VAR
 
 INIT_XMM sse2

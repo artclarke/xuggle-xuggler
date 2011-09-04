@@ -56,7 +56,7 @@ cextern pw_16
 cextern pw_00ff
 cextern pw_pixel_max
 
-%macro STORE8x8 2
+%macro STORE8x8 2-4
     add r0, 4*FDEC_STRIDEB
     mova        [r0 + -4*FDEC_STRIDEB], %1
     mova        [r0 + -3*FDEC_STRIDEB], %1
@@ -66,6 +66,28 @@ cextern pw_pixel_max
     mova        [r0 +  1*FDEC_STRIDEB], %2
     mova        [r0 +  2*FDEC_STRIDEB], %2
     mova        [r0 +  3*FDEC_STRIDEB], %2
+%endmacro
+
+%macro STORE8x16 4
+    add r0, 4*FDEC_STRIDEB
+    mova        [r0 + -4*FDEC_STRIDEB], %1
+    mova        [r0 + -3*FDEC_STRIDEB], %1
+    mova        [r0 + -2*FDEC_STRIDEB], %1
+    mova        [r0 + -1*FDEC_STRIDEB], %1
+    add r0, 4*FDEC_STRIDEB
+    mova        [r0 + -4*FDEC_STRIDEB], %2
+    mova        [r0 + -3*FDEC_STRIDEB], %2
+    mova        [r0 + -2*FDEC_STRIDEB], %2
+    mova        [r0 + -1*FDEC_STRIDEB], %2
+    add r0, 4*FDEC_STRIDEB
+    mova        [r0 + -4*FDEC_STRIDEB], %3
+    mova        [r0 + -3*FDEC_STRIDEB], %3
+    mova        [r0 + -2*FDEC_STRIDEB], %3
+    mova        [r0 + -1*FDEC_STRIDEB], %3
+    mova        [r0 +  0*FDEC_STRIDEB], %4
+    mova        [r0 +  1*FDEC_STRIDEB], %4
+    mova        [r0 +  2*FDEC_STRIDEB], %4
+    mova        [r0 +  3*FDEC_STRIDEB], %4
 %endmacro
 
 %macro STORE16x16 2-4
@@ -1569,44 +1591,77 @@ cglobal predict_8x8c_v_mmx, 1,1
 
 %endif
 
+%macro PREDICT_8x16C_V 0
+cglobal predict_8x16c_v, 1,1
+    mova        m0, [r0 - FDEC_STRIDEB]
+    STORE8x16    m0, m0, m0, m0
+    RET
+%endmacro
+
+%ifdef HIGH_BIT_DEPTH
+INIT_XMM sse2
+PREDICT_8x16C_V
+%else
+INIT_MMX mmx
+PREDICT_8x16C_V
+%endif
+
 ;-----------------------------------------------------------------------------
 ; void predict_8x8c_h( uint8_t *src )
 ;-----------------------------------------------------------------------------
 %ifdef HIGH_BIT_DEPTH
 
 INIT_XMM sse2
-cglobal predict_8x8c_h, 1,1
+%macro PREDICT_C_H 1
+cglobal predict_8x%1c_h, 1,1
     add        r0, FDEC_STRIDEB*4
 %assign Y -4
-%rep 8
+%rep %1
     movd       m0, [r0+FDEC_STRIDEB*Y-SIZEOF_PIXEL*2]
     SPLATW     m0, m0, 1
     mova [r0+FDEC_STRIDEB*Y], m0
 %assign Y Y+1
 %endrep
     RET
+%endmacro
+
+PREDICT_C_H 8
+PREDICT_C_H 16
 
 %else ; !HIGH_BIT_DEPTH
 
-%macro PREDICT_8x8C_H 0
-cglobal predict_8x8c_h, 1,1
-%if cpuflag(ssse3)
-    mova   m1, [pb_3]
-%endif
-    add    r0, FDEC_STRIDE*4
-%assign Y -4
-%rep 8
+%macro PREDICT_C_H_CORE 1
+%assign Y %1
+%rep 4
     SPLATB_LOAD m0, r0+FDEC_STRIDE*Y-1, m1
     mova [r0+FDEC_STRIDE*Y], m0
 %assign Y Y+1
 %endrep
+%endmacro
+
+%macro PREDICT_C_H 1
+cglobal predict_8x%1c_h, 1,1
+%if cpuflag(ssse3)
+    mova   m1, [pb_3]
+%endif
+%if %1==16
+    add    r0, FDEC_STRIDE*4
+    PREDICT_C_H_CORE -4
+    add    r0, FDEC_STRIDE*4
+    PREDICT_C_H_CORE -4
+%endif
+    add    r0, FDEC_STRIDE*4
+    PREDICT_C_H_CORE -4
+    PREDICT_C_H_CORE 0
     RET
 %endmacro
 
 INIT_MMX mmx2
-PREDICT_8x8C_H
+PREDICT_C_H 8
+PREDICT_C_H 16
 INIT_MMX ssse3
-PREDICT_8x8C_H
+PREDICT_C_H 8
+PREDICT_C_H 16
 
 %endif
 ;-----------------------------------------------------------------------------
@@ -1704,9 +1759,10 @@ INIT_MMX sse2
 PREDICT_8x8C_DC
 %endif
 
+%macro PREDICT_C_DC_TOP 1
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM
-cglobal predict_8x8c_dc_top_sse2, 1,1
+cglobal predict_8x%1c_dc_top_sse2, 1,1
     pxor        m2, m2
     mova        m0, [r0 - FDEC_STRIDEB]
     pshufd      m1, m0, q2301
@@ -1716,11 +1772,11 @@ cglobal predict_8x8c_dc_top_sse2, 1,1
     paddw       m0, m1
     psrlw       m0, 1
     pavgw       m0, m2
-    STORE8x8    m0, m0
+    STORE8x%1   m0, m0, m0, m0
     RET
 %else ; !HIGH_BIT_DEPTH
 INIT_MMX
-cglobal predict_8x8c_dc_top_mmx2, 1,1
+cglobal predict_8x%1c_dc_top_mmx2, 1,1
     movq        mm0, [r0 - FDEC_STRIDE]
     pxor        mm1, mm1
     pxor        mm2, mm2
@@ -1735,9 +1791,13 @@ cglobal predict_8x8c_dc_top_mmx2, 1,1
     pshufw      mm1, mm1, 0
     pshufw      mm0, mm0, 0     ; dc0 (w)
     packuswb    mm0, mm1        ; dc0,dc1 (b)
-    STORE8x8    mm0, mm0
+    STORE8x%1   mm0, mm0, mm0, mm0
     RET
 %endif
+%endmacro
+
+PREDICT_C_DC_TOP 8
+PREDICT_C_DC_TOP 16
 
 ;-----------------------------------------------------------------------------
 ; void predict_16x16_v( pixel *src )

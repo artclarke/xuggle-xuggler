@@ -34,6 +34,7 @@
     ret x264_pixel_##name##_8x16_##suffix args;\
     ret x264_pixel_##name##_8x8_##suffix args;\
     ret x264_pixel_##name##_8x4_##suffix args;\
+    ret x264_pixel_##name##_4x16_##suffix args;\
     ret x264_pixel_##name##_4x8_##suffix args;\
     ret x264_pixel_##name##_4x4_##suffix args;\
 

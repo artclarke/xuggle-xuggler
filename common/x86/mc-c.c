@@ -42,6 +42,7 @@ DECL_SUF( x264_pixel_avg_16x8,  ( pixel *, int, pixel *, int, pixel *, int, int 
 DECL_SUF( x264_pixel_avg_8x16,  ( pixel *, int, pixel *, int, pixel *, int, int ))
 DECL_SUF( x264_pixel_avg_8x8,   ( pixel *, int, pixel *, int, pixel *, int, int ))
 DECL_SUF( x264_pixel_avg_8x4,   ( pixel *, int, pixel *, int, pixel *, int, int ))
+DECL_SUF( x264_pixel_avg_4x16,  ( pixel *, int, pixel *, int, pixel *, int, int ))
 DECL_SUF( x264_pixel_avg_4x8,   ( pixel *, int, pixel *, int, pixel *, int, int ))
 DECL_SUF( x264_pixel_avg_4x4,   ( pixel *, int, pixel *, int, pixel *, int, int ))
 DECL_SUF( x264_pixel_avg_4x2,   ( pixel *, int, pixel *, int, pixel *, int, int ))
@@ -526,6 +527,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->avg[PIXEL_8x16]  = x264_pixel_avg_8x16_mmx2;
     pf->avg[PIXEL_8x8]   = x264_pixel_avg_8x8_mmx2;
     pf->avg[PIXEL_8x4]   = x264_pixel_avg_8x4_mmx2;
+    pf->avg[PIXEL_4x16]  = x264_pixel_avg_4x16_mmx2;
     pf->avg[PIXEL_4x8]   = x264_pixel_avg_4x8_mmx2;
     pf->avg[PIXEL_4x4]   = x264_pixel_avg_4x4_mmx2;
     pf->avg[PIXEL_4x2]   = x264_pixel_avg_4x2_mmx2;
@@ -582,6 +584,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->avg[PIXEL_8x16]  = x264_pixel_avg_8x16_sse2;
     pf->avg[PIXEL_8x8]   = x264_pixel_avg_8x8_sse2;
     pf->avg[PIXEL_8x4]   = x264_pixel_avg_8x4_sse2;
+    pf->avg[PIXEL_4x16]  = x264_pixel_avg_4x16_sse2;
     pf->avg[PIXEL_4x8]   = x264_pixel_avg_4x8_sse2;
     pf->avg[PIXEL_4x4]   = x264_pixel_avg_4x4_sse2;
     pf->avg[PIXEL_4x2]   = x264_pixel_avg_4x2_sse2;
@@ -691,6 +694,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->avg[PIXEL_8x16]  = x264_pixel_avg_8x16_ssse3;
     pf->avg[PIXEL_8x8]   = x264_pixel_avg_8x8_ssse3;
     pf->avg[PIXEL_8x4]   = x264_pixel_avg_8x4_ssse3;
+    pf->avg[PIXEL_4x16]  = x264_pixel_avg_4x16_ssse3;
     pf->avg[PIXEL_4x8]   = x264_pixel_avg_4x8_ssse3;
     pf->avg[PIXEL_4x4]   = x264_pixel_avg_4x4_ssse3;
     pf->avg[PIXEL_4x2]   = x264_pixel_avg_4x2_ssse3;

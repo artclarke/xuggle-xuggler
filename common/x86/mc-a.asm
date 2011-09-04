@@ -617,6 +617,7 @@ cglobal pixel_avg_w%1
 
 INIT_MMX mmx2
 AVG_FUNC 4, movq, movq
+AVGH 4, 16
 AVGH 4, 8
 AVGH 4, 4
 AVGH 4, 2
@@ -632,6 +633,7 @@ AVGH 16,  8
 
 INIT_XMM sse2
 AVG_FUNC 4, movq, movq
+AVGH  4, 16
 AVGH  4, 8
 AVGH  4, 4
 AVGH  4, 2
@@ -649,6 +651,7 @@ AVGH  16,  8
 
 INIT_MMX mmx2
 AVG_FUNC 4, movd, movd
+AVGH 4, 16
 AVGH 4, 8
 AVGH 4, 4
 AVGH 4, 2
@@ -676,6 +679,7 @@ AVGH  8, 16
 AVGH  8,  8
 AVGH  8,  4
 INIT_MMX ssse3
+AVGH  4, 16
 AVGH  4,  8
 AVGH  4,  4
 AVGH  4,  2

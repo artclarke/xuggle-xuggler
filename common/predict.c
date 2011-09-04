@@ -933,6 +933,10 @@ void x264_predict_8x16c_init( int cpu, x264_predict_t pf[7] )
     pf[I_PRED_CHROMA_DC_LEFT]= x264_predict_8x16c_dc_left_c;
     pf[I_PRED_CHROMA_DC_TOP ]= x264_predict_8x16c_dc_top_c;
     pf[I_PRED_CHROMA_DC_128 ]= x264_predict_8x16c_dc_128_c;
+
+#if HAVE_MMX
+    x264_predict_8x16c_init_mmx( cpu, pf );
+#endif
 }
 
 void x264_predict_8x8_init( int cpu, x264_predict8x8_t pf[12], x264_predict_8x8_filter_t *predict_filter )
