@@ -380,7 +380,7 @@ uint64_t time= rdtsc();
 
 
 retry:
-    if(s->divx_packed && s->xvid_build>=0 && s->bitstream_buffer_size){
+    if(s->divx_packed && s->bitstream_buffer_size){
         int i;
         for(i=0; i<buf_size-3; i++){
             if(buf[i]==0 && buf[i+1]==0 && buf[i+2]==1){
@@ -689,7 +689,7 @@ frame_end:
         int current_pos= s->gb.buffer == s->bitstream_buffer ? 0 : (get_bits_count(&s->gb)>>3);
         int startcode_found=0;
 
-        if(buf_size - current_pos > 5){
+        if(buf_size - current_pos > 7){
             int i;
             for(i=current_pos; i<buf_size-4; i++){
                 if(buf[i]==0 && buf[i+1]==0 && buf[i+2]==1 && buf[i+3]==0xB6){
