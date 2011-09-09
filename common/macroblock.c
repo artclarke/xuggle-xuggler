@@ -447,8 +447,6 @@ void x264_macroblock_slice_init( x264_t *h )
     }
     else if( h->sh.i_type == SLICE_TYPE_P )
     {
-        memset( h->mb.cache.skip, 0, sizeof( h->mb.cache.skip ) );
-
         if( h->sh.i_disable_deblocking_filter_idc != 1 && h->param.analyse.i_weighted_pred == X264_WEIGHTP_SMART )
         {
             deblock_ref_table(-2) = -2;
