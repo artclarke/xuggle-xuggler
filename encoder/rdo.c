@@ -777,7 +777,7 @@ int quant_trellis_cavlc( x264_t *h, dctcoef *dct,
     if( !coef_mask )
         bs_write_vlc( &h->out.bs, x264_coeff0_token[nC] );
     else
-        block_residual_write_cavlc_internal( h, ctx_block_cat, coefs + b_ac, nC );
+        x264_cavlc_block_residual_internal( h, ctx_block_cat, coefs + b_ac, nC );
     score = (int64_t)h->out.bs.i_bits_encoded * i_lambda2;
 
     /* QNS loop: pick the change that improves RD the most, apply it, repeat.
@@ -810,7 +810,7 @@ int quant_trellis_cavlc( x264_t *h, dctcoef *dct,
             if( !cur_mask )
                 bs_write_vlc( &h->out.bs, x264_coeff0_token[nC] );
             else
-                block_residual_write_cavlc_internal( h, ctx_block_cat, coefs + b_ac, nC );
+                x264_cavlc_block_residual_internal( h, ctx_block_cat, coefs + b_ac, nC );
             cur_score += (int64_t)h->out.bs.i_bits_encoded * i_lambda2;
 
             coefs[i] = old_coef;
