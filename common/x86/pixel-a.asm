@@ -123,15 +123,15 @@ cglobal pixel_ssd_%1x%2, 4,5,6
     %define offset mmsize
     %define num_rows 1
 %endif
+    lea     r0, [r0+r1*2*num_rows]
     psubw   m1, [r2]
     psubw   m3, [r2+offset]
+    lea     r2, [r2+r3*2*num_rows]
     pmaddwd m1, m1
     pmaddwd m3, m3
-    dec     r4
-    lea     r0, [r0+r1*2*num_rows]
-    lea     r2, [r2+r3*2*num_rows]
     paddd   m0, m1
     paddd   m0, m3
+    dec     r4
     jg .loop
     HADDD   m0, m5
     movd   eax, m0
@@ -158,7 +158,6 @@ cglobal pixel_ssd_%1x%2, 4,5
     psubw   m7, m2
     pmaddwd m3, m3
     pmaddwd m5, m5
-    dec     r4
     lea     r0, [r0+r1*2]
     lea     r2, [r2+r3*2]
     pmaddwd m7, m7
@@ -166,6 +165,7 @@ cglobal pixel_ssd_%1x%2, 4,5
     paddd   m5, m7
     paddd   m0, m1
     paddd   m0, m5
+    dec     r4
     jg .loop
     HADDD   m0, m7
     movd   eax, m0
@@ -540,12 +540,12 @@ cglobal pixel_ssd_nv12_core, 6,7
     psubusb m1, [r0+r6]
     por     m0, m1
     psrlw   m2, m0, 8
-    add     r6, mmsize
     pand    m0, m5
     pmaddwd m2, m2
     pmaddwd m0, m0
     paddd   m3, m0
     paddd   m4, m2
+    add     r6, mmsize
     jl .loopx
     add     r0, r1
     add     r2, r3
@@ -646,8 +646,8 @@ SSD_NV12
     punpcklbw m3, m7
     punpckhbw m4, m7
 %endif ; !HIGH_BIT_DEPTH
-    dec r2d
     VAR_CORE
+    dec r2d
     jg .loop
 %endmacro
 
@@ -3382,7 +3382,7 @@ ALIGN 16
     test    r2,  r2
 %else
     mov     r3,  r2
-    or      r3d, [r6+r1+4]
+    add    r3d, [r6+r1+4]
 %endif
     jz .loopi0
     xor     r3d, r3d

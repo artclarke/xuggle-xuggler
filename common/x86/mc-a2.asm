@@ -199,12 +199,12 @@ cglobal hpel_filter_v, 5,6,11
     mova      [r2+r4+mmsize], m4
     paddw      m1, s30
     paddw      m4, s30
-    add        r4, 2*mmsize
     FILT_PACK  m1, m4, 5, m6, w, s10
     CLIPW      m1, m0, m7
     CLIPW      m4, m0, m7
-    mova      [r0+r4-mmsize*2], m1
-    mova      [r0+r4-mmsize*1], m4
+    mova      [r0+r4], m1
+    mova      [r0+r4+mmsize], m4
+    add        r4, 2*mmsize
     jl .loop
     REP_RET
 
@@ -291,12 +291,12 @@ cglobal hpel_filter_h, 3,4,8
     FILT_H2    m1, m2, m3, m4, m5, m6
     mova       m7, [pw_1]
     pxor       m2, m2
-    add        r2, mmsize*2
     FILT_PACK  m1, m4, 1, m7, w
     CLIPW      m1, m2, m0
     CLIPW      m4, m2, m0
-    mova      [r0+r2-mmsize*2], m1
-    mova      [r0+r2-mmsize*1], m4
+    mova      [r0+r2], m1
+    mova      [r0+r2+mmsize], m4
+    add        r2, mmsize*2
     jl .loop
     REP_RET
 %endmacro ; HPEL_FILTER
@@ -1139,24 +1139,24 @@ INIT_MMX
 cglobal memcpy_aligned_mmx, 3,3
     test r2d, 16
     jz .copy32start
-    sub r2d, 16
-    movq mm0, [r1 + r2 + 0]
-    movq mm1, [r1 + r2 + 8]
-    movq [r0 + r2 + 0], mm0
-    movq [r0 + r2 + 8], mm1
+    movq mm0, [r1 + r2 - 16]
+    movq mm1, [r1 + r2 -  8]
+    movq [r0 + r2 - 16], mm0
+    movq [r0 + r2 -  8], mm1
+    sub  r2d, 16
 .copy32start
     test r2d, r2d
     jz .ret
 .copy32:
-    sub r2d, 32
-    movq mm0, [r1 + r2 +  0]
-    movq mm1, [r1 + r2 +  8]
-    movq mm2, [r1 + r2 + 16]
-    movq mm3, [r1 + r2 + 24]
-    movq [r0 + r2 +  0], mm0
-    movq [r0 + r2 +  8], mm1
-    movq [r0 + r2 + 16], mm2
-    movq [r0 + r2 + 24], mm3
+    movq mm0, [r1 + r2 - 32]
+    movq mm1, [r1 + r2 - 24]
+    movq mm2, [r1 + r2 - 16]
+    movq mm3, [r1 + r2 -  8]
+    movq [r0 + r2 - 32], mm0
+    movq [r0 + r2 - 24], mm1
+    movq [r0 + r2 - 16], mm2
+    movq [r0 + r2 -  8], mm3
+    sub  r2d, 32
     jg .copy32
 .ret
     REP_RET
@@ -1167,30 +1167,30 @@ cglobal memcpy_aligned_mmx, 3,3
 cglobal memcpy_aligned_sse2, 3,3
     test r2d, 16
     jz .copy32
-    sub r2d, 16
-    movdqa xmm0, [r1 + r2]
-    movdqa [r0 + r2], xmm0
+    movdqa xmm0, [r1 + r2 - 16]
+    movdqa [r0 + r2 - 16], xmm0
+    sub  r2d, 16
 .copy32:
     test r2d, 32
     jz .copy64start
-    sub r2d, 32
-    movdqa xmm0, [r1 + r2 +  0]
-    movdqa [r0 + r2 +  0], xmm0
-    movdqa xmm1, [r1 + r2 + 16]
-    movdqa [r0 + r2 + 16], xmm1
+    movdqa xmm0, [r1 + r2 - 32]
+    movdqa [r0 + r2 - 32], xmm0
+    movdqa xmm1, [r1 + r2 - 16]
+    movdqa [r0 + r2 - 16], xmm1
+    sub  r2d, 32
 .copy64start
     test r2d, r2d
     jz .ret
 .copy64:
-    sub r2d, 64
-    movdqa xmm0, [r1 + r2 +  0]
-    movdqa [r0 + r2 +  0], xmm0
-    movdqa xmm1, [r1 + r2 + 16]
-    movdqa [r0 + r2 + 16], xmm1
-    movdqa xmm2, [r1 + r2 + 32]
-    movdqa [r0 + r2 + 32], xmm2
-    movdqa xmm3, [r1 + r2 + 48]
-    movdqa [r0 + r2 + 48], xmm3
+    movdqa xmm0, [r1 + r2 - 64]
+    movdqa [r0 + r2 - 64], xmm0
+    movdqa xmm1, [r1 + r2 - 48]
+    movdqa [r0 + r2 - 48], xmm1
+    movdqa xmm2, [r1 + r2 - 32]
+    movdqa [r0 + r2 - 32], xmm2
+    movdqa xmm3, [r1 + r2 - 16]
+    movdqa [r0 + r2 - 16], xmm3
+    sub  r2d, 64
     jg .copy64
 .ret:
     REP_RET
@@ -1313,17 +1313,17 @@ cglobal integral_init4v_mmx, 3,5
     mova  m0, [r0+r2]
     mova  m4, [r4+r2]
 .loop:
-    sub   r2, 8
     mova  m1, m4
     psubw m1, m0
-    mova  m4, [r4+r2]
-    mova  m0, [r0+r2]
+    mova  m4, [r4+r2-8]
+    mova  m0, [r0+r2-8]
     paddw m1, m4
-    mova  m3, [r3+r2]
+    mova  m3, [r3+r2-8]
     psubw m1, m0
     psubw m3, m0
-    mova  [r0+r2], m1
-    mova  [r1+r2], m3
+    mova  [r0+r2-8], m1
+    mova  [r1+r2-8], m3
+    sub   r2, 8
     jge .loop
     REP_RET
 
