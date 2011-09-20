@@ -643,6 +643,7 @@ void x264_sei_pic_timing_write( x264_t *h, bs_t *s )
 
 void x264_sei_frame_packing_write( x264_t *h, bs_t *s )
 {
+    int quincunx_sampling_flag = h->param.i_frame_packing == 0;
     bs_t q;
     uint8_t tmp_buf[100];
     bs_init( &q, tmp_buf, 100 );
@@ -652,7 +653,7 @@ void x264_sei_frame_packing_write( x264_t *h, bs_t *s )
     bs_write_ue( &q, 0 );                         // frame_packing_arrangement_id
     bs_write1( &q, 0 );                           // frame_packing_arrangement_cancel_flag
     bs_write ( &q, 7, h->param.i_frame_packing ); // frame_packing_arrangement_type
-    bs_write1( &q, 0 );                           // quincunx_sampling_flag
+    bs_write1( &q, quincunx_sampling_flag );      // quincunx_sampling_flag
 
     // 0: views are unrelated, 1: left view is on the left, 2: left view is on the right
     bs_write ( &q, 6, 1 );                        // content_interpretation_type
@@ -663,7 +664,7 @@ void x264_sei_frame_packing_write( x264_t *h, bs_t *s )
     bs_write1( &q, h->param.i_frame_packing == 5 && !(h->fenc->i_frame&1) ); // current_frame_is_frame0_flag
     bs_write1( &q, 0 );                           // frame0_self_contained_flag
     bs_write1( &q, 0 );                           // frame1_self_contained_flag
-    if ( /* quincunx_sampling_flag == 0 && */ h->param.i_frame_packing != 5 )
+    if ( quincunx_sampling_flag == 0 && h->param.i_frame_packing != 5 )
     {
         bs_write( &q, 4, 0 );                     // frame0_grid_position_x
         bs_write( &q, 4, 0 );                     // frame0_grid_position_y
