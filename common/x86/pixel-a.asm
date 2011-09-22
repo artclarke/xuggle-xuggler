@@ -81,6 +81,9 @@ intrax9b_vh1:   db  6, 7, 8, 9, 6, 7, 8, 9, 4, 3, 2, 1, 4, 3, 2, 1
 intrax9b_v1:    db  0, 1,-1,-1,-1,-1,-1,-1, 4, 5,-1,-1,-1,-1,-1,-1
 intrax9b_v2:    db  2, 3,-1,-1,-1,-1,-1,-1, 6, 7,-1,-1,-1,-1,-1,-1
 
+transd_shuf1: SHUFFLE_MASK_W 0, 8, 2, 10, 4, 12, 6, 14
+transd_shuf2: SHUFFLE_MASK_W 1, 9, 3, 11, 5, 13, 7, 15
+
 sw_f0:     dq 0xfff0, 0
 sq_0f:     dq 0xffffffff, 0
 pd_f0:     times 4 dd 0xffff0000
@@ -417,6 +420,12 @@ INIT_MMX ssse3
 SSD  4,  4
 SSD  4,  8
 SSD  4, 16
+INIT_XMM xop
+SSD 16, 16
+SSD  8,  8
+SSD 16,  8
+SSD  8, 16
+SSD  8,  4
 %assign function_align 16
 %endif ; !HIGH_BIT_DEPTH
 
@@ -654,20 +663,20 @@ SSD_NV12
 ;-----------------------------------------------------------------------------
 ; int pixel_var_wxh( uint8_t *, int )
 ;-----------------------------------------------------------------------------
-INIT_MMX
-cglobal pixel_var_16x16_mmx2, 2,3
+INIT_MMX mmx2
+cglobal pixel_var_16x16, 2,3
     FIX_STRIDES r1
     VAR_START 0
     VAR_2ROW 8*SIZEOF_PIXEL, 16
     VAR_END 16, 16
 
-cglobal pixel_var_8x16_mmx2, 2,3
+cglobal pixel_var_8x16, 2,3
     FIX_STRIDES r1
     VAR_START 0
     VAR_2ROW r1, 8
     VAR_END 8, 16
 
-cglobal pixel_var_8x8_mmx2, 2,3
+cglobal pixel_var_8x8, 2,3
     FIX_STRIDES r1
     VAR_START 0
     VAR_2ROW r1, 4
@@ -701,6 +710,8 @@ cglobal pixel_var_8x8, 2,3,8
 INIT_XMM sse2
 VAR
 INIT_XMM avx
+VAR
+INIT_XMM xop
 VAR
 %endif ; HIGH_BIT_DEPTH
 
@@ -756,6 +767,8 @@ INIT_XMM sse2
 VAR
 INIT_XMM avx
 VAR
+INIT_XMM xop
+VAR
 %endif ; !HIGH_BIT_DEPTH
 
 %macro VAR2_END 0
@@ -773,8 +786,8 @@ VAR
 ;-----------------------------------------------------------------------------
 ; int pixel_var2_8x8( pixel *, int, pixel *, int, int * )
 ;-----------------------------------------------------------------------------
-INIT_MMX
-cglobal pixel_var2_8x8_mmx2, 5,6
+INIT_MMX mmx2
+cglobal pixel_var2_8x8, 5,6
     FIX_STRIDES r1, r3
     VAR_START 0
     mov      r5d, 8
@@ -809,8 +822,8 @@ cglobal pixel_var2_8x8_mmx2, 5,6
     VAR2_END
     RET
 
-INIT_XMM
-cglobal pixel_var2_8x8_sse2, 5,6,8
+INIT_XMM sse2
+cglobal pixel_var2_8x8, 5,6,8
     VAR_START 1
     mov      r5d, 4
 .loop:
@@ -842,7 +855,8 @@ cglobal pixel_var2_8x8_sse2, 5,6,8
     RET
 
 %ifndef HIGH_BIT_DEPTH
-cglobal pixel_var2_8x8_ssse3, 5,6,8
+%macro VAR2_8x8 0
+cglobal pixel_var2_8x8, 5,6,8
     pxor      m5, m5    ; sum
     pxor      m6, m6    ; sum squared
     mova      m7, [hsub_mul]
@@ -884,6 +898,13 @@ cglobal pixel_var2_8x8_ssse3, 5,6,8
     jg .loop
     VAR2_END
     RET
+%endmacro
+
+INIT_XMM ssse3
+VAR2_8x8
+INIT_XMM xop
+VAR2_8x8
+
 %endif ; !HIGH_BIT_DEPTH
 
 ;=============================================================================
@@ -1680,6 +1701,20 @@ cglobal intra_sa8d_x3_8x8, 3,3,16
     paddusw     m2,  m0
 
     ; 3x HADDW
+%if cpuflag(xop)
+    phaddw      m2, m14
+    vphadduwq   m0, m15
+    movhlps     m1, m0
+    vphadduwq   m2, m2  ; i8x8_v, i8x8_h
+    paddd       m0, m1  ; i8x8_dc
+    packusdw    m2, m0  ; i8x8_v, i8x8_h, i8x8_dc
+    pxor        m3, m3
+    psrlw       m2, 1
+    pavgw       m2, m3
+    movq      [r2], m2 ; i8x8_v, i8x8_h
+    psrldq      m2, 8
+    movd    [r2+8], m2 ; i8x8_dc
+%else
     movdqa      m7,  [pw_1]
     pmaddwd     m2,  m7
     pmaddwd     m14, m7
@@ -1697,6 +1732,7 @@ cglobal intra_sa8d_x3_8x8, 3,3,16
     movq      [r2],  m3 ; i8x8_v, i8x8_h
     psrldq      m3,  8
     movd    [r2+8],  m3 ; i8x8_dc
+%endif
     RET
 %endif ; ARCH_X86_64
 %endmacro ; INTRA_SA8D_SSE2
@@ -2088,11 +2124,9 @@ cglobal intra_satd_x3_8x8c, 0,6
     psignw    m%1, [pw_pmpmpmpm]
     paddw      m0, m%1
     psllw      m0, 2 ; hadamard(top), hadamard(left)
-    mova       m1, m0
-    mova       m2, m0
     movhlps    m3, m0
-    pshufb     m1, [intrax9b_v1]
-    pshufb     m2, [intrax9b_v2]
+    pshufb     m1, m0, [intrax9b_v1]
+    pshufb     m2, m0, [intrax9b_v2]
     paddw      m0, m3
     psignw     m3, [pw_pmmpzzzz] ; FIXME could this be eliminated?
     pavgw      m0, [pw_16]
@@ -2122,8 +2156,14 @@ cglobal intra_satd_x3_8x8c, 0,6
 %endif
     movhlps    m2, m1
     paddw      m1, m2
+%if cpuflag(xop)
+    vphaddwq   m3, m3
+    vphaddwq   m1, m1
+    packssdw   m1, m3
+%else
     phaddw     m1, m3
     pmaddwd    m1, [pw_1] ; v, _, h, dc
+%endif
 %endmacro ; INTRA_X9_VHDC
 
 %macro INTRA_X9_END 1
@@ -2167,6 +2207,7 @@ cglobal intra_satd_x3_8x8c, 0,6
 ;-----------------------------------------------------------------------------
 ; int intra_sad_x9_4x4( uint8_t *fenc, uint8_t *fdec, uint16_t *bitcosts )
 ;-----------------------------------------------------------------------------
+%if notcpuflag(xop)
 cglobal intra_sad_x9_4x4, 3,3,9
 %ifdef ARCH_X86_64
     INTRA_X9_PRED intrax9a, m8
@@ -2206,12 +2247,10 @@ cglobal intra_sad_x9_4x4, 3,3,9
     mova       m7, [rsp]
     %define %%zero [pb_0]
 %endif
-    mova       m3, m7
-    mova       m5, m7
+    pshufb     m3, m7, [intrax9a_vh1]
+    pshufb     m5, m7, [intrax9a_vh2]
     pshufb     m7, [intrax9a_dc]
-    pshufb     m3, [intrax9a_vh1]
     psadbw     m7, %%zero
-    pshufb     m5, [intrax9a_vh2]
     psrlw      m7, 2
     psadbw     m3, m0
     pavgw      m7, %%zero
@@ -2236,6 +2275,7 @@ cglobal intra_sad_x9_4x4, 3,3,9
     add       rsp, 0x1c
 %endif
     RET
+%endif
 
 %ifdef ARCH_X86_64
 ;-----------------------------------------------------------------------------
@@ -2932,6 +2972,16 @@ INTRA_X9
 %endif
 
 INIT_XMM avx
+SATDS_SSE2
+SA8D
+%ifndef HIGH_BIT_DEPTH
+INTRA_SA8D_SSE2
+INTRA_X9
+%endif
+HADAMARD_AC_SSE2
+
+%define TRANS TRANS_XOP
+INIT_XMM xop
 SATDS_SSE2
 SA8D
 %ifndef HIGH_BIT_DEPTH

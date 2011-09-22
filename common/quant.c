@@ -506,6 +506,15 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
     {
         pf->denoise_dct = x264_denoise_dct_avx;
     }
+    if( cpu&X264_CPU_XOP )
+    {
+        pf->dequant_4x4_dc = x264_dequant_4x4dc_xop;
+        if( h->param.i_cqm_preset != X264_CQM_FLAT )
+        {
+            pf->dequant_4x4 = x264_dequant_4x4_xop;
+            pf->dequant_8x8 = x264_dequant_8x8_xop;
+        }
+    }
 #endif // HAVE_MMX
 #else // !HIGH_BIT_DEPTH
 #if HAVE_MMX
@@ -628,6 +637,15 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         }
         pf->optimize_chroma_2x2_dc = x264_optimize_chroma_2x2_dc_avx;
         pf->denoise_dct = x264_denoise_dct_avx;
+    }
+
+    if( cpu&X264_CPU_XOP )
+    {
+        if( h->param.i_cqm_preset != X264_CQM_FLAT )
+        {
+            pf->dequant_4x4 = x264_dequant_4x4_xop;
+            pf->dequant_8x8 = x264_dequant_8x8_xop;
+        }
     }
 #endif // HAVE_MMX
 

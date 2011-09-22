@@ -30,20 +30,14 @@
 %include "x86inc.asm"
 %include "x86util.asm"
 
-%macro SHUFFLE_16BIT 8
-    %rep 8
-        db %1*2
-        db %1*2+1
-        %rotate 1
-    %endrep
-%endmacro
-
 SECTION_RODATA
 pb_sub4frame:   db 0,1,4,8,5,2,3,6,9,12,13,10,7,11,14,15
 pb_sub4field:   db 0,4,1,8,12,5,9,13,2,6,10,14,3,7,11,15
 pb_subacmask:   dw 0,-1,-1,-1,-1,-1,-1,-1
-pb_scan4framea: SHUFFLE_16BIT 6,3,7,0,4,1,2,5
-pb_scan4frameb: SHUFFLE_16BIT 0,4,1,2,5,6,3,7
+pb_scan4framea: SHUFFLE_MASK_W 6,3,7,0,4,1,2,5
+pb_scan4frameb: SHUFFLE_MASK_W 0,4,1,2,5,6,3,7
+pb_scan4frame2a: SHUFFLE_MASK_W 0,4,1,2,5,8,12,9
+pb_scan4frame2b: SHUFFLE_MASK_W 6,3,7,10,13,14,11,15
 pb_idctdc_unpack: db 0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3
 pb_idctdc_unpack2: db 4,4,4,4,5,5,5,5,6,6,6,6,7,7,7,7
 
@@ -1098,6 +1092,16 @@ INIT_XMM ssse3
 SCAN_4x4_FRAME
 INIT_XMM avx
 SCAN_4x4_FRAME
+
+INIT_XMM xop
+cglobal zigzag_scan_4x4_frame, 2,2
+    mova   m0, [r1+ 0]
+    mova   m1, [r1+16]
+    vpperm m2, m0, m1, [pb_scan4frame2a]
+    vpperm m1, m0, m1, [pb_scan4frame2b]
+    mova [r0+ 0], m2
+    mova [r0+16], m1
+    RET
 %endif ; !HIGH_BIT_DEPTH
 
 %ifdef HIGH_BIT_DEPTH

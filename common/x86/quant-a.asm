@@ -428,16 +428,13 @@ QUANT_AC quant_8x8, 8
 ;;; m4      0
     mova      m0, %1
 %ifdef HIGH_BIT_DEPTH
-    pmaddwd   m0, %2
-    paddd     m0, m3
+    pmadcswd   m0, m0, %2, m3
     psrad     m0, m2
 %else
     punpckhwd m1, m0, m4
     punpcklwd m0, m4
-    pmaddwd   m0, %2
-    pmaddwd   m1, %3
-    paddd     m0, m3
-    paddd     m1, m3
+    pmadcswd  m0, m0, %2, m3
+    pmadcswd  m1, m1, %3, m3
     psrad     m0, m2
     psrad     m1, m2
     packssdw  m0, m1
@@ -574,6 +571,9 @@ cglobal dequant_%1x%1_flat16, 0,3
 INIT_XMM sse2
 DEQUANT 4, 4, 1
 DEQUANT 8, 6, 1
+INIT_XMM xop
+DEQUANT 4, 4, 1
+DEQUANT 8, 6, 1
 %else
 %ifndef ARCH_X86_64
 INIT_MMX mmx
@@ -584,6 +584,9 @@ INIT_XMM sse2
 DEQUANT 4, 4, 2
 DEQUANT 8, 6, 2
 INIT_XMM avx
+DEQUANT 4, 4, 2
+DEQUANT 8, 6, 2
+INIT_XMM xop
 DEQUANT 4, 4, 2
 DEQUANT 8, 6, 2
 %endif
@@ -622,8 +625,7 @@ cglobal dequant_4x4dc, 0,3,6
     pshufd m2, m2, 0
 %rep SIZEOF_PIXEL*32/mmsize
     mova      m0, [r0+x]
-    pmaddwd   m0, m2
-    paddd     m0, m4
+    pmadcswd  m0, m0, m2, m4
     psrad     m0, m3
     mova      [r0+x], m0
 %assign x x+mmsize
@@ -650,6 +652,8 @@ cglobal dequant_4x4dc, 0,3,6
 
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM sse2
+DEQUANT_DC d, pmaddwd
+INIT_XMM xop
 DEQUANT_DC d, pmaddwd
 %else
 %ifndef ARCH_X86_64

@@ -164,6 +164,8 @@ static void print_bench(void)
             if( k < j )
                 continue;
             printf( "%s_%s%s: %"PRId64"\n", benchs[i].name,
+                    b->cpu&X264_CPU_FMA4 ? "fma4" :
+                    b->cpu&X264_CPU_XOP ? "xop" :
                     b->cpu&X264_CPU_AVX ? "avx" :
                     b->cpu&X264_CPU_SSE4 ? "sse4" :
                     b->cpu&X264_CPU_SHUFFLE_IS_FAST ? "fastshuffle" :
@@ -1365,8 +1367,12 @@ static int check_mc( int cpu_ref, int cpu_new )
             call_a( mc_a.mbtree_propagate_cost, dsta, prop, intra, inter, qscale, &fps_factor, 100 );
             // I don't care about exact rounding, this is just how close the floating-point implementation happens to be
             x264_emms();
-            for( int j = 0; j < 100; j++ )
+            for( int j = 0; j < 100 && ok; j++ )
+            {
                 ok &= abs( dstc[j]-dsta[j] ) <= 1 || fabs( (double)dstc[j]/dsta[j]-1 ) < 1e-4;
+                if( !ok )
+                    fprintf( stderr, "mbtree_propagate FAILED: %f !~= %f\n", (double)dstc[j], (double)dsta[j] );
+            }
         }
         report( "mbtree propagate :" );
     }
@@ -2279,6 +2285,10 @@ static int check_all_flags( void )
     }
     if( x264_cpu_detect() & X264_CPU_AVX )
         ret |= add_flags( &cpu0, &cpu1, X264_CPU_AVX, "AVX" );
+    if( x264_cpu_detect() & X264_CPU_XOP )
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_XOP, "XOP" );
+    if( x264_cpu_detect() & X264_CPU_FMA4 )
+        ret |= add_flags( &cpu0, &cpu1, X264_CPU_FMA4, "FMA4" );
 #elif ARCH_PPC
     if( x264_cpu_detect() & X264_CPU_ALTIVEC )
     {

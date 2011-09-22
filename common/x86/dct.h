@@ -88,6 +88,7 @@ void x264_zigzag_scan_8x8_frame_avx  ( dctcoef level[64], dctcoef dct[64] );
 void x264_zigzag_scan_8x8_frame_ssse3( int16_t level[64], int16_t dct[64] );
 void x264_zigzag_scan_8x8_frame_sse2 ( dctcoef level[64], dctcoef dct[64] );
 void x264_zigzag_scan_8x8_frame_mmx2 ( int16_t level[64], int16_t dct[64] );
+void x264_zigzag_scan_4x4_frame_xop  ( dctcoef level[16], dctcoef dct[16] );
 void x264_zigzag_scan_4x4_frame_avx  ( dctcoef level[16], dctcoef dct[16] );
 void x264_zigzag_scan_4x4_frame_ssse3( int16_t level[16], int16_t dct[16] );
 void x264_zigzag_scan_4x4_frame_sse2 ( int32_t level[16], int32_t dct[16] );

@@ -273,16 +273,28 @@
 %endmacro
 
 %macro HADDW 2
+%if cpuflag(xop) && mmsize == 16
+    vphaddwq  %1, %1
+    movhlps   %2, %1
+    paddd     %1, %2
+%else
     pmaddwd %1, [pw_1]
     HADDD   %1, %2
+%endif
 %endmacro
 
 %macro HADDUW 2
+%if cpuflag(xop) && mmsize == 16
+    vphadduwq %1, %1
+    movhlps   %2, %1
+    paddd     %1, %2
+%else
     psrld %2, %1, 16
     pslld %1, 16
     psrld %1, 16
     paddd %1, %2
     HADDD %1, %2
+%endif
 %endmacro
 
 %macro PALIGNR 4-5 ; [dst,] src1, src2, imm, tmp
@@ -455,6 +467,17 @@
     shufps m%3, m%4, q2020
     SWAP    %4, %5
 %endif
+%endmacro
+
+%macro TRANS_XOP 5-6
+%ifidn %1, d
+    vpperm m%5, m%3, m%4, [transd_shuf1]
+    vpperm m%3, m%3, m%4, [transd_shuf2]
+%elifidn %1, q
+    shufps m%5, m%3, m%4, q3131
+    shufps m%3, m%4, q2020
+%endif
+    SWAP    %4, %5
 %endmacro
 
 %macro HADAMARD 5-6
@@ -735,4 +758,12 @@
     paddsw     %1, %2
     packuswb   %1, %1
     movh       %4, %1
+%endmacro
+
+%macro SHUFFLE_MASK_W 8
+    %rep 8
+        db %1*2
+        db %1*2+1
+        %rotate 1
+    %endrep
 %endmacro

@@ -531,6 +531,8 @@ SECTION .note.GNU-stack noalloc noexec nowrite progbits
 %assign cpuflags_sse4     (1<<7) | cpuflags_ssse3
 %assign cpuflags_sse42    (1<<8) | cpuflags_sse4
 %assign cpuflags_avx      (1<<9) | cpuflags_sse42
+%assign cpuflags_xop      (1<<10)| cpuflags_avx
+%assign cpuflags_fma4     (1<<11)| cpuflags_avx
 
 %assign cpuflags_cache32  (1<<16)
 %assign cpuflags_cache64  (1<<17)
@@ -986,7 +988,6 @@ AVX_INSTR pfadd, 1, 0
 AVX_INSTR pfsub, 1, 0
 AVX_INSTR pfmul, 1, 0
 
-
 ; base-4 constants for shuffles
 %assign i 0
 %rep 256
@@ -1004,3 +1005,18 @@ AVX_INSTR pfmul, 1, 0
 %endrep
 %undef i
 %undef j
+
+%macro FMA_INSTR 3
+    %macro %1 4-7 %1, %2, %3
+        %if cpuflag(xop)
+            v%5 %1, %2, %3, %4
+        %else
+            %6 %1, %2, %3
+            %7 %1, %4
+        %endif
+    %endmacro
+%endmacro
+
+FMA_INSTR  pmacsdd,  pmulld, paddd
+FMA_INSTR  pmacsww,  pmullw, paddw
+FMA_INSTR pmadcswd, pmaddwd, paddd

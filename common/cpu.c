@@ -63,6 +63,8 @@ const x264_cpu_name_t x264_cpu_names[] =
     {"SSE4",        SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4},
     {"SSE4.2",      SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4|X264_CPU_SSE42},
     {"AVX",         SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4|X264_CPU_SSE42|X264_CPU_AVX},
+    {"XOP",         SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4|X264_CPU_SSE42|X264_CPU_AVX|X264_CPU_XOP},
+    {"FMA4",        SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4|X264_CPU_SSE42|X264_CPU_AVX|X264_CPU_FMA4},
 #undef SSE2
     {"Cache32",         X264_CPU_CACHELINE_32},
     {"Cache64",         X264_CPU_CACHELINE_64},
@@ -174,6 +176,14 @@ uint32_t x264_cpu_detect( void )
             {
                 cpu |= X264_CPU_SSE_MISALIGN;
                 x264_cpu_mask_misalign_sse();
+            }
+
+            if( cpu & X264_CPU_AVX )
+            {
+                if( ecx&0x00000800 ) /* XOP */
+                    cpu |= X264_CPU_XOP;
+                if( ecx&0x00010000 ) /* FMA4 */
+                    cpu |= X264_CPU_FMA4;
             }
         }
     }
