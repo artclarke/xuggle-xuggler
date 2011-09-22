@@ -228,18 +228,23 @@ install-lib-static: lib-static install-lib-dev
 	$(if $(RANLIB), $(RANLIB) $(DESTDIR)$(libdir)/$(LIBX264))
 
 install-lib-shared: lib-shared install-lib-dev
-ifeq ($(SYS),WINDOWS)
-	$(if $(SONAME), install -m 755 $(SONAME) $(DESTDIR)$(bindir))
-else
-	$(if $(SONAME), ln -f -s $(SONAME) $(DESTDIR)$(libdir)/libx264.$(SOSUFFIX))
-	$(if $(SONAME), install -m 755 $(SONAME) $(DESTDIR)$(libdir))
+ifneq ($(IMPLIBNAME),)
+	install -d $(DESTDIR)$(bindir)
+	install -m 755 $(SONAME) $(DESTDIR)$(bindir)
+	install -m 644 $(IMPLIBNAME) $(DESTDIR)$(libdir)
+else ifneq ($(SONAME),)
+	ln -f -s $(SONAME) $(DESTDIR)$(libdir)/libx264.$(SOSUFFIX)
+	install -m 755 $(SONAME) $(DESTDIR)$(libdir)
 endif
-	$(if $(IMPLIBNAME), install -m 644 $(IMPLIBNAME) $(DESTDIR)$(libdir))
 
 uninstall:
 	rm -f $(DESTDIR)$(includedir)/x264.h $(DESTDIR)$(includedir)/x264_config.h $(DESTDIR)$(libdir)/libx264.a
 	rm -f $(DESTDIR)$(bindir)/x264$(EXE) $(DESTDIR)$(libdir)/pkgconfig/x264.pc
-	$(if $(SONAME), rm -f $(DESTDIR)$(libdir)/$(SONAME) $(DESTDIR)$(libdir)/libx264.$(SOSUFFIX))
+ifneq ($(IMPLIBNAME),)
+	rm -f $(DESTDIR)$(bindir)/$(SONAME) $(DESTDIR)$(libdir)/$(IMPLIBNAME)
+else ifneq ($(SONAME),)
+	rm -f $(DESTDIR)$(libdir)/$(SONAME) $(DESTDIR)$(libdir)/libx264.$(SOSUFFIX)
+endif
 
 etags: TAGS
 

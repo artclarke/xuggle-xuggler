@@ -397,15 +397,6 @@ static ALWAYS_INLINE uint64_t pack32to64( uint32_t a, uint32_t b )
 #   define pack_pixel_2to4 pack16to32
 #endif
 
-#define array_non_zero(a) array_non_zero_int(a, sizeof(a)/sizeof(dctcoef))
-#define array_non_zero_int array_non_zero_int
-static ALWAYS_INLINE int array_non_zero_int( dctcoef *v, int i_count )
-{
-    for( int i = 0; i < i_count; i++ )
-        if( v[i] )
-            return 1;
-    return 0;
-}
 static ALWAYS_INLINE int x264_mb_predict_intra4x4_mode( x264_t *h, int idx )
 {
     const int ma = h->mb.cache.intra4x4_pred_mode[x264_scan8[idx] - 1];

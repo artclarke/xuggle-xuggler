@@ -5,6 +5,7 @@
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Jason Garrett-Glaser <darkshikari@gmail.com>
+            Henrik Gramner <hengar-6@student.ltu.se>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,22 +43,19 @@ enum
     PIXEL_8x4   = 4,
     PIXEL_4x8   = 5,
     PIXEL_4x4   = 6,
-    PIXEL_4x2   = 7,
-    PIXEL_2x4   = 8,
-    PIXEL_2x2   = 9,
+
+    /* Subsampled chroma only */
+    PIXEL_4x16  = 7,  /* 4:2:2 */
+    PIXEL_4x2   = 8,
+    PIXEL_2x8   = 9,  /* 4:2:2 */
+    PIXEL_2x4   = 10,
+    PIXEL_2x2   = 11,
 };
 
-static const struct
+static const struct { uint8_t w, h; } x264_pixel_size[12] =
 {
-    int w;
-    int h;
-} x264_pixel_size[7] =
-{
-    { 16, 16 },
-    { 16,  8 }, {  8, 16 },
-    {  8,  8 },
-    {  8,  4 }, {  4,  8 },
-    {  4,  4 }
+    { 16, 16 }, { 16, 8 }, { 8, 16 }, { 8, 8 }, { 8, 4 }, { 4, 8 }, { 4, 4 },
+    {  4, 16 }, {  4, 2 }, { 2,  8 }, { 2, 4 }, { 2, 2 },
 };
 
 static const uint8_t x264_size2pixel[5][5] =
@@ -69,23 +67,32 @@ static const uint8_t x264_size2pixel[5][5] =
     { 0, 0,        PIXEL_8x16, 0, PIXEL_16x16 }
 };
 
+static const uint8_t x264_luma2chroma_pixel[4][7] =
+{
+    { 0 },
+    { PIXEL_8x8,   PIXEL_8x4,  PIXEL_4x8,  PIXEL_4x4, PIXEL_4x2, PIXEL_2x4, PIXEL_2x2 }, /* 4:2:0 */
+    { PIXEL_8x16,  PIXEL_8x8,  PIXEL_4x16, PIXEL_4x8, PIXEL_4x4, PIXEL_2x8, PIXEL_2x4 }, /* 4:2:2 */
+    { PIXEL_16x16, PIXEL_16x8, PIXEL_8x16, PIXEL_8x8, PIXEL_8x4, PIXEL_4x8, PIXEL_4x4 }, /* 4:4:4 */
+};
+
 typedef struct
 {
-    x264_pixel_cmp_t  sad[7];
-    x264_pixel_cmp_t  ssd[7];
-    x264_pixel_cmp_t satd[7];
+    x264_pixel_cmp_t  sad[8];
+    x264_pixel_cmp_t  ssd[8];
+    x264_pixel_cmp_t satd[8];
     x264_pixel_cmp_t ssim[7];
     x264_pixel_cmp_t sa8d[4];
-    x264_pixel_cmp_t mbcmp[7]; /* either satd or sad for subpel refine and mode decision */
-    x264_pixel_cmp_t mbcmp_unaligned[7]; /* unaligned mbcmp for subpel */
-    x264_pixel_cmp_t fpelcmp[7]; /* either satd or sad for fullpel motion search */
+    x264_pixel_cmp_t mbcmp[8]; /* either satd or sad for subpel refine and mode decision */
+    x264_pixel_cmp_t mbcmp_unaligned[8]; /* unaligned mbcmp for subpel */
+    x264_pixel_cmp_t fpelcmp[8]; /* either satd or sad for fullpel motion search */
     x264_pixel_cmp_x3_t fpelcmp_x3[7];
     x264_pixel_cmp_x4_t fpelcmp_x4[7];
-    x264_pixel_cmp_t sad_aligned[7]; /* Aligned SAD for mbcmp */
+    x264_pixel_cmp_t sad_aligned[8]; /* Aligned SAD for mbcmp */
     int (*vsad)( pixel *, int, int );
-    int (*var2_8x8)( pixel *, int, pixel *, int, int * );
 
     uint64_t (*var[4])( pixel *pix, int stride );
+    int (*var2[4])( pixel *pix1, int stride1,
+                    pixel *pix2, int stride2, int *ssd );
     uint64_t (*hadamard_ac[4])( pixel *pix, int stride );
 
     void (*ssd_nv12_core)( pixel *pixuv1, int stride1,
@@ -106,20 +113,30 @@ typedef struct
     int (*ads[7])( int enc_dc[4], uint16_t *sums, int delta,
                    uint16_t *cost_mvx, int16_t *mvs, int width, int thresh );
 
-    /* calculate satd or sad of V, H, and DC modes.
-     * may be NULL, in which case just use pred+satd instead. */
-    void (*intra_mbcmp_x3_16x16)( pixel *fenc, pixel *fdec  , int res[3] );
-    void (*intra_satd_x3_16x16) ( pixel *fenc, pixel *fdec  , int res[3] );
-    void (*intra_sad_x3_16x16)  ( pixel *fenc, pixel *fdec  , int res[3] );
-    void (*intra_mbcmp_x3_8x8c) ( pixel *fenc, pixel *fdec  , int res[3] );
-    void (*intra_satd_x3_8x8c)  ( pixel *fenc, pixel *fdec  , int res[3] );
-    void (*intra_sad_x3_8x8c)   ( pixel *fenc, pixel *fdec  , int res[3] );
-    void (*intra_mbcmp_x3_4x4)  ( pixel *fenc, pixel *fdec  , int res[3] );
-    void (*intra_satd_x3_4x4)   ( pixel *fenc, pixel *fdec  , int res[3] );
-    void (*intra_sad_x3_4x4)    ( pixel *fenc, pixel *fdec  , int res[3] );
+    /* calculate satd or sad of V, H, and DC modes. */
+    void (*intra_mbcmp_x3_16x16)( pixel *fenc, pixel *fdec, int res[3] );
+    void (*intra_satd_x3_16x16) ( pixel *fenc, pixel *fdec, int res[3] );
+    void (*intra_sad_x3_16x16)  ( pixel *fenc, pixel *fdec, int res[3] );
+    void (*intra_mbcmp_x3_4x4)  ( pixel *fenc, pixel *fdec, int res[3] );
+    void (*intra_satd_x3_4x4)   ( pixel *fenc, pixel *fdec, int res[3] );
+    void (*intra_sad_x3_4x4)    ( pixel *fenc, pixel *fdec, int res[3] );
+    void (*intra_mbcmp_x3_chroma)( pixel *fenc, pixel *fdec, int res[3] );
+    void (*intra_satd_x3_chroma) ( pixel *fenc, pixel *fdec, int res[3] );
+    void (*intra_sad_x3_chroma)  ( pixel *fenc, pixel *fdec, int res[3] );
+    void (*intra_mbcmp_x3_8x16c) ( pixel *fenc, pixel *fdec, int res[3] );
+    void (*intra_satd_x3_8x16c)  ( pixel *fenc, pixel *fdec, int res[3] );
+    void (*intra_sad_x3_8x16c)   ( pixel *fenc, pixel *fdec, int res[3] );
+    void (*intra_mbcmp_x3_8x8c)  ( pixel *fenc, pixel *fdec, int res[3] );
+    void (*intra_satd_x3_8x8c)   ( pixel *fenc, pixel *fdec, int res[3] );
+    void (*intra_sad_x3_8x8c)    ( pixel *fenc, pixel *fdec, int res[3] );
     void (*intra_mbcmp_x3_8x8)  ( pixel *fenc, pixel edge[36], int res[3] );
     void (*intra_sa8d_x3_8x8)   ( pixel *fenc, pixel edge[36], int res[3] );
     void (*intra_sad_x3_8x8)    ( pixel *fenc, pixel edge[36], int res[3] );
+    /* find minimum satd or sad of all modes.
+     * may be NULL, in which case just use pred+satd instead. */
+    int (*intra_mbcmp_x9_4x4)( pixel *fenc, pixel *fdec, uint16_t *bitcosts );
+    int (*intra_satd_x9_4x4) ( pixel *fenc, pixel *fdec, uint16_t *bitcosts );
+    int (*intra_sad_x9_4x4)  ( pixel *fenc, pixel *fdec, uint16_t *bitcosts );
 } x264_pixel_function_t;
 
 void x264_pixel_init( int cpu, x264_pixel_function_t *pixf );

@@ -40,6 +40,9 @@
 #define IS_DISPOSABLE(type) ( type == X264_TYPE_B )
 #define FIX8(f) ((int)(f*(1<<8)+.5))
 #define ALIGN(x,a) (((x)+((a)-1))&~((a)-1))
+#define CHROMA_FORMAT h->sps->i_chroma_format_idc
+#define CHROMA_SIZE(s) ((s)>>(h->mb.chroma_h_shift+h->mb.chroma_v_shift))
+#define FRAME_SIZE(s) ((s)+2*CHROMA_SIZE(s))
 
 #define CHECKED_MALLOC( var, size )\
 do {\
@@ -56,7 +59,7 @@ do {\
 #define X264_BFRAME_MAX 16
 #define X264_REF_MAX 16
 #define X264_THREAD_MAX 128
-#define X264_PCM_COST ((384<<CHROMA444)*BIT_DEPTH+16)
+#define X264_PCM_COST (FRAME_SIZE(256*BIT_DEPTH)+16)
 #define X264_LOOKAHEAD_MAX 250
 #define QP_BD_OFFSET (6*(BIT_DEPTH-8))
 #define QP_MAX_SPEC (51+QP_BD_OFFSET)
@@ -102,7 +105,7 @@ do {\
 #   define PARAM_INTERLACED 0
 #endif
 
-#define CHROMA444 (h->sps->i_chroma_format_idc == 3)
+#define CHROMA444 (CHROMA_FORMAT == CHROMA_444)
 
 /* Unions for type-punning.
  * Mn: load or store n bits, aligned, native-endian
@@ -565,7 +568,7 @@ struct x264_t
     struct
     {
         ALIGNED_16( dctcoef luma16x16_dc[3][16] );
-        ALIGNED_16( dctcoef chroma_dc[2][4] );
+        ALIGNED_16( dctcoef chroma_dc[2][8] );
         // FIXME share memory?
         ALIGNED_16( dctcoef luma8x8[12][64] );
         ALIGNED_16( dctcoef luma4x4[16*3][16] );
@@ -577,6 +580,10 @@ struct x264_t
         int     i_mb_width;
         int     i_mb_height;
         int     i_mb_count;                 /* number of mbs in a frame */
+
+        /* Chroma subsampling */
+        int     chroma_h_shift;
+        int     chroma_v_shift;
 
         /* Strides */
         int     i_mb_stride;
@@ -882,6 +889,8 @@ struct x264_t
     ALIGNED_16( uint32_t nr_residual_sum_buf[2][4][64] );
     uint32_t nr_count_buf[2][4];
 
+    uint8_t luma2chroma_pixel[7]; /* Subsampled pixel size */
+
     /* Buffers that are allocated per-thread even in sliced threads. */
     void *scratch_buffer; /* for any temporary storage that doesn't want repeated malloc */
     pixel *intra_border_backup[5][3]; /* bottom pixels of the previous mb row, used for intra prediction after the framebuffer has been deblocked */
@@ -891,9 +900,11 @@ struct x264_t
 
     /* CPU functions dependents */
     x264_predict_t      predict_16x16[4+3];
-    x264_predict_t      predict_8x8c[4+3];
     x264_predict8x8_t   predict_8x8[9+3];
     x264_predict_t      predict_4x4[9+3];
+    x264_predict_t      predict_chroma[4+3];
+    x264_predict_t      predict_8x8c[4+3];
+    x264_predict_t      predict_8x16c[4+3];
     x264_predict_8x8_filter_t predict_8x8_filter;
 
     x264_pixel_function_t pixf;

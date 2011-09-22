@@ -35,8 +35,15 @@ enum profile_e
     PROFILE_HIGH    = 100,
     PROFILE_HIGH10  = 110,
     PROFILE_HIGH422 = 122,
-    PROFILE_HIGH444 = 144,
     PROFILE_HIGH444_PREDICTIVE = 244,
+};
+
+enum chroma_format_e
+{
+    CHROMA_400 = 0,
+    CHROMA_420 = 1,
+    CHROMA_422 = 2,
+    CHROMA_444 = 3,
 };
 
 enum cqm4_e

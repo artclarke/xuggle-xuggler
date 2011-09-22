@@ -364,8 +364,8 @@ cglobal pixel_sad_x%1_%2x%3, 6,7,XMM_REGS
     SAD_X_2xNP %1, STRIDE, 1, %2/(mmsize/2)-1
 .loop:
     SAD_X%1_INC_P
-    dec     r6
     SAD_X_2xNP %1, STRIDE, 0, %2/(mmsize/2)
+    dec     r6
     jg .loop
 %if %1 == 4
     mov     r6, r6m

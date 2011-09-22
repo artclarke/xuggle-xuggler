@@ -104,6 +104,8 @@ typedef struct
     void (*add8x8_idct)  ( pixel *p_dst, dctcoef dct[4][16] );
     void (*add8x8_idct_dc) ( pixel *p_dst, dctcoef dct[4] );
 
+    void (*sub8x16_dct_dc)( dctcoef dct[8], pixel *pix1, pixel *pix2 );
+
     void (*sub16x16_dct) ( dctcoef dct[16][16], pixel *pix1, pixel *pix2 );
     void (*add16x16_idct)( pixel *p_dst, dctcoef dct[16][16] );
     void (*add16x16_idct_dc) ( pixel *p_dst, dctcoef dct[16] );
@@ -116,6 +118,8 @@ typedef struct
 
     void (*dct4x4dc) ( dctcoef d[16] );
     void (*idct4x4dc)( dctcoef d[16] );
+
+    void (*dct2x4dc)( dctcoef dct[8], dctcoef dct4x4[8][16] );
 
 } x264_dct_function_t;
 

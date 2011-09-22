@@ -121,7 +121,7 @@ static const char * const muxer_names[] =
 
 static const char * const pulldown_names[] = { "none", "22", "32", "64", "double", "triple", "euro", 0 };
 static const char * const log_level_names[] = { "none", "error", "warning", "info", "debug", 0 };
-static const char * const output_csp_names[] = { "i420", "i444", "rgb", 0 };
+static const char * const output_csp_names[] = { "i420", "i422", "i444", "rgb", 0 };
 
 typedef struct
 {
@@ -756,6 +756,8 @@ static void help( x264_param_t *defaults, int longhelp )
     H2( "      --thread-input          Run Avisynth in its own thread\n" );
     H2( "      --sync-lookahead <integer> Number of buffer frames for threaded lookahead\n" );
     H2( "      --non-deterministic     Slightly improve quality of SMP, at the cost of repeatability\n" );
+    H2( "      --cpu-independent       Ensure exact reproducibility across different cpus,\n"
+        "                                  as opposed to letting them select different algorithms\n" );
     H2( "      --asm <integer>         Override CPU detection\n" );
     H2( "      --no-asm                Disable all CPU optimizations\n" );
     H2( "      --visualize             Show MB types overlayed on the encoded video\n" );
@@ -924,6 +926,7 @@ static struct option long_options[] =
     { "thread-input",      no_argument, NULL, OPT_THREAD_INPUT },
     { "sync-lookahead",    required_argument, NULL, 0 },
     { "non-deterministic", no_argument, NULL, 0 },
+    { "cpu-independent",   no_argument, NULL, 0 },
     { "psnr",              no_argument, NULL, 0 },
     { "ssim",              no_argument, NULL, 0 },
     { "quiet",             no_argument, NULL, OPT_QUIET },
@@ -1128,6 +1131,8 @@ static int init_vid_filters( char *sequence, hnd_t *handle, video_info_t *info, 
     int csp = info->csp & X264_CSP_MASK;
     if( output_csp == X264_CSP_I420 && (csp < X264_CSP_I420 || csp > X264_CSP_NV12) )
         param->i_csp = X264_CSP_I420;
+    else if( output_csp == X264_CSP_I422 && (csp < X264_CSP_I422 || csp > X264_CSP_NV16) )
+        param->i_csp = X264_CSP_I422;
     else if( output_csp == X264_CSP_I444 && (csp < X264_CSP_I444 || csp > X264_CSP_YV24) )
         param->i_csp = X264_CSP_I444;
     else if( output_csp == X264_CSP_RGB && (csp < X264_CSP_BGR || csp > X264_CSP_RGB) )
@@ -1352,7 +1357,8 @@ static int parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
             case OPT_OUTPUT_CSP:
                 FAIL_IF_ERROR( parse_enum_value( optarg, output_csp_names, &output_csp ), "Unknown output csp `%s'\n", optarg )
                 // correct the parsed value to the libx264 csp value
-                output_csp = !output_csp ? X264_CSP_I420 : (output_csp == 1 ? X264_CSP_I444 : X264_CSP_RGB);
+                static const uint8_t output_csp_fix[] = { X264_CSP_I420, X264_CSP_I422, X264_CSP_I444, X264_CSP_RGB };
+                param->i_csp = output_csp = output_csp_fix[output_csp];
                 break;
             default:
 generic_option:

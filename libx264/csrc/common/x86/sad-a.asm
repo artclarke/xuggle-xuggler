@@ -110,6 +110,7 @@ SAD 16,  8
 SAD  8, 16
 SAD  8,  8
 SAD  8,  4
+SAD  4, 16
 SAD  4,  8
 SAD  4,  4
 

@@ -46,15 +46,17 @@ static int depth_filter_csp_is_supported( int csp )
     return csp_mask == X264_CSP_I420 ||
            csp_mask == X264_CSP_I422 ||
            csp_mask == X264_CSP_I444 ||
-           csp_mask == X264_CSP_YV24 ||
            csp_mask == X264_CSP_YV12 ||
-           csp_mask == X264_CSP_NV12;
+           csp_mask == X264_CSP_YV16 ||
+           csp_mask == X264_CSP_YV24 ||
+           csp_mask == X264_CSP_NV12 ||
+           csp_mask == X264_CSP_NV16;
 }
 
 static int csp_num_interleaved( int csp, int plane )
 {
     int csp_mask = csp & X264_CSP_MASK;
-    return ( csp_mask == X264_CSP_NV12 && plane == 1 ) ? 2 : 1;
+    return ( (csp_mask == X264_CSP_NV12 || csp_mask == X264_CSP_NV16) && plane == 1 ) ? 2 : 1;
 }
 
 /* The dithering algorithm is based on Sierra-2-4A error diffusion. It has been

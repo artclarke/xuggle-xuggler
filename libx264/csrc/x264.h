@@ -41,7 +41,7 @@
 
 #include "x264_config.h"
 
-#define X264_BUILD 116
+#define X264_BUILD 118
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -181,12 +181,15 @@ static const char * const x264_nal_hrd_names[] = { "none", "vbr", "cbr", 0 };
 #define X264_CSP_I420           0x0001  /* yuv 4:2:0 planar */
 #define X264_CSP_YV12           0x0002  /* yvu 4:2:0 planar */
 #define X264_CSP_NV12           0x0003  /* yuv 4:2:0, with one y plane and one packed u+v */
-#define X264_CSP_I444           0x0004  /* yuv 4:4:4 planar */
-#define X264_CSP_YV24           0x0005  /* yvu 4:4:4 planar */
-#define X264_CSP_BGR            0x0006  /* packed bgr 24bits   */
-#define X264_CSP_BGRA           0x0007  /* packed bgr 32bits   */
-#define X264_CSP_RGB            0x0008  /* packed rgb 24bits   */
-#define X264_CSP_MAX            0x0009  /* end of list */
+#define X264_CSP_I422           0x0004  /* yuv 4:2:2 planar */
+#define X264_CSP_YV16           0x0005  /* yvu 4:2:2 planar */
+#define X264_CSP_NV16           0x0006  /* yuv 4:2:2, with one y plane and one packed u+v */
+#define X264_CSP_I444           0x0007  /* yuv 4:4:4 planar */
+#define X264_CSP_YV24           0x0008  /* yvu 4:4:4 planar */
+#define X264_CSP_BGR            0x0009  /* packed bgr 24bits   */
+#define X264_CSP_BGRA           0x000a  /* packed bgr 32bits   */
+#define X264_CSP_RGB            0x000b  /* packed rgb 24bits   */
+#define X264_CSP_MAX            0x000c  /* end of list */
 #define X264_CSP_VFLIP          0x1000  /* the csp is vertically flipped */
 #define X264_CSP_HIGH_DEPTH     0x2000  /* the csp has a depth of 16 bits per pixel component */
 
@@ -236,12 +239,13 @@ typedef struct x264_param_t
     int         i_threads;       /* encode multiple frames in parallel */
     int         b_sliced_threads;  /* Whether to use slice-based threading. */
     int         b_deterministic; /* whether to allow non-deterministic optimizations when threaded */
+    int         b_cpu_independent; /* force canonical behavior rather than cpu-dependent optimal algorithms */
     int         i_sync_lookahead; /* threaded lookahead buffer */
 
     /* Video Properties */
     int         i_width;
     int         i_height;
-    int         i_csp;  /* CSP of encoded bitstream, only i420 supported */
+    int         i_csp;         /* CSP of encoded bitstream */
     int         i_level_idc;
     int         i_frame_total; /* number of frames to encode if known, else 0 */
 
@@ -578,7 +582,7 @@ void    x264_param_apply_fastfirstpass( x264_param_t * );
 /* x264_param_apply_profile:
  *      Applies the restrictions of the given profile.
  *      Currently available profiles are, from most to least restrictive: */
-static const char * const x264_profile_names[] = { "baseline", "main", "high", "high10", 0 };
+static const char * const x264_profile_names[] = { "baseline", "main", "high", "high10", "high422", "high444", 0 };
 
 /*      (can be NULL, in which case the function will do nothing)
  *

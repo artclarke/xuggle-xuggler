@@ -97,8 +97,8 @@ cglobal cabac_encode_decision_asm, 0,7
     LOAD_GLOBAL t3d, cabac_renorm_shift, 0, t3
     shl   t4d, t3b
     shl   t6d, t3b
-    add   t3d, [t0+cb.queue]
     mov   [t0+cb.range], t4d
+    add   t3d, [t0+cb.queue]
     jge cabac_putbyte
 .update_queue_low:
     mov   [t0+cb.low], t6d

@@ -6,6 +6,7 @@
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
  *          Jason Garrett-Glaser <darkshikari@gmail.com>
+ *          Henrik Gramner <hengar-6@student.ltu.se>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -151,7 +152,7 @@ void x264_predict_16x16_p_c( pixel *src )
 
 
 /****************************************************************************
- * 8x8 prediction for intra chroma block
+ * 8x8 prediction for intra chroma block (4:2:0)
  ****************************************************************************/
 
 static void x264_predict_8x8c_dc_128_c( pixel *src )
@@ -285,6 +286,167 @@ void x264_predict_8x8c_p_c( pixel *src )
     int i00 = a -3*b -3*c + 16;
 
     for( int y = 0; y < 8; y++ )
+    {
+        int pix = i00;
+        for( int x = 0; x < 8; x++ )
+        {
+            src[x] = x264_clip_pixel( pix>>5 );
+            pix += b;
+        }
+        src += FDEC_STRIDE;
+        i00 += c;
+    }
+}
+
+/****************************************************************************
+ * 8x16 prediction for intra chroma block (4:2:2)
+ ****************************************************************************/
+
+static void x264_predict_8x16c_dc_128_c( pixel *src )
+{
+    for( int y = 0; y < 16; y++ )
+    {
+        MPIXEL_X4( src+0 ) = PIXEL_SPLAT_X4( 1 << (BIT_DEPTH-1) );
+        MPIXEL_X4( src+4 ) = PIXEL_SPLAT_X4( 1 << (BIT_DEPTH-1) );
+        src += FDEC_STRIDE;
+    }
+}
+static void x264_predict_8x16c_dc_left_c( pixel *src )
+{
+    for( int i = 0; i < 4; i++ )
+    {
+        int dc = 0;
+
+        for( int y = 0; y < 4; y++ )
+            dc += src[y*FDEC_STRIDE - 1];
+
+        pixel4 dcsplat = PIXEL_SPLAT_X4( (dc + 2) >> 2 );
+
+        for( int y = 0; y < 4; y++ )
+        {
+            MPIXEL_X4( src+0 ) = dcsplat;
+            MPIXEL_X4( src+4 ) = dcsplat;
+            src += FDEC_STRIDE;
+        }
+    }
+}
+static void x264_predict_8x16c_dc_top_c( pixel *src )
+{
+    int dc0 = 0, dc1 = 0;
+
+    for(int  x = 0; x < 4; x++ )
+    {
+        dc0 += src[x     - FDEC_STRIDE];
+        dc1 += src[x + 4 - FDEC_STRIDE];
+    }
+    pixel4 dc0splat = PIXEL_SPLAT_X4( ( dc0 + 2 ) >> 2 );
+    pixel4 dc1splat = PIXEL_SPLAT_X4( ( dc1 + 2 ) >> 2 );
+
+    for( int y = 0; y < 16; y++ )
+    {
+        MPIXEL_X4( src+0 ) = dc0splat;
+        MPIXEL_X4( src+4 ) = dc1splat;
+        src += FDEC_STRIDE;
+    }
+}
+void x264_predict_8x16c_dc_c( pixel *src )
+{
+    int s0 = 0, s1 = 0, s2 = 0, s3 = 0, s4 = 0, s5 = 0;
+
+    /*
+          s0 s1
+       s2
+       s3
+       s4
+       s5
+    */
+    for( int i = 0; i < 4; i++ )
+    {
+        s0 += src[i+0 - FDEC_STRIDE];
+        s1 += src[i+4 - FDEC_STRIDE];
+        s2 += src[-1 + (i+0)  * FDEC_STRIDE];
+        s3 += src[-1 + (i+4)  * FDEC_STRIDE];
+        s4 += src[-1 + (i+8)  * FDEC_STRIDE];
+        s5 += src[-1 + (i+12) * FDEC_STRIDE];
+    }
+    /*
+       dc0 dc1
+       dc2 dc3
+       dc4 dc5
+       dc6 dc7
+    */
+    pixel4 dc0 = PIXEL_SPLAT_X4( ( s0 + s2 + 4 ) >> 3 );
+    pixel4 dc1 = PIXEL_SPLAT_X4( ( s1 + 2 ) >> 2 );
+    pixel4 dc2 = PIXEL_SPLAT_X4( ( s3 + 2 ) >> 2 );
+    pixel4 dc3 = PIXEL_SPLAT_X4( ( s1 + s3 + 4 ) >> 3 );
+    pixel4 dc4 = PIXEL_SPLAT_X4( ( s4 + 2 ) >> 2 );
+    pixel4 dc5 = PIXEL_SPLAT_X4( ( s1 + s4 + 4 ) >> 3 );
+    pixel4 dc6 = PIXEL_SPLAT_X4( ( s5 + 2 ) >> 2 );
+    pixel4 dc7 = PIXEL_SPLAT_X4( ( s1 + s5 + 4 ) >> 3 );
+
+    for( int y = 0; y < 4; y++ )
+    {
+        MPIXEL_X4( src+0 ) = dc0;
+        MPIXEL_X4( src+4 ) = dc1;
+        src += FDEC_STRIDE;
+    }
+    for( int y = 0; y < 4; y++ )
+    {
+        MPIXEL_X4( src+0 ) = dc2;
+        MPIXEL_X4( src+4 ) = dc3;
+        src += FDEC_STRIDE;
+    }
+    for( int y = 0; y < 4; y++ )
+    {
+        MPIXEL_X4( src+0 ) = dc4;
+        MPIXEL_X4( src+4 ) = dc5;
+        src += FDEC_STRIDE;
+    }
+    for( int y = 0; y < 4; y++ )
+    {
+        MPIXEL_X4( src+0 ) = dc6;
+        MPIXEL_X4( src+4 ) = dc7;
+        src += FDEC_STRIDE;
+    }
+}
+void x264_predict_8x16c_h_c( pixel *src )
+{
+    for( int i = 0; i < 16; i++ )
+    {
+        pixel4 v = PIXEL_SPLAT_X4( src[-1] );
+        MPIXEL_X4( src+0 ) = v;
+        MPIXEL_X4( src+4 ) = v;
+        src += FDEC_STRIDE;
+    }
+}
+void x264_predict_8x16c_v_c( pixel *src )
+{
+    pixel4 v0 = MPIXEL_X4( src+0-FDEC_STRIDE );
+    pixel4 v1 = MPIXEL_X4( src+4-FDEC_STRIDE );
+
+    for( int i = 0; i < 16; i++ )
+    {
+        MPIXEL_X4( src+0 ) = v0;
+        MPIXEL_X4( src+4 ) = v1;
+        src += FDEC_STRIDE;
+    }
+}
+void x264_predict_8x16c_p_c( pixel *src )
+{
+    int H = 0;
+    int V = 0;
+
+    for( int i = 0; i < 4; i++ )
+        H += ( i + 1 ) * ( src[4 + i - FDEC_STRIDE] - src[2 - i - FDEC_STRIDE] );
+    for( int i = 0; i < 8; i++ )
+        V += ( i + 1 ) * ( src[-1 + (i+8)*FDEC_STRIDE] - src[-1 + (6-i)*FDEC_STRIDE] );
+
+    int a = 16 * ( src[-1 + 15*FDEC_STRIDE] + src[7 - FDEC_STRIDE] );
+    int b = ( 17 * H + 16 ) >> 5;
+    int c = ( 5 * V + 32 ) >> 6;
+    int i00 = a -3*b -7*c + 16;
+
+    for( int y = 0; y < 16; y++ )
     {
         int pix = i00;
         for( int x = 0; x < 8; x++ )
@@ -759,6 +921,21 @@ void x264_predict_8x8c_init( int cpu, x264_predict_t pf[7] )
 
 #if HAVE_ARMV6
     x264_predict_8x8c_init_arm( cpu, pf );
+#endif
+}
+
+void x264_predict_8x16c_init( int cpu, x264_predict_t pf[7] )
+{
+    pf[I_PRED_CHROMA_V ]     = x264_predict_8x16c_v_c;
+    pf[I_PRED_CHROMA_H ]     = x264_predict_8x16c_h_c;
+    pf[I_PRED_CHROMA_DC]     = x264_predict_8x16c_dc_c;
+    pf[I_PRED_CHROMA_P ]     = x264_predict_8x16c_p_c;
+    pf[I_PRED_CHROMA_DC_LEFT]= x264_predict_8x16c_dc_left_c;
+    pf[I_PRED_CHROMA_DC_TOP ]= x264_predict_8x16c_dc_top_c;
+    pf[I_PRED_CHROMA_DC_128 ]= x264_predict_8x16c_dc_128_c;
+
+#if HAVE_MMX
+    x264_predict_8x16c_init_mmx( cpu, pf );
 #endif
 }
 

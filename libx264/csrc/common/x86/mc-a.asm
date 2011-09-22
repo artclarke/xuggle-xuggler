@@ -80,10 +80,10 @@ cextern pd_32
 %endif
 
 %macro AVG_END 0
-    sub eax, 2
     lea  t4, [t4+t5*2*SIZEOF_PIXEL]
     lea  t2, [t2+t3*2*SIZEOF_PIXEL]
     lea  t0, [t0+t1*2*SIZEOF_PIXEL]
+    sub eax, 2
     jg .height_loop
     REP_RET
 %endmacro
@@ -617,6 +617,7 @@ cglobal pixel_avg_w%1
 
 INIT_MMX mmx2
 AVG_FUNC 4, movq, movq
+AVGH 4, 16
 AVGH 4, 8
 AVGH 4, 4
 AVGH 4, 2
@@ -632,6 +633,7 @@ AVGH 16,  8
 
 INIT_XMM sse2
 AVG_FUNC 4, movq, movq
+AVGH  4, 16
 AVGH  4, 8
 AVGH  4, 4
 AVGH  4, 2
@@ -649,6 +651,7 @@ AVGH  16,  8
 
 INIT_MMX mmx2
 AVG_FUNC 4, movd, movd
+AVGH 4, 16
 AVGH 4, 8
 AVGH 4, 4
 AVGH 4, 2
@@ -676,6 +679,7 @@ AVGH  8, 16
 AVGH  8,  8
 AVGH  8,  4
 INIT_MMX ssse3
+AVGH  4, 16
 AVGH  4,  8
 AVGH  4,  4
 AVGH  4,  2
@@ -712,9 +716,9 @@ cglobal pixel_avg2_w%1, 6,7,4
 %endif
     mova   [r0], m0
     mova   [r0+r1*2], m1
-    sub    r5d, 2
     lea     r2, [r2+r3*4]
     lea     r0, [r0+r1*4]
+    sub    r5d, 2
     jg .height_loop
     REP_RET
 %endmacro
@@ -747,9 +751,9 @@ cglobal pixel_avg2_w%1, 6,7,8
     %3     [r0+mmsize], m1
     mova   [r0+r1*2], m2
     %3     [r0+r1*2+mmsize], m3
-    sub    r5d, 2
     lea     r2, [r2+r3*4]
     lea     r0, [r0+r1*4]
+    sub    r5d, 2
     jg .height_loop
     REP_RET
 %endmacro
@@ -785,9 +789,9 @@ cglobal pixel_avg2_w10_mmx2, 6,7
     mova   [r0+r1*2+ 0], m3
     mova   [r0+r1*2+ 8], m4
     movh   [r0+r1*2+16], m5
-    sub    r5d, 2
     lea     r2, [r2+r3*2*2]
     lea     r0, [r0+r1*2*2]
+    sub    r5d, 2
     jg .height_loop
     REP_RET
 
@@ -819,9 +823,9 @@ cglobal pixel_avg2_w16_mmx2, 6,7
     mova   [r0+r1*2+ 8], m5
     mova   [r0+r1*2+16], m6
     mova   [r0+r1*2+24], m7
-    sub    r5d, 2
     lea     r2, [r2+r3*2*2]
     lea     r0, [r0+r1*2*2]
+    sub    r5d, 2
     jg .height_loop
     REP_RET
 
@@ -843,9 +847,9 @@ cglobal pixel_avg2_w18_mmx2, 6,7
     mova   [r0+16], m2
     mova   [r0+24], m3
     movh   [r0+32], m4
-    sub    r5d, 1
     lea     r2, [r2+r3*2]
     lea     r0, [r0+r1*2]
+    dec    r5d
     jg .height_loop
     REP_RET
 
@@ -865,9 +869,9 @@ cglobal pixel_avg2_w18_sse2, 6,7,6
     mova   [r0+ 0], m0
     mova   [r0+16], m1
     movh   [r0+32], m2
-    sub    r5d, 1
     lea     r2, [r2+r3*2]
     lea     r0, [r0+r1*2]
+    dec    r5d
     jg .height_loop
     REP_RET
 %endif ; HIGH_BIT_DEPTH

@@ -670,10 +670,10 @@ DEQUANT_DC w, pmullw
 %endif
 
 ;-----------------------------------------------------------------------------
-; x264_optimize_chroma_dc( dctcoef dct[4], int dequant_mf )
+; x264_optimize_chroma_2x2_dc( dctcoef dct[4], int dequant_mf )
 ;-----------------------------------------------------------------------------
 
-%macro OPTIMIZE_CHROMA_DC 0
+%macro OPTIMIZE_CHROMA_2x2_DC 0
 %assign %%regs 5
 %if cpuflag(sse4)
     %assign %%regs %%regs-1
@@ -681,7 +681,7 @@ DEQUANT_DC w, pmullw
 %ifndef ARCH_X86_64
     %assign %%regs %%regs+1      ; t0-t4 are volatile on x86-64
 %endif
-cglobal optimize_chroma_dc, 0,%%regs,7
+cglobal optimize_chroma_2x2_dc, 0,%%regs,7
     movifnidn t0, r0mp
     movd      m2, r1m
     movq      m1, [t0]
@@ -775,13 +775,13 @@ cglobal optimize_chroma_dc, 0,%%regs,7
 
 %ifndef HIGH_BIT_DEPTH
 INIT_XMM sse2
-OPTIMIZE_CHROMA_DC
+OPTIMIZE_CHROMA_2x2_DC
 INIT_XMM ssse3
-OPTIMIZE_CHROMA_DC
+OPTIMIZE_CHROMA_2x2_DC
 INIT_XMM sse4
-OPTIMIZE_CHROMA_DC
+OPTIMIZE_CHROMA_2x2_DC
 INIT_XMM avx
-OPTIMIZE_CHROMA_DC
+OPTIMIZE_CHROMA_2x2_DC
 %endif ; !HIGH_BIT_DEPTH
 
 %ifdef HIGH_BIT_DEPTH
@@ -792,27 +792,27 @@ OPTIMIZE_CHROMA_DC
 cglobal denoise_dct, 4,4,8
     pxor      m6, m6
 .loop:
-    sub       r3, mmsize/2
-    mova      m2, [r0+r3*4+0*mmsize]
-    mova      m3, [r0+r3*4+1*mmsize]
+    mova      m2, [r0+r3*4-2*mmsize]
+    mova      m3, [r0+r3*4-1*mmsize]
     ABSD      m0, m2
     ABSD      m1, m3
     mova      m4, m0
     mova      m5, m1
-    psubd     m0, [r2+r3*4+0*mmsize]
-    psubd     m1, [r2+r3*4+1*mmsize]
+    psubd     m0, [r2+r3*4-2*mmsize]
+    psubd     m1, [r2+r3*4-1*mmsize]
     pcmpgtd   m7, m0, m6
     pand      m0, m7
     pcmpgtd   m7, m1, m6
     pand      m1, m7
     PSIGND    m0, m2
     PSIGND    m1, m3
-    mova      [r0+r3*4+0*mmsize], m0
-    mova      [r0+r3*4+1*mmsize], m1
-    paddd     m4, [r1+r3*4+0*mmsize]
-    paddd     m5, [r1+r3*4+1*mmsize]
-    mova      [r1+r3*4+0*mmsize], m4
-    mova      [r1+r3*4+1*mmsize], m5
+    mova      [r0+r3*4-2*mmsize], m0
+    mova      [r0+r3*4-1*mmsize], m1
+    paddd     m4, [r1+r3*4-2*mmsize]
+    paddd     m5, [r1+r3*4-1*mmsize]
+    mova      [r1+r3*4-2*mmsize], m4
+    mova      [r1+r3*4-1*mmsize], m5
+    sub       r3, mmsize/2
     jg .loop
     REP_RET
 %endmacro
@@ -837,29 +837,29 @@ DENOISE_DCT
 cglobal denoise_dct, 4,4,7
     pxor      m6, m6
 .loop:
-    sub       r3, mmsize
-    mova      m2, [r0+r3*2+0*mmsize]
-    mova      m3, [r0+r3*2+1*mmsize]
+    mova      m2, [r0+r3*2-2*mmsize]
+    mova      m3, [r0+r3*2-1*mmsize]
     ABSW      m0, m2, sign
     ABSW      m1, m3, sign
-    psubusw   m4, m0, [r2+r3*2+0*mmsize]
-    psubusw   m5, m1, [r2+r3*2+1*mmsize]
+    psubusw   m4, m0, [r2+r3*2-2*mmsize]
+    psubusw   m5, m1, [r2+r3*2-1*mmsize]
     PSIGNW    m4, m2
     PSIGNW    m5, m3
-    mova      [r0+r3*2+0*mmsize], m4
-    mova      [r0+r3*2+1*mmsize], m5
+    mova      [r0+r3*2-2*mmsize], m4
+    mova      [r0+r3*2-1*mmsize], m5
     punpcklwd m2, m0, m6
     punpcklwd m3, m1, m6
     punpckhwd m0, m6
     punpckhwd m1, m6
-    paddd     m2, [r1+r3*4+0*mmsize]
-    paddd     m0, [r1+r3*4+1*mmsize]
-    paddd     m3, [r1+r3*4+2*mmsize]
-    paddd     m1, [r1+r3*4+3*mmsize]
-    mova      [r1+r3*4+0*mmsize], m2
-    mova      [r1+r3*4+1*mmsize], m0
-    mova      [r1+r3*4+2*mmsize], m3
-    mova      [r1+r3*4+3*mmsize], m1
+    paddd     m2, [r1+r3*4-4*mmsize]
+    paddd     m0, [r1+r3*4-3*mmsize]
+    paddd     m3, [r1+r3*4-2*mmsize]
+    paddd     m1, [r1+r3*4-1*mmsize]
+    mova      [r1+r3*4-4*mmsize], m2
+    mova      [r1+r3*4-3*mmsize], m0
+    mova      [r1+r3*4-2*mmsize], m3
+    mova      [r1+r3*4-1*mmsize], m1
+    sub       r3, mmsize
     jg .loop
     REP_RET
 %endmacro
@@ -1038,7 +1038,7 @@ cglobal decimate_score64, 1,4
     or    r1, r2
     xor   r1, -1
     je   .ret
-    or    eax, r3d
+    add   eax, r3d
     jne  .ret9
 .loop:
     bsf   rcx, r1
@@ -1074,7 +1074,7 @@ cglobal decimate_score64, 1,5
     je   .tryret
     xor   r4, -1
 .cont:
-    or    r0, r2
+    add   r0, r2
     jne  .ret9      ;r0 is zero at this point, so we don't need to zero it
 .loop:
     bsf   ecx, r3

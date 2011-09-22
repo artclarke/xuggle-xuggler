@@ -58,19 +58,46 @@ pb_pppm:   times 4 db 1,1,1,-1
 deinterleave_shuf: db 0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15
 intrax3_shuf: db 7,6,7,6,5,4,5,4,3,2,3,2,1,0,1,0
 
+intrax9a_ddlr1: db  6, 7, 8, 9, 7, 8, 9,10, 4, 5, 6, 7, 3, 4, 5, 6
+intrax9a_ddlr2: db  8, 9,10,11, 9,10,11,12, 2, 3, 4, 5, 1, 2, 3, 4
+intrax9a_hdu1:  db 15, 4, 5, 6,14, 3,15, 4,14, 2,13, 1,13, 1,12, 0
+intrax9a_hdu2:  db 13, 2,14, 3,12, 1,13, 2,12, 0,11,11,11,11,11,11
+intrax9a_vrl1:  db 10,11,12,13, 3, 4, 5, 6,11,12,13,14, 5, 6, 7, 8
+intrax9a_vrl2:  db  2,10,11,12, 1, 3, 4, 5,12,13,14,15, 6, 7, 8, 9
+intrax9a_vh1:   db  6, 7, 8, 9, 6, 7, 8, 9, 4, 4, 4, 4, 3, 3, 3, 3
+intrax9a_vh2:   db  6, 7, 8, 9, 6, 7, 8, 9, 2, 2, 2, 2, 1, 1, 1, 1
+intrax9a_dc:    db  1, 2, 3, 4, 6, 7, 8, 9,-1,-1,-1,-1,-1,-1,-1,-1
+pw_s01234567:   dw 0x8000,0x8001,0x8002,0x8003,0x8004,0x8005,0x8006,0x8007
+pw_s01234657:   dw 0x8000,0x8001,0x8002,0x8003,0x8004,0x8006,0x8005,0x8007
+intrax9_edge:   db  0, 0, 1, 2, 3, 7, 8, 9,10,11,12,13,14,15,15,15
+
+intrax9b_ddlr1: db  6, 7, 8, 9, 4, 5, 6, 7, 7, 8, 9,10, 3, 4, 5, 6
+intrax9b_ddlr2: db  8, 9,10,11, 2, 3, 4, 5, 9,10,11,12, 1, 2, 3, 4
+intrax9b_hdu1:  db 15, 4, 5, 6,14, 2,13, 1,14, 3,15, 4,13, 1,12, 0
+intrax9b_hdu2:  db 13, 2,14, 3,12, 0,11,11,12, 1,13, 2,11,11,11,11
+intrax9b_vrl1:  db 10,11,12,13,11,12,13,14, 3, 4, 5, 6, 5, 6, 7, 8
+intrax9b_vrl2:  db  2,10,11,12,12,13,14,15, 1, 3, 4, 5, 6, 7, 8, 9
+intrax9b_vh1:   db  6, 7, 8, 9, 6, 7, 8, 9, 4, 3, 2, 1, 4, 3, 2, 1
+intrax9b_v1:    db  0, 1,-1,-1,-1,-1,-1,-1, 4, 5,-1,-1,-1,-1,-1,-1
+intrax9b_v2:    db  2, 3,-1,-1,-1,-1,-1,-1, 6, 7,-1,-1,-1,-1,-1,-1
+
 sw_f0:     dq 0xfff0, 0
+sq_0f:     dq 0xffffffff, 0
 pd_f0:     times 4 dd 0xffff0000
-sq_0f:     times 1 dq 0xffffffff
 
 SECTION .text
 
+cextern pb_0
+cextern pb_1
 cextern pw_1
 cextern pw_8
+cextern pw_16
 cextern pw_64
 cextern pw_00ff
 cextern pw_ppppmmmm
 cextern pw_ppmmppmm
 cextern pw_pmpmpmpm
+cextern pw_pmmpzzzz
 cextern hsub_mul
 
 ;=============================================================================
@@ -96,15 +123,15 @@ cglobal pixel_ssd_%1x%2, 4,5,6
     %define offset mmsize
     %define num_rows 1
 %endif
+    lea     r0, [r0+r1*2*num_rows]
     psubw   m1, [r2]
     psubw   m3, [r2+offset]
+    lea     r2, [r2+r3*2*num_rows]
     pmaddwd m1, m1
     pmaddwd m3, m3
-    dec     r4
-    lea     r0, [r0+r1*2*num_rows]
-    lea     r2, [r2+r3*2*num_rows]
     paddd   m0, m1
     paddd   m0, m3
+    dec     r4
     jg .loop
     HADDD   m0, m5
     movd   eax, m0
@@ -131,7 +158,6 @@ cglobal pixel_ssd_%1x%2, 4,5
     psubw   m7, m2
     pmaddwd m3, m3
     pmaddwd m5, m5
-    dec     r4
     lea     r0, [r0+r1*2]
     lea     r2, [r2+r3*2]
     pmaddwd m7, m7
@@ -139,6 +165,7 @@ cglobal pixel_ssd_%1x%2, 4,5
     paddd   m5, m7
     paddd   m0, m1
     paddd   m0, m5
+    dec     r4
     jg .loop
     HADDD   m0, m7
     movd   eax, m0
@@ -357,6 +384,7 @@ SSD  8, 16
 SSD  4,  4
 SSD  8,  4
 SSD  4,  8
+SSD  4, 16
 INIT_XMM sse2slow
 SSD 16, 16
 SSD  8,  8
@@ -388,6 +416,7 @@ SSD  8,  4
 INIT_MMX ssse3
 SSD  4,  4
 SSD  4,  8
+SSD  4, 16
 %assign function_align 16
 %endif ; !HIGH_BIT_DEPTH
 
@@ -511,12 +540,12 @@ cglobal pixel_ssd_nv12_core, 6,7
     psubusb m1, [r0+r6]
     por     m0, m1
     psrlw   m2, m0, 8
-    add     r6, mmsize
     pand    m0, m5
     pmaddwd m2, m2
     pmaddwd m0, m0
     paddd   m3, m0
     paddd   m4, m2
+    add     r6, mmsize
     jl .loopx
     add     r0, r1
     add     r2, r3
@@ -617,8 +646,8 @@ SSD_NV12
     punpcklbw m3, m7
     punpckhbw m4, m7
 %endif ; !HIGH_BIT_DEPTH
-    dec r2d
     VAR_CORE
+    dec r2d
     jg .loop
 %endmacro
 
@@ -631,6 +660,12 @@ cglobal pixel_var_16x16_mmx2, 2,3
     VAR_START 0
     VAR_2ROW 8*SIZEOF_PIXEL, 16
     VAR_END 16, 16
+
+cglobal pixel_var_8x16_mmx2, 2,3
+    FIX_STRIDES r1
+    VAR_START 0
+    VAR_2ROW r1, 8
+    VAR_END 8, 16
 
 cglobal pixel_var_8x8_mmx2, 2,3
     FIX_STRIDES r1
@@ -699,6 +734,22 @@ cglobal pixel_var_8x8, 2,4,8
     dec r2d
     jg .loop
     VAR_END 8, 8
+
+cglobal pixel_var_8x16, 2,4,8
+    VAR_START 1
+    mov      r2d, 4
+    lea       r3, [r1*3]
+.loop:
+    movh      m0, [r0]
+    movh      m3, [r0+r1]
+    movhps    m0, [r0+r1*2]
+    movhps    m3, [r0+r3]
+    DEINTB    1, 0, 4, 3, 7
+    lea       r0, [r0+r1*4]
+    VAR_CORE
+    dec r2d
+    jg .loop
+    VAR_END 8, 16
 %endmacro ; VAR
 
 INIT_XMM sse2
@@ -838,8 +889,6 @@ cglobal pixel_var2_8x8_ssse3, 5,6,8
 ;=============================================================================
 ; SATD
 ;=============================================================================
-
-%define TRANS TRANS_SSE2
 
 %macro JDUP 2
 %if cpuflag(sse4)
@@ -1765,7 +1814,7 @@ cglobal hadamard_load
     ABSW        m0, m0, m1 ; 4x1 sum
 %endmacro
 
-%macro INTRA_SATDS_MMX 0
+%macro INTRA_X3_MMX 0
 ;-----------------------------------------------------------------------------
 ; void intra_satd_x3_4x4( uint8_t *fenc, uint8_t *fdec, int *res )
 ;-----------------------------------------------------------------------------
@@ -1785,8 +1834,7 @@ cglobal intra_satd_x3_4x4, 3,3
     SCALAR_HADAMARD left, 0, m4, m5
     SCALAR_HADAMARD top,  0, m6, m5, m7
     paddw       m6, m4
-    psrlw       m6, 1
-    paddw       m6, [pw_8]
+    pavgw       m6, [pw_16]
     pand        m6, [sw_f0] ; dc
 
     SUM3x4
@@ -1968,7 +2016,413 @@ cglobal intra_satd_x3_8x8c, 0,6
     movd        [r2+8], m2 ; i8x8c_v satd
     ADD         rsp, 72
     RET
-%endmacro ; INTRA_SATDS_MMX
+%endmacro ; INTRA_X3_MMX
+
+
+
+%macro PRED4x4_LOWPASS 5
+    mova        %5, %2
+    pavgb       %2, %3
+    pxor        %3, %5
+    pand        %3, [pb_1]
+    psubusb     %2, %3
+    pavgb       %1, %4, %2
+%endmacro
+
+%macro INTRA_X9_PRED 2
+%if cpuflag(sse4)
+    movu       m1, [r1-1*FDEC_STRIDE-8]
+    pinsrb     m1, [r1+3*FDEC_STRIDE-1], 0
+    pinsrb     m1, [r1+2*FDEC_STRIDE-1], 1
+    pinsrb     m1, [r1+1*FDEC_STRIDE-1], 2
+    pinsrb     m1, [r1+0*FDEC_STRIDE-1], 3
+%else
+    movd      mm0, [r1+3*FDEC_STRIDE-4]
+    punpcklbw mm0, [r1+2*FDEC_STRIDE-4]
+    movd      mm1, [r1+1*FDEC_STRIDE-4]
+    punpcklbw mm1, [r1+0*FDEC_STRIDE-4]
+    punpckhwd mm0, mm1
+    psrlq     mm0, 32
+    movq2dq    m0, mm0
+    movu       m1, [r1-1*FDEC_STRIDE-8]
+    movss      m1, m0                  ; l3 l2 l1 l0 __ __ __ lt t0 t1 t2 t3 t4 t5 t6 t7
+%endif ; cpuflag
+    pshufb     m1, [intrax9_edge]      ; l3 l3 l2 l1 l0 lt t0 t1 t2 t3 t4 t5 t6 t7 t7 __
+    psrldq     m0, m1, 1               ; l3 l2 l1 l0 lt t0 t1 t2 t3 t4 t5 t6 t7 t7 __ __
+    psrldq     m2, m1, 2               ; l2 l1 l0 lt t0 t1 t2 t3 t4 t5 t6 t7 t7 __ __ __
+    pavgb      m5, m0, m1              ; Gl3 Gl2 Gl1 Gl0 Glt Gt0 Gt1 Gt2 Gt3 Gt4 Gt5  __  __ __ __ __
+    mova       %2, m1
+    PRED4x4_LOWPASS m0, m1, m2, m0, m4 ; Fl3 Fl2 Fl1 Fl0 Flt Ft0 Ft1 Ft2 Ft3 Ft4 Ft5 Ft6 Ft7 __ __ __
+    ; ddl               ddr
+    ; Ft1 Ft2 Ft3 Ft4   Flt Ft0 Ft1 Ft2
+    ; Ft2 Ft3 Ft4 Ft5   Fl0 Flt Ft0 Ft1
+    ; Ft3 Ft4 Ft5 Ft6   Fl1 Fl0 Flt Ft0
+    ; Ft4 Ft5 Ft6 Ft7   Fl2 Fl1 Fl0 Flt
+    pshufb     m2, m0, [%1_ddlr1] ; a: ddl row0, ddl row1, ddr row0, ddr row1 / b: ddl row0, ddr row0, ddl row1, ddr row1
+    pshufb     m3, m0, [%1_ddlr2] ; rows 2,3
+    ; hd                hu
+    ; Glt Flt Ft0 Ft1   Gl0 Fl1 Gl1 Fl2
+    ; Gl0 Fl0 Glt Flt   Gl1 Fl2 Gl2 Fl3
+    ; Gl1 Fl1 Gl0 Fl0   Gl2 Fl3 Gl3 Gl3
+    ; Gl2 Fl2 Gl1 Fl1   Gl3 Gl3 Gl3 Gl3
+    pslldq     m0, 5                   ; ___ ___ ___ ___ ___ Fl3 Fl2 Fl1 Fl0 Flt Ft0 Ft1 Ft2 Ft3 Ft4 Ft5
+    palignr    m7, m5, m0, 5           ; Fl3 Fl2 Fl1 Fl0 Flt Ft0 Ft1 Ft2 Ft3 Ft4 Ft5 Gl3 Gl2 Gl1 Gl0 Glt
+    pshufb     m6, m7, [%1_hdu1]
+    pshufb     m7, m7, [%1_hdu2]
+    ; vr                vl
+    ; Gt0 Gt1 Gt2 Gt3   Gt1 Gt2 Gt3 Gt4
+    ; Flt Ft0 Ft1 Ft2   Ft1 Ft2 Ft3 Ft4
+    ; Fl0 Gt0 Gt1 Gt2   Gt2 Gt3 Gt4 Gt5
+    ; Fl1 Flt Ft0 Ft1   Ft2 Ft3 Ft4 Ft5
+    psrldq     m5, 5                   ; Gt0 Gt1 Gt2 Gt3 Gt4 Gt5 ...
+    palignr    m5, m0, 6               ; ___ Fl1 Fl0 Flt Ft0 Ft1 Ft2 Ft3 Ft4 Ft5 Gt0 Gt1 Gt2 Gt3 Gt4 Gt5
+    pshufb     m4, m5, [%1_vrl1]
+    pshufb     m5, m5, [%1_vrl2]
+%endmacro ; INTRA_X9_PRED
+
+%macro INTRA_X9_VHDC 5 ; edge, fenc01, fenc23, tmp, tmp
+    pshufb    m%1, [intrax9b_vh1] ; t0 t1 t2 t3 t0 t1 t2 t3 l0 l1 l2 l3 l0 l1 l2 l3
+    pmaddubsw m%1, [hmul_4p]
+    pshufhw    m0, m%1, q2301
+    pshuflw    m0, m0,  q2301
+    psignw    m%1, [pw_pmpmpmpm]
+    paddw      m0, m%1
+    psllw      m0, 2 ; hadamard(top), hadamard(left)
+    mova       m1, m0
+    mova       m2, m0
+    movhlps    m3, m0
+    pshufb     m1, [intrax9b_v1]
+    pshufb     m2, [intrax9b_v2]
+    paddw      m0, m3
+    psignw     m3, [pw_pmmpzzzz] ; FIXME could this be eliminated?
+    pavgw      m0, [pw_16]
+    pand       m0, [sw_f0] ; dc
+    ; This (as well as one of the steps in intra_satd_x9_4x4.satd_8x4) could be
+    ; changed from a wd transpose to a qdq, with appropriate rearrangement of inputs.
+    ; Which would be faster on conroe, but slower on penryn and sandybridge, and too invasive to ifdef.
+    HADAMARD 0, sumsub, %2, %3, %4, %5
+    HADAMARD 1, sumsub, %2, %3, %4, %5
+    psubw      m3, m%2
+    psubw      m0, m%2
+    psubw      m1, m%2
+    psubw      m2, m%3
+    pabsw     m%3, m%3
+    pabsw      m3, m3
+    pabsw      m0, m0
+    pabsw      m1, m1
+    pabsw      m2, m2
+    pavgw      m3, m%3
+    pavgw      m0, m%3
+    pavgw      m1, m2
+%if cpuflag(sse4)
+    phaddw     m3, m0
+%else
+    SBUTTERFLY qdq, 3, 0, 2
+    paddw      m3, m0
+%endif
+    movhlps    m2, m1
+    paddw      m1, m2
+    phaddw     m1, m3
+    pmaddwd    m1, [pw_1] ; v, _, h, dc
+%endmacro ; INTRA_X9_VHDC
+
+%macro INTRA_X9_END 1
+%if cpuflag(sse4)
+    phminposuw m0, m0 ; h,dc,ddl,ddr,vr,hd,vl,hu
+    movd      eax, m0
+    add       eax, 1<<16
+    cmp        ax, r1w
+    cmovge    eax, r1d
+%else
+%if %1
+    ; 4x4 sad is up to 12 bits; +bitcosts -> 13 bits; pack with 3 bit index
+    psllw      m0, 3
+    paddw      m0, [pw_s01234567] ; h,dc,ddl,ddr,vr,hd,vl,hu
+%else
+    ; 4x4 satd is up to 13 bits; +bitcosts and saturate -> 13 bits; pack with 3 bit index
+    psllw      m0, 2
+    paddusw    m0, m0
+    paddw      m0, [pw_s01234657] ; h,dc,ddl,ddr,vr,vl,hd,hu
+%endif
+    movhlps    m1, m0
+    pminsw     m0, m1
+    pshuflw    m1, m0, q0032
+    pminsw     m0, m1
+    pshuflw    m1, m0, q0001
+    pminsw     m0, m1
+    movd      eax, m0
+    movsx     r2d, ax
+    and       eax, 7
+    sar       r2d, 3
+    shl       eax, 16
+    ; 1<<16: increment index to match intra4x4_pred_e. couldn't do this before because it had to fit in 3 bits
+    ; 1<<12: undo sign manipulation
+    lea       eax, [rax+r2+(1<<16)+(1<<12)]
+    cmp        ax, r1w
+    cmovge    eax, r1d
+%endif ; cpuflag
+%endmacro ; INTRA_X9_END
+
+%macro INTRA_X9 0
+;-----------------------------------------------------------------------------
+; int intra_sad_x9_4x4( uint8_t *fenc, uint8_t *fdec, uint16_t *bitcosts )
+;-----------------------------------------------------------------------------
+cglobal intra_sad_x9_4x4, 3,3,9
+%ifdef ARCH_X86_64
+    INTRA_X9_PRED intrax9a, m8
+%else
+    sub       rsp, 0x1c
+    INTRA_X9_PRED intrax9a, [rsp]
+%endif
+%if cpuflag(sse4)
+    movd       m0, [r0+0*FENC_STRIDE]
+    pinsrd     m0, [r0+1*FENC_STRIDE], 1
+    movd       m1, [r0+2*FENC_STRIDE]
+    pinsrd     m1, [r0+3*FENC_STRIDE], 1
+%else
+    movd      mm0, [r0+0*FENC_STRIDE]
+    punpckldq mm0, [r0+1*FENC_STRIDE]
+    movd      mm1, [r0+2*FENC_STRIDE]
+    punpckldq mm1, [r0+3*FENC_STRIDE]
+    movq2dq    m0, mm0
+    movq2dq    m1, mm1
+%endif
+    punpcklqdq m0, m0
+    punpcklqdq m1, m1
+    psadbw     m2, m0
+    psadbw     m3, m1
+    psadbw     m4, m0
+    psadbw     m5, m1
+    psadbw     m6, m0
+    psadbw     m7, m1
+    paddd      m2, m3
+    paddd      m4, m5
+    paddd      m6, m7
+%ifdef ARCH_X86_64
+    SWAP        7, 8
+    pxor       m8, m8
+    %define %%zero m8
+%else
+    mova       m7, [rsp]
+    %define %%zero [pb_0]
+%endif
+    mova       m3, m7
+    mova       m5, m7
+    pshufb     m7, [intrax9a_dc]
+    pshufb     m3, [intrax9a_vh1]
+    psadbw     m7, %%zero
+    pshufb     m5, [intrax9a_vh2]
+    psrlw      m7, 2
+    psadbw     m3, m0
+    pavgw      m7, %%zero
+    pshufb     m7, %%zero
+    psadbw     m5, m1
+    psadbw     m0, m7
+    paddd      m3, m5
+    psadbw     m1, m7
+    paddd      m0, m1
+    movzx     r1d, word [r2]
+    movd      r0d, m3 ; v
+    add       r1d, r0d
+    punpckhqdq m3, m0 ; h, dc
+    shufps     m3, m2, q2020
+    psllq      m6, 32
+    por        m4, m6
+    movu       m0, [r2+2]
+    packssdw   m3, m4
+    paddw      m0, m3
+    INTRA_X9_END 1
+%ifndef ARCH_X86_64
+    add       rsp, 0x1c
+%endif
+    RET
+
+%ifdef ARCH_X86_64
+;-----------------------------------------------------------------------------
+; int intra_satd_x9_4x4( uint8_t *fenc, uint8_t *fdec, uint16_t *bitcosts )
+;-----------------------------------------------------------------------------
+cglobal intra_satd_x9_4x4, 3,3,16
+    INTRA_X9_PRED intrax9b, m15
+    movd       m8, [r0+0*FENC_STRIDE]
+    movd       m9, [r0+1*FENC_STRIDE]
+    movd      m10, [r0+2*FENC_STRIDE]
+    movd      m11, [r0+3*FENC_STRIDE]
+    mova      m12, [hmul_8p]
+    pshufd     m8, m8, 0
+    pshufd     m9, m9, 0
+    pshufd    m10, m10, 0
+    pshufd    m11, m11, 0
+    pmaddubsw  m8, m12
+    pmaddubsw  m9, m12
+    pmaddubsw m10, m12
+    pmaddubsw m11, m12
+    movddup    m0, m2
+    pshufd     m1, m2, q3232
+    movddup    m2, m3
+    movhlps    m3, m3
+    call .satd_8x4 ; ddr, ddl
+    movddup    m2, m5
+    pshufd     m3, m5, q3232
+    mova       m5, m0
+    movddup    m0, m4
+    pshufd     m1, m4, q3232
+    call .satd_8x4 ; vr, vl
+    movddup    m2, m7
+    pshufd     m3, m7, q3232
+    mova       m4, m0
+    movddup    m0, m6
+    pshufd     m1, m6, q3232
+    call .satd_8x4 ; hd, hu
+%if cpuflag(sse4)
+    punpckldq  m4, m0
+%else
+    punpcklqdq m4, m0 ; conroe dislikes punpckldq, and ssse3 INTRA_X9_END can handle arbitrary orders whereas phminposuw can't
+%endif
+    mova       m1, [pw_ppmmppmm]
+    psignw     m8, m1
+    psignw    m10, m1
+    paddw      m8, m9
+    paddw     m10, m11
+    INTRA_X9_VHDC 15, 8, 10, 6, 7
+    ; find minimum
+    movu       m0, [r2+2]
+    movd      r1d, m1
+    palignr    m5, m1, 8
+%if notcpuflag(sse4)
+    pshufhw    m0, m0, q3120 ; compensate for different order in unpack
+%endif
+    packssdw   m5, m4
+    paddw      m0, m5
+    movzx     r0d, word [r2]
+    add       r1d, r0d
+    INTRA_X9_END 0
+    RET
+RESET_MM_PERMUTATION
+ALIGN 16
+.satd_8x4:
+    pmaddubsw  m0, m12
+    pmaddubsw  m1, m12
+    pmaddubsw  m2, m12
+    pmaddubsw  m3, m12
+    psubw      m0, m8
+    psubw      m1, m9
+    psubw      m2, m10
+    psubw      m3, m11
+    SATD_8x4_SSE cpuname, 0, 1, 2, 3, 13, 14, 0, swap
+    pmaddwd    m0, [pw_1]
+%if cpuflag(sse4)
+    pshufd     m1, m0, q0032
+%else
+    movhlps    m1, m0
+%endif
+    paddd    xmm0, m0, m1 ; consistent location of return value. only the avx version of hadamard permutes m0, so 3arg is free
+    ret
+
+%else ; !ARCH_X86_64
+cglobal intra_satd_x9_4x4, 3,3,8
+    sub       rsp, 0x9c
+    INTRA_X9_PRED intrax9b, [rsp+0x80]
+    mova [rsp+0x40], m4
+    mova [rsp+0x50], m5
+    mova [rsp+0x60], m6
+    mova [rsp+0x70], m7
+    movd       m4, [r0+0*FENC_STRIDE]
+    movd       m5, [r0+1*FENC_STRIDE]
+    movd       m6, [r0+2*FENC_STRIDE]
+    movd       m0, [r0+3*FENC_STRIDE]
+    mova       m7, [hmul_8p]
+    pshufd     m4, m4, 0
+    pshufd     m5, m5, 0
+    pshufd     m6, m6, 0
+    pshufd     m0, m0, 0
+    pmaddubsw  m4, m7
+    pmaddubsw  m5, m7
+    pmaddubsw  m6, m7
+    pmaddubsw  m0, m7
+    mova [rsp+0x00], m4
+    mova [rsp+0x10], m5
+    mova [rsp+0x20], m6
+    mova [rsp+0x30], m0
+    movddup    m0, m2
+    pshufd     m1, m2, q3232
+    movddup    m2, m3
+    movhlps    m3, m3
+    pmaddubsw  m0, m7
+    pmaddubsw  m1, m7
+    pmaddubsw  m2, m7
+    pmaddubsw  m3, m7
+    psubw      m0, m4
+    psubw      m1, m5
+    psubw      m2, m6
+    call .satd_8x4b ; ddr, ddl
+    mova       m3, [rsp+0x50]
+    mova       m1, [rsp+0x40]
+    movddup    m2, m3
+    movhlps    m3, m3
+    movq [rsp+0x48], m0
+    movddup    m0, m1
+    movhlps    m1, m1
+    call .satd_8x4 ; vr, vl
+    mova       m3, [rsp+0x70]
+    mova       m1, [rsp+0x60]
+    movddup    m2, m3
+    movhlps    m3, m3
+    movq [rsp+0x50], m0
+    movddup    m0, m1
+    movhlps    m1, m1
+    call .satd_8x4 ; hd, hu
+    movq [rsp+0x58], m0
+    mova       m1, [rsp+0x80]
+    mova       m4, [rsp+0x00]
+    mova       m5, [rsp+0x20]
+    mova       m2, [pw_ppmmppmm]
+    psignw     m4, m2
+    psignw     m5, m2
+    paddw      m4, [rsp+0x10]
+    paddw      m5, [rsp+0x30]
+    INTRA_X9_VHDC 1, 4, 5, 6, 7
+    ; find minimum
+    movu       m0, [r2+2]
+    movd      r1d, m1
+    movhlps    m1, m1
+    movhps     m1, [rsp+0x48]
+%if cpuflag(sse4)
+    pshufd     m2, [rsp+0x50], q3120
+    packssdw   m1, m2
+%else
+    packssdw   m1, [rsp+0x50]
+    pshufhw    m0, m0, q3120
+%endif
+    paddw      m0, m1
+    movzx     r0d, word [r2]
+    add       r1d, r0d
+    INTRA_X9_END 0
+    add       rsp, 0x9c
+    RET
+RESET_MM_PERMUTATION
+ALIGN 16
+.satd_8x4:
+    pmaddubsw  m0, m7
+    pmaddubsw  m1, m7
+    pmaddubsw  m2, m7
+    pmaddubsw  m3, m7
+    psubw      m0, [rsp+0x00+gprsize]
+    psubw      m1, [rsp+0x10+gprsize]
+    psubw      m2, [rsp+0x20+gprsize]
+.satd_8x4b:
+    psubw      m3, [rsp+0x30+gprsize]
+    SATD_8x4_SSE cpuname, 0, 1, 2, 3, 4, 5, 0, swap
+    pmaddwd    m0, [pw_1]
+%if cpuflag(sse4)
+    pshufd     m1, m0, q0032
+%else
+    movhlps    m1, m0
+%endif
+    paddd    xmm0, m0, m1
+    ret
+%endif ; ARCH
+%endmacro ; INTRA_X9
+
 
 
 ; in:  r0=pix, r1=stride, r2=stride*3, r3=tmp, m6=mask_ac4, m7=0
@@ -2439,7 +2893,7 @@ SATDS_SSE2
 %ifndef HIGH_BIT_DEPTH
 INTRA_SA8D_SSE2
 INIT_MMX mmx2
-INTRA_SATDS_MMX
+INTRA_X3_MMX
 %endif
 INIT_XMM sse2
 HADAMARD_AC_SSE2
@@ -2455,13 +2909,16 @@ INIT_XMM ssse3
 SATDS_SSE2
 SA8D
 HADAMARD_AC_SSE2
+%ifndef HIGH_BIT_DEPTH
+INTRA_X9
+%endif
 %undef movdqa ; nehalem doesn't like movaps
 %undef movdqu ; movups
 %undef punpcklqdq ; or movlhps
 %ifndef HIGH_BIT_DEPTH
 INTRA_SA8D_SSE2
 INIT_MMX ssse3
-INTRA_SATDS_MMX
+INTRA_X3_MMX
 %endif
 
 %define TRANS TRANS_SSE4
@@ -2470,12 +2927,16 @@ INIT_XMM sse4
 SATDS_SSE2
 SA8D
 HADAMARD_AC_SSE2
+%ifndef HIGH_BIT_DEPTH
+INTRA_X9
+%endif
 
 INIT_XMM avx
 SATDS_SSE2
 SA8D
 %ifndef HIGH_BIT_DEPTH
 INTRA_SA8D_SSE2
+INTRA_X9
 %endif
 HADAMARD_AC_SSE2
 
@@ -2921,7 +3382,7 @@ ALIGN 16
     test    r2,  r2
 %else
     mov     r3,  r2
-    or      r3d, [r6+r1+4]
+    add    r3d, [r6+r1+4]
 %endif
     jz .loopi0
     xor     r3d, r3d

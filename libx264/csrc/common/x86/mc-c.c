@@ -42,6 +42,7 @@ DECL_SUF( x264_pixel_avg_16x8,  ( pixel *, int, pixel *, int, pixel *, int, int 
 DECL_SUF( x264_pixel_avg_8x16,  ( pixel *, int, pixel *, int, pixel *, int, int ))
 DECL_SUF( x264_pixel_avg_8x8,   ( pixel *, int, pixel *, int, pixel *, int, int ))
 DECL_SUF( x264_pixel_avg_8x4,   ( pixel *, int, pixel *, int, pixel *, int, int ))
+DECL_SUF( x264_pixel_avg_4x16,  ( pixel *, int, pixel *, int, pixel *, int, int ))
 DECL_SUF( x264_pixel_avg_4x8,   ( pixel *, int, pixel *, int, pixel *, int, int ))
 DECL_SUF( x264_pixel_avg_4x4,   ( pixel *, int, pixel *, int, pixel *, int, int ))
 DECL_SUF( x264_pixel_avg_4x2,   ( pixel *, int, pixel *, int, pixel *, int, int ))
@@ -113,17 +114,17 @@ void x264_plane_copy_deinterleave_ssse3( uint8_t *dstu, int i_dstu,
 void x264_plane_copy_deinterleave_avx( uint16_t *dstu, int i_dstu,
                                          uint16_t *dstv, int i_dstv,
                                          uint16_t *src, int i_src, int w, int h );
-void x264_store_interleave_8x8x2_mmx2( pixel *dst, int i_dst, pixel *srcu, pixel *srcv );
-void x264_store_interleave_8x8x2_sse2( pixel *dst, int i_dst, pixel *srcu, pixel *srcv );
-void x264_store_interleave_8x8x2_avx( pixel *dst, int i_dst, pixel *srcu, pixel *srcv );
-void x264_load_deinterleave_8x8x2_fenc_mmx( pixel *dst, pixel *src, int i_src );
-void x264_load_deinterleave_8x8x2_fenc_sse2( pixel *dst, pixel *src, int i_src );
-void x264_load_deinterleave_8x8x2_fenc_ssse3( uint8_t *dst, uint8_t *src, int i_src );
-void x264_load_deinterleave_8x8x2_fenc_avx( uint16_t *dst, uint16_t *src, int i_src );
-void x264_load_deinterleave_8x8x2_fdec_mmx( pixel *dst, pixel *src, int i_src );
-void x264_load_deinterleave_8x8x2_fdec_sse2( pixel *dst, pixel *src, int i_src );
-void x264_load_deinterleave_8x8x2_fdec_ssse3( uint8_t *dst, uint8_t *src, int i_src );
-void x264_load_deinterleave_8x8x2_fdec_avx( uint16_t *dst, uint16_t *src, int i_src );
+void x264_store_interleave_chroma_mmx2( pixel *dst, int i_dst, pixel *srcu, pixel *srcv, int height );
+void x264_store_interleave_chroma_sse2( pixel *dst, int i_dst, pixel *srcu, pixel *srcv, int height );
+void x264_store_interleave_chroma_avx( pixel *dst, int i_dst, pixel *srcu, pixel *srcv, int height );
+void x264_load_deinterleave_chroma_fenc_mmx( pixel *dst, pixel *src, int i_src, int height );
+void x264_load_deinterleave_chroma_fenc_sse2( pixel *dst, pixel *src, int i_src, int height );
+void x264_load_deinterleave_chroma_fenc_ssse3( uint8_t *dst, uint8_t *src, int i_src, int height );
+void x264_load_deinterleave_chroma_fenc_avx( uint16_t *dst, uint16_t *src, int i_src, int height );
+void x264_load_deinterleave_chroma_fdec_mmx( pixel *dst, pixel *src, int i_src, int height );
+void x264_load_deinterleave_chroma_fdec_sse2( pixel *dst, pixel *src, int i_src, int height );
+void x264_load_deinterleave_chroma_fdec_ssse3( uint8_t *dst, uint8_t *src, int i_src, int height );
+void x264_load_deinterleave_chroma_fdec_avx( uint16_t *dst, uint16_t *src, int i_src, int height );
 void *x264_memcpy_aligned_mmx( void * dst, const void * src, size_t n );
 void *x264_memcpy_aligned_sse2( void * dst, const void * src, size_t n );
 void x264_memzero_aligned_mmx( void * dst, int n );
@@ -497,8 +498,8 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     if( !(cpu&X264_CPU_MMX) )
         return;
 
-    pf->load_deinterleave_8x8x2_fenc = x264_load_deinterleave_8x8x2_fenc_mmx;
-    pf->load_deinterleave_8x8x2_fdec = x264_load_deinterleave_8x8x2_fdec_mmx;
+    pf->load_deinterleave_chroma_fenc = x264_load_deinterleave_chroma_fenc_mmx;
+    pf->load_deinterleave_chroma_fdec = x264_load_deinterleave_chroma_fdec_mmx;
 
     pf->plane_copy_deinterleave = x264_plane_copy_deinterleave_mmx;
 
@@ -519,13 +520,14 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 
     pf->plane_copy = x264_plane_copy_mmx2;
     pf->plane_copy_interleave = x264_plane_copy_interleave_mmx2;
-    pf->store_interleave_8x8x2 = x264_store_interleave_8x8x2_mmx2;
+    pf->store_interleave_chroma = x264_store_interleave_chroma_mmx2;
 
     pf->avg[PIXEL_16x16] = x264_pixel_avg_16x16_mmx2;
     pf->avg[PIXEL_16x8]  = x264_pixel_avg_16x8_mmx2;
     pf->avg[PIXEL_8x16]  = x264_pixel_avg_8x16_mmx2;
     pf->avg[PIXEL_8x8]   = x264_pixel_avg_8x8_mmx2;
     pf->avg[PIXEL_8x4]   = x264_pixel_avg_8x4_mmx2;
+    pf->avg[PIXEL_4x16]  = x264_pixel_avg_4x16_mmx2;
     pf->avg[PIXEL_4x8]   = x264_pixel_avg_4x8_mmx2;
     pf->avg[PIXEL_4x4]   = x264_pixel_avg_4x4_mmx2;
     pf->avg[PIXEL_4x2]   = x264_pixel_avg_4x2_mmx2;
@@ -552,8 +554,8 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 
     pf->frame_init_lowres_core = x264_frame_init_lowres_core_sse2;
 
-    pf->load_deinterleave_8x8x2_fenc = x264_load_deinterleave_8x8x2_fenc_sse2;
-    pf->load_deinterleave_8x8x2_fdec = x264_load_deinterleave_8x8x2_fdec_sse2;
+    pf->load_deinterleave_chroma_fenc = x264_load_deinterleave_chroma_fenc_sse2;
+    pf->load_deinterleave_chroma_fdec = x264_load_deinterleave_chroma_fdec_sse2;
 
     pf->plane_copy_interleave   = x264_plane_copy_interleave_sse2;
     pf->plane_copy_deinterleave = x264_plane_copy_deinterleave_sse2;
@@ -570,7 +572,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->integral_init4v = x264_integral_init4v_sse2;
     pf->integral_init8v = x264_integral_init8v_sse2;
     pf->mbtree_propagate_cost = x264_mbtree_propagate_cost_sse2;
-    pf->store_interleave_8x8x2 = x264_store_interleave_8x8x2_sse2;
+    pf->store_interleave_chroma = x264_store_interleave_chroma_sse2;
     pf->offsetadd = x264_mc_offsetadd_wtab_sse2;
     pf->offsetsub = x264_mc_offsetsub_wtab_sse2;
 
@@ -582,6 +584,7 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->avg[PIXEL_8x16]  = x264_pixel_avg_8x16_sse2;
     pf->avg[PIXEL_8x8]   = x264_pixel_avg_8x8_sse2;
     pf->avg[PIXEL_8x4]   = x264_pixel_avg_8x4_sse2;
+    pf->avg[PIXEL_4x16]  = x264_pixel_avg_4x16_sse2;
     pf->avg[PIXEL_4x8]   = x264_pixel_avg_4x8_sse2;
     pf->avg[PIXEL_4x4]   = x264_pixel_avg_4x4_sse2;
     pf->avg[PIXEL_4x2]   = x264_pixel_avg_4x2_sse2;
@@ -603,11 +606,11 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     if( !(cpu&X264_CPU_AVX) )
         return;
 
-    pf->load_deinterleave_8x8x2_fenc = x264_load_deinterleave_8x8x2_fenc_avx;
-    pf->load_deinterleave_8x8x2_fdec = x264_load_deinterleave_8x8x2_fdec_avx;
+    pf->load_deinterleave_chroma_fenc = x264_load_deinterleave_chroma_fenc_avx;
+    pf->load_deinterleave_chroma_fdec = x264_load_deinterleave_chroma_fdec_avx;
     pf->plane_copy_interleave        = x264_plane_copy_interleave_avx;
     pf->plane_copy_deinterleave      = x264_plane_copy_deinterleave_avx;
-    pf->store_interleave_8x8x2       = x264_store_interleave_8x8x2_avx;
+    pf->store_interleave_chroma      = x264_store_interleave_chroma_avx;
 
     if( !(cpu&X264_CPU_STACK_MOD4) )
         pf->mc_chroma = x264_mc_chroma_avx;
@@ -663,9 +666,9 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
 
     if( cpu&X264_CPU_SSE2_IS_FAST )
     {
-        pf->store_interleave_8x8x2  = x264_store_interleave_8x8x2_sse2; // FIXME sse2fast? sse2medium?
-        pf->load_deinterleave_8x8x2_fenc = x264_load_deinterleave_8x8x2_fenc_sse2;
-        pf->load_deinterleave_8x8x2_fdec = x264_load_deinterleave_8x8x2_fdec_sse2;
+        pf->store_interleave_chroma = x264_store_interleave_chroma_sse2; // FIXME sse2fast? sse2medium?
+        pf->load_deinterleave_chroma_fenc = x264_load_deinterleave_chroma_fenc_sse2;
+        pf->load_deinterleave_chroma_fdec = x264_load_deinterleave_chroma_fdec_sse2;
         pf->plane_copy_interleave   = x264_plane_copy_interleave_sse2;
         pf->plane_copy_deinterleave = x264_plane_copy_deinterleave_sse2;
         pf->mc_luma = mc_luma_sse2;
@@ -691,12 +694,13 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     pf->avg[PIXEL_8x16]  = x264_pixel_avg_8x16_ssse3;
     pf->avg[PIXEL_8x8]   = x264_pixel_avg_8x8_ssse3;
     pf->avg[PIXEL_8x4]   = x264_pixel_avg_8x4_ssse3;
+    pf->avg[PIXEL_4x16]  = x264_pixel_avg_4x16_ssse3;
     pf->avg[PIXEL_4x8]   = x264_pixel_avg_4x8_ssse3;
     pf->avg[PIXEL_4x4]   = x264_pixel_avg_4x4_ssse3;
     pf->avg[PIXEL_4x2]   = x264_pixel_avg_4x2_ssse3;
 
-    pf->load_deinterleave_8x8x2_fenc = x264_load_deinterleave_8x8x2_fenc_ssse3;
-    pf->load_deinterleave_8x8x2_fdec = x264_load_deinterleave_8x8x2_fdec_ssse3;
+    pf->load_deinterleave_chroma_fenc = x264_load_deinterleave_chroma_fenc_ssse3;
+    pf->load_deinterleave_chroma_fdec = x264_load_deinterleave_chroma_fdec_ssse3;
     pf->plane_copy_deinterleave = x264_plane_copy_deinterleave_ssse3;
 
     pf->hpel_filter = x264_hpel_filter_ssse3;

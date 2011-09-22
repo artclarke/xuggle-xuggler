@@ -219,18 +219,21 @@ static ALWAYS_INLINE uint32_t ac_energy_var( uint64_t sum_ssd, int shift, x264_f
 
 static ALWAYS_INLINE uint32_t ac_energy_plane( x264_t *h, int mb_x, int mb_y, x264_frame_t *frame, int i, int b_chroma, int b_field, int b_store )
 {
-    int w = b_chroma ? 8 : 16;
+    int height = b_chroma ? 16>>h->mb.chroma_v_shift : 16;
     int stride = frame->i_stride[i];
     int offset = b_field
-        ? 16 * mb_x + w * (mb_y&~1) * stride + (mb_y&1) * stride
-        : 16 * mb_x + w * mb_y * stride;
+        ? 16 * mb_x + height * (mb_y&~1) * stride + (mb_y&1) * stride
+        : 16 * mb_x + height * mb_y * stride;
     stride <<= b_field;
     if( b_chroma )
     {
-        ALIGNED_ARRAY_16( pixel, pix,[FENC_STRIDE*8] );
-        h->mc.load_deinterleave_8x8x2_fenc( pix, frame->plane[1] + offset, stride );
-        return ac_energy_var( h->pixf.var[PIXEL_8x8]( pix, FENC_STRIDE ), 6, frame, 1, b_store )
-             + ac_energy_var( h->pixf.var[PIXEL_8x8]( pix+FENC_STRIDE/2, FENC_STRIDE ), 6, frame, 2, b_store );
+        ALIGNED_ARRAY_16( pixel, pix,[FENC_STRIDE*16] );
+        int chromapix = h->luma2chroma_pixel[PIXEL_16x16];
+        int shift = 7 - h->mb.chroma_v_shift;
+
+        h->mc.load_deinterleave_chroma_fenc( pix, frame->plane[1] + offset, stride, height );
+        return ac_energy_var( h->pixf.var[chromapix]( pix,               FENC_STRIDE ), shift, frame, 1, b_store )
+             + ac_energy_var( h->pixf.var[chromapix]( pix+FENC_STRIDE/2, FENC_STRIDE ), shift, frame, 2, b_store );
     }
     else
         return ac_energy_var( h->pixf.var[PIXEL_16x16]( frame->plane[i] + offset, stride ), 8, frame, i, b_store );
@@ -379,9 +382,8 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame, float *quant_off
     {
         uint64_t ssd = frame->i_pixel_ssd[i];
         uint64_t sum = frame->i_pixel_sum[i];
-        int size = CHROMA444 || !i ? 16 : 8;
-        int width = h->mb.i_mb_width*size;
-        int height = h->mb.i_mb_height*size;
+        int width  = 16*h->mb.i_mb_width  >> (i && h->mb.chroma_h_shift);
+        int height = 16*h->mb.i_mb_height >> (i && h->mb.chroma_v_shift);
         frame->i_pixel_ssd[i] = ssd - (sum * sum + width * height / 2) / (width * height);
     }
 }
@@ -1279,8 +1281,8 @@ void x264_ratecontrol_start( x264_t *h, int i_force_qp, int overhead )
         if( h->param.b_bluray_compat )
             mincr = 4;
 
-        /* High 10 / High 4:4:4 Predictive doesn't require minCR, so just set the maximum to a large value. */
-        if( h->sps->i_profile_idc >= PROFILE_HIGH10 )
+        /* Profiles above High don't require minCR, so just set the maximum to a large value. */
+        if( h->sps->i_profile_idc > PROFILE_HIGH )
             rc->frame_size_maximum = 1e9;
         else
         {

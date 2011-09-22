@@ -6,6 +6,7 @@
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Jason Garrett-Glaser <darkshikari@gmail.com>
  *          Christian Heine <sennindemokrit@gmx.net>
+ *          Henrik Gramner <hengar-6@student.ltu.se>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -141,54 +142,121 @@ static void dequant_4x4_dc( dctcoef dct[16], int dequant_mf[6][16], int i_qp )
     }
 }
 
-static ALWAYS_INLINE void idct_dequant_2x2_dconly( dctcoef out[4], dctcoef dct[4], int dequant_mf )
+#define IDCT_DEQUANT_2X4_START \
+    int a0 = dct[0] + dct[1]; \
+    int a1 = dct[2] + dct[3]; \
+    int a2 = dct[4] + dct[5]; \
+    int a3 = dct[6] + dct[7]; \
+    int a4 = dct[0] - dct[1]; \
+    int a5 = dct[2] - dct[3]; \
+    int a6 = dct[4] - dct[5]; \
+    int a7 = dct[6] - dct[7]; \
+    int b0 = a0 + a1; \
+    int b1 = a2 + a3; \
+    int b2 = a4 + a5; \
+    int b3 = a6 + a7; \
+    int b4 = a0 - a1; \
+    int b5 = a2 - a3; \
+    int b6 = a4 - a5; \
+    int b7 = a6 - a7;
+
+static void idct_dequant_2x4_dc( dctcoef dct[8], dctcoef dct4x4[8][16], int dequant_mf[6][16], int i_qp )
+{
+    IDCT_DEQUANT_2X4_START
+    int dmf = dequant_mf[i_qp%6][0] << i_qp/6;
+    dct4x4[0][0] = ((b0 + b1) * dmf + 32) >> 6;
+    dct4x4[1][0] = ((b2 + b3) * dmf + 32) >> 6;
+    dct4x4[2][0] = ((b0 - b1) * dmf + 32) >> 6;
+    dct4x4[3][0] = ((b2 - b3) * dmf + 32) >> 6;
+    dct4x4[4][0] = ((b4 - b5) * dmf + 32) >> 6;
+    dct4x4[5][0] = ((b6 - b7) * dmf + 32) >> 6;
+    dct4x4[6][0] = ((b4 + b5) * dmf + 32) >> 6;
+    dct4x4[7][0] = ((b6 + b7) * dmf + 32) >> 6;
+}
+
+static void idct_dequant_2x4_dconly( dctcoef dct[8], int dequant_mf[6][16], int i_qp )
+{
+    IDCT_DEQUANT_2X4_START
+    int dmf = dequant_mf[i_qp%6][0] << i_qp/6;
+    dct[0] = ((b0 + b1) * dmf + 32) >> 6;
+    dct[1] = ((b2 + b3) * dmf + 32) >> 6;
+    dct[2] = ((b0 - b1) * dmf + 32) >> 6;
+    dct[3] = ((b2 - b3) * dmf + 32) >> 6;
+    dct[4] = ((b4 - b5) * dmf + 32) >> 6;
+    dct[5] = ((b6 - b7) * dmf + 32) >> 6;
+    dct[6] = ((b4 + b5) * dmf + 32) >> 6;
+    dct[7] = ((b6 + b7) * dmf + 32) >> 6;
+}
+
+static ALWAYS_INLINE void optimize_chroma_idct_dequant_2x4( dctcoef out[8], dctcoef dct[8], int dmf )
+{
+    IDCT_DEQUANT_2X4_START
+    out[0] = ((b0 + b1) * dmf + 2080) >> 6; /* 2080 = 32 + (32<<6) */
+    out[1] = ((b2 + b3) * dmf + 2080) >> 6;
+    out[2] = ((b0 - b1) * dmf + 2080) >> 6;
+    out[3] = ((b2 - b3) * dmf + 2080) >> 6;
+    out[4] = ((b4 - b5) * dmf + 2080) >> 6;
+    out[5] = ((b6 - b7) * dmf + 2080) >> 6;
+    out[6] = ((b4 + b5) * dmf + 2080) >> 6;
+    out[7] = ((b6 + b7) * dmf + 2080) >> 6;
+}
+#undef IDCT_DEQUANT_2X4_START
+
+static ALWAYS_INLINE void optimize_chroma_idct_dequant_2x2( dctcoef out[4], dctcoef dct[4], int dmf )
 {
     int d0 = dct[0] + dct[1];
     int d1 = dct[2] + dct[3];
     int d2 = dct[0] - dct[1];
     int d3 = dct[2] - dct[3];
-    out[0] = (d0 + d1) * dequant_mf >> 5;
-    out[1] = (d0 - d1) * dequant_mf >> 5;
-    out[2] = (d2 + d3) * dequant_mf >> 5;
-    out[3] = (d2 - d3) * dequant_mf >> 5;
+    out[0] = ((d0 + d1) * dmf >> 5) + 32;
+    out[1] = ((d0 - d1) * dmf >> 5) + 32;
+    out[2] = ((d2 + d3) * dmf >> 5) + 32;
+    out[3] = ((d2 - d3) * dmf >> 5) + 32;
 }
 
-static ALWAYS_INLINE int idct_dequant_round_2x2_dc( dctcoef ref[4], dctcoef dct[4], int dequant_mf )
+static ALWAYS_INLINE int optimize_chroma_round( dctcoef *ref, dctcoef *dct, int dequant_mf, int chroma422 )
 {
-    dctcoef out[4];
-    idct_dequant_2x2_dconly( out, dct, dequant_mf );
-    return ((ref[0] ^ (out[0]+32))
-          | (ref[1] ^ (out[1]+32))
-          | (ref[2] ^ (out[2]+32))
-          | (ref[3] ^ (out[3]+32))) >> 6;
+    dctcoef out[8];
+
+    if( chroma422 )
+        optimize_chroma_idct_dequant_2x4( out, dct, dequant_mf );
+    else
+        optimize_chroma_idct_dequant_2x2( out, dct, dequant_mf );
+
+    int sum = 0;
+    for( int i = 0; i < (chroma422?8:4); i++ )
+        sum |= ref[i] ^ out[i];
+    return sum >> 6;
 }
 
-static int optimize_chroma_dc( dctcoef dct[4], int dequant_mf )
+static ALWAYS_INLINE int optimize_chroma_dc_internal( dctcoef *dct, int dequant_mf, int chroma422 )
 {
     /* dequant_mf = h->dequant4_mf[CQM_4IC + b_inter][i_qp%6][0] << i_qp/6, max 32*64 */
-    dctcoef dct_orig[4];
+    dctcoef dct_orig[8];
     int coeff, nz;
 
-    idct_dequant_2x2_dconly( dct_orig, dct, dequant_mf );
-    dct_orig[0] += 32;
-    dct_orig[1] += 32;
-    dct_orig[2] += 32;
-    dct_orig[3] += 32;
+    if( chroma422 )
+        optimize_chroma_idct_dequant_2x4( dct_orig, dct, dequant_mf );
+    else
+        optimize_chroma_idct_dequant_2x2( dct_orig, dct, dequant_mf );
 
     /* If the DC coefficients already round to zero, terminate early. */
-    if( !((dct_orig[0]|dct_orig[1]|dct_orig[2]|dct_orig[3])>>6) )
+    int sum = 0;
+    for( int i = 0; i < (chroma422?8:4); i++ )
+        sum |= dct_orig[i];
+    if( !(sum >> 6) )
         return 0;
 
     /* Start with the highest frequency coefficient... is this the best option? */
-    for( nz = 0, coeff = 3; coeff >= 0; coeff-- )
+    for( nz = 0, coeff = (chroma422?7:3); coeff >= 0; coeff-- )
     {
         int level = dct[coeff];
-        int sign = level>>31 | 1; /* dct2x2[coeff] < 0 ? -1 : 1 */
+        int sign = level>>31 | 1; /* dct[coeff] < 0 ? -1 : 1 */
 
         while( level )
         {
             dct[coeff] = level - sign;
-            if( idct_dequant_round_2x2_dc( dct_orig, dct, dequant_mf ) )
+            if( optimize_chroma_round( dct_orig, dct, dequant_mf, chroma422 ) )
             {
                 nz = 1;
                 dct[coeff] = level;
@@ -199,6 +267,16 @@ static int optimize_chroma_dc( dctcoef dct[4], int dequant_mf )
     }
 
     return nz;
+}
+
+static int optimize_chroma_2x2_dc( dctcoef dct[4], int dequant_mf )
+{
+    return optimize_chroma_dc_internal( dct, dequant_mf, 0 );
+}
+
+static int optimize_chroma_2x4_dc( dctcoef dct[8], int dequant_mf )
+{
+    return optimize_chroma_dc_internal( dct, dequant_mf, 1 );
 }
 
 static void x264_denoise_dct( dctcoef *dct, uint32_t *sum, udctcoef *offset, int size )
@@ -275,30 +353,20 @@ static int x264_decimate_score64( dctcoef *dct )
     return x264_decimate_score_internal( dct, 64 );
 }
 
-static int ALWAYS_INLINE x264_coeff_last_internal( dctcoef *l, int i_count )
-{
-    int i_last = i_count-1;
-    while( i_last >= 0 && l[i_last] == 0 )
-        i_last--;
-    return i_last;
+#define last(num)\
+static int x264_coeff_last##num( dctcoef *l )\
+{\
+    int i_last = num-1;\
+    while( i_last >= 0 && l[i_last] == 0 )\
+        i_last--;\
+    return i_last;\
 }
 
-static int x264_coeff_last4( dctcoef *l )
-{
-    return x264_coeff_last_internal( l, 4 );
-}
-static int x264_coeff_last15( dctcoef *l )
-{
-    return x264_coeff_last_internal( l, 15 );
-}
-static int x264_coeff_last16( dctcoef *l )
-{
-    return x264_coeff_last_internal( l, 16 );
-}
-static int x264_coeff_last64( dctcoef *l )
-{
-    return x264_coeff_last_internal( l, 64 );
-}
+last(4)
+last(8)
+last(15)
+last(16)
+last(64)
 
 #define level_run(num)\
 static int x264_coeff_level_run##num( dctcoef *dct, x264_run_level_t *runlevel )\
@@ -317,9 +385,9 @@ static int x264_coeff_level_run##num( dctcoef *dct, x264_run_level_t *runlevel )
 }
 
 level_run(4)
+level_run(8)
 level_run(15)
 level_run(16)
-
 
 void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
 {
@@ -332,18 +400,24 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
     pf->dequant_4x4_dc = dequant_4x4_dc;
     pf->dequant_8x8 = dequant_8x8;
 
-    pf->optimize_chroma_dc = optimize_chroma_dc;
+    pf->idct_dequant_2x4_dc = idct_dequant_2x4_dc;
+    pf->idct_dequant_2x4_dconly = idct_dequant_2x4_dconly;
+
+    pf->optimize_chroma_2x2_dc = optimize_chroma_2x2_dc;
+    pf->optimize_chroma_2x4_dc = optimize_chroma_2x4_dc;
 
     pf->denoise_dct = x264_denoise_dct;
     pf->decimate_score15 = x264_decimate_score15;
     pf->decimate_score16 = x264_decimate_score16;
     pf->decimate_score64 = x264_decimate_score64;
 
-    pf->coeff_last[DCT_CHROMA_DC] = x264_coeff_last4;
+    pf->coeff_last4 = x264_coeff_last4;
+    pf->coeff_last8 = x264_coeff_last8;
     pf->coeff_last[  DCT_LUMA_AC] = x264_coeff_last15;
     pf->coeff_last[ DCT_LUMA_4x4] = x264_coeff_last16;
     pf->coeff_last[ DCT_LUMA_8x8] = x264_coeff_last64;
-    pf->coeff_level_run[DCT_CHROMA_DC] = x264_coeff_level_run4;
+    pf->coeff_level_run4 = x264_coeff_level_run4;
+    pf->coeff_level_run8 = x264_coeff_level_run8;
     pf->coeff_level_run[  DCT_LUMA_AC] = x264_coeff_level_run15;
     pf->coeff_level_run[ DCT_LUMA_4x4] = x264_coeff_level_run16;
 
@@ -361,16 +435,16 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
             pf->decimate_score16 = x264_decimate_score16_mmx2_slowctz;
         }
         pf->decimate_score64 = x264_decimate_score64_mmx2;
-        pf->coeff_last[DCT_CHROMA_DC] = x264_coeff_last4_mmx2;
+        pf->coeff_last4 = x264_coeff_last4_mmx2;
         pf->coeff_last[  DCT_LUMA_AC] = x264_coeff_last15_mmx2;
         pf->coeff_last[ DCT_LUMA_4x4] = x264_coeff_last16_mmx2;
         pf->coeff_last[ DCT_LUMA_8x8] = x264_coeff_last64_mmx2;
         pf->coeff_level_run[  DCT_LUMA_AC] = x264_coeff_level_run15_mmx2;
         pf->coeff_level_run[ DCT_LUMA_4x4] = x264_coeff_level_run16_mmx2;
 #endif
-        pf->coeff_level_run[DCT_CHROMA_DC] = x264_coeff_level_run4_mmx2;
+        pf->coeff_level_run4 = x264_coeff_level_run4_mmx2;
         if( cpu&X264_CPU_LZCNT )
-            pf->coeff_level_run[DCT_CHROMA_DC] = x264_coeff_level_run4_mmx2_lzcnt;
+            pf->coeff_level_run4 = x264_coeff_level_run4_mmx2_lzcnt;
     }
     if( cpu&X264_CPU_SSE2 )
     {
@@ -397,7 +471,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->coeff_level_run[DCT_LUMA_4x4] = x264_coeff_level_run16_sse2;
         if( cpu&X264_CPU_LZCNT )
         {
-            pf->coeff_last[DCT_CHROMA_DC] = x264_coeff_last4_mmx2_lzcnt;
+            pf->coeff_last4 = x264_coeff_last4_mmx2_lzcnt;
             pf->coeff_last[ DCT_LUMA_AC] = x264_coeff_last15_sse2_lzcnt;
             pf->coeff_last[DCT_LUMA_4x4] = x264_coeff_last16_sse2_lzcnt;
             pf->coeff_last[DCT_LUMA_8x8] = x264_coeff_last64_sse2_lzcnt;
@@ -471,12 +545,12 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->coeff_level_run[  DCT_LUMA_AC] = x264_coeff_level_run15_mmx2;
         pf->coeff_level_run[ DCT_LUMA_4x4] = x264_coeff_level_run16_mmx2;
 #endif
-        pf->coeff_last[DCT_CHROMA_DC] = x264_coeff_last4_mmx2;
-        pf->coeff_level_run[DCT_CHROMA_DC] = x264_coeff_level_run4_mmx2;
+        pf->coeff_last4 = x264_coeff_last4_mmx2;
+        pf->coeff_level_run4 = x264_coeff_level_run4_mmx2;
         if( cpu&X264_CPU_LZCNT )
         {
-            pf->coeff_last[DCT_CHROMA_DC] = x264_coeff_last4_mmx2_lzcnt;
-            pf->coeff_level_run[DCT_CHROMA_DC] = x264_coeff_level_run4_mmx2_lzcnt;
+            pf->coeff_last4 = x264_coeff_last4_mmx2_lzcnt;
+            pf->coeff_level_run4 = x264_coeff_level_run4_mmx2_lzcnt;
         }
     }
 
@@ -493,7 +567,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
             pf->dequant_4x4 = x264_dequant_4x4_flat16_sse2;
             pf->dequant_8x8 = x264_dequant_8x8_flat16_sse2;
         }
-        pf->optimize_chroma_dc = x264_optimize_chroma_dc_sse2;
+        pf->optimize_chroma_2x2_dc = x264_optimize_chroma_2x2_dc_sse2;
         pf->denoise_dct = x264_denoise_dct_sse2;
         pf->decimate_score15 = x264_decimate_score15_sse2;
         pf->decimate_score16 = x264_decimate_score16_sse2;
@@ -524,7 +598,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->quant_4x4_dc = x264_quant_4x4_dc_ssse3;
         pf->quant_4x4 = x264_quant_4x4_ssse3;
         pf->quant_8x8 = x264_quant_8x8_ssse3;
-        pf->optimize_chroma_dc = x264_optimize_chroma_dc_ssse3;
+        pf->optimize_chroma_2x2_dc = x264_optimize_chroma_2x2_dc_ssse3;
         pf->denoise_dct = x264_denoise_dct_ssse3;
         pf->decimate_score15 = x264_decimate_score15_ssse3;
         pf->decimate_score16 = x264_decimate_score16_ssse3;
@@ -541,7 +615,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
         pf->quant_4x4_dc = x264_quant_4x4_dc_sse4;
         pf->quant_4x4 = x264_quant_4x4_sse4;
         pf->quant_8x8 = x264_quant_8x8_sse4;
-        pf->optimize_chroma_dc = x264_optimize_chroma_dc_sse4;
+        pf->optimize_chroma_2x2_dc = x264_optimize_chroma_2x2_dc_sse4;
     }
 
     if( cpu&X264_CPU_AVX )
@@ -552,7 +626,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
             pf->dequant_4x4 = x264_dequant_4x4_avx;
             pf->dequant_8x8 = x264_dequant_8x8_avx;
         }
-        pf->optimize_chroma_dc = x264_optimize_chroma_dc_avx;
+        pf->optimize_chroma_2x2_dc = x264_optimize_chroma_2x2_dc_avx;
         pf->denoise_dct = x264_denoise_dct_avx;
     }
 #endif // HAVE_MMX
@@ -571,7 +645,7 @@ void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf )
 
 #if HAVE_ARMV6
     if( cpu&X264_CPU_ARMV6 )
-        pf->coeff_last[DCT_CHROMA_DC] = x264_coeff_last4_arm;
+        pf->coeff_last4 = x264_coeff_last4_arm;
 
     if( cpu&X264_CPU_NEON )
     {
