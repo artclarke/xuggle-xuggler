@@ -249,8 +249,8 @@ uint64_t x264_rd_cost_part( x264_t *h, int i_lambda2, int i4, int i_pixel )
     int ssd_y = 8*(i8>>1);
     i_ssd = ssd_plane( h, i_pixel, 0, ssd_x, ssd_y );
     int chromapix = h->luma2chroma_pixel[i_pixel];
-    int chromassd = ssd_plane( h, chromapix, 1, ssd_x>>h->mb.chroma_h_shift, ssd_y>>h->mb.chroma_v_shift )
-                  + ssd_plane( h, chromapix, 2, ssd_x>>h->mb.chroma_h_shift, ssd_y>>h->mb.chroma_v_shift );
+    int chromassd = ssd_plane( h, chromapix, 1, ssd_x>>CHROMA_H_SHIFT, ssd_y>>CHROMA_V_SHIFT )
+                  + ssd_plane( h, chromapix, 2, ssd_x>>CHROMA_H_SHIFT, ssd_y>>CHROMA_V_SHIFT );
     i_ssd += ((uint64_t)chromassd * h->mb.i_chroma_lambda2_offset + 128) >> 8;
 
     if( h->param.b_cabac )

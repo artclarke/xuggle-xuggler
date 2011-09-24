@@ -394,7 +394,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
     int stridey   = h->fdec->i_stride[0];
     int strideuv  = h->fdec->i_stride[1];
     int chroma444 = CHROMA444;
-    int chroma_height = 16 >> h->mb.chroma_v_shift;
+    int chroma_height = 16 >> CHROMA_V_SHIFT;
     intptr_t uvdiff = chroma444 ? h->fdec->plane[2] - h->fdec->plane[1] : 1;
 
     for( int mb_x = 0; mb_x < h->mb.i_mb_width; mb_x += (~b_interlaced | mb_y)&1, mb_y ^= b_interlaced )
@@ -484,7 +484,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                 }
 
                 int offy = MB_INTERLACED ? 4 : 0;
-                int offuv = MB_INTERLACED ? 4-h->mb.chroma_v_shift : 0;
+                int offuv = MB_INTERLACED ? 4-CHROMA_V_SHIFT : 0;
                 left_qp[1] = h->mb.qp[h->mb.i_mb_left_xy[1]];
                 luma_qp[1] = (qp + left_qp[1] + 1) >> 1;
                 chroma_qp[1] = (qpc + h->chroma_qp_table[left_qp[1]] + 1) >> 1;

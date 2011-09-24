@@ -41,7 +41,7 @@
 
 #include "x264_config.h"
 
-#define X264_BUILD 118
+#define X264_BUILD 119
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -606,6 +606,13 @@ int     x264_param_apply_profile( x264_param_t *, const char *profile );
  *      Note: The flag X264_CSP_HIGH_DEPTH must be used to specify the
  *      colorspace depth as well. */
 extern const int x264_bit_depth;
+
+/* x264_chroma_format:
+ *      Specifies the chroma formats that x264 supports encoding. When this
+ *      value is non-zero, then it represents a X264_CSP_* that is the only
+ *      chroma format that x264 supports encoding. If the value is 0 then
+ *      there are no restrictions. */
+extern const int x264_chroma_format;
 
 enum pic_struct_e
 {

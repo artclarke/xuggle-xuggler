@@ -178,7 +178,7 @@ static int x264_cavlc_block_residual_internal( x264_t *h, int ctx_block_cat, dct
 
     if( ctx_block_cat == DCT_CHROMA_DC )
     {
-        if( i_total < 8>>h->mb.chroma_v_shift )
+        if( i_total < 8>>CHROMA_V_SHIFT )
         {
             vlc_t total_zeros = CHROMA_FORMAT == CHROMA_420 ? x264_total_zeros_2x2_dc[i_total-1][i_total_zero]
                                                             : x264_total_zeros_2x4_dc[i_total-1][i_total_zero];
@@ -202,7 +202,7 @@ static const uint8_t ct_index[17] = {0,0,1,1,2,2,2,2,3,3,3,3,3,3,3,3,3};
 
 #define x264_cavlc_block_residual(h,cat,idx,l)\
 {\
-    int nC = cat == DCT_CHROMA_DC ? 3 + CHROMA_FORMAT\
+    int nC = cat == DCT_CHROMA_DC ? 5 - CHROMA_V_SHIFT\
                                   : ct_index[x264_mb_predict_non_zero_code( h, cat == DCT_LUMA_DC ? (idx - LUMA_DC)*16 : idx )];\
     uint8_t *nnz = &h->mb.cache.non_zero_count[x264_scan8[idx]];\
     if( !*nnz )\
@@ -505,7 +505,7 @@ void x264_macroblock_write_cavlc( x264_t *h )
                 bs_write( s, BIT_DEPTH, h->mb.pic.p_fenc[p][i] );
         if( chroma )
             for( int ch = 1; ch < 3; ch++ )
-                for( int i = 0; i < 16>>h->mb.chroma_v_shift; i++ )
+                for( int i = 0; i < 16>>CHROMA_V_SHIFT; i++ )
                     for( int j = 0; j < 8; j++ )
                         bs_write( s, BIT_DEPTH, h->mb.pic.p_fenc[ch][i*FENC_STRIDE+j] );
 
@@ -564,7 +564,7 @@ void x264_macroblock_write_cavlc( x264_t *h )
         x264_cavlc_block_residual( h, DCT_CHROMA_DC, CHROMA_DC+1, h->dct.chroma_dc[1] );
         if( h->mb.i_cbp_chroma == 2 ) /* Chroma AC residual present */
         {
-            int step = 8 << h->mb.chroma_v_shift;
+            int step = 8 << CHROMA_V_SHIFT;
             for( int i = 16; i < 3*16; i += step )
                 for( int j = i; j < i+4; j++ )
                     x264_cavlc_block_residual( h, DCT_CHROMA_AC, j, h->dct.luma4x4[j]+1 );
@@ -691,7 +691,7 @@ static int x264_chroma_size_cavlc( x264_t *h )
 
         if( h->mb.i_cbp_chroma == 2 )
         {
-            int step = 8 << h->mb.chroma_v_shift;
+            int step = 8 << CHROMA_V_SHIFT;
             for( int i = 16; i < 3*16; i += step )
                 for( int j = i; j < i+4; j++ )
                     x264_cavlc_block_residual( h, DCT_CHROMA_AC, j, h->dct.luma4x4[j]+1 );

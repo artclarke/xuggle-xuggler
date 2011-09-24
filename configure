@@ -30,6 +30,7 @@ Configuration options:
   --disable-interlaced     disable interlaced encoding support
   --enable-visualize       enable visualization (X11 only)
   --bit-depth=BIT_DEPTH    set output bit depth (8-10) [8]
+  --chroma-format=FORMAT   output chroma format (420, 422, 444, all) [all]
 
 Advanced options:
   --disable-asm            disable platform-specific assembly optimizations
@@ -237,6 +238,7 @@ strip="no"
 pic="no"
 vis="no"
 bit_depth="8"
+chroma_format="all"
 compiler="GNU"
 
 CFLAGS="$CFLAGS -Wall -I."
@@ -356,6 +358,13 @@ for opt do
                 exit 1
             fi
             bit_depth=`expr $bit_depth + 0`
+            ;;
+        --chroma-format=*)
+            chroma_format="$optarg"
+            if [ $chroma_format != "420" -a $chroma_format != "422" -a $chroma_format != "444" -a $chroma_format != "all" ]; then
+                echo "Supplied chroma format must be 420, 422, 444 or all."
+                exit 1
+            fi
             ;;
         *)
             echo "Unknown option $opt, ignored"
@@ -912,6 +921,10 @@ if [ "$bit_depth" -gt "8" ]; then
     ASFLAGS="$ASFLAGS -DHIGH_BIT_DEPTH"
 fi
 
+if [ "$chroma_format" != "all" ]; then
+    define CHROMA_FORMAT CHROMA_$chroma_format
+fi
+
 ASFLAGS="$ASFLAGS -DBIT_DEPTH=$bit_depth"
 
 [ $gpl = yes ] && define HAVE_GPL && x264_gpl=1 || x264_gpl=0
@@ -966,10 +979,13 @@ rm -f conftest*
 
 # generate exported config file
 
+config_chroma_format="X264_CSP_I$chroma_format"
+[ "$config_chroma_format" == "X264_CSP_Iall" ] && config_chroma_format="0"
 cat > x264_config.h << EOF
-#define X264_BIT_DEPTH  $bit_depth
-#define X264_GPL        $x264_gpl
-#define X264_INTERLACED $x264_interlaced
+#define X264_BIT_DEPTH     $bit_depth
+#define X264_GPL           $x264_gpl
+#define X264_INTERLACED    $x264_interlaced
+#define X264_CHROMA_FORMAT $config_chroma_format
 EOF
 
 # generate config files
@@ -1088,27 +1104,28 @@ gpl_filters=""
 [ $gpl = yes ] && filters="$filters $gpl_filters"
 
 cat > conftest.log <<EOF
-Platform:   $ARCH
-System:     $SYS
-cli:        $cli
-libx264:    $cli_libx264
-shared:     $shared
-static:     $static
-asm:        $asm
-interlaced: $interlaced
-avs:        $avs
-lavf:       $lavf
-ffms:       $ffms
-gpac:       $gpac
-gpl:        $gpl
-thread:     $thread
-filters:    $filters
-debug:      $debug
-gprof:      $gprof
-strip:      $strip
-PIC:        $pic
-visualize:  $vis
-bit depth:  $bit_depth
+platform:      $ARCH
+system:        $SYS
+cli:           $cli
+libx264:       $cli_libx264
+shared:        $shared
+static:        $static
+asm:           $asm
+interlaced:    $interlaced
+avs:           $avs
+lavf:          $lavf
+ffms:          $ffms
+gpac:          $gpac
+gpl:           $gpl
+thread:        $thread
+filters:       $filters
+debug:         $debug
+gprof:         $gprof
+strip:         $strip
+PIC:           $pic
+visualize:     $vis
+bit depth:     $bit_depth
+chroma format: $chroma_format
 EOF
 
 echo >> config.log

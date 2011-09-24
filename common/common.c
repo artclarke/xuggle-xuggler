@@ -35,6 +35,8 @@
 
 const int x264_bit_depth = BIT_DEPTH;
 
+const int x264_chroma_format = X264_CHROMA_FORMAT;
+
 static void x264_log_default( void *, int, const char *, va_list );
 
 /****************************************************************************
@@ -52,7 +54,7 @@ void x264_param_default( x264_param_t *param )
     param->i_sync_lookahead = X264_SYNC_LOOKAHEAD_AUTO;
 
     /* Video properties */
-    param->i_csp           = X264_CSP_I420;
+    param->i_csp           = X264_CHROMA_FORMAT ? X264_CHROMA_FORMAT : X264_CSP_I420;
     param->i_width         = 0;
     param->i_height        = 0;
     param->vui.i_sar_width = 0;

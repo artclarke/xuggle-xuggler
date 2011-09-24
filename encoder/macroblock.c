@@ -602,7 +602,7 @@ static void x264_macroblock_encode_skip( x264_t *h )
 
 void x264_predict_lossless_chroma( x264_t *h, int i_mode )
 {
-    int height = 16 >> h->mb.chroma_v_shift;
+    int height = 16 >> CHROMA_V_SHIFT;
     if( i_mode == I_PRED_CHROMA_V )
     {
         h->mc.copy[PIXEL_8x8]( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fenc[1]-FENC_STRIDE, FENC_STRIDE, height );
@@ -686,7 +686,7 @@ static ALWAYS_INLINE void x264_macroblock_encode_internal( x264_t *h, int plane_
             h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fdec[p], FDEC_STRIDE, h->mb.pic.p_fenc[p], FENC_STRIDE, 16 );
         if( chroma )
         {
-            int height = 16 >> h->mb.chroma_v_shift;
+            int height = 16 >> CHROMA_V_SHIFT;
             h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fenc[1], FENC_STRIDE, height );
             h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[2], FDEC_STRIDE, h->mb.pic.p_fenc[2], FENC_STRIDE, height );
         }
@@ -722,7 +722,7 @@ static ALWAYS_INLINE void x264_macroblock_encode_internal( x264_t *h, int plane_
 
             if( chroma )
             {
-                int v_shift = h->mb.chroma_v_shift;
+                int v_shift = CHROMA_V_SHIFT;
                 int height = 16 >> v_shift;
 
                 /* Special case for mv0, which is (of course) very common in P-skip mode. */

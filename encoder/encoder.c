@@ -79,7 +79,7 @@ static void x264_frame_dump( x264_t *h )
     if( !CHROMA444 )
     {
         int cw = h->param.i_width>>1;
-        int ch = h->param.i_height>>h->mb.chroma_v_shift;
+        int ch = h->param.i_height>>CHROMA_V_SHIFT;
         pixel *planeu = x264_malloc( (cw*ch*2+32)*sizeof(pixel) );
         pixel *planev = planeu + cw*ch + 16;
         h->mc.plane_copy_deinterleave( planeu, cw, planev, cw, h->fdec->plane[1], h->fdec->i_stride[1], cw, ch );
@@ -418,6 +418,23 @@ static int x264_validate_parameters( x264_t *h, int b_open )
     }
 
     int i_csp = h->param.i_csp & X264_CSP_MASK;
+#if X264_CHROMA_FORMAT
+    if( CHROMA_FORMAT != CHROMA_420 && i_csp >= X264_CSP_I420 && i_csp <= X264_CSP_NV12 )
+    {
+        x264_log( h, X264_LOG_ERROR, "not compiled with 4:2:0 support\n" );
+        return -1;
+    }
+    else if( CHROMA_FORMAT != CHROMA_422 && i_csp >= X264_CSP_I422 && i_csp <= X264_CSP_NV16 )
+    {
+        x264_log( h, X264_LOG_ERROR, "not compiled with 4:2:2 support\n" );
+        return -1;
+    }
+    else if( CHROMA_FORMAT != CHROMA_444 && i_csp >= X264_CSP_I444 && i_csp <= X264_CSP_RGB )
+    {
+        x264_log( h, X264_LOG_ERROR, "not compiled with 4:4:4 support\n" );
+        return -1;
+    }
+#endif
     if( i_csp <= X264_CSP_NONE || i_csp >= X264_CSP_MAX )
     {
         x264_log( h, X264_LOG_ERROR, "invalid CSP (only I420/YV12/NV12/I422/YV16/NV16/I444/YV24/BGR/BGRA/RGB supported)\n" );
@@ -1832,7 +1849,7 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
      * consistency by copying deblocked pixels between planes. */
     if( PARAM_INTERLACED )
         for( int p = 0; p < h->fdec->i_plane; p++ )
-            for( int i = minpix_y>>(h->mb.chroma_v_shift && p); i < maxpix_y>>(h->mb.chroma_v_shift && p); i++ )
+            for( int i = minpix_y>>(CHROMA_V_SHIFT && p); i < maxpix_y>>(CHROMA_V_SHIFT && p); i++ )
                 memcpy( h->fdec->plane_fld[p] + i*h->fdec->i_stride[p],
                         h->fdec->plane[p]     + i*h->fdec->i_stride[p],
                         h->mb.i_mb_width*16*sizeof(pixel) );
@@ -1871,7 +1888,7 @@ static void x264_fdec_filter_row( x264_t *h, int mb_y, int b_inloop )
             if( !CHROMA444 )
             {
                 uint64_t ssd_u, ssd_v;
-                int v_shift = h->mb.chroma_v_shift;
+                int v_shift = CHROMA_V_SHIFT;
                 x264_pixel_ssd_nv12( &h->pixf,
                     h->fdec->plane[1] + (minpix_y>>v_shift) * h->fdec->i_stride[1], h->fdec->i_stride[1],
                     h->fenc->plane[1] + (minpix_y>>v_shift) * h->fenc->i_stride[1], h->fenc->i_stride[1],

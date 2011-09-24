@@ -1287,8 +1287,8 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
     (m)->i_stride[1] = h->mb.pic.i_stride[1]; \
     (m)->i_stride[2] = h->mb.pic.i_stride[2]; \
     (m)->p_fenc[0] = &(src)[0][(xoff)+(yoff)*FENC_STRIDE]; \
-    (m)->p_fenc[1] = &(src)[1][((xoff)>>h->mb.chroma_h_shift)+((yoff)>>h->mb.chroma_v_shift)*FENC_STRIDE]; \
-    (m)->p_fenc[2] = &(src)[2][((xoff)>>h->mb.chroma_h_shift)+((yoff)>>h->mb.chroma_v_shift)*FENC_STRIDE]; \
+    (m)->p_fenc[1] = &(src)[1][((xoff)>>CHROMA_H_SHIFT)+((yoff)>>CHROMA_V_SHIFT)*FENC_STRIDE]; \
+    (m)->p_fenc[2] = &(src)[2][((xoff)>>CHROMA_H_SHIFT)+((yoff)>>CHROMA_V_SHIFT)*FENC_STRIDE]; \
 }
 
 #define LOAD_HPELS(m, src, list, ref, xoff, yoff) \
@@ -1309,7 +1309,7 @@ static void x264_intra_rd_refine( x264_t *h, x264_mb_analysis_t *a )
         (m)->p_fref[11] = &(src)[11][(xoff)+(yoff)*(m)->i_stride[2]]; \
     } \
     else \
-        (m)->p_fref[4] = &(src)[4][(xoff)+((yoff)>>h->mb.chroma_v_shift)*(m)->i_stride[1]]; \
+        (m)->p_fref[4] = &(src)[4][(xoff)+((yoff)>>CHROMA_V_SHIFT)*(m)->i_stride[1]]; \
     (m)->integral = &h->mb.pic.p_integral[list][ref][(xoff)+(yoff)*(m)->i_stride[0]]; \
     (m)->weight = x264_weight_none; \
     (m)->i_ref = ref; \
@@ -1887,7 +1887,7 @@ static ALWAYS_INLINE int x264_analyse_bi_chroma( x264_t *h, x264_mb_analysis_t *
     } \
     else \
     { \
-        int v_shift = h->mb.chroma_v_shift; \
+        int v_shift = CHROMA_V_SHIFT; \
         int l0_mvy_offset = v_shift & MB_INTERLACED & m0.i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0; \
         int l1_mvy_offset = v_shift & MB_INTERLACED & m1.i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0; \
         h->mc.mc_chroma( pix[0], pix[1], 16, m0.p_fref[4], m0.i_stride[1], \
@@ -1934,8 +1934,8 @@ static void x264_mb_analyse_inter_direct( x264_t *h, x264_mb_analysis_t *a )
                                                               &p_fdec[x+y*FDEC_STRIDE], FDEC_STRIDE );
             if( h->mb.b_chroma_me )
             {
-                int fenc_offset = (x>>h->mb.chroma_h_shift) + (y>>h->mb.chroma_v_shift)*FENC_STRIDE;
-                int fdec_offset = (x>>h->mb.chroma_h_shift) + (y>>h->mb.chroma_v_shift)*FDEC_STRIDE;
+                int fenc_offset = (x>>CHROMA_H_SHIFT) + (y>>CHROMA_V_SHIFT)*FENC_STRIDE;
+                int fdec_offset = (x>>CHROMA_H_SHIFT) + (y>>CHROMA_V_SHIFT)*FDEC_STRIDE;
                 a->i_cost8x8direct[i] += h->pixf.mbcmp[chromapix]( &h->mb.pic.p_fenc[1][fenc_offset], FENC_STRIDE,
                                                                    &h->mb.pic.p_fdec[1][fdec_offset], FDEC_STRIDE )
                                        + h->pixf.mbcmp[chromapix]( &h->mb.pic.p_fenc[2][fenc_offset], FENC_STRIDE,
@@ -2097,7 +2097,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
             {
                 ALIGNED_ARRAY_16( pixel, pixuv, [2],[16*FENC_STRIDE] );
                 int chromapix = h->luma2chroma_pixel[PIXEL_16x16];
-                int v_shift = h->mb.chroma_v_shift;
+                int v_shift = CHROMA_V_SHIFT;
 
                 if( v_shift & MB_INTERLACED & a->l0.bi16x16.i_ref )
                 {
@@ -3251,7 +3251,7 @@ intra_analysis:
                     h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fenc[p], FENC_STRIDE, h->mb.pic.p_fdec[p], FDEC_STRIDE, 16 );
                 if( !CHROMA444 )
                 {
-                    int height = 16 >> h->mb.chroma_v_shift;
+                    int height = 16 >> CHROMA_V_SHIFT;
                     h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fenc[1], FENC_STRIDE, h->mb.pic.p_fdec[1], FDEC_STRIDE, height );
                     h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fenc[2], FENC_STRIDE, h->mb.pic.p_fdec[2], FDEC_STRIDE, height );
                 }
