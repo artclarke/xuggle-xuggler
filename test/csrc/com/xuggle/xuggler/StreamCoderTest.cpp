@@ -209,6 +209,7 @@ StreamCoderTest :: testSetCodec()
   VS_TUT_ENSURE_EQUALS("should allow wrong direction", codec.value(), encodec.value());
   int retval = coder->open();
   VS_TUT_ENSURE("should succeed even though wrong direction", retval >= 0);
+  (void) retval; // in release compiles VS_TUT_ENSURE is removed and so -Werror produces errors about unused retvals
   coder->close();
 }
 
