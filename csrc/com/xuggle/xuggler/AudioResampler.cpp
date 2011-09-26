@@ -329,6 +329,7 @@ namespace com { namespace xuggle { namespace xuggler
 //            sampleSize,
 //            numSamples,
 //            conversionRatio);
+        (void) sampleSize; // to avoid a -Werror error
         throw std::invalid_argument("not enough room in output buffer");
       }
       short * inBuf = inSamples ? inSamples->getRawSamples(0) : 0;
