@@ -30,7 +30,7 @@
 .macro h264_loop_filter_start
     ldr             ip,  [sp]
     ldr             ip,  [ip]
-    vmov.32         d24[0], ip
+    vdup.32         d24, ip
     and             ip,  ip,  ip, lsl #16
     ands            ip,  ip,  ip, lsl #8
     bxlt            lr
@@ -197,52 +197,62 @@ function x264_deblock_h_luma_neon
 .endfunc
 
 .macro h264_loop_filter_chroma
-    vdup.8          d22, r2         // alpha
+    vdup.8          q11, r2         // alpha
     vmovl.u8        q12, d24
-    vabd.u8         d26, d16, d0    // abs(p0 - q0)
-    vmovl.u8        q2,  d0
-    vabd.u8         d28, d18, d16   // abs(p1 - p0)
-    vsubw.u8        q2,  q2,  d16
-    vsli.16         d24, d24, #8
+    vabd.u8         q13, q8,  q0    // abs(p0 - q0)
+    vabd.u8         q14, q9,  q8    // abs(p1 - p0)
+    vsubl.u8        q2,  d0,  d16
+    vsubl.u8        q3,  d1,  d17
+    vsli.16         q12, q12, #8
     vshl.i16        q2,  q2,  #2
-    vabd.u8         d30, d2,  d0    // abs(q1 - q0)
+    vshl.i16        q3,  q3,  #2
+    vabd.u8         q15, q1,  q0    // abs(q1 - q0)
     vaddw.u8        q2,  q2,  d18
-    vclt.u8         d26, d26, d22   // < alpha
+    vaddw.u8        q3,  q3,  d19
+    vclt.u8         q13, q13, q11   // < alpha
     vsubw.u8        q2,  q2,  d2
-    vdup.8          d22, r3         // beta
-    vclt.s8         d25, d24, #0
+    vsubw.u8        q3,  q3,  d3
+    vdup.8          q11, r3         // beta
+    vclt.s8         q10, q12, #0
     vrshrn.i16      d4,  q2,  #3
-    vclt.u8         d28, d28, d22   // < beta
-    vbic            d26, d26, d25
-    vclt.u8         d30, d30, d22   // < beta
-    vand            d26, d26, d28
-    vneg.s8         d25, d24
-    vand            d26, d26, d30
-    vmin.s8         d4,  d4,  d24
+    vrshrn.i16      d5,  q3,  #3
+    vclt.u8         q14, q14, q11   // < beta
+    vbic            q13, q13, q10
+    vclt.u8         q15, q15, q11   // < beta
+    vand            q13, q13, q14
+    vneg.s8         q10, q12
+    vand            q13, q13, q15
+    vmin.s8         q2,  q2,  q12
     vmovl.u8        q14, d16
-    vand            d4,  d4,  d26
-    vmax.s8         d4,  d4,  d25
+    vand            q2,  q2,  q13
+    vmovl.u8        q15, d17
+    vmax.s8         q2,  q2,  q10
     vmovl.u8        q11, d0
+    vmovl.u8        q12, d1
     vaddw.s8        q14, q14, d4
+    vaddw.s8        q15, q15, d5
     vsubw.s8        q11, q11, d4
+    vsubw.s8        q12, q12, d5
     vqmovun.s16     d16, q14
+    vqmovun.s16     d17, q15
     vqmovun.s16     d0,  q11
+    vqmovun.s16     d1,  q12
 .endm
 
 function x264_deblock_v_chroma_neon
     h264_loop_filter_start
 
     sub             r0,  r0,  r1, lsl #1
-    vld1.64         {d18}, [r0,:64], r1
-    vld1.64         {d16}, [r0,:64], r1
-    vld1.64         {d0},  [r0,:64], r1
-    vld1.64         {d2},  [r0,:64]
+    vld2.8          {d18,d19}, [r0,:128], r1
+    vld2.8          {d16,d17}, [r0,:128], r1
+    vld2.8          {d0, d1},  [r0,:128], r1
+    vld2.8          {d2, d3},  [r0,:128]
 
     h264_loop_filter_chroma
 
     sub             r0,  r0,  r1, lsl #1
-    vst1.64         {d16}, [r0,:64], r1
-    vst1.64         {d0},  [r0,:64], r1
+    vst2.8          {d16,d17}, [r0,:128], r1
+    vst2.8          {d0, d1},  [r0,:128], r1
 
     bx              lr
 .endfunc
@@ -250,37 +260,47 @@ function x264_deblock_v_chroma_neon
 function x264_deblock_h_chroma_neon
     h264_loop_filter_start
 
-    sub             r0,  r0,  #2
-    vld1.32         {d18[]},  [r0], r1
-    vld1.32         {d16[]},  [r0], r1
-    vld1.32         {d0[]},   [r0], r1
-    vld1.32         {d2[]},   [r0], r1
-    vld1.32         {d18[1]}, [r0], r1
-    vld1.32         {d16[1]}, [r0], r1
-    vld1.32         {d0[1]},  [r0], r1
-    vld1.32         {d2[1]},  [r0], r1
+    sub             r0,  r0,  #4
+    vld1.8          {d18}, [r0], r1
+    vld1.8          {d16}, [r0], r1
+    vld1.8          {d0},  [r0], r1
+    vld1.8          {d2},  [r0], r1
+    vld1.8          {d19}, [r0], r1
+    vld1.8          {d17}, [r0], r1
+    vld1.8          {d1},  [r0], r1
+    vld1.8          {d3},  [r0], r1
 
-    vtrn.16         d18, d0
-    vtrn.16         d16, d2
-    vtrn.8          d18, d16
-    vtrn.8          d0,  d2
+    vuzp.8          d18, d19
+    vuzp.8          d16, d17
+    vuzp.8          d0,  d1
+    vuzp.8          d2,  d3
+
+    vtrn.16         q9,  q0
+    vtrn.16         q8,  q1
+    vtrn.8          q9,  q8
+    vtrn.8          q0,  q1
 
     h264_loop_filter_chroma
 
-    vtrn.16         d18, d0
-    vtrn.16         d16, d2
-    vtrn.8          d18, d16
-    vtrn.8          d0,  d2
+    vtrn.16         q9,  q0
+    vtrn.16         q8,  q1
+    vtrn.8          q9,  q8
+    vtrn.8          q0,  q1
+
+    vzip.8          d18, d19
+    vzip.8          d16, d17
+    vzip.8          d0,  d1
+    vzip.8          d2,  d3
 
     sub             r0,  r0,  r1, lsl #3
-    vst1.32         {d18[0]}, [r0], r1
-    vst1.32         {d16[0]}, [r0], r1
-    vst1.32         {d0[0]},  [r0], r1
-    vst1.32         {d2[0]},  [r0], r1
-    vst1.32         {d18[1]}, [r0], r1
-    vst1.32         {d16[1]}, [r0], r1
-    vst1.32         {d0[1]},  [r0], r1
-    vst1.32         {d2[1]},  [r0], r1
+    vst1.8          {d18}, [r0], r1
+    vst1.8          {d16}, [r0], r1
+    vst1.8          {d0},  [r0], r1
+    vst1.8          {d2},  [r0], r1
+    vst1.8          {d19}, [r0], r1
+    vst1.8          {d17}, [r0], r1
+    vst1.8          {d1},  [r0], r1
+    vst1.8          {d3},  [r0], r1
 
     bx              lr
 .endfunc

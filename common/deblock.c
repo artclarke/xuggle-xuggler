@@ -791,8 +791,8 @@ void x264_deblock_init( int cpu, x264_deblock_function_t *pf, int b_mbaff )
    {
         pf->deblock_luma[1] = x264_deblock_v_luma_neon;
         pf->deblock_luma[0] = x264_deblock_h_luma_neon;
-//      pf->deblock_chroma[1] = x264_deblock_v_chroma_neon;
-//      pf->deblock_h_chroma_420 = x264_deblock_h_chroma_neon;
+        pf->deblock_chroma[1] = x264_deblock_v_chroma_neon;
+        pf->deblock_h_chroma_420 = x264_deblock_h_chroma_neon;
    }
 #endif
 #endif // !HIGH_BIT_DEPTH
