@@ -209,7 +209,6 @@ StreamCoderPropertyTest :: testGetNumFlagSettings()
 void
 StreamCoderPropertyTest :: testGetPropertyAsDouble()
 {
-  int32_t retval = -1;
   h->setupReading(h->SAMPLE_FILE);
 
   VS_TUT_ENSURE("need at least one stream", h->num_streams > 0);
@@ -218,7 +217,7 @@ StreamCoderPropertyTest :: testGetPropertyAsDouble()
   VS_TUT_ENSURE("should get at least 100 properties", numProperties > 100);
   
   // This is actually a int type
-  retval = h->coders[0]->setProperty("ab", 5.4);
+  (void) h->coders[0]->setProperty("ab", 5.4);
   double value = h->coders[0]->getPropertyAsDouble("ab");
   VS_TUT_ENSURE_DISTANCE("unexpected", value, 5.0, 0.00001);
 }
