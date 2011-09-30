@@ -425,7 +425,9 @@ static void help( x264_param_t *defaults, int longhelp )
     H0( "\n" );
     H0( "      --profile <string>      Force the limits of an H.264 profile\n"
         "                                  Overrides all settings.\n" );
-    H2( "                                  - baseline:\n"
+    H2(
+#if BIT_DEPTH==8
+        "                                  - baseline:\n"
         "                                    --no-8x8dct --bframes 0 --no-cabac\n"
         "                                    --cqm flat --weightp 0\n"
         "                                    No interlaced.\n"
@@ -435,10 +437,24 @@ static void help( x264_param_t *defaults, int longhelp )
         "                                    No lossless.\n"
         "                                  - high:\n"
         "                                    No lossless.\n"
+#endif
         "                                  - high10:\n"
         "                                    No lossless.\n"
-        "                                    Support for bit depth 8-10.\n" );
-        else H0( "                                  - baseline,main,high,high10\n" );
+        "                                    Support for bit depth 8-10.\n"
+        "                                  - high422:\n"
+        "                                    No lossless.\n"
+        "                                    Support for bit depth 8-10.\n"
+        "                                    Support for 4:2:0/4:2:2 chroma subsampling.\n"
+        "                                  - high444:\n"
+        "                                    Support for bit depth 8-10.\n"
+        "                                    Support for 4:2:0/4:2:2/4:4:4 chroma subsampling.\n" );
+        else H0(
+#if BIT_DEPTH==8
+        "                                  - baseline,main,high,high10,high422,high444\n"
+#else
+        "                                  - high10,high422,high444\n"
+#endif
+               );
     H0( "      --preset <string>       Use a preset to select encoding settings [medium]\n"
         "                                  Overridden by user settings.\n" );
     H2( "                                  - ultrafast:\n"
