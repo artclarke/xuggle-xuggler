@@ -634,6 +634,7 @@ static void x264_predict_8x8_filter_c( pixel *src, pixel edge[36], int i_neighbo
         edge[14] = ((have_lt ? SRC(-1,-1) : SRC(-1,0))
                  + 2*SRC(-1,0) + SRC(-1,1) + 2) >> 2;
         PL(1) PL(2) PL(3) PL(4) PL(5) PL(6)
+        edge[6] =
         edge[7] = (SRC(-1,6) + 3*SRC(-1,7) + 2) >> 2;
     }
 

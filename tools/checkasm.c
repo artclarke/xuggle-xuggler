@@ -498,11 +498,76 @@ static int check_pixel( int cpu_ref, int cpu_new )
             if( memcmp(fdec1, fdec2, 4*FDEC_STRIDE*sizeof(pixel)) ) \
             { \
                 ok = 0; \
+                fprintf( stderr, #name" [FAILED]\n" ); \
                 for( int j=0; j<16; j++ ) \
                     fprintf( stderr, "%02x ", fdec1[(j&3)+(j>>2)*FDEC_STRIDE] ); \
                 fprintf( stderr, "\n" ); \
                 for( int j=0; j<16; j++ ) \
                     fprintf( stderr, "%02x ", fdec2[(j&3)+(j>>2)*FDEC_STRIDE] ); \
+                fprintf( stderr, "\n" ); \
+                break; \
+            } \
+        } \
+    }
+
+#define TEST_INTRA8_X9( name, cmp ) \
+    if( pixel_asm.name && pixel_asm.name != pixel_ref.name ) \
+    { \
+        set_func_name( #name ); \
+        used_asm = 1; \
+        ALIGNED_ARRAY_64( uint16_t, bitcosts,[17] ); \
+        ALIGNED_ARRAY_16( uint16_t, satds_c,[16] ) = {0}; \
+        ALIGNED_ARRAY_16( uint16_t, satds_a,[16] ) = {0}; \
+        for( int i=0; i<17; i++ ) \
+            bitcosts[i] = 9*(i!=8); \
+        for( int i=0; i<32; i++ ) \
+        { \
+            pixel *fenc = pbuf1+48+i*12; \
+            pixel *fdec1 = pbuf3+48+i*12; \
+            pixel *fdec2 = pbuf4+48+i*12; \
+            int pred_mode = i%9; \
+            int res_c = INT_MAX; \
+            predict_8x8_filter( fdec1, edge, ALL_NEIGHBORS, ALL_NEIGHBORS ); \
+            for( int j=0; j<9; j++ ) \
+            { \
+                predict_8x8[j]( fdec1, edge ); \
+                satds_c[j] = pixel_c.cmp[PIXEL_8x8]( fenc, FENC_STRIDE, fdec1, FDEC_STRIDE ) + 9*(j!=pred_mode); \
+                if( satds_c[j] < (uint16_t)res_c ) \
+                    res_c = satds_c[j] + (j<<16); \
+            } \
+            predict_8x8[res_c>>16]( fdec1, edge ); \
+            int res_a = call_a( pixel_asm.name, fenc, fdec2, edge, bitcosts+8-pred_mode, satds_a ); \
+            if( res_c != res_a || memcmp(satds_c, satds_a, sizeof(satds_c)) ) \
+            { \
+                ok = 0; \
+                fprintf( stderr, #name": %d,%d != %d,%d [FAILED]\n", res_c>>16, res_c&0xffff, res_a>>16, res_a&0xffff ); \
+                for( int j = 0; j < 9; j++ ) \
+                    fprintf( stderr, "%5d ", satds_c[j]); \
+                fprintf( stderr, "\n" ); \
+                for( int j = 0; j < 9; j++ ) \
+                    fprintf( stderr, "%5d ", satds_a[j]); \
+                fprintf( stderr, "\n" ); \
+                break; \
+            } \
+            for( int j=0; j<8; j++ ) \
+                if( memcmp(fdec1+j*FDEC_STRIDE, fdec2+j*FDEC_STRIDE, 8*sizeof(pixel)) ) \
+                    ok = 0; \
+            if( !ok ) \
+            { \
+                fprintf( stderr, #name" [FAILED]\n" ); \
+                for( int j=0; j<8; j++ ) \
+                { \
+                    for( int k=0; k<8; k++ ) \
+                        fprintf( stderr, "%02x ", fdec1[k+j*FDEC_STRIDE] ); \
+                    fprintf( stderr, "\n" ); \
+                } \
+                fprintf( stderr, "\n" ); \
+                for( int j=0; j<8; j++ ) \
+                { \
+                    for( int k=0; k<8; k++ ) \
+                        fprintf( stderr, "%02x ", fdec2[k+j*FDEC_STRIDE] ); \
+                    fprintf( stderr, "\n" ); \
+                } \
                 fprintf( stderr, "\n" ); \
                 break; \
             } \
@@ -526,9 +591,11 @@ static int check_pixel( int cpu_ref, int cpu_new )
     report( "intra sad_x3 :" );
     ok = 1; used_asm = 0;
     TEST_INTRA_X9( intra_satd_x9_4x4, satd );
+    TEST_INTRA8_X9( intra_sa8d_x9_8x8, sa8d );
     report( "intra satd_x9 :" );
     ok = 1; used_asm = 0;
     TEST_INTRA_X9( intra_sad_x9_4x4, sad );
+    TEST_INTRA8_X9( intra_sad_x9_8x8, sad );
     report( "intra sad_x9 :" );
 
     ok = 1; used_asm = 0;

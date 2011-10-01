@@ -668,6 +668,7 @@ cglobal predict_8x8_filter, 4,6,6
     add        t4d, r5d
     shr        t4d, 2
     mov         [t1+7*SIZEOF_PIXEL], t4%1
+    mov         [t1+6*SIZEOF_PIXEL], t4%1
     test       r3b, 2
     je .done
 .check_top:

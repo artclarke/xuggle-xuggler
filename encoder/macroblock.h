@@ -140,7 +140,7 @@ static ALWAYS_INLINE void x264_mb_encode_i4x4( x264_t *h, int p, int idx, int i_
     }
 }
 
-static ALWAYS_INLINE void x264_mb_encode_i8x8( x264_t *h, int p, int idx, int i_qp, int i_mode, pixel *edge )
+static ALWAYS_INLINE void x264_mb_encode_i8x8( x264_t *h, int p, int idx, int i_qp, int i_mode, pixel *edge, int b_predict )
 {
     int x = idx&1;
     int y = idx>>1;
@@ -150,16 +150,19 @@ static ALWAYS_INLINE void x264_mb_encode_i8x8( x264_t *h, int p, int idx, int i_
     ALIGNED_ARRAY_16( dctcoef, dct8x8,[64] );
     ALIGNED_ARRAY_32( pixel, edge_buf,[36] );
 
-    if( !edge )
+    if( b_predict )
     {
-        h->predict_8x8_filter( p_dst, edge_buf, h->mb.i_neighbour8[idx], x264_pred_i4x4_neighbors[i_mode] );
-        edge = edge_buf;
-    }
+        if( !edge )
+        {
+            h->predict_8x8_filter( p_dst, edge_buf, h->mb.i_neighbour8[idx], x264_pred_i4x4_neighbors[i_mode] );
+            edge = edge_buf;
+        }
 
-    if( h->mb.b_lossless )
-        x264_predict_lossless_8x8( h, p_dst, p, idx, i_mode, edge );
-    else
-        h->predict_8x8[i_mode]( p_dst, edge );
+        if( h->mb.b_lossless )
+            x264_predict_lossless_8x8( h, p_dst, p, idx, i_mode, edge );
+        else
+            h->predict_8x8[i_mode]( p_dst, edge );
+    }
 
     if( h->mb.b_lossless )
     {

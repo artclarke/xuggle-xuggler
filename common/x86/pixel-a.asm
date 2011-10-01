@@ -85,6 +85,36 @@ intrax9b_v1:    db  0, 1,-1,-1,-1,-1,-1,-1, 4, 5,-1,-1,-1,-1,-1,-1
 intrax9b_v2:    db  2, 3,-1,-1,-1,-1,-1,-1, 6, 7,-1,-1,-1,-1,-1,-1
 intrax9b_lut:   db 0x60,0x64,0x80,0x00,0x04,0x20,0x40,0x24,0x44,0,0,0,0,0,0,0
 
+intra8x9_h1:   db  7, 7, 7, 7, 7, 7, 7, 7, 5, 5, 5, 5, 5, 5, 5, 5
+intra8x9_h2:   db  6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 4, 4, 4, 4, 4
+intra8x9_h3:   db  3, 3, 3, 3, 3, 3, 3, 3, 1, 1, 1, 1, 1, 1, 1, 1
+intra8x9_h4:   db  2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0
+intra8x9_ddl1: db  1, 2, 3, 4, 5, 6, 7, 8, 3, 4, 5, 6, 7, 8, 9,10
+intra8x9_ddl2: db  2, 3, 4, 5, 6, 7, 8, 9, 4, 5, 6, 7, 8, 9,10,11
+intra8x9_ddl3: db  5, 6, 7, 8, 9,10,11,12, 7, 8, 9,10,11,12,13,14
+intra8x9_ddl4: db  6, 7, 8, 9,10,11,12,13, 8, 9,10,11,12,13,14,15
+intra8x9_vl1:  db  0, 1, 2, 3, 4, 5, 6, 7, 1, 2, 3, 4, 5, 6, 7, 8
+intra8x9_vl2:  db  1, 2, 3, 4, 5, 6, 7, 8, 2, 3, 4, 5, 6, 7, 8, 9
+intra8x9_vl3:  db  2, 3, 4, 5, 6, 7, 8, 9, 3, 4, 5, 6, 7, 8, 9,10
+intra8x9_vl4:  db  3, 4, 5, 6, 7, 8, 9,10, 4, 5, 6, 7, 8, 9,10,11
+intra8x9_ddr1: db  8, 9,10,11,12,13,14,15, 6, 7, 8, 9,10,11,12,13
+intra8x9_ddr2: db  7, 8, 9,10,11,12,13,14, 5, 6, 7, 8, 9,10,11,12
+intra8x9_ddr3: db  4, 5, 6, 7, 8, 9,10,11, 2, 3, 4, 5, 6, 7, 8, 9
+intra8x9_ddr4: db  3, 4, 5, 6, 7, 8, 9,10, 1, 2, 3, 4, 5, 6, 7, 8
+intra8x9_vr1:  db  8, 9,10,11,12,13,14,15, 7, 8, 9,10,11,12,13,14
+intra8x9_vr2:  db  8, 9,10,11,12,13,14,15, 6, 8, 9,10,11,12,13,14
+intra8x9_vr3:  db  5, 7, 8, 9,10,11,12,13, 3, 5, 7, 8, 9,10,11,12
+intra8x9_vr4:  db  4, 6, 8, 9,10,11,12,13, 2, 4, 6, 8, 9,10,11,12
+intra8x9_hd1:  db  3, 8, 9,10,11,12,13,14, 1, 6, 2, 7, 3, 8, 9,10
+intra8x9_hd2:  db  2, 7, 3, 8, 9,10,11,12, 0, 5, 1, 6, 2, 7, 3, 8
+intra8x9_hd3:  db  7, 8, 9,10,11,12,13,14, 3, 4, 5, 6, 7, 8, 9,10
+intra8x9_hd4:  db  5, 6, 7, 8, 9,10,11,12, 1, 2, 3, 4, 5, 6, 7, 8
+intra8x9_hu1:  db 13,12,11,10, 9, 8, 7, 6, 9, 8, 7, 6, 5, 4, 3, 2
+intra8x9_hu2:  db 11,10, 9, 8, 7, 6, 5, 4, 7, 6, 5, 4, 3, 2, 1, 0
+intra8x9_hu3:  db  5, 4, 3, 2, 1, 0,15,15, 1, 0,15,15,15,15,15,15
+intra8x9_hu4:  db  3, 2, 1, 0,15,15,15,15,15,15,15,15,15,15,15,15
+pw_s00112233:  dw 0x8000,0x8000,0x8001,0x8001,0x8002,0x8002,0x8003,0x8003
+
 transd_shuf1: SHUFFLE_MASK_W 0, 8, 2, 10, 4, 12, 6, 14
 transd_shuf2: SHUFFLE_MASK_W 1, 9, 3, 11, 5, 13, 7, 15
 
@@ -2061,12 +2091,20 @@ cglobal intra_satd_x3_8x8c, 0,6
 
 
 %macro PRED4x4_LOWPASS 5
+%ifid %5
+    pavgb       %5, %2, %3
+    pxor        %3, %2
+    pand        %3, [pb_1]
+    psubusb     %5, %3
+    pavgb       %1, %4, %5
+%else
     mova        %5, %2
     pavgb       %2, %3
     pxor        %3, %5
     pand        %3, [pb_1]
     psubusb     %2, %3
     pavgb       %1, %4, %2
+%endif
 %endmacro
 
 %macro INTRA_X9_PRED 2
@@ -2530,7 +2568,372 @@ ALIGN 16
 %endif ; ARCH
 %endmacro ; INTRA_X9
 
+;-----------------------------------------------------------------------------
+; int intra_sad_x9_8x8( uint8_t *fenc, uint8_t *fdec, uint8_t edge[36], uint16_t *bitcosts, uint16_t *satds )
+;-----------------------------------------------------------------------------
 
+%macro INTRA8_X9 0
+cglobal intra_sad_x9_8x8, 5,6,9
+    %define fenc02 m4
+    %define fenc13 m5
+    %define fenc46 m6
+    %define fenc57 m7
+%ifdef ARCH_X86_64
+    %define tmp m8
+    %assign padbase 0x0
+%else
+    %define tmp [rsp]
+    %assign padbase 0x10
+%endif
+    %assign pad 0x240+0x10+padbase-gprsize-(stack_offset&15)
+    %define pred(i,j) [rsp+i*0x40+j*0x10+padbase]
+
+    SUB        rsp, pad
+    movq    fenc02, [r0+FENC_STRIDE* 0]
+    movq    fenc13, [r0+FENC_STRIDE* 1]
+    movq    fenc46, [r0+FENC_STRIDE* 4]
+    movq    fenc57, [r0+FENC_STRIDE* 5]
+    movhps  fenc02, [r0+FENC_STRIDE* 2]
+    movhps  fenc13, [r0+FENC_STRIDE* 3]
+    movhps  fenc46, [r0+FENC_STRIDE* 6]
+    movhps  fenc57, [r0+FENC_STRIDE* 7]
+
+    ; save instruction size: avoid 4-byte memory offsets
+    lea         r0, [intra8x9_h1+128]
+    %define off(m) (r0+m-(intra8x9_h1+128))
+
+; v
+    movddup     m0, [r2+16]
+    mova pred(0,0), m0
+    psadbw      m1, m0, fenc02
+    mova pred(0,1), m0
+    psadbw      m2, m0, fenc13
+    mova pred(0,2), m0
+    psadbw      m3, m0, fenc46
+    mova pred(0,3), m0
+    psadbw      m0, m0, fenc57
+    paddw       m1, m2
+    paddw       m0, m3
+    paddw       m0, m1
+    movhlps     m1, m0
+    paddw       m0, m1
+    movd    [r4+0], m0
+
+; h
+    movq        m0, [r2+7]
+    pshufb      m1, m0, [off(intra8x9_h1)]
+    pshufb      m2, m0, [off(intra8x9_h2)]
+    mova pred(1,0), m1
+    psadbw      m1, fenc02
+    mova pred(1,1), m2
+    psadbw      m2, fenc13
+    paddw       m1, m2
+    pshufb      m3, m0, [off(intra8x9_h3)]
+    pshufb      m2, m0, [off(intra8x9_h4)]
+    mova pred(1,2), m3
+    psadbw      m3, fenc46
+    mova pred(1,3), m2
+    psadbw      m2, fenc57
+    paddw       m1, m3
+    paddw       m1, m2
+    movhlps     m2, m1
+    paddw       m1, m2
+    movd    [r4+2], m1
+
+    lea         r5, [rsp+padbase+0x100]
+    %define pred(i,j) [r5+i*0x40+j*0x10-0x100]
+
+; dc
+    movhps      m0, [r2+16]
+    pxor        m2, m2
+    psadbw      m0, m2
+    movhlps     m1, m0
+    paddw       m0, m1
+    psrlw       m0, 3
+    pavgw       m0, m2
+    pshufb      m0, m2
+    mova pred(2,0), m0
+    psadbw      m1, m0, fenc02
+    mova pred(2,1), m0
+    psadbw      m2, m0, fenc13
+    mova pred(2,2), m0
+    psadbw      m3, m0, fenc46
+    mova pred(2,3), m0
+    psadbw      m0, m0, fenc57
+    paddw       m1, m2
+    paddw       m0, m3
+    paddw       m0, m1
+    movhlps     m1, m0
+    paddw       m0, m1
+    movd    [r4+4], m0
+
+; ddl
+; Ft1 Ft2 Ft3 Ft4 Ft5 Ft6 Ft7 Ft8
+; Ft2 Ft3 Ft4 Ft5 Ft6 Ft7 Ft8 Ft9
+; Ft3 Ft4 Ft5 Ft6 Ft7 Ft8 Ft9 FtA
+; Ft4 Ft5 Ft6 Ft7 Ft8 Ft9 FtA FtB
+; Ft5 Ft6 Ft7 Ft8 Ft9 FtA FtB FtC
+; Ft6 Ft7 Ft8 Ft9 FtA FtB FtC FtD
+; Ft7 Ft8 Ft9 FtA FtB FtC FtD FtE
+; Ft8 Ft9 FtA FtB FtC FtD FtE FtF
+    mova        m0, [r2+16]
+    movu        m2, [r2+17]
+    pslldq      m1, m0, 1
+    pavgb       m3, m0, m2              ; Gt1 Gt2 Gt3 Gt4 Gt5 Gt6 Gt7 Gt8 Gt9 GtA GtB ___ ___ ___ ___ ___
+    PRED4x4_LOWPASS m0, m1, m2, m0, tmp ; ___ Ft1 Ft2 Ft3 Ft4 Ft5 Ft6 Ft7 Ft8 Ft9 FtA FtB FtC FtD FtE FtF
+    pshufb      m1, m0, [off(intra8x9_ddl1)]
+    pshufb      m2, m0, [off(intra8x9_ddl2)]
+    mova pred(3,0), m1
+    psadbw      m1, fenc02
+    mova pred(3,1), m2
+    psadbw      m2, fenc13
+    paddw       m1, m2
+    pshufb      m2, m0, [off(intra8x9_ddl3)]
+    mova pred(3,2), m2
+    psadbw      m2, fenc46
+    paddw       m1, m2
+    pshufb      m2, m0, [off(intra8x9_ddl4)]
+    mova pred(3,3), m2
+    psadbw      m2, fenc57
+    paddw       m1, m2
+    movhlps     m2, m1
+    paddw       m1, m2
+    movd    [r4+6], m1
+
+; vl
+; Gt1 Gt2 Gt3 Gt4 Gt5 Gt6 Gt7 Gt8
+; Ft1 Ft2 Ft3 Ft4 Ft5 Ft6 Ft7 Ft8
+; Gt2 Gt3 Gt4 Gt5 Gt6 Gt7 Gt8 Gt9
+; Ft2 Ft3 Ft4 Ft5 Ft6 Ft7 Ft8 Ft9
+; Gt3 Gt4 Gt5 Gt6 Gt7 Gt8 Gt9 GtA
+; Ft3 Ft4 Ft5 Ft6 Ft7 Ft8 Ft9 FtA
+; Gt4 Gt5 Gt6 Gt7 Gt8 Gt9 GtA GtB
+; Ft4 Ft5 Ft6 Ft7 Ft8 Ft9 FtA FtB
+    pshufb      m1, m3, [off(intra8x9_vl1)]
+    pshufb      m2, m0, [off(intra8x9_vl2)]
+    pshufb      m3, m3, [off(intra8x9_vl3)]
+    pshufb      m0, m0, [off(intra8x9_vl4)]
+    mova pred(7,0), m1
+    psadbw      m1, fenc02
+    mova pred(7,1), m2
+    psadbw      m2, fenc13
+    mova pred(7,2), m3
+    psadbw      m3, fenc46
+    mova pred(7,3), m0
+    psadbw      m0, fenc57
+    paddw       m1, m2
+    paddw       m0, m3
+    paddw       m0, m1
+    movhlps     m1, m0
+    paddw       m0, m1
+%if cpuflag(sse4)
+    pextrw [r4+14], m0, 0
+%else
+    movd       r5d, m0
+    mov    [r4+14], r5w
+    lea         r5, [rsp+padbase+0x100]
+%endif
+
+; ddr
+; Flt Ft0 Ft1 Ft2 Ft3 Ft4 Ft5 Ft6
+; Fl0 Flt Ft0 Ft1 Ft2 Ft3 Ft4 Ft5
+; Fl1 Fl0 Flt Ft0 Ft1 Ft2 Ft3 Ft4
+; Fl2 Fl1 Fl0 Flt Ft0 Ft1 Ft2 Ft3
+; Fl3 Fl2 Fl1 Fl0 Flt Ft0 Ft1 Ft2
+; Fl4 Fl3 Fl2 Fl1 Fl0 Flt Ft0 Ft1
+; Fl5 Fl4 Fl3 Fl2 Fl1 Fl0 Flt Ft0
+; Fl6 Fl5 Fl4 Fl3 Fl2 Fl1 Fl0 Flt
+    movu        m2, [r2+8]
+    movu        m0, [r2+7]
+    movu        m1, [r2+6]
+    pavgb       m3, m2, m0              ; Gl6 Gl5 Gl4 Gl3 Gl2 Gl1 Gl0 Glt Gt0 Gt1 Gt2 Gt3 Gt4 Gt5 Gt6 Gt7
+    PRED4x4_LOWPASS m0, m1, m2, m0, tmp ; Fl7 Fl6 Fl5 Fl4 Fl3 Fl2 Fl1 Fl0 Flt Ft0 Ft1 Ft2 Ft3 Ft4 Ft5 Ft6
+    pshufb      m1, m0, [off(intra8x9_ddr1)]
+    pshufb      m2, m0, [off(intra8x9_ddr2)]
+    mova pred(4,0), m1
+    psadbw      m1, fenc02
+    mova pred(4,1), m2
+    psadbw      m2, fenc13
+    paddw       m1, m2
+    pshufb      m2, m0, [off(intra8x9_ddr3)]
+    mova pred(4,2), m2
+    psadbw      m2, fenc46
+    paddw       m1, m2
+    pshufb      m2, m0, [off(intra8x9_ddr4)]
+    mova pred(4,3), m2
+    psadbw      m2, fenc57
+    paddw       m1, m2
+    movhlps     m2, m1
+    paddw       m1, m2
+    movd    [r4+8], m1
+
+    add         r0, 256
+    add         r5, 0xC0
+    %define off(m) (r0+m-(intra8x9_h1+256+128))
+    %define pred(i,j) [r5+i*0x40+j*0x10-0x1C0]
+
+; vr
+; Gt0 Gt1 Gt2 Gt3 Gt4 Gt5 Gt6 Gt7
+; Flt Ft0 Ft1 Ft2 Ft3 Ft4 Ft5 Ft6
+; Fl0 Gt0 Gt1 Gt2 Gt3 Gt4 Gt5 Gt6
+; Fl1 Flt Ft0 Ft1 Ft2 Ft3 Ft4 Ft5
+; Fl2 Fl0 Gt0 Gt1 Gt2 Gt3 Gt4 Gt5
+; Fl3 Fl1 Flt Ft0 Ft1 Ft2 Ft3 Ft4
+; Fl4 Fl2 Fl0 Gt0 Gt1 Gt2 Gt3 Gt4
+; Fl5 Fl3 Fl1 Flt Ft0 Ft1 Ft2 Ft3
+    movsd       m2, m3, m0 ; Fl7 Fl6 Fl5 Fl4 Fl3 Fl2 Fl1 Fl0 Gt0 Gt1 Gt2 Gt3 Gt4 Gt5 Gt6 Gt7
+    pshufb      m1, m2, [off(intra8x9_vr1)]
+    pshufb      m2, m2, [off(intra8x9_vr3)]
+    mova pred(5,0), m1
+    psadbw      m1, fenc02
+    mova pred(5,2), m2
+    psadbw      m2, fenc46
+    paddw       m1, m2
+    pshufb      m2, m0, [off(intra8x9_vr2)]
+    mova pred(5,1), m2
+    psadbw      m2, fenc13
+    paddw       m1, m2
+    pshufb      m2, m0, [off(intra8x9_vr4)]
+    mova pred(5,3), m2
+    psadbw      m2, fenc57
+    paddw       m1, m2
+    movhlps     m2, m1
+    paddw       m1, m2
+    movd   [r4+10], m1
+
+; hd
+; Glt Flt Ft0 Ft1 Ft2 Ft3 Ft4 Ft5
+; Gl0 Fl0 Glt Flt Ft0 Ft1 Ft2 Ft3
+; Gl1 Fl1 Gl0 Fl0 Glt Flt Ft0 Ft1
+; Gl2 Fl2 Gl1 Fl1 Gl0 Fl0 Glt Flt
+; Gl3 Fl3 Gl2 Fl2 Gl1 Fl1 Gl0 Fl0
+; Gl4 Fl4 Gl3 Fl3 Gl2 Fl2 Gl1 Fl1
+; Gl5 Fl5 Gl4 Fl4 Gl3 Fl3 Gl2 Fl2
+; Gl6 Fl6 Gl5 Fl5 Gl4 Fl4 Gl3 Fl3
+    pshufd      m2, m3, q0001
+%if cpuflag(sse4)
+    pblendw     m2, m0, q3330 ; Gl2 Gl1 Gl0 Glt ___ Fl2 Fl1 Fl0 Flt Ft0 Ft1 Ft2 Ft3 Ft4 Ft5 ___
+%else
+    movss       m1, m0, m2
+    SWAP        1, 2
+%endif
+    punpcklbw   m0, m3        ; Fl7 Gl6 Fl6 Gl5 Fl5 Gl4 Fl4 Gl3 Fl3 Gl2 Fl2 Gl1 Fl1 Gl0 Fl0 ___
+    pshufb      m1, m2, [off(intra8x9_hd1)]
+    pshufb      m2, m2, [off(intra8x9_hd2)]
+    mova pred(6,0), m1
+    psadbw      m1, fenc02
+    mova pred(6,1), m2
+    psadbw      m2, fenc13
+    paddw       m1, m2
+    pshufb      m2, m0, [off(intra8x9_hd3)]
+    pshufb      m3, m0, [off(intra8x9_hd4)]
+    mova pred(6,2), m2
+    psadbw      m2, fenc46
+    mova pred(6,3), m3
+    psadbw      m3, fenc57
+    paddw       m1, m2
+    paddw       m1, m3
+    movhlps     m2, m1
+    paddw       m1, m2
+    ; don't just store to [r4+12]. this is too close to the load of dqword [r4] and would cause a forwarding stall
+    pslldq      m1, 12
+    SWAP        3, 1
+
+; hu
+; Gl0 Fl1 Gl1 Fl2 Gl2 Fl3 Gl3 Fl4
+; Gl1 Fl2 Gl2 Fl3 Gl3 Fl4 Gl4 Fl5
+; Gl2 Fl3 Gl3 Gl3 Gl4 Fl5 Gl5 Fl6
+; Gl3 Gl3 Gl4 Fl5 Gl5 Fl6 Gl6 Fl7
+; Gl4 Fl5 Gl5 Fl6 Gl6 Fl7 Gl7 Gl7
+; Gl5 Fl6 Gl6 Fl7 Gl7 Gl7 Gl7 Gl7
+; Gl6 Fl7 Gl7 Gl7 Gl7 Gl7 Gl7 Gl7
+; Gl7 Gl7 Gl7 Gl7 Gl7 Gl7 Gl7 Gl7
+%if cpuflag(sse4)
+    pinsrb      m0, [r2+7], 15 ; Gl7
+%else
+    movd        m1, [r2+7]
+    pslldq      m0, 1
+    palignr     m1, m0, 1
+    SWAP        0, 1
+%endif
+    pshufb      m1, m0, [off(intra8x9_hu1)]
+    pshufb      m2, m0, [off(intra8x9_hu2)]
+    mova pred(8,0), m1
+    psadbw      m1, fenc02
+    mova pred(8,1), m2
+    psadbw      m2, fenc13
+    paddw       m1, m2
+    pshufb      m2, m0, [off(intra8x9_hu3)]
+    pshufb      m0, m0, [off(intra8x9_hu4)]
+    mova pred(8,2), m2
+    psadbw      m2, fenc46
+    mova pred(8,3), m0
+    psadbw      m0, fenc57
+    paddw       m1, m2
+    paddw       m1, m0
+    movhlps     m2, m1
+    paddw       m1, m2
+    movd       r2d, m1
+
+    movu        m0, [r3]
+    por         m3, [r4]
+    paddw       m0, m3
+    mova      [r4], m0
+    movzx      r5d, word [r3+16]
+    add        r2d, r5d
+    mov    [r4+16], r2w
+
+%if cpuflag(sse4)
+    phminposuw m0, m0 ; v,h,dc,ddl,ddr,vr,hd,vl
+    movd      eax, m0
+%else
+    ; 8x8 sad is up to 14 bits; +bitcosts and saturate -> 14 bits; pack with 2 bit index
+    paddusw    m0, m0
+    paddusw    m0, m0
+    paddw      m0, [off(pw_s00112233)]
+    movhlps    m1, m0
+    pminsw     m0, m1
+    pshuflw    m1, m0, q0032
+    pminsw     m0, m1
+    movd      eax, m0
+    ; repack with 3 bit index
+    xor       eax, 0x80008000
+    movzx     r3d, ax
+    shr       eax, 15
+    add       r3d, r3d
+    or        eax, 1
+    cmp       eax, r3d
+    cmovg     eax, r3d
+    ; reverse to phminposuw order
+    mov       r3d, eax
+    and       eax, 7
+    shr       r3d, 3
+    shl       eax, 16
+    or        eax, r3d
+%endif
+    add       r2d, 8<<16
+    cmp        ax, r2w
+    cmovg     eax, r2d
+
+    mov       r2d, eax
+    shr       r2d, 16
+    shl       r2d, 6
+    add        r1, 4*FDEC_STRIDE
+    mova       m0, [rsp+padbase+r2+0x00]
+    mova       m1, [rsp+padbase+r2+0x10]
+    mova       m2, [rsp+padbase+r2+0x20]
+    mova       m3, [rsp+padbase+r2+0x30]
+    movq   [r1+FDEC_STRIDE*-4], m0
+    movhps [r1+FDEC_STRIDE*-2], m0
+    movq   [r1+FDEC_STRIDE*-3], m1
+    movhps [r1+FDEC_STRIDE*-1], m1
+    movq   [r1+FDEC_STRIDE* 0], m2
+    movhps [r1+FDEC_STRIDE* 2], m2
+    movq   [r1+FDEC_STRIDE* 1], m3
+    movhps [r1+FDEC_STRIDE* 3], m3
+    ADD       rsp, pad
+    RET
+%endmacro
 
 ; in:  r0=pix, r1=stride, r2=stride*3, r3=tmp, m6=mask_ac4, m7=0
 ; out: [tmp]=hadamard4, m0=satd
@@ -3018,6 +3421,7 @@ SA8D
 HADAMARD_AC_SSE2
 %ifndef HIGH_BIT_DEPTH
 INTRA_X9
+INTRA8_X9
 %endif
 %undef movdqa ; nehalem doesn't like movaps
 %undef movdqu ; movups
@@ -3036,6 +3440,7 @@ SA8D
 HADAMARD_AC_SSE2
 %ifndef HIGH_BIT_DEPTH
 INTRA_X9
+INTRA8_X9
 %endif
 
 INIT_XMM avx
@@ -3044,6 +3449,7 @@ SA8D
 %ifndef HIGH_BIT_DEPTH
 INTRA_SA8D_SSE2
 INTRA_X9
+INTRA8_X9
 %endif
 HADAMARD_AC_SSE2
 

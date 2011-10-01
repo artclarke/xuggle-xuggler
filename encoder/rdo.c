@@ -276,7 +276,7 @@ static uint64_t x264_rd_cost_i8x8( x264_t *h, int i_lambda2, int i8, int i_mode,
 
     for( int p = 0; p < plane_count; p++ )
     {
-        x264_mb_encode_i8x8( h, p, i8, i_qp, i_mode, edge[p] );
+        x264_mb_encode_i8x8( h, p, i8, i_qp, i_mode, edge[p], 1 );
         i_qp = h->mb.i_chroma_qp;
     }
 

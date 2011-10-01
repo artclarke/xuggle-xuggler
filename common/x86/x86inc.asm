@@ -873,6 +873,8 @@ AVX_INSTR minpd, 1, 0
 AVX_INSTR minps, 1, 0
 AVX_INSTR minsd, 1, 0
 AVX_INSTR minss, 1, 0
+AVX_INSTR movsd, 1, 0
+AVX_INSTR movss, 1, 0
 AVX_INSTR mpsadbw, 0, 1
 AVX_INSTR mulpd, 1, 0
 AVX_INSTR mulps, 1, 0

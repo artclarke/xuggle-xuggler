@@ -1072,6 +1072,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
             INIT4( hadamard_ac, _ssse3 );
             pixf->intra_sad_x9_4x4  = x264_intra_sad_x9_4x4_ssse3;
             pixf->intra_satd_x9_4x4 = x264_intra_satd_x9_4x4_ssse3;
+            pixf->intra_sad_x9_8x8  = x264_intra_sad_x9_8x8_ssse3;
         }
         INIT_ADS( _ssse3 );
         if( !(cpu&X264_CPU_SLOW_ATOM) )
@@ -1116,6 +1117,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
             INIT4( hadamard_ac, _sse4 );
             pixf->intra_sad_x9_4x4  = x264_intra_sad_x9_4x4_sse4;
             pixf->intra_satd_x9_4x4 = x264_intra_satd_x9_4x4_sse4;
+            pixf->intra_sad_x9_8x8  = x264_intra_sad_x9_8x8_sse4;
         }
         pixf->sa8d[PIXEL_16x16]= x264_pixel_sa8d_16x16_sse4;
         pixf->sa8d[PIXEL_8x8]  = x264_pixel_sa8d_8x8_sse4;
@@ -1133,6 +1135,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
             INIT4( hadamard_ac, _avx );
             pixf->intra_sad_x9_4x4  = x264_intra_sad_x9_4x4_avx;
             pixf->intra_satd_x9_4x4 = x264_intra_satd_x9_4x4_avx;
+            pixf->intra_sad_x9_8x8  = x264_intra_sad_x9_8x8_avx;
         }
         INIT5( ssd, _avx );
         pixf->sa8d[PIXEL_16x16]= x264_pixel_sa8d_16x16_avx;
