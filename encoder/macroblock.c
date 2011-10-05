@@ -705,7 +705,7 @@ static ALWAYS_INLINE void x264_macroblock_encode_internal( x264_t *h, int plane_
                     /* emulate missing topright samples */
                     MPIXEL_X4( &p_dst[4-FDEC_STRIDE] ) = PIXEL_SPLAT_X4( p_dst[3-FDEC_STRIDE] );
 
-                x264_mb_encode_i4x4( h, p, i, i_qp, i_mode );
+                x264_mb_encode_i4x4( h, p, i, i_qp, i_mode, 1 );
             }
             i_qp = h->mb.i_chroma_qp;
         }

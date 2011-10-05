@@ -471,24 +471,39 @@ static int check_pixel( int cpu_ref, int cpu_new )
         ALIGNED_ARRAY_64( uint16_t, bitcosts,[17] ); \
         for( int i=0; i<17; i++ ) \
             bitcosts[i] = 9*(i!=8); \
+        memcpy( pbuf3, pbuf2, 20*FDEC_STRIDE*sizeof(pixel) ); \
+        memcpy( pbuf4, pbuf2, 20*FDEC_STRIDE*sizeof(pixel) ); \
         for( int i=0; i<32; i++ ) \
         { \
             pixel *fenc = pbuf1+48+i*12; \
-            pixel *fdec = pbuf3+48+i*12; \
+            pixel *fdec1 = pbuf3+48+i*12; \
+            pixel *fdec2 = pbuf4+48+i*12; \
             int pred_mode = i%9; \
             int res_c = INT_MAX; \
             for( int j=0; j<9; j++ ) \
             { \
-                predict_4x4[j]( fdec ); \
-                int cost = pixel_c.cmp[PIXEL_4x4]( fenc, FENC_STRIDE, fdec, FDEC_STRIDE ) + 9*(j!=pred_mode); \
+                predict_4x4[j]( fdec1 ); \
+                int cost = pixel_c.cmp[PIXEL_4x4]( fenc, FENC_STRIDE, fdec1, FDEC_STRIDE ) + 9*(j!=pred_mode); \
                 if( cost < (uint16_t)res_c ) \
                     res_c = cost + (j<<16); \
             } \
-            int res_a = call_a( pixel_asm.name, fenc, fdec, bitcosts+8-pred_mode ); \
+            predict_4x4[res_c>>16]( fdec1 ); \
+            int res_a = call_a( pixel_asm.name, fenc, fdec2, bitcosts+8-pred_mode ); \
             if( res_c != res_a ) \
             { \
                 ok = 0; \
                 fprintf( stderr, #name": %d,%d != %d,%d [FAILED]\n", res_c>>16, res_c&0xffff, res_a>>16, res_a&0xffff ); \
+                break; \
+            } \
+            if( memcmp(fdec1, fdec2, 4*FDEC_STRIDE*sizeof(pixel)) ) \
+            { \
+                ok = 0; \
+                for( int j=0; j<16; j++ ) \
+                    fprintf( stderr, "%02x ", fdec1[(j&3)+(j>>2)*FDEC_STRIDE] ); \
+                fprintf( stderr, "\n" ); \
+                for( int j=0; j<16; j++ ) \
+                    fprintf( stderr, "%02x ", fdec2[(j&3)+(j>>2)*FDEC_STRIDE] ); \
+                fprintf( stderr, "\n" ); \
                 break; \
             } \
         } \

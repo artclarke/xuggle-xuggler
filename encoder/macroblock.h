@@ -104,17 +104,20 @@ do\
     M32( &h->mb.cache.non_zero_count[x264_scan8[16*p+10]] ) = 0;\
 } while(0)
 
-static ALWAYS_INLINE void x264_mb_encode_i4x4( x264_t *h, int p, int idx, int i_qp, int i_mode )
+static ALWAYS_INLINE void x264_mb_encode_i4x4( x264_t *h, int p, int idx, int i_qp, int i_mode, int b_predict )
 {
     int nz;
     pixel *p_src = &h->mb.pic.p_fenc[p][block_idx_xy_fenc[idx]];
     pixel *p_dst = &h->mb.pic.p_fdec[p][block_idx_xy_fdec[idx]];
     ALIGNED_ARRAY_16( dctcoef, dct4x4,[16] );
 
-    if( h->mb.b_lossless )
-        x264_predict_lossless_4x4( h, p_dst, p, idx, i_mode );
-    else
-        h->predict_4x4[i_mode]( p_dst );
+    if( b_predict )
+    {
+        if( h->mb.b_lossless )
+            x264_predict_lossless_4x4( h, p_dst, p, idx, i_mode );
+        else
+            h->predict_4x4[i_mode]( p_dst );
+    }
 
     if( h->mb.b_lossless )
     {

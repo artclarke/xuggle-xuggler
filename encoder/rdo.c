@@ -310,7 +310,7 @@ static uint64_t x264_rd_cost_i4x4( x264_t *h, int i_lambda2, int i4, int i_mode 
 
     for( int p = 0; p < plane_count; p++ )
     {
-        x264_mb_encode_i4x4( h, p, i4, i_qp, i_mode );
+        x264_mb_encode_i4x4( h, p, i4, i_qp, i_mode, 1 );
         i_qp = h->mb.i_chroma_qp;
     }
 

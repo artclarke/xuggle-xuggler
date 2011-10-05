@@ -977,8 +977,12 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
             {
                 /* No shortcuts here. The SSSE3 implementation of intra_mbcmp_x9 is fast enough. */
                 i_best = h->pixf.intra_mbcmp_x9_4x4( p_src_by, p_dst_by, cost_i4x4_mode-i_pred_mode );
-                a->i_predict4x4[idx] = i_best >> 16;
-                i_best &= 0xffff;
+                i_cost += i_best & 0xffff;
+                i_best >>= 16;
+                a->i_predict4x4[idx] = i_best;
+                if( i_cost > i_satd_thresh || idx == 15 )
+                    break;
+                h->mb.cache.intra4x4_pred_mode[x264_scan8[idx]] = i_best;
             }
             else
             {
@@ -1027,17 +1031,18 @@ static void x264_mb_analyse_intra( x264_t *h, x264_mb_analysis_t *a, int i_satd_
                         COPY2_IF_LT( i_best, i_satd, a->i_predict4x4[idx], i_mode );
                     }
                 }
-                i_best += 3 * lambda;
+
+                i_cost += i_best + 3 * lambda;
+                if( i_cost > i_satd_thresh || idx == 15 )
+                    break;
+                if( h->mb.b_lossless )
+                    x264_predict_lossless_4x4( h, p_dst_by, 0, idx, a->i_predict4x4[idx] );
+                else
+                    h->predict_4x4[a->i_predict4x4[idx]]( p_dst_by );
+                h->mb.cache.intra4x4_pred_mode[x264_scan8[idx]] = a->i_predict4x4[idx];
             }
-            i_cost += i_best;
-
-            if( i_cost > i_satd_thresh || idx == 15 )
-                break;
-
             /* we need to encode this block now (for next ones) */
-            x264_mb_encode_i4x4( h, 0, idx, a->i_qp, a->i_predict4x4[idx] );
-
-            h->mb.cache.intra4x4_pred_mode[x264_scan8[idx]] = a->i_predict4x4[idx];
+            x264_mb_encode_i4x4( h, 0, idx, a->i_qp, a->i_predict4x4[idx], 0 );
         }
         if( idx == 15 )
         {
