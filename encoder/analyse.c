@@ -2659,10 +2659,12 @@ static void x264_mb_analyse_p_rd( x264_t *h, x264_mb_analysis_t *a, int i_satd )
                 for( subtype = D_L0_4x4; subtype <= D_L0_8x8; subtype++ )
                 {
                     uint64_t cost;
-                    if( costs[subtype] > sub8x8_thresh || (subtype == D_L0_8x8 && bcost == COST_MAX64) )
+                    if( costs[subtype] > sub8x8_thresh )
                         continue;
                     h->mb.i_sub_partition[i] = subtype;
                     x264_mb_cache_mv_p8x8( h, a, i );
+                    if( subtype == btype )
+                        continue;
                     cost = x264_rd_cost_part( h, a->i_lambda2, i<<2, PIXEL_8x8 );
                     COPY2_IF_LT( bcost, cost, btype, subtype );
                 }
