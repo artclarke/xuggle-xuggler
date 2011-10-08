@@ -580,6 +580,9 @@ case $host_cpu in
     ia64)
         ARCH="IA64"
         ;;
+    alpha*)
+        ARCH="ALPHA"
+        ;;
     *)
         ARCH="$(echo $host_cpu | tr a-z A-Z)"
         ;;
