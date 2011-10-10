@@ -569,6 +569,22 @@
 %endif
 %endmacro
 
+; doesn't include the "pmaddubsw hmul_8p" pass
+%macro HADAMARD8_2D_HMUL 10
+    HADAMARD4_V %1, %2, %3, %4, %9
+    HADAMARD4_V %5, %6, %7, %8, %9
+    SUMSUB_BADC w, %1, %5, %2, %6, %9
+    HADAMARD 2, sumsub, %1, %5, %9, %10
+    HADAMARD 2, sumsub, %2, %6, %9, %10
+    SUMSUB_BADC w, %3, %7, %4, %8, %9
+    HADAMARD 2, sumsub, %3, %7, %9, %10
+    HADAMARD 2, sumsub, %4, %8, %9, %10
+    HADAMARD 1, amax, %1, %5, %9, %10
+    HADAMARD 1, amax, %2, %6, %9, %5
+    HADAMARD 1, amax, %3, %7, %9, %5
+    HADAMARD 1, amax, %4, %8, %9, %5
+%endmacro
+
 %macro SUMSUB2_AB 4
 %ifnum %3
     psub%1  m%4, m%2, m%3

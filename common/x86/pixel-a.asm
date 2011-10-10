@@ -114,6 +114,7 @@ intra8x9_hu2:  db 11,10, 9, 8, 7, 6, 5, 4, 7, 6, 5, 4, 3, 2, 1, 0
 intra8x9_hu3:  db  5, 4, 3, 2, 1, 0,15,15, 1, 0,15,15,15,15,15,15
 intra8x9_hu4:  db  3, 2, 1, 0,15,15,15,15,15,15,15,15,15,15,15,15
 pw_s00112233:  dw 0x8000,0x8000,0x8001,0x8001,0x8002,0x8002,0x8003,0x8003
+pw_s00001111:  dw 0x8000,0x8000,0x8000,0x8000,0x8001,0x8001,0x8001,0x8001
 
 transd_shuf1: SHUFFLE_MASK_W 0, 8, 2, 10, 4, 12, 6, 14
 transd_shuf2: SHUFFLE_MASK_W 1, 9, 3, 11, 5, 13, 7, 15
@@ -1429,18 +1430,7 @@ cglobal pixel_sa8d_8x8_internal
 %if vertical
     HADAMARD8_2D 0, 1, 2, 8, 4, 5, 3, 9, 6, amax
 %else ; non-sse2
-    HADAMARD4_V 0, 1, 2, 8, 6
-    HADAMARD4_V 4, 5, 3, 9, 6
-    SUMSUB_BADC w, 0, 4, 1, 5, 6
-    HADAMARD 2, sumsub, 0, 4, 6, 11
-    HADAMARD 2, sumsub, 1, 5, 6, 11
-    SUMSUB_BADC w, 2, 3, 8, 9, 6
-    HADAMARD 2, sumsub, 2, 3, 6, 11
-    HADAMARD 2, sumsub, 8, 9, 6, 11
-    HADAMARD 1, amax, 0, 4, 6, 11
-    HADAMARD 1, amax, 1, 5, 6, 4
-    HADAMARD 1, amax, 2, 3, 6, 4
-    HADAMARD 1, amax, 8, 9, 6, 4
+    HADAMARD8_2D_HMUL 0, 1, 2, 8, 4, 5, 3, 9, 6, 11
 %endif
     paddw m0, m1
     paddw m0, m2
@@ -2365,7 +2355,7 @@ cglobal intra_sad_x9_4x4, 3,4,9
     INTRA_X9_END 1, intrax9a
     add       rsp, pad
     RET
-%endif
+%endif ; cpuflag
 
 %ifdef ARCH_X86_64
 ;-----------------------------------------------------------------------------
@@ -2568,11 +2558,12 @@ ALIGN 16
 %endif ; ARCH
 %endmacro ; INTRA_X9
 
+
+
+%macro INTRA8_X9 0
 ;-----------------------------------------------------------------------------
 ; int intra_sad_x9_8x8( uint8_t *fenc, uint8_t *fdec, uint8_t edge[36], uint16_t *bitcosts, uint16_t *satds )
 ;-----------------------------------------------------------------------------
-
-%macro INTRA8_X9 0
 cglobal intra_sad_x9_8x8, 5,6,9
     %define fenc02 m4
     %define fenc13 m5
@@ -2933,7 +2924,303 @@ cglobal intra_sad_x9_8x8, 5,6,9
     movhps [r1+FDEC_STRIDE* 3], m3
     ADD       rsp, pad
     RET
-%endmacro
+
+%ifdef ARCH_X86_64
+;-----------------------------------------------------------------------------
+; int intra_sa8d_x9_8x8( uint8_t *fenc, uint8_t *fdec, uint8_t edge[36], uint16_t *bitcosts, uint16_t *satds )
+;-----------------------------------------------------------------------------
+cglobal intra_sa8d_x9_8x8, 5,6,16
+    %assign pad 0x2c0+0x10-gprsize-(stack_offset&15)
+    %define fenc_buf rsp
+    %define pred_buf rsp+0x80
+    SUB        rsp, pad
+    mova       m15, [hmul_8p]
+    pxor        m8, m8
+%assign %%i 0
+%rep 8
+    movddup     m %+ %%i, [r0+%%i*FENC_STRIDE]
+    pmaddubsw   m9, m %+ %%i, m15
+    punpcklbw   m %+ %%i, m8
+    mova [fenc_buf+%%i*0x10], m9
+%assign %%i %%i+1
+%endrep
+
+    ; save instruction size: avoid 4-byte memory offsets
+    lea         r0, [intra8x9_h1+0x80]
+    %define off(m) (r0+m-(intra8x9_h1+0x80))
+    lea         r5, [pred_buf+0x80]
+
+; v, h, dc
+    HADAMARD8_2D 0, 1, 2, 3, 4, 5, 6, 7, 8
+    pabsw      m11, m1
+%assign %%i 2
+%rep 6
+    pabsw       m8, m %+ %%i
+    paddw      m11, m8
+%assign %%i %%i+1
+%endrep
+
+    ; 1D hadamard of edges
+    movq        m8, [r2+7]
+    movddup     m9, [r2+16]
+    mova [r5-0x80], m9
+    mova [r5-0x70], m9
+    mova [r5-0x60], m9
+    mova [r5-0x50], m9
+    punpcklwd   m8, m8
+    pshufb      m9, [intrax3_shuf]
+    pmaddubsw   m8, [pb_pppm]
+    pmaddubsw   m9, [pb_pppm]
+    HSUMSUB2 psignw, m8, m9, m12, m13, m9, q1032, [pw_ppppmmmm]
+    HSUMSUB2 psignw, m8, m9, m12, m13, m9, q2301, [pw_ppmmppmm]
+
+    ; dc
+    paddw      m10, m8, m9
+    paddw      m10, [pw_8]
+    pand       m10, [sw_f0]
+    psrlw      m12, m10, 4
+    psllw      m10, 2
+    pxor       m13, m13
+    pshufb     m12, m13
+    mova [r5+0x00], m12
+    mova [r5+0x10], m12
+    mova [r5+0x20], m12
+    mova [r5+0x30], m12
+
+    ; differences
+    psllw       m8, 3 ; left edge
+    psubw       m8, m0
+    psubw      m10, m0
+    pabsw       m8, m8 ; 1x8 sum
+    pabsw      m10, m10
+    paddw       m8, m11
+    paddw      m11, m10
+    punpcklwd   m0, m1
+    punpcklwd   m2, m3
+    punpcklwd   m4, m5
+    punpcklwd   m6, m7
+    punpckldq   m0, m2
+    punpckldq   m4, m6
+    punpcklqdq  m0, m4 ; transpose
+    psllw       m9, 3  ; top edge
+    psrldq     m10, m11, 2 ; 8x7 sum
+    psubw       m0, m9 ; 8x1 sum
+    pabsw       m0, m0
+    paddw      m10, m0
+
+    phaddd     m10, m8 ; logically phaddw, but this is faster and it won't overflow
+    psrlw      m11, 1
+    psrlw      m10, 1
+
+; store h
+    movq        m3, [r2+7]
+    pshufb      m0, m3, [off(intra8x9_h1)]
+    pshufb      m1, m3, [off(intra8x9_h2)]
+    pshufb      m2, m3, [off(intra8x9_h3)]
+    pshufb      m3, m3, [off(intra8x9_h4)]
+    mova [r5-0x40], m0
+    mova [r5-0x30], m1
+    mova [r5-0x20], m2
+    mova [r5-0x10], m3
+
+; ddl
+    mova        m8, [r2+16]
+    movu        m2, [r2+17]
+    pslldq      m1, m8, 1
+    pavgb       m9, m8, m2
+    PRED4x4_LOWPASS m8, m1, m2, m8, m3
+    pshufb      m0, m8, [off(intra8x9_ddl1)]
+    pshufb      m1, m8, [off(intra8x9_ddl2)]
+    pshufb      m2, m8, [off(intra8x9_ddl3)]
+    pshufb      m3, m8, [off(intra8x9_ddl4)]
+    add         r5, 0x40
+    call .sa8d
+    phaddd     m11, m0
+
+; vl
+    pshufb      m0, m9, [off(intra8x9_vl1)]
+    pshufb      m1, m8, [off(intra8x9_vl2)]
+    pshufb      m2, m9, [off(intra8x9_vl3)]
+    pshufb      m3, m8, [off(intra8x9_vl4)]
+    add         r5, 0x100
+    call .sa8d
+    phaddd     m10, m11
+    mova       m12, m0
+
+; ddr
+    movu        m2, [r2+8]
+    movu        m8, [r2+7]
+    movu        m1, [r2+6]
+    pavgb       m9, m2, m8
+    PRED4x4_LOWPASS m8, m1, m2, m8, m3
+    pshufb      m0, m8, [off(intra8x9_ddr1)]
+    pshufb      m1, m8, [off(intra8x9_ddr2)]
+    pshufb      m2, m8, [off(intra8x9_ddr3)]
+    pshufb      m3, m8, [off(intra8x9_ddr4)]
+    sub         r5, 0xc0
+    call .sa8d
+    mova       m11, m0
+
+    add         r0, 0x100
+    %define off(m) (r0+m-(intra8x9_h1+0x180))
+
+; vr
+    movsd       m2, m9, m8
+    pshufb      m0, m2, [off(intra8x9_vr1)]
+    pshufb      m1, m8, [off(intra8x9_vr2)]
+    pshufb      m2, m2, [off(intra8x9_vr3)]
+    pshufb      m3, m8, [off(intra8x9_vr4)]
+    add         r5, 0x40
+    call .sa8d
+    phaddd     m11, m0
+
+; hd
+%if cpuflag(sse4)
+    pshufd      m1, m9, q0001
+    pblendw     m1, m8, q3330
+%else
+    pshufd      m2, m9, q0001
+    movss       m1, m8, m2
+%endif
+    punpcklbw   m8, m9
+    pshufb      m0, m1, [off(intra8x9_hd1)]
+    pshufb      m1, m1, [off(intra8x9_hd2)]
+    pshufb      m2, m8, [off(intra8x9_hd3)]
+    pshufb      m3, m8, [off(intra8x9_hd4)]
+    add         r5, 0x40
+    call .sa8d
+    phaddd      m0, m12
+    phaddd     m11, m0
+
+; hu
+%if cpuflag(sse4)
+    pinsrb      m8, [r2+7], 15
+%else
+    movd        m9, [r2+7]
+    pslldq      m8, 1
+    palignr     m9, m8, 1
+    SWAP        8, 9
+%endif
+    pshufb      m0, m8, [off(intra8x9_hu1)]
+    pshufb      m1, m8, [off(intra8x9_hu2)]
+    pshufb      m2, m8, [off(intra8x9_hu3)]
+    pshufb      m3, m8, [off(intra8x9_hu4)]
+    add         r5, 0x80
+    call .sa8d
+
+    pmaddwd     m0, [pw_1]
+    phaddw     m10, m11
+    movhlps     m1, m0
+    paddw       m0, m1
+    pshuflw     m1, m0, q0032
+    pavgw       m0, m1
+    pxor        m2, m2
+    pavgw      m10, m2
+    movd       r2d, m0
+
+    movu        m0, [r3]
+    paddw       m0, m10
+    mova      [r4], m0
+    movzx      r5d, word [r3+16]
+    add        r2d, r5d
+    mov    [r4+16], r2w
+
+%if cpuflag(sse4)
+    phminposuw m0, m0
+    movd      eax, m0
+%else
+    ; 8x8 sa8d is up to 15 bits; +bitcosts and saturate -> 15 bits; pack with 1 bit index
+    paddusw    m0, m0
+    paddw      m0, [off(pw_s00001111)]
+    movhlps    m1, m0
+    pminsw     m0, m1
+    pshuflw    m1, m0, q0032
+    mova       m2, m0
+    pminsw     m0, m1
+    pcmpgtw    m2, m1 ; 2nd index bit
+    movd      r3d, m0
+    movd      r4d, m2
+    ; repack with 3 bit index
+    xor       r3d, 0x80008000
+    and       r4d, 0x00020002
+    movzx     eax, r3w
+    movzx     r5d, r4w
+    shr       r3d, 16
+    shr       r4d, 16
+    lea       eax, [rax*4+r5]
+    lea       r3d, [ r3*4+r4+1]
+    cmp       eax, r3d
+    cmovg     eax, r3d
+    ; reverse to phminposuw order
+    mov       r3d, eax
+    and       eax, 7
+    shr       r3d, 3
+    shl       eax, 16
+    or        eax, r3d
+%endif
+    add       r2d, 8<<16
+    cmp        ax, r2w
+    cmovg     eax, r2d
+
+    mov       r2d, eax
+    shr       r2d, 16
+    shl       r2d, 6
+    add        r1, 4*FDEC_STRIDE
+    mova       m0, [pred_buf+r2+0x00]
+    mova       m1, [pred_buf+r2+0x10]
+    mova       m2, [pred_buf+r2+0x20]
+    mova       m3, [pred_buf+r2+0x30]
+    movq   [r1+FDEC_STRIDE*-4], m0
+    movhps [r1+FDEC_STRIDE*-2], m0
+    movq   [r1+FDEC_STRIDE*-3], m1
+    movhps [r1+FDEC_STRIDE*-1], m1
+    movq   [r1+FDEC_STRIDE* 0], m2
+    movhps [r1+FDEC_STRIDE* 2], m2
+    movq   [r1+FDEC_STRIDE* 1], m3
+    movhps [r1+FDEC_STRIDE* 3], m3
+    ADD       rsp, pad
+    RET
+
+ALIGN 16
+.sa8d:
+    %xdefine mret m0
+    %xdefine fenc_buf fenc_buf+gprsize
+    mova [r5+0x00], m0
+    mova [r5+0x10], m1
+    mova [r5+0x20], m2
+    mova [r5+0x30], m3
+    movddup     m4, m0
+    movddup     m5, m1
+    movddup     m6, m2
+    movddup     m7, m3
+    punpckhqdq  m0, m0
+    punpckhqdq  m1, m1
+    punpckhqdq  m2, m2
+    punpckhqdq  m3, m3
+    PERMUTE 0,4, 1,5, 2,0, 3,1, 4,6, 5,7, 6,2, 7,3
+    pmaddubsw   m0, m15
+    pmaddubsw   m1, m15
+    psubw       m0, [fenc_buf+0x00]
+    psubw       m1, [fenc_buf+0x10]
+    pmaddubsw   m2, m15
+    pmaddubsw   m3, m15
+    psubw       m2, [fenc_buf+0x20]
+    psubw       m3, [fenc_buf+0x30]
+    pmaddubsw   m4, m15
+    pmaddubsw   m5, m15
+    psubw       m4, [fenc_buf+0x40]
+    psubw       m5, [fenc_buf+0x50]
+    pmaddubsw   m6, m15
+    pmaddubsw   m7, m15
+    psubw       m6, [fenc_buf+0x60]
+    psubw       m7, [fenc_buf+0x70]
+    HADAMARD8_2D_HMUL 0, 1, 2, 3, 4, 5, 6, 7, 13, 14
+    paddw       m0, m1
+    paddw       m0, m2
+    paddw mret, m0, m3
+    ret
+%endif ; ARCH_X86_64
+%endmacro ; INTRA8_X9
 
 ; in:  r0=pix, r1=stride, r2=stride*3, r3=tmp, m6=mask_ac4, m7=0
 ; out: [tmp]=hadamard4, m0=satd
@@ -3460,6 +3747,7 @@ SA8D
 %ifndef HIGH_BIT_DEPTH
 INTRA_SA8D_SSE2
 INTRA_X9
+; no xop INTRA8_X9. it's slower than avx on bulldozer. dunno why.
 %endif
 HADAMARD_AC_SSE2
 
