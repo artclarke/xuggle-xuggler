@@ -1635,12 +1635,14 @@ cglobal pixel_sa8d_16x16, 4,7
     paddw  %3, %5
 %endmacro
 
+; intra_sa8d_x3_8x8 and intra_satd_x3_4x4 are obsoleted by x9 on ssse3+,
+; and are only retained for old cpus.
 %macro INTRA_SA8D_SSE2 0
 %ifdef ARCH_X86_64
 ;-----------------------------------------------------------------------------
 ; void intra_sa8d_x3_8x8( uint8_t *fenc, uint8_t edge[36], int *res )
 ;-----------------------------------------------------------------------------
-cglobal intra_sa8d_x3_8x8, 3,3,16
+cglobal intra_sa8d_x3_8x8, 3,3,14
     ; 8x8 hadamard
     pxor        m8, m8
     movq        m0, [r0+0*FENC_STRIDE]
@@ -1667,23 +1669,15 @@ cglobal intra_sa8d_x3_8x8, 3,3,16
     paddusw     m8,  m10
     paddusw     m9,  m11
     ABSW2       m10, m11, m6, m7, m6, m7
-    ABSW        m15, m1,  m1
+    ABSW        m13, m1,  m1
     paddusw     m10, m11
     paddusw     m8,  m9
-    paddusw     m15, m10
-    paddusw     m15, m8
+    paddusw     m13, m10
+    paddusw     m13, m8
 
     ; 1D hadamard of edges
     movq        m8,  [r1+7]
     movq        m9,  [r1+16]
-%if cpuflag(ssse3)
-    punpcklwd   m8,  m8
-    pshufb      m9,  [intrax3_shuf]
-    pmaddubsw   m8,  [pb_pppm]
-    pmaddubsw   m9,  [pb_pppm]
-    HSUMSUB2 psignw, m8, m9, m10, m11, m9, q1032, [pw_ppppmmmm]
-    HSUMSUB2 psignw, m8, m9, m10, m11, m9, q2301, [pw_ppmmppmm]
-%else ; sse2
     pxor        m10, m10
     punpcklbw   m8,  m10
     punpcklbw   m9,  m10
@@ -1697,7 +1691,6 @@ cglobal intra_sa8d_x3_8x8, 3,3,16
     pmullw      m11, [pw_pmpmpmpm]
     paddw       m8,  m10
     paddw       m9,  m11
-%endif
 
     ; differences
     paddw       m10, m8, m9
@@ -1709,8 +1702,8 @@ cglobal intra_sa8d_x3_8x8, 3,3,16
     psubw       m8,  m0
     psubw       m10, m0
     ABSW2       m8, m10, m8, m10, m11, m12 ; 1x8 sum
-    paddusw     m14, m8, m15
-    paddusw     m15, m10
+    paddusw     m8,  m13
+    paddusw     m13, m10
     punpcklwd   m0,  m1
     punpcklwd   m2,  m3
     punpcklwd   m4,  m5
@@ -1719,44 +1712,29 @@ cglobal intra_sa8d_x3_8x8, 3,3,16
     punpckldq   m4,  m6
     punpcklqdq  m0,  m4 ; transpose
     psllw       m9,  3 ; top edge
-    psrldq      m2,  m15, 2 ; 8x7 sum
+    psrldq      m2,  m13, 2 ; 8x7 sum
     psubw       m0,  m9  ; 8x1 sum
     ABSW        m0,  m0,  m9
     paddusw     m2,  m0
 
     ; 3x HADDW
-%if cpuflag(xop)
-    phaddw      m2, m14
-    vphadduwq   m0, m15
-    movhlps     m1, m0
-    vphadduwq   m2, m2  ; i8x8_v, i8x8_h
-    paddd       m0, m1  ; i8x8_dc
-    packusdw    m2, m0  ; i8x8_v, i8x8_h, i8x8_dc
-    pxor        m3, m3
-    psrlw       m2, 1
-    pavgw       m2, m3
-    movq      [r2], m2 ; i8x8_v, i8x8_h
-    psrldq      m2, 8
-    movd    [r2+8], m2 ; i8x8_dc
-%else
     movdqa      m7,  [pw_1]
     pmaddwd     m2,  m7
-    pmaddwd     m14, m7
-    pmaddwd     m15, m7
-    punpckhdq   m3,  m2, m14
-    punpckldq   m2,  m14
-    pshufd      m5,  m15, q3311
+    pmaddwd     m8,  m7
+    pmaddwd     m13, m7
+    punpckhdq   m3,  m2, m8
+    punpckldq   m2,  m8
+    pshufd      m5,  m13, q3311
     paddd       m2,  m3
-    paddd       m5,  m15
-    punpckhqdq  m3,  m2, m5
+    paddd       m5,  m13
+    punpckhqdq  m0,  m2, m5
     punpcklqdq  m2,  m5
-    pavgw       m3,  m2
-    pxor        m0,  m0
-    pavgw       m3,  m0
-    movq      [r2],  m3 ; i8x8_v, i8x8_h
-    psrldq      m3,  8
-    movd    [r2+8],  m3 ; i8x8_dc
-%endif
+    pavgw       m0,  m2
+    pxor        m1,  m1
+    pavgw       m0,  m1
+    movq      [r2], m0 ; i8x8_v, i8x8_h
+    psrldq      m0, 8
+    movd    [r2+8], m0 ; i8x8_dc
     RET
 %endif ; ARCH_X86_64
 %endmacro ; INTRA_SA8D_SSE2
@@ -3714,7 +3692,6 @@ INTRA8_X9
 %undef movdqu ; movups
 %undef punpcklqdq ; or movlhps
 %ifndef HIGH_BIT_DEPTH
-INTRA_SA8D_SSE2
 INIT_MMX ssse3
 INTRA_X3_MMX
 %endif
@@ -3734,7 +3711,6 @@ INIT_XMM avx
 SATDS_SSE2
 SA8D
 %ifndef HIGH_BIT_DEPTH
-INTRA_SA8D_SSE2
 INTRA_X9
 INTRA8_X9
 %endif
@@ -3745,7 +3721,6 @@ INIT_XMM xop
 SATDS_SSE2
 SA8D
 %ifndef HIGH_BIT_DEPTH
-INTRA_SA8D_SSE2
 INTRA_X9
 ; no xop INTRA8_X9. it's slower than avx on bulldozer. dunno why.
 %endif

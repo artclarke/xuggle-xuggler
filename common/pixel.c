@@ -1091,13 +1091,7 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         pixf->intra_sad_x3_16x16  = x264_intra_sad_x3_16x16_ssse3;
         pixf->intra_satd_x3_8x8c  = x264_intra_satd_x3_8x8c_ssse3;
         pixf->intra_sad_x3_8x8c   = x264_intra_sad_x3_8x8c_ssse3;
-        pixf->intra_satd_x3_4x4   = x264_intra_satd_x3_4x4_ssse3;
-#if ARCH_X86_64
-        pixf->intra_sa8d_x3_8x8 = x264_intra_sa8d_x3_8x8_ssse3;
-#endif
         pixf->var2[PIXEL_8x8] = x264_pixel_var2_8x8_ssse3;
-        if( cpu&X264_CPU_SHUFFLE_IS_FAST )
-            pixf->intra_sad_x3_8x8  = x264_intra_sad_x3_8x8_ssse3;
         if( cpu&X264_CPU_CACHELINE_64 )
         {
             INIT2( sad, _cache64_ssse3 );
@@ -1127,7 +1121,6 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         }
         pixf->sa8d[PIXEL_16x16]= x264_pixel_sa8d_16x16_sse4;
         pixf->sa8d[PIXEL_8x8]  = x264_pixel_sa8d_8x8_sse4;
-        pixf->intra_sad_x3_4x4 = x264_intra_sad_x3_4x4_sse4;
     }
 
     if( cpu&X264_CPU_AVX )
@@ -1149,17 +1142,12 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         INIT5( ssd, _avx );
         pixf->sa8d[PIXEL_16x16]= x264_pixel_sa8d_16x16_avx;
         pixf->sa8d[PIXEL_8x8]  = x264_pixel_sa8d_8x8_avx;
-#if ARCH_X86_64
-        pixf->intra_sa8d_x3_8x8= x264_intra_sa8d_x3_8x8_avx;
-#endif
         pixf->ssd_nv12_core    = x264_pixel_ssd_nv12_core_avx;
         pixf->var[PIXEL_16x16] = x264_pixel_var_16x16_avx;
         pixf->var[PIXEL_8x16]  = x264_pixel_var_8x16_avx;
         pixf->var[PIXEL_8x8]   = x264_pixel_var_8x8_avx;
         pixf->ssim_4x4x2_core  = x264_pixel_ssim_4x4x2_core_avx;
         pixf->ssim_end4        = x264_pixel_ssim_end4_avx;
-        pixf->intra_sad_x3_4x4 = x264_intra_sad_x3_4x4_avx;
-        pixf->intra_sad_x3_8x8 = x264_intra_sad_x3_8x8_avx;
     }
 
     if( cpu&X264_CPU_XOP )
@@ -1175,9 +1163,6 @@ void x264_pixel_init( int cpu, x264_pixel_function_t *pixf )
         INIT5( ssd, _xop );
         pixf->sa8d[PIXEL_16x16]= x264_pixel_sa8d_16x16_xop;
         pixf->sa8d[PIXEL_8x8]  = x264_pixel_sa8d_8x8_xop;
-#if ARCH_X86_64
-        pixf->intra_sa8d_x3_8x8= x264_intra_sa8d_x3_8x8_xop;
-#endif
         pixf->var[PIXEL_16x16] = x264_pixel_var_16x16_xop;
         pixf->var[PIXEL_8x16]  = x264_pixel_var_8x16_xop;
         pixf->var[PIXEL_8x8]   = x264_pixel_var_8x8_xop;
