@@ -1422,10 +1422,8 @@ static void x264_macroblock_deblock_strength_mbaff( x264_t *h, uint8_t (*bs)[8][
 
                 if( !h->param.b_cabac && h->pps->b_transform_8x8_mode && h->mb.mb_transform_size[mbn_xy] )
                 {
-                    int nnz_top0 = M16( &nnz[mbn_xy][8] ) | M16( &nnz[mbn_xy][12] );
-                    int nnz_top1 = M16( &nnz[mbn_xy][10] ) | M16( &nnz[mbn_xy][14] );
-                    nnz_top[0] = nnz_top[1] = nnz_top0 ? 0x0101 : 0;
-                    nnz_top[2] = nnz_top[3] = nnz_top1 ? 0x0101 : 0;
+                    nnz_top[0] = nnz_top[1] = M16( &nnz[mbn_xy][ 8] ) || M16( &nnz[mbn_xy][12] );
+                    nnz_top[2] = nnz_top[3] = M16( &nnz[mbn_xy][10] ) || M16( &nnz[mbn_xy][14] );
                 }
 
                 for( int i = 0; i < 4; i++ )

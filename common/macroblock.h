@@ -348,7 +348,7 @@ void x264_mb_predict_mv_ref16x16( x264_t *h, int i_list, int i_ref, int16_t mvc[
 void x264_mb_mc( x264_t *h );
 void x264_mb_mc_8x8( x264_t *h, int i8 );
 
-static ALWAYS_INLINE uint32_t pack16to32( int a, int b )
+static ALWAYS_INLINE uint32_t pack16to32( uint32_t a, uint32_t b )
 {
 #if WORDS_BIGENDIAN
    return b + (a<<16);
@@ -356,7 +356,7 @@ static ALWAYS_INLINE uint32_t pack16to32( int a, int b )
    return a + (b<<16);
 #endif
 }
-static ALWAYS_INLINE uint32_t pack8to16( int a, int b )
+static ALWAYS_INLINE uint32_t pack8to16( uint32_t a, uint32_t b )
 {
 #if WORDS_BIGENDIAN
    return b + (a<<8);
@@ -364,7 +364,7 @@ static ALWAYS_INLINE uint32_t pack8to16( int a, int b )
    return a + (b<<8);
 #endif
 }
-static ALWAYS_INLINE uint32_t pack8to32( int a, int b, int c, int d )
+static ALWAYS_INLINE uint32_t pack8to32( uint32_t a, uint32_t b, uint32_t c, uint32_t d )
 {
 #if WORDS_BIGENDIAN
    return d + (c<<8) + (b<<16) + (a<<24);

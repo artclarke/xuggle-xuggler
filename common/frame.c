@@ -409,8 +409,8 @@ int x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
 static void ALWAYS_INLINE pixel_memset( pixel *dst, pixel *src, int len, int size )
 {
     uint8_t *dstp = (uint8_t*)dst;
-    uint8_t  v1 = *src;
-    uint16_t v2 = size == 1 ? v1 + (v1 <<  8) : M16( src );
+    uint32_t v1 = *src;
+    uint32_t v2 = size == 1 ? v1 + (v1 <<  8) : M16( src );
     uint32_t v4 = size <= 2 ? v2 + (v2 << 16) : M32( src );
     int i = 0;
     len *= size;

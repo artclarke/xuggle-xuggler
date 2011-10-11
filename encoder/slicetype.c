@@ -790,7 +790,7 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
     {
         // arbitrary penalty for I-blocks after B-frames
         int nmb = NUM_MBS;
-        i_score += i_score * frames[b]->i_intra_mbs[b-p0] / (nmb * 8);
+        i_score += (uint64_t)i_score * frames[b]->i_intra_mbs[b-p0] / (nmb * 8);
     }
     return i_score;
 }

@@ -957,7 +957,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     }\
 }
 
-#define SATD_THRESH 17/16
+#define SATD_THRESH(cost) (cost+(cost>>4))
 
 /* Don't unroll the BIME_CACHE loop. I couldn't find any way to force this
  * other than making its iteration count not a compile-time constant. */
@@ -1063,7 +1063,7 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
                          + p_cost_m0x[m0x] + p_cost_m0y[m0y] + p_cost_m1x[m1x] + p_cost_m1y[m1y];
                 if( rd )
                 {
-                    if( cost < bcost * SATD_THRESH )
+                    if( cost < SATD_THRESH(bcost) )
                     {
                         bcost = X264_MIN( cost, bcost );
                         M32( cache0_mv ) = pack16to32_mask(m0x,m0y);
@@ -1146,7 +1146,7 @@ void x264_me_refine_bidir_rd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_wei
 
 #define COST_MV_RD( mx, my, satd, do_dir, mdir ) \
 { \
-    if( satd <= bsatd * SATD_THRESH ) \
+    if( satd <= SATD_THRESH(bsatd) ) \
     { \
         uint64_t cost; \
         M32( cache_mv ) = pack16to32_mask(mx,my); \
