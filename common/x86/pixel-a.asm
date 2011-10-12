@@ -213,6 +213,7 @@ cglobal pixel_ssd_%1x%2, 4,5
 INIT_MMX mmx2
 SSD_ONE     4,  4
 SSD_ONE     4,  8
+SSD_ONE     4, 16
 SSD_ONE     8,  4
 SSD_ONE     8,  8
 SSD_ONE     8, 16
@@ -806,12 +807,12 @@ INIT_XMM xop
 VAR
 %endif ; !HIGH_BIT_DEPTH
 
-%macro VAR2_END 0
+%macro VAR2_END 1
     HADDW   m5, m7
     movd   r1d, m5
     imul   r1d, r1d
     HADDD   m6, m1
-    shr    r1d, 6
+    shr    r1d, %1
     movd   eax, m6
     mov   [r4], eax
     sub    eax, r1d  ; sqr - (sum * sum >> shift)
@@ -821,11 +822,11 @@ VAR
 ;-----------------------------------------------------------------------------
 ; int pixel_var2_8x8( pixel *, int, pixel *, int, int * )
 ;-----------------------------------------------------------------------------
-INIT_MMX mmx2
-cglobal pixel_var2_8x8, 5,6
+%macro VAR2_8x8_MMX 2
+cglobal pixel_var2_8x%1, 5,6
     FIX_STRIDES r1, r3
     VAR_START 0
-    mov      r5d, 8
+    mov      r5d, %1
 .loop:
 %ifdef HIGH_BIT_DEPTH
     mova      m0, [r0]
@@ -854,13 +855,19 @@ cglobal pixel_var2_8x8, 5,6
     add       r2, r3
     dec       r5d
     jg .loop
-    VAR2_END
-    RET
+    VAR2_END %2
+%endmacro
 
-INIT_XMM sse2
-cglobal pixel_var2_8x8, 5,6,8
+%ifndef ARCH_X86_64
+INIT_MMX mmx2
+VAR2_8x8_MMX  8, 6
+VAR2_8x8_MMX 16, 7
+%endif
+
+%macro VAR2_8x8_SSE2 2
+cglobal pixel_var2_8x%1, 5,6,8
     VAR_START 1
-    mov      r5d, 4
+    mov      r5d, %1/2
 .loop:
 %ifdef HIGH_BIT_DEPTH
     mova      m0, [r0]
@@ -886,16 +893,20 @@ cglobal pixel_var2_8x8, 5,6,8
     lea       r2, [r2+r3*2*SIZEOF_PIXEL]
     dec      r5d
     jg .loop
-    VAR2_END
-    RET
+    VAR2_END %2
+%endmacro
+
+INIT_XMM sse2
+VAR2_8x8_SSE2  8, 6
+VAR2_8x8_SSE2 16, 7
 
 %ifndef HIGH_BIT_DEPTH
-%macro VAR2_8x8 0
-cglobal pixel_var2_8x8, 5,6,8
+%macro VAR2_8x8_SSSE3 2
+cglobal pixel_var2_8x%1, 5,6,8
     pxor      m5, m5    ; sum
     pxor      m6, m6    ; sum squared
     mova      m7, [hsub_mul]
-    mov      r5d, 2
+    mov      r5d, %1/4
 .loop:
     movq      m0, [r0]
     movq      m2, [r2]
@@ -931,14 +942,15 @@ cglobal pixel_var2_8x8, 5,6,8
     lea       r2, [r2+r3*2]
     dec      r5d
     jg .loop
-    VAR2_END
-    RET
+    VAR2_END %2
 %endmacro
 
 INIT_XMM ssse3
-VAR2_8x8
+VAR2_8x8_SSSE3  8, 6
+VAR2_8x8_SSSE3 16, 7
 INIT_XMM xop
-VAR2_8x8
+VAR2_8x8_SSSE3  8, 6
+VAR2_8x8_SSSE3 16, 7
 
 %endif ; !HIGH_BIT_DEPTH
 
@@ -1215,6 +1227,17 @@ cglobal pixel_satd_8x4, 4,6
     call pixel_satd_8x4_internal_mmx2
     SATD_END_MMX
 
+cglobal pixel_satd_4x16, 4,6
+    SATD_START_MMX
+    SATD_4x4_MMX m0, 0, 1
+    SATD_4x4_MMX m1, 0, 1
+    paddw  m0, m1
+    SATD_4x4_MMX m1, 0, 1
+    paddw  m0, m1
+    SATD_4x4_MMX m1, 0, 0
+    paddw  m0, m1
+    SATD_END_MMX
+
 cglobal pixel_satd_4x8, 4,6
     SATD_START_MMX
     SATD_4x4_MMX m0, 0, 1
@@ -1261,6 +1284,50 @@ cglobal pixel_satd_4x4, 4,6
 %endif
 %endmacro
 
+%macro SATD_4x8_SSE 2
+    movd m4, [r2]
+    movd m5, [r2+r3]
+    movd m6, [r2+2*r3]
+    add r2, r5
+    movd m0, [r0]
+    movd m1, [r0+r1]
+    movd m2, [r0+2*r1]
+    add r0, r4
+    movd m3, [r2+r3]
+    JDUP m4, m3
+    movd m3, [r0+r1]
+    JDUP m0, m3
+    movd m3, [r2+2*r3]
+    JDUP m5, m3
+    movd m3, [r0+2*r1]
+    JDUP m1, m3
+%if cpuflag(ssse3) && %1==1
+    mova m3, [hmul_4p]
+    DIFFOP 0, 4, 1, 5, 3
+%else
+    DIFFOP 0, 4, 1, 5, 7
+%endif
+    movd m5, [r2]
+    add r2, r5
+    movd m3, [r0]
+    add r0, r4
+    movd m4, [r2]
+    JDUP m6, m4
+    movd m4, [r0]
+    JDUP m2, m4
+    movd m4, [r2+r3]
+    JDUP m5, m4
+    movd m4, [r0+r1]
+    JDUP m3, m4
+%if cpuflag(ssse3) && %1==1
+    mova m4, [hmul_4p]
+    DIFFOP 2, 6, 3, 5, 4
+%else
+    DIFFOP 2, 6, 3, 5, 7
+%endif
+    SATD_8x4_SSE cpuname, 0, 1, 2, 3, 4, 5, 7, %2
+%endmacro
+
 ;-----------------------------------------------------------------------------
 ; int pixel_satd_8x4( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
@@ -1287,39 +1354,22 @@ cglobal pixel_satd_4x8, 4, 6, 8
 %if cpuflag(ssse3)
     mova m7, [hmul_4p]
 %endif
-    movd m4, [r2]
-    movd m5, [r2+r3]
-    movd m6, [r2+2*r3]
-    add r2, r5
-    movd m0, [r0]
-    movd m1, [r0+r1]
-    movd m2, [r0+2*r1]
-    add r0, r4
-    movd m3, [r2+r3]
-    JDUP m4, m3
-    movd m3, [r0+r1]
-    JDUP m0, m3
-    movd m3, [r2+2*r3]
-    JDUP m5, m3
-    movd m3, [r0+2*r1]
-    JDUP m1, m3
-    DIFFOP 0, 4, 1, 5, 7
-    movd m5, [r2]
-    add r2, r5
-    movd m3, [r0]
-    add r0, r4
-    movd m4, [r2]
-    JDUP m6, m4
-    movd m4, [r0]
-    JDUP m2, m4
-    movd m4, [r2+r3]
-    JDUP m5, m4
-    movd m4, [r0+r1]
-    JDUP m3, m4
-    DIFFOP 2, 6, 3, 5, 7
-    SATD_8x4_SSE cpuname, 0, 1, 2, 3, 4, 5, 6, swap
-    HADDW m6, m1
-    movd eax, m6
+    SATD_4x8_SSE 0, swap
+    HADDW m7, m1
+    movd eax, m7
+    RET
+
+cglobal pixel_satd_4x16, 4, 6, 8
+    SATD_START_MMX
+%if cpuflag(ssse3)
+    mova m7, [hmul_4p]
+%endif
+    SATD_4x8_SSE 0, swap
+    lea r0, [r0+r1*2]
+    lea r2, [r2+r3*2]
+    SATD_4x8_SSE 1, add
+    HADDW m7, m1
+    movd eax, m7
     RET
 
 cglobal pixel_satd_8x8_internal

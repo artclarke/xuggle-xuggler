@@ -1675,6 +1675,16 @@ PREDICT_C_H 16
 ; void predict_8x8c_dc( pixel *src )
 ;-----------------------------------------------------------------------------
 
+%macro LOAD_LEFT 1
+    movzx    r1d, pixel [r0+FDEC_STRIDEB*(%1-4)-SIZEOF_PIXEL]
+    movzx    r2d, pixel [r0+FDEC_STRIDEB*(%1-3)-SIZEOF_PIXEL]
+    add      r1d, r2d
+    movzx    r2d, pixel [r0+FDEC_STRIDEB*(%1-2)-SIZEOF_PIXEL]
+    add      r1d, r2d
+    movzx    r2d, pixel [r0+FDEC_STRIDEB*(%1-1)-SIZEOF_PIXEL]
+    add      r1d, r2d
+%endmacro
+
 %macro PREDICT_8x8C_DC 0
 cglobal predict_8x8c_dc, 1,3
     pxor      m7, m7
@@ -1691,23 +1701,10 @@ cglobal predict_8x8c_dc, 1,3
 %endif
     add       r0, FDEC_STRIDEB*4
 
-    movzx    r1d, pixel [r0-FDEC_STRIDEB*4-SIZEOF_PIXEL]
-    movzx    r2d, pixel [r0-FDEC_STRIDEB*3-SIZEOF_PIXEL]
-    add      r1d, r2d
-    movzx    r2d, pixel [r0-FDEC_STRIDEB*2-SIZEOF_PIXEL]
-    add      r1d, r2d
-    movzx    r2d, pixel [r0-FDEC_STRIDEB*1-SIZEOF_PIXEL]
-    add      r1d, r2d
-    movd      m2, r1d            ; s2
-
-    movzx    r1d, pixel [r0+FDEC_STRIDEB*0-SIZEOF_PIXEL]
-    movzx    r2d, pixel [r0+FDEC_STRIDEB*1-SIZEOF_PIXEL]
-    add      r1d, r2d
-    movzx    r2d, pixel [r0+FDEC_STRIDEB*2-SIZEOF_PIXEL]
-    add      r1d, r2d
-    movzx    r2d, pixel [r0+FDEC_STRIDEB*3-SIZEOF_PIXEL]
-    add      r1d, r2d
-    movd      m3, r1d            ; s3
+    LOAD_LEFT 0                 ; s2
+    movd      m2, r1d
+    LOAD_LEFT 4                 ; s3
+    movd      m3, r1d
 
     punpcklwd m0, m1
     punpcklwd m2, m3
@@ -1764,6 +1761,124 @@ PREDICT_8x8C_DC
 %ifdef HIGH_BIT_DEPTH
 INIT_MMX sse2
 PREDICT_8x8C_DC
+%endif
+
+%ifdef HIGH_BIT_DEPTH
+%macro STORE_4LINES 3
+%if cpuflag(sse2)
+    movdqa [r0+FDEC_STRIDEB*(%3-4)], %1
+    movdqa [r0+FDEC_STRIDEB*(%3-3)], %1
+    movdqa [r0+FDEC_STRIDEB*(%3-2)], %1
+    movdqa [r0+FDEC_STRIDEB*(%3-1)], %1
+%else
+    movq [r0+FDEC_STRIDEB*(%3-4)+0], %1
+    movq [r0+FDEC_STRIDEB*(%3-4)+8], %2
+    movq [r0+FDEC_STRIDEB*(%3-3)+0], %1
+    movq [r0+FDEC_STRIDEB*(%3-3)+8], %2
+    movq [r0+FDEC_STRIDEB*(%3-2)+0], %1
+    movq [r0+FDEC_STRIDEB*(%3-2)+8], %2
+    movq [r0+FDEC_STRIDEB*(%3-1)+0], %1
+    movq [r0+FDEC_STRIDEB*(%3-1)+8], %2
+%endif
+%endmacro
+%else
+%macro STORE_4LINES 2
+    movq [r0+FDEC_STRIDEB*(%2-4)], %1
+    movq [r0+FDEC_STRIDEB*(%2-3)], %1
+    movq [r0+FDEC_STRIDEB*(%2-2)], %1
+    movq [r0+FDEC_STRIDEB*(%2-1)], %1
+%endmacro
+%endif
+
+%macro PREDICT_8x16C_DC 0
+cglobal predict_8x16c_dc, 1,3
+    pxor      m7, m7
+%ifdef HIGH_BIT_DEPTH
+    movq      m0, [r0-FDEC_STRIDEB+0]
+    movq      m1, [r0-FDEC_STRIDEB+8]
+    HADDW     m0, m2
+    HADDW     m1, m2
+%else
+    movd      m0, [r0-FDEC_STRIDEB+0]
+    movd      m1, [r0-FDEC_STRIDEB+4]
+    psadbw    m0, m7            ; s0
+    psadbw    m1, m7            ; s1
+%endif
+    punpcklwd m0, m1            ; s0, s1
+
+    add       r0, FDEC_STRIDEB*4
+    LOAD_LEFT 0                 ; s2
+    pinsrw    m0, r1d, 2
+    LOAD_LEFT 4                 ; s3
+    pinsrw    m0, r1d, 3        ; s0, s1, s2, s3
+    add       r0, FDEC_STRIDEB*8
+    LOAD_LEFT 0                 ; s4
+    pinsrw    m1, r1d, 2
+    LOAD_LEFT 4                 ; s5
+    pinsrw    m1, r1d, 3        ; s1, __, s4, s5
+    sub       r0, FDEC_STRIDEB*8
+
+    pshufw    m2, m0, q1310     ; s0, s1, s3, s1
+    pshufw    m0, m0, q3312     ; s2, s1, s3, s3
+    pshufw    m3, m1, q0302     ; s4, s1, s5, s1
+    pshufw    m1, m1, q3322     ; s4, s4, s5, s5
+    paddw     m0, m2
+    paddw     m1, m3
+    psrlw     m0, 2
+    psrlw     m1, 2
+    pavgw     m0, m7
+    pavgw     m1, m7
+%ifdef HIGH_BIT_DEPTH
+%if cpuflag(sse2)
+    movq2dq xmm0, m0
+    movq2dq xmm1, m1
+    punpcklwd xmm0, xmm0
+    punpcklwd xmm1, xmm1
+    pshufd    xmm2, xmm0, q3322
+    pshufd    xmm3, xmm1, q3322
+    punpckldq xmm0, xmm0
+    punpckldq xmm1, xmm1
+    STORE_4LINES xmm0, xmm0, 0
+    STORE_4LINES xmm2, xmm2, 4
+    STORE_4LINES xmm1, xmm1, 8
+    STORE_4LINES xmm3, xmm3, 12
+%else
+    pshufw    m2, m0, q0000
+    pshufw    m3, m0, q1111
+    pshufw    m4, m0, q2222
+    pshufw    m5, m0, q3333
+    STORE_4LINES m2, m3, 0
+    STORE_4LINES m4, m5, 4
+    pshufw    m2, m1, q0000
+    pshufw    m3, m1, q1111
+    pshufw    m4, m1, q2222
+    pshufw    m5, m1, q3333
+    STORE_4LINES m2, m3, 8
+    STORE_4LINES m4, m5, 12
+%endif
+%else
+    packuswb  m0, m0            ; dc0, dc1, dc2, dc3
+    packuswb  m1, m1            ; dc4, dc5, dc6, dc7
+    punpcklbw m0, m0
+    punpcklbw m1, m1
+    pshufw    m2, m0, q1100
+    pshufw    m3, m0, q3322
+    pshufw    m4, m1, q1100
+    pshufw    m5, m1, q3322
+    STORE_4LINES m2, 0
+    STORE_4LINES m3, 4
+    add       r0, FDEC_STRIDEB*8
+    STORE_4LINES m4, 0
+    STORE_4LINES m5, 4
+%endif
+    RET
+%endmacro
+
+INIT_MMX mmx2
+PREDICT_8x16C_DC
+%ifdef HIGH_BIT_DEPTH
+INIT_MMX sse2
+PREDICT_8x16C_DC
 %endif
 
 %macro PREDICT_C_DC_TOP 1

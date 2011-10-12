@@ -200,7 +200,7 @@ PREDICT_8x8_P( sse2   )
     H += -4 * src[-1*FDEC_STRIDE -1];\
     int a = 16 * ( src[7*FDEC_STRIDE -1] + src[7 - FDEC_STRIDE] );\
     int b = ( 17 * H + 16 ) >> 5;\
-    int c = ( 17 * V + 16 ) >> 5;\
+    int c = ( 17 * V + 16 ) >> 5;
 
 #if HIGH_BIT_DEPTH
 #define PREDICT_8x8_P2(cpu1, cpu2)\
@@ -383,16 +383,21 @@ void x264_predict_8x16c_init_mmx( int cpu, x264_predict_t pf[7] )
     if( !(cpu&X264_CPU_MMX) )
         return;
 #if HIGH_BIT_DEPTH
-    pf[I_PRED_CHROMA_V]       = x264_predict_8x16c_v_sse2;
+    if( !(cpu&X264_CPU_MMX2) )
+        return;
+    pf[I_PRED_CHROMA_DC]      = x264_predict_8x16c_dc_mmx2;
     if( !(cpu&X264_CPU_SSE2) )
         return;
+    pf[I_PRED_CHROMA_V]       = x264_predict_8x16c_v_sse2;
     pf[I_PRED_CHROMA_DC_TOP]  = x264_predict_8x16c_dc_top_sse2;
+    pf[I_PRED_CHROMA_DC]      = x264_predict_8x16c_dc_sse2;
     pf[I_PRED_CHROMA_H]       = x264_predict_8x16c_h_sse2;
 #else
     pf[I_PRED_CHROMA_V]       = x264_predict_8x16c_v_mmx;
     if( !(cpu&X264_CPU_MMX2) )
         return;
     pf[I_PRED_CHROMA_DC_TOP]  = x264_predict_8x16c_dc_top_mmx2;
+    pf[I_PRED_CHROMA_DC]      = x264_predict_8x16c_dc_mmx2;
     pf[I_PRED_CHROMA_H]       = x264_predict_8x16c_h_mmx2;
     if( !(cpu&X264_CPU_SSSE3) )
         return;

@@ -1157,12 +1157,25 @@ DECIMATE8x8
     pmovmskb  %2, mm0
 %elif mmsize == 16
     movdqa   xmm0, [%3+ 0]
+%if %1 == 8
+    packssdw xmm0, [%3+16]
+    packsswb xmm0, xmm0
+%else
     movdqa   xmm1, [%3+32]
     packssdw xmm0, [%3+16]
     packssdw xmm1, [%3+48]
     packsswb xmm0, xmm1
+%endif
     pcmpeqb  xmm0, xmm2
     pmovmskb   %2, xmm0
+%elif %1 == 8
+    movq     mm0, [%3+ 0]
+    movq     mm1, [%3+16]
+    packssdw mm0, [%3+ 8]
+    packssdw mm1, [%3+24]
+    packsswb mm0, mm1
+    pcmpeqb  mm0, mm2
+    pmovmskb  %2, mm0
 %else
     movq     mm0, [%3+ 0]
     movq     mm1, [%3+16]
@@ -1198,11 +1211,38 @@ COEFF_LAST4
 INIT_MMX mmx2, lzcnt
 COEFF_LAST4
 
+%macro COEFF_LAST8 0
+cglobal coeff_last8, 1,3
+    pxor m2, m2
+    LAST_MASK 8, r1d, r0
+%if mmsize == 16
+    xor r1d, 0xffff
+    shr r1d, 8
+%else
+    xor r1d, 0xff
+%endif
+    BSR eax, r1d, 0x1f
+    RET
+%endmacro
+
+%ifndef ARCH_X86_64
+INIT_MMX mmx2
+COEFF_LAST8
+%endif
+INIT_XMM sse2
+COEFF_LAST8
+INIT_XMM sse2, lzcnt
+COEFF_LAST8
+
 %else ; !HIGH_BIT_DEPTH
 %macro LAST_MASK 3-4
+%if %1 <= 8
+    movq     mm0, [%3+ 0]
 %if %1 == 4
-    movq     mm0, [%3]
     packsswb mm0, mm0
+%else
+    packsswb mm0, [%3+ 8]
+%endif
     pcmpeqb  mm0, mm2
     pmovmskb  %2, mm0
 %elif mmsize == 16
@@ -1224,7 +1264,7 @@ COEFF_LAST4
 %endif
 %endmacro
 
-%macro COEFF_LAST4 0
+%macro COEFF_LAST48 0
 %ifdef ARCH_X86_64
 cglobal coeff_last4, 1,1
     BSR  rax, [r0], 0x3f
@@ -1243,12 +1283,19 @@ cglobal coeff_last4, 0,3
     lea   eax, [eax+ecx*2]
     RET
 %endif
+
+cglobal coeff_last8, 1,3
+    pxor m2, m2
+    LAST_MASK 8, r1d, r0, r2d
+    xor r1d, 0xff
+    BSR eax, r1d, 0x1f
+    RET
 %endmacro
 
 INIT_MMX mmx2
-COEFF_LAST4
+COEFF_LAST48
 INIT_MMX mmx2, lzcnt
-COEFF_LAST4
+COEFF_LAST48
 %endif ; HIGH_BIT_DEPTH
 
 %macro COEFF_LAST 0
@@ -1368,11 +1415,19 @@ COEFF_LEVELRUN 15
 COEFF_LEVELRUN 16
 %endif
 COEFF_LEVELRUN 4
+COEFF_LEVELRUN 8
 INIT_XMM sse2
+%ifdef HIGH_BIT_DEPTH
+COEFF_LEVELRUN 8
+%endif
 COEFF_LEVELRUN 15
 COEFF_LEVELRUN 16
 INIT_XMM sse2, lzcnt
+%ifdef HIGH_BIT_DEPTH
+COEFF_LEVELRUN 8
+%endif
 COEFF_LEVELRUN 15
 COEFF_LEVELRUN 16
 INIT_MMX mmx2, lzcnt
 COEFF_LEVELRUN 4
+COEFF_LEVELRUN 8

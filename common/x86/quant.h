@@ -84,13 +84,17 @@ int x264_decimate_score64_mmx2( dctcoef *dct );
 int x264_decimate_score64_sse2( dctcoef *dct );
 int x264_decimate_score64_ssse3( dctcoef *dct );
 int x264_coeff_last4_mmx2( dctcoef *dct );
+int x264_coeff_last8_mmx2( dctcoef *dct );
 int x264_coeff_last15_mmx2( dctcoef *dct );
 int x264_coeff_last16_mmx2( dctcoef *dct );
 int x264_coeff_last64_mmx2( dctcoef *dct );
+int x264_coeff_last8_sse2( dctcoef *dct );
 int x264_coeff_last15_sse2( dctcoef *dct );
 int x264_coeff_last16_sse2( dctcoef *dct );
 int x264_coeff_last64_sse2( dctcoef *dct );
 int x264_coeff_last4_mmx2_lzcnt( dctcoef *dct );
+int x264_coeff_last8_mmx2_lzcnt( dctcoef *dct );
+int x264_coeff_last8_sse2_lzcnt( dctcoef *dct );
 int x264_coeff_last15_sse2_lzcnt( dctcoef *dct );
 int x264_coeff_last16_sse2_lzcnt( dctcoef *dct );
 int x264_coeff_last64_sse2_lzcnt( dctcoef *dct );
@@ -102,5 +106,9 @@ int x264_coeff_level_run15_sse2( dctcoef *dct, x264_run_level_t *runlevel );
 int x264_coeff_level_run15_sse2_lzcnt( dctcoef *dct, x264_run_level_t *runlevel );
 int x264_coeff_level_run4_mmx2( dctcoef *dct, x264_run_level_t *runlevel );
 int x264_coeff_level_run4_mmx2_lzcnt( dctcoef *dct, x264_run_level_t *runlevel );
+int x264_coeff_level_run8_mmx2( dctcoef *dct, x264_run_level_t *runlevel );
+int x264_coeff_level_run8_mmx2_lzcnt( dctcoef *dct, x264_run_level_t *runlevel );
+int x264_coeff_level_run8_sse2( dctcoef *dct, x264_run_level_t *runlevel );
+int x264_coeff_level_run8_sse2_lzcnt( dctcoef *dct, x264_run_level_t *runlevel );
 
 #endif
