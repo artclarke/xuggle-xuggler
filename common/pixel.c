@@ -193,7 +193,7 @@ PIXEL_VAR_C( x264_pixel_var_8x8,    8,  8 )
 /****************************************************************************
  * pixel_var2_wxh
  ****************************************************************************/
-#define PIXEL_VAR2_C( name, w, h ) \
+#define PIXEL_VAR2_C( name, w, h, shift ) \
 static int name( pixel *pix1, int i_stride1, pixel *pix2, int i_stride2, int *ssd ) \
 { \
     uint32_t var = 0, sum = 0, sqr = 0; \
@@ -209,13 +209,13 @@ static int name( pixel *pix1, int i_stride1, pixel *pix2, int i_stride2, int *ss
         pix2 += i_stride2; \
     } \
     sum = abs(sum); \
-    var = sqr - ((uint64_t)sum * sum >> 6); \
+    var = sqr - ((uint64_t)sum * sum >> shift); \
     *ssd = sqr; \
     return var; \
 }
 
-PIXEL_VAR2_C( x264_pixel_var2_8x16, 8, 16 )
-PIXEL_VAR2_C( x264_pixel_var2_8x8,  8,  8 )
+PIXEL_VAR2_C( x264_pixel_var2_8x16, 8, 16, 7 )
+PIXEL_VAR2_C( x264_pixel_var2_8x8,  8,  8, 6 )
 
 #if BIT_DEPTH > 8
     typedef uint32_t sum_t;
