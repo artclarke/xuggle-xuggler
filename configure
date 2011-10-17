@@ -1037,25 +1037,25 @@ if [ "$shared" = "yes" ]; then
             echo 'IMPLIBNAME=libx264.dll.lib' >> config.mak
             # GNU ld on windows defaults to exporting all global functions if there are no explicit __declspec(dllexport) declarations
             # MSVC link does not act similarly, so it is required to make an export definition out of x264.h and use it at link time
-            echo 'SOFLAGS=-dll -def:x264.def -implib:$(IMPLIBNAME)' >> config.mak
+            echo "SOFLAGS=-dll -def:x264.def -implib:\$(IMPLIBNAME) $SOFLAGS" >> config.mak
             echo "EXPORTS" > x264.def
             grep "^\(int\|void\|x264_t\|extern\).*x264.*[\[(;]" x264.h | sed -e "s/.*\(x264.*\)[\[(].*/\1/;s/.*\(x264.*\);/\1/;s/open/open_$API/g" >> x264.def
         else
             echo 'IMPLIBNAME=libx264.dll.a' >> config.mak
-            echo 'SOFLAGS=-shared -Wl,--out-implib,$(IMPLIBNAME) -Wl,--enable-auto-image-base' >> config.mak
+            echo "SOFLAGS=-shared -Wl,--out-implib,\$(IMPLIBNAME) -Wl,--enable-auto-image-base $SOFLAGS" >> config.mak
         fi
     elif [ "$SYS" = "MACOSX" ]; then
         echo "SOSUFFIX=dylib" >> config.mak
         echo "SONAME=libx264.$API.dylib" >> config.mak
-        echo 'SOFLAGS=-shared -dynamiclib -Wl,-single_module -Wl,-read_only_relocs,suppress -install_name $(DESTDIR)$(libdir)/$(SONAME)' >> config.mak
+        echo "SOFLAGS=-shared -dynamiclib -Wl,-single_module -Wl,-read_only_relocs,suppress -install_name \$(DESTDIR)\$(libdir)/\$(SONAME) $SOFLAGS" >> config.mak
     elif [ "$SYS" = "SunOS" ]; then
         echo "SOSUFFIX=so" >> config.mak
         echo "SONAME=libx264.so.$API" >> config.mak
-        echo 'SOFLAGS=-shared -Wl,-h,$(SONAME)' >> config.mak
+        echo "SOFLAGS=-shared -Wl,-h,\$(SONAME) $SOFLAGS" >> config.mak
     else
         echo "SOSUFFIX=so" >> config.mak
         echo "SONAME=libx264.so.$API" >> config.mak
-        echo 'SOFLAGS=-shared -Wl,-soname,$(SONAME)' >> config.mak
+        echo "SOFLAGS=-shared -Wl,-soname,\$(SONAME) $SOFLAGS" >> config.mak
     fi
     echo 'default: lib-shared' >> config.mak
     echo 'install: install-lib-shared' >> config.mak
