@@ -474,6 +474,11 @@ case $host_os in
         SYS="SunOS"
         define HAVE_MALLOC_H
         LDFLAGS="$LDFLAGS -lm"
+        if cc_check "" /usr/lib/64/values-xpg6.o; then
+            LDFLAGS="$LDFLAGS /usr/lib/64/values-xpg6.o"
+        else
+            LDFLAGS="$LDFLAGS /usr/lib/values-xpg6.o"
+        fi
         HAVE_GETOPT_LONG=0
         ;;
     *)
