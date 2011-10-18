@@ -1302,9 +1302,10 @@ MC_COPY 16
 ; void prefetch_fenc( pixel *pix_y, int stride_y,
 ;                     pixel *pix_uv, int stride_uv, int mb_x )
 ;-----------------------------------------------------------------------------
-INIT_MMX
+
+%macro PREFETCH_FENC 1
 %ifdef ARCH_X86_64
-cglobal prefetch_fenc_mmx2, 5,5
+cglobal prefetch_fenc_%1, 5,5
     FIX_STRIDES r1d, r3d
     and    r4d, 3
     mov    eax, r4d
@@ -1320,10 +1321,15 @@ cglobal prefetch_fenc_mmx2, 5,5
     lea    r2,  [r2+rax*2+64*SIZEOF_PIXEL]
     prefetcht0  [r2]
     prefetcht0  [r2+r3]
+%ifidn %1, 422
+    lea    r2,  [r2+r3*2]
+    prefetcht0  [r2]
+    prefetcht0  [r2+r3]
+%endif
     RET
 
 %else
-cglobal prefetch_fenc_mmx2, 0,3
+cglobal prefetch_fenc_%1, 0,3
     mov    r2, r4m
     mov    r1, r1m
     mov    r0, r0m
@@ -1346,13 +1352,24 @@ cglobal prefetch_fenc_mmx2, 0,3
     lea    r0, [r0+r2*2+64*SIZEOF_PIXEL]
     prefetcht0 [r0]
     prefetcht0 [r0+r1]
+%ifidn %1, 422
+    lea    r0,  [r0+r1*2]
+    prefetcht0  [r0]
+    prefetcht0  [r0+r1]
+%endif
     ret
 %endif ; ARCH_X86_64
+%endmacro
+
+INIT_MMX mmx2
+PREFETCH_FENC 420
+PREFETCH_FENC 422
 
 ;-----------------------------------------------------------------------------
 ; void prefetch_ref( pixel *pix, int stride, int parity )
 ;-----------------------------------------------------------------------------
-cglobal prefetch_ref_mmx2, 3,3
+INIT_MMX mmx2
+cglobal prefetch_ref, 3,3
     FIX_STRIDES r1d
     dec    r2d
     and    r2d, r1d

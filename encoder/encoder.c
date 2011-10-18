@@ -980,6 +980,7 @@ static void chroma_dsp_init( x264_t *h )
     {
         case CHROMA_420:
             memcpy( h->predict_chroma, h->predict_8x8c, sizeof(h->predict_chroma) );
+            h->mc.prefetch_fenc = h->mc.prefetch_fenc_420;
             h->loopf.deblock_chroma[0] = h->loopf.deblock_h_chroma_420;
             h->loopf.deblock_chroma_intra[0] = h->loopf.deblock_h_chroma_420_intra;
             h->loopf.deblock_chroma_mbaff = h->loopf.deblock_chroma_420_mbaff;
@@ -990,6 +991,7 @@ static void chroma_dsp_init( x264_t *h )
             break;
         case CHROMA_422:
             memcpy( h->predict_chroma, h->predict_8x16c, sizeof(h->predict_chroma) );
+            h->mc.prefetch_fenc = h->mc.prefetch_fenc_422;
             h->loopf.deblock_chroma[0] = h->loopf.deblock_h_chroma_422;
             h->loopf.deblock_chroma_intra[0] = h->loopf.deblock_h_chroma_422_intra;
             h->loopf.deblock_chroma_mbaff = h->loopf.deblock_chroma_422_mbaff;
@@ -999,6 +1001,7 @@ static void chroma_dsp_init( x264_t *h )
             h->quantf.coeff_level_run[DCT_CHROMA_DC] = h->quantf.coeff_level_run8;
             break;
         case CHROMA_444:
+            h->mc.prefetch_fenc = h->mc.prefetch_fenc_422; /* FIXME: doesn't cover V plane */
             h->loopf.deblock_chroma_mbaff = h->loopf.deblock_luma_mbaff;
             h->loopf.deblock_chroma_intra_mbaff = h->loopf.deblock_luma_intra_mbaff;
             break;
