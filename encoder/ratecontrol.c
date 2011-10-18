@@ -247,6 +247,7 @@ static NOINLINE uint32_t x264_ac_energy_mb( x264_t *h, int mb_x, int mb_y, x264_
      * function and make sure that its always called before the float math.  Noinline makes
      * sure no reordering goes on. */
     uint32_t var;
+    x264_prefetch_fenc( h, frame, mb_x, mb_y );
     if( h->mb.b_adaptive_mbaff )
     {
         /* We don't know the super-MB mode we're going to pick yet, so
