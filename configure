@@ -631,7 +631,7 @@ if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" -o
 fi
 
 if [ $asm = auto -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
-    if ! as_check "vfmaddps xmm0, xmm0, xmm0, xmm0" ; then
+    if ! as_check "vpperm xmm0, xmm0, xmm0, xmm0" ; then
         VER=`($AS --version || echo no assembler) 2>/dev/null | head -n 1`
         echo "Found $VER"
         echo "Minimum version is yasm-1.0.0"
