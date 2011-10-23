@@ -1881,6 +1881,48 @@ INIT_MMX mmx2
 DEBLOCK_CHROMA
 %endif
 
+%macro DEBLOCK_H_CHROMA_422 0
+cglobal deblock_h_chroma_422, 5,7,8
+%ifdef ARCH_X86_64
+    %define cntr r11
+%else
+    %define cntr dword r0m
+%endif
+    dec    r2d
+    dec    r3d
+    sub    r0, 4
+    lea    t6, [r1*3]
+    mov    t5, r0
+    add    r0, t6
+    mov  cntr, 32/mmsize
+.skip_prologue:
+    TRANSPOSE4x8W_LOAD PASS8ROWS(t5, r0, r1, t6)
+    LOAD_MASK  r2d, r3d
+    movd       m6, [r4] ; tc0
+    punpcklbw  m6, m6
+%if mmsize == 16
+    punpcklbw  m6, m6
+    punpcklbw  m6, m6
+%else
+    pshufw     m6, m6, q0000
+%endif
+    pand       m7, m6
+    DEBLOCK_P0_Q0
+    TRANSPOSE8x2W_STORE PASS8ROWS(t5, r0, r1, t6, 2)
+    lea   r0, [r0+r1*(mmsize/2)]
+    lea   t5, [t5+r1*(mmsize/2)]
+    add   r4, mmsize/8
+    dec   cntr
+    jg .skip_prologue
+    REP_RET
+%endmacro
+
+INIT_MMX mmx2
+DEBLOCK_H_CHROMA_422
+INIT_XMM sse2
+DEBLOCK_H_CHROMA_422
+INIT_XMM avx
+DEBLOCK_H_CHROMA_422
 
 ; in: %1=p0 %2=p1 %3=q1
 ; out: p0 = (p0 + q1 + 2*p1 + 2) >> 2

@@ -109,7 +109,7 @@ static NOINLINE void x264_weight_cost_init_chroma( x264_t *h, x264_frame_t *fenc
     int i_offset = i_stride / 2;
     int i_lines = fenc->i_lines[1];
     int i_width = fenc->i_width[1];
-    int v_shift = h->mb.chroma_v_shift;
+    int v_shift = CHROMA_V_SHIFT;
     int cw = 8*h->mb.i_mb_width;
     int ch = 16*h->mb.i_mb_height >> v_shift;
     int height = 16 >> v_shift;
@@ -227,7 +227,7 @@ static NOINLINE unsigned int x264_weight_cost_chroma( x264_t *h, x264_frame_t *f
     ALIGNED_ARRAY_16( pixel, buf, [8*16] );
     int pixoff = 0;
     int chromapix = h->luma2chroma_pixel[PIXEL_16x16];
-    int height = 16 >> h->mb.chroma_v_shift;
+    int height = 16 >> CHROMA_V_SHIFT;
     ALIGNED_16( static pixel flat[8] ) = {0};
     if( w )
     {
@@ -790,7 +790,7 @@ static int x264_slicetype_frame_cost( x264_t *h, x264_mb_analysis_t *a,
     {
         // arbitrary penalty for I-blocks after B-frames
         int nmb = NUM_MBS;
-        i_score += i_score * frames[b]->i_intra_mbs[b-p0] / (nmb * 8);
+        i_score += (uint64_t)i_score * frames[b]->i_intra_mbs[b-p0] / (nmb * 8);
     }
     return i_score;
 }

@@ -219,7 +219,7 @@ static ALWAYS_INLINE uint32_t ac_energy_var( uint64_t sum_ssd, int shift, x264_f
 
 static ALWAYS_INLINE uint32_t ac_energy_plane( x264_t *h, int mb_x, int mb_y, x264_frame_t *frame, int i, int b_chroma, int b_field, int b_store )
 {
-    int height = b_chroma ? 16>>h->mb.chroma_v_shift : 16;
+    int height = b_chroma ? 16>>CHROMA_V_SHIFT : 16;
     int stride = frame->i_stride[i];
     int offset = b_field
         ? 16 * mb_x + height * (mb_y&~1) * stride + (mb_y&1) * stride
@@ -229,7 +229,7 @@ static ALWAYS_INLINE uint32_t ac_energy_plane( x264_t *h, int mb_x, int mb_y, x2
     {
         ALIGNED_ARRAY_16( pixel, pix,[FENC_STRIDE*16] );
         int chromapix = h->luma2chroma_pixel[PIXEL_16x16];
-        int shift = 7 - h->mb.chroma_v_shift;
+        int shift = 7 - CHROMA_V_SHIFT;
 
         h->mc.load_deinterleave_chroma_fenc( pix, frame->plane[1] + offset, stride, height );
         return ac_energy_var( h->pixf.var[chromapix]( pix,               FENC_STRIDE ), shift, frame, 1, b_store )
@@ -247,6 +247,7 @@ static NOINLINE uint32_t x264_ac_energy_mb( x264_t *h, int mb_x, int mb_y, x264_
      * function and make sure that its always called before the float math.  Noinline makes
      * sure no reordering goes on. */
     uint32_t var;
+    x264_prefetch_fenc( h, frame, mb_x, mb_y );
     if( h->mb.b_adaptive_mbaff )
     {
         /* We don't know the super-MB mode we're going to pick yet, so
@@ -382,8 +383,8 @@ void x264_adaptive_quant_frame( x264_t *h, x264_frame_t *frame, float *quant_off
     {
         uint64_t ssd = frame->i_pixel_ssd[i];
         uint64_t sum = frame->i_pixel_sum[i];
-        int width  = 16*h->mb.i_mb_width  >> (i && h->mb.chroma_h_shift);
-        int height = 16*h->mb.i_mb_height >> (i && h->mb.chroma_v_shift);
+        int width  = 16*h->mb.i_mb_width  >> (i && CHROMA_H_SHIFT);
+        int height = 16*h->mb.i_mb_height >> (i && CHROMA_V_SHIFT);
         frame->i_pixel_ssd[i] = ssd - (sum * sum + width * height / 2) / (width * height);
     }
 }

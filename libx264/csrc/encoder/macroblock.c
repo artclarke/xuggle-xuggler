@@ -112,28 +112,6 @@ static ALWAYS_INLINE int array_non_zero( dctcoef *v, int i_count )
     return 0;
 }
 
-static ALWAYS_INLINE int x264_quant_4x4( x264_t *h, dctcoef dct[16], int i_qp, int ctx_block_cat, int b_intra, int p, int idx )
-{
-    int i_quant_cat = b_intra ? (p?CQM_4IC:CQM_4IY) : (p?CQM_4PC:CQM_4PY);
-    if( h->mb.b_noise_reduction )
-        h->quantf.denoise_dct( dct, h->nr_residual_sum[0+!!p*2], h->nr_offset[0+!!p*2], 16 );
-    if( h->mb.b_trellis )
-        return x264_quant_4x4_trellis( h, dct, i_quant_cat, i_qp, ctx_block_cat, b_intra, !!p, idx+p*16 );
-    else
-        return h->quantf.quant_4x4( dct, h->quant4_mf[i_quant_cat][i_qp], h->quant4_bias[i_quant_cat][i_qp] );
-}
-
-static ALWAYS_INLINE int x264_quant_8x8( x264_t *h, dctcoef dct[64], int i_qp, int ctx_block_cat, int b_intra, int p, int idx )
-{
-    int i_quant_cat = b_intra ? (p?CQM_8IC:CQM_8IY) : (p?CQM_8PC:CQM_8PY);
-    if( h->mb.b_noise_reduction )
-        h->quantf.denoise_dct( dct, h->nr_residual_sum[1+!!p*2], h->nr_offset[1+!!p*2], 64 );
-    if( h->mb.b_trellis )
-        return x264_quant_8x8_trellis( h, dct, i_quant_cat, i_qp, ctx_block_cat, b_intra, !!p, idx+p*4 );
-    else
-        return h->quantf.quant_8x8( dct, h->quant8_mf[i_quant_cat][i_qp], h->quant8_bias[i_quant_cat][i_qp] );
-}
-
 /* All encoding functions must output the correct CBP and NNZ values.
  * The entropy coding functions will check CBP first, then NNZ, before
  * actually reading the DCT coefficients.  NNZ still must be correct even
@@ -144,99 +122,6 @@ static ALWAYS_INLINE int x264_quant_8x8( x264_t *h, dctcoef dct[64], int i_qp, i
 
 /* This means that decimation can be done merely by adjusting the CBP and NNZ
  * rather than memsetting the coefficients. */
-
-void x264_mb_encode_i4x4( x264_t *h, int p, int idx, int i_qp, int i_mode )
-{
-    int nz;
-    pixel *p_src = &h->mb.pic.p_fenc[p][block_idx_xy_fenc[idx]];
-    pixel *p_dst = &h->mb.pic.p_fdec[p][block_idx_xy_fdec[idx]];
-    ALIGNED_ARRAY_16( dctcoef, dct4x4,[16] );
-
-    if( h->mb.b_lossless )
-        x264_predict_lossless_4x4( h, p_dst, p, idx, i_mode );
-    else
-        h->predict_4x4[i_mode]( p_dst );
-
-    if( h->mb.b_lossless )
-    {
-        nz = h->zigzagf.sub_4x4( h->dct.luma4x4[p*16+idx], p_src, p_dst );
-        h->mb.cache.non_zero_count[x264_scan8[p*16+idx]] = nz;
-        h->mb.i_cbp_luma |= nz<<(idx>>2);
-        return;
-    }
-
-    h->dctf.sub4x4_dct( dct4x4, p_src, p_dst );
-
-    nz = x264_quant_4x4( h, dct4x4, i_qp, ctx_cat_plane[DCT_LUMA_4x4][p], 1, p, idx );
-    h->mb.cache.non_zero_count[x264_scan8[p*16+idx]] = nz;
-    if( nz )
-    {
-        h->mb.i_cbp_luma |= 1<<(idx>>2);
-        h->zigzagf.scan_4x4( h->dct.luma4x4[p*16+idx], dct4x4 );
-        h->quantf.dequant_4x4( dct4x4, h->dequant4_mf[p?CQM_4IC:CQM_4IY], i_qp );
-        h->dctf.add4x4_idct( p_dst, dct4x4 );
-    }
-}
-
-#define STORE_8x8_NNZ( p, idx, nz )\
-do\
-{\
-    M16( &h->mb.cache.non_zero_count[x264_scan8[p*16+idx*4]+0] ) = (nz) * 0x0101;\
-    M16( &h->mb.cache.non_zero_count[x264_scan8[p*16+idx*4]+8] ) = (nz) * 0x0101;\
-} while(0)
-
-#define CLEAR_16x16_NNZ( p ) \
-do\
-{\
-    M32( &h->mb.cache.non_zero_count[x264_scan8[16*p+ 0]] ) = 0;\
-    M32( &h->mb.cache.non_zero_count[x264_scan8[16*p+ 2]] ) = 0;\
-    M32( &h->mb.cache.non_zero_count[x264_scan8[16*p+ 8]] ) = 0;\
-    M32( &h->mb.cache.non_zero_count[x264_scan8[16*p+10]] ) = 0;\
-} while(0)
-
-void x264_mb_encode_i8x8( x264_t *h, int p, int idx, int i_qp, int i_mode, pixel *edge )
-{
-    int x = idx&1;
-    int y = idx>>1;
-    int nz;
-    pixel *p_src = &h->mb.pic.p_fenc[p][8*x + 8*y*FENC_STRIDE];
-    pixel *p_dst = &h->mb.pic.p_fdec[p][8*x + 8*y*FDEC_STRIDE];
-    ALIGNED_ARRAY_16( dctcoef, dct8x8,[64] );
-    ALIGNED_ARRAY_32( pixel, edge_buf,[36] );
-
-    if( !edge )
-    {
-        h->predict_8x8_filter( p_dst, edge_buf, h->mb.i_neighbour8[idx], x264_pred_i4x4_neighbors[i_mode] );
-        edge = edge_buf;
-    }
-
-    if( h->mb.b_lossless )
-        x264_predict_lossless_8x8( h, p_dst, p, idx, i_mode, edge );
-    else
-        h->predict_8x8[i_mode]( p_dst, edge );
-
-    if( h->mb.b_lossless )
-    {
-        nz = h->zigzagf.sub_8x8( h->dct.luma8x8[p*4+idx], p_src, p_dst );
-        STORE_8x8_NNZ( p, idx, nz );
-        h->mb.i_cbp_luma |= nz<<idx;
-        return;
-    }
-
-    h->dctf.sub8x8_dct8( dct8x8, p_src, p_dst );
-
-    nz = x264_quant_8x8( h, dct8x8, i_qp, ctx_cat_plane[DCT_LUMA_8x8][p], 1, p, idx );
-    if( nz )
-    {
-        h->mb.i_cbp_luma |= 1<<idx;
-        h->zigzagf.scan_8x8( h->dct.luma8x8[p*4+idx], dct8x8 );
-        h->quantf.dequant_8x8( dct8x8, h->dequant8_mf[p?CQM_8IC:CQM_8IY], i_qp );
-        h->dctf.add8x8_idct8( p_dst, dct8x8 );
-        STORE_8x8_NNZ( p, idx, 1 );
-    }
-    else
-        STORE_8x8_NNZ( p, idx, 0 );
-}
 
 static void x264_mb_encode_i16x16( x264_t *h, int p, int i_qp )
 {
@@ -602,7 +487,7 @@ static void x264_macroblock_encode_skip( x264_t *h )
 
 void x264_predict_lossless_chroma( x264_t *h, int i_mode )
 {
-    int height = 16 >> h->mb.chroma_v_shift;
+    int height = 16 >> CHROMA_V_SHIFT;
     if( i_mode == I_PRED_CHROMA_V )
     {
         h->mc.copy[PIXEL_8x8]( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fenc[1]-FENC_STRIDE, FENC_STRIDE, height );
@@ -686,7 +571,7 @@ static ALWAYS_INLINE void x264_macroblock_encode_internal( x264_t *h, int plane_
             h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fdec[p], FDEC_STRIDE, h->mb.pic.p_fenc[p], FENC_STRIDE, 16 );
         if( chroma )
         {
-            int height = 16 >> h->mb.chroma_v_shift;
+            int height = 16 >> CHROMA_V_SHIFT;
             h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[1], FDEC_STRIDE, h->mb.pic.p_fenc[1], FENC_STRIDE, height );
             h->mc.copy[PIXEL_8x8]  ( h->mb.pic.p_fdec[2], FDEC_STRIDE, h->mb.pic.p_fenc[2], FENC_STRIDE, height );
         }
@@ -722,7 +607,7 @@ static ALWAYS_INLINE void x264_macroblock_encode_internal( x264_t *h, int plane_
 
             if( chroma )
             {
-                int v_shift = h->mb.chroma_v_shift;
+                int v_shift = CHROMA_V_SHIFT;
                 int height = 16 >> v_shift;
 
                 /* Special case for mv0, which is (of course) very common in P-skip mode. */
@@ -788,7 +673,7 @@ static ALWAYS_INLINE void x264_macroblock_encode_internal( x264_t *h, int plane_
             for( int i = (p == 0 && h->mb.i_skip_intra) ? 3 : 0 ; i < 4; i++ )
             {
                 int i_mode = h->mb.cache.intra4x4_pred_mode[x264_scan8[4*i]];
-                x264_mb_encode_i8x8( h, p, i, i_qp, i_mode, NULL );
+                x264_mb_encode_i8x8( h, p, i, i_qp, i_mode, NULL, 1 );
             }
             i_qp = h->mb.i_chroma_qp;
         }
@@ -820,7 +705,7 @@ static ALWAYS_INLINE void x264_macroblock_encode_internal( x264_t *h, int plane_
                     /* emulate missing topright samples */
                     MPIXEL_X4( &p_dst[4-FDEC_STRIDE] ) = PIXEL_SPLAT_X4( p_dst[3-FDEC_STRIDE] );
 
-                x264_mb_encode_i4x4( h, p, i, i_qp, i_mode );
+                x264_mb_encode_i4x4( h, p, i, i_qp, i_mode, 1 );
             }
             i_qp = h->mb.i_chroma_qp;
         }

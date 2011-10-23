@@ -1635,8 +1635,8 @@ FRAME_INIT_LOWRES
 ; void mbtree_propagate_cost( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
 ;                             uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len )
 ;-----------------------------------------------------------------------------
-INIT_XMM
-cglobal mbtree_propagate_cost_sse2, 7,7,7
+%macro MBTREE 0
+cglobal mbtree_propagate_cost, 7,7,7
     add        r6d, r6d
     lea         r0, [r0+r6*2]
     add         r1, r6
@@ -1660,6 +1660,20 @@ cglobal mbtree_propagate_cost_sse2, 7,7,7
     pand      xmm3, xmm5
     punpcklwd xmm1, xmm4
     punpcklwd xmm3, xmm4
+%if cpuflag(fma4)
+    cvtdq2ps  xmm0, xmm0
+    cvtdq2ps  xmm1, xmm1
+    vfmaddps  xmm0, xmm0, xmm6, xmm1
+    cvtdq2ps  xmm1, xmm2
+    psubd     xmm2, xmm3
+    cvtdq2ps  xmm2, xmm2
+    rcpps     xmm3, xmm1
+    mulps     xmm1, xmm3
+    mulps     xmm0, xmm2
+    addps     xmm2, xmm3, xmm3
+    vfnmaddps xmm3, xmm1, xmm3, xmm2
+    mulps     xmm0, xmm3
+%else
     cvtdq2ps  xmm0, xmm0
     mulps     xmm0, xmm6    ; intra*invq*fps_factor>>8
     cvtdq2ps  xmm1, xmm1    ; prop
@@ -1674,11 +1688,19 @@ cglobal mbtree_propagate_cost_sse2, 7,7,7
     addps     xmm3, xmm3    ; 2 * (1/intra 1st approx)
     subps     xmm3, xmm1    ; 2nd approximation for 1/intra
     mulps     xmm0, xmm3    ; / intra
+%endif
     cvtps2dq  xmm0, xmm0
     movdqa [r0+r6*2], xmm0
     add         r6, 8
     jl .loop
     REP_RET
+%endmacro
+
+INIT_XMM sse2
+MBTREE
+; Bulldozer only has a 128-bit float unit, so the AVX version of this function is actually slower.
+INIT_XMM fma4
+MBTREE
 
 %macro INT16_TO_FLOAT 1
     vpunpckhwd   xmm4, xmm%1, xmm7
@@ -1688,7 +1710,8 @@ cglobal mbtree_propagate_cost_sse2, 7,7,7
 %endmacro
 
 ; FIXME: align loads/stores to 16 bytes
-cglobal mbtree_propagate_cost_avx, 7,7,8
+INIT_YMM avx
+cglobal mbtree_propagate_cost, 7,7,8
     add           r6d, r6d
     lea            r0, [r0+r6*2]
     add            r1, r6

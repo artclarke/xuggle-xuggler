@@ -41,7 +41,7 @@
 
 #include "x264_config.h"
 
-#define X264_BUILD 118
+#define X264_BUILD 119
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -100,31 +100,33 @@ typedef struct
  ****************************************************************************/
 /* CPU flags
  */
-#define X264_CPU_CACHELINE_32   0x000001  /* avoid memory loads that span the border between two cachelines */
-#define X264_CPU_CACHELINE_64   0x000002  /* 32/64 is the size of a cacheline in bytes */
-#define X264_CPU_ALTIVEC        0x000004
-#define X264_CPU_MMX            0x000008
-#define X264_CPU_MMX2           0x000010  /* MMX2 aka MMXEXT aka ISSE */
-#define X264_CPU_MMXEXT    X264_CPU_MMX2
-#define X264_CPU_SSE            0x000020
-#define X264_CPU_SSE2           0x000040
-#define X264_CPU_SSE2_IS_SLOW   0x000080  /* avoid most SSE2 functions on Athlon64 */
-#define X264_CPU_SSE2_IS_FAST   0x000100  /* a few functions are only faster on Core2 and Phenom */
-#define X264_CPU_SSE3           0x000200
-#define X264_CPU_SSSE3          0x000400
-#define X264_CPU_SHUFFLE_IS_FAST 0x000800 /* Penryn, Nehalem, and Phenom have fast shuffle units */
-#define X264_CPU_STACK_MOD4     0x001000  /* if stack is only mod4 and not mod16 */
-#define X264_CPU_SSE4           0x002000  /* SSE4.1 */
-#define X264_CPU_SSE42          0x004000  /* SSE4.2 */
-#define X264_CPU_SSE_MISALIGN   0x008000  /* Phenom support for misaligned SSE instruction arguments */
-#define X264_CPU_LZCNT          0x010000  /* Phenom support for "leading zero count" instruction. */
-#define X264_CPU_ARMV6          0x020000
-#define X264_CPU_NEON           0x040000  /* ARM NEON */
-#define X264_CPU_FAST_NEON_MRC  0x080000  /* Transfer from NEON to ARM register is fast (Cortex-A9) */
-#define X264_CPU_SLOW_CTZ       0x100000  /* BSR/BSF x86 instructions are really slow on some CPUs */
-#define X264_CPU_SLOW_ATOM      0x200000  /* The Atom just sucks */
-#define X264_CPU_AVX            0x400000  /* AVX support: requires OS support even if YMM registers
-                                           * aren't used. */
+#define X264_CPU_CACHELINE_32    0x0000001  /* avoid memory loads that span the border between two cachelines */
+#define X264_CPU_CACHELINE_64    0x0000002  /* 32/64 is the size of a cacheline in bytes */
+#define X264_CPU_ALTIVEC         0x0000004
+#define X264_CPU_MMX             0x0000008
+#define X264_CPU_MMX2            0x0000010  /* MMX2 aka MMXEXT aka ISSE */
+#define X264_CPU_MMXEXT          X264_CPU_MMX2
+#define X264_CPU_SSE             0x0000020
+#define X264_CPU_SSE2            0x0000040
+#define X264_CPU_SSE2_IS_SLOW    0x0000080  /* avoid most SSE2 functions on Athlon64 */
+#define X264_CPU_SSE2_IS_FAST    0x0000100  /* a few functions are only faster on Core2 and Phenom */
+#define X264_CPU_SSE3            0x0000200
+#define X264_CPU_SSSE3           0x0000400
+#define X264_CPU_SHUFFLE_IS_FAST 0x0000800  /* Penryn, Nehalem, and Phenom have fast shuffle units */
+#define X264_CPU_STACK_MOD4      0x0001000  /* if stack is only mod4 and not mod16 */
+#define X264_CPU_SSE4            0x0002000  /* SSE4.1 */
+#define X264_CPU_SSE42           0x0004000  /* SSE4.2 */
+#define X264_CPU_SSE_MISALIGN    0x0008000  /* Phenom support for misaligned SSE instruction arguments */
+#define X264_CPU_LZCNT           0x0010000  /* Phenom support for "leading zero count" instruction. */
+#define X264_CPU_ARMV6           0x0020000
+#define X264_CPU_NEON            0x0040000  /* ARM NEON */
+#define X264_CPU_FAST_NEON_MRC   0x0080000  /* Transfer from NEON to ARM register is fast (Cortex-A9) */
+#define X264_CPU_SLOW_CTZ        0x0100000  /* BSR/BSF x86 instructions are really slow on some CPUs */
+#define X264_CPU_SLOW_ATOM       0x0200000  /* The Atom just sucks */
+#define X264_CPU_AVX             0x0400000  /* AVX support: requires OS support even if YMM registers
+                                             * aren't used. */
+#define X264_CPU_XOP             0x0800000  /* AMD XOP */
+#define X264_CPU_FMA4            0x1000000  /* AMD FMA4 */
 
 /* Analyse flags
  */
@@ -606,6 +608,13 @@ int     x264_param_apply_profile( x264_param_t *, const char *profile );
  *      Note: The flag X264_CSP_HIGH_DEPTH must be used to specify the
  *      colorspace depth as well. */
 extern const int x264_bit_depth;
+
+/* x264_chroma_format:
+ *      Specifies the chroma formats that x264 supports encoding. When this
+ *      value is non-zero, then it represents a X264_CSP_* that is the only
+ *      chroma format that x264 supports encoding. If the value is 0 then
+ *      there are no restrictions. */
+extern const int x264_chroma_format;
 
 enum pic_struct_e
 {

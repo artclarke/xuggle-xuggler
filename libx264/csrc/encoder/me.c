@@ -830,7 +830,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     const int i_pixel = m->i_pixel;
     const int b_chroma_me = h->mb.b_chroma_me && (i_pixel <= PIXEL_8x8 || CHROMA444);
     int chromapix = h->luma2chroma_pixel[i_pixel];
-    int chroma_v_shift = h->mb.chroma_v_shift;
+    int chroma_v_shift = CHROMA_V_SHIFT;
     int mvy_offset = chroma_v_shift & MB_INTERLACED & m->i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
 
     ALIGNED_ARRAY_16( pixel, pix,[64*18] ); // really 17x17x2, but round up for alignment
@@ -957,7 +957,7 @@ static void refine_subpel( x264_t *h, x264_me_t *m, int hpel_iters, int qpel_ite
     }\
 }
 
-#define SATD_THRESH 17/16
+#define SATD_THRESH(cost) (cost+(cost>>4))
 
 /* Don't unroll the BIME_CACHE loop. I couldn't find any way to force this
  * other than making its iteration count not a compile-time constant. */
@@ -978,8 +978,8 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
     ALIGNED_ARRAY_16( pixel, pixv_buf,[2],[9][16*16] );
     pixel *src[3][2][9];
     int chromapix = h->luma2chroma_pixel[i_pixel];
-    int chroma_v_shift = h->mb.chroma_v_shift;
-    int chroma_x = (8 >> h->mb.chroma_h_shift) * x;
+    int chroma_v_shift = CHROMA_V_SHIFT;
+    int chroma_x = (8 >> CHROMA_H_SHIFT) * x;
     int chroma_y = (8 >> chroma_v_shift) * y;
     pixel *pix  = &h->mb.pic.p_fdec[0][8*x + 8*y*FDEC_STRIDE];
     pixel *pixu = &h->mb.pic.p_fdec[1][chroma_x + chroma_y*FDEC_STRIDE];
@@ -1063,7 +1063,7 @@ static void ALWAYS_INLINE x264_me_refine_bidir( x264_t *h, x264_me_t *m0, x264_m
                          + p_cost_m0x[m0x] + p_cost_m0y[m0y] + p_cost_m1x[m1x] + p_cost_m1y[m1y];
                 if( rd )
                 {
-                    if( cost < bcost * SATD_THRESH )
+                    if( cost < SATD_THRESH(bcost) )
                     {
                         bcost = X264_MIN( cost, bcost );
                         M32( cache0_mv ) = pack16to32_mask(m0x,m0y);
@@ -1146,7 +1146,7 @@ void x264_me_refine_bidir_rd( x264_t *h, x264_me_t *m0, x264_me_t *m1, int i_wei
 
 #define COST_MV_RD( mx, my, satd, do_dir, mdir ) \
 { \
-    if( satd <= bsatd * SATD_THRESH ) \
+    if( satd <= SATD_THRESH(bsatd) ) \
     { \
         uint64_t cost; \
         M32( cache_mv ) = pack16to32_mask(mx,my); \
@@ -1176,7 +1176,7 @@ void x264_me_refine_qpel_rd( x264_t *h, x264_me_t *m, int i_lambda2, int i4, int
     const int bw = x264_pixel_size[m->i_pixel].w;
     const int bh = x264_pixel_size[m->i_pixel].h;
     const int i_pixel = m->i_pixel;
-    int chroma_v_shift = h->mb.chroma_v_shift;
+    int chroma_v_shift = CHROMA_V_SHIFT;
     int mvy_offset = chroma_v_shift & MB_INTERLACED & m->i_ref ? (h->mb.i_mb_y & 1)*4 - 2 : 0;
 
     uint64_t bcost = COST_MAX64;

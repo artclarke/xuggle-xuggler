@@ -86,7 +86,8 @@ void x264_mc_copy_w8_sse2( pixel *, int, pixel *, int, int );
 void x264_mc_copy_w16_mmx( pixel *, int, pixel *, int, int );
 void x264_mc_copy_w16_sse2( pixel *, int, pixel *, int, int );
 void x264_mc_copy_w16_aligned_sse2( pixel *, int, pixel *, int, int );
-void x264_prefetch_fenc_mmx2( pixel *, int, pixel *, int, int );
+void x264_prefetch_fenc_420_mmx2( pixel *, int, pixel *, int, int );
+void x264_prefetch_fenc_422_mmx2( pixel *, int, pixel *, int, int );
 void x264_prefetch_ref_mmx2( pixel *, int, int );
 void x264_plane_copy_core_mmx2( pixel *, int, pixel *, int, int w, int h);
 void x264_plane_copy_c( pixel *, int, pixel *, int, int w, int h );
@@ -141,6 +142,8 @@ void x264_mbtree_propagate_cost_sse2( int *dst, uint16_t *propagate_in, uint16_t
                                       uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
 void x264_mbtree_propagate_cost_avx( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
                                      uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
+void x264_mbtree_propagate_cost_fma4( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
+                                      uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
 
 #define MC_CHROMA(cpu)\
 void x264_mc_chroma_##cpu( pixel *dstu, pixel *dstv, int i_dst,\
@@ -515,7 +518,8 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     if( !(cpu&X264_CPU_MMX2) )
         return;
 
-    pf->prefetch_fenc = x264_prefetch_fenc_mmx2;
+    pf->prefetch_fenc_420 = x264_prefetch_fenc_420_mmx2;
+    pf->prefetch_fenc_422 = x264_prefetch_fenc_422_mmx2;
     pf->prefetch_ref  = x264_prefetch_ref_mmx2;
 
     pf->plane_copy = x264_plane_copy_mmx2;
@@ -741,4 +745,8 @@ void x264_mc_init_mmx( int cpu, x264_mc_functions_t *pf )
     if( !(cpu&X264_CPU_AVX) )
         return;
     pf->mbtree_propagate_cost = x264_mbtree_propagate_cost_avx;
+
+    if( !(cpu&X264_CPU_FMA4) )
+        return;
+    pf->mbtree_propagate_cost = x264_mbtree_propagate_cost_fma4;
 }

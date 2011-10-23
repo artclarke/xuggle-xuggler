@@ -48,7 +48,7 @@ typedef struct bs_s
     uint8_t *p;
     uint8_t *p_end;
 
-    intptr_t cur_bits;
+    uintptr_t cur_bits;
     int     i_left;    /* i_count number of available bits */
     int     i_bits_encoded; /* RD only */
 } bs_t;

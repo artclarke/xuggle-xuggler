@@ -85,7 +85,7 @@ int x264_cqm_init( x264_t *h )
     int max_qp_err = -1;
     int max_chroma_qp_err = -1;
     int min_qp_err = QP_MAX+1;
-    int num_8x8_lists = CHROMA444 ? 4 : 2;
+    int num_8x8_lists = h->sps->i_chroma_format_idc == CHROMA_444 ? 4 : 2; /* Checkasm may segfault if optimized out by --chroma-format */
 
     for( int i = 0; i < 4 + num_8x8_lists; i++ )
     {

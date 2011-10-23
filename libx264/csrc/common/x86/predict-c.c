@@ -191,55 +191,65 @@ PREDICT_8x8_P( sse2   )
 #endif //!HIGH_BIT_DEPTH
 
 #if HAVE_X86_INLINE_ASM
+
+#define PREDICT_8x8C_P_CORE\
+    V = 1 * ( src[4*FDEC_STRIDE -1] - src[ 2*FDEC_STRIDE -1] )\
+      + 2 * ( src[5*FDEC_STRIDE -1] - src[ 1*FDEC_STRIDE -1] )\
+      + 3 * ( src[6*FDEC_STRIDE -1] - src[ 0*FDEC_STRIDE -1] )\
+      + 4 * ( src[7*FDEC_STRIDE -1] - src[-1*FDEC_STRIDE -1] );\
+    H += -4 * src[-1*FDEC_STRIDE -1];\
+    int a = 16 * ( src[7*FDEC_STRIDE -1] + src[7 - FDEC_STRIDE] );\
+    int b = ( 17 * H + 16 ) >> 5;\
+    int c = ( 17 * V + 16 ) >> 5;
+
 #if HIGH_BIT_DEPTH
-static void x264_predict_8x8c_p_sse2( uint16_t *src )
-#else
-static void x264_predict_8x8c_p_ssse3( uint8_t *src )
-#endif
-{
-    int a, b, c, i00;
-    int H, V;
-#if HIGH_BIT_DEPTH
-    asm (
-        "movdqa           %1, %%xmm0 \n"
-        "pmaddwd          %2, %%xmm0 \n"
-        "movhlps      %%xmm0, %%xmm1 \n"
-        "paddd        %%xmm1, %%xmm0 \n"
-        "pshuflw $14, %%xmm0, %%xmm1 \n"
-        "paddd        %%xmm1, %%xmm0 \n"
-        "movd         %%xmm0, %0     \n"
-        :"=r"(H)
-        :"m"(src[-FDEC_STRIDE]), "m"(*pw_m32101234)
-    );
-#else
-    asm (
-        "movq           %1, %%mm0 \n"
-        "pmaddubsw      %2, %%mm0 \n"
-        "pshufw $14, %%mm0, %%mm1 \n"
-        "paddw       %%mm1, %%mm0 \n"
-        "pshufw  $1, %%mm0, %%mm1 \n"
-        "paddw       %%mm1, %%mm0 \n"
-        "movd        %%mm0, %0    \n"
-        "movswl        %w0, %0    \n"
-        :"=r"(H)
-        :"m"(src[-FDEC_STRIDE]), "m"(*pb_m32101234)
-    );
-#endif
-    V = 1 * ( src[4*FDEC_STRIDE -1] - src[ 2*FDEC_STRIDE -1] )
-      + 2 * ( src[5*FDEC_STRIDE -1] - src[ 1*FDEC_STRIDE -1] )
-      + 3 * ( src[6*FDEC_STRIDE -1] - src[ 0*FDEC_STRIDE -1] )
-      + 4 * ( src[7*FDEC_STRIDE -1] - src[-1*FDEC_STRIDE -1] );
-    H += -4 * src[-1*FDEC_STRIDE -1];
-    a = 16 * ( src[7*FDEC_STRIDE -1] + src[7 - FDEC_STRIDE] );
-    b = ( 17 * H + 16 ) >> 5;
-    c = ( 17 * V + 16 ) >> 5;
-    i00 = a -3*b -3*c + 16;
-#if HIGH_BIT_DEPTH
-    x264_predict_8x8c_p_core_sse2( src, a, b, c );
-#else
-    x264_predict_8x8c_p_core_sse2( src, i00, b, c );
-#endif
+#define PREDICT_8x8_P2(cpu1, cpu2)\
+static void x264_predict_8x8c_p_ ## cpu1( pixel *src )\
+{\
+    int H, V;\
+    asm (\
+        "movdqa           %1, %%xmm0 \n"\
+        "pmaddwd          %2, %%xmm0 \n"\
+        "movhlps      %%xmm0, %%xmm1 \n"\
+        "paddd        %%xmm1, %%xmm0 \n"\
+        "pshuflw $14, %%xmm0, %%xmm1 \n"\
+        "paddd        %%xmm1, %%xmm0 \n"\
+        "movd         %%xmm0, %0     \n"\
+        :"=r"(H)\
+        :"m"(src[-FDEC_STRIDE]), "m"(*pw_m32101234)\
+    );\
+    PREDICT_8x8C_P_CORE\
+    x264_predict_8x8c_p_core_ ## cpu2( src, a, b, c );\
 }
+
+PREDICT_8x8_P2(sse2, sse2)
+PREDICT_8x8_P2( avx,  avx)
+
+#else  //!HIGH_BIT_DEPTH
+#define PREDICT_8x8_P2(cpu1, cpu2)\
+static void x264_predict_8x8c_p_ ## cpu1( pixel *src )\
+{\
+    int H, V;\
+    asm (\
+        "movq           %1, %%mm0 \n"\
+        "pmaddubsw      %2, %%mm0 \n"\
+        "pshufw $14, %%mm0, %%mm1 \n"\
+        "paddw       %%mm1, %%mm0 \n"\
+        "pshufw  $1, %%mm0, %%mm1 \n"\
+        "paddw       %%mm1, %%mm0 \n"\
+        "movd        %%mm0, %0    \n"\
+        "movswl        %w0, %0    \n"\
+        :"=r"(H)\
+        :"m"(src[-FDEC_STRIDE]), "m"(*pb_m32101234)\
+    );\
+    PREDICT_8x8C_P_CORE\
+    int i00 = a -3*b -3*c + 16;\
+    x264_predict_8x8c_p_core_ ## cpu2( src, i00, b, c );\
+}
+
+PREDICT_8x8_P2(ssse3, sse2)
+PREDICT_8x8_P2(  avx,  avx)
+#endif
 #endif
 
 #if ARCH_X86_64 && !HIGH_BIT_DEPTH
@@ -336,6 +346,9 @@ void x264_predict_8x8c_init_mmx( int cpu, x264_predict_t pf[7] )
     pf[I_PRED_CHROMA_H]       = x264_predict_8x8c_h_sse2;
 #if HAVE_X86_INLINE_ASM
     pf[I_PRED_CHROMA_P]       = x264_predict_8x8c_p_sse2;
+    if( !(cpu&X264_CPU_AVX) )
+        return;
+    pf[I_PRED_CHROMA_P]       = x264_predict_8x8c_p_avx;
 #endif
 #else
 #if ARCH_X86_64
@@ -358,6 +371,9 @@ void x264_predict_8x8c_init_mmx( int cpu, x264_predict_t pf[7] )
     pf[I_PRED_CHROMA_H]       = x264_predict_8x8c_h_ssse3;
 #if HAVE_X86_INLINE_ASM
     pf[I_PRED_CHROMA_P]       = x264_predict_8x8c_p_ssse3;
+    if( !(cpu&X264_CPU_AVX) )
+        return;
+    pf[I_PRED_CHROMA_P]       = x264_predict_8x8c_p_avx;
 #endif
 #endif // HIGH_BIT_DEPTH
 }
@@ -367,16 +383,21 @@ void x264_predict_8x16c_init_mmx( int cpu, x264_predict_t pf[7] )
     if( !(cpu&X264_CPU_MMX) )
         return;
 #if HIGH_BIT_DEPTH
-    pf[I_PRED_CHROMA_V]       = x264_predict_8x16c_v_sse2;
+    if( !(cpu&X264_CPU_MMX2) )
+        return;
+    pf[I_PRED_CHROMA_DC]      = x264_predict_8x16c_dc_mmx2;
     if( !(cpu&X264_CPU_SSE2) )
         return;
+    pf[I_PRED_CHROMA_V]       = x264_predict_8x16c_v_sse2;
     pf[I_PRED_CHROMA_DC_TOP]  = x264_predict_8x16c_dc_top_sse2;
+    pf[I_PRED_CHROMA_DC]      = x264_predict_8x16c_dc_sse2;
     pf[I_PRED_CHROMA_H]       = x264_predict_8x16c_h_sse2;
 #else
     pf[I_PRED_CHROMA_V]       = x264_predict_8x16c_v_mmx;
     if( !(cpu&X264_CPU_MMX2) )
         return;
     pf[I_PRED_CHROMA_DC_TOP]  = x264_predict_8x16c_dc_top_mmx2;
+    pf[I_PRED_CHROMA_DC]      = x264_predict_8x16c_dc_mmx2;
     pf[I_PRED_CHROMA_H]       = x264_predict_8x16c_h_mmx2;
     if( !(cpu&X264_CPU_SSSE3) )
         return;

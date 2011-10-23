@@ -121,7 +121,19 @@ static const char * const muxer_names[] =
 
 static const char * const pulldown_names[] = { "none", "22", "32", "64", "double", "triple", "euro", 0 };
 static const char * const log_level_names[] = { "none", "error", "warning", "info", "debug", 0 };
-static const char * const output_csp_names[] = { "i420", "i422", "i444", "rgb", 0 };
+static const char * const output_csp_names[] =
+{
+#if !X264_CHROMA_FORMAT || X264_CHROMA_FORMAT == X264_CSP_I420
+    "i420",
+#endif
+#if !X264_CHROMA_FORMAT || X264_CHROMA_FORMAT == X264_CSP_I422
+    "i422",
+#endif
+#if !X264_CHROMA_FORMAT || X264_CHROMA_FORMAT == X264_CSP_I444
+    "i444", "rgb",
+#endif
+    0
+};
 
 typedef struct
 {
@@ -234,7 +246,7 @@ static void print_version_info()
 #else
     printf( "using an unknown compiler\n" );
 #endif
-    printf( "configuration: --bit-depth=%d\n", x264_bit_depth );
+    printf( "configuration: --bit-depth=%d --chroma-format=%s\n", x264_bit_depth, X264_CHROMA_FORMAT ? (output_csp_names[0]+1) : "all" );
     printf( "x264 license: " );
 #if HAVE_GPL
     printf( "GPL version 2 or later\n" );
@@ -425,7 +437,10 @@ static void help( x264_param_t *defaults, int longhelp )
     H0( "\n" );
     H0( "      --profile <string>      Force the limits of an H.264 profile\n"
         "                                  Overrides all settings.\n" );
-    H2( "                                  - baseline:\n"
+    H2(
+#if X264_CHROMA_FORMAT <= X264_CSP_I420
+#if BIT_DEPTH==8
+        "                                  - baseline:\n"
         "                                    --no-8x8dct --bframes 0 --no-cabac\n"
         "                                    --cqm flat --weightp 0\n"
         "                                    No interlaced.\n"
@@ -435,10 +450,33 @@ static void help( x264_param_t *defaults, int longhelp )
         "                                    No lossless.\n"
         "                                  - high:\n"
         "                                    No lossless.\n"
+#endif
         "                                  - high10:\n"
         "                                    No lossless.\n"
-        "                                    Support for bit depth 8-10.\n" );
-        else H0( "                                  - baseline,main,high,high10\n" );
+        "                                    Support for bit depth 8-10.\n"
+#endif
+#if X264_CHROMA_FORMAT <= X264_CSP_I422
+        "                                  - high422:\n"
+        "                                    No lossless.\n"
+        "                                    Support for bit depth 8-10.\n"
+        "                                    Support for 4:2:0/4:2:2 chroma subsampling.\n"
+#endif
+        "                                  - high444:\n"
+        "                                    Support for bit depth 8-10.\n"
+        "                                    Support for 4:2:0/4:2:2/4:4:4 chroma subsampling.\n" );
+        else H0(
+        "                                  - "
+#if X264_CHROMA_FORMAT <= X264_CSP_I420
+#if BIT_DEPTH==8
+        "baseline,main,high,"
+#endif
+        "high10,"
+#endif
+#if X264_CHROMA_FORMAT <= X264_CSP_I422
+        "high422,"
+#endif
+        "high444\n"
+               );
     H0( "      --preset <string>       Use a preset to select encoding settings [medium]\n"
         "                                  Overridden by user settings.\n" );
     H2( "                                  - ultrafast:\n"
@@ -1357,7 +1395,11 @@ static int parse( int argc, char **argv, x264_param_t *param, cli_opt_t *opt )
             case OPT_OUTPUT_CSP:
                 FAIL_IF_ERROR( parse_enum_value( optarg, output_csp_names, &output_csp ), "Unknown output csp `%s'\n", optarg )
                 // correct the parsed value to the libx264 csp value
+#if X264_CHROMA_FORMAT
+                static const uint8_t output_csp_fix[] = { X264_CHROMA_FORMAT, X264_CSP_RGB };
+#else
                 static const uint8_t output_csp_fix[] = { X264_CSP_I420, X264_CSP_I422, X264_CSP_I444, X264_CSP_RGB };
+#endif
                 param->i_csp = output_csp = output_csp_fix[output_csp];
                 break;
             default:

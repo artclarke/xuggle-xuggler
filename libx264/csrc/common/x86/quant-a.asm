@@ -428,16 +428,13 @@ QUANT_AC quant_8x8, 8
 ;;; m4      0
     mova      m0, %1
 %ifdef HIGH_BIT_DEPTH
-    pmaddwd   m0, %2
-    paddd     m0, m3
+    pmadcswd   m0, m0, %2, m3
     psrad     m0, m2
 %else
     punpckhwd m1, m0, m4
     punpcklwd m0, m4
-    pmaddwd   m0, %2
-    pmaddwd   m1, %3
-    paddd     m0, m3
-    paddd     m1, m3
+    pmadcswd  m0, m0, %2, m3
+    pmadcswd  m1, m1, %3, m3
     psrad     m0, m2
     psrad     m1, m2
     packssdw  m0, m1
@@ -574,6 +571,9 @@ cglobal dequant_%1x%1_flat16, 0,3
 INIT_XMM sse2
 DEQUANT 4, 4, 1
 DEQUANT 8, 6, 1
+INIT_XMM xop
+DEQUANT 4, 4, 1
+DEQUANT 8, 6, 1
 %else
 %ifndef ARCH_X86_64
 INIT_MMX mmx
@@ -584,6 +584,9 @@ INIT_XMM sse2
 DEQUANT 4, 4, 2
 DEQUANT 8, 6, 2
 INIT_XMM avx
+DEQUANT 4, 4, 2
+DEQUANT 8, 6, 2
+INIT_XMM xop
 DEQUANT 4, 4, 2
 DEQUANT 8, 6, 2
 %endif
@@ -622,8 +625,7 @@ cglobal dequant_4x4dc, 0,3,6
     pshufd m2, m2, 0
 %rep SIZEOF_PIXEL*32/mmsize
     mova      m0, [r0+x]
-    pmaddwd   m0, m2
-    paddd     m0, m4
+    pmadcswd  m0, m0, m2, m4
     psrad     m0, m3
     mova      [r0+x], m0
 %assign x x+mmsize
@@ -650,6 +652,8 @@ cglobal dequant_4x4dc, 0,3,6
 
 %ifdef HIGH_BIT_DEPTH
 INIT_XMM sse2
+DEQUANT_DC d, pmaddwd
+INIT_XMM xop
 DEQUANT_DC d, pmaddwd
 %else
 %ifndef ARCH_X86_64
@@ -1153,12 +1157,25 @@ DECIMATE8x8
     pmovmskb  %2, mm0
 %elif mmsize == 16
     movdqa   xmm0, [%3+ 0]
+%if %1 == 8
+    packssdw xmm0, [%3+16]
+    packsswb xmm0, xmm0
+%else
     movdqa   xmm1, [%3+32]
     packssdw xmm0, [%3+16]
     packssdw xmm1, [%3+48]
     packsswb xmm0, xmm1
+%endif
     pcmpeqb  xmm0, xmm2
     pmovmskb   %2, xmm0
+%elif %1 == 8
+    movq     mm0, [%3+ 0]
+    movq     mm1, [%3+16]
+    packssdw mm0, [%3+ 8]
+    packssdw mm1, [%3+24]
+    packsswb mm0, mm1
+    pcmpeqb  mm0, mm2
+    pmovmskb  %2, mm0
 %else
     movq     mm0, [%3+ 0]
     movq     mm1, [%3+16]
@@ -1194,11 +1211,38 @@ COEFF_LAST4
 INIT_MMX mmx2, lzcnt
 COEFF_LAST4
 
+%macro COEFF_LAST8 0
+cglobal coeff_last8, 1,3
+    pxor m2, m2
+    LAST_MASK 8, r1d, r0
+%if mmsize == 16
+    xor r1d, 0xffff
+    shr r1d, 8
+%else
+    xor r1d, 0xff
+%endif
+    BSR eax, r1d, 0x1f
+    RET
+%endmacro
+
+%ifndef ARCH_X86_64
+INIT_MMX mmx2
+COEFF_LAST8
+%endif
+INIT_XMM sse2
+COEFF_LAST8
+INIT_XMM sse2, lzcnt
+COEFF_LAST8
+
 %else ; !HIGH_BIT_DEPTH
 %macro LAST_MASK 3-4
+%if %1 <= 8
+    movq     mm0, [%3+ 0]
 %if %1 == 4
-    movq     mm0, [%3]
     packsswb mm0, mm0
+%else
+    packsswb mm0, [%3+ 8]
+%endif
     pcmpeqb  mm0, mm2
     pmovmskb  %2, mm0
 %elif mmsize == 16
@@ -1220,7 +1264,7 @@ COEFF_LAST4
 %endif
 %endmacro
 
-%macro COEFF_LAST4 0
+%macro COEFF_LAST48 0
 %ifdef ARCH_X86_64
 cglobal coeff_last4, 1,1
     BSR  rax, [r0], 0x3f
@@ -1239,12 +1283,19 @@ cglobal coeff_last4, 0,3
     lea   eax, [eax+ecx*2]
     RET
 %endif
+
+cglobal coeff_last8, 1,3
+    pxor m2, m2
+    LAST_MASK 8, r1d, r0, r2d
+    xor r1d, 0xff
+    BSR eax, r1d, 0x1f
+    RET
 %endmacro
 
 INIT_MMX mmx2
-COEFF_LAST4
+COEFF_LAST48
 INIT_MMX mmx2, lzcnt
-COEFF_LAST4
+COEFF_LAST48
 %endif ; HIGH_BIT_DEPTH
 
 %macro COEFF_LAST 0
@@ -1364,11 +1415,19 @@ COEFF_LEVELRUN 15
 COEFF_LEVELRUN 16
 %endif
 COEFF_LEVELRUN 4
+COEFF_LEVELRUN 8
 INIT_XMM sse2
+%ifdef HIGH_BIT_DEPTH
+COEFF_LEVELRUN 8
+%endif
 COEFF_LEVELRUN 15
 COEFF_LEVELRUN 16
 INIT_XMM sse2, lzcnt
+%ifdef HIGH_BIT_DEPTH
+COEFF_LEVELRUN 8
+%endif
 COEFF_LEVELRUN 15
 COEFF_LEVELRUN 16
 INIT_MMX mmx2, lzcnt
 COEFF_LEVELRUN 4
+COEFF_LEVELRUN 8

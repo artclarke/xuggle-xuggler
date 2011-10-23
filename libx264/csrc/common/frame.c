@@ -373,7 +373,7 @@ int x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
     }
     else
     {
-        int v_shift = h->mb.chroma_v_shift;
+        int v_shift = CHROMA_V_SHIFT;
         get_plane_ptr( h, src, &pix[0], &stride[0], 0, 0, 0 );
         h->mc.plane_copy( dst->plane[0], dst->i_stride[0], (pixel*)pix[0],
                           stride[0]/sizeof(pixel), h->param.i_width, h->param.i_height );
@@ -409,8 +409,8 @@ int x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
 static void ALWAYS_INLINE pixel_memset( pixel *dst, pixel *src, int len, int size )
 {
     uint8_t *dstp = (uint8_t*)dst;
-    uint8_t  v1 = *src;
-    uint16_t v2 = size == 1 ? v1 + (v1 <<  8) : M16( src );
+    uint32_t v1 = *src;
+    uint32_t v2 = size == 1 ? v1 + (v1 <<  8) : M16( src );
     uint32_t v4 = size <= 2 ? v2 + (v2 << 16) : M32( src );
     int i = 0;
     len *= size;
@@ -486,8 +486,8 @@ void x264_frame_expand_border( x264_t *h, x264_frame_t *frame, int mb_y, int b_e
         return;
     for( int i = 0; i < frame->i_plane; i++ )
     {
-        int h_shift = i && h->mb.chroma_h_shift;
-        int v_shift = i && h->mb.chroma_v_shift;
+        int h_shift = i && CHROMA_H_SHIFT;
+        int v_shift = i && CHROMA_V_SHIFT;
         int stride = frame->i_stride[i];
         int width = 16*h->mb.i_mb_width;
         int height = (b_end ? 16*(h->mb.i_mb_height - mb_y) >> SLICE_MBAFF : 16) >> v_shift;
@@ -554,9 +554,9 @@ void x264_frame_expand_border_lowres( x264_frame_t *frame )
 
 void x264_frame_expand_border_chroma( x264_t *h, x264_frame_t *frame, int plane )
 {
-    int v_shift = h->mb.chroma_v_shift;
+    int v_shift = CHROMA_V_SHIFT;
     plane_expand_border( frame->plane[plane], frame->i_stride[plane], 16*h->mb.i_mb_width, 16*h->mb.i_mb_height>>v_shift,
-                         PADH, PADV>>v_shift, 1, 1, h->mb.chroma_h_shift );
+                         PADH, PADV>>v_shift, 1, 1, CHROMA_H_SHIFT );
 }
 
 void x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame )
@@ -564,8 +564,8 @@ void x264_frame_expand_border_mod16( x264_t *h, x264_frame_t *frame )
     for( int i = 0; i < frame->i_plane; i++ )
     {
         int i_width = h->param.i_width;
-        int h_shift = i && h->mb.chroma_h_shift;
-        int v_shift = i && h->mb.chroma_v_shift;
+        int h_shift = i && CHROMA_H_SHIFT;
+        int v_shift = i && CHROMA_V_SHIFT;
         int i_height = h->param.i_height >> v_shift;
         int i_padx = (h->mb.i_mb_width * 16 - h->param.i_width);
         int i_pady = (h->mb.i_mb_height * 16 - h->param.i_height) >> v_shift;
@@ -591,7 +591,7 @@ void x264_expand_border_mbpair( x264_t *h, int mb_x, int mb_y )
 {
     for( int i = 0; i < h->fenc->i_plane; i++ )
     {
-        int v_shift = i && h->mb.chroma_v_shift;
+        int v_shift = i && CHROMA_V_SHIFT;
         int stride = h->fenc->i_stride[i];
         int height = h->param.i_height >> v_shift;
         int pady = (h->mb.i_mb_height * 16 - h->param.i_height) >> v_shift;
