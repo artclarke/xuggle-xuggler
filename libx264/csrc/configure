@@ -30,7 +30,6 @@ Configuration options:
   --disable-interlaced     disable interlaced encoding support
   --enable-visualize       enable visualization (X11 only)
   --bit-depth=BIT_DEPTH    set output bit depth (8-10) [8]
-  --chroma-format=FORMAT   output chroma format (420, 422, 444, all) [all]
 
 Advanced options:
   --disable-asm            disable platform-specific assembly optimizations
@@ -238,7 +237,6 @@ strip="no"
 pic="no"
 vis="no"
 bit_depth="8"
-chroma_format="all"
 compiler="GNU"
 
 CFLAGS="$CFLAGS -Wall -I."
@@ -359,13 +357,6 @@ for opt do
             fi
             bit_depth=`expr $bit_depth + 0`
             ;;
-        --chroma-format=*)
-            chroma_format="$optarg"
-            if [ $chroma_format != "420" -a $chroma_format != "422" -a $chroma_format != "444" -a $chroma_format != "all" ]; then
-                echo "Supplied chroma format must be 420, 422, 444 or all."
-                exit 1
-            fi
-            ;;
         *)
             echo "Unknown option $opt, ignored"
             ;;
@@ -474,11 +465,6 @@ case $host_os in
         SYS="SunOS"
         define HAVE_MALLOC_H
         LDFLAGS="$LDFLAGS -lm"
-        if cc_check "" /usr/lib/64/values-xpg6.o; then
-            LDFLAGS="$LDFLAGS /usr/lib/64/values-xpg6.o"
-        else
-            LDFLAGS="$LDFLAGS /usr/lib/values-xpg6.o"
-        fi
         HAVE_GETOPT_LONG=0
         ;;
     *)
@@ -631,10 +617,10 @@ if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" -o
 fi
 
 if [ $asm = auto -a \( $ARCH = X86 -o $ARCH = X86_64 \) ] ; then
-    if ! as_check "vfmaddps xmm0, xmm0, xmm0, xmm0" ; then
+    if ! as_check "vpaddw xmm0, xmm0, xmm0" ; then
         VER=`($AS --version || echo no assembler) 2>/dev/null | head -n 1`
         echo "Found $VER"
-        echo "Minimum version is yasm-1.0.0"
+        echo "Minimum version is yasm-0.7.0"
         echo "If you really want to compile without asm, configure with --disable-asm."
         exit 1
     fi
@@ -875,8 +861,7 @@ if [ "$pic" = "yes" ] ; then
     CFLAGS="$CFLAGS -fPIC"
     ASFLAGS="$ASFLAGS -DPIC"
     # resolve textrels in the x86 asm
-    cc_check stdio.h "-shared -Wl,-Bsymbolic" && SOFLAGS="$SOFLAGS -Wl,-Bsymbolic"
-    [ $SYS = SunOS -a "$ARCH" = "X86" ] && SOFLAGS="$SOFLAGS -mimpure-text"
+    cc_check stdio.h -Wl,-Bsymbolic && LDFLAGS="$LDFLAGS -Wl,-Bsymbolic"
 fi
 
 if [ "$debug" != "yes" -a "$gprof" != "yes" ]; then
@@ -925,10 +910,6 @@ fi
 if [ "$bit_depth" -gt "8" ]; then
     define HIGH_BIT_DEPTH
     ASFLAGS="$ASFLAGS -DHIGH_BIT_DEPTH"
-fi
-
-if [ "$chroma_format" != "all" ]; then
-    define CHROMA_FORMAT CHROMA_$chroma_format
 fi
 
 ASFLAGS="$ASFLAGS -DBIT_DEPTH=$bit_depth"
@@ -985,13 +966,10 @@ rm -f conftest*
 
 # generate exported config file
 
-config_chroma_format="X264_CSP_I$chroma_format"
-[ "$config_chroma_format" == "X264_CSP_Iall" ] && config_chroma_format="0"
 cat > x264_config.h << EOF
-#define X264_BIT_DEPTH     $bit_depth
-#define X264_GPL           $x264_gpl
-#define X264_INTERLACED    $x264_interlaced
-#define X264_CHROMA_FORMAT $config_chroma_format
+#define X264_BIT_DEPTH  $bit_depth
+#define X264_GPL        $x264_gpl
+#define X264_INTERLACED $x264_interlaced
 EOF
 
 # generate config files
@@ -1043,25 +1021,25 @@ if [ "$shared" = "yes" ]; then
             echo 'IMPLIBNAME=libx264.dll.lib' >> config.mak
             # GNU ld on windows defaults to exporting all global functions if there are no explicit __declspec(dllexport) declarations
             # MSVC link does not act similarly, so it is required to make an export definition out of x264.h and use it at link time
-            echo "SOFLAGS=-dll -def:x264.def -implib:\$(IMPLIBNAME) $SOFLAGS" >> config.mak
+            echo 'SOFLAGS=-dll -def:x264.def -implib:$(IMPLIBNAME)' >> config.mak
             echo "EXPORTS" > x264.def
             grep "^\(int\|void\|x264_t\|extern\).*x264.*[\[(;]" x264.h | sed -e "s/.*\(x264.*\)[\[(].*/\1/;s/.*\(x264.*\);/\1/;s/open/open_$API/g" >> x264.def
         else
             echo 'IMPLIBNAME=libx264.dll.a' >> config.mak
-            echo "SOFLAGS=-shared -Wl,--out-implib,\$(IMPLIBNAME) -Wl,--enable-auto-image-base $SOFLAGS" >> config.mak
+            echo 'SOFLAGS=-shared -Wl,--out-implib,$(IMPLIBNAME) -Wl,--enable-auto-image-base' >> config.mak
         fi
     elif [ "$SYS" = "MACOSX" ]; then
         echo "SOSUFFIX=dylib" >> config.mak
         echo "SONAME=libx264.$API.dylib" >> config.mak
-        echo "SOFLAGS=-shared -dynamiclib -Wl,-single_module -Wl,-read_only_relocs,suppress -install_name \$(DESTDIR)\$(libdir)/\$(SONAME) $SOFLAGS" >> config.mak
+        echo 'SOFLAGS=-shared -dynamiclib -Wl,-single_module -Wl,-read_only_relocs,suppress -install_name $(DESTDIR)$(libdir)/$(SONAME)' >> config.mak
     elif [ "$SYS" = "SunOS" ]; then
         echo "SOSUFFIX=so" >> config.mak
         echo "SONAME=libx264.so.$API" >> config.mak
-        echo "SOFLAGS=-shared -Wl,-h,\$(SONAME) $SOFLAGS" >> config.mak
+        echo 'SOFLAGS=-shared -Wl,-h,$(SONAME)' >> config.mak
     else
         echo "SOSUFFIX=so" >> config.mak
         echo "SONAME=libx264.so.$API" >> config.mak
-        echo "SOFLAGS=-shared -Wl,-soname,\$(SONAME) $SOFLAGS" >> config.mak
+        echo 'SOFLAGS=-shared -Wl,-soname,$(SONAME)' >> config.mak
     fi
     echo 'default: lib-shared' >> config.mak
     echo 'install: install-lib-shared' >> config.mak
@@ -1110,28 +1088,27 @@ gpl_filters=""
 [ $gpl = yes ] && filters="$filters $gpl_filters"
 
 cat > conftest.log <<EOF
-platform:      $ARCH
-system:        $SYS
-cli:           $cli
-libx264:       $cli_libx264
-shared:        $shared
-static:        $static
-asm:           $asm
-interlaced:    $interlaced
-avs:           $avs
-lavf:          $lavf
-ffms:          $ffms
-gpac:          $gpac
-gpl:           $gpl
-thread:        $thread
-filters:       $filters
-debug:         $debug
-gprof:         $gprof
-strip:         $strip
-PIC:           $pic
-visualize:     $vis
-bit depth:     $bit_depth
-chroma format: $chroma_format
+Platform:   $ARCH
+System:     $SYS
+cli:        $cli
+libx264:    $cli_libx264
+shared:     $shared
+static:     $static
+asm:        $asm
+interlaced: $interlaced
+avs:        $avs
+lavf:       $lavf
+ffms:       $ffms
+gpac:       $gpac
+gpl:        $gpl
+thread:     $thread
+filters:    $filters
+debug:      $debug
+gprof:      $gprof
+strip:      $strip
+PIC:        $pic
+visualize:  $vis
+bit depth:  $bit_depth
 EOF
 
 echo >> config.log
