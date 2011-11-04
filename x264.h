@@ -41,7 +41,7 @@
 
 #include "x264_config.h"
 
-#define X264_BUILD 119
+#define X264_BUILD 120
 
 /* x264_t:
  *      opaque handler for encoder */
@@ -724,8 +724,7 @@ typedef struct
     x264_hrd_t hrd_timing;
     /* In: arbitrary user SEI (e.g subtitles, AFDs) */
     x264_sei_t extra_sei;
-    /* private user data. libx264 doesn't touch this,
-       not even copy it from input to output frames. */
+    /* private user data. copied from input to output frames. */
     void *opaque;
 } x264_picture_t;
 

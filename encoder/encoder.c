@@ -3108,6 +3108,8 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     if( pic_out->i_pts < pic_out->i_dts )
         x264_log( h, X264_LOG_WARNING, "invalid DTS: PTS is less than DTS\n" );
 
+    pic_out->opaque = h->fenc->opaque;
+
     pic_out->img.i_csp = h->fdec->i_csp;
 #if HIGH_BIT_DEPTH
     pic_out->img.i_csp |= X264_CSP_HIGH_DEPTH;
