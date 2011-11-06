@@ -32,9 +32,10 @@ cli_vid_filter_t resize_filter;
 static int full_check( video_info_t *info, x264_param_t *param )
 {
     int required = 0;
-    required |= info->csp    != param->i_csp;
-    required |= info->width  != param->i_width;
-    required |= info->height != param->i_height;
+    required |= info->csp       != param->i_csp;
+    required |= info->width     != param->i_width;
+    required |= info->height    != param->i_height;
+    required |= info->fullrange != param->vui.b_fullrange;
     return required;
 }
 
@@ -49,6 +50,7 @@ typedef struct
     int width;
     int height;
     int pix_fmt;
+    int range;
 } frame_prop_t;
 
 typedef struct
@@ -59,6 +61,7 @@ typedef struct
     cli_pic_t buffer;
     int buffer_allocated;
     int dst_csp;
+    int input_range;
     struct SwsContext *ctx;
     uint32_t ctx_flags;
     /* state of swapping chroma planes pre and post resize */
@@ -343,27 +346,6 @@ static int handle_opts( const char **optlist, char **opts, video_info_t *info, r
     return 0;
 }
 
-static int handle_jpeg( int *format )
-{
-    switch( *format )
-    {
-        case PIX_FMT_YUVJ420P:
-            *format = PIX_FMT_YUV420P;
-            return 1;
-        case PIX_FMT_YUVJ422P:
-            *format = PIX_FMT_YUV422P;
-            return 1;
-        case PIX_FMT_YUVJ444P:
-            *format = PIX_FMT_YUV444P;
-            return 1;
-        case PIX_FMT_YUVJ440P:
-            *format = PIX_FMT_YUV440P;
-            return 1;
-        default:
-            return 0;
-    }
-}
-
 static int x264_init_sws_context( resizer_hnd_t *h )
 {
     if( !h->ctx )
@@ -373,27 +355,22 @@ static int x264_init_sws_context( resizer_hnd_t *h )
             return -1;
 
         /* set flags that will not change */
-        int dst_format = h->dst.pix_fmt;
-        int dst_range  = handle_jpeg( &dst_format );
         av_set_int( h->ctx, "sws_flags",  h->ctx_flags );
         av_set_int( h->ctx, "dstw",       h->dst.width );
         av_set_int( h->ctx, "dsth",       h->dst.height );
-        av_set_int( h->ctx, "dst_format", dst_format );
-        av_set_int( h->ctx, "dst_range",  dst_range ); /* FIXME: use the correct full range value */
+        av_set_int( h->ctx, "dst_format", h->dst.pix_fmt );
+        av_set_int( h->ctx, "dst_range",  h->dst.range );
     }
 
-    int src_format = h->scale.pix_fmt;
-    int src_range  = handle_jpeg( &src_format );
     av_set_int( h->ctx, "srcw",       h->scale.width );
     av_set_int( h->ctx, "srch",       h->scale.height );
-    av_set_int( h->ctx, "src_format", src_format );
-    av_set_int( h->ctx, "src_range",  src_range ); /* FIXME: use the correct full range value */
+    av_set_int( h->ctx, "src_format", h->scale.pix_fmt );
+    av_set_int( h->ctx, "src_range",  h->scale.range );
 
-    /* FIXME: use the correct full range values
-     * FIXME: use the correct matrix coefficients (only YUV -> RGB conversions are supported) */
+    /* FIXME: use the correct matrix coefficients (only YUV -> RGB conversions are supported) */
     sws_setColorspaceDetails( h->ctx,
-                              sws_getCoefficients( SWS_CS_DEFAULT ), src_range,
-                              sws_getCoefficients( SWS_CS_DEFAULT ), av_get_int( h->ctx, "dst_range", NULL ),
+                              sws_getCoefficients( SWS_CS_DEFAULT ), h->scale.range,
+                              sws_getCoefficients( SWS_CS_DEFAULT ), h->dst.range,
                               0, 1<<16, 1<<16 );
 
     return sws_init_context( h->ctx, NULL, NULL ) < 0;
@@ -401,7 +378,7 @@ static int x264_init_sws_context( resizer_hnd_t *h )
 
 static int check_resizer( resizer_hnd_t *h, cli_pic_t *in )
 {
-    frame_prop_t input_prop = { in->img.width, in->img.height, convert_csp_to_pix_fmt( in->img.csp ) };
+    frame_prop_t input_prop = { in->img.width, in->img.height, convert_csp_to_pix_fmt( in->img.csp ), h->input_range };
     if( !memcmp( &input_prop, &h->scale, sizeof(frame_prop_t) ) )
         return 0;
     /* also warn if the resizer was initialized after the first frame */
@@ -440,6 +417,7 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
         h->dst_csp    = info->csp;
         h->dst.width  = info->width;
         h->dst.height = info->height;
+        h->dst.range  = info->fullrange; // maintain input range
         if( !strcmp( opt_string, "normcsp" ) )
         {
             /* only in normalization scenarios is the input capable of changing properties */
@@ -459,6 +437,7 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
         h->dst_csp    = param->i_csp;
         h->dst.width  = param->i_width;
         h->dst.height = param->i_height;
+        h->dst.range  = param->vui.b_fullrange; // change to libx264's range
     }
     h->ctx_flags = convert_method_to_flag( x264_otos( x264_get_option( optlist[5], opts ), "" ) );
     x264_free_string_array( opts );
@@ -467,6 +446,7 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
         h->ctx_flags |= SWS_FULL_CHR_H_INT | SWS_FULL_CHR_H_INP | SWS_ACCURATE_RND;
     h->dst.pix_fmt = convert_csp_to_pix_fmt( h->dst_csp );
     h->scale = h->dst;
+    h->input_range = info->fullrange;
 
     /* swap chroma planes if YV12/YV16/YV24 is involved, as libswscale works with I420/I422/I444 */
     int src_csp = info->csp & (X264_CSP_MASK | X264_CSP_OTHER);
@@ -500,6 +480,9 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
     if( h->dst.pix_fmt != src_pix_fmt )
         x264_cli_log( NAME, X264_LOG_WARNING, "converting from %s to %s\n",
                       av_get_pix_fmt_name( src_pix_fmt ), av_get_pix_fmt_name( h->dst.pix_fmt ) );
+    else if( h->dst.range != h->input_range )
+        x264_cli_log( NAME, X264_LOG_WARNING, "converting range from %s to %s\n",
+                      h->input_range ? "PC" : "TV", h->dst.range ? "PC" : "TV" );
     h->dst_csp |= info->csp & X264_CSP_VFLIP; // preserve vflip
 
     /* if the input is not variable, initialize the context */
@@ -511,9 +494,10 @@ static int init( hnd_t *handle, cli_vid_filter_t *filter, video_info_t *info, x2
     }
 
     /* finished initing, overwrite values */
-    info->csp    = h->dst_csp;
-    info->width  = h->dst.width;
-    info->height = h->dst.height;
+    info->csp       = h->dst_csp;
+    info->width     = h->dst.width;
+    info->height    = h->dst.height;
+    info->fullrange = h->dst.range;
 
     h->prev_filter = *filter;
     h->prev_hnd = *handle;

@@ -46,6 +46,18 @@ typedef struct
     av_init_packet( pkt );\
 }
 
+/* handle the deprecated jpeg pixel formats */
+static int handle_jpeg( int csp, int *fullrange )
+{
+    switch( csp )
+    {
+        case PIX_FMT_YUVJ420P: *fullrange = 1; return PIX_FMT_YUV420P;
+        case PIX_FMT_YUVJ422P: *fullrange = 1; return PIX_FMT_YUV422P;
+        case PIX_FMT_YUVJ444P: *fullrange = 1; return PIX_FMT_YUV444P;
+        default:                               return csp;
+    }
+}
+
 static int read_frame_internal( cli_pic_t *p_pic, lavf_hnd_t *h, int i_frame, video_info_t *info )
 {
     if( h->first_pic && !info )
@@ -101,14 +113,16 @@ static int read_frame_internal( cli_pic_t *p_pic, lavf_hnd_t *h, int i_frame, vi
 
     memcpy( p_pic->img.stride, frame.linesize, sizeof(p_pic->img.stride) );
     memcpy( p_pic->img.plane, frame.data, sizeof(p_pic->img.plane) );
-    p_pic->img.height  = c->height;
-    p_pic->img.csp     = c->pix_fmt | X264_CSP_OTHER;
+    int is_fullrange   = 0;
     p_pic->img.width   = c->width;
+    p_pic->img.height  = c->height;
+    p_pic->img.csp     = handle_jpeg( c->pix_fmt, &is_fullrange ) | X264_CSP_OTHER;
 
     if( info )
     {
+        info->fullrange  = is_fullrange;
         info->interlaced = frame.interlaced_frame;
-        info->tff = frame.top_field_first;
+        info->tff        = frame.top_field_first;
     }
 
     if( h->vfr_input )
@@ -186,6 +200,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     info->num_frames = h->lavf->streams[i]->nb_frames;
     info->sar_height = c->sample_aspect_ratio.den;
     info->sar_width  = c->sample_aspect_ratio.num;
+    info->fullrange |= c->color_range == AVCOL_RANGE_JPEG;
 
     /* avisynth stores rgb data vertically flipped. */
     if( !strcasecmp( get_filename_extension( psz_filename ), "avs" ) &&

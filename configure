@@ -795,7 +795,7 @@ if [ "$lavf" = "auto" ] ; then
 fi
 
 if [ "$ffms" = "auto" ] ; then
-    ffms_major="2"; ffms_minor="14"; ffms_micro="0"; ffms_bump="0"
+    ffms_major="2"; ffms_minor="16"; ffms_micro="2"; ffms_bump="0"
     ffms="no"
 
     if ${cross_prefix}pkg-config --exists ffms2 2>/dev/null; then

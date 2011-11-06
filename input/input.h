@@ -42,6 +42,8 @@ typedef struct
     int seek;
     int progress;
     int output_csp; /* convert to this csp, if applicable */
+    int output_range; /* user desired output range */
+    int input_range; /* user override input range */
 } cli_input_opt_t;
 
 /* properties of the source given by the demuxer */
@@ -50,6 +52,8 @@ typedef struct
     int csp;         /* colorspace of the input */
     uint32_t fps_num;
     uint32_t fps_den;
+    int fullrange;   /* has 2^bit_depth-1 instead of 219*2^(bit_depth-8) ranges (YUV only) */
+    int width;
     int height;
     int interlaced;
     int num_frames;
@@ -60,7 +64,6 @@ typedef struct
     uint32_t timebase_num;
     uint32_t timebase_den;
     int vfr;
-    int width;
 } video_info_t;
 
 /* image data type used by x264cli */
