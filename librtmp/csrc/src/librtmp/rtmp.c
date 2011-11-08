@@ -1337,7 +1337,7 @@ ReadN(RTMP *r, char *buffer, int n)
 	  nBytes = nRead;
 	  r->m_nBytesIn += nRead;
 	  if (r->m_bSendCounter
-	      && r->m_nBytesIn > r->m_nBytesInSent + r->m_nClientBW / 2)
+	      && r->m_nBytesIn > ( r->m_nBytesInSent + r->m_nClientBW / 10))
 	    if (!SendBytesReceived(r))
 	        return FALSE;
 	}
