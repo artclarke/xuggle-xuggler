@@ -141,7 +141,7 @@ HTTP_get(struct HTTP_ctx *http, const char *url, HTTP_read_callback *cb)
     return HTTPRES_LOST_CONNECTION;
   i =
     sprintf(sb.sb_buf,
-	    "GET %s HTTP/1.0\r\nUser-Agent: %s\r\nHost: %s\r\nReferrer: %.*s\r\n",
+	    "GET %s HTTP/1.0\r\nUser-Agent: %s\r\nHost: %s\r\nReferer: %.*s\r\n",
 	    path, AGENT, host, (int)(path - url + 1), url);
   if (http->date[0])
     i += sprintf(sb.sb_buf + i, "If-Modified-Since: %s\r\n", http->date);
