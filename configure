@@ -588,7 +588,7 @@ case $host_cpu in
     s390|s390x)
         ARCH="S390"
         ;;
-    parisc|parisc64)
+    hppa*|parisc*)
         ARCH="PARISC"
         ;;
     ia64)
@@ -626,7 +626,7 @@ if [ $compiler != ICL ]; then
     fi
 fi
 
-if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" -o $ARCH = "ARM" -o $ARCH = "IA64" \) ] ; then
+if [ $shared = yes -a \( $ARCH = "X86_64" -o $ARCH = "PPC" -o $ARCH = "ALPHA" -o $ARCH = "ARM" -o $ARCH = "IA64" -o $ARCH = "PARISC" -o $ARCH = "MIPS" \) ] ; then
     pic="yes"
 fi
 
