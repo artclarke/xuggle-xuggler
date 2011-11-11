@@ -498,6 +498,8 @@ struct x264_t
     udctcoef        (*quant8_mf[4])[64];     /* [4][52][64] */
     udctcoef        (*quant4_bias[4])[16];   /* [4][52][16] */
     udctcoef        (*quant8_bias[4])[64];   /* [4][52][64] */
+    udctcoef        (*quant4_bias0[4])[16];  /* [4][52][16] */
+    udctcoef        (*quant8_bias0[4])[64];  /* [4][52][64] */
     udctcoef        (*nr_offset_emergency)[4][64];
 
     /* mv/ref cost arrays. */
