@@ -53,6 +53,7 @@
 #endif
 
 #if HAVE_SWSCALE
+#undef DECLARE_ALIGNED
 #include <libswscale/swscale.h>
 #endif
 
