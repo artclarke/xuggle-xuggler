@@ -92,6 +92,9 @@ case $HOST_TYPE in
   ;;
   Mac)
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-pthreads"
+# Mac OS X Lion ships uses llvm to link and ffmpeg doesn't play nice
+# So we force clang as the compiler
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --cc=clang"
   if test "x$VS_ENABLE_64BIT" = "xyes"; then
     FFMPEG_OPTIONS="$FFMPEG_OPTIONS --arch=x86_64"
     FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=-arch"
