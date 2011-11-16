@@ -563,7 +563,7 @@ void processTCPrequest(STREAMING_SERVER * server,	// server socket and state (ou
   rtmp.Link.token = req.token;
   rtmp.m_read.timestamp = dSeek;
 
-  RTMP_LogPrintf("Connecting ... port: %d, app: %s\n", req.rtmpport, req.app);
+  RTMP_LogPrintf("Connecting ... port: %d, app: %s\n", req.rtmpport, req.app.av_val);
   if (!RTMP_Connect(&rtmp, NULL))
     {
       RTMP_LogPrintf("%s, failed to connect!\n", __FUNCTION__);
@@ -738,7 +738,7 @@ stopStreaming(STREAMING_SERVER * server)
 
       if (closesocket(server->socket))
 	RTMP_Log(RTMP_LOGERROR, "%s: Failed to close listening socket, error %d",
-	    GetSockError());
+	    __FUNCTION__, GetSockError());
 
       server->state = STREAMING_STOPPED;
     }
@@ -1103,7 +1103,7 @@ main(int argc, char **argv)
 	  RTMP_LogPrintf
 	    ("--jtv|-j JSON           Authentication token for Justin.tv legacy servers\n");
 	  RTMP_LogPrintf
-	    ("--buffer|-b             Buffer time in milliseconds (default: %lu)\n\n",
+	    ("--buffer|-b             Buffer time in milliseconds (default: %u)\n\n",
 	     defaultRTMPRequest.bufferTime);
 
 	  RTMP_LogPrintf

@@ -456,7 +456,7 @@ ServePacket(STREAMING_SERVER *server, int which, RTMPPacket *packet)
 {
   int ret = 0;
 
-  RTMP_Log(RTMP_LOGDEBUG, "%s, %s sent packet type %02X, size %lu bytes", __FUNCTION__,
+  RTMP_Log(RTMP_LOGDEBUG, "%s, %s sent packet type %02X, size %u bytes", __FUNCTION__,
     cst[which], packet->m_packetType, packet->m_nBodySize);
 
   switch (packet->m_packetType)
@@ -649,7 +649,7 @@ WriteStream(char **buf,	// target pointer, maybe preallocated
 		  if (pos + 11 + dataSize > nPacketLen)
 		    {
 		      RTMP_Log(RTMP_LOGERROR,
-			  "Wrong data size (%lu), stream corrupted, aborting!",
+			  "Wrong data size (%u), stream corrupted, aborting!",
 			  dataSize);
 		      ret = -2;
 		      break;
@@ -1117,7 +1117,7 @@ stopStreaming(STREAMING_SERVER * server)
 
       if (fd && closesocket(fd))
 	RTMP_Log(RTMP_LOGERROR, "%s: Failed to close listening socket, error %d",
-	    GetSockError());
+	    __FUNCTION__, GetSockError());
 
       server->state = STREAMING_STOPPED;
     }

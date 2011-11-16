@@ -686,7 +686,7 @@ void usage(char *prog)
 	  RTMP_LogPrintf
 	    ("--resume|-e             Resume a partial RTMP download\n");
 	  RTMP_LogPrintf
-	    ("--timeout|-m num        Timeout connection num seconds (default: %lu)\n",
+	    ("--timeout|-m num        Timeout connection num seconds (default: %u)\n",
 	     DEF_TIMEOUT);
 	  RTMP_LogPrintf
 	    ("--start|-A num          Start at num seconds into stream (not valid when using --live)\n");
@@ -699,7 +699,7 @@ void usage(char *prog)
 	  RTMP_LogPrintf
 	    ("--hashes|-#             Display progress with hashes, not with the byte counter\n");
 	  RTMP_LogPrintf
-	    ("--buffer|-b             Buffer time in milliseconds (default: %lu)\n",
+	    ("--buffer|-b             Buffer time in milliseconds (default: %u)\n",
 	     DEF_BUFTIME);
 	  RTMP_LogPrintf
 	    ("--skip|-k num           Skip num keyframes when looking for last keyframe to resume from. Useful if resume fails (default: %d)\n\n",

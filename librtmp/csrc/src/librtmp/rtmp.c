@@ -185,7 +185,7 @@ void
 RTMPPacket_Dump(RTMPPacket *p)
 {
   RTMP_Log(RTMP_LOGDEBUG,
-      "RTMP PACKET: packet type: 0x%02x. channel: 0x%02x. info 1: %d info 2: %d. Body size: %lu. body: 0x%02x",
+      "RTMP PACKET: packet type: 0x%02x. channel: 0x%02x. info 1: %d info 2: %d. Body size: %u. body: 0x%02x",
       p->m_packetType, p->m_nChannel, p->m_nTimeStamp, p->m_nInfoField2,
       p->m_nBodySize, p->m_body ? (unsigned char)p->m_body[0] : 0);
 }
@@ -367,7 +367,7 @@ RTMP_SetupStream(RTMP *r,
     RTMP_Log(RTMP_LOGDEBUG, "StopTime      : %d msec", dStop);
 
   RTMP_Log(RTMP_LOGDEBUG, "live     : %s", bLiveStream ? "yes" : "no");
-  RTMP_Log(RTMP_LOGDEBUG, "timeout  : %d sec", timeout);
+  RTMP_Log(RTMP_LOGDEBUG, "timeout  : %ld sec", timeout);
 
 #ifdef CRYPTO
   if (swfSHA256Hash != NULL && swfSize > 0)
@@ -376,7 +376,7 @@ RTMP_SetupStream(RTMP *r,
       r->Link.SWFSize = swfSize;
       RTMP_Log(RTMP_LOGDEBUG, "SWFSHA256:");
       RTMP_LogHex(RTMP_LOGDEBUG, r->Link.SWFHash, sizeof(r->Link.SWFHash));
-      RTMP_Log(RTMP_LOGDEBUG, "SWFSize  : %lu", r->Link.SWFSize);
+      RTMP_Log(RTMP_LOGDEBUG, "SWFSize  : %u", r->Link.SWFSize);
     }
   else
     {
@@ -974,7 +974,7 @@ SocksNegotiate(RTMP *r)
       }
     else
       {
-        RTMP_Log(RTMP_LOGERROR, "%s, SOCKS returned error code %d", packet[1]);
+        RTMP_Log(RTMP_LOGERROR, "%s, SOCKS returned error code %d", __FUNCTION__, packet[1]);
         return FALSE;
       }
   }
@@ -1161,14 +1161,14 @@ RTMP_ClientPacket(RTMP *r, RTMPPacket *packet)
     case RTMP_PACKET_TYPE_FLEX_STREAM_SEND:
       /* flex stream send */
       RTMP_Log(RTMP_LOGDEBUG,
-	  "%s, flex stream send, size %lu bytes, not supported, ignoring",
+	  "%s, flex stream send, size %u bytes, not supported, ignoring",
 	  __FUNCTION__, packet->m_nBodySize);
       break;
 
     case RTMP_PACKET_TYPE_FLEX_SHARED_OBJECT:
       /* flex shared object */
       RTMP_Log(RTMP_LOGDEBUG,
-	  "%s, flex shared object, size %lu bytes, not supported, ignoring",
+	  "%s, flex shared object, size %u bytes, not supported, ignoring",
 	  __FUNCTION__, packet->m_nBodySize);
       break;
 
@@ -1176,7 +1176,7 @@ RTMP_ClientPacket(RTMP *r, RTMPPacket *packet)
       /* flex message */
       {
 	RTMP_Log(RTMP_LOGDEBUG,
-	    "%s, flex message, size %lu bytes, not fully supported",
+	    "%s, flex message, size %u bytes, not fully supported",
 	    __FUNCTION__, packet->m_nBodySize);
 	/*RTMP_LogHex(packet.m_body, packet.m_nBodySize); */
 
@@ -1198,7 +1198,7 @@ RTMP_ClientPacket(RTMP *r, RTMPPacket *packet)
       }
     case RTMP_PACKET_TYPE_INFO:
       /* metadata (notify) */
-      RTMP_Log(RTMP_LOGDEBUG, "%s, received: notify %lu bytes", __FUNCTION__,
+      RTMP_Log(RTMP_LOGDEBUG, "%s, received: notify %u bytes", __FUNCTION__,
 	  packet->m_nBodySize);
       if (HandleMetadata(r, packet->m_body, packet->m_nBodySize))
 	bHasMediaPacket = 1;
@@ -1211,7 +1211,7 @@ RTMP_ClientPacket(RTMP *r, RTMPPacket *packet)
 
     case RTMP_PACKET_TYPE_INVOKE:
       /* invoke */
-      RTMP_Log(RTMP_LOGDEBUG, "%s, received: invoke %lu bytes", __FUNCTION__,
+      RTMP_Log(RTMP_LOGDEBUG, "%s, received: invoke %u bytes", __FUNCTION__,
 	  packet->m_nBodySize);
       /*RTMP_LogHex(packet.m_body, packet.m_nBodySize); */
 
@@ -2373,7 +2373,7 @@ HandleInvoke(RTMP *r, const char *body, unsigned int nBodySize)
 	}
       }
       if (!methodInvoked.av_val) {
-        RTMP_Log(RTMP_LOGDEBUG, "%s, received result id %d without matching request",
+        RTMP_Log(RTMP_LOGDEBUG, "%s, received result id %f without matching request",
 	  __FUNCTION__, txn);
 	goto leave;
       }
@@ -3055,7 +3055,7 @@ RTMP_ReadPacket(RTMP *r, RTMPPacket *packet)
 
   if (ReadN(r, packet->m_body + packet->m_nBytesRead, nChunk) != nChunk)
     {
-      RTMP_Log(RTMP_LOGERROR, "%s, failed to read RTMP packet body. len: %lu",
+      RTMP_Log(RTMP_LOGERROR, "%s, failed to read RTMP packet body. len: %u",
 	  __FUNCTION__, packet->m_nBodySize);
       return FALSE;
     }
@@ -4176,7 +4176,7 @@ Read_1_Packet(RTMP *r, char *buf, unsigned int buflen)
 		  if (pos + 11 + dataSize > nPacketLen)
 		    {
 		      RTMP_Log(RTMP_LOGERROR,
-			  "Wrong data size (%lu), stream corrupted, aborting!",
+			  "Wrong data size (%u), stream corrupted, aborting!",
 			  dataSize);
 		      ret = RTMP_READ_ERROR;
 		      break;

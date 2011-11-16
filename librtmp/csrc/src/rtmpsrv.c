@@ -765,7 +765,7 @@ ServePacket(STREAMING_SERVER *server, RTMP *r, RTMPPacket *packet)
 {
   int ret = 0;
 
-  RTMP_Log(RTMP_LOGDEBUG, "%s, received packet type %02X, size %lu bytes", __FUNCTION__,
+  RTMP_Log(RTMP_LOGDEBUG, "%s, received packet type %02X, size %u bytes", __FUNCTION__,
     packet->m_packetType, packet->m_nBodySize);
 
   switch (packet->m_packetType)
@@ -812,7 +812,7 @@ ServePacket(STREAMING_SERVER *server, RTMP *r, RTMPPacket *packet)
 
     case 0x11:			// flex message
       {
-	RTMP_Log(RTMP_LOGDEBUG, "%s, flex message, size %lu bytes, not fully supported",
+	RTMP_Log(RTMP_LOGDEBUG, "%s, flex message, size %u bytes, not fully supported",
 	    __FUNCTION__, packet->m_nBodySize);
 	//RTMP_LogHex(packet.m_body, packet.m_nBodySize);
 
@@ -840,7 +840,7 @@ ServePacket(STREAMING_SERVER *server, RTMP *r, RTMPPacket *packet)
 
     case 0x14:
       // invoke
-      RTMP_Log(RTMP_LOGDEBUG, "%s, received: invoke %lu bytes", __FUNCTION__,
+      RTMP_Log(RTMP_LOGDEBUG, "%s, received: invoke %u bytes", __FUNCTION__,
 	  packet->m_nBodySize);
       //RTMP_LogHex(packet.m_body, packet.m_nBodySize);
 
@@ -1053,7 +1053,7 @@ stopStreaming(STREAMING_SERVER * server)
 
       if (closesocket(server->socket))
 	RTMP_Log(RTMP_LOGERROR, "%s: Failed to close listening socket, error %d",
-	    GetSockError());
+	    __FUNCTION__, GetSockError());
 
       server->state = STREAMING_STOPPED;
     }
