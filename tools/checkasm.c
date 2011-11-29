@@ -516,8 +516,10 @@ static int check_pixel( int cpu_ref, int cpu_new )
         set_func_name( #name ); \
         used_asm = 1; \
         ALIGNED_ARRAY_64( uint16_t, bitcosts,[17] ); \
-        ALIGNED_ARRAY_16( uint16_t, satds_c,[16] ) = {0}; \
-        ALIGNED_ARRAY_16( uint16_t, satds_a,[16] ) = {0}; \
+        ALIGNED_ARRAY_16( uint16_t, satds_c,[16] ); \
+        ALIGNED_ARRAY_16( uint16_t, satds_a,[16] ); \
+        memset( satds_c, 0, 16 * sizeof(*satds_c) ); \
+        memset( satds_a, 0, 16 * sizeof(*satds_a) ); \
         for( int i=0; i<17; i++ ) \
             bitcosts[i] = 9*(i!=8); \
         for( int i=0; i<32; i++ ) \
