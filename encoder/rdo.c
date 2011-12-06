@@ -461,30 +461,43 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
     } level_tree[64*8*2];
     int i_levels_used = 1;
 
-    if( i_coefs == 64 )
+    if( dc )
     {
-        h->mc.memcpy_aligned( coefs, dct, sizeof(dctcoef)*64 );
-        if( !h->quantf.quant_8x8( dct, quant_mf, quant_bias ) )
-            return 0;
-        h->zigzagf.scan_8x8( quant_coefs, dct );
-    }
-    else if( i_coefs == 16 )
-    {
-        memcpy( coefs, dct, sizeof(dctcoef)*16 );
-        if( !h->quantf.quant_4x4( dct, quant_mf, quant_bias ) )
-            return 0;
-        h->zigzagf.scan_4x4( quant_coefs, dct );
+        if( i_coefs == 16 )
+        {
+            memcpy( coefs, dct, sizeof(dctcoef)*16 );
+            if( !h->quantf.quant_4x4_dc( dct, quant_mf[0] >> 1, quant_bias[0] << 1 ) )
+                return 0;
+            h->zigzagf.scan_4x4( quant_coefs, dct );
+        }
+        else
+        {
+            memcpy( coefs, dct, sizeof(dctcoef)*i_coefs );
+            int nz = h->quantf.quant_2x2_dc( &dct[0], quant_mf[0] >> 1, quant_bias[0] << 1 );
+            if( i_coefs == 8 )
+                nz |= h->quantf.quant_2x2_dc( &dct[4], quant_mf[0] >> 1, quant_bias[0] << 1 );
+            if( !nz )
+                return 0;
+            for( int i = 0; i < i_coefs; i++ )
+                quant_coefs[i] = dct[zigzag[i]];
+        }
     }
     else
     {
-        memcpy( coefs, dct, sizeof(dctcoef)*i_coefs );
-        int nz = h->quantf.quant_2x2_dc( &dct[0], quant_mf[0] >> 1, quant_bias[0] << 1 );
-        if( i_coefs == 8 )
-            nz |= h->quantf.quant_2x2_dc( &dct[4], quant_mf[0] >> 1, quant_bias[0] << 1 );
-        if( !nz )
-            return 0;
-        for( int i = 0; i < i_coefs; i++ )
-            quant_coefs[i] = dct[zigzag[i]];
+        if( i_coefs == 64 )
+        {
+            h->mc.memcpy_aligned( coefs, dct, sizeof(dctcoef)*64 );
+            if( !h->quantf.quant_8x8( dct, quant_mf, quant_bias ) )
+                return 0;
+            h->zigzagf.scan_8x8( quant_coefs, dct );
+        }
+        else //if( i_coefs == 16 )
+        {
+            memcpy( coefs, dct, sizeof(dctcoef)*16 );
+            if( !h->quantf.quant_4x4( dct, quant_mf, quant_bias ) )
+                return 0;
+            h->zigzagf.scan_4x4( quant_coefs, dct );
+        }
     }
 
     int i_last_nnz = h->quantf.coeff_last[ctx_block_cat]( quant_coefs+b_ac )+b_ac;
