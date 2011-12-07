@@ -278,7 +278,7 @@ void x264_sps_write( bs_t *s, x264_sps_t *sps )
     if( sps->i_profile_idc >= PROFILE_HIGH )
     {
         bs_write_ue( s, sps->i_chroma_format_idc );
-        if( sps->i_chroma_format_idc == 3 )
+        if( sps->i_chroma_format_idc == CHROMA_444 )
             bs_write1( s, 0 ); // separate_colour_plane_flag
         bs_write_ue( s, BIT_DEPTH-8 ); // bit_depth_luma_minus8
         bs_write_ue( s, BIT_DEPTH-8 ); // bit_depth_chroma_minus8
@@ -515,7 +515,7 @@ void x264_pps_write( bs_t *s, x264_sps_t *sps, x264_pps_t *pps )
             bs_write1( s, 0 ); // Cr = Cb
             if( pps->b_transform_8x8_mode )
             {
-                if( sps->i_chroma_format_idc == 3 )
+                if( sps->i_chroma_format_idc == CHROMA_444 )
                 {
                     scaling_list_write( s, pps, CQM_8IY+4 );
                     scaling_list_write( s, pps, CQM_8IC+4 );

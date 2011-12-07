@@ -273,16 +273,28 @@
 %endmacro
 
 %macro HADDW 2
+%if cpuflag(xop) && mmsize == 16
+    vphaddwq  %1, %1
+    movhlps   %2, %1
+    paddd     %1, %2
+%else
     pmaddwd %1, [pw_1]
     HADDD   %1, %2
+%endif
 %endmacro
 
 %macro HADDUW 2
+%if cpuflag(xop) && mmsize == 16
+    vphadduwq %1, %1
+    movhlps   %2, %1
+    paddd     %1, %2
+%else
     psrld %2, %1, 16
     pslld %1, 16
     psrld %1, 16
     paddd %1, %2
     HADDD %1, %2
+%endif
 %endmacro
 
 %macro PALIGNR 4-5 ; [dst,] src1, src2, imm, tmp
@@ -457,6 +469,17 @@
 %endif
 %endmacro
 
+%macro TRANS_XOP 5-6
+%ifidn %1, d
+    vpperm m%5, m%3, m%4, [transd_shuf1]
+    vpperm m%3, m%3, m%4, [transd_shuf2]
+%elifidn %1, q
+    shufps m%5, m%3, m%4, q3131
+    shufps m%3, m%4, q2020
+%endif
+    SWAP    %4, %5
+%endmacro
+
 %macro HADAMARD 5-6
 ; %1=distance in words (0 for vertical pass, 1/2/4 for horizontal passes)
 ; %2=sumsub/max/amax (sum and diff / maximum / maximum of absolutes)
@@ -544,6 +567,22 @@
     SWAP %2, %5
     SWAP %4, %7
 %endif
+%endmacro
+
+; doesn't include the "pmaddubsw hmul_8p" pass
+%macro HADAMARD8_2D_HMUL 10
+    HADAMARD4_V %1, %2, %3, %4, %9
+    HADAMARD4_V %5, %6, %7, %8, %9
+    SUMSUB_BADC w, %1, %5, %2, %6, %9
+    HADAMARD 2, sumsub, %1, %5, %9, %10
+    HADAMARD 2, sumsub, %2, %6, %9, %10
+    SUMSUB_BADC w, %3, %7, %4, %8, %9
+    HADAMARD 2, sumsub, %3, %7, %9, %10
+    HADAMARD 2, sumsub, %4, %8, %9, %10
+    HADAMARD 1, amax, %1, %5, %9, %10
+    HADAMARD 1, amax, %2, %6, %9, %5
+    HADAMARD 1, amax, %3, %7, %9, %5
+    HADAMARD 1, amax, %4, %8, %9, %5
 %endmacro
 
 %macro SUMSUB2_AB 4
@@ -735,4 +774,12 @@
     paddsw     %1, %2
     packuswb   %1, %1
     movh       %4, %1
+%endmacro
+
+%macro SHUFFLE_MASK_W 8
+    %rep 8
+        db %1*2
+        db %1*2+1
+        %rotate 1
+    %endrep
 %endmacro

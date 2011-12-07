@@ -109,7 +109,7 @@ static NOINLINE void x264_weight_cost_init_chroma( x264_t *h, x264_frame_t *fenc
     int i_offset = i_stride / 2;
     int i_lines = fenc->i_lines[1];
     int i_width = fenc->i_width[1];
-    int v_shift = h->mb.chroma_v_shift;
+    int v_shift = CHROMA_V_SHIFT;
     int cw = 8*h->mb.i_mb_width;
     int ch = 16*h->mb.i_mb_height >> v_shift;
     int height = 16 >> v_shift;
@@ -227,7 +227,7 @@ static NOINLINE unsigned int x264_weight_cost_chroma( x264_t *h, x264_frame_t *f
     ALIGNED_ARRAY_16( pixel, buf, [8*16] );
     int pixoff = 0;
     int chromapix = h->luma2chroma_pixel[PIXEL_16x16];
-    int height = 16 >> h->mb.chroma_v_shift;
+    int height = 16 >> CHROMA_V_SHIFT;
     ALIGNED_16( static pixel flat[8] ) = {0};
     if( w )
     {
@@ -283,7 +283,7 @@ static NOINLINE unsigned int x264_weight_cost_chroma444( x264_t *h, x264_frame_t
     return cost;
 }
 
-void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int b_lookahead )
+static void x264_weights_analyse( x264_t *h, x264_frame_t *fenc, x264_frame_t *ref, int b_lookahead )
 {
     int i_delta_index = fenc->i_frame - ref->i_frame - 1;
     /* epsilon is chosen to require at least a numerator of 127 (with denominator = 128) */
