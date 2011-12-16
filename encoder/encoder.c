@@ -61,7 +61,11 @@ static double x264_psnr( double sqe, double size )
 
 static double x264_ssim( double ssim )
 {
-    return -10.0 * log10( 1 - ssim );
+    double inv_ssim = 1 - ssim;
+    if( inv_ssim <= 0.0000000001 ) /* Max 100dB */
+        return 100;
+
+    return -10.0 * log10( inv_ssim );
 }
 
 static void x264_frame_dump( x264_t *h )
