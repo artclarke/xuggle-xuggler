@@ -362,8 +362,8 @@ int x264_cqm_parse_file( x264_t *h, const char *filename )
     b_error |= x264_cqm_parse_jmlist( h, buf, "INTER8X8_LUMA",   h->param.cqm_8py, x264_cqm_jvt8p, 64 );
     if( CHROMA444 )
     {
-        b_error |= x264_cqm_parse_jmlist( h, buf, "INTRA8X8_CHROMA", h->param.cqm_8iy, x264_cqm_jvt8i, 64 );
-        b_error |= x264_cqm_parse_jmlist( h, buf, "INTER8X8_CHROMA", h->param.cqm_8py, x264_cqm_jvt8p, 64 );
+        b_error |= x264_cqm_parse_jmlist( h, buf, "INTRA8X8_CHROMA", h->param.cqm_8ic, x264_cqm_jvt8i, 64 );
+        b_error |= x264_cqm_parse_jmlist( h, buf, "INTER8X8_CHROMA", h->param.cqm_8pc, x264_cqm_jvt8p, 64 );
     }
 
     x264_free( buf );
