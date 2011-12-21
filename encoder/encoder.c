@@ -472,7 +472,6 @@ static int x264_validate_parameters( x264_t *h, int b_open )
 
     if( h->param.i_threads == X264_THREADS_AUTO )
         h->param.i_threads = x264_cpu_num_processors() * (h->param.b_sliced_threads?2:3)/2;
-    h->param.i_threads = x264_clip3( h->param.i_threads, 1, X264_THREAD_MAX );
     if( h->param.i_threads > 1 )
     {
 #if !HAVE_THREAD
@@ -487,7 +486,8 @@ static int x264_validate_parameters( x264_t *h, int b_open )
             h->param.i_threads = X264_MIN( h->param.i_threads, max_threads );
         }
     }
-    else
+    h->param.i_threads = x264_clip3( h->param.i_threads, 1, X264_THREAD_MAX );
+    if( h->param.i_threads == 1 )
         h->param.b_sliced_threads = 0;
     h->i_thread_frames = h->param.b_sliced_threads ? 1 : h->param.i_threads;
     if( h->i_thread_frames > 1 )
