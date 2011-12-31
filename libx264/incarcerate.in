@@ -77,7 +77,7 @@ cp -r @abs_srcdir@/csrc/* @abs_builddir@/csrc/
 chmod -R u+w @abs_builddir@/csrc/*
 
 echo "Configuring X264 with these options: $X264_OPTIONS"
-sh @abs_builddir@/csrc/configure \
+bash @abs_builddir@/csrc/configure \
   --extra-cflags="$CFLAGS -I'@abs_top_builddir@@includedir@'" \
   --extra-ldflags="$LDFLAGS -L'@abs_top_builddir@@libdir@'" \
   --prefix="${prefix}" $X264_OPTIONS || \
