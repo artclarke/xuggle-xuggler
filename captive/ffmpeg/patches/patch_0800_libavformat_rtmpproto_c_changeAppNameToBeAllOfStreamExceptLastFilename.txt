@@ -1,0 +1,164 @@
+Index: libavformat/rtmpproto.c
+===================================================================
+--- libavformat/rtmpproto.c	(revision 22960)
++++ libavformat/rtmpproto.c	(working copy)
+@@ -65,8 +65,8 @@
+     RTMPPacket    prev_pkt[2][RTMP_CHANNELS]; ///< packet history used when reading and sending packets
+     int           chunk_size;                 ///< size of the chunks RTMP packets are divided into
+     int           is_input;                   ///< input/output flag
+-    char          playpath[256];              ///< path to filename to play (with possible "mp4:" prefix)
+-    char          app[128];                   ///< application
++    char          playpath[1024];              ///< path to filename to play (with possible "mp4:" prefix)
++    char          app[1024];                  ///< application
+     ClientState   state;                      ///< current state
+     int           main_channel_id;            ///< an additional channel ID which is used for some invocations
+     uint8_t*      flv_data;                   ///< buffer with data for demuxer
+@@ -770,6 +770,91 @@
+     return 0;
+ }
+ 
++/**
++ * Splits an rtmp path name into an app and playpath component.
++ *
++ * So for rtmp://hostname:port/app1/room1/subroom1/stream.f4v, we assume
++ * either '/app1/room1/subroom1/stream.f4v' or 'app1/room1/subroom1/stream.f4v'
++ * has been passed in for <code>path</code>, and when parsed the following
++ * will be returned:
++ * <ul>
++ *  <li><code>app</code>  = app1/room1/subroom1</li>
++ *  <li><code>playpath</code> = mp4:stream.flv<li>
++ * </ul>
++ * This is more in line with how 99% of RTMP applications actually
++ * specify things.  Although in reality this is a hack, as RTMP
++ * has completely disjoint ideas of 'rtmp connection uri'
++ * and stream-name.  For example, this 'rtmp-connection uri' and
++ * 'playpath' combo is perfectly legal:
++ *   rtmp-connection uri: rtmp://ffmpeg.org/foo/bar/baz
++ *   playpath: mp4:/a/b/c/d/efg
++ * This the prior code would not be able to figure that
++ * one out.  This code will parse "foo/bar/baz" as the app name, and "mp4:/a/b/c/d/efg"
++ * as the playpath.
++ *
++ * @param app pointer to a string to write the application name.
++ * @param app_len number of bytes that can be written to app, including a terminating zero.
++ * @param playpath pointer to a string to write the playpath
++ * @param playpath_len number of bytes that can be written to playpath, including a terminating zero.
++ * @param path the path to parse
++ *
++ */
++static int rtmp_path_split(
++    char* app,
++    size_t app_len,
++    char* playpath,
++    size_t playpath_len,
++    const char* path)
++{
++
++    const char* fname;
++    const char* c;
++    const char* p;
++    int len;
++
++    // argument guards
++    if (!app || app_len <= 0 || !playpath || playpath_len <= 5 || !path || !*path)
++        return -1;
++    // skip a leading '/'
++    if (*path == '/')
++        path++;
++    fname = path;
++    // find first colon, if any
++    c = strchr(fname, ':');
++    p = 0;
++
++    // skip to string after the last '/' or the first ':'
++    while((p = strchr(fname, '/')) && (!c || p < c))
++    {
++        fname=p+1;
++    }
++    if (!*fname)
++    {
++        // There was no apparent application name.  RTMP requires an app
++        // name, but the old ffmpeg code allowed this case, so we do too.
++        fname = path+1;
++        if (app_len <= 0)
++            return -1;
++        app[0]=0;
++    } else {
++        len = fname - path;
++        if (app_len <= len)
++            return -1;
++        av_strlcpy(app, path, len);
++    }
++    len = strlen(fname);
++    if (!c &&
++            len >= 4 &&
++            (!strcmp(fname + len - 4, ".f4v") ||
++             !strcmp(fname + len - 4, ".mp4"))) {
++        memcpy(playpath, "mp4:", 5);
++    } else {
++        playpath[0] = 0;
++    }
++    strncat(playpath, fname, playpath_len - 5);
++    return 0;
++}
++
+ static int rtmp_close(URLContext *h)
+ {
+     RTMPContext *rt = h->priv_data;
+@@ -793,16 +878,12 @@
+ /**
+  * Opens RTMP connection and verifies that the stream can be played.
+  *
+- * URL syntax: rtmp://server[:port][/app][/playpath]
+- *             where 'app' is first one or two directories in the path
+- *             (e.g. /ondemand/, /flash/live/, etc.)
+- *             and 'playpath' is a file name (the rest of the path,
+- *             may be prefixed with "mp4:")
++ * URL syntax: See comments for rtmp_path_split
+  */
+ static int rtmp_open(URLContext *s, const char *uri, int flags)
+ {
+     RTMPContext *rt;
+-    char proto[8], hostname[256], path[1024], *fname;
++    char proto[8], hostname[256], path[1024];
+     uint8_t buf[2048];
+     int port;
+     int ret;
+@@ -832,34 +913,9 @@
+     rt->chunk_size = 128;
+     rt->state = STATE_HANDSHAKED;
+     //extract "app" part from path
+-    if (!strncmp(path, "/ondemand/", 10)) {
+-        fname = path + 10;
+-        memcpy(rt->app, "ondemand", 9);
+-    } else {
+-        char *p = strchr(path + 1, '/');
+-        if (!p) {
+-            fname = path + 1;
+-            rt->app[0] = '\0';
+-        } else {
+-            char *c = strchr(p + 1, ':');
+-            fname = strchr(p + 1, '/');
+-            if (!fname || c < fname) {
+-                fname = p + 1;
+-                av_strlcpy(rt->app, path + 1, p - path);
+-            } else {
+-                fname++;
+-                av_strlcpy(rt->app, path + 1, fname - path - 1);
+-            }
+-        }
+-    }
+-    if (!strchr(fname, ':') &&
+-        (!strcmp(fname + strlen(fname) - 4, ".f4v") ||
+-         !strcmp(fname + strlen(fname) - 4, ".mp4"))) {
+-        memcpy(rt->playpath, "mp4:", 5);
+-    } else {
+-        rt->playpath[0] = 0;
+-    }
+-    strncat(rt->playpath, fname, sizeof(rt->playpath) - 5);
++    if (rtmp_path_split(rt->app, sizeof(rt->app), rt->playpath,
++                        sizeof(rt->playpath), path) < 0)
++      return -1;
+ 
+     rt->client_report_size = 1048576;
+     rt->bytes_read = 0;

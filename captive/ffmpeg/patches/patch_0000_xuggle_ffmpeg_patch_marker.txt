@@ -1,0 +1,14 @@
+Index: libavcodec/avcodec.h
+===================================================================
+--- libavcodec/avcodec.h	(revision 19327)
++++ libavcodec/avcodec.h	(working copy)
+@@ -21,6 +21,9 @@
+ #ifndef AVCODEC_AVCODEC_H
+ #define AVCODEC_AVCODEC_H
+ 
++#ifndef XUGGLE_FFMPEG_PATCHED
++#define XUGGLE_FFMPEG_PATCHED 1
++#endif // ! XUGGLE_FFMPEG_PATCHED
+ /**
+  * @file libavcodec/avcodec.h
+  * external API header

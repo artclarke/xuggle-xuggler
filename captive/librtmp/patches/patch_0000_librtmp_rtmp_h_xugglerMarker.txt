@@ -1,0 +1,12 @@
+Index: librtmp/rtmp.h
+===================================================================
+--- librtmp/rtmp.h	(revision 512)
++++ librtmp/rtmp.h	(working copy)
+@@ -25,6 +25,7 @@
+  *  http://www.gnu.org/copyleft/lgpl.html
+  */
+ 
++/* Hacked by the Xuggle Team */
+ #if !defined(NO_CRYPTO) && !defined(CRYPTO)
+ #define CRYPTO
+ #endif

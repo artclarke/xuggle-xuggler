@@ -1,0 +1,15 @@
+all:
+	$(MAKE) -f Makefile.alt -C amrnb BUILD_AS_C=1
+	$(MAKE) -f Makefile.alt -C amrwb BUILD_AS_C=1
+
+distclean: clean
+clean:
+	$(MAKE) -f Makefile.alt -C amrnb clean
+	$(MAKE) -f Makefile.alt -C amrwb clean
+
+install:
+	$(MAKE) -f Makefile.alt -C amrnb install BUILD_AS_C=1
+	$(MAKE) -f Makefile.alt -C amrwb install BUILD_AS_C=1
+
+.PHONY: install
+
