@@ -1,0 +1,84 @@
+#!/bin/sh
+
+# Copyright (c) 2009 by Xuggle Inc.
+#
+# Permission is hereby granted, free of charge, to any person obtaining
+# a copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish,
+# distribute, sublicense, and/or sell copies of the Software, and to
+# permit persons to whom the Software is furnished to do so, subject to
+# the following conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+# LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+# OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+# WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+#
+# It is REQUESTED BUT NOT REQUIRED if you use this library, that you let 
+# us know by sending e-mail to info\@xuggle.com telling us briefly how you're
+# using the library and what you like or don't like about it.
+
+# Run's java but using all the jars in the distribution's lib directory in
+# the classpath.  Also adds Red5's jars if needed.
+#
+# Usage: $0 java-class
+
+OS=`uname`
+echo "Running on: $OS"
+
+if [ $VS_VALGRIND_MEMCHECK ]; then
+  COMMAND="valgrind --tool=memcheck --leak-check=full --show-reachable=yes --smc-check=all --trace-children=yes -v -- java -Xmx1000m"
+else if [ $VS_VALGRIND_GRIND ]; then
+  COMMAND="valgrind --tool=callgrind --dump-instr=yes --trace-jump=yes -- java -Xmx1000m"
+else
+  COMMAND="java"
+fi
+fi
+
+mypath=../../..
+if [ $OS = "CYGWIN_NT-6.0" ]; then
+  PATH_CONV="cygpath -d"
+  echo "Converting paths with: $PATH_CONV"
+  mypath=`cygpath -u $mypath`
+  SEP=";"
+else
+  SEP=":"
+  PATH_CONV=echo
+fi
+
+classpath=`$PATH_CONV $mypath/build/test`$SEP`$PATH_CONV $mypath/build/classes`
+for jar in $mypath/build/lib/test/*.jar; do
+  classpath=$classpath$SEP`$PATH_CONV "$jar"`
+done
+if [ ! -z "$RED5_HOME" ]; then
+  classpath=$classpath$SEP`$PATH_CONV "$RED5_HOME"/red5.jar`
+fi
+
+shared_object_path=$mypath/dist/stage$XUGGLE_HOME
+export PATH=$shared_object_path/bin:$PATH
+export LD_LIBRARY_PATH=$shared_object_path/lib:$LD_LIBRARY_PATH
+echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
+export DYLD_LIBRARY_PATH=$shared_object_path/lib:$DYLD_LIBRARY_PATH
+
+export CLASSPATH=$classpath;
+
+if [ -z "$JAVA_OPTS" ]; then
+  export JAVA_OPTS=
+fi
+if [ $VS_JAVA_MEMCHECK ]; then
+  export JAVA_OPTS="$JAVA_OPTS -agentlib:hprof=heap=all,lineno=y,thread=y,format=b"
+fi
+if [ $VS_JAVA_WAITFORNATIVEDEBUGGER ]; then
+  JAVA_OPTS="$JAVA_OPTS -Dcom.xuggle.ferry.WaitForDebugger=1"
+fi
+
+#echo "CLASSPATH=$classpath";
+echo $COMMAND $JAVA_OPTS $*
+$COMMAND -ea $JAVA_OPTS $*
