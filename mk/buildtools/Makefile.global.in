@@ -86,7 +86,7 @@ else
 endif
 
 ifdef VS_TEST
-  AM_CPPFLAGS+=-I$(abs_top_srcdir)/mk/build/cxxtest -I$(abs_top_srcdir)/test/csrc
+  AM_CPPFLAGS+=-I$(abs_top_srcdir)/mk/buildtools/cxxtest -I$(abs_top_srcdir)/test/csrc
   # Set the VS_TEST_FIXTUREDIR env variable to that tests can
   # find the fixtures directory for reading files
   export VS_TEST_FIXTUREDIR=$(abs_top_srcdir)/test/fixtures
@@ -185,7 +185,7 @@ endif
 
 ifdef PERL
 %_CXXRunner.cpp : $(srcdir)/%.h
-	$(PERL) -w $(abs_top_srcdir)/mk/build/cxxtest/cxxtestgen.pl  --have-eh --have-std --abort-on-fail -o $@ $<
+	$(PERL) -w $(abs_top_srcdir)/mk/buildtools/cxxtest/cxxtestgen.pl  --have-eh --have-std --abort-on-fail -o $@ $<
 else
 %_CXXRunner.cpp : $(srcdir)/%.h
 	@echo "---------------- ERROR! ----------------"
