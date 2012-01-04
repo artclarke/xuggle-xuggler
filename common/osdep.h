@@ -31,14 +31,9 @@
 #define _FILE_OFFSET_BITS 64
 #include <stdio.h>
 #include <sys/stat.h>
+#include <inttypes.h>
 
 #include "config.h"
-
-#if HAVE_STDINT_H
-#include <stdint.h>
-#else
-#include <inttypes.h>
-#endif
 
 #if !HAVE_LOG2F
 #define log2f(x) (logf(x)/0.693147180559945f)
