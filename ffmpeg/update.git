@@ -1,4 +1,4 @@
 #!/bin/sh
 
-# This script is here to update the branch to the latest libx264
+# This script is here to update the branch to the latest version
 git merge -s subtree --no-commit ffmpeg-oldabi
