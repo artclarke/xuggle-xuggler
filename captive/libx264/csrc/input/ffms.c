@@ -65,6 +65,18 @@ static int FFMS_CC update_progress( int64_t current, int64_t total, void *privat
     return 0;
 }
 
+/* handle the deprecated jpeg pixel formats */
+static int handle_jpeg( int csp, int *fullrange )
+{
+    switch( csp )
+    {
+        case PIX_FMT_YUVJ420P: *fullrange = 1; return PIX_FMT_YUV420P;
+        case PIX_FMT_YUVJ422P: *fullrange = 1; return PIX_FMT_YUV422P;
+        case PIX_FMT_YUVJ444P: *fullrange = 1; return PIX_FMT_YUV444P;
+        default:                               return csp;
+    }
+}
+
 static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, cli_input_opt_t *opt )
 {
     ffms_hnd_t *h = calloc( 1, sizeof(ffms_hnd_t) );
@@ -119,11 +131,13 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     const FFMS_Frame *frame = FFMS_GetFrame( h->video_source, 0, &e );
     FAIL_IF_ERROR( !frame, "could not read frame 0\n" )
 
+    info->fullrange  = 0;
     info->width      = frame->EncodedWidth;
     info->height     = frame->EncodedHeight;
-    info->csp        = frame->EncodedPixelFormat | X264_CSP_OTHER;
+    info->csp        = handle_jpeg( frame->EncodedPixelFormat, &info->fullrange ) | X264_CSP_OTHER;
     info->interlaced = frame->InterlacedFrame;
     info->tff        = frame->TopFieldFirst;
+    info->fullrange |= frame->ColorRange == FFMS_CR_JPEG;
 
     /* ffms timestamps are in milliseconds. ffms also uses int64_ts for timebase,
      * so we need to reduce large timebases to prevent overflow */

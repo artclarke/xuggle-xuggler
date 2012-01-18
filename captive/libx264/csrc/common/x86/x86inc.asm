@@ -784,16 +784,38 @@ INIT_XMM
 %endrep
 %undef i
 
+%macro CHECK_AVX_INSTR_EMU 3-*
+    %xdefine %%opcode %1
+    %xdefine %%dst %2
+    %rep %0-2
+        %ifidn %%dst, %3
+            %error non-avx emulation of ``%%opcode'' is not supported
+        %endif
+        %rotate 1
+    %endrep
+%endmacro
+
 ;%1 == instruction
 ;%2 == 1 if float, 0 if int
-;%3 == 0 if 3-operand (xmm, xmm, xmm), 1 if 4-operand (xmm, xmm, xmm, imm)
+;%3 == 1 if 4-operand (xmm, xmm, xmm, imm), 0 if 3-operand (xmm, xmm, xmm)
 ;%4 == number of operands given
 ;%5+: operands
 %macro RUN_AVX_INSTR 6-7+
-    %if sizeof%5==32
-        v%1 %5, %6, %7
+    %ifid %5
+        %define %%sizeofreg sizeof%5
+    %elifid %6
+        %define %%sizeofreg sizeof%6
     %else
-        %if sizeof%5==8
+        %define %%sizeofreg mmsize
+    %endif
+    %if %%sizeofreg==32
+        %if %4>=3
+            v%1 %5, %6, %7
+        %else
+            v%1 %5, %6
+        %endif
+    %else
+        %if %%sizeofreg==8
             %define %%regmov movq
         %elif %2
             %define %%regmov movaps
@@ -803,16 +825,17 @@ INIT_XMM
 
         %if %4>=3+%3
             %ifnidn %5, %6
-                %if avx_enabled && sizeof%5==16
+                %if avx_enabled && %%sizeofreg==16
                     v%1 %5, %6, %7
                 %else
+                    CHECK_AVX_INSTR_EMU {%1 %5, %6, %7}, %5, %7
                     %%regmov %5, %6
                     %1 %5, %7
                 %endif
             %else
                 %1 %5, %7
             %endif
-        %elif %3
+        %elif %4>=3
             %1 %5, %6, %7
         %else
             %1 %5, %6
@@ -820,15 +843,37 @@ INIT_XMM
     %endif
 %endmacro
 
+; 3arg AVX ops with a memory arg can only have it in src2,
+; whereas SSE emulation of 3arg prefers to have it in src1 (i.e. the mov).
+; So, if the op is symmetric and the wrong one is memory, swap them.
+%macro RUN_AVX_INSTR1 8
+    %assign %%swap 0
+    %if avx_enabled
+        %ifnid %6
+            %assign %%swap 1
+        %endif
+    %elifnidn %5, %6
+        %ifnid %7
+            %assign %%swap 1
+        %endif
+    %endif
+    %if %%swap && %3 == 0 && %8 == 1
+        RUN_AVX_INSTR %1, %2, %3, %4, %5, %7, %6
+    %else
+        RUN_AVX_INSTR %1, %2, %3, %4, %5, %6, %7
+    %endif
+%endmacro
+
 ;%1 == instruction
 ;%2 == 1 if float, 0 if int
-;%3 == 0 if 3-operand (xmm, xmm, xmm), 1 if 4-operand (xmm, xmm, xmm, imm)
-%macro AVX_INSTR 3
-    %macro %1 2-8 fnord, fnord, fnord, %1, %2, %3
+;%3 == 1 if 4-operand (xmm, xmm, xmm, imm), 0 if 3-operand (xmm, xmm, xmm)
+;%4 == 1 if symmetric (i.e. doesn't matter which src arg is which), 0 if not
+%macro AVX_INSTR 4
+    %macro %1 2-9 fnord, fnord, fnord, %1, %2, %3, %4
         %ifidn %3, fnord
             RUN_AVX_INSTR %6, %7, %8, 2, %1, %2
         %elifidn %4, fnord
-            RUN_AVX_INSTR %6, %7, %8, 3, %1, %2, %3
+            RUN_AVX_INSTR1 %6, %7, %8, 3, %1, %2, %3, %9
         %elifidn %5, fnord
             RUN_AVX_INSTR %6, %7, %8, 4, %1, %2, %3, %4
         %else
@@ -837,158 +882,158 @@ INIT_XMM
     %endmacro
 %endmacro
 
-AVX_INSTR addpd, 1, 0
-AVX_INSTR addps, 1, 0
-AVX_INSTR addsd, 1, 0
-AVX_INSTR addss, 1, 0
-AVX_INSTR addsubpd, 1, 0
-AVX_INSTR addsubps, 1, 0
-AVX_INSTR andpd, 1, 0
-AVX_INSTR andps, 1, 0
-AVX_INSTR andnpd, 1, 0
-AVX_INSTR andnps, 1, 0
-AVX_INSTR blendpd, 1, 0
-AVX_INSTR blendps, 1, 0
-AVX_INSTR blendvpd, 1, 0
-AVX_INSTR blendvps, 1, 0
-AVX_INSTR cmppd, 1, 0
-AVX_INSTR cmpps, 1, 0
-AVX_INSTR cmpsd, 1, 0
-AVX_INSTR cmpss, 1, 0
-AVX_INSTR divpd, 1, 0
-AVX_INSTR divps, 1, 0
-AVX_INSTR divsd, 1, 0
-AVX_INSTR divss, 1, 0
-AVX_INSTR dppd, 1, 0
-AVX_INSTR dpps, 1, 0
-AVX_INSTR haddpd, 1, 0
-AVX_INSTR haddps, 1, 0
-AVX_INSTR hsubpd, 1, 0
-AVX_INSTR hsubps, 1, 0
-AVX_INSTR maxpd, 1, 0
-AVX_INSTR maxps, 1, 0
-AVX_INSTR maxsd, 1, 0
-AVX_INSTR maxss, 1, 0
-AVX_INSTR minpd, 1, 0
-AVX_INSTR minps, 1, 0
-AVX_INSTR minsd, 1, 0
-AVX_INSTR minss, 1, 0
-AVX_INSTR movsd, 1, 0
-AVX_INSTR movss, 1, 0
-AVX_INSTR mpsadbw, 0, 1
-AVX_INSTR mulpd, 1, 0
-AVX_INSTR mulps, 1, 0
-AVX_INSTR mulsd, 1, 0
-AVX_INSTR mulss, 1, 0
-AVX_INSTR orpd, 1, 0
-AVX_INSTR orps, 1, 0
-AVX_INSTR packsswb, 0, 0
-AVX_INSTR packssdw, 0, 0
-AVX_INSTR packuswb, 0, 0
-AVX_INSTR packusdw, 0, 0
-AVX_INSTR paddb, 0, 0
-AVX_INSTR paddw, 0, 0
-AVX_INSTR paddd, 0, 0
-AVX_INSTR paddq, 0, 0
-AVX_INSTR paddsb, 0, 0
-AVX_INSTR paddsw, 0, 0
-AVX_INSTR paddusb, 0, 0
-AVX_INSTR paddusw, 0, 0
-AVX_INSTR palignr, 0, 1
-AVX_INSTR pand, 0, 0
-AVX_INSTR pandn, 0, 0
-AVX_INSTR pavgb, 0, 0
-AVX_INSTR pavgw, 0, 0
-AVX_INSTR pblendvb, 0, 0
-AVX_INSTR pblendw, 0, 1
-AVX_INSTR pcmpestri, 0, 0
-AVX_INSTR pcmpestrm, 0, 0
-AVX_INSTR pcmpistri, 0, 0
-AVX_INSTR pcmpistrm, 0, 0
-AVX_INSTR pcmpeqb, 0, 0
-AVX_INSTR pcmpeqw, 0, 0
-AVX_INSTR pcmpeqd, 0, 0
-AVX_INSTR pcmpeqq, 0, 0
-AVX_INSTR pcmpgtb, 0, 0
-AVX_INSTR pcmpgtw, 0, 0
-AVX_INSTR pcmpgtd, 0, 0
-AVX_INSTR pcmpgtq, 0, 0
-AVX_INSTR phaddw, 0, 0
-AVX_INSTR phaddd, 0, 0
-AVX_INSTR phaddsw, 0, 0
-AVX_INSTR phsubw, 0, 0
-AVX_INSTR phsubd, 0, 0
-AVX_INSTR phsubsw, 0, 0
-AVX_INSTR pmaddwd, 0, 0
-AVX_INSTR pmaddubsw, 0, 0
-AVX_INSTR pmaxsb, 0, 0
-AVX_INSTR pmaxsw, 0, 0
-AVX_INSTR pmaxsd, 0, 0
-AVX_INSTR pmaxub, 0, 0
-AVX_INSTR pmaxuw, 0, 0
-AVX_INSTR pmaxud, 0, 0
-AVX_INSTR pminsb, 0, 0
-AVX_INSTR pminsw, 0, 0
-AVX_INSTR pminsd, 0, 0
-AVX_INSTR pminub, 0, 0
-AVX_INSTR pminuw, 0, 0
-AVX_INSTR pminud, 0, 0
-AVX_INSTR pmulhuw, 0, 0
-AVX_INSTR pmulhrsw, 0, 0
-AVX_INSTR pmulhw, 0, 0
-AVX_INSTR pmullw, 0, 0
-AVX_INSTR pmulld, 0, 0
-AVX_INSTR pmuludq, 0, 0
-AVX_INSTR pmuldq, 0, 0
-AVX_INSTR por, 0, 0
-AVX_INSTR psadbw, 0, 0
-AVX_INSTR pshufb, 0, 0
-AVX_INSTR psignb, 0, 0
-AVX_INSTR psignw, 0, 0
-AVX_INSTR psignd, 0, 0
-AVX_INSTR psllw, 0, 0
-AVX_INSTR pslld, 0, 0
-AVX_INSTR psllq, 0, 0
-AVX_INSTR pslldq, 0, 0
-AVX_INSTR psraw, 0, 0
-AVX_INSTR psrad, 0, 0
-AVX_INSTR psrlw, 0, 0
-AVX_INSTR psrld, 0, 0
-AVX_INSTR psrlq, 0, 0
-AVX_INSTR psrldq, 0, 0
-AVX_INSTR psubb, 0, 0
-AVX_INSTR psubw, 0, 0
-AVX_INSTR psubd, 0, 0
-AVX_INSTR psubq, 0, 0
-AVX_INSTR psubsb, 0, 0
-AVX_INSTR psubsw, 0, 0
-AVX_INSTR psubusb, 0, 0
-AVX_INSTR psubusw, 0, 0
-AVX_INSTR punpckhbw, 0, 0
-AVX_INSTR punpckhwd, 0, 0
-AVX_INSTR punpckhdq, 0, 0
-AVX_INSTR punpckhqdq, 0, 0
-AVX_INSTR punpcklbw, 0, 0
-AVX_INSTR punpcklwd, 0, 0
-AVX_INSTR punpckldq, 0, 0
-AVX_INSTR punpcklqdq, 0, 0
-AVX_INSTR pxor, 0, 0
-AVX_INSTR shufps, 0, 1
-AVX_INSTR subpd, 1, 0
-AVX_INSTR subps, 1, 0
-AVX_INSTR subsd, 1, 0
-AVX_INSTR subss, 1, 0
-AVX_INSTR unpckhpd, 1, 0
-AVX_INSTR unpckhps, 1, 0
-AVX_INSTR unpcklpd, 1, 0
-AVX_INSTR unpcklps, 1, 0
-AVX_INSTR xorpd, 1, 0
-AVX_INSTR xorps, 1, 0
+AVX_INSTR addpd, 1, 0, 1
+AVX_INSTR addps, 1, 0, 1
+AVX_INSTR addsd, 1, 0, 1
+AVX_INSTR addss, 1, 0, 1
+AVX_INSTR addsubpd, 1, 0, 0
+AVX_INSTR addsubps, 1, 0, 0
+AVX_INSTR andpd, 1, 0, 1
+AVX_INSTR andps, 1, 0, 1
+AVX_INSTR andnpd, 1, 0, 0
+AVX_INSTR andnps, 1, 0, 0
+AVX_INSTR blendpd, 1, 0, 0
+AVX_INSTR blendps, 1, 0, 0
+AVX_INSTR blendvpd, 1, 0, 0
+AVX_INSTR blendvps, 1, 0, 0
+AVX_INSTR cmppd, 1, 0, 0
+AVX_INSTR cmpps, 1, 0, 0
+AVX_INSTR cmpsd, 1, 0, 0
+AVX_INSTR cmpss, 1, 0, 0
+AVX_INSTR divpd, 1, 0, 0
+AVX_INSTR divps, 1, 0, 0
+AVX_INSTR divsd, 1, 0, 0
+AVX_INSTR divss, 1, 0, 0
+AVX_INSTR dppd, 1, 1, 0
+AVX_INSTR dpps, 1, 1, 0
+AVX_INSTR haddpd, 1, 0, 0
+AVX_INSTR haddps, 1, 0, 0
+AVX_INSTR hsubpd, 1, 0, 0
+AVX_INSTR hsubps, 1, 0, 0
+AVX_INSTR maxpd, 1, 0, 1
+AVX_INSTR maxps, 1, 0, 1
+AVX_INSTR maxsd, 1, 0, 1
+AVX_INSTR maxss, 1, 0, 1
+AVX_INSTR minpd, 1, 0, 1
+AVX_INSTR minps, 1, 0, 1
+AVX_INSTR minsd, 1, 0, 1
+AVX_INSTR minss, 1, 0, 1
+AVX_INSTR movsd, 1, 0, 0
+AVX_INSTR movss, 1, 0, 0
+AVX_INSTR mpsadbw, 0, 1, 0
+AVX_INSTR mulpd, 1, 0, 1
+AVX_INSTR mulps, 1, 0, 1
+AVX_INSTR mulsd, 1, 0, 1
+AVX_INSTR mulss, 1, 0, 1
+AVX_INSTR orpd, 1, 0, 1
+AVX_INSTR orps, 1, 0, 1
+AVX_INSTR packsswb, 0, 0, 0
+AVX_INSTR packssdw, 0, 0, 0
+AVX_INSTR packuswb, 0, 0, 0
+AVX_INSTR packusdw, 0, 0, 0
+AVX_INSTR paddb, 0, 0, 1
+AVX_INSTR paddw, 0, 0, 1
+AVX_INSTR paddd, 0, 0, 1
+AVX_INSTR paddq, 0, 0, 1
+AVX_INSTR paddsb, 0, 0, 1
+AVX_INSTR paddsw, 0, 0, 1
+AVX_INSTR paddusb, 0, 0, 1
+AVX_INSTR paddusw, 0, 0, 1
+AVX_INSTR palignr, 0, 1, 0
+AVX_INSTR pand, 0, 0, 1
+AVX_INSTR pandn, 0, 0, 0
+AVX_INSTR pavgb, 0, 0, 1
+AVX_INSTR pavgw, 0, 0, 1
+AVX_INSTR pblendvb, 0, 0, 0
+AVX_INSTR pblendw, 0, 1, 0
+AVX_INSTR pcmpestri, 0, 0, 0
+AVX_INSTR pcmpestrm, 0, 0, 0
+AVX_INSTR pcmpistri, 0, 0, 0
+AVX_INSTR pcmpistrm, 0, 0, 0
+AVX_INSTR pcmpeqb, 0, 0, 1
+AVX_INSTR pcmpeqw, 0, 0, 1
+AVX_INSTR pcmpeqd, 0, 0, 1
+AVX_INSTR pcmpeqq, 0, 0, 1
+AVX_INSTR pcmpgtb, 0, 0, 0
+AVX_INSTR pcmpgtw, 0, 0, 0
+AVX_INSTR pcmpgtd, 0, 0, 0
+AVX_INSTR pcmpgtq, 0, 0, 0
+AVX_INSTR phaddw, 0, 0, 0
+AVX_INSTR phaddd, 0, 0, 0
+AVX_INSTR phaddsw, 0, 0, 0
+AVX_INSTR phsubw, 0, 0, 0
+AVX_INSTR phsubd, 0, 0, 0
+AVX_INSTR phsubsw, 0, 0, 0
+AVX_INSTR pmaddwd, 0, 0, 1
+AVX_INSTR pmaddubsw, 0, 0, 0
+AVX_INSTR pmaxsb, 0, 0, 1
+AVX_INSTR pmaxsw, 0, 0, 1
+AVX_INSTR pmaxsd, 0, 0, 1
+AVX_INSTR pmaxub, 0, 0, 1
+AVX_INSTR pmaxuw, 0, 0, 1
+AVX_INSTR pmaxud, 0, 0, 1
+AVX_INSTR pminsb, 0, 0, 1
+AVX_INSTR pminsw, 0, 0, 1
+AVX_INSTR pminsd, 0, 0, 1
+AVX_INSTR pminub, 0, 0, 1
+AVX_INSTR pminuw, 0, 0, 1
+AVX_INSTR pminud, 0, 0, 1
+AVX_INSTR pmulhuw, 0, 0, 1
+AVX_INSTR pmulhrsw, 0, 0, 1
+AVX_INSTR pmulhw, 0, 0, 1
+AVX_INSTR pmullw, 0, 0, 1
+AVX_INSTR pmulld, 0, 0, 1
+AVX_INSTR pmuludq, 0, 0, 1
+AVX_INSTR pmuldq, 0, 0, 1
+AVX_INSTR por, 0, 0, 1
+AVX_INSTR psadbw, 0, 0, 1
+AVX_INSTR pshufb, 0, 0, 0
+AVX_INSTR psignb, 0, 0, 0
+AVX_INSTR psignw, 0, 0, 0
+AVX_INSTR psignd, 0, 0, 0
+AVX_INSTR psllw, 0, 0, 0
+AVX_INSTR pslld, 0, 0, 0
+AVX_INSTR psllq, 0, 0, 0
+AVX_INSTR pslldq, 0, 0, 0
+AVX_INSTR psraw, 0, 0, 0
+AVX_INSTR psrad, 0, 0, 0
+AVX_INSTR psrlw, 0, 0, 0
+AVX_INSTR psrld, 0, 0, 0
+AVX_INSTR psrlq, 0, 0, 0
+AVX_INSTR psrldq, 0, 0, 0
+AVX_INSTR psubb, 0, 0, 0
+AVX_INSTR psubw, 0, 0, 0
+AVX_INSTR psubd, 0, 0, 0
+AVX_INSTR psubq, 0, 0, 0
+AVX_INSTR psubsb, 0, 0, 0
+AVX_INSTR psubsw, 0, 0, 0
+AVX_INSTR psubusb, 0, 0, 0
+AVX_INSTR psubusw, 0, 0, 0
+AVX_INSTR punpckhbw, 0, 0, 0
+AVX_INSTR punpckhwd, 0, 0, 0
+AVX_INSTR punpckhdq, 0, 0, 0
+AVX_INSTR punpckhqdq, 0, 0, 0
+AVX_INSTR punpcklbw, 0, 0, 0
+AVX_INSTR punpcklwd, 0, 0, 0
+AVX_INSTR punpckldq, 0, 0, 0
+AVX_INSTR punpcklqdq, 0, 0, 0
+AVX_INSTR pxor, 0, 0, 1
+AVX_INSTR shufps, 1, 1, 0
+AVX_INSTR subpd, 1, 0, 0
+AVX_INSTR subps, 1, 0, 0
+AVX_INSTR subsd, 1, 0, 0
+AVX_INSTR subss, 1, 0, 0
+AVX_INSTR unpckhpd, 1, 0, 0
+AVX_INSTR unpckhps, 1, 0, 0
+AVX_INSTR unpcklpd, 1, 0, 0
+AVX_INSTR unpcklps, 1, 0, 0
+AVX_INSTR xorpd, 1, 0, 1
+AVX_INSTR xorps, 1, 0, 1
 
 ; 3DNow instructions, for sharing code between AVX, SSE and 3DN
-AVX_INSTR pfadd, 1, 0
-AVX_INSTR pfsub, 1, 0
-AVX_INSTR pfmul, 1, 0
+AVX_INSTR pfadd, 1, 0, 1
+AVX_INSTR pfsub, 1, 0, 0
+AVX_INSTR pfmul, 1, 0, 1
 
 ; base-4 constants for shuffles
 %assign i 0

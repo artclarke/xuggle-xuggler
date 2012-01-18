@@ -167,7 +167,12 @@ static void x264_cabac_qp_delta( x264_t *h, x264_cabac_t *cb )
 
     if( i_dqp != 0 )
     {
-        int val = i_dqp <= 0 ? (-2*i_dqp) : (2*i_dqp - 1);
+        /* Faster than (i_dqp <= 0 ? (-2*i_dqp) : (2*i_dqp-1)).
+         * If you so much as sneeze on these lines, gcc will compile this suboptimally. */
+        i_dqp *= 2;
+        int val = 1 - i_dqp;
+        if( val < 0 ) val = i_dqp;
+        val--;
         /* dqp is interpreted modulo (QP_MAX_SPEC+1) */
         if( val >= QP_MAX_SPEC && val != QP_MAX_SPEC+1 )
             val = 2*QP_MAX_SPEC+1 - val;

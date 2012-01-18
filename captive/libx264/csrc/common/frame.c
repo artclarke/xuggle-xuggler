@@ -353,6 +353,7 @@ int x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
     dst->param      = src->param;
     dst->i_pic_struct = src->i_pic_struct;
     dst->extra_sei  = src->extra_sei;
+    dst->opaque     = src->opaque;
 
     uint8_t *pix[3];
     int stride[3];

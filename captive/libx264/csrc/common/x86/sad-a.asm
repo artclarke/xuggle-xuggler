@@ -287,10 +287,11 @@ cglobal pixel_vsad_mmx2, 3,3
     psadbw    m3, m5
     psadbw    m4, m6
     psadbw    m5, m7
-    paddw     m0, m2
-    paddw     m0, m3
-    paddw     m0, m4
-    paddw     m0, m5
+    ;max sum: 31*16*255(pixel_max)=126480
+    paddd     m0, m2
+    paddd     m0, m3
+    paddd     m0, m4
+    paddd     m0, m5
     mova      m2, m6
     mova      m3, m7
     sub      r2d, 2
@@ -321,7 +322,8 @@ cglobal pixel_vsad_sse2, 3,3
     jg .loop
 .end:
     movhlps   m1, m0
-    paddw     m0, m1
+    ;max sum: 31*16*255(pixel_max)=126480
+    paddd     m0, m1
     movd     eax, m0
     RET
 

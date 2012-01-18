@@ -72,4 +72,11 @@ if( cond )\
 
 #define FAIL_IF_ERR( cond, name, ... ) RETURN_IF_ERR( cond, name, -1, __VA_ARGS__ )
 
+typedef enum
+{
+    RANGE_AUTO = -1,
+    RANGE_TV,
+    RANGE_PC
+} range_enum;
+
 #endif

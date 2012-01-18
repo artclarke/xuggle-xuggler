@@ -1,0 +1,4 @@
+#!/bin/sh
+
+# This script is here to update the branch to the latest version
+git merge -s subtree --no-commit libx264-stable

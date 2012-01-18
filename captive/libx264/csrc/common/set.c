@@ -112,9 +112,15 @@ int x264_cqm_init( x264_t *h )
                 !memcmp( h->pps->scaling_list[i], h->pps->scaling_list[j], size*sizeof(uint8_t) ) )
                 break;
         if( j < i )
+        {
             h->quant4_bias[i] = h->quant4_bias[j];
+            h->quant4_bias0[i] = h->quant4_bias0[j];
+        }
         else
+        {
             CHECKED_MALLOC( h->quant4_bias[i], (QP_MAX+1)*size*sizeof(udctcoef) );
+            CHECKED_MALLOC( h->quant4_bias0[i], (QP_MAX+1)*size*sizeof(udctcoef) );
+        }
     }
 
     for( int q = 0; q < 6; q++ )
@@ -163,6 +169,7 @@ int x264_cqm_init( x264_t *h )
                 }
                 // round to nearest, unless that would cause the deadzone to be negative
                 h->quant4_bias[i_list][q][i] = X264_MIN( DIV(deadzone[i_list]<<10, j), (1<<15)/j );
+                h->quant4_bias0[i_list][q][i] = (1<<15)/j;
                 if( j > 0xffff && q > max_qp_err && (i_list == CQM_4IY || i_list == CQM_4PY) )
                     max_qp_err = q;
                 if( j > 0xffff && q > max_chroma_qp_err && (i_list == CQM_4IC || i_list == CQM_4PC) )
@@ -182,6 +189,7 @@ int x264_cqm_init( x264_t *h )
                         continue;
                     }
                     h->quant8_bias[i_list][q][i] = X264_MIN( DIV(deadzone[i_list]<<10, j), (1<<15)/j );
+                    h->quant8_bias0[i_list][q][i] = (1<<15)/j;
                     if( j > 0xffff && q > max_qp_err && (i_list == CQM_8IY || i_list == CQM_8PY) )
                         max_qp_err = q;
                     if( j > 0xffff && q > max_chroma_qp_err && (i_list == CQM_8IC || i_list == CQM_8PC) )
@@ -272,7 +280,10 @@ fail:
             if( h->quant##n##_bias[i] == h->quant##n##_bias[j] )\
                 break;\
         if( j == i )\
+        {\
             x264_free( h->quant##n##_bias[i] );\
+            x264_free( h->quant##n##_bias0[i] );\
+        }\
     }
 
 void x264_cqm_delete( x264_t *h )
@@ -351,8 +362,8 @@ int x264_cqm_parse_file( x264_t *h, const char *filename )
     b_error |= x264_cqm_parse_jmlist( h, buf, "INTER8X8_LUMA",   h->param.cqm_8py, x264_cqm_jvt8p, 64 );
     if( CHROMA444 )
     {
-        b_error |= x264_cqm_parse_jmlist( h, buf, "INTRA8X8_CHROMA", h->param.cqm_8iy, x264_cqm_jvt8i, 64 );
-        b_error |= x264_cqm_parse_jmlist( h, buf, "INTER8X8_CHROMA", h->param.cqm_8py, x264_cqm_jvt8p, 64 );
+        b_error |= x264_cqm_parse_jmlist( h, buf, "INTRA8X8_CHROMA", h->param.cqm_8ic, x264_cqm_jvt8i, 64 );
+        b_error |= x264_cqm_parse_jmlist( h, buf, "INTER8X8_CHROMA", h->param.cqm_8pc, x264_cqm_jvt8p, 64 );
     }
 
     x264_free( buf );

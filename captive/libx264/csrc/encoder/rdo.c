@@ -431,15 +431,17 @@ typedef struct
 // comparable to the input. so unquant is the direct inverse of quant,
 // and uses the dct scaling factors, not the idct ones.
 
+#define SIGN(x,y) ((x^(y >> 31))-(y >> 31))
+
 static ALWAYS_INLINE
 int quant_trellis_cabac( x264_t *h, dctcoef *dct,
-                         const udctcoef *quant_mf, const int *unquant_mf,
+                         udctcoef *quant_mf, udctcoef *quant_bias, const int *unquant_mf,
                          const uint16_t *coef_weight, const uint8_t *zigzag,
                          int ctx_block_cat, int i_lambda2, int b_ac,
                          int b_chroma, int dc, int i_coefs, int idx )
 {
-    udctcoef abs_coefs[64];
-    int8_t signs[64];
+    ALIGNED_ARRAY_16( dctcoef, coefs, [64] );
+    ALIGNED_ARRAY_16( dctcoef, quant_coefs, [64] );
     trellis_node_t nodes[2][8];
     trellis_node_t *nodes_cur = nodes[0];
     trellis_node_t *nodes_prev = nodes[1];
@@ -448,9 +450,6 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
     uint8_t *cabac_state_sig = &h->cabac.state[ significant_coeff_flag_offset[b_interlaced][ctx_block_cat] ];
     uint8_t *cabac_state_last = &h->cabac.state[ last_coeff_flag_offset[b_interlaced][ctx_block_cat] ];
     const uint8_t *levelgt1_ctx = b_chroma && dc ? coeff_abs_levelgt1_ctx_chroma_dc : coeff_abs_levelgt1_ctx;
-    const int f = 1 << 15; // no deadzone
-    int i_last_nnz;
-    int i;
 
     // (# of coefs) * (# of ctx) * (# of levels tried) = 1024
     // we don't need to keep all of those: (# of coefs) * (# of ctx) would be enough,
@@ -462,29 +461,48 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
     } level_tree[64*8*2];
     int i_levels_used = 1;
 
-    /* init coefs */
-    for( i = i_coefs-1; i >= b_ac; i-- )
-        if( (unsigned)(dct[zigzag[i]] * (dc?quant_mf[0]>>1:quant_mf[zigzag[i]]) + f-1) >= 2*f )
-            break;
-
-    if( i < b_ac )
+    if( dc )
     {
-        /* We only need to zero an empty 4x4 block. 8x8 can be
-           implicitly emptied via zero nnz, as can dc. */
-        if( i_coefs == 16 && !dc )
-            memset( dct, 0, 16 * sizeof(dctcoef) );
-        return 0;
+        if( i_coefs == 16 )
+        {
+            memcpy( coefs, dct, sizeof(dctcoef)*16 );
+            if( !h->quantf.quant_4x4_dc( dct, quant_mf[0] >> 1, quant_bias[0] << 1 ) )
+                return 0;
+            h->zigzagf.scan_4x4( quant_coefs, dct );
+        }
+        else
+        {
+            memcpy( coefs, dct, sizeof(dctcoef)*i_coefs );
+            int nz = h->quantf.quant_2x2_dc( &dct[0], quant_mf[0] >> 1, quant_bias[0] << 1 );
+            if( i_coefs == 8 )
+                nz |= h->quantf.quant_2x2_dc( &dct[4], quant_mf[0] >> 1, quant_bias[0] << 1 );
+            if( !nz )
+                return 0;
+            for( int i = 0; i < i_coefs; i++ )
+                quant_coefs[i] = dct[zigzag[i]];
+        }
+    }
+    else
+    {
+        if( i_coefs == 64 )
+        {
+            h->mc.memcpy_aligned( coefs, dct, sizeof(dctcoef)*64 );
+            if( !h->quantf.quant_8x8( dct, quant_mf, quant_bias ) )
+                return 0;
+            h->zigzagf.scan_8x8( quant_coefs, dct );
+        }
+        else //if( i_coefs == 16 )
+        {
+            memcpy( coefs, dct, sizeof(dctcoef)*16 );
+            if( !h->quantf.quant_4x4( dct, quant_mf, quant_bias ) )
+                return 0;
+            h->zigzagf.scan_4x4( quant_coefs, dct );
+        }
     }
 
-    i_last_nnz = i;
+    int i_last_nnz = h->quantf.coeff_last[ctx_block_cat]( quant_coefs+b_ac )+b_ac;
+
     idx &= i_coefs == 64 ? 3 : 15;
-
-    for( ; i >= b_ac; i-- )
-    {
-        int coef = dct[zigzag[i]];
-        abs_coefs[i] = abs(coef);
-        signs[i] = coef>>31 | 1;
-    }
 
     /* init trellis */
     for( int j = 1; j < 8; j++ )
@@ -504,15 +522,11 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
 
     memcpy( nodes_cur[0].cabac_state, &h->cabac.state[ coeff_abs_level_m1_offset[ctx_block_cat] ], 10 );
 
+    int i;
     for( i = i_last_nnz; i >= b_ac; i-- )
     {
-        int i_coef = abs_coefs[i];
-        int q = ( f + i_coef * (dc?quant_mf[0]>>1:quant_mf[zigzag[i]]) ) >> 16;
-        int cost_sig[2], cost_last[2];
-        trellis_node_t n;
-
         // skip 0s: this doesn't affect the output, but saves some unnecessary computation.
-        if( q == 0 )
+        if( !quant_coefs[i] )
         {
             // no need to calculate ssd of 0s: it's the same in all nodes.
             // no need to modify level_tree for ctx=0: it starts with an infinite loop of 0s.
@@ -536,6 +550,12 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
             }
             continue;
         }
+
+        int sign_coef = coefs[zigzag[i]];
+        int i_coef = abs( sign_coef );
+        int q = abs( quant_coefs[i] );
+        int cost_sig[2], cost_last[2];
+        trellis_node_t n;
 
         XCHG( trellis_node_t*, nodes_cur, nodes_prev );
 
@@ -572,8 +592,8 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
             if( h->mb.i_psy_trellis && i && !dc && !b_chroma )
             {
                 int orig_coef = (i_coefs == 64) ? h->mb.pic.fenc_dct8[idx][zigzag[i]] : h->mb.pic.fenc_dct4[idx][zigzag[i]];
-                int predicted_coef = orig_coef - i_coef * signs[i];
-                int psy_value = h->mb.i_psy_trellis * abs(predicted_coef + unquant_abs_level * signs[i]);
+                int predicted_coef = orig_coef - sign_coef;
+                int psy_value = h->mb.i_psy_trellis * abs(predicted_coef + SIGN(unquant_abs_level, sign_coef));
                 int psy_weight = (i_coefs == 64) ? x264_dct8_weight_tab[zigzag[i]] : x264_dct4_weight_tab[zigzag[i]];
                 ssd = (int64_t)d*d * coef_weight[i] - psy_weight * psy_value;
             }
@@ -620,7 +640,7 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
                 /* Optimize rounding for DC coefficients in DC-only luma 4x4/8x8 blocks. */
                 else
                 {
-                    d = i_coef * signs[0] - ((unquant_abs_level * signs[0] + 8)&~15);
+                    d = sign_coef - ((SIGN(unquant_abs_level, sign_coef) + 8)&~15);
                     n.score += (int64_t)d*d * coef_weight[i];
                 }
 
@@ -642,19 +662,19 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
 
     if( bnode == &nodes_cur[0] )
     {
+        /* We only need to zero an empty 4x4 block. 8x8 can be
+           implicitly emptied via zero nnz, as can dc. */
         if( i_coefs == 16 && !dc )
             memset( dct, 0, 16 * sizeof(dctcoef) );
         return 0;
     }
 
     int level = bnode->level_idx;
-    for( i = b_ac; level; i++ )
+    for( i = b_ac; i <= i_last_nnz; i++ )
     {
-        dct[zigzag[i]] = level_tree[level].abs_level * signs[i];
+        dct[zigzag[i]] = SIGN(level_tree[level].abs_level, coefs[zigzag[i]]);
         level = level_tree[level].next;
     }
-    for( ; i < i_coefs; i++ )
-        dct[zigzag[i]] = 0;
 
     return 1;
 }
@@ -839,10 +859,8 @@ int quant_trellis_cavlc( x264_t *h, dctcoef *dct,
 
     if( coef_mask )
     {
-        for( i = b_ac, j = start; i <= i_last_nnz; i++, j += step )
+        for( i = b_ac, j = start; i < i_coefs; i++, j += step )
             dct[zigzag[j]] = coefs[i];
-        for( ; j <= end; j += step )
-            dct[zigzag[j]] = 0;
         return 1;
     }
 
@@ -862,7 +880,8 @@ int x264_quant_luma_dc_trellis( x264_t *h, dctcoef *dct, int i_quant_cat, int i_
 {
     if( h->param.b_cabac )
         return quant_trellis_cabac( h, dct,
-            h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp], NULL, x264_zigzag_scan4[MB_INTERLACED],
+            h->quant4_mf[i_quant_cat][i_qp], h->quant4_bias0[i_quant_cat][i_qp],
+            h->unquant4_mf[i_quant_cat][i_qp], NULL, x264_zigzag_scan4[MB_INTERLACED],
             ctx_block_cat, h->mb.i_trellis_lambda2[0][b_intra], 0, 0, 1, 16, idx );
 
     return quant_trellis_cavlc( h, dct,
@@ -892,7 +911,8 @@ int x264_quant_chroma_dc_trellis( x264_t *h, dctcoef *dct, int i_qp, int b_intra
 
     if( h->param.b_cabac )
         return quant_trellis_cabac( h, dct,
-            h->quant4_mf[quant_cat][i_qp], h->unquant4_mf[quant_cat][i_qp], NULL, zigzag,
+            h->quant4_mf[quant_cat][i_qp], h->quant4_bias0[quant_cat][i_qp],
+            h->unquant4_mf[quant_cat][i_qp], NULL, zigzag,
             DCT_CHROMA_DC, h->mb.i_trellis_lambda2[1][b_intra], 0, 1, 1, num_coefs, idx );
 
     return quant_trellis_cavlc( h, dct,
@@ -907,8 +927,8 @@ int x264_quant_4x4_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
     int b_ac = ctx_ac[ctx_block_cat];
     if( h->param.b_cabac )
         return quant_trellis_cabac( h, dct,
-            h->quant4_mf[i_quant_cat][i_qp], h->unquant4_mf[i_quant_cat][i_qp],
-            x264_dct4_weight2_zigzag[MB_INTERLACED],
+            h->quant4_mf[i_quant_cat][i_qp], h->quant4_bias0[i_quant_cat][i_qp],
+            h->unquant4_mf[i_quant_cat][i_qp], x264_dct4_weight2_zigzag[MB_INTERLACED],
             x264_zigzag_scan4[MB_INTERLACED],
             ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], b_ac, b_chroma, 0, 16, idx );
 
@@ -925,8 +945,8 @@ int x264_quant_8x8_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
     if( h->param.b_cabac )
     {
         return quant_trellis_cabac( h, dct,
-            h->quant8_mf[i_quant_cat][i_qp], h->unquant8_mf[i_quant_cat][i_qp],
-            x264_dct8_weight2_zigzag[MB_INTERLACED],
+            h->quant8_mf[i_quant_cat][i_qp], h->quant8_bias0[i_quant_cat][i_qp],
+            h->unquant8_mf[i_quant_cat][i_qp], x264_dct8_weight2_zigzag[MB_INTERLACED],
             x264_zigzag_scan8[MB_INTERLACED],
             ctx_block_cat, h->mb.i_trellis_lambda2[b_chroma][b_intra], 0, b_chroma, 0, 64, idx );
     }

@@ -61,7 +61,11 @@ static double x264_psnr( double sqe, double size )
 
 static double x264_ssim( double ssim )
 {
-    return -10.0 * log10( 1 - ssim );
+    double inv_ssim = 1 - ssim;
+    if( inv_ssim <= 0.0000000001 ) /* Max 100dB */
+        return 100;
+
+    return -10.0 * log10( inv_ssim );
 }
 
 static void x264_frame_dump( x264_t *h )
@@ -472,7 +476,6 @@ static int x264_validate_parameters( x264_t *h, int b_open )
 
     if( h->param.i_threads == X264_THREADS_AUTO )
         h->param.i_threads = x264_cpu_num_processors() * (h->param.b_sliced_threads?2:3)/2;
-    h->param.i_threads = x264_clip3( h->param.i_threads, 1, X264_THREAD_MAX );
     if( h->param.i_threads > 1 )
     {
 #if !HAVE_THREAD
@@ -487,7 +490,8 @@ static int x264_validate_parameters( x264_t *h, int b_open )
             h->param.i_threads = X264_MIN( h->param.i_threads, max_threads );
         }
     }
-    else
+    h->param.i_threads = x264_clip3( h->param.i_threads, 1, X264_THREAD_MAX );
+    if( h->param.i_threads == 1 )
         h->param.b_sliced_threads = 0;
     h->i_thread_frames = h->param.b_sliced_threads ? 1 : h->param.i_threads;
     if( h->i_thread_frames > 1 )
@@ -3107,6 +3111,8 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
 
     if( pic_out->i_pts < pic_out->i_dts )
         x264_log( h, X264_LOG_WARNING, "invalid DTS: PTS is less than DTS\n" );
+
+    pic_out->opaque = h->fenc->opaque;
 
     pic_out->img.i_csp = h->fdec->i_csp;
 #if HIGH_BIT_DEPTH

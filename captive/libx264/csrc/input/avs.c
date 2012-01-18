@@ -235,13 +235,39 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
                        "input clip height not divisible by 4 (%dx%d)\n", vi->width, vi->height )
         FAIL_IF_ERROR( (opt->output_csp == X264_CSP_I420 || info->interlaced) && (vi->height&1),
                        "input clip height not divisible by 2 (%dx%d)\n", vi->width, vi->height )
-        const char *arg_name[2] = { NULL, "interlaced" };
-        AVS_Value arg_arr[2] = { res, avs_new_value_bool( info->interlaced ) };
         char conv_func[14] = { "ConvertTo" };
         strcat( conv_func, csp );
-        AVS_Value res2 = h->func.avs_invoke( h->env, conv_func, avs_new_value_array( arg_arr, 2 ), arg_name );
+        char matrix[7] = "";
+        int arg_count = 2;
+        /* if doing a rgb <-> yuv conversion then range is handled via 'matrix'. though it's only supported in 2.56+ */
+        if( avs_version >= 2.56f && ((opt->output_csp == X264_CSP_RGB && avs_is_yuv( vi )) || (opt->output_csp != X264_CSP_RGB && avs_is_rgb( vi ))) )
+        {
+            // if converting from yuv, then we specify the matrix for the input, otherwise use the output's.
+            int use_pc_matrix = avs_is_yuv( vi ) ? opt->input_range == RANGE_PC : opt->output_range == RANGE_PC;
+            strcpy( matrix, use_pc_matrix ? "PC." : "Rec" );
+            strcat( matrix, "601" ); /* FIXME: use correct coefficients */
+            arg_count++;
+            // notification that the input range has changed to the desired one
+            opt->input_range = opt->output_range;
+        }
+        const char *arg_name[] = { NULL, "interlaced", "matrix" };
+        AVS_Value arg_arr[] = { res, avs_new_value_bool( info->interlaced ), avs_new_value_string( matrix ) };
+        AVS_Value res2 = h->func.avs_invoke( h->env, conv_func, avs_new_value_array( arg_arr, arg_count ), arg_name );
         FAIL_IF_ERROR( avs_is_error( res2 ), "couldn't convert input clip to %s\n", csp )
         res = update_clip( h, &vi, res2, res );
+    }
+    /* if swscale is not available, change the range if necessary. This only applies to YUV-based CSPs however */
+    if( avs_is_yuv( vi ) && opt->output_range != RANGE_AUTO && ((opt->input_range == RANGE_PC) != opt->output_range) )
+    {
+        const char *levels = opt->output_range ? "TV->PC" : "PC->TV";
+        x264_cli_log( "avs", X264_LOG_WARNING, "performing %s conversion\n", levels );
+        AVS_Value arg_arr[] = { res, avs_new_value_string( levels ) };
+        const char *arg_name[] = { NULL, "levels" };
+        AVS_Value res2 = h->func.avs_invoke( h->env, "ColorYUV", avs_new_value_array( arg_arr, 2 ), arg_name );
+        FAIL_IF_ERROR( avs_is_error( res2 ), "couldn't convert range: %s\n", avs_as_error( res2 ) )
+        res = update_clip( h, &vi, res2, res );
+        // notification that the input range has changed to the desired one
+        opt->input_range = opt->output_range;
     }
 #endif
     h->func.avs_release_value( res );

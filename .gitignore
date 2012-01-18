@@ -1,0 +1,4 @@
+build/
+dist/
+captive/LastRevisionBuild.txt
+generated/java/com/xuggle/xuggler/Version.java
