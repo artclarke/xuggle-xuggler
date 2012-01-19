@@ -28,7 +28,8 @@
 # Usage; $0 "directory_to_check" "file_to_read_last_revision" ["optional file to write last to" ["optional ant properties file to write"]
 
 # look with GIT
-revision=`git log -1 --pretty=format:"%cd-%h" --date=short 2>/dev/null`
+# prints the commiter time as a UNIX timestamp
+revision=`git log -1 --pretty=format:"%ct" --date=short 2>/dev/null`
 
 if test -f "$2" ; then
   test $revision || revision=`cat "$2"`
