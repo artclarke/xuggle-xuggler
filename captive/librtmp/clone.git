@@ -6,4 +6,3 @@
 # have its own pull.git script which will be used to pull the
 # branch that the current version is tied to.
 git remote add -f librtmp-remote git://git.ffmpeg.org/rtmpdump 2>/dev/null
-git read-tree --prefix=captive/librtmp/csrc/src -u librtmp-remote/master
