@@ -1,0 +1,9 @@
+#!/bin/sh
+
+# This script is meant to be run when you want to update
+# a dependent tree.
+WD="$( dirname $0 )"
+for update in "${WD}"/*/update.git; do
+  echo $update
+  $update
+done
