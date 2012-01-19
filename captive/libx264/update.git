@@ -1,4 +1,4 @@
 #!/bin/sh
 
 # This script is here to update the branch to the latest version
-git merge --commit --squash -s recursive -Xsubtree=captive/libx264/csrc libx264-remote/master
+git merge --commit --squash -s recursive -Xsubtree=captive/libx264/csrc libx264-remote/stable
