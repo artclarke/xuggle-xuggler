@@ -132,6 +132,7 @@ static int x264_cavlc_block_residual_internal( x264_t *h, int ctx_block_cat, dct
     runlevel.level[1] = 2;
     runlevel.level[2] = 2;
     i_total = h->quantf.coeff_level_run[ctx_block_cat]( l, &runlevel );
+    x264_prefetch( &x264_run_before[runlevel.mask] );
     i_total_zero = runlevel.last + 1 - i_total;
 
     i_trailing = ((((runlevel.level[0]+1) | (1-runlevel.level[0])) >> 31) & 1) // abs(runlevel.level[0])>1
@@ -188,12 +189,8 @@ static int x264_cavlc_block_residual_internal( x264_t *h, int ctx_block_cat, dct
     else if( (uint8_t)i_total < count_cat[ctx_block_cat] )
         bs_write_vlc( s, x264_total_zeros[i_total-1][i_total_zero] );
 
-    for( int i = 0; i < i_total-1 && i_total_zero > 0; i++ )
-    {
-        int i_zl = X264_MIN( i_total_zero, 7 );
-        bs_write_vlc( s, x264_run_before[i_zl-1][runlevel.run[i]] );
-        i_total_zero -= runlevel.run[i];
-    }
+    int zero_run_code = x264_run_before[runlevel.mask];
+    bs_write( s, zero_run_code&0x1f, zero_run_code>>5 );
 
     return i_total;
 }

@@ -1,4 +1,5 @@
 #!/bin/bash
+[ -n "$1" ] && cd $1
 git rev-list HEAD | sort > config.git-hash
 LOCALVER=`wc -l config.git-hash | awk '{print $1}'`
 if [ $LOCALVER \> 1 ] ; then

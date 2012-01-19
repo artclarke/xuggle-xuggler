@@ -130,7 +130,7 @@ cextern pb_1
 cextern pw_1
 cextern pw_8
 cextern pw_16
-cextern pw_64
+cextern pw_32
 cextern pw_00ff
 cextern pw_ppppmmmm
 cextern pw_ppmmppmm
@@ -1267,15 +1267,21 @@ cglobal pixel_satd_4x4, 4,6
 
 %macro BACKUP_POINTERS 0
 %ifdef ARCH_X86_64
-    mov    r10, r0
-    mov    r11, r2
+%ifdef WIN64
+    PUSH r7
+%endif
+    mov     r6, r0
+    mov     r7, r2
 %endif
 %endmacro
 
 %macro RESTORE_AND_INC_POINTERS 0
 %ifdef ARCH_X86_64
-    lea     r0, [r10+8]
-    lea     r2, [r11+8]
+    lea     r0, [r6+8]
+    lea     r2, [r7+8]
+%ifdef WIN64
+    POP r7
+%endif
 %else
     mov     r0, r0mp
     mov     r2, r2mp
@@ -1473,10 +1479,10 @@ cglobal pixel_satd_8x4, 4,6,8
 ; int pixel_sa8d_8x8( uint8_t *, int, uint8_t *, int )
 ;-----------------------------------------------------------------------------
 cglobal pixel_sa8d_8x8_internal
-    lea  r10, [r0+4*r1]
-    lea  r11, [r2+4*r3]
+    lea  r6, [r0+4*r1]
+    lea  r7, [r2+4*r3]
     LOAD_SUMSUB_8x4P 0, 1, 2, 8, 5, 6, 7, r0, r2
-    LOAD_SUMSUB_8x4P 4, 5, 3, 9, 11, 6, 7, r10, r11
+    LOAD_SUMSUB_8x4P 4, 5, 3, 9, 11, 6, 7, r6, r7
 %if vertical
     HADAMARD8_2D 0, 1, 2, 8, 4, 5, 3, 9, 6, amax
 %else ; non-sse2
@@ -1488,7 +1494,7 @@ cglobal pixel_sa8d_8x8_internal
     SAVE_MM_PERMUTATION
     ret
 
-cglobal pixel_sa8d_8x8, 4,6,12
+cglobal pixel_sa8d_8x8, 4,8,12
     FIX_STRIDES r1, r3
     lea  r4, [3*r1]
     lea  r5, [3*r3]
@@ -1506,7 +1512,7 @@ cglobal pixel_sa8d_8x8, 4,6,12
     shr eax, 1
     RET
 
-cglobal pixel_sa8d_16x16, 4,6,12
+cglobal pixel_sa8d_16x16, 4,8,12
     FIX_STRIDES r1, r3
     lea  r4, [3*r1]
     lea  r5, [3*r3]
@@ -1794,6 +1800,12 @@ cglobal intra_sa8d_x3_8x8, 3,3,14
 INIT_MMX
 cglobal hadamard_load
 ; not really a global, but otherwise cycles get attributed to the wrong function in profiling
+%ifdef HIGH_BIT_DEPTH
+    mova        m0, [r0+0*FENC_STRIDEB]
+    mova        m1, [r0+1*FENC_STRIDEB]
+    mova        m2, [r0+2*FENC_STRIDEB]
+    mova        m3, [r0+3*FENC_STRIDEB]
+%else
     pxor        m7, m7
     movd        m0, [r0+0*FENC_STRIDE]
     movd        m1, [r0+1*FENC_STRIDE]
@@ -1803,24 +1815,31 @@ cglobal hadamard_load
     punpcklbw   m1, m7
     punpcklbw   m2, m7
     punpcklbw   m3, m7
+%endif
     HADAMARD4_2D 0, 1, 2, 3, 4
     SAVE_MM_PERMUTATION
     ret
 
 %macro SCALAR_HADAMARD 4-5 ; direction, offset, 3x tmp
 %ifidn %1, top
-    movd        %3, [r1+%2-FDEC_STRIDE]
+%ifdef HIGH_BIT_DEPTH
+    mova        %3, [r1+%2*SIZEOF_PIXEL-FDEC_STRIDEB]
+%else
+    movd        %3, [r1+%2*SIZEOF_PIXEL-FDEC_STRIDEB]
     pxor        %5, %5
     punpcklbw   %3, %5
+%endif
 %else ; left
 %ifnidn %2, 0
-    shl         %2d, 5 ; log(FDEC_STRIDE)
+    shl         %2d, 5 ; log(FDEC_STRIDEB)
 %endif
-    movd        %3, [r1+%2-4+1*FDEC_STRIDE]
-    pinsrw      %3, [r1+%2-2+0*FDEC_STRIDE], 0
-    pinsrw      %3, [r1+%2-2+2*FDEC_STRIDE], 2
-    pinsrw      %3, [r1+%2-2+3*FDEC_STRIDE], 3
+    movd        %3, [r1+%2*SIZEOF_PIXEL-4+1*FDEC_STRIDEB]
+    pinsrw      %3, [r1+%2*SIZEOF_PIXEL-2+0*FDEC_STRIDEB], 0
+    pinsrw      %3, [r1+%2*SIZEOF_PIXEL-2+2*FDEC_STRIDEB], 2
+    pinsrw      %3, [r1+%2*SIZEOF_PIXEL-2+3*FDEC_STRIDEB], 3
+%ifndef HIGH_BIT_DEPTH
     psrlw       %3, 8
+%endif
 %ifnidn %2, 0
     shr         %2d, 5
 %endif
@@ -1857,19 +1876,6 @@ cglobal hadamard_load
     %8          %1, %4
     %8          %2, %5
     %8          %3, %6
-%endmacro
-
-%macro CLEAR_SUMS 0
-%ifdef ARCH_X86_64
-    mov   qword [sums+0], 0
-    mov   qword [sums+8], 0
-    mov   qword [sums+16], 0
-%else
-    pxor  m7, m7
-    movq  [sums+0], m7
-    movq  [sums+8], m7
-    movq  [sums+16], m7
-%endif
 %endmacro
 
 ; in: m1..m3
@@ -1942,45 +1948,47 @@ cglobal intra_satd_x3_4x4, 3,3
 %endif
     RET
 
-%ifdef ARCH_X86_64
-    %define  t0 r10
-    %define  t2 r11
-%else
-    %define  t0 r0
-    %define  t2 r2
-%endif
-
 ;-----------------------------------------------------------------------------
 ; void intra_satd_x3_16x16( uint8_t *fenc, uint8_t *fdec, int *res )
 ;-----------------------------------------------------------------------------
 cglobal intra_satd_x3_16x16, 0,5
-    %assign  stack_pad  88 + ((stack_offset+88+gprsize)&15)
+    %assign  stack_pad  120 + ((stack_offset+120+gprsize)&15)
     ; not really needed on x86_64, just shuts up valgrind about storing data below the stack across a function call
     SUB         rsp, stack_pad
-%define sums    rsp+64 ; size 24
+%define sums    rsp+64 ; size 56
 %define top_1d  rsp+32 ; size 32
 %define left_1d rsp    ; size 32
     movifnidn   r1,  r1mp
-    CLEAR_SUMS
+
+    pxor        m7, m7
+    mova [sums+ 0], m7
+    mova [sums+ 8], m7
+    mova [sums+16], m7
+%ifdef HIGH_BIT_DEPTH
+    mova [sums+24], m7
+    mova [sums+32], m7
+    mova [sums+40], m7
+    mova [sums+48], m7
+%endif
 
     ; 1D hadamards
-    mov         t0d, 12
-    movd        m6,  [pw_64]
+    mov        r3d, 12
+    movd        m6, [pw_32]
 .loop_edge:
-    SCALAR_HADAMARD left, t0, m0, m1
-    SCALAR_HADAMARD top,  t0, m1, m2, m3
-    paddw       m6,  m0
-    paddw       m6,  m1
-    sub         t0d, 4
+    SCALAR_HADAMARD left, r3, m0, m1
+    SCALAR_HADAMARD top,  r3, m1, m2, m3
+    pavgw       m0, m1
+    paddw       m6, m0
+    sub        r3d, 4
     jge .loop_edge
-    psrlw       m6,  3
-    pand        m6,  [sw_f0] ; dc
+    psrlw       m6, 2
+    pand        m6, [sw_f0] ; dc
 
     ; 2D hadamards
-    movifnidn   r0,  r0mp
-    mov         r3,  -4
+    movifnidn   r0, r0mp
+    mov         r3, -4
 .loop_y:
-    mov         r4,  -4
+    mov         r4, -4
 .loop_x:
     call hadamard_load
 
@@ -1988,37 +1996,73 @@ cglobal intra_satd_x3_16x16, 0,5
     SUM4x3 m6, [left_1d+8*(r3+4)], [top_1d+8*(r4+4)]
     pavgw       m4, m7
     pavgw       m5, m7
-    paddw       m0, [sums+0]  ; i16x16_v satd
-    paddw       m4, [sums+8]  ; i16x16_h satd
+    paddw       m0, [sums+ 0] ; i16x16_v satd
+    paddw       m4, [sums+ 8] ; i16x16_h satd
     paddw       m5, [sums+16] ; i16x16_dc satd
-    movq        [sums+0], m0
-    movq        [sums+8], m4
-    movq        [sums+16], m5
+    mova [sums+ 0], m0
+    mova [sums+ 8], m4
+    mova [sums+16], m5
 
-    add         r0, 4
+    add         r0, 4*SIZEOF_PIXEL
     inc         r4
     jl  .loop_x
-    add         r0, 4*FENC_STRIDE-16
+%ifdef HIGH_BIT_DEPTH
+    mova        m7, [pw_1]
+    pmaddwd     m4, m7
+    pmaddwd     m0, m7
+    paddd       m4, [sums+32]
+    paddd       m0, [sums+24]
+    mova [sums+32], m4
+    mova [sums+24], m0
+    pxor        m7, m7
+    punpckhwd   m3, m5, m7
+    punpcklwd   m5, m7
+    paddd       m3, [sums+48]
+    paddd       m5, [sums+40]
+    mova [sums+48], m3
+    mova [sums+40], m5
+    mova [sums+ 0], m7
+    mova [sums+ 8], m7
+    mova [sums+16], m7
+%endif
+    add         r0, 4*FENC_STRIDEB-16*SIZEOF_PIXEL
     inc         r3
     jl  .loop_y
 
 ; horizontal sum
     movifnidn   r2, r2mp
-    movq        m2, [sums+16]
-    movq        m1, [sums+8]
-    movq        m0, [sums+0]
-    movq        m7, m2
-    SUM_MM_X3   m0, m1, m2, m3, m4, m5, m6, paddd
+%ifdef HIGH_BIT_DEPTH
+    mova        m1, m5
+    paddd       m5, m3
+    HADDD       m5, m7 ; DC satd
+    HADDD       m4, m7 ; H satd
+    HADDD       m0, m7 ; the part of V satd that doesn't overlap with DC
+    psrld       m0, 1
+    psrlq       m1, 32 ; DC[1]
+    paddd       m0, m3 ; DC[2]
+    psrlq       m3, 32 ; DC[3]
+    paddd       m0, m1
+    paddd       m0, m3
+%else
+    mova        m7, m5
+    SUM_MM_X3   m0, m4, m5, m3, m1, m2, m6, paddd
     psrld       m0, 1
     pslld       m7, 16
     psrld       m7, 16
-    paddd       m0, m2
+    paddd       m0, m5
     psubd       m0, m7
-    movd        [r2+8], m2 ; i16x16_dc satd
-    movd        [r2+4], m1 ; i16x16_h satd
-    movd        [r2+0], m0 ; i16x16_v satd
-    ADD         rsp, stack_pad
+%endif
+    movd    [r2+8], m5 ; i16x16_dc satd
+    movd    [r2+4], m4 ; i16x16_h satd
+    movd    [r2+0], m0 ; i16x16_v satd
+    ADD        rsp, stack_pad
     RET
+
+%ifdef ARCH_X86_64
+    %define  t0 r6
+%else
+    %define  t0 r2
+%endif
 
 ;-----------------------------------------------------------------------------
 ; void intra_satd_x3_8x8c( uint8_t *fenc, uint8_t *fdec, int *res )
@@ -2031,32 +2075,35 @@ cglobal intra_satd_x3_8x8c, 0,6
 %define  top_1d  rsp+16 ; size 16
 %define  left_1d rsp    ; size 16
     movifnidn   r1,  r1mp
-    CLEAR_SUMS
+    pxor        m7, m7
+    mova [sums+ 0], m7
+    mova [sums+ 8], m7
+    mova [sums+16], m7
 
     ; 1D hadamards
-    mov         t0d, 4
+    mov         r3d, 4
 .loop_edge:
-    SCALAR_HADAMARD left, t0, m0, m1
-    SCALAR_HADAMARD top,  t0, m0, m1, m2
-    sub         t0d, 4
+    SCALAR_HADAMARD left, r3, m0, m1
+    SCALAR_HADAMARD top,  r3, m0, m1, m2
+    sub         r3d, 4
     jge .loop_edge
 
     ; dc
-    movzx       t2d, word [left_1d+0]
+    movzx       t0d, word [left_1d+0]
     movzx       r3d, word [top_1d+0]
     movzx       r4d, word [left_1d+8]
     movzx       r5d, word [top_1d+8]
-    lea         t2d, [t2 + r3 + 16]
+    lea         t0d, [t0 + r3 + 16]
     lea         r3d, [r4 + r5 + 16]
-    shr         t2d, 1
+    shr         t0d, 1
     shr         r3d, 1
     add         r4d, 8
     add         r5d, 8
-    and         t2d, -16 ; tl
+    and         t0d, -16 ; tl
     and         r3d, -16 ; br
     and         r4d, -16 ; bl
     and         r5d, -16 ; tr
-    mov         [dc_1d+ 0], t2d ; tl
+    mov         [dc_1d+ 0], t0d ; tl
     mov         [dc_1d+ 4], r5d ; tr
     mov         [dc_1d+ 8], r4d ; bl
     mov         [dc_1d+12], r3d ; br
@@ -2082,10 +2129,10 @@ cglobal intra_satd_x3_8x8c, 0,6
     movq        [sums+8], m4
     movq        [sums+0], m5
 
-    add         r0, 4
+    add         r0, 4*SIZEOF_PIXEL
     inc         r4
     jl  .loop_x
-    add         r0, 4*FENC_STRIDE-8
+    add         r0, 4*FENC_STRIDEB-8*SIZEOF_PIXEL
     add         r5, 8
     inc         r3
     jl  .loop_y
@@ -2095,10 +2142,18 @@ cglobal intra_satd_x3_8x8c, 0,6
     movq        m1, [sums+8]
     movq        m2, [sums+16]
     movq        m7, m0
+%ifdef HIGH_BIT_DEPTH
+    psrlq       m7, 16
+    HADDW       m7, m3
+    SUM_MM_X3   m0, m1, m2, m3, m4, m5, m6, paddd
+    psrld       m2, 1
+    paddd       m2, m7
+%else
     psrlq       m7, 15
     paddw       m2, m7
     SUM_MM_X3   m0, m1, m2, m3, m4, m5, m6, paddd
     psrld       m2, 1
+%endif
     movd        [r2+0], m0 ; i8x8c_dc satd
     movd        [r2+4], m1 ; i8x8c_h satd
     movd        [r2+8], m2 ; i8x8c_v satd
@@ -3717,9 +3772,9 @@ SA8D
 SATDS_SSE2
 %ifndef HIGH_BIT_DEPTH
 INTRA_SA8D_SSE2
+%endif
 INIT_MMX mmx2
 INTRA_X3_MMX
-%endif
 INIT_XMM sse2
 HADAMARD_AC_SSE2
 
@@ -3808,13 +3863,8 @@ HADAMARD_AC_SSE2
     pmaddwd   m7, m5, m6
     pmaddwd   m5, m5
     pmaddwd   m6, m6
-%if %1==0
-    SWAP       3,  5
-    SWAP       4,  7
-%else
-    paddd     m3, m5
-    paddd     m4, m7
-%endif
+    ACCUM  paddd, 3, 5, %1
+    ACCUM  paddd, 4, 7, %1
     paddd     m3, m6
 %endmacro
 

@@ -738,7 +738,7 @@ const vlc_t x264_total_zeros_2x4_dc[7][8] =
 };
 
 /* [MIN( i_zero_left-1, 6 )][run_before] */
-const vlc_t x264_run_before[7][16] =
+static const vlc_t run_before[7][16] =
 {
     { /* i_zero_left 1 */
         { 0x1, 1 }, /* str=1 */
@@ -799,8 +799,9 @@ const vlc_t x264_run_before[7][16] =
 };
 
 vlc_large_t x264_level_token[7][LEVEL_TABLE_SIZE];
+uint32_t x264_run_before[1<<16];
 
-void x264_cavlc_init( void )
+void x264_cavlc_init( x264_t *h )
 {
     for( int i_suffix = 0; i_suffix < 7; i_suffix++ )
         for( int16_t level = -LEVEL_TABLE_SIZE/2; level < LEVEL_TABLE_SIZE/2; level++ )
@@ -840,4 +841,27 @@ void x264_cavlc_init( void )
                 i_next++;
             vlc->i_next = i_next;
         }
+
+    for( int i = 1; i < (1<<16); i++ )
+    {
+        x264_run_level_t runlevel;
+        ALIGNED_ARRAY_16( dctcoef, dct, [16] );
+        int size = 0;
+        int bits = 0;
+        for( int j = 0; j < 16; j++ )
+            dct[j] = i&(1<<j);
+        int total = h->quantf.coeff_level_run[DCT_LUMA_4x4]( dct, &runlevel );
+        int zeros = runlevel.last + 1 - total;
+        for( int j = 0; j < total-1 && zeros > 0; j++ )
+        {
+            int idx = X264_MIN(zeros, 7) - 1;
+            int run = runlevel.run[j];
+            int len = run_before[idx][run].i_size;
+            size += len;
+            bits <<= len;
+            bits |= run_before[idx][run].i_bits;
+            zeros -= run;
+        }
+        x264_run_before[i] = (bits << 5) + size;
+    }
 }

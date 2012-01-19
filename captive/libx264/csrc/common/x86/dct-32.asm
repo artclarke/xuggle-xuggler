@@ -32,119 +32,12 @@
 
 SECTION .text
 
-%ifndef HIGH_BIT_DEPTH
+cextern pd_32
+cextern pw_pixel_max
+cextern pw_2
+cextern pw_m2
 cextern pw_32
 cextern hsub_mul
-
-; in: m0..m7
-; out: 0,4,6 in mem, rest in regs
-%macro DCT8_1D 9
-    SUMSUB_BA w, %8, %1      ; %8 = s07,  %1 = d07
-    SUMSUB_BA w, %7, %2      ; %7 = s16,  %2 = d16
-    SUMSUB_BA w, %6, %3      ; %6 = s25,  %3 = d25
-    SUMSUB_BA w, %5, %4      ; %5 = s34,  %4 = d34
-    SUMSUB_BA w, %5, %8      ; %5 = a0,   %8 = a2
-    SUMSUB_BA w, %6, %7      ; %6 = a1,   %7 = a3
-    SUMSUB_BA w, %6, %5      ; %6 = dst0, %5 = dst4
-    mova    [%9+0x00], m%6
-    mova    [%9+0x40], m%5
-    psraw   m%6, m%7, 1      ; a3>>1
-    paddw   m%6, m%8         ; a2 + (a3>>1)
-    psraw   m%8, 1           ; a2>>1
-    psubw   m%8, m%7         ; (a2>>1) - a3
-    mova    [%9+0x60], m%8
-    psraw   m%5, m%3, 1
-    paddw   m%5, m%3         ; d25+(d25>>1)
-    psubw   m%7, m%1, m%4    ; a5 = d07-d34-(d25+(d25>>1))
-    psubw   m%7, m%5
-    psraw   m%5, m%2, 1
-    paddw   m%5, m%2         ; d16+(d16>>1)
-    paddw   m%8, m%1, m%4
-    psubw   m%8, m%5         ; a6 = d07+d34-(d16+(d16>>1))
-    psraw   m%5, m%1, 1
-    paddw   m%5, m%1         ; d07+(d07>>1)
-    paddw   m%5, m%2
-    paddw   m%5, m%3         ; a4 = d16+d25+(d07+(d07>>1))
-    psraw   m%1, m%4, 1
-    paddw   m%1, m%4         ; d34+(d34>>1)
-    paddw   m%1, m%2
-    psubw   m%1, m%3         ; a7 = d16-d25+(d34+(d34>>1))
-    psraw   m%4, m%1, 2
-    paddw   m%4, m%5         ; a4 + (a7>>2)
-    psraw   m%3, m%8, 2
-    paddw   m%3, m%7         ; a5 + (a6>>2)
-    psraw   m%5, 2
-    psraw   m%7, 2
-    psubw   m%5, m%1         ; (a4>>2) - a7
-    psubw   m%8, m%7         ; a6 - (a5>>2)
-    SWAP %2, %4, %3, %6, %8, %5
-%endmacro
-
-; in: 0,4 in mem, rest in regs
-; out: m0..m7
-%macro IDCT8_1D 9
-    psraw     m%1, m%3, 1
-    psraw     m%5, m%7, 1
-    psubw     m%1, m%7
-    paddw     m%5, m%3
-    psraw     m%7, m%2, 1
-    paddw     m%7, m%2
-    paddw     m%7, m%4
-    paddw     m%7, m%6
-    psraw     m%3, m%6, 1
-    paddw     m%3, m%6
-    paddw     m%3, m%8
-    psubw     m%3, m%2
-    psubw     m%2, m%4
-    psubw     m%6, m%4
-    paddw     m%2, m%8
-    psubw     m%6, m%8
-    psraw     m%4, 1
-    psraw     m%8, 1
-    psubw     m%2, m%4
-    psubw     m%6, m%8
-    psraw     m%4, m%7, 2
-    psraw     m%8, m%3, 2
-    paddw     m%4, m%6
-    paddw     m%8, m%2
-    psraw     m%6, 2
-    psraw     m%2, 2
-    psubw     m%7, m%6
-    psubw     m%2, m%3
-    mova      m%3, [%9+0x00]
-    mova      m%6, [%9+0x40]
-    SUMSUB_BA w, %6, %3
-    SUMSUB_BA w, %5, %6
-    SUMSUB_BA w, %1, %3
-    SUMSUB_BA w, %7, %5
-    SUMSUB_BA w, %2, %1
-    SUMSUB_BA w, %8, %3
-    SUMSUB_BA w, %4, %6
-    SWAP %1, %3
-    SWAP %5, %7
-    SWAP %1, %5, %6
-    SWAP %3, %8, %7
-%endmacro
-
-INIT_MMX
-ALIGN 16
-load_diff_4x8_mmx:
-    LOAD_DIFF m0, m7, none, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
-    LOAD_DIFF m1, m7, none, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
-    LOAD_DIFF m2, m7, none, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
-    LOAD_DIFF m3, m7, none, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
-    LOAD_DIFF m4, m7, none, [r1+4*FENC_STRIDE], [r2+4*FDEC_STRIDE]
-    LOAD_DIFF m5, m7, none, [r1+5*FENC_STRIDE], [r2+5*FDEC_STRIDE]
-    movq  [r0], m0
-    LOAD_DIFF m6, m7, none, [r1+6*FENC_STRIDE], [r2+6*FDEC_STRIDE]
-    LOAD_DIFF m7, m0, none, [r1+7*FENC_STRIDE], [r2+7*FDEC_STRIDE]
-    movq  m0, [r0]
-    ret
-
-cglobal dct8_mmx
-    DCT8_1D 0,1,2,3,4,5,6,7,r0
-    SAVE_MM_PERMUTATION
-    ret
 
 %macro SPILL_SHUFFLE 3-* ; ptr, list of regs, list of memory offsets
     %xdefine %%base %1
@@ -173,6 +66,227 @@ cglobal dct8_mmx
 %macro UNSPILL 2+
     UNSPILL_SHUFFLE %1, %2, %2
 %endmacro
+
+; in: size, m0..m7
+; out: 0,4,6 in memory at %10,%11,%12, rest in regs
+%macro DCT8_1D 12
+    SUMSUB_BA %1, %9, %2      ; %9 = s07,  %2 = d07
+    SUMSUB_BA %1, %8, %3      ; %8 = s16,  %3 = d16
+    SUMSUB_BA %1, %7, %4      ; %7 = s25,  %4 = d25
+    SUMSUB_BA %1, %6, %5      ; %6 = s34,  %5 = d34
+    SUMSUB_BA %1, %6, %9      ; %6 = a0,   %9 = a2
+    SUMSUB_BA %1, %7, %8      ; %7 = a1,   %8 = a3
+    SUMSUB_BA %1, %7, %6      ; %7 = dst0, %6 = dst4
+    mova     %10, m%7
+    mova     %11, m%6
+    psra%1   m%7, m%8, 1      ; a3>>1
+    padd%1   m%7, m%9         ; a2 + (a3>>1)
+    psra%1   m%9, 1           ; a2>>1
+    psub%1   m%9, m%8         ; (a2>>1) - a3
+    mova     %12, m%9
+    psra%1   m%6, m%4, 1
+    padd%1   m%6, m%4         ; d25+(d25>>1)
+    psub%1   m%8, m%2, m%5    ; a5 = d07-d34-(d25+(d25>>1))
+    psub%1   m%8, m%6
+    psra%1   m%6, m%3, 1
+    padd%1   m%6, m%3         ; d16+(d16>>1)
+    padd%1   m%9, m%2, m%5
+    psub%1   m%9, m%6         ; a6 = d07+d34-(d16+(d16>>1))
+    psra%1   m%6, m%2, 1
+    padd%1   m%6, m%2         ; d07+(d07>>1)
+    padd%1   m%6, m%3
+    padd%1   m%6, m%4         ; a4 = d16+d25+(d07+(d07>>1))
+    psra%1   m%2, m%5, 1
+    padd%1   m%2, m%5         ; d34+(d34>>1)
+    padd%1   m%2, m%3
+    psub%1   m%2, m%4         ; a7 = d16-d25+(d34+(d34>>1))
+    psra%1   m%5, m%2, 2
+    padd%1   m%5, m%6         ; a4 + (a7>>2)
+    psra%1   m%4, m%9, 2
+    padd%1   m%4, m%8         ; a5 + (a6>>2)
+    psra%1   m%6, 2
+    psra%1   m%8, 2
+    psub%1   m%6, m%2         ; (a4>>2) - a7
+    psub%1   m%9, m%8         ; a6 - (a5>>2)
+    SWAP %3, %5, %4, %7, %9, %6
+%endmacro
+
+; in: size, m[1,2,3,5,6,7], 0,4 in mem at %10,%11
+; out: m0..m7
+%macro IDCT8_1D 11
+    psra%1   m%2, m%4, 1
+    psra%1   m%6, m%8, 1
+    psub%1   m%2, m%8
+    padd%1   m%6, m%4
+    psra%1   m%8, m%3, 1
+    padd%1   m%8, m%3
+    padd%1   m%8, m%5
+    padd%1   m%8, m%7
+    psra%1   m%4, m%7, 1
+    padd%1   m%4, m%7
+    padd%1   m%4, m%9
+    psub%1   m%4, m%3
+    psub%1   m%3, m%5
+    psub%1   m%7, m%5
+    padd%1   m%3, m%9
+    psub%1   m%7, m%9
+    psra%1   m%5, 1
+    psra%1   m%9, 1
+    psub%1   m%3, m%5
+    psub%1   m%7, m%9
+    psra%1   m%5, m%8, 2
+    psra%1   m%9, m%4, 2
+    padd%1   m%5, m%7
+    padd%1   m%9, m%3
+    psra%1   m%7, 2
+    psra%1   m%3, 2
+    psub%1   m%8, m%7
+    psub%1   m%3, m%4
+    mova     m%4, %10
+    mova     m%7, %11
+    SUMSUB_BA %1, %7, %4
+    SUMSUB_BA %1, %6, %7
+    SUMSUB_BA %1, %2, %4
+    SUMSUB_BA %1, %8, %6
+    SUMSUB_BA %1, %3, %2
+    SUMSUB_BA %1, %9, %4
+    SUMSUB_BA %1, %5, %7
+    SWAP %2, %4
+    SWAP %6, %8
+    SWAP %2, %6, %7
+    SWAP %4, %9, %8
+%endmacro
+
+%ifdef HIGH_BIT_DEPTH
+
+%macro SUB8x8_DCT8 0
+cglobal sub8x8_dct8, 3,3,8
+global current_function %+ .skip_prologue
+.skip_prologue:
+    LOAD_DIFF8x4 0,1,2,3, none,none, r1, r2
+    LOAD_DIFF8x4 4,5,6,7, none,none, r1, r2
+
+    DCT8_1D w, 0,1,2,3,4,5,6,7, [r0],[r0+0x10],[r0+0x50]
+    mova  m0, [r0]
+
+    mova  [r0+0x30], m5
+    mova  [r0+0x70], m7
+    TRANSPOSE4x4W 0,1,2,3,4
+    WIDEN_SXWD 0,4
+    WIDEN_SXWD 1,5
+    WIDEN_SXWD 2,6
+    WIDEN_SXWD 3,7
+    DCT8_1D d, 0,4,1,5,2,6,3,7, [r0],[r0+0x80],[r0+0xC0]
+    mova  [r0+0x20], m4
+    mova  [r0+0x40], m1
+    mova  [r0+0x60], m5
+    mova  [r0+0xA0], m6
+    mova  [r0+0xE0], m7
+    mova  m4, [r0+0x10]
+    mova  m5, [r0+0x30]
+    mova  m6, [r0+0x50]
+    mova  m7, [r0+0x70]
+
+    TRANSPOSE4x4W 4,5,6,7,0
+    WIDEN_SXWD 4,0
+    WIDEN_SXWD 5,1
+    WIDEN_SXWD 6,2
+    WIDEN_SXWD 7,3
+    DCT8_1D d,4,0,5,1,6,2,7,3, [r0+0x10],[r0+0x90],[r0+0xD0]
+    mova  [r0+0x30], m0
+    mova  [r0+0x50], m5
+    mova  [r0+0x70], m1
+    mova  [r0+0xB0], m2
+    mova  [r0+0xF0], m3
+    ret
+%endmacro ; SUB8x8_DCT8
+
+INIT_XMM sse2
+SUB8x8_DCT8
+INIT_XMM sse4
+SUB8x8_DCT8
+INIT_XMM avx
+SUB8x8_DCT8
+
+%macro ADD8x8_IDCT8 0
+cglobal add8x8_idct8, 2,2
+    add r1, 128
+global current_function %+ .skip_prologue
+.skip_prologue:
+    UNSPILL_SHUFFLE r1, 1,2,3,5,6,7, -6,-4,-2,2,4,6
+    IDCT8_1D d,0,1,2,3,4,5,6,7,[r1-128],[r1+0]
+    mova   [r1+0], m4
+    TRANSPOSE4x4D 0,1,2,3,4
+    paddd      m0, [pd_32]
+    mova       m4, [r1+0]
+    SPILL_SHUFFLE   r1, 0,1,2,3, -8,-6,-4,-2
+    TRANSPOSE4x4D 4,5,6,7,3
+    paddd      m4, [pd_32]
+    SPILL_SHUFFLE   r1, 4,5,6,7, 0,2,4,6
+    UNSPILL_SHUFFLE r1, 1,2,3,5,6,7, -5,-3,-1,3,5,7
+    IDCT8_1D d,0,1,2,3,4,5,6,7,[r1-112],[r1+16]
+    mova  [r1+16], m4
+    TRANSPOSE4x4D 0,1,2,3,4
+    mova       m4, [r1+16]
+    mova [r1-112], m0
+    TRANSPOSE4x4D 4,5,6,7,0
+    SPILL_SHUFFLE   r1, 4,5,6,7, 1,3,5,7
+    UNSPILL_SHUFFLE r1, 5,6,7, -6,-4,-2
+    IDCT8_1D d,4,5,6,7,0,1,2,3,[r1-128],[r1-112]
+    SPILL_SHUFFLE   r1, 4,5,6,7,0,1,2,3, -8,-7,-6,-5,-4,-3,-2,-1
+    UNSPILL_SHUFFLE r1, 1,2,3,5,6,7, 2,4,6,3,5,7
+    IDCT8_1D d,0,1,2,3,4,5,6,7,[r1+0],[r1+16]
+    SPILL_SHUFFLE   r1, 7,6,5, 7,6,5
+    mova       m7, [pw_pixel_max]
+    pxor       m6, m6
+    mova       m5, [r1-128]
+    STORE_DIFF m5, m0, m6, m7, [r0+0*FDEC_STRIDEB]
+    mova       m0, [r1-112]
+    STORE_DIFF m0, m1, m6, m7, [r0+1*FDEC_STRIDEB]
+    mova       m0, [r1-96]
+    STORE_DIFF m0, m2, m6, m7, [r0+2*FDEC_STRIDEB]
+    mova       m0, [r1-80]
+    STORE_DIFF m0, m3, m6, m7, [r0+3*FDEC_STRIDEB]
+    mova       m0, [r1-64]
+    STORE_DIFF m0, m4, m6, m7, [r0+4*FDEC_STRIDEB]
+    mova       m0, [r1-48]
+    mova       m1, [r1+80]
+    STORE_DIFF m0, m1, m6, m7, [r0+5*FDEC_STRIDEB]
+    mova       m0, [r1-32]
+    mova       m1, [r1+96]
+    STORE_DIFF m0, m1, m6, m7, [r0+6*FDEC_STRIDEB]
+    mova       m0, [r1-16]
+    mova       m1, [r1+112]
+    STORE_DIFF m0, m1, m6, m7, [r0+7*FDEC_STRIDEB]
+    RET
+%endmacro ; ADD8x8_IDCT8
+
+INIT_XMM sse2
+ADD8x8_IDCT8
+INIT_XMM avx
+ADD8x8_IDCT8
+
+%else ; !HIGH_BIT_DEPTH
+
+INIT_MMX
+ALIGN 16
+load_diff_4x8_mmx:
+    LOAD_DIFF m0, m7, none, [r1+0*FENC_STRIDE], [r2+0*FDEC_STRIDE]
+    LOAD_DIFF m1, m7, none, [r1+1*FENC_STRIDE], [r2+1*FDEC_STRIDE]
+    LOAD_DIFF m2, m7, none, [r1+2*FENC_STRIDE], [r2+2*FDEC_STRIDE]
+    LOAD_DIFF m3, m7, none, [r1+3*FENC_STRIDE], [r2+3*FDEC_STRIDE]
+    LOAD_DIFF m4, m7, none, [r1+4*FENC_STRIDE], [r2+4*FDEC_STRIDE]
+    LOAD_DIFF m5, m7, none, [r1+5*FENC_STRIDE], [r2+5*FDEC_STRIDE]
+    movq  [r0], m0
+    LOAD_DIFF m6, m7, none, [r1+6*FENC_STRIDE], [r2+6*FDEC_STRIDE]
+    LOAD_DIFF m7, m0, none, [r1+7*FENC_STRIDE], [r2+7*FDEC_STRIDE]
+    movq  m0, [r0]
+    ret
+
+cglobal dct8_mmx
+    DCT8_1D w,0,1,2,3,4,5,6,7,[r0],[r0+0x40],[r0+0x60]
+    SAVE_MM_PERMUTATION
+    ret
 
 ;-----------------------------------------------------------------------------
 ; void sub8x8_dct8( int16_t dct[8][8], uint8_t *pix1, uint8_t *pix2 )
@@ -223,7 +337,7 @@ global sub8x8_dct8_mmx.skip_prologue
     ret
 
 cglobal idct8_mmx
-    IDCT8_1D 0,1,2,3,4,5,6,7,r1
+    IDCT8_1D w,0,1,2,3,4,5,6,7,[r1+0],[r1+64]
     SAVE_MM_PERMUTATION
     ret
 
@@ -383,11 +497,11 @@ global current_function %+ .skip_prologue
     LOAD_DIFF m7, m0, none, [r1+7*FENC_STRIDE], [r2+3*FDEC_STRIDE]
     UNSPILL r0, 0
 %endif
-    DCT8_1D 0,1,2,3,4,5,6,7,r0
+    DCT8_1D w,0,1,2,3,4,5,6,7,[r0],[r0+0x40],[r0+0x60]
     UNSPILL r0, 0,4
     TRANSPOSE8x8W 0,1,2,3,4,5,6,7,[r0+0x60],[r0+0x40],1
     UNSPILL r0, 4
-    DCT8_1D 0,1,2,3,4,5,6,7,r0
+    DCT8_1D w,0,1,2,3,4,5,6,7,[r0],[r0+0x40],[r0+0x60]
     SPILL r0, 1,2,3,5,7
     ret
 %endmacro
@@ -401,6 +515,8 @@ DCT_SUB8
 INIT_XMM ssse3
 DCT_SUB8
 INIT_XMM avx
+DCT_SUB8
+INIT_XMM xop
 DCT_SUB8
 
 ;-----------------------------------------------------------------------------
@@ -456,12 +572,12 @@ cglobal add8x8_idct8, 2,2
 global current_function %+ .skip_prologue
 .skip_prologue:
     UNSPILL r1, 1,2,3,5,6,7
-    IDCT8_1D   0,1,2,3,4,5,6,7,r1
+    IDCT8_1D   w,0,1,2,3,4,5,6,7,[r1+0],[r1+64]
     SPILL r1, 6
     TRANSPOSE8x8W 0,1,2,3,4,5,6,7,[r1+0x60],[r1+0x40],1
     paddw      m0, [pw_32]
     SPILL r1, 0
-    IDCT8_1D   0,1,2,3,4,5,6,7,r1
+    IDCT8_1D   w,0,1,2,3,4,5,6,7,[r1+0],[r1+64]
     SPILL r1, 6,7
     pxor       m7, m7
     DIFFx2 m0, m1, m6, m7, [r0-4*FDEC_STRIDE], [r0-3*FDEC_STRIDE]; m5

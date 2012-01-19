@@ -242,11 +242,7 @@ SAD_W16
     psadbw  m1, m3
     psadbw  m2, m4
     lea     r2, [r2+2*r3]
-%if %1
-    paddw   m0, m1
-%else
-    SWAP     0, 1
-%endif
+    ACCUM paddw, 0, 1, %1
     paddw   m0, m2
 %endmacro
 
@@ -391,25 +387,13 @@ cglobal intra_sad_x3_4x4_mmx2, 3,3
     movq      m5, [r0+FENC_STRIDE*%1]
     movq      m4, m5
     psadbw    m4, m0
-%if %1
-    paddw     m1, m4
-%else
-    SWAP       1, 4
-%endif
+    ACCUM  paddw, 1, 4, %1
     movq      m4, m5
     psadbw    m4, m6
-%if %1
-    paddw     m2, m4
-%else
-    SWAP       2, 4
-%endif
+    ACCUM  paddw, 2, 4, %1
     pshufw    m4, m7, %2
     psadbw    m5, m4
-%if %1
-    paddw     m3, m5
-%else
-    SWAP       3, 5
-%endif
+    ACCUM  paddw, 3, 5, %1
 %endmacro
 
 INIT_MMX
@@ -467,13 +451,8 @@ cglobal intra_sad_x3_8x8_mmx2, 3,3
     psadbw      m5, m6
     paddw       m1, m3
     paddw       m4, m5
-%if %1
-    paddw       m0, m1
-    paddw       m2, m4
-%else
-    SWAP 0,1
-    SWAP 2,4
-%endif
+    ACCUM    paddw, 0, 1, %1
+    ACCUM    paddw, 2, 4, %1
 %endmacro
 
 %macro INTRA_SAD_8x8C 0
@@ -1438,7 +1417,7 @@ cglobal pixel_sad_x3_%1x%2_cache%3_%6
     jmp pixel_sad_x3_%1x%2_%4
 .split:
 %ifdef ARCH_X86_64
-    PROLOGUE 6,7
+    PROLOGUE 6,9
 %ifdef WIN64
     movsxd r4, r4d
     sub  rsp, 8
@@ -1448,26 +1427,26 @@ cglobal pixel_sad_x3_%1x%2_cache%3_%6
     mov  r2, r1
     mov  r1, FENC_STRIDE
     mov  r3, r4
-    mov  r10, r0
-    mov  r11, r5
+    mov  r7, r0
+    mov  r8, r5
     call pixel_sad_%1x%2_cache%3_%5
-    mov  [r11], eax
+    mov  [r8], eax
 %ifdef WIN64
     mov  r2, [rsp]
 %else
     pop  r2
 %endif
-    mov  r0, r10
+    mov  r0, r7
     call pixel_sad_%1x%2_cache%3_%5
-    mov  [r11+4], eax
+    mov  [r8+4], eax
 %ifdef WIN64
     mov  r2, [rsp+8]
 %else
     pop  r2
 %endif
-    mov  r0, r10
+    mov  r0, r7
     call pixel_sad_%1x%2_cache%3_%5
-    mov  [r11+8], eax
+    mov  [r8+8], eax
 %ifdef WIN64
     add  rsp, 24
 %endif
@@ -1504,8 +1483,8 @@ cglobal pixel_sad_x4_%1x%2_cache%3_%6
     jmp pixel_sad_x4_%1x%2_%4
 .split:
 %ifdef ARCH_X86_64
-    PROLOGUE 6,7
-    mov  r11,  r6mp
+    PROLOGUE 6,9
+    mov  r8,  r6mp
 %ifdef WIN64
     movsxd r5, r5d
 %endif
@@ -1515,33 +1494,33 @@ cglobal pixel_sad_x4_%1x%2_cache%3_%6
     mov  r2, r1
     mov  r1, FENC_STRIDE
     mov  r3, r5
-    mov  r10, r0
+    mov  r7, r0
     call pixel_sad_%1x%2_cache%3_%5
-    mov  [r11], eax
+    mov  [r8], eax
 %ifdef WIN64
     mov  r2, [rsp]
 %else
     pop  r2
 %endif
-    mov  r0, r10
+    mov  r0, r7
     call pixel_sad_%1x%2_cache%3_%5
-    mov  [r11+4], eax
+    mov  [r8+4], eax
 %ifdef WIN64
     mov  r2, [rsp+8]
 %else
     pop  r2
 %endif
-    mov  r0, r10
+    mov  r0, r7
     call pixel_sad_%1x%2_cache%3_%5
-    mov  [r11+8], eax
+    mov  [r8+8], eax
 %ifdef WIN64
     mov  r2, [rsp+16]
 %else
     pop  r2
 %endif
-    mov  r0, r10
+    mov  r0, r7
     call pixel_sad_%1x%2_cache%3_%5
-    mov  [r11+12], eax
+    mov  [r8+12], eax
 %ifdef WIN64
     add  rsp, 24
 %endif

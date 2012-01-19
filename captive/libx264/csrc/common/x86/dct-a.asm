@@ -31,6 +31,7 @@
 %include "x86util.asm"
 
 SECTION_RODATA
+pw_ppmmmmpp:    dw 1,1,-1,-1,-1,-1,1,1
 pb_sub4frame:   db 0,1,4,8,5,2,3,6,9,12,13,10,7,11,14,15
 pb_sub4field:   db 0,4,1,8,12,5,9,13,2,6,10,14,3,7,11,15
 pb_subacmask:   dw 0,-1,-1,-1,-1,-1,-1,-1
@@ -52,6 +53,8 @@ cextern pb_1
 cextern pw_1
 cextern pd_1
 cextern pd_32
+cextern pw_ppppmmmm
+cextern pw_pmpmpmpm
 
 %macro WALSH4_1D 6
     SUMSUB_BADC %1, %5, %4, %3, %2, %6
@@ -352,8 +355,8 @@ INIT_MMX
 ;-----------------------------------------------------------------------------
 ; void sub8x8_dct( int16_t dct[4][4][4], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
-%macro SUB_NxN_DCT 6
-cglobal %1, 3,3,11
+%macro SUB_NxN_DCT 7
+cglobal %1, 3,3,%7
 %ifndef HIGH_BIT_DEPTH
 %if mmsize == 8
     pxor m7, m7
@@ -363,9 +366,6 @@ cglobal %1, 3,3,11
 %endif
 %endif ; !HIGH_BIT_DEPTH
 .skip_prologue:
-%ifdef WIN64
-    sub  rsp, 8
-%endif
     call %2.skip_prologue
     add  r0, %3
     add  r1, %4-%5-%6*FENC_STRIDE
@@ -380,7 +380,6 @@ cglobal %1, 3,3,11
     add  r2, %4-%5-%6*FDEC_STRIDE
 %ifdef WIN64
     call %2.skip_prologue
-    add  rsp, 8
     RET
 %else
     jmp  %2.skip_prologue
@@ -392,18 +391,18 @@ cglobal %1, 3,3,11
 ;-----------------------------------------------------------------------------
 %macro ADD_NxN_IDCT 6-7
 %ifdef HIGH_BIT_DEPTH
-cglobal %1, 2,2,6
+cglobal %1, 2,2,%7
+%if %3==256
+    add r1, 128
+%endif
 %else
 cglobal %1, 2,2,11
     pxor m7, m7
 %endif
-%if mmsize==16
+%if mmsize==16 && %3!=256
     add  r0, 4*FDEC_STRIDE
 %endif
 .skip_prologue:
-%ifdef WIN64
-    sub  rsp, 8
-%endif
     call %2.skip_prologue
     add  r0, %4-%5-%6*FDEC_STRIDE
     add  r1, %3
@@ -415,7 +414,6 @@ cglobal %1, 2,2,11
     add  r1, %3
 %ifdef WIN64
     call %2.skip_prologue
-    add  rsp, 8
     RET
 %else
     jmp  %2.skip_prologue
@@ -424,24 +422,34 @@ cglobal %1, 2,2,11
 
 %ifdef HIGH_BIT_DEPTH
 INIT_MMX
-SUB_NxN_DCT  sub8x8_dct_mmx,     sub4x4_dct_mmx,   64,  8, 0, 0
-SUB_NxN_DCT  sub16x16_dct_mmx,   sub8x8_dct_mmx,   64, 16, 8, 8
+SUB_NxN_DCT  sub8x8_dct_mmx,     sub4x4_dct_mmx,   64,  8, 0, 0, 0
+SUB_NxN_DCT  sub16x16_dct_mmx,   sub8x8_dct_mmx,   64, 16, 8, 8, 0
 INIT_XMM
-ADD_NxN_IDCT add8x8_idct_sse2,   add4x4_idct_sse2, 64,  8, 0, 0
-ADD_NxN_IDCT add16x16_idct_sse2, add8x8_idct_sse2, 64, 16, 8, 8
-ADD_NxN_IDCT add8x8_idct_avx,    add4x4_idct_avx,  64,  8, 0, 0
-ADD_NxN_IDCT add16x16_idct_avx,  add8x8_idct_avx,  64, 16, 8, 8
+ADD_NxN_IDCT add8x8_idct_sse2,   add4x4_idct_sse2, 64,  8, 0, 0, 6
+ADD_NxN_IDCT add16x16_idct_sse2, add8x8_idct_sse2, 64, 16, 8, 8, 6
+ADD_NxN_IDCT add8x8_idct_avx,    add4x4_idct_avx,  64,  8, 0, 0, 6
+ADD_NxN_IDCT add16x16_idct_avx,  add8x8_idct_avx,  64, 16, 8, 8, 6
+cextern add8x8_idct8_sse2.skip_prologue
+cextern add8x8_idct8_avx.skip_prologue
+ADD_NxN_IDCT add16x16_idct8_sse2, add8x8_idct8_sse2, 256, 16, 0, 0, 16
+ADD_NxN_IDCT add16x16_idct8_avx,  add8x8_idct8_avx,  256, 16, 0, 0, 16
+cextern sub8x8_dct8_sse2.skip_prologue
+cextern sub8x8_dct8_sse4.skip_prologue
+cextern sub8x8_dct8_avx.skip_prologue
+SUB_NxN_DCT  sub16x16_dct8_sse2, sub8x8_dct8_sse2, 256, 16, 0, 0, 14
+SUB_NxN_DCT  sub16x16_dct8_sse4, sub8x8_dct8_sse4, 256, 16, 0, 0, 14
+SUB_NxN_DCT  sub16x16_dct8_avx,  sub8x8_dct8_avx,  256, 16, 0, 0, 14
 %else ; !HIGH_BIT_DEPTH
 %ifndef ARCH_X86_64
 INIT_MMX
-SUB_NxN_DCT  sub8x8_dct_mmx,     sub4x4_dct_mmx,   32, 4, 0, 0
+SUB_NxN_DCT  sub8x8_dct_mmx,     sub4x4_dct_mmx,   32, 4, 0, 0, 0
 ADD_NxN_IDCT add8x8_idct_mmx,    add4x4_idct_mmx,  32, 4, 0, 0
-SUB_NxN_DCT  sub16x16_dct_mmx,   sub8x8_dct_mmx,   32, 8, 4, 4
+SUB_NxN_DCT  sub16x16_dct_mmx,   sub8x8_dct_mmx,   32, 8, 4, 4, 0
 ADD_NxN_IDCT add16x16_idct_mmx,  add8x8_idct_mmx,  32, 8, 4, 4
 
 cextern sub8x8_dct8_mmx.skip_prologue
 cextern add8x8_idct8_mmx.skip_prologue
-SUB_NxN_DCT  sub16x16_dct8_mmx,  sub8x8_dct8_mmx,  128, 8, 0, 0
+SUB_NxN_DCT  sub16x16_dct8_mmx,  sub8x8_dct8_mmx,  128, 8, 0, 0, 0
 ADD_NxN_IDCT add16x16_idct8_mmx, add8x8_idct8_mmx, 128, 8, 0, 0
 %endif
 
@@ -449,9 +457,11 @@ INIT_XMM
 cextern sub8x8_dct_sse2.skip_prologue
 cextern sub8x8_dct_ssse3.skip_prologue
 cextern sub8x8_dct_avx.skip_prologue
-SUB_NxN_DCT  sub16x16_dct_sse2,  sub8x8_dct_sse2,  128, 8, 0, 0
-SUB_NxN_DCT  sub16x16_dct_ssse3, sub8x8_dct_ssse3, 128, 8, 0, 0
-SUB_NxN_DCT  sub16x16_dct_avx,   sub8x8_dct_avx,   128, 8, 0, 0
+cextern sub8x8_dct_xop.skip_prologue
+SUB_NxN_DCT  sub16x16_dct_sse2,  sub8x8_dct_sse2,  128, 8, 0, 0, 10
+SUB_NxN_DCT  sub16x16_dct_ssse3, sub8x8_dct_ssse3, 128, 8, 0, 0, 10
+SUB_NxN_DCT  sub16x16_dct_avx,   sub8x8_dct_avx,   128, 8, 0, 0, 10
+SUB_NxN_DCT  sub16x16_dct_xop,   sub8x8_dct_xop,   128, 8, 0, 0, 10
 
 cextern add8x8_idct_sse2.skip_prologue
 cextern add8x8_idct_avx.skip_prologue
@@ -466,9 +476,9 @@ ADD_NxN_IDCT add16x16_idct8_avx,  add8x8_idct8_avx,  128, 8, 0, 0
 cextern sub8x8_dct8_sse2.skip_prologue
 cextern sub8x8_dct8_ssse3.skip_prologue
 cextern sub8x8_dct8_avx.skip_prologue
-SUB_NxN_DCT  sub16x16_dct8_sse2,  sub8x8_dct8_sse2,  128, 8, 0, 0
-SUB_NxN_DCT  sub16x16_dct8_ssse3, sub8x8_dct8_ssse3, 128, 8, 0, 0
-SUB_NxN_DCT  sub16x16_dct8_avx,   sub8x8_dct8_avx,   128, 8, 0, 0
+SUB_NxN_DCT  sub16x16_dct8_sse2,  sub8x8_dct8_sse2,  128, 8, 0, 0, 11
+SUB_NxN_DCT  sub16x16_dct8_ssse3, sub8x8_dct8_ssse3, 128, 8, 0, 0, 11
+SUB_NxN_DCT  sub16x16_dct8_avx,   sub8x8_dct8_avx,   128, 8, 0, 0, 11
 %endif ; HIGH_BIT_DEPTH
 
 %ifdef HIGH_BIT_DEPTH
@@ -727,11 +737,11 @@ ADD16x16
 ; void sub8x8_dct_dc( int16_t dct[2][2], uint8_t *pix1, uint8_t *pix2 )
 ;-----------------------------------------------------------------------------
 
-%macro DCTDC_2ROW_MMX 3
+%macro DCTDC_2ROW_MMX 4
     movq      %1, [r1+FENC_STRIDE*(0+%3)]
     movq      m1, [r1+FENC_STRIDE*(1+%3)]
-    movq      m2, [r2+FDEC_STRIDE*(0+%3)]
-    movq      m3, [r2+FDEC_STRIDE*(1+%3)]
+    movq      m2, [r2+FDEC_STRIDE*(0+%4)]
+    movq      m3, [r2+FDEC_STRIDE*(1+%4)]
     movq      %2, %1
     punpckldq %1, m1
     punpckhdq %2, m1
@@ -747,30 +757,29 @@ ADD16x16
     psubw     %2, m1
 %endmacro
 
-%macro DCT2x2 2 ; reg s1/s0 (!=m1), reg s3/s2
-    pshufw    mm1, %1, q2200  ;  s1  s1  s0  s0
-    pshufw    mm0, %2, q2301  ;  s3  __  s2  __
-    paddw     mm1, %2         ;  s1 s13  s0 s02
-    psubw     mm1, mm0        ; d13 s13 d02 s02
-    pshufw    mm0, mm1, q1010 ; d02 s02 d02 s02
-    psrlq     mm1, 32         ;  __  __ d13 s13
-    paddw     mm0, mm1        ; d02 s02 d02+d13 s02+s13
-    psllq     mm1, 32         ; d13 s13
-    psubw     mm0, mm1        ; d02-d13 s02-s13 d02+d13 s02+s13
+%macro DCT2x2 2 ; reg s1/s0, reg s3/s2 (!=m0/m1)
+    PSHUFLW   m1, %1, q2200  ;  s1  s1  s0  s0
+    PSHUFLW   m0, %2, q2301  ;  s3  __  s2  __
+    paddw     m1, %2         ;  s1 s13  s0 s02
+    psubw     m1, m0         ; d13 s13 d02 s02
+    PSHUFLW   m0, m1, q1010  ; d02 s02 d02 s02
+    psrlq     m1, 32         ;  __  __ d13 s13
+    paddw     m0, m1         ; d02 s02 d02+d13 s02+s13
+    psllq     m1, 32         ; d13 s13
+    psubw     m0, m1         ; d02-d13 s02-s13 d02+d13 s02+s13
 %endmacro
 
 %ifndef HIGH_BIT_DEPTH
 INIT_MMX
 cglobal sub8x8_dct_dc_mmx2, 3,3
-    DCTDC_2ROW_MMX m0, m4, 0
-    DCTDC_2ROW_MMX m5, m6, 2
+    DCTDC_2ROW_MMX m0, m4, 0, 0
+    DCTDC_2ROW_MMX m5, m6, 2, 2
     paddw     m0, m5
     paddw     m4, m6
     punpckldq m0, m4
-    add       r1, FENC_STRIDE*4
     add       r2, FDEC_STRIDE*4
-    DCTDC_2ROW_MMX m7, m4, 0
-    DCTDC_2ROW_MMX m5, m6, 2
+    DCTDC_2ROW_MMX m7, m4, 4, 0
+    DCTDC_2ROW_MMX m5, m6, 6, 2
     paddw     m7, m5
     paddw     m4, m6
     punpckldq m7, m4
@@ -779,42 +788,150 @@ cglobal sub8x8_dct_dc_mmx2, 3,3
     ret
 
 INIT_XMM
-%macro DCTDC_2ROW_SSE2 3
-    movq      m0, [r1+FENC_STRIDE*(0+%1)]
-    movq      m1, [r1+FENC_STRIDE*(1+%1)]
-    movq      m2, [r2+FDEC_STRIDE*(0+%1)]
-    movq      m3, [r2+FDEC_STRIDE*(1+%1)]
-    punpckldq m0, m1
-    punpckldq m2, m3
-    psadbw    m0, m7
-    psadbw    m2, m7
-%if %2
-    paddw     %3, m0
-    paddw     m6, m2
+%macro DCTDC_2ROW_SSE2 4
+    movq      m1, [r1+FENC_STRIDE*(0+%1)]
+    movq      m2, [r1+FENC_STRIDE*(1+%1)]
+    punpckldq m1, m2
+    movq      m2, [r2+FDEC_STRIDE*(0+%2)]
+    punpckldq m2, [r2+FDEC_STRIDE*(1+%2)]
+    psadbw    m1, m0
+    psadbw    m2, m0
+%if %3
+    paddd     %4, m1
+    psubd     %4, m2
 %else
-    SWAP      %3, m0
-    SWAP      m6, m2
+    psubd     m1, m2
+    SWAP      %4, m1
 %endif
 %endmacro
 
-cglobal sub8x8_dct_dc_sse2, 3,3,8
-    pxor     m7, m7
-    DCTDC_2ROW_SSE2 0, 0, m4
-    DCTDC_2ROW_SSE2 2, 1, m4
-    add      r1, FENC_STRIDE*4
+cglobal sub8x8_dct_dc_sse2, 3,3
+    pxor     m0, m0
+    DCTDC_2ROW_SSE2 0, 0, 0, m3
+    DCTDC_2ROW_SSE2 2, 2, 1, m3
     add      r2, FDEC_STRIDE*4
-    psubd    m4, m6
-    DCTDC_2ROW_SSE2 0, 0, m5
-    DCTDC_2ROW_SSE2 2, 1, m5
-    psubd    m5, m6
-    packssdw m4, m5
-    movhlps  m5, m4
-    movdq2q mm0, m4
-    movdq2q mm7, m5
-    DCT2x2  mm0, mm7
-    movq   [r0], mm0
+    DCTDC_2ROW_SSE2 4, 0, 0, m4
+    DCTDC_2ROW_SSE2 6, 2, 1, m4
+    packssdw m3, m3
+    packssdw m4, m4
+    DCT2x2   m3, m4
+    movq   [r0], m0
     RET
+
+%macro SUB8x16_DCT_DC 0
+cglobal sub8x16_dct_dc, 3,3
+    pxor       m0, m0
+    DCTDC_2ROW_SSE2 0, 0, 0, m3
+    DCTDC_2ROW_SSE2 2, 2, 1, m3
+    add        r1, FENC_STRIDE*8
+    add        r2, FDEC_STRIDE*8
+    DCTDC_2ROW_SSE2 -4, -4, 0, m4
+    DCTDC_2ROW_SSE2 -2, -2, 1, m4
+    shufps     m3, m4, q2020
+    DCTDC_2ROW_SSE2 0, 0, 0, m5
+    DCTDC_2ROW_SSE2 2, 2, 1, m5
+    add        r2, FDEC_STRIDE*4
+    DCTDC_2ROW_SSE2 4, 0, 0, m4
+    DCTDC_2ROW_SSE2 6, 2, 1, m4
+    shufps     m5, m4, q2020
+%if cpuflag(ssse3)
+    %define %%sign psignw
+%else
+    %define %%sign pmullw
+%endif
+    SUMSUB_BA d, 5, 3, 0
+    packssdw   m5, m3
+    pshuflw    m0, m5, q2301
+    pshufhw    m0, m0, q2301
+    %%sign     m5, [pw_pmpmpmpm]
+    paddw      m0, m5
+    pshufd     m1, m0, q1320
+    pshufd     m0, m0, q0231
+    %%sign     m1, [pw_ppppmmmm]
+    paddw      m0, m1
+    mova     [r0], m0
+    RET
+%endmacro ; SUB8x16_DCT_DC
+
+INIT_XMM sse2
+SUB8x16_DCT_DC
+INIT_XMM ssse3
+SUB8x16_DCT_DC
+
 %endif ; !HIGH_BIT_DEPTH
+
+%macro DCTDC_4ROW_SSE2 2
+    mova       %1, [r1+FENC_STRIDEB*%2]
+    mova       m0, [r2+FDEC_STRIDEB*%2]
+%assign Y (%2+1)
+%rep 3
+    paddw      %1, [r1+FENC_STRIDEB*Y]
+    paddw      m0, [r2+FDEC_STRIDEB*Y]
+%assign Y (Y+1)
+%endrep
+    psubw      %1, m0
+    pshufd     m0, %1, q2301
+    paddw      %1, m0
+%endmacro
+
+%ifdef HIGH_BIT_DEPTH
+%macro SUB8x8_DCT_DC_10 0
+cglobal sub8x8_dct_dc, 3,3,3
+    DCTDC_4ROW_SSE2 m1, 0
+    DCTDC_4ROW_SSE2 m2, 4
+    mova       m0, [pw_ppmmmmpp]
+    pmaddwd    m1, m0
+    pmaddwd    m2, m0
+    pshufd     m0, m1, q2200      ; -1 -1 +0 +0
+    pshufd     m1, m1, q0033      ; +0 +0 +1 +1
+    paddd      m1, m0
+    pshufd     m0, m2, q1023      ; -2 +2 -3 +3
+    paddd      m1, m2
+    paddd      m1, m0
+    mova     [r0], m1
+    RET
+%endmacro
+INIT_XMM sse2
+SUB8x8_DCT_DC_10
+
+%macro SUB8x16_DCT_DC_10 0
+cglobal sub8x16_dct_dc, 3,3,6
+    DCTDC_4ROW_SSE2 m1, 0
+    DCTDC_4ROW_SSE2 m2, 4
+    DCTDC_4ROW_SSE2 m3, 8
+    DCTDC_4ROW_SSE2 m4, 12
+    mova       m0, [pw_ppmmmmpp]
+    pmaddwd    m1, m0
+    pmaddwd    m2, m0
+    pshufd     m5, m1, q2200      ; -1 -1 +0 +0
+    pshufd     m1, m1, q0033      ; +0 +0 +1 +1
+    paddd      m1, m5
+    pshufd     m5, m2, q1023      ; -2 +2 -3 +3
+    paddd      m1, m2
+    paddd      m1, m5             ; a6 a2 a4 a0
+    pmaddwd    m3, m0
+    pmaddwd    m4, m0
+    pshufd     m5, m3, q2200
+    pshufd     m3, m3, q0033
+    paddd      m3, m5
+    pshufd     m5, m4, q1023
+    paddd      m3, m4
+    paddd      m3, m5             ; a7 a3 a5 a1
+    paddd      m0, m1, m3
+    psubd      m1, m3
+    pshufd     m0, m0, q3120
+    pshufd     m1, m1, q3120
+    punpcklqdq m2, m0, m1
+    punpckhqdq m1, m0
+    mova  [r0+ 0], m2
+    mova  [r0+16], m1
+    RET
+%endmacro
+INIT_XMM sse2
+SUB8x16_DCT_DC_10
+INIT_XMM avx
+SUB8x16_DCT_DC_10
+%endif
 
 ;-----------------------------------------------------------------------------
 ; void zigzag_scan_8x8_frame( int16_t level[64], int16_t dct[8][8] )
@@ -1327,15 +1444,9 @@ ZIGZAG_SUB_4x4 ac, field
     mova     [r0+(%1+64)*SIZEOF_PIXEL], m2
     mova     [r0+(%1+96)*SIZEOF_PIXEL], m3
     packsswb m0, m1
-%if %1
-    por      m6, m2
-    por      m7, m3
-    por      m5, m0
-%else
-    SWAP      5, 0
-    SWAP      6, 2
-    SWAP      7, 3
-%endif
+    ACCUM   por, 6, 2, %1
+    ACCUM   por, 7, 3, %1
+    ACCUM   por, 5, 0, %1
 %endmacro
 
 %macro ZIGZAG_8x8_CAVLC 1

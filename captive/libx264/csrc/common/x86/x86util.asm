@@ -143,6 +143,17 @@
 %endif
 %endmacro
 
+%macro WIDEN_SXWD 2
+    punpckhwd m%2, m%1
+    psrad     m%2, 16
+%if cpuflag(sse4)
+    pmovsxwd  m%1, m%1
+%else
+    punpcklwd m%1, m%1
+    psrad     m%1, 16
+%endif
+%endmacro
+
 %macro ABSW 2-3 ; dst, src, tmp (tmp used only if dst==src)
 %if cpuflag(ssse3)
     pabsw   %1, %2
@@ -272,7 +283,7 @@
     paddd   %1, %2
 %endmacro
 
-%macro HADDW 2
+%macro HADDW 2 ; reg, tmp
 %if cpuflag(xop) && mmsize == 16
     vphaddwq  %1, %1
     movhlps   %2, %1
@@ -586,7 +597,10 @@
 %endmacro
 
 %macro SUMSUB2_AB 4
-%ifnum %3
+%if cpuflag(xop)
+    pmacs%1%1 m%4, m%3, [p%1_m2], m%2
+    pmacs%1%1 m%2, m%2, [p%1_2], m%3
+%elifnum %3
     psub%1  m%4, m%2, m%3
     psub%1  m%4, m%3
     padd%1  m%2, m%2
@@ -597,22 +611,6 @@
     padd%1  m%2, %3
     psub%1  m%4, %3
     psub%1  m%4, %3
-%endif
-%endmacro
-
-%macro SUMSUB2_BA 4
-%if avx_enabled
-    padd%1  m%4, m%2, m%3
-    padd%1  m%4, m%3
-    psub%1  m%3, m%2
-    psub%1  m%3, m%2
-    SWAP     %2,  %4
-%else
-    mova    m%4, m%2
-    padd%1  m%2, m%3
-    padd%1  m%2, m%3
-    psub%1  m%3, m%4
-    psub%1  m%3, m%4
 %endif
 %endmacro
 
@@ -697,7 +695,7 @@
 %endmacro
 
 %macro LOAD_DIFF8x4 8 ; 4x dst, 1x tmp, 1x mul, 2x ptr
-%if cpuflag(ssse3)
+%if BIT_DEPTH == 8 && cpuflag(ssse3)
     movh       m%2, [%8+%1*FDEC_STRIDE]
     movh       m%1, [%7+%1*FENC_STRIDE]
     punpcklbw  m%1, m%2
@@ -715,10 +713,10 @@
     pmaddubsw  m%3, m%6
     pmaddubsw  m%4, m%6
 %else
-    LOAD_DIFF  m%1, m%5, m%6, [%7+%1*FENC_STRIDE], [%8+%1*FDEC_STRIDE]
-    LOAD_DIFF  m%2, m%5, m%6, [%7+%2*FENC_STRIDE], [%8+%2*FDEC_STRIDE]
-    LOAD_DIFF  m%3, m%5, m%6, [%7+%3*FENC_STRIDE], [%8+%3*FDEC_STRIDE]
-    LOAD_DIFF  m%4, m%5, m%6, [%7+%4*FENC_STRIDE], [%8+%4*FDEC_STRIDE]
+    LOAD_DIFF  m%1, m%5, m%6, [%7+%1*FENC_STRIDEB], [%8+%1*FDEC_STRIDEB]
+    LOAD_DIFF  m%2, m%5, m%6, [%7+%2*FENC_STRIDEB], [%8+%2*FDEC_STRIDEB]
+    LOAD_DIFF  m%3, m%5, m%6, [%7+%3*FENC_STRIDEB], [%8+%3*FDEC_STRIDEB]
+    LOAD_DIFF  m%4, m%5, m%6, [%7+%4*FENC_STRIDEB], [%8+%4*FDEC_STRIDEB]
 %endif
 %endmacro
 
@@ -767,13 +765,24 @@
     packuswb   %2, %1
 %endmacro
 
-%macro STORE_DIFF 4
+; (high depth) in: %1, %2, min to clip, max to clip, mem128
+; in: %1, tmp, %3, mem64
+%macro STORE_DIFF 4-5
+%ifdef HIGH_BIT_DEPTH
+    psrad      %1, 6
+    psrad      %2, 6
+    packssdw   %1, %2
+    paddw      %1, %5
+    CLIPW      %1, %3, %4
+    mova       %5, %1
+%else
     movh       %2, %4
     punpcklbw  %2, %3
     psraw      %1, 6
     paddsw     %1, %2
     packuswb   %1, %1
     movh       %4, %1
+%endif
 %endmacro
 
 %macro SHUFFLE_MASK_W 8
@@ -782,4 +791,13 @@
         db %1*2+1
         %rotate 1
     %endrep
+%endmacro
+
+; instruction, accum, input, iteration (zero to swap, nonzero to add)
+%macro ACCUM 4
+%if %4
+    %1        m%2, m%3
+%else
+    SWAP       %2, %3
+%endif
 %endmacro

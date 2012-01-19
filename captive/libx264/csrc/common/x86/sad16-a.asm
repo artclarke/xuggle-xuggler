@@ -29,6 +29,8 @@
 SECTION .text
 
 cextern pw_1
+cextern pw_4
+cextern pw_8
 
 ;=============================================================================
 ; SAD MMX
@@ -347,6 +349,57 @@ SAD_XMM  8,  8
 %endrep
 %endmacro
 
+%macro PIXEL_VSAD 0
+cglobal pixel_vsad, 3,3,8
+    mova      m0, [r0]
+    mova      m1, [r0+16]
+    mova      m2, [r0+2*r1]
+    mova      m3, [r0+2*r1+16]
+    lea       r0, [r0+4*r1]
+    psubw     m0, m2
+    psubw     m1, m3
+    ABSW2     m0, m1, m0, m1, m4, m5
+    paddw     m0, m1
+    sub      r2d, 2
+    je .end
+.loop:
+    mova      m4, [r0]
+    mova      m5, [r0+16]
+    mova      m6, [r0+2*r1]
+    mova      m7, [r0+2*r1+16]
+    lea       r0, [r0+4*r1]
+    psubw     m2, m4
+    psubw     m3, m5
+    psubw     m4, m6
+    psubw     m5, m7
+    ABSW      m2, m2, m1
+    ABSW      m3, m3, m1
+    ABSW      m4, m4, m1
+    ABSW      m5, m5, m1
+    paddw     m0, m2
+    paddw     m0, m3
+    paddw     m0, m4
+    paddw     m0, m5
+    mova      m2, m6
+    mova      m3, m7
+    sub r2d, 2
+    jg .loop
+.end:
+%if BIT_DEPTH == 9
+    HADDW     m0, m1 ; max sum: 62(pixel diffs)*511(pixel_max)=31682
+%else
+    HADDUW    m0, m1 ; max sum: 62(pixel diffs)*1023(pixel_max)=63426
+%endif
+    movd     eax, m0
+    RET
+%endmacro
+INIT_XMM sse2
+PIXEL_VSAD
+INIT_XMM ssse3
+PIXEL_VSAD
+INIT_XMM xop
+PIXEL_VSAD
+
 ;-----------------------------------------------------------------------------
 ; void pixel_sad_xK_MxN( uint16_t *fenc, uint16_t *pix0, uint16_t *pix1,
 ;                        uint16_t *pix2, int i_stride, int scores[3] )
@@ -418,3 +471,129 @@ SAD_X 4, 16,  8
 SAD_X 4,  8, 16
 SAD_X 4,  8,  8
 SAD_X 4,  8,  4
+
+;-----------------------------------------------------------------------------
+; void intra_sad_x3_4x4( uint16_t *fenc, uint16_t *fdec, int res[3] );
+;-----------------------------------------------------------------------------
+
+%macro INTRA_SAD_X3_4x4 0
+cglobal intra_sad_x3_4x4, 3,3,7
+    movq      m0, [r1-1*FDEC_STRIDEB]
+    movq      m1, [r0+0*FENC_STRIDEB]
+    movq      m2, [r0+2*FENC_STRIDEB]
+    pshuflw   m6, m0, q1032
+    paddw     m6, m0
+    pshuflw   m5, m6, q2301
+    paddw     m6, m5
+    punpcklqdq m6, m6       ;A+B+C+D 8 times
+    punpcklqdq m0, m0
+    movhps    m1, [r0+1*FENC_STRIDEB]
+    movhps    m2, [r0+3*FENC_STRIDEB]
+    psubw     m3, m1, m0
+    psubw     m0, m2
+    ABSW      m3, m3, m5
+    ABSW      m0, m0, m5
+    paddw     m0, m3
+    HADDW     m0, m5
+    movd    [r2], m0 ;V prediction cost
+    movd      m3, [r1+0*FDEC_STRIDEB-4]
+    movhps    m3, [r1+1*FDEC_STRIDEB-8]
+    movd      m4, [r1+2*FDEC_STRIDEB-4]
+    movhps    m4, [r1+3*FDEC_STRIDEB-8]
+    pshufhw   m3, m3, q3333
+    pshufhw   m4, m4, q3333
+    pshuflw   m3, m3, q1111 ; FF FF EE EE
+    pshuflw   m4, m4, q1111 ; HH HH GG GG
+    paddw     m5, m3, m4
+    pshufd    m0, m5, q1032
+    paddw     m5, m6
+    paddw     m5, m0
+    paddw     m5, [pw_4]
+    psrlw     m5, 3
+    psubw     m6, m5, m2
+    psubw     m5, m1
+    psubw     m1, m3
+    psubw     m2, m4
+    ABSW      m5, m5, m0
+    ABSW      m6, m6, m0
+    ABSW      m1, m1, m0
+    ABSW      m2, m2, m0
+    paddw     m5, m6
+    paddw     m1, m2
+    HADDW     m5, m0
+    HADDW     m1, m2
+    movd  [r2+8], m5        ;DC prediction cost
+    movd  [r2+4], m1        ;H prediction cost
+    RET
+%endmacro
+
+INIT_XMM sse2
+INTRA_SAD_X3_4x4
+INIT_XMM ssse3
+INTRA_SAD_X3_4x4
+INIT_XMM avx
+INTRA_SAD_X3_4x4
+
+;-----------------------------------------------------------------------------
+; void intra_sad_x3_8x8( pixel *fenc, pixel edge[36], int res[3] );
+;-----------------------------------------------------------------------------
+
+;m0 = DC
+;m6 = V
+;m7 = H
+;m1 = DC score
+;m2 = V score
+;m3 = H score
+;m5 = temp
+;m4 = pixel row
+
+%macro INTRA_SAD_HVDC_ITER 2
+    mova        m4, [r0+(%1-4)*FENC_STRIDEB]
+    psubw       m4, m0
+    ABSW        m4, m4, m5
+    ACCUM    paddw, 1, 4, %1
+    mova        m4, [r0+(%1-4)*FENC_STRIDEB]
+    psubw       m4, m6
+    ABSW        m4, m4, m5
+    ACCUM    paddw, 2, 4, %1
+    pshufd      m5, m7, %2
+    psubw       m5, [r0+(%1-4)*FENC_STRIDEB]
+    ABSW        m5, m5, m4
+    ACCUM    paddw, 3, 5, %1
+%endmacro
+
+%macro INTRA_SAD_X3_8x8 0
+cglobal intra_sad_x3_8x8, 3,3,8
+    add         r0, 4*FENC_STRIDEB
+    movu        m0, [r1+7*SIZEOF_PIXEL]
+    mova        m6, [r1+16*SIZEOF_PIXEL] ;V prediction
+    mova        m7, m0
+    paddw       m0, m6
+    punpckhwd   m7, m7
+    HADDW       m0, m4
+    paddw       m0, [pw_8]
+    psrlw       m0, 4
+    SPLATW      m0, m0
+    INTRA_SAD_HVDC_ITER 0, q3333
+    INTRA_SAD_HVDC_ITER 1, q2222
+    INTRA_SAD_HVDC_ITER 2, q1111
+    INTRA_SAD_HVDC_ITER 3, q0000
+    movq        m7, [r1+7*SIZEOF_PIXEL]
+    punpcklwd   m7, m7
+    INTRA_SAD_HVDC_ITER 4, q3333
+    INTRA_SAD_HVDC_ITER 5, q2222
+    INTRA_SAD_HVDC_ITER 6, q1111
+    INTRA_SAD_HVDC_ITER 7, q0000
+    HADDW       m2, m4
+    HADDW       m3, m4
+    HADDW       m1, m4
+    movd    [r2+0], m2
+    movd    [r2+4], m3
+    movd    [r2+8], m1
+    RET
+%endmacro
+
+INIT_XMM sse2
+INTRA_SAD_X3_8x8
+INIT_XMM ssse3
+INTRA_SAD_X3_8x8

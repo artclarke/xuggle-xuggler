@@ -55,6 +55,17 @@ typedef struct
     int (*coeff_level_run[13])( dctcoef *dct, x264_run_level_t *runlevel );
     int (*coeff_level_run4)( dctcoef *dct, x264_run_level_t *runlevel );
     int (*coeff_level_run8)( dctcoef *dct, x264_run_level_t *runlevel );
+
+#define TRELLIS_PARAMS const int *unquant_mf, const uint8_t *zigzag, int lambda2,\
+                       int last_nnz, dctcoef *coefs, dctcoef *quant_coefs, dctcoef *dct,\
+                       uint8_t *cabac_state_sig, uint8_t *cabac_state_last,\
+                       uint64_t level_state0, uint16_t level_state1
+    int (*trellis_cabac_4x4)( TRELLIS_PARAMS, int b_ac );
+    int (*trellis_cabac_8x8)( TRELLIS_PARAMS, int b_interlaced );
+    int (*trellis_cabac_4x4_psy)( TRELLIS_PARAMS, int b_ac, dctcoef *fenc_dct, int psy_trellis );
+    int (*trellis_cabac_8x8_psy)( TRELLIS_PARAMS, int b_interlaced, dctcoef *fenc_dct, int psy_trellis );
+    int (*trellis_cabac_dc)( TRELLIS_PARAMS, int num_coefs );
+    int (*trellis_cabac_chroma_422_dc)( TRELLIS_PARAMS );
 } x264_quant_function_t;
 
 void x264_quant_init( x264_t *h, int cpu, x264_quant_function_t *pf );

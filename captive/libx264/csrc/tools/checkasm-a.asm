@@ -32,8 +32,6 @@ error_message: db "failed to preserve register", 0
 %ifdef WIN64
 ; just random numbers to reduce the chance of incidental match
 ALIGN 16
-n4:   dq 0xa77809bf11b239d1
-n5:   dq 0x2ba9bf3d2f05b389
 x6:  ddq 0x79445c159ce790641a1b2550a612b48c
 x7:  ddq 0x86b2536fcd8cf6362eed899d5a28ddcd
 x8:  ddq 0x3f2bf84fc0fcca4eb0856806085e7943
@@ -44,6 +42,14 @@ x12: ddq 0x24b3c1d2a024048bc45ea11a955d8dd5
 x13: ddq 0xdd7b8919edd427862e8ec680de14b47c
 x14: ddq 0x11e53e2b2ac655ef135ce6888fa02cbf
 x15: ddq 0x6de8f4c914c334d5011ff554472a7a10
+n7:   dq 0x21f86d66c8ca00ce
+n8:   dq 0x75b6ba21077c48ad
+n9:   dq 0xed56bb2dcb3c7736
+n10:  dq 0x8bda43d3fd1a7e06
+n11:  dq 0xb64a9c9e5d318408
+n12:  dq 0xdf9a54b303f1d3a3
+n13:  dq 0x4a75479abd64e097
+n14:  dq 0x249214109d5d1c88
 %endif
 
 SECTION .text
@@ -52,7 +58,7 @@ cextern_naked puts
 
 ; max number of args used by any x264 asm function.
 ; (max_args % 4) must equal 3 for stack alignment
-%define max_args 11
+%define max_args 15
 
 %ifdef WIN64
 
@@ -60,9 +66,8 @@ cextern_naked puts
 ; intptr_t x264_checkasm_call( intptr_t (*func)(), int *ok, ... )
 ;-----------------------------------------------------------------------------
 INIT_XMM
-cglobal checkasm_call, 4,7,16
-    sub  rsp, max_args*8
-    %assign stack_offset stack_offset+max_args*8
+cglobal checkasm_call, 4,15,16
+    SUB  rsp, max_args*8
     mov  r6, r0
     mov  [rsp+stack_offset+16], r1
     mov  r0, r2
@@ -77,25 +82,30 @@ cglobal checkasm_call, 4,7,16
 %endrep
 %assign i 6
 %rep 16-6
-    movdqa xmm %+ i, [x %+ i]
+    mova m %+ i, [x %+ i]
     %assign i i+1
 %endrep
-    mov  r4, [n4]
-    mov  r5, [n5]
+%assign i 7
+%rep 15-7
+    mov  r %+ i, [n %+ i]
+    %assign i i+1
+%endrep
     call r6
-    xor  r4, [n4]
-    xor  r5, [n5]
-    or   r4, r5
-    pxor xmm5, xmm5
+%assign i 7
+%rep 15-7
+    xor  r %+ i, [n %+ i]
+    or   r7, r %+ i
+    %assign i i+1
+%endrep
 %assign i 6
 %rep 16-6
-    pxor xmm %+ i, [x %+ i]
-    por  xmm5, xmm %+ i
+    pxor m %+ i, [x %+ i]
+    por  m6, m %+ i
     %assign i i+1
 %endrep
-    packsswb xmm5, xmm5
-    movq r5, xmm5
-    or   r4, r5
+    packsswb m6, m6
+    movq r5, m6
+    or   r7, r5
     jz .ok
     mov  r4, rax
     lea  r0, [error_message]
@@ -104,8 +114,7 @@ cglobal checkasm_call, 4,7,16
     mov  dword [r1], 0
     mov  rax, r4
 .ok:
-    add  rsp, max_args*8
-    %assign stack_offset stack_offset-max_args*8
+    ADD  rsp, max_args*8
     RET
 
 %elifndef ARCH_X86_64

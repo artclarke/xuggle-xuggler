@@ -98,6 +98,9 @@ DECL_PIXELS( uint64_t, hadamard_ac, xop,   ( pixel *pix, int i_stride ))
 
 void x264_intra_satd_x3_4x4_mmx2   ( pixel   *, pixel   *, int * );
 void x264_intra_sad_x3_4x4_mmx2    ( pixel   *, pixel   *, int * );
+void x264_intra_sad_x3_4x4_sse2    ( pixel   *, pixel   *, int * );
+void x264_intra_sad_x3_4x4_ssse3   ( pixel   *, pixel   *, int * );
+void x264_intra_sad_x3_4x4_avx     ( pixel   *, pixel   *, int * );
 void x264_intra_satd_x3_8x8c_mmx2  ( pixel   *, pixel   *, int * );
 void x264_intra_satd_x3_8x8c_ssse3 ( uint8_t *, uint8_t *, int * );
 void x264_intra_sad_x3_8x8c_mmx2   ( pixel   *, pixel   *, int * );
@@ -112,6 +115,7 @@ void x264_intra_sa8d_x3_8x8_mmx2   ( uint8_t *, uint8_t *, int * );
 void x264_intra_sa8d_x3_8x8_sse2   ( pixel   *, pixel   *, int * );
 void x264_intra_sad_x3_8x8_mmx2    ( pixel   *, pixel   *, int * );
 void x264_intra_sad_x3_8x8_sse2    ( pixel   *, pixel   *, int * );
+void x264_intra_sad_x3_8x8_ssse3   ( pixel   *, pixel   *, int * );
 int x264_intra_satd_x9_4x4_ssse3( uint8_t *, uint8_t *, uint16_t * );
 int x264_intra_satd_x9_4x4_sse4 ( uint8_t *, uint8_t *, uint16_t * );
 int x264_intra_satd_x9_4x4_avx  ( uint8_t *, uint8_t *, uint16_t * );
@@ -153,6 +157,8 @@ int  x264_pixel_var2_8x16_ssse3( uint8_t *, int, uint8_t *, int, int * );
 int  x264_pixel_var2_8x16_xop( uint8_t *, int, uint8_t *, int, int * );
 int  x264_pixel_vsad_mmx2( pixel *src, int stride, int height );
 int  x264_pixel_vsad_sse2( pixel *src, int stride, int height );
+int  x264_pixel_vsad_ssse3( pixel *src, int stride, int height );
+int  x264_pixel_vsad_xop( pixel *src, int stride, int height );
 
 #define DECL_ADS( size, suffix ) \
 int x264_pixel_ads##size##_##suffix( int enc_dc[size], uint16_t *sums, int delta,\

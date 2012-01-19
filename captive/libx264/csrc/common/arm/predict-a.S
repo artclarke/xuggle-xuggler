@@ -102,6 +102,21 @@ function x264_predict_4x4_dc_armv6
     bx      lr
 .endfunc
 
+function x264_predict_4x4_dc_top_neon
+    mov         r12, #FDEC_STRIDE
+    sub         r1, r0, #FDEC_STRIDE
+    vld1.32     d1[], [r1,:32]
+    vpaddl.u8   d1, d1
+    vpadd.u16   d1, d1, d1
+    vrshr.u16   d1, d1, #2
+    vdup.8      d1, d1[0]
+    vst1.32     d1[0], [r0,:32], r12
+    vst1.32     d1[0], [r0,:32], r12
+    vst1.32     d1[0], [r0,:32], r12
+    vst1.32     d1[0], [r0,:32], r12
+    bx          lr
+.endfunc
+
 // return a1 = (a1+2*b1+c1+2)>>2  a2 = (a2+2*b2+c2+2)>>2
 .macro PRED4x4_LOWPASS a1 b1 c1 a2 b2 c2 pb_1
     uhadd8  \a1, \a1, \c1
@@ -211,6 +226,202 @@ function x264_predict_8x8_h_neon
     bx          lr
 .endfunc
 
+function x264_predict_8x8_v_neon
+    add         r1, r1, #16
+    mov         r12, #FDEC_STRIDE
+    vld1.8      {d0}, [r1,:64]
+.rept 8
+    vst1.8      {d0}, [r0,:64], r12
+.endr
+    bx          lr
+.endfunc
+
+function x264_predict_8x8_ddl_neon
+    add         r1, #16
+    vld1.8      {d0, d1}, [r1,:128]
+    vmov.i8     q3, #0
+    vrev64.8    d2, d1
+    vext.8      q8, q3, q0, #15
+    vext.8      q2, q0, q1, #1
+    vhadd.u8    q8, q2
+    mov         r12, #FDEC_STRIDE
+    vrhadd.u8   q0, q8
+    vext.8      d2, d0, d1, #1
+    vext.8      d3, d0, d1, #2
+    vst1.8      d2, [r0,:64], r12
+    vext.8      d2, d0, d1, #3
+    vst1.8      d3, [r0,:64], r12
+    vext.8      d3, d0, d1, #4
+    vst1.8      d2, [r0,:64], r12
+    vext.8      d2, d0, d1, #5
+    vst1.8      d3, [r0,:64], r12
+    vext.8      d3, d0, d1, #6
+    vst1.8      d2, [r0,:64], r12
+    vext.8      d2, d0, d1, #7
+    vst1.8      d3, [r0,:64], r12
+    vst1.8      d2, [r0,:64], r12
+    vst1.8      d1, [r0,:64], r12
+    bx          lr
+.endfunc
+
+function x264_predict_8x8_ddr_neon
+    vld1.8      {d0-d3}, [r1,:128]
+    vext.8      q2, q0, q1, #7
+    vext.8      q3, q0, q1, #9
+
+    vhadd.u8    q2, q2, q3
+    vrhadd.u8   d0, d1, d4
+    vrhadd.u8   d1, d2, d5
+
+    add         r0, #7*FDEC_STRIDE
+    mov         r12, #-1*FDEC_STRIDE
+
+    vext.8      d2, d0, d1, #1
+    vst1.8      {d0}, [r0,:64], r12
+    vext.8      d4, d0, d1, #2
+    vst1.8      {d2}, [r0,:64], r12
+    vext.8      d5, d0, d1, #3
+    vst1.8      {d4}, [r0,:64], r12
+    vext.8      d4, d0, d1, #4
+    vst1.8      {d5}, [r0,:64], r12
+    vext.8      d5, d0, d1, #5
+    vst1.8      {d4}, [r0,:64], r12
+    vext.8      d4, d0, d1, #6
+    vst1.8      {d5}, [r0,:64], r12
+    vext.8      d5, d0, d1, #7
+    vst1.8      {d4}, [r0,:64], r12
+    vst1.8      {d5}, [r0,:64], r12
+    bx          lr
+.endfunc
+
+function x264_predict_8x8_vl_neon
+    add         r1, #16
+    mov         r12, #FDEC_STRIDE
+
+    vld1.8      {d0, d1}, [r1,:128]
+    vext.8      q1, q1, q0, #15
+    vext.8      q2, q0, q2, #1
+
+    vrhadd.u8   q3, q0, q2
+
+    vhadd.u8    q1, q1, q2
+    vrhadd.u8   q0, q0, q1
+
+    vext.8      d2, d0, d1, #1
+    vst1.8      {d6}, [r0,:64], r12
+    vext.8      d3, d6, d7, #1
+    vst1.8      {d2}, [r0,:64], r12
+    vext.8      d2, d0, d1, #2
+    vst1.8      {d3}, [r0,:64], r12
+    vext.8      d3, d6, d7, #2
+    vst1.8      {d2}, [r0,:64], r12
+    vext.8      d2, d0, d1, #3
+    vst1.8      {d3}, [r0,:64], r12
+    vext.8      d3, d6, d7, #3
+    vst1.8      {d2}, [r0,:64], r12
+    vext.8      d2, d0, d1, #4
+    vst1.8      {d3}, [r0,:64], r12
+    vst1.8      {d2}, [r0,:64], r12
+    bx          lr
+.endfunc
+
+function x264_predict_8x8_vr_neon
+    add         r1, #8
+    mov         r12, #FDEC_STRIDE
+    vld1.8      {d4,d5}, [r1,:64]
+
+    vext.8      q1, q2, q2, #14
+    vext.8      q0, q2, q2, #15
+
+    vhadd.u8    q3, q2, q1
+    vrhadd.u8   q2, q2, q0
+    vrhadd.u8   q0, q0, q3
+
+    vmov        d2, d0
+
+    vst1.8      {d5}, [r0,:64], r12
+    vuzp.8      d2, d0
+    vst1.8      {d1}, [r0,:64], r12
+    vext.8      d6, d0, d5, #7
+    vext.8      d3, d2, d1, #7
+    vst1.8      {d6}, [r0,:64], r12
+    vst1.8      {d3}, [r0,:64], r12
+    vext.8      d6, d0, d5, #6
+    vext.8      d3, d2, d1, #6
+    vst1.8      {d6}, [r0,:64], r12
+    vst1.8      {d3}, [r0,:64], r12
+    vext.8      d6, d0, d5, #5
+    vext.8      d3, d2, d1, #5
+    vst1.8      {d6}, [r0,:64], r12
+    vst1.8      {d3}, [r0,:64], r12
+    bx          lr
+.endfunc
+
+function x264_predict_8x8_hd_neon
+    mov         r12, #FDEC_STRIDE
+    add         r1, #7
+
+    vld1.8      {d2,d3}, [r1]
+    vext.8      q3, q1, q1, #1
+    vext.8      q2, q1, q1, #2
+
+    vrhadd.u8   q8, q1, q3
+
+    vhadd.u8    q1, q2
+    vrhadd.u8   q0, q1, q3
+
+    vzip.8      d16, d0
+
+    vext.8      d2, d0, d1, #6
+    vext.8      d3, d0, d1, #4
+    vst1.8      {d2}, [r0,:64], r12
+    vext.8      d2, d0, d1, #2
+    vst1.8      {d3}, [r0,:64], r12
+    vst1.8      {d2}, [r0,:64], r12
+    vext.8      d2, d16, d0, #6
+    vst1.8      {d0}, [r0,:64], r12
+    vext.8      d3, d16, d0, #4
+    vst1.8      {d2}, [r0,:64], r12
+    vext.8      d2, d16, d0, #2
+    vst1.8      {d3}, [r0,:64], r12
+    vst1.8      {d2}, [r0,:64], r12
+    vst1.8      {d16}, [r0,:64], r12
+
+    bx          lr
+.endfunc
+
+function x264_predict_8x8_hu_neon
+    mov         r12, #FDEC_STRIDE
+    add         r1, #7
+    vld1.8      {d7}, [r1]
+    vdup.8      d6, d7[0]
+    vrev64.8    d7, d7
+
+    vext.8      d4, d7, d6, #2
+    vext.8      d2, d7, d6, #1
+
+    vhadd.u8    d16, d7, d4
+    vrhadd.u8   d0, d2, d7
+    vrhadd.u8   d1, d16, d2
+
+    vzip.8      d0, d1
+
+    vdup.16     q1, d1[3]
+
+    vext.8      q2, q0, q1, #2
+    vext.8      q3, q0, q1, #4
+    vext.8      q8, q0, q1, #6
+    vst1.8      {d0}, [r0,:64], r12
+    vst1.8      {d4}, [r0,:64], r12
+    vst1.8      {d6}, [r0,:64], r12
+    vst1.8      {d16}, [r0,:64], r12
+
+    vst1.8      {d1}, [r0,:64], r12
+    vst1.8      {d5}, [r0,:64], r12
+    vst1.8      {d7}, [r0,:64], r12
+    vst1.8      {d17}, [r0,:64]
+    bx          lr
+.endfunc
 
 function x264_predict_8x8c_dc_top_neon
     sub         r2,  r0,  #FDEC_STRIDE
@@ -223,7 +434,7 @@ function x264_predict_8x8c_dc_top_neon
     vdup.8      d0,  d0[0]
     vtrn.32     d0,  d1
     b           pred8x8_dc_end
-    .endfunc
+.endfunc
 
 function x264_predict_8x8c_dc_left_neon
     mov         r1,  #FDEC_STRIDE

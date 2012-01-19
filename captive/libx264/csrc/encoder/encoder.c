@@ -1173,10 +1173,6 @@ x264_t *x264_encoder_open( x264_param_t *param )
     x264_predict_8x16c_init( h->param.cpu, h->predict_8x16c );
     x264_predict_8x8_init( h->param.cpu, h->predict_8x8, &h->predict_8x8_filter );
     x264_predict_4x4_init( h->param.cpu, h->predict_4x4 );
-    if( h->param.b_cabac )
-        x264_cabac_init( h );
-    else
-        x264_cavlc_init();
     x264_pixel_init( h->param.cpu, &h->pixf );
     x264_dct_init( h->param.cpu, &h->dctf );
     x264_zigzag_init( h->param.cpu, &h->zigzagf_progressive, &h->zigzagf_interlaced );
@@ -1185,7 +1181,10 @@ x264_t *x264_encoder_open( x264_param_t *param )
     x264_quant_init( h, h->param.cpu, &h->quantf );
     x264_deblock_init( h->param.cpu, &h->loopf, PARAM_INTERLACED );
     x264_bitstream_init( h->param.cpu, &h->bsf );
-    x264_dct_init_weights();
+    if( h->param.b_cabac )
+        x264_cabac_init( h );
+    else
+        x264_cavlc_init( h );
 
     mbcmp_init( h );
     chroma_dsp_init( h );

@@ -660,7 +660,7 @@ HPEL_V 0
     mova      %1, m1
     mova      %2, m4
     FILT_PACK m1, m4, 5, m15
-    movntps  [r11+r4+%5], m1
+    movntps  [r8+r4+%5], m1
 %endmacro
 
 %macro FILT_C 4
@@ -728,26 +728,26 @@ HPEL_V 0
 ; void hpel_filter( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
 ;                   uint8_t *src, int stride, int width, int height)
 ;-----------------------------------------------------------------------------
-cglobal hpel_filter, 7,7,16
+cglobal hpel_filter, 7,9,16
 %ifdef WIN64
     movsxd   r4, r4d
     movsxd   r5, r5d
 %endif
-    mov      r10, r3
+    mov       r7, r3
     sub       r5, 16
-    mov      r11, r1
-    and      r10, 15
-    sub       r3, r10
+    mov       r8, r1
+    and       r7, 15
+    sub       r3, r7
     add       r0, r5
-    add      r11, r5
-    add      r10, r5
+    add       r8, r5
+    add       r7, r5
     add       r5, r2
     mov       r2, r4
-    neg      r10
+    neg       r7
     lea       r1, [r3+r2]
     sub       r3, r2
     sub       r3, r2
-    mov       r4, r10
+    mov       r4, r7
     mova     m15, [pw_16]
 %if cpuflag(ssse3)
     mova      m0, [filt_mul51]
@@ -774,14 +774,14 @@ cglobal hpel_filter, 7,7,16
     cmp      r4, 16
     jl .lastx
 ; setup regs for next y
-    sub      r4, r10
+    sub      r4, r7
     sub      r4, r2
     sub      r1, r4
     sub      r3, r4
     add      r0, r2
-    add     r11, r2
+    add      r8, r2
     add      r5, r2
-    mov      r4, r10
+    mov      r4, r7
     sub     r6d, 1
     jg .loopy
     sfence
@@ -950,7 +950,7 @@ cglobal plane_copy_core_mmx2, 6,7
 ;                                  uint8_t *srcv, int i_srcv, int w, int h )
 ;-----------------------------------------------------------------------------
 ; assumes i_dst and w are multiples of 16, and i_dst>2*w
-cglobal plane_copy_interleave_core, 7,7
+cglobal plane_copy_interleave_core, 7,9
     FIX_STRIDES r1d, r3d, r5d, r6d
 %ifdef HIGH_BIT_DEPTH
     mov   r1m, r1d
@@ -965,7 +965,7 @@ cglobal plane_copy_interleave_core, 7,7
     add    r2,  r6
     add    r4,  r6
 %ifdef ARCH_X86_64
-    DECLARE_REG_TMP 10,11
+    DECLARE_REG_TMP 7,8
 %else
     DECLARE_REG_TMP 1,3
 %endif

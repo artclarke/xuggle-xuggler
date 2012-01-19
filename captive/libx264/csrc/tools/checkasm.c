@@ -426,6 +426,10 @@ static int check_pixel( int cpu_ref, int cpu_new )
         }
     report( "pixel hadamard_ac :" );
 
+    // maximize sum
+    for( int i = 0; i < 32; i++ )
+        for( int j = 0; j < 16; j++ )
+            pbuf4[16*i+j] = -((i+j)&1) & PIXEL_MAX;
     ok = 1; used_asm = 0;
     if( pixel_asm.vsad != pixel_ref.vsad )
     {
@@ -434,13 +438,17 @@ static int check_pixel( int cpu_ref, int cpu_new )
             int res_c, res_asm;
             set_func_name( "vsad" );
             used_asm = 1;
-            res_c   = call_c( pixel_c.vsad,   pbuf1, 16, h );
-            res_asm = call_a( pixel_asm.vsad, pbuf1, 16, h );
-            if( res_c != res_asm )
+            for( int j = 0; j < 2 && ok; j++ )
             {
-                ok = 0;
-                fprintf( stderr, "vsad: height=%d, %d != %d\n", h, res_c, res_asm );
-                break;
+                pixel *p = j ? pbuf4 : pbuf1;
+                res_c   = call_c( pixel_c.vsad,   p, 16, h );
+                res_asm = call_a( pixel_asm.vsad, p, 16, h );
+                if( res_c != res_asm )
+                {
+                    ok = 0;
+                    fprintf( stderr, "vsad: height=%d, %d != %d\n", h, res_c, res_asm );
+                    break;
+                }
             }
         }
     }
@@ -721,8 +729,8 @@ static int check_dct( int cpu_ref, int cpu_new )
         {
             int cond_a = (i < 2) ? 1 : ((j&3) == 0 || (j&3) == (i-1));
             int cond_b = (i == 0) ? 1 : !cond_a;
-            enc[0] = enc[1] = cond_a ? PIXEL_MAX : 0;
-            enc[2] = enc[3] = cond_b ? PIXEL_MAX : 0;
+            enc[0] = enc[1] = enc[4] = enc[5] = enc[8] = enc[9] = enc[12] = enc[13] = cond_a ? PIXEL_MAX : 0;
+            enc[2] = enc[3] = enc[6] = enc[7] = enc[10] = enc[11] = enc[14] = enc[15] = cond_b ? PIXEL_MAX : 0;
 
             for( int k = 0; k < 4; k++ )
                 dec[k] = PIXEL_MAX - enc[k];
@@ -747,6 +755,12 @@ static int check_dct( int cpu_ref, int cpu_new )
             { \
                 ok = 0; \
                 fprintf( stderr, #name " [FAILED]\n" ); \
+                for( int k = 0; k < size; k++ )\
+                    printf( "%d ", ((dctcoef*)t1)[k] );\
+                printf("\n");\
+                for( int k = 0; k < size; k++ )\
+                    printf( "%d ", ((dctcoef*)t2)[k] );\
+                printf("\n");\
                 break; \
             } \
             call_c( dct_c.name, t1, enc, dec ); \
@@ -1557,11 +1571,15 @@ static int check_deblock( int cpu_ref, int cpu_new )
     TEST_DEBLOCK( deblock_luma[1], 1, tcs[i] );
     TEST_DEBLOCK( deblock_h_chroma_420, 0, tcs[i] );
     TEST_DEBLOCK( deblock_h_chroma_422, 0, tcs[i] );
+    TEST_DEBLOCK( deblock_chroma_420_mbaff, 0, tcs[i] );
+    TEST_DEBLOCK( deblock_chroma_422_mbaff, 0, tcs[i] );
     TEST_DEBLOCK( deblock_chroma[1], 1, tcs[i] );
     TEST_DEBLOCK( deblock_luma_intra[0], 0 );
     TEST_DEBLOCK( deblock_luma_intra[1], 1 );
     TEST_DEBLOCK( deblock_h_chroma_420_intra, 0 );
     TEST_DEBLOCK( deblock_h_chroma_422_intra, 0 );
+    TEST_DEBLOCK( deblock_chroma_420_intra_mbaff, 0 );
+    TEST_DEBLOCK( deblock_chroma_422_intra_mbaff, 0 );
     TEST_DEBLOCK( deblock_chroma_intra[1], 1 );
 
     if( db_a.deblock_strength != db_ref.deblock_strength )
@@ -2001,6 +2019,7 @@ static int check_quant( int cpu_ref, int cpu_new )
             int result_c = call_c( qf_c.lastname, dct1+ac, &runlevel_c ); \
             int result_a = call_a( qf_a.lastname, dct1+ac, &runlevel_a ); \
             if( result_c != result_a || runlevel_c.last != runlevel_a.last || \
+                runlevel_c.mask != runlevel_a.mask || \
                 memcmp(runlevel_c.level, runlevel_a.level, sizeof(dctcoef)*result_c) || \
                 memcmp(runlevel_c.run, runlevel_a.run, sizeof(uint8_t)*(result_c-1)) ) \
             { \
