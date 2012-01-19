@@ -26,13 +26,9 @@
 # using the library and what you like or don't like about it.
 
 # Usage; $0 "directory_to_check" "file_to_read_last_revision" ["optional file to write last to" ["optional ant properties file to write"]
-# First try the best way; using 'svn info'
-revision=`cd "$1" && LC_ALL=C svn info 2> /dev/null | grep Revision | cut -d' ' -f2`
-# Fine... if that didn't work, see if there is a .svn/entries revision entry
-test $revision || revision=`cd "$1" && grep revision .svn/entries 2>/dev/null | cut -d '"' -f2`
-# OK, now we're getting crazy.  look for a .svn/entries, the the 'dir' line
-# and get the text after it
-test $revision || revision=`cd "$1" && sed -n -e '/^dir$/{n;p;q}' .svn/entries 2>/dev/null`
+
+# look with GIT
+revision=`git log -1 --pretty=format:"%cd-%h" --date=short 2>/dev/null`
 
 if test -f "$2" ; then
   test $revision || revision=`cat "$2"`
