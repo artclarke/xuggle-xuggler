@@ -1,4 +1,4 @@
 #!/bin/sh
 
 # This script is here to update the branch to the latest version
-git merge -s subtree --no-commit librtmp-master
+git merge --squash -s recursive -Xsubtree=captive/librtmp/csrc/src librtmp-remote/master
