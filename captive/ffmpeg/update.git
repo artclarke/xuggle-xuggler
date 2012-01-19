@@ -1,4 +1,4 @@
 #!/bin/sh
 
 # This script is here to update the branch to the latest version
-git merge --squash -s recursive -Xsubtree=captive/ffmpeg/csrc ffmpeg-remote/oldabi
+git merge --commit --squash -s recursive -Xsubtree=captive/ffmpeg/csrc ffmpeg-remote/oldabi
