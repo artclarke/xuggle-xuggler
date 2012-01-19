@@ -768,6 +768,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
   {
     // removes the warning
 
+    @SuppressWarnings("unused")
     public static final long serialVersionUID = 0;
 
     // the audio line
@@ -819,6 +820,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
   {
     // removes the warning
 
+    @SuppressWarnings("unused")
     public static final long serialVersionUID = 0;
 
     // the media frame to display images on
@@ -866,6 +868,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
      * to make warning go away
      */
 
+    @SuppressWarnings("unused")
     private static final long serialVersionUID = 1L;
 
     private final Queue<DelayedItem<IMediaData>> mQueue =  new
@@ -1790,6 +1793,7 @@ class MediaViewer extends MediaListenerAdapter implements IMediaListener, IMedia
 
         TableCellRenderer tableCellRenderer = new TableCellRenderer()
           {
+            @SuppressWarnings("unused")
             public static final long serialVersionUID = 0;
 
             private final JLabel mLabel = new JLabel();
