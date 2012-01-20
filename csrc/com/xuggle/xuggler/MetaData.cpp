@@ -43,7 +43,7 @@ MetaData :: MetaData()
 MetaData :: ~MetaData()
 {
   if (mMetaData && *mMetaData)
-    av_metadata_free(mMetaData);
+    av_dict_free(mMetaData);
 }
 
 int32_t
@@ -52,11 +52,11 @@ MetaData :: getNumKeys()
   if (!mMetaData || !*mMetaData)
     return 0;
   
-  AVMetadataTag* tag=0;
+  AVDictionaryEntry* tag=0;
   int32_t retval=0;
   do
   {
-    tag = av_metadata_get(*mMetaData, "", tag, AV_METADATA_IGNORE_SUFFIX);
+    tag = av_dict_get(*mMetaData, "", tag, AV_DICT_IGNORE_SUFFIX);
     if (tag)
       retval++;
   } while(tag);
@@ -69,11 +69,11 @@ MetaData :: getKey(int32_t index)
   if (!mMetaData || !*mMetaData || index < 0)
     return 0;
 
-  AVMetadataTag* tag=0;
+  AVDictionaryEntry* tag=0;
   int32_t position=-1;
   do
   {
-    tag = av_metadata_get(*mMetaData, "", tag, AV_METADATA_IGNORE_SUFFIX);
+    tag = av_dict_get(*mMetaData, "", tag, AV_DICT_IGNORE_SUFFIX);
     if (tag) {
       position++;
       if (position == index)
@@ -87,7 +87,7 @@ MetaData :: getValue(const char *key, Flags flag)
 {
    if (!mMetaData || !*mMetaData || !key || !*key)
      return 0;
-   AVMetadataTag* tag = av_metadata_get(*mMetaData, key, 0, (int)flag);
+   AVDictionaryEntry* tag = av_dict_get(*mMetaData, key, 0, (int)flag);
    if (tag)
      return tag->value;
    else
@@ -97,9 +97,15 @@ MetaData :: getValue(const char *key, Flags flag)
 int32_t
 MetaData :: setValue(const char* key, const char* value)
 {
+  return setValue(key, value, METADATA_NONE);
+}
+
+int32_t
+MetaData :: setValue(const char* key, const char* value, Flags flag)
+{
   if (!key || !*key || !mMetaData)
     return -1;
-  return (int32_t)av_metadata_set2(mMetaData, key, value,0);
+  return (int32_t)av_dict_set(mMetaData, key, value, (int)flag);
 }
 
 MetaData*
@@ -122,12 +128,12 @@ MetaData :: make(AVMetadata* metaDataToCopy)
   MetaData* retval = make();
   if (retval && metaDataToCopy)
   {
-    AVMetadataTag* tag = 0;
+    AVDictionaryEntry* tag = 0;
     do {
-      tag = av_metadata_get(metaDataToCopy, "", tag, 
-          AV_METADATA_IGNORE_SUFFIX);
+      tag = av_dict_get(metaDataToCopy, "", tag,
+          AV_DICT_IGNORE_SUFFIX);
       if (tag)
-        if (av_metadata_set2(retval->mMetaData, tag->key, tag->value,0) < 0)
+        if (av_dict_set(retval->mMetaData, tag->key, tag->value,0) < 0)
         {
           VS_REF_RELEASE(retval);
           break;
@@ -151,12 +157,12 @@ MetaData :: copy(IMetaData* dataToCopy)
     *mMetaData = 0;
   }
   
-  AVMetadataTag* tag = 0;
+  AVDictionaryEntry* tag = 0;
   do {
-    tag = av_metadata_get(*data->mMetaData, "", tag, 
-        AV_METADATA_IGNORE_SUFFIX);
+    tag = av_dict_get(*data->mMetaData, "", tag,
+        AV_DICT_IGNORE_SUFFIX);
     if (tag) {
-      int32_t retval = av_metadata_set2(mMetaData,
+      int32_t retval = av_dict_set(mMetaData,
           tag->key, tag->value, 0);
       if (retval < 0)
       {

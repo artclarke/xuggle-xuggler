@@ -98,11 +98,14 @@ class XugglerJNI {
   public final static native int ITimeValue_compare__SWIG_1(long jarg1, long jarg2);
   public final static native int IMetaData_METADATA_NONE_get();
   public final static native int IMetaData_METADATA_MATCH_CASE_get();
+  public final static native int IMetaData_METADATA_DONT_OVERWRITE_get();
+  public final static native int IMetaData_META_DATA_APPEND_get();
   public final static native int IMetaData_getNumKeys(long jarg1, IMetaData jarg1_);
   public final static native String IMetaData_getKey(long jarg1, IMetaData jarg1_, int jarg2);
   public final static native String IMetaData_getValue(long jarg1, IMetaData jarg1_, String jarg2, int jarg3);
-  public final static native int IMetaData_setValue(long jarg1, IMetaData jarg1_, String jarg2, String jarg3);
+  public final static native int IMetaData_setValue__SWIG_0(long jarg1, IMetaData jarg1_, String jarg2, String jarg3);
   public final static native long IMetaData_make();
+  public final static native int IMetaData_setValue__SWIG_1(long jarg1, IMetaData jarg1_, String jarg2, String jarg3, int jarg4);
   public final static native long IMediaData_getTimeStamp(long jarg1, IMediaData jarg1_);
   public final static native void IMediaData_setTimeStamp(long jarg1, IMediaData jarg1_, long jarg2);
   public final static native long IMediaData_getTimeBase(long jarg1, IMediaData jarg1_);

@@ -220,7 +220,7 @@ public class IMetaData extends RefCounted {
  * @param	value The value to set.  
  */
   public int setValue(String key, String value) {
-    return XugglerJNI.IMetaData_setValue(swigCPtr, this, key, value);
+    return XugglerJNI.IMetaData_setValue__SWIG_0(swigCPtr, this, key, value);
   }
 
 /**
@@ -232,9 +232,28 @@ public class IMetaData extends RefCounted {
     return (cPtr == 0) ? null : new IMetaData(cPtr, false);
   }
 
+/**
+ * Sets the value for the given key to value. This overrides  
+ * any prior setting for key, or adds key to the meta-data  
+ * if appropriate.  
+ * @param	key The key to set.  
+ * @param	value The value to set.  
+ * @param	flag A flag on how this should be set.  
+ * @since	5.0  
+ */
+  public int setValue(String key, String value, IMetaData.Flags flag) {
+    return XugglerJNI.IMetaData_setValue__SWIG_1(swigCPtr, this, key, value, flag.swigValue());
+  }
+
   public enum Flags {
+  /**
+   * Different types of flags that can be passed to {@link IMetaData#getValue} 
+   *
+   */
     METADATA_NONE(XugglerJNI.IMetaData_METADATA_NONE_get()),
-    METADATA_MATCH_CASE(XugglerJNI.IMetaData_METADATA_MATCH_CASE_get());
+    METADATA_MATCH_CASE(XugglerJNI.IMetaData_METADATA_MATCH_CASE_get()),
+    METADATA_DONT_OVERWRITE(XugglerJNI.IMetaData_METADATA_DONT_OVERWRITE_get()),
+    META_DATA_APPEND(XugglerJNI.IMetaData_META_DATA_APPEND_get());
 
     public final int swigValue() {
       return swigValue;

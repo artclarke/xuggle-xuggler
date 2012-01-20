@@ -40,21 +40,22 @@ public:
 
   virtual const char *getValue(const char* key, Flags flag);
   virtual int32_t setValue(const char* key, const char* value);
+  virtual int32_t setValue(const char* key, const char* value, Flags flag);
   
   /**
    * Create a MetaData object using metaDataToReference.
    * Once this is done, this MetaData object is responsible
-   * for calling av_metadata_free(*metaDataToReference),
+   * for calling av_dict_free(*metaDataToReference),
    * so take care.
    * 
    */
-  static MetaData* make(AVMetadata ** metaDataToReference);
+  static MetaData* make(AVDictionary ** metaDataToReference);
   
   /**
    * Copies all meta data currently in metaDataToCopy
    * and returns a new object.
    */
-  static MetaData* make(AVMetadata* metaDataToCopy);
+  static MetaData* make(AVDictionary* metaDataToCopy);
   
   /**
    * Destroys the current data, and copies all data
@@ -67,8 +68,8 @@ protected:
   virtual
   ~MetaData();
 private:
-  AVMetadata** mMetaData;
-  AVMetadata* mLocalMeta;
+  AVDictionary** mMetaData;
+  AVDictionary* mLocalMeta;
 };
 
 }

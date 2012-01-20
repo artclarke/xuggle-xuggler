@@ -44,6 +44,7 @@ extern "C"
 #include <libavcodec/avcodec.h>
 #include <libavdevice/avdevice.h>
 #include <libavutil/opt.h>
+#include <libavutil/parseutils.h>
 // FFmpeg changes these form enums to #defines.  change them back.
 #undef CODEC_TYPE_UNKNOWN
 #undef CODEC_TYPE_VIDEO

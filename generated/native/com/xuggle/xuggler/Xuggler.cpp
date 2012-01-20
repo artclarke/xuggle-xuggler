@@ -4384,6 +4384,30 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMetaData_1METADATA_1
 }
 
 
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMetaData_1METADATA_1DONT_1OVERWRITE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IMetaData::Flags result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IMetaData::Flags)com::xuggle::xuggler::IMetaData::METADATA_DONT_OVERWRITE;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMetaData_1META_1DATA_1APPEND_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IMetaData::Flags result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IMetaData::Flags)com::xuggle::xuggler::IMetaData::META_DATA_APPEND;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
 SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMetaData_1getNumKeys(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
   jint jresult = 0 ;
   com::xuggle::xuggler::IMetaData *arg1 = (com::xuggle::xuggler::IMetaData *) 0 ;
@@ -4626,7 +4650,7 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMetaData_1getValu
 }
 
 
-SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMetaData_1setValue(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jstring jarg2, jstring jarg3) {
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMetaData_1setValue_1_1SWIG_10(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jstring jarg2, jstring jarg3) {
   jint jresult = 0 ;
   com::xuggle::xuggler::IMetaData *arg1 = (com::xuggle::xuggler::IMetaData *) 0 ;
   char *arg2 = (char *) 0 ;
@@ -4780,6 +4804,99 @@ SWIGEXPORT jlong JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMetaData_1make(JNIE
     // JNIHelper.swg: End generated code
   }
   *(com::xuggle::xuggler::IMetaData **)&jresult = result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IMetaData_1setValue_1_1SWIG_11(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_, jstring jarg2, jstring jarg3, jint jarg4) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IMetaData *arg1 = (com::xuggle::xuggler::IMetaData *) 0 ;
+  char *arg2 = (char *) 0 ;
+  char *arg3 = (char *) 0 ;
+  com::xuggle::xuggler::IMetaData::Flags arg4 ;
+  int32_t result;
+  
+  (void)jenv;
+  (void)jcls;
+  (void)jarg1_;
+  arg1 = *(com::xuggle::xuggler::IMetaData **)&jarg1; 
+  arg2 = 0;
+  if (jarg2) {
+    arg2 = (char *)jenv->GetStringUTFChars(jarg2, 0);
+    if (!arg2) return 0;
+  }
+  arg3 = 0;
+  if (jarg3) {
+    arg3 = (char *)jenv->GetStringUTFChars(jarg3, 0);
+    if (!arg3) return 0;
+  }
+  arg4 = (com::xuggle::xuggler::IMetaData::Flags)jarg4; 
+  
+  if (!arg1) {
+    SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException,
+      "invalid native object; delete() likely already called");
+    return 0;
+  }
+  
+  {
+    // JNIHelper.swg: Start generated code
+    // >>>>>>>>>>>>>>>>>>>>>>>>>>>
+    try
+    {
+      result = (int32_t)(arg1)->setValue((char const *)arg2,(char const *)arg3,arg4);
+    }
+    catch(std::invalid_argument & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/IllegalArgumentException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(std::bad_alloc & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        // OK, this is bad and may mean we can't do things like 
+        // allocate a new class at this time; but we should have
+        // one lying around
+        com::xuggle::ferry::JNIHelper *helper = 
+        com::xuggle::ferry::JNIHelper::getHelper();
+        if (helper) {
+          helper->throwOutOfMemoryError();
+        }
+      }
+      return 0;
+    }
+    catch(std::exception & e)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, e.what());
+      }
+      return 0;
+    }
+    catch(...)
+    {
+      // we don't let a native exception override a java exception
+      if (!jenv->ExceptionCheck())
+      {
+        jclass cls=jenv->FindClass("java/lang/RuntimeException");
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+      }
+      return 0;
+    }
+    // <<<<<<<<<<<<<<<<<<<<<<<<<<<
+    // JNIHelper.swg: End generated code
+  }
+  jresult = (jint)result; 
+  if (arg2) jenv->ReleaseStringUTFChars(jarg2, (const char *)arg2);
+  if (arg3) jenv->ReleaseStringUTFChars(jarg3, (const char *)arg3);
   return jresult;
 }
 

@@ -50,10 +50,14 @@ namespace com { namespace xuggle { namespace xuggler
 class VS_API_XUGGLER IMetaData : public com::xuggle::ferry::RefCounted
 {
 public:
+  /**
+   * Different types of flags that can be passed to {@link IMetaData#getValue}
+   */
   typedef enum {
     METADATA_NONE=0,
     METADATA_MATCH_CASE=1,
-//    METADATA_IGNORE_SUFFIX=2,
+    METADATA_DONT_OVERWRITE=16,
+    META_DATA_APPEND=32,
   } Flags;
 
   /**
@@ -106,6 +110,19 @@ public:
    * no values set.
    */
   static IMetaData* make();
+
+  /**
+   * Sets the value for the given key to value.  This overrides
+   * any prior setting for key, or adds key to the meta-data
+   * if appropriate.
+   *
+   * @param key The key to set.
+   * @param value The value to set.
+   * @param flag A flag on how this should be set.
+   *
+   * @since 5.0
+   */
+  virtual int32_t setValue(const char* key, const char* value, Flags flag)=0;
  
 protected:
   IMetaData();
