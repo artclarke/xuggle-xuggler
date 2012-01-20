@@ -361,7 +361,7 @@ namespace com { namespace xuggle { namespace xuggler
     if (!mCodec)
       return 0;
     int i = 0;
-    for(const int64_t* p=mCodec->channel_layouts;
+    for(const uint64_t* p=mCodec->channel_layouts;
       p && *p;
       p++,i++)
       ;
@@ -373,11 +373,11 @@ namespace com { namespace xuggle { namespace xuggler
     if (!mCodec)
       return 0;
     int i = 0;
-    for(const int64_t* p=mCodec->channel_layouts;
+    for(const uint64_t* p=mCodec->channel_layouts;
       p && *p;
       p++,i++)
       if (index == i)
-        return *p;
+        return (int64_t)*p;
     return 0;
   }
 
