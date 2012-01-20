@@ -1053,7 +1053,7 @@ static void compute_pkt_fields(AVFormatContext *s, AVStream *st,
 
     if (pkt->duration == 0) {
         compute_frame_duration(&num, &den, st, pc, pkt);
-        if (den && num) {
+        if (den && num && st->time_base.den && st->time_base.num) {
             pkt->duration = av_rescale_rnd(1, num * (int64_t)st->time_base.den, den * (int64_t)st->time_base.num, AV_ROUND_DOWN);
 
             if(pkt->duration != 0 && s->packet_buffer)

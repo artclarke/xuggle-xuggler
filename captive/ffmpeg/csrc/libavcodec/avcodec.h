@@ -21,6 +21,9 @@
 #ifndef AVCODEC_AVCODEC_H
 #define AVCODEC_AVCODEC_H
 
+#ifndef XUGGLE_FFMPEG_PATCHED
+#define XUGGLE_FFMPEG_PATCHED 1
+#endif // ! XUGGLE_FFMPEG_PATCHED
 /**
  * @file
  * external API header
