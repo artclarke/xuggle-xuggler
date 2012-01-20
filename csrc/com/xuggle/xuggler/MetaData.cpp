@@ -109,7 +109,7 @@ MetaData :: setValue(const char* key, const char* value, Flags flag)
 }
 
 MetaData*
-MetaData :: make(AVMetadata** metaToUse)
+MetaData :: make(AVDictionary** metaToUse)
 {
   if (!metaToUse)
     return 0;
@@ -123,7 +123,7 @@ MetaData :: make(AVMetadata** metaToUse)
 }
 
 MetaData*
-MetaData :: make(AVMetadata* metaDataToCopy)
+MetaData :: make(AVDictionary* metaDataToCopy)
 {
   MetaData* retval = make();
   if (retval && metaDataToCopy)
@@ -153,7 +153,7 @@ MetaData :: copy(IMetaData* dataToCopy)
     return 0;
   
   if (mMetaData && *mMetaData) {
-    av_metadata_free(mMetaData);
+    av_dict_free(mMetaData);
     *mMetaData = 0;
   }
   

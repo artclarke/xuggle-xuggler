@@ -163,7 +163,9 @@ namespace com { namespace xuggle { namespace xuggler
       av_register_all();
       // and set up the device library for webcam support
       avdevice_register_all();
-      avio_set_interrupt_cb(xuggler_interrupt_cb);
+      // TODO: Determine how to set interrupt handler when I convert to avio.
+      xuggler_interrupt_cb();
+//      avio_set_interrupt_cb(xuggler_interrupt_cb);
       // turn down logging
       sGlobal = new Global();
     }

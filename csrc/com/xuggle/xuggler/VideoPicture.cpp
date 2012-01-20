@@ -38,9 +38,10 @@ namespace com { namespace xuggle { namespace xuggler
       throw std::bad_alloc();
     // Set the private data pointer to point to me.
     mFrame->opaque = this;
-    mWidth = -1;
-    mHeight = -1;
-    mPixelFormat = IPixelFormat::NONE;
+    mFrame->width = -1;
+    mFrame->height = -1;
+
+    mFrame->format = (int) IPixelFormat::NONE;
     mTimeBase = IRational::make(1, 1000000);
   }
 
@@ -57,9 +58,9 @@ namespace com { namespace xuggle { namespace xuggler
     VideoPicture * retval=0;
     try {
       retval = VideoPicture::make();
-      retval->mPixelFormat = format;
-      retval->mWidth = width;
-      retval->mHeight = height;
+      retval->mFrame->format = format;
+      retval->mFrame->width = width;
+      retval->mFrame->height = height;
       // default new frames to be key frames
       retval->setKeyFrame(true);
     }
@@ -202,9 +203,13 @@ namespace com { namespace xuggle { namespace xuggler
     if (!mBuffer || mBuffer->getBufferSize() < getSize())
       allocInternalFrameBuffer();
     unsigned char* buffer = (unsigned char*)mBuffer->getBytes(0, getSize());
-    *frame = *mFrame;
-    avpicture_fill((AVPicture*)frame, buffer, (enum PixelFormat) mPixelFormat,
-        mWidth, mHeight);
+    // This is an inherently unsafe operation; it copies over all the bits in the AVFrame
+    memcpy(frame, mFrame, sizeof(AVFrame));
+    //*frame = *mFrame;
+    // and then relies on avpicture_fill to overwrite any areas in frame that
+    // are pointed to the wrong place.
+    avpicture_fill((AVPicture*)frame, buffer, (enum PixelFormat) frame->format,
+        frame->width, frame->height);
     frame->quality = getQuality();
     frame->type = FF_BUFFER_TYPE_USER;
   }
@@ -220,9 +225,9 @@ namespace com { namespace xuggle { namespace xuggler
       VS_ASSERT(frame, "no frame?");
       VS_ASSERT(frame->data[0], "no data in frame");
       // resize the frame to the AVFrame
-      mWidth = width;
-      mHeight = height;
-      mPixelFormat = pixel;
+      mFrame->width = width;
+      mFrame->height = height;
+      mFrame->format = (int)pixel;
 
       int bufSize = getSize();
       if (bufSize <= 0)
@@ -242,9 +247,9 @@ namespace com { namespace xuggle { namespace xuggler
         if(buffer != frame->data[0])
         {
           avpicture_fill((AVPicture*)mFrame, buffer,
-              (enum PixelFormat) mPixelFormat, mWidth, mHeight);
+              (enum PixelFormat) pixel, width, height);
           av_picture_copy((AVPicture*)mFrame, (AVPicture*)frame,
-              (PixelFormat)mPixelFormat, mWidth, mHeight);
+              (PixelFormat)frame->format, frame->width, frame->height);
         }
         mFrame->key_frame = frame->key_frame;
       }
@@ -339,19 +344,14 @@ namespace com { namespace xuggle { namespace xuggler
         setPts(pts);
       }
 
-      if (format != IPixelFormat::NONE && mPixelFormat != IPixelFormat::NONE && format != mPixelFormat)
-        throw std::runtime_error("pixel formats don't match");
-      if (width > 0 && mWidth >0 && width != mWidth)
-        throw std::runtime_error("width does not match");
-      if (height > 0 && mHeight > 0 && height != mHeight)
-        throw std::runtime_error("height does not match");
       if (!mFrame)
         throw std::runtime_error("no AVFrame allocated");
-
-      mWidth = width;
-      mHeight = height;
-      mPixelFormat = format;
-
+      if (format != IPixelFormat::NONE && mFrame->format != (int)IPixelFormat::NONE && (int)format != mFrame->format)
+        throw std::runtime_error("pixel formats don't match");
+      if (width > 0 && mFrame->width >0 && width != mFrame->width)
+        throw std::runtime_error("width does not match");
+      if (height > 0 && mFrame->height > 0 && height != mFrame->height)
+        throw std::runtime_error("height does not match");
     }
     catch (std::exception& e)
     {
@@ -363,8 +363,8 @@ namespace com { namespace xuggle { namespace xuggler
   VideoPicture :: getSize()
   {
     int retval = -1;
-    if (mWidth > 0 && mHeight > 0)
-      retval = avpicture_get_size((PixelFormat)mPixelFormat, mWidth, mHeight);
+    if (mFrame->width > 0 && mFrame->height > 0)
+      retval = avpicture_get_size((PixelFormat)mFrame->format, mFrame->width, mFrame->height);
     return retval;
   }
 
@@ -412,9 +412,9 @@ namespace com { namespace xuggle { namespace xuggler
 
     int imageSize = avpicture_fill((AVPicture*)mFrame,
         buffer,
-        (enum PixelFormat) mPixelFormat,
-        mWidth,
-        mHeight);
+        (enum PixelFormat) mFrame->format,
+        mFrame->width,
+        mFrame->height);
     if (imageSize != bufSize)
       throw std::runtime_error("could not fill picture");
 

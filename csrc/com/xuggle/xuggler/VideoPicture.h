@@ -45,9 +45,9 @@ namespace com { namespace xuggle { namespace xuggler
     virtual bool isKeyFrame();
     virtual void setKeyFrame(bool aIsKey);
     virtual bool isComplete() { return mIsComplete; }
-    virtual int getWidth() { return mWidth; }
-    virtual int getHeight() { return mHeight; }
-    virtual IPixelFormat::Type getPixelType() { return mPixelFormat; }
+    virtual int getWidth() { return mFrame->width; }
+    virtual int getHeight() { return mFrame->height; }
+    virtual IPixelFormat::Type getPixelType() { return (IPixelFormat::Type) mFrame->format; }
     virtual int64_t getPts();
     virtual void setPts(int64_t);
 
@@ -127,13 +127,7 @@ namespace com { namespace xuggle { namespace xuggler
     // about a decoded frame.
     AVFrame * mFrame;
     bool mIsComplete;
-    
-    // Meta information about the AVFrame or
-    // buffer
-    IPixelFormat::Type mPixelFormat;
-    int mWidth;
-    int mHeight;
-    
+
     com::xuggle::ferry::RefPointer<com::xuggle::ferry::IBuffer> mBuffer;
     com::xuggle::ferry::RefPointer<IRational> mTimeBase;
   };
