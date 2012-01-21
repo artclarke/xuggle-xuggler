@@ -249,10 +249,22 @@ public class IMetaData extends RefCounted {
   /**
    * Different types of flags that can be passed to {@link IMetaData#getValue} 
    *
+   * For {@link #getValue(String)} case-insensitive match of key.
    */
     METADATA_NONE(XugglerJNI.IMetaData_METADATA_NONE_get()),
+  /**
+   * For {@link #getValue(String)} case-sensitive match of key.
+   */
     METADATA_MATCH_CASE(XugglerJNI.IMetaData_METADATA_MATCH_CASE_get()),
+  /**
+   * For {@link #setValue(String,String,Flags)} do not overwrite existing 
+   * value -- append another key/value pair.
+   */
     METADATA_DONT_OVERWRITE(XugglerJNI.IMetaData_METADATA_DONT_OVERWRITE_get()),
+  /**
+   * For {@link #setValue(String,String,Flags)} append to the existing 
+   * value in a key (string append).
+   */
     META_DATA_APPEND(XugglerJNI.IMetaData_META_DATA_APPEND_get());
 
     public final int swigValue() {

@@ -54,9 +54,21 @@ public:
    * Different types of flags that can be passed to {@link IMetaData#getValue}
    */
   typedef enum {
+    /**
+     * For {@link #getValue(String)} case-insensitive match of key.
+     */
     METADATA_NONE=0,
+    /**
+     * For {@link #getValue(String)} case-sensitive match of key.
+     */
     METADATA_MATCH_CASE=1,
+    /**
+     * For {@link #setValue(String,String,Flags)} do not overwrite existing value -- append another key/value pair.
+     */
     METADATA_DONT_OVERWRITE=16,
+    /**
+     * For {@link #setValue(String,String,Flags)} append to the existing value in a key (string append).
+     */
     META_DATA_APPEND=32,
   } Flags;
 
