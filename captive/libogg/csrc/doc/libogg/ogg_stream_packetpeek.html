@@ -9,11 +9,11 @@
 <table border=0 width=100%>
 <tr>
 <td><p class=tiny>libogg documentation</p></td>
-<td align=right><p class=tiny>libogg version 1.26 - 20010527</p></td>
+<td align=right><p class=tiny>libogg release 1.3.0 - 20110804</p></td>
 </tr>
 </table>
 
-<h1>ogg_stream_packetout</h1>
+<h1>ogg_stream_packetpeek</h1>
 
 <p><i>declared in "ogg/ogg.h";</i></p>
 
@@ -58,8 +58,8 @@ packet?" check.</dd>
 <h3>Return Values</h3>
 <blockquote>
 <ul>
-<li>-1 if there's no packet available due to lost sync or a hole
-in the data.</li>
+<li>-1 if there's no packet available due to lost sync or a hole in the data.</li>
+<li>0 if there is insufficient data available to complete a packet, or on unrecoverable internal error occurred.</li>
 <li>1 if a packet is available.</li>
 </ul>
 </blockquote>
@@ -71,11 +71,11 @@ in the data.</li>
 
 <table border=0 width=100%>
 <tr valign=top>
-<td><p class=tiny>copyright &copy; 2001 xiph.org</p></td>
-<td align=right><p class=tiny><a href="http://www.xiph.org/ogg/vorbis/index.html">Ogg Vorbis</a><br><a href="mailto:team@xiph.org">team@xiph.org</a></p></td>
+<td><p class=tiny>copyright &copy; 2000-2011 Xiph.Org</p></td>
+<td align=right><p class=tiny><a href="http://www.xiph.org/ogg/">Ogg Container Format</a></p></td>
 </tr><tr>
 <td><p class=tiny>libogg documentation</p></td>
-<td align=right><p class=tiny>libogg version 1.26 - 20010527</p></td>
+<td align=right><p class=tiny>libogg release 1.3.0 - 20110804</p></td>
 </tr>
 </table>
 

@@ -9,7 +9,7 @@
 <table border=0 width=100%>
 <tr>
 <td><p class=tiny>libogg documentation</p></td>
-<td align=right><p class=tiny>libogg release 1.0 - 20000615</p></td>
+<td align=right><p class=tiny>libogg release 1.3.0 - 20110804</p></td>
 </tr>
 </table>
 
@@ -44,11 +44,9 @@ int ogg_sync_pageout(<a href="ogg_sync_state.html">ogg_sync_state</a> *oy, <a hr
 
 <h3>Return Values</h3>
 <blockquote>
-<li>-1 if we were not properly synced and had to skip some bytes.</li>
-<li>
-0 if we need more data to verify a page.</li>
-<li>
-1 if we have a page.</li>
+<li>-1 returned if stream has not yet captured sync (bytes were skipped).</li>
+<li>0 returned if more data needed or an internal error occurred.</li>
+<li>1 indicated a page was synced and returned.</li>
 </blockquote>
 <p>
 
@@ -65,11 +63,11 @@ if (ogg_sync_pageout(&oy, &og) != 1) {
 <hr noshade>
 <table border=0 width=100%>
 <tr valign=top>
-<td><p class=tiny>copyright &copy; 2000 xiph.org</p></td>
-<td align=right><p class=tiny><a href="http://www.xiph.org/ogg/vorbis/index.html">Ogg Vorbis</a><br><a href="mailto:team@xiph.org">team@xiph.org</a></p></td>
+<td><p class=tiny>copyright &copy; 2000-2011 Xiph.Org</p></td>
+<td align=right><p class=tiny><a href="http://www.xiph.org/ogg/">Ogg Container Format</a></p></td>
 </tr><tr>
 <td><p class=tiny>libogg documentation</p></td>
-<td align=right><p class=tiny>libogg release 1.0 - 20000615</p></td>
+<td align=right><p class=tiny>libogg release 1.3.0 - 20110804</p></td>
 </tr>
 </table>
 
