@@ -63,6 +63,16 @@ namespace com { namespace xuggle { namespace xuggler {
     } Flags;
     
     /**
+     * How to search options when looking for different values.
+     */
+    typedef enum {
+        /** Do not search child options */
+        PROPERTY_SEARCH_DEFAULT=0x0000,
+        /** Search children first */
+        PROPERTY_SEARCH_CHILDREN=0x0001,
+    } Search;
+
+    /**
      * Get the name for this property.
      * 
      * @return the name.

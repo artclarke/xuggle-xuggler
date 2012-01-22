@@ -116,10 +116,10 @@ namespace com { namespace xuggle { namespace xuggler {
     if (aContext)
     {
       do {
-        last = av_next_option(aContext, last);
+        last = av_opt_next(aContext, last);
         if (last)
         {
-          if (last->type != FF_OPT_TYPE_CONST)
+          if (last->type != AV_OPT_TYPE_CONST)
             ++retval;
         }
       } while (last);
@@ -140,16 +140,16 @@ namespace com { namespace xuggle { namespace xuggler {
 
       int32_t optionNo=-1;
       do {
-        last = av_next_option(aContext, last);
+        last = av_opt_next(aContext, last);
         if (last)
         {
-          if (last->type != FF_OPT_TYPE_CONST)
+          if (last->type != AV_OPT_TYPE_CONST)
           {
             ++optionNo;
             // now see if this option position matches the property asked for
             if (optionNo == aPropertyNo)
             {
-              retval = Property::make(av_next_option(aContext, 0), last);
+              retval = Property::make(av_opt_next(aContext, 0), last);
               break;
             }
           }
@@ -178,12 +178,12 @@ namespace com { namespace xuggle { namespace xuggler {
       if (!aName || !*aName)
         throw std::runtime_error("no property name passed in");
       
-      last = av_find_opt(aContext, aName, 0, 0, 0);
+      last = av_opt_find(aContext, aName, 0, 0, 0);
       if (last)
       {
-        if (last->type != FF_OPT_TYPE_CONST)
+        if (last->type != AV_OPT_TYPE_CONST)
         {
-          retval = Property::make(av_next_option(aContext, 0), last);
+          retval = Property::make(av_opt_next(aContext, 0), last);
         }
       }
     }
@@ -208,8 +208,7 @@ namespace com { namespace xuggle { namespace xuggler {
       if (!aName  || !*aName)
         throw std::runtime_error("empty property name passed to setProperty");
 
-      retval = av_set_string3(aContext, aName, aValue, 1, 0);
-      
+      retval = av_opt_set(aContext, aName, aValue, PROPERTY_SEARCH_DEFAULT);
     }
     catch (std::exception & e)
     {
@@ -224,6 +223,7 @@ namespace com { namespace xuggle { namespace xuggler {
   Property :: getPropertyAsString(void *aContext, const char *aName)
   {
     char* retval = 0;
+    char *value = 0;
 
     try
     {
@@ -235,10 +235,8 @@ namespace com { namespace xuggle { namespace xuggler {
 
       // we don't allow a string value longer than this.  This is
       // actually safe because this buffer is only used for non-string options
-      char tmpBuffer[512];
-      int32_t bufLen = sizeof(tmpBuffer)/sizeof(char);
-      
-      const char* value = av_get_string(aContext, aName,0,tmpBuffer,bufLen);
+      if (av_opt_get(aContext, aName, 0, (uint8_t**)&value) < 0)
+          throw std::runtime_error("could not get property");
       
       if (value)
       {
@@ -261,6 +259,8 @@ namespace com { namespace xuggle { namespace xuggler {
       if (retval)
         delete [] retval;
       retval = 0;
+      if (value)
+        av_free(value);
     }
 
     // NOTE: Caller must call delete[] on returned value; we mean it!
@@ -297,10 +297,10 @@ namespace com { namespace xuggle { namespace xuggler {
       const AVOption* last = 0;
       do
       {
-        last = av_next_option(&fakeClassPtr, last);
+        last = av_opt_next(&fakeClassPtr, last);
         if (last &&
             last->unit &&
-            last->type == FF_OPT_TYPE_CONST &&
+            last->type == AV_OPT_TYPE_CONST &&
             strcmp(unit, last->unit)==0)
           ++retval;
       } while(last);
@@ -339,10 +339,10 @@ namespace com { namespace xuggle { namespace xuggler {
       int32_t constNo = -1;
       do
       {
-        last = av_next_option(&fakeClassPtr, last);
+        last = av_opt_next(&fakeClassPtr, last);
         if (last &&
             last->unit &&
-            last->type == FF_OPT_TYPE_CONST &&
+            last->type == AV_OPT_TYPE_CONST &&
             strcmp(unit, last->unit)==0)
         {
           // count in the same was as getNumFlagSettings,
@@ -350,7 +350,7 @@ namespace com { namespace xuggle { namespace xuggler {
           ++constNo;
           if (constNo == position)
           {
-            retval = Property::make(av_next_option(&fakeClassPtr, 0), last);
+            retval = Property::make(av_opt_next(&fakeClassPtr, 0), last);
           }
         }
       } while(last);
@@ -385,12 +385,12 @@ namespace com { namespace xuggle { namespace xuggler {
       fakeClass.option = mOptionStart;
       
       const AVOption* last = 0;
-      last = av_find_opt(&fakeClass, aName, unit, 0, 0);
+      last = av_opt_find(&fakeClass, aName, unit, 0, 0);
       if (last)
       {
-        if (last->type == FF_OPT_TYPE_CONST)
+        if (last->type == AV_OPT_TYPE_CONST)
         {
-          retval = Property::make(av_next_option(&fakeClass, 0), last);
+          retval = Property::make(av_opt_next(&fakeClass, 0), last);
         }
       }
 
@@ -415,7 +415,8 @@ namespace com { namespace xuggle { namespace xuggler {
       if (!aName  || !*aName)
         throw std::runtime_error("empty property name passed to setProperty");
       
-      retval = av_get_double(aContext, aName, 0);
+      if (av_opt_get_double(aContext, aName, 0, &retval) < 0)
+        throw std::runtime_error("error getting property as double");
 
     }
     catch (std::exception &e)
@@ -490,8 +491,7 @@ namespace com { namespace xuggle { namespace xuggler {
       
       if (!aName  || !*aName)
         throw std::runtime_error("empty property name passed to setProperty");
-   
-      retval = av_set_double(aContext, aName, value) ? 0 : -1;
+      retval = av_opt_set_double(aContext, aName, value, PROPERTY_SEARCH_DEFAULT);
     }
     catch (std::exception &e)
     {
@@ -513,7 +513,7 @@ namespace com { namespace xuggle { namespace xuggler {
       if (!aName  || !*aName)
         throw std::runtime_error("empty property name passed to setProperty");
    
-      retval = av_set_int(aContext, aName, value) ? 0 : -1;
+      retval = av_opt_set_int(aContext, aName, value, PROPERTY_SEARCH_DEFAULT);
     }
     catch (std::exception &e)
     {
@@ -547,7 +547,7 @@ namespace com { namespace xuggle { namespace xuggler {
       AVRational rational;
       rational.num = value->getNumerator();
       rational.den = value->getDenominator();
-      retval = av_set_q(aContext, aName, rational) ? 0 : -1;
+      retval = av_opt_set_q(aContext, aName, rational, PROPERTY_SEARCH_DEFAULT);
     }
     catch (std::exception &e)
     {
