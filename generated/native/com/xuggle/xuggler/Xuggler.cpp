@@ -445,6 +445,30 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1FLAG_1SUBT
 }
 
 
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1PROPERTY_1SEARCH_1DEFAULT_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IProperty::Search result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IProperty::Search)com::xuggle::xuggler::IProperty::PROPERTY_SEARCH_DEFAULT;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1PROPERTY_1SEARCH_1CHILDREN_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IProperty::Search result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IProperty::Search)com::xuggle::xuggler::IProperty::PROPERTY_SEARCH_CHILDREN;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
 SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IProperty_1getName(JNIEnv *jenv, jclass jcls, jlong jarg1, jobject jarg1_) {
   jstring jresult = 0 ;
   com::xuggle::xuggler::IProperty *arg1 = (com::xuggle::xuggler::IProperty *) 0 ;

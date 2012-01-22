@@ -37,6 +37,8 @@ class XugglerJNI {
   public final static native int IProperty_FLAG_AUDIO_PARAM_get();
   public final static native int IProperty_FLAG_VIDEO_PARAM_get();
   public final static native int IProperty_FLAG_SUBTITLE_PARAM_get();
+  public final static native int IProperty_PROPERTY_SEARCH_DEFAULT_get();
+  public final static native int IProperty_PROPERTY_SEARCH_CHILDREN_get();
   public final static native String IProperty_getName(long jarg1, IProperty jarg1_);
   public final static native String IProperty_getHelp(long jarg1, IProperty jarg1_);
   public final static native String IProperty_getUnit(long jarg1, IProperty jarg1_);

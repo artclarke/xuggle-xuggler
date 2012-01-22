@@ -312,4 +312,53 @@ public class IProperty extends RefCounted {
     }
   }
 
+  public enum Search {
+  /**
+   * How to search options when looking for different values.
+   * Do not search child options
+   */
+    PROPERTY_SEARCH_DEFAULT(XugglerJNI.IProperty_PROPERTY_SEARCH_DEFAULT_get()),
+  /**
+   * Search children first
+   */
+    PROPERTY_SEARCH_CHILDREN(XugglerJNI.IProperty_PROPERTY_SEARCH_CHILDREN_get());
+
+    public final int swigValue() {
+      return swigValue;
+    }
+
+    public static Search swigToEnum(int swigValue) {
+      Search[] swigValues = Search.class.getEnumConstants();
+      if (swigValue < swigValues.length && swigValue >= 0 && swigValues[swigValue].swigValue == swigValue)
+        return swigValues[swigValue];
+      for (Search swigEnum : swigValues)
+        if (swigEnum.swigValue == swigValue)
+          return swigEnum;
+      throw new IllegalArgumentException("No enum " + Search.class + " with value " + swigValue);
+    }
+
+    @SuppressWarnings("unused")
+    private Search() {
+      this.swigValue = SwigNext.next++;
+    }
+
+    @SuppressWarnings("unused")
+    private Search(int swigValue) {
+      this.swigValue = swigValue;
+      SwigNext.next = swigValue+1;
+    }
+
+    @SuppressWarnings("unused")
+    private Search(Search swigEnum) {
+      this.swigValue = swigEnum.swigValue;
+      SwigNext.next = this.swigValue+1;
+    }
+
+    private final int swigValue;
+
+    private static class SwigNext {
+      private static int next = 0;
+    }
+  }
+
 }
