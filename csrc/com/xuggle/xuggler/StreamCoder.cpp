@@ -102,7 +102,7 @@ StreamCoder::make(Direction direction, IStreamCoder* aCoder)
   StreamCoder *retval = 0;
   try
   {
-    AVCodecContext* codecCtx = avcodec_alloc_context();
+    AVCodecContext* codecCtx = avcodec_alloc_context3(0);
     if (!codecCtx)
       throw std::bad_alloc();
 
