@@ -108,29 +108,15 @@ ContainerFormatTest :: testSetOutputFormat()
   retval = format->setOutputFormat("", "", "");
   VS_TUT_ENSURE("could set to an invalid format", retval < 0);
 
+  // FFmpeg changed to now return errors for formats that don't exist.
+
   // FFMPEG returns an internal format if it doesn't know
   // the short name.
   retval = format->setOutputFormat("notavalidshortname", "", "");
-  VS_TUT_ENSURE("could set to an invalid format", retval == 0);
-  VS_TUT_ENSURE_EQUALS("unexpected format short name",
-      std::string(format->getOutputFormatShortName()),
-      std::string("ffm"));
-  VS_TUT_ENSURE_EQUALS("unexpected format long name",
-      std::string(format->getOutputFormatLongName()),
-      std::string("FFM (FFserver live feed) format"));
-  VS_TUT_ENSURE("no mime type expected", format->getOutputFormatMimeType());
+  VS_TUT_ENSURE("could set to an invalid format", retval < 0 );
   
-  // FFMPEG retuns an internal format if it doesn't know the
-  // long name.
   retval = format->setOutputFormat("", "notavalidurl&kdjs2kd:dkjs", "");
-  VS_TUT_ENSURE("could set to an invalid format", retval == 0);
-  VS_TUT_ENSURE_EQUALS("unexpected format short name",
-      std::string(format->getOutputFormatShortName()),
-      std::string("ffm"));
-  VS_TUT_ENSURE_EQUALS("unexpected format long name",
-      std::string(format->getOutputFormatLongName()),
-      std::string("FFM (FFserver live feed) format"));
-  VS_TUT_ENSURE("no mime type expected", format->getOutputFormatMimeType());
+  VS_TUT_ENSURE("could set to an invalid format", retval < 0 );
 
   // But it doesn't return anything if it doesn't know the
   // mime type.
