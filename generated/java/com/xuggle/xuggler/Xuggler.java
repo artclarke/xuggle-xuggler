@@ -14,7 +14,7 @@ package com.xuggle.xuggler;
  * @see com.xuggle.xuggler.Converter
  */
 
-public class Xuggler {
+public class Xuggler implements XugglerConstants {
 
   static {
     // Force the JNI library to load

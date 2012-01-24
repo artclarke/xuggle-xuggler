@@ -592,6 +592,9 @@ public class ICodec extends RefCounted {
    */
     CODEC_ID_NONE,
     CODEC_ID_MPEG1VIDEO,
+  /**
+   * preferred ID for MPEG-1/2 video decoding
+   */
     CODEC_ID_MPEG2VIDEO,
     CODEC_ID_MPEG2VIDEO_XVMC,
     CODEC_ID_H261,
@@ -653,7 +656,6 @@ public class ICodec extends RefCounted {
     CODEC_ID_QDRAW,
     CODEC_ID_VIXL,
     CODEC_ID_QPEG,
-    CODEC_ID_XVID,
     CODEC_ID_PNG,
     CODEC_ID_PPM,
     CODEC_ID_PBM,
@@ -747,7 +749,26 @@ public class ICodec extends RefCounted {
     CODEC_ID_PRORES,
     CODEC_ID_JV,
     CODEC_ID_DFA,
-    CODEC_ID_8SVX_RAW,
+    CODEC_ID_WMV3IMAGE,
+    CODEC_ID_VC1IMAGE,
+    CODEC_ID_G723_1_DEPRECATED,
+    CODEC_ID_G729_DEPRECATED,
+    CODEC_ID_UTVIDEO_DEPRECATED,
+    CODEC_ID_BMV_VIDEO,
+    CODEC_ID_VBLE,
+    CODEC_ID_DXTORY,
+    CODEC_ID_V410,
+    CODEC_ID_Y41P(XugglerJNI.ICodec_CODEC_ID_Y41P_get()),
+    CODEC_ID_UTVIDEO(XugglerJNI.ICodec_CODEC_ID_UTVIDEO_get()),
+    CODEC_ID_ESCAPE130(XugglerJNI.ICodec_CODEC_ID_ESCAPE130_get()),
+    CODEC_ID_AVRP(XugglerJNI.ICodec_CODEC_ID_AVRP_get()),
+    CODEC_ID_G2M(XugglerJNI.ICodec_CODEC_ID_G2M_get()),
+    CODEC_ID_V308(XugglerJNI.ICodec_CODEC_ID_V308_get()),
+    CODEC_ID_YUV4(XugglerJNI.ICodec_CODEC_ID_YUV4_get()),
+  /**
+   * A dummy id pointing at the start of audio codecs
+   */
+    CODEC_ID_FIRST_AUDIO(XugglerJNI.ICodec_CODEC_ID_FIRST_AUDIO_get()),
     CODEC_ID_PCM_S16LE(XugglerJNI.ICodec_CODEC_ID_PCM_S16LE_get()),
     CODEC_ID_PCM_S16BE,
     CODEC_ID_PCM_U16LE,
@@ -775,6 +796,7 @@ public class ICodec extends RefCounted {
     CODEC_ID_PCM_BLURAY,
     CODEC_ID_PCM_LXF,
     CODEC_ID_S302M,
+    CODEC_ID_PCM_S8_PLANAR,
     CODEC_ID_ADPCM_IMA_QT(XugglerJNI.ICodec_CODEC_ID_ADPCM_IMA_QT_get()),
     CODEC_ID_ADPCM_IMA_WAV,
     CODEC_ID_ADPCM_IMA_DK3,
@@ -813,6 +835,9 @@ public class ICodec extends RefCounted {
     CODEC_ID_XAN_DPCM,
     CODEC_ID_SOL_DPCM,
     CODEC_ID_MP2(XugglerJNI.ICodec_CODEC_ID_MP2_get()),
+  /**
+   * preferred ID for decoding MPEG audio layer 1, 2 or 3
+   */
     CODEC_ID_MP3,
     CODEC_ID_AAC,
     CODEC_ID_AC3,
@@ -832,6 +857,9 @@ public class ICodec extends RefCounted {
     CODEC_ID_SHORTEN,
     CODEC_ID_ALAC,
     CODEC_ID_WESTWOOD_SND1,
+  /**
+   * as in Berlin toast format
+   */
     CODEC_ID_GSM,
     CODEC_ID_QDM2,
     CODEC_ID_COOK,
@@ -867,8 +895,20 @@ public class ICodec extends RefCounted {
     CODEC_ID_AAC_LATM,
     CODEC_ID_QDMC,
     CODEC_ID_CELT,
+    CODEC_ID_BMV_AUDIO,
+    CODEC_ID_G729(XugglerJNI.ICodec_CODEC_ID_G729_get()),
+    CODEC_ID_G723_1(XugglerJNI.ICodec_CODEC_ID_G723_1_get()),
+    CODEC_ID_FFWAVESYNTH(XugglerJNI.ICodec_CODEC_ID_FFWAVESYNTH_get()),
+    CODEC_ID_8SVX_RAW(XugglerJNI.ICodec_CODEC_ID_8SVX_RAW_get()),
+  /**
+   * A dummy ID pointing at the start of subtitle codecs.
+   */
+    CODEC_ID_FIRST_SUBTITLE(XugglerJNI.ICodec_CODEC_ID_FIRST_SUBTITLE_get()),
     CODEC_ID_DVD_SUBTITLE(XugglerJNI.ICodec_CODEC_ID_DVD_SUBTITLE_get()),
     CODEC_ID_DVB_SUBTITLE,
+  /**
+   * raw UTF-8 text
+   */
     CODEC_ID_TEXT,
     CODEC_ID_XSUB,
     CODEC_ID_SSA,
@@ -876,10 +916,33 @@ public class ICodec extends RefCounted {
     CODEC_ID_HDMV_PGS_SUBTITLE,
     CODEC_ID_DVB_TELETEXT,
     CODEC_ID_SRT,
-    CODEC_ID_MICRODVD,
+    CODEC_ID_MICRODVD(XugglerJNI.ICodec_CODEC_ID_MICRODVD_get()),
+  /**
+   * A dummy ID pointing at the start of various fake codecs.
+   */
+    CODEC_ID_FIRST_UNKNOWN(XugglerJNI.ICodec_CODEC_ID_FIRST_UNKNOWN_get()),
     CODEC_ID_TTF(XugglerJNI.ICodec_CODEC_ID_TTF_get()),
+    CODEC_ID_BINTEXT(XugglerJNI.ICodec_CODEC_ID_BINTEXT_get()),
+    CODEC_ID_XBIN(XugglerJNI.ICodec_CODEC_ID_XBIN_get()),
+    CODEC_ID_IDF(XugglerJNI.ICodec_CODEC_ID_IDF_get()),
+  /**
+   * codec_id is not known (like CODEC_ID_NONE) but lavf should attempt 
+   * to identify it
+   */
     CODEC_ID_PROBE(XugglerJNI.ICodec_CODEC_ID_PROBE_get()),
+  /**
+   * _FAKE_ codec to indicate a raw MPEG-2 TS
+   * stream (only used by libavformat)
+   */
     CODEC_ID_MPEG2TS(XugglerJNI.ICodec_CODEC_ID_MPEG2TS_get()),
+  /**
+   * _FAKE_ codec to indicate a MPEG-4 Systems
+   * stream (only used by libavformat)
+   */
+    CODEC_ID_MPEG4SYSTEMS(XugglerJNI.ICodec_CODEC_ID_MPEG4SYSTEMS_get()),
+  /**
+   * Dummy codec for streams containing only metadata information.
+   */
     CODEC_ID_FFMETADATA(XugglerJNI.ICodec_CODEC_ID_FFMETADATA_get());
 
     public final int swigValue() {
