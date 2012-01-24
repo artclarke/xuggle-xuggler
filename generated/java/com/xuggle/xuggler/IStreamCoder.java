@@ -618,9 +618,11 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
  * the container will clean up after you (but yell at you)  
  * when it is closed.  
  * @return	>= 0 on success; < 0 on error.  
+ * 
+ * 
  */
   public int open() {
-    return XugglerJNI.IStreamCoder_open(swigCPtr, this);
+    return XugglerJNI.IStreamCoder_open__SWIG_0(swigCPtr, this);
   }
 
 /**
@@ -1163,6 +1165,23 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
     return XugglerJNI.IStreamCoder_setStandardsCompliance(swigCPtr, this, compliance.swigValue());
   }
 
+/**
+ * Open the codec with the given options.  
+ *  
+ * @param	options If non-NULL, a dictionary of parameter options to 
+ *		 set for this codec.  
+ * @param	unsetOptions If non-NULL, on successful return the prior contents 
+ *		 of this set  
+ * of meta data will be replaced with any settings in 'options' that 
+ * could not be set  
+ * on this codec.  
+ * @return	0 on success; <0 on error  
+ * @since	5.0  
+ */
+  public int open(IMetaData options, IMetaData unsetOptions) {
+    return XugglerJNI.IStreamCoder_open__SWIG_1(swigCPtr, this, IMetaData.getCPtr(options), options, IMetaData.getCPtr(unsetOptions), unsetOptions);
+  }
+
   public enum Direction {
   /**
    * The Direction in which this StreamCoder will work.
@@ -1210,63 +1229,125 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
 
   public enum Flags {
   /**
+   * Use fixed qscale.
    * XUGGLER Flags that can be passed to the setFlag(Flags, bool) method 
    *
    */
     FLAG_QSCALE(XugglerJNI.IStreamCoder_FLAG_QSCALE_get()),
+  /**
+   * 4 MV per MB allowed advanced prediction for H.263.
+   */
     FLAG_4MV(XugglerJNI.IStreamCoder_FLAG_4MV_get()),
+  /**
+   * Use qpel MC.
+   */
     FLAG_QPEL(XugglerJNI.IStreamCoder_FLAG_QPEL_get()),
+  /**
+   * Use GMC.
+   */
     FLAG_GMC(XugglerJNI.IStreamCoder_FLAG_GMC_get()),
     FLAG_MV0(XugglerJNI.IStreamCoder_FLAG_MV0_get()),
-    FLAG_PART(XugglerJNI.IStreamCoder_FLAG_PART_get()),
+  /**
+   * The parent program guarantees that the input for B-frames containing 
+   *
+   * streams is not written to for at least s->max_b_frames+1 frames, 
+   * if
+   * this is not set the input will be copied.
+   */
     FLAG_INPUT_PRESERVED(XugglerJNI.IStreamCoder_FLAG_INPUT_PRESERVED_get()),
+  /**
+   * Use internal 2pass ratecontrol in first pass mode.
+   */
     FLAG_PASS1(XugglerJNI.IStreamCoder_FLAG_PASS1_get()),
+  /**
+   * Use internal 2pass ratecontrol in second pass mode.
+   */
     FLAG_PASS2(XugglerJNI.IStreamCoder_FLAG_PASS2_get()),
-    FLAG_EXTERN_HUFF(XugglerJNI.IStreamCoder_FLAG_EXTERN_HUFF_get()),
+  /**
+   * Only decode/encode grayscale.
+   */
     FLAG_GRAY(XugglerJNI.IStreamCoder_FLAG_GRAY_get()),
+  /**
+   * Don't draw edges.
+   */
     FLAG_EMU_EDGE(XugglerJNI.IStreamCoder_FLAG_EMU_EDGE_get()),
+  /**
+   * error[?] variables will be set during encoding.
+   */
     FLAG_PSNR(XugglerJNI.IStreamCoder_FLAG_PSNR_get()),
     FLAG_TRUNCATED(XugglerJNI.IStreamCoder_FLAG_TRUNCATED_get()),
+  /**
+   * Normalize adaptive quantization. Input bitstream might be truncated 
+   * at a random
+   * location instead of only at frame boundaries.
+   */
     FLAG_NORMALIZE_AQP(XugglerJNI.IStreamCoder_FLAG_NORMALIZE_AQP_get()),
+  /**
+   * Use interlaced DCT.
+   */
     FLAG_INTERLACED_DCT(XugglerJNI.IStreamCoder_FLAG_INTERLACED_DCT_get()),
+  /**
+   * Force low delay.
+   */
     FLAG_LOW_DELAY(XugglerJNI.IStreamCoder_FLAG_LOW_DELAY_get()),
-    FLAG_ALT_SCAN(XugglerJNI.IStreamCoder_FLAG_ALT_SCAN_get()),
-    FLAG_TRELLIS_QUANT(XugglerJNI.IStreamCoder_FLAG_TRELLIS_QUANT_get()),
+  /**
+   * Place global headers in extradata instead of every keyframe.
+   */
     FLAG_GLOBAL_HEADER(XugglerJNI.IStreamCoder_FLAG_GLOBAL_HEADER_get()),
+  /**
+   * Use only bitexact stuff (except (I)DCT).
+   */
     FLAG_BITEXACT(XugglerJNI.IStreamCoder_FLAG_BITEXACT_get()),
+  /**
+   * H.263 advanced intra coding MPEG-4 AC prediction
+   */
     FLAG_AC_PRED(XugglerJNI.IStreamCoder_FLAG_AC_PRED_get()),
-    FLAG_H263P_UMV(XugglerJNI.IStreamCoder_FLAG_H263P_UMV_get()),
+  /**
+   * Use rate distortion optimization for cbp.
+   */
     FLAG_CBP_RD(XugglerJNI.IStreamCoder_FLAG_CBP_RD_get()),
+  /**
+   * Use rate distortion optimization for qp selectioon.
+   */
     FLAG_QP_RD(XugglerJNI.IStreamCoder_FLAG_QP_RD_get()),
-    FLAG_H263P_AIV(XugglerJNI.IStreamCoder_FLAG_H263P_AIV_get()),
-    FLAG_OBMC(XugglerJNI.IStreamCoder_FLAG_OBMC_get()),
+  /**
+   * loop filter
+   */
     FLAG_LOOP_FILTER(XugglerJNI.IStreamCoder_FLAG_LOOP_FILTER_get()),
-    FLAG_H263P_SLICE_STRUCT(XugglerJNI.IStreamCoder_FLAG_H263P_SLICE_STRUCT_get()),
+  /**
+   * interlaced motion estimation
+   */
     FLAG_INTERLACED_ME(XugglerJNI.IStreamCoder_FLAG_INTERLACED_ME_get()),
-    FLAG_SVCD_SCAN_OFFSET(XugglerJNI.IStreamCoder_FLAG_SVCD_SCAN_OFFSET_get()),
     FLAG_CLOSED_GOP(XugglerJNI.IStreamCoder_FLAG_CLOSED_GOP_get()),
+  /**
+   * Allow non spec compliant speedup tricks.
+   */
     FLAG2_FAST(XugglerJNI.IStreamCoder_FLAG2_FAST_get()),
+  /**
+   * Strictly enforce GOP size.
+   */
     FLAG2_STRICT_GOP(XugglerJNI.IStreamCoder_FLAG2_STRICT_GOP_get()),
+  /**
+   * Skip bitstream encoding.
+   */
     FLAG2_NO_OUTPUT(XugglerJNI.IStreamCoder_FLAG2_NO_OUTPUT_get()),
+  /**
+   *
+   */
     FLAG2_LOCAL_HEADER(XugglerJNI.IStreamCoder_FLAG2_LOCAL_HEADER_get()),
-    FLAG2_BPYRAMID(XugglerJNI.IStreamCoder_FLAG2_BPYRAMID_get()),
-    FLAG2_WPRED(XugglerJNI.IStreamCoder_FLAG2_WPRED_get()),
-    FLAG2_MIXED_REFS(XugglerJNI.IStreamCoder_FLAG2_MIXED_REFS_get()),
-    FLAG2_8X8DCT(XugglerJNI.IStreamCoder_FLAG2_8X8DCT_get()),
-    FLAG2_FASTPSKIP(XugglerJNI.IStreamCoder_FLAG2_FASTPSKIP_get()),
-    FLAG2_AUD(XugglerJNI.IStreamCoder_FLAG2_AUD_get()),
-    FLAG2_BRDO(XugglerJNI.IStreamCoder_FLAG2_BRDO_get()),
-    FLAG2_INTRA_VLC(XugglerJNI.IStreamCoder_FLAG2_INTRA_VLC_get()),
-    FLAG2_MEMC_ONLY(XugglerJNI.IStreamCoder_FLAG2_MEMC_ONLY_get()),
-    FLAG2_DROP_FRAME_TIMECODE(XugglerJNI.IStreamCoder_FLAG2_DROP_FRAME_TIMECODE_get()),
+  /**
+   * RD optimal MB level residual skipping
+   */
     FLAG2_SKIP_RD(XugglerJNI.IStreamCoder_FLAG2_SKIP_RD_get()),
+  /**
+   * Input bitstream might be truncated at a packet boundaries instead 
+   * of only at frame boundaries.
+   */
     FLAG2_CHUNKS(XugglerJNI.IStreamCoder_FLAG2_CHUNKS_get()),
-    FLAG2_NON_LINEAR_QUANT(XugglerJNI.IStreamCoder_FLAG2_NON_LINEAR_QUANT_get()),
-    FLAG2_BIT_RESERVOIR(XugglerJNI.IStreamCoder_FLAG2_BIT_RESERVOIR_get()),
-    FLAG2_MBTREE(XugglerJNI.IStreamCoder_FLAG2_MBTREE_get()),
-    FLAG2_PSY(XugglerJNI.IStreamCoder_FLAG2_PSY_get()),
-    FLAG2_SSIM(XugglerJNI.IStreamCoder_FLAG2_SSIM_get()),
-    FLAG2_INTRA_REFRESH(XugglerJNI.IStreamCoder_FLAG2_INTRA_REFRESH_get());
+  /**
+   * Show all frames before the first keyframe
+   */
+    FLAG2_SHOW_ALL(XugglerJNI.IStreamCoder_FLAG2_SHOW_ALL_get());
 
     public final int swigValue() {
       return swigValue;
@@ -1337,7 +1418,7 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
    * The
    * type of things spec authors don't like to talk about, but secretly 
    *
-   * fantasize about. You know what I mean MPEG Working Group.
+   * fantasize about. You know what I mean, MPEG Working Group.
    */
     COMPLIANCE_EXPERIMENTAL(XugglerJNI.IStreamCoder_COMPLIANCE_EXPERIMENTAL_get());
 

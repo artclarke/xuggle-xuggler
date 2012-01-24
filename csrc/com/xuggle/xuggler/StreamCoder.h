@@ -172,6 +172,8 @@ namespace com { namespace xuggle { namespace xuggler
 
     virtual CodecStandardsCompliance getStandardsCompliance();
     virtual int32_t setStandardsCompliance(CodecStandardsCompliance compliance);
+    virtual int32_t open(IMetaData *options, IMetaData* unsetOptions);
+
   protected:
     StreamCoder();
     virtual ~StreamCoder();

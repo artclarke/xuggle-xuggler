@@ -63,6 +63,18 @@ public:
    */
   int32_t copy(IMetaData* copy);
 
+  /**
+   * Destroys the current data and copies all data from copy.
+   */
+  int32_t copy(AVDictionary* copy);
+
+  /**
+   * Returns the AVDictionary for passing to FFmpeg calls
+   *
+   * @return The underlying AVDictionary
+   */
+  AVDictionary* getDictionary() { return (mMetaData ? *mMetaData : 0); }
+
 protected:
   MetaData();
   virtual

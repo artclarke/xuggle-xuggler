@@ -144,33 +144,29 @@ MetaData :: make(AVDictionary* metaDataToCopy)
 }
 
 int32_t
+MetaData :: copy(AVDictionary *data)
+{
+  if (!data)
+    return -1;
+
+  if (mMetaData) {
+    if (data == *mMetaData)
+      // copy the current data; just return
+      return 0;
+    av_dict_free(mMetaData);
+    *mMetaData = 0;
+  }
+  av_dict_copy(mMetaData, data, 0);
+  return 0;
+}
+
+int32_t
 MetaData :: copy(IMetaData* dataToCopy)
 {
   MetaData* data = dynamic_cast<MetaData*>(dataToCopy);
   if (!data)
     return -1;
-  if (data == this)
-    return 0;
   
-  if (mMetaData && *mMetaData) {
-    av_dict_free(mMetaData);
-    *mMetaData = 0;
-  }
-  
-  AVDictionaryEntry* tag = 0;
-  do {
-    tag = av_dict_get(*data->mMetaData, "", tag,
-        AV_DICT_IGNORE_SUFFIX);
-    if (tag) {
-      int32_t retval = av_dict_set(mMetaData,
-          tag->key, tag->value, 0);
-      if (retval < 0)
-      {
-        return retval;
-      }
-    }
-  } while(tag);
-    
-  return 0;
+  return copy(data->getDictionary());
 }
 }}}

@@ -33,9 +33,11 @@
 #include <com/xuggle/xuggler/VideoPicture.h>
 #include <com/xuggle/xuggler/Packet.h>
 #include <com/xuggle/xuggler/Property.h>
+#include <com/xuggle/xuggler/MetaData.h>
 
 extern "C" {
 #include <libavcodec/opt.h>
+#include <libavutil/dict.h>
 }
 VS_LOG_SETUP(VS_CPP_PACKAGE);
 
@@ -570,7 +572,13 @@ StreamCoder::setFlag(IStreamCoder::Flags flag, bool value)
 int32_t
 StreamCoder::open()
 {
+  return open(0, 0);
+}
+int32_t
+StreamCoder::open(IMetaData* aOptions, IMetaData* aUnsetOptions)
+{
   int32_t retval = -1;
+  AVDictionary* tmp=0;
   try
   {
     if (!mCodecContext)
@@ -585,6 +593,16 @@ StreamCoder::open()
 
     if (!mCodec)
       throw std::runtime_error("no codec set for coder");
+
+    // Time to set options
+    if (aOptions) {
+        MetaData* options = dynamic_cast<MetaData*>(aOptions);
+        if (!options)
+          throw new std::runtime_error("wow... who's passing us crap?");
+
+        // make a copy of the data returned.
+        av_dict_copy(&tmp, options->getDictionary(), 0);
+    }
 
     // don't allow us to open a coder without a time base
     if (mDirection == ENCODING && mCodecContext->time_base.num == 0)
@@ -620,7 +638,7 @@ StreamCoder::open()
       }
     }
 
-    retval = avcodec_open(mCodecContext, mCodec->getAVCodec());
+    retval = avcodec_open2(mCodecContext, mCodec->getAVCodec(), &tmp);
 
     if (retval < 0)
       throw std::runtime_error("could not open codec");
@@ -649,6 +667,13 @@ StreamCoder::open()
         mAudioFrameBuffer = IBuffer::make(this, frame_bytes);
       mBytesInFrameBuffer = 0;
     }
+    if (aUnsetOptions)
+    {
+      MetaData* unsetOptions = dynamic_cast<MetaData*>(aUnsetOptions);
+      if (!unsetOptions)
+        throw new std::runtime_error("really... seriously?");
+      unsetOptions->copy(tmp);
+    }
   }
   catch (std::bad_alloc & e)
   {
@@ -658,6 +683,7 @@ StreamCoder::open()
   {
     VS_LOG_WARN("Error: %s", e.what());
     retval = -1;
+    av_dict_free(&tmp);
   }
   return retval;
 }
@@ -757,8 +783,40 @@ StreamCoder::decodeAudio(IAudioSamples *pOutSamples, IPacket *pPacket,
       pkt.size = inBufSize;
 
       mCodecContext->reordered_opaque = packet->getPts();
-      retval
-      = avcodec_decode_audio3(mCodecContext, outBuf, &outBufSize, &pkt);
+
+      {
+        AVFrame frame;
+        int got_frame = 0;
+
+        avcodec_get_frame_defaults(&frame);
+
+        retval = avcodec_decode_audio4(mCodecContext, &frame, &got_frame, &pkt);
+        // the API for decoding audio changed ot support planar audio and we
+        // need to back-port
+        if (retval >= 0 && got_frame) {
+          int ch, plane_size;
+          int planar = av_sample_fmt_is_planar(mCodecContext->sample_fmt);
+          int data_size = av_samples_get_buffer_size(&plane_size,
+            mCodecContext->channels,
+            frame.nb_samples,
+            mCodecContext->sample_fmt,
+            1);
+          if (outBufSize < data_size) {
+            VS_LOG_ERROR("Output buffer is not large enough; no audio actually returned");
+            outBufSize = 0;
+          } else {
+            memcpy(outBuf, frame.extended_data[0], plane_size);
+            if (planar && mCodecContext->channels > 1) {
+              uint8_t *out = ((uint8_t*)outBuf)+plane_size;
+              for(ch = 1; ch < mCodecContext->channels; ch++) {
+                memcpy(out, frame.extended_data[ch], plane_size);
+                out += plane_size;
+              }
+            }
+            outBufSize = data_size;
+          }
+        }
+      }
       VS_LOG_TRACE("Finished %d decodeAudio(%p, %p, %d, %p, %d);",
           retval,
           mCodecContext,

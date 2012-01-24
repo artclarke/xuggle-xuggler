@@ -283,6 +283,9 @@ StreamCoderTest :: testDecodingAndEncodingFullyInterleavedFile()
   RefPointer<IPacket> opacket = IPacket::make();
   VS_TUT_ENSURE("! opacket", opacket);
 
+  RefPointer<IMetaData> inputProps = IMetaData::make();
+  RefPointer<IMetaData> outputProps = IMetaData::make();
+
   {
     // Let's set up audio first.
     ic = h->coders[h->first_input_audio_stream];
@@ -291,16 +294,30 @@ StreamCoderTest :: testDecodingAndEncodingFullyInterleavedFile()
     // Set the output coder correctly.
     oc->setSampleRate(ic->getSampleRate());
     oc->setChannels(ic->getChannels());
+
+    // Using the MetaData structure
+    char tmpBuf[1024];
+    snprintf(tmpBuf, sizeof(tmpBuf), "%d", ic->getBitRate());
+
+    inputProps->setValue("b", tmpBuf);
+
+    const char* invalidKey="kd82jclkjdi2oc001,ss2-948";
+    const char* invalidValue="c9xu1nxL28fJ9";
+    inputProps->setValue(invalidKey, invalidValue);
+
     oc->setBitRate(ic->getBitRate());
 
     samples = IAudioSamples::make(1024, ic->getChannels());
     VS_TUT_ENSURE("got no samples", samples);
 
-
-    retval = ic->open();
+    retval = ic->open(0,0);
     VS_TUT_ENSURE("Could not open input coder", retval >= 0);
-    retval = oc->open();
+    retval = oc->open(inputProps.value(), outputProps.value());
     VS_TUT_ENSURE("Could not open output coder", retval >= 0);
+
+    // now let's ensure our fake property was not set.
+    VS_TUT_ENSURE("Should only have one unset setting", outputProps->getNumKeys() == 1)
+    VS_TUT_ENSURE("Should have expected value", strcmp(outputProps->getValue(invalidKey, IMetaData::METADATA_NONE), invalidValue)==0);
   }
   {
     // now, let's set up video.
