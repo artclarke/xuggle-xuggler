@@ -170,6 +170,8 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int32_t getExtraData(com::xuggle::ferry::IBuffer *dest, int32_t offset, int32_t maxBytesToCopy);
     virtual int32_t getExtraDataSize();
 
+    virtual CodecStandardsCompliance getStandardsCompliance();
+    virtual int32_t setStandardsCompliance(CodecStandardsCompliance compliance);
   protected:
     StreamCoder();
     virtual ~StreamCoder();

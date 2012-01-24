@@ -436,6 +436,13 @@ class XugglerJNI {
   public final static native int IStreamCoder_setExtraData(long jarg1, IStreamCoder jarg1_, long jarg2, IBuffer jarg2_, int jarg3, int jarg4, boolean jarg5);
   public final static native int IStreamCoder_getExtraData(long jarg1, IStreamCoder jarg1_, long jarg2, IBuffer jarg2_, int jarg3, int jarg4);
   public final static native int IStreamCoder_getExtraDataSize(long jarg1, IStreamCoder jarg1_);
+  public final static native int IStreamCoder_COMPLIANCE_VERY_STRICT_get();
+  public final static native int IStreamCoder_COMPLIANCE_STRICT_get();
+  public final static native int IStreamCoder_COMPLIANCE_NORMAL_get();
+  public final static native int IStreamCoder_COMPLIANCE_UNOFFICIAL_get();
+  public final static native int IStreamCoder_COMPLIANCE_EXPERIMENTAL_get();
+  public final static native int IStreamCoder_getStandardsCompliance(long jarg1, IStreamCoder jarg1_);
+  public final static native int IStreamCoder_setStandardsCompliance(long jarg1, IStreamCoder jarg1_, int jarg2);
   public final static native int IIndexEntry_IINDEX_FLAG_KEYFRAME_get();
   public final static native long IIndexEntry_make(long jarg1, long jarg2, int jarg3, int jarg4, int jarg5);
   public final static native long IIndexEntry_getPosition(long jarg1, IIndexEntry jarg1_);

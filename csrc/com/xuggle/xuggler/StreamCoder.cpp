@@ -1870,6 +1870,22 @@ StreamCoder::getExtraDataSize()
   return 0;
 }
 
+IStreamCoder::CodecStandardsCompliance
+StreamCoder :: getStandardsCompliance()
+{
+  if (mCodecContext)
+    return (CodecStandardsCompliance) mCodecContext->strict_std_compliance;
+  return (CodecStandardsCompliance)0;
+}
+
+int32_t
+StreamCoder :: setStandardsCompliance(CodecStandardsCompliance compliance)
+{
+  if (!mCodecContext)
+    return -1;
+  mCodecContext->strict_std_compliance = compliance;
+  return 0;
+}
 }
 }
 }

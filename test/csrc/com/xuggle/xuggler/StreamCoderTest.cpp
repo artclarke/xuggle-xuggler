@@ -278,7 +278,7 @@ StreamCoderTest :: testDecodingAndEncodingFullyInterleavedFile()
 
   RefPointer<IPacket> packet = IPacket::make();
 
-  hw->setupWriting("StreamCoderTest_6_output.mov", "mpeg4", "pcm_mulaw", "mov");
+  hw->setupWriting("StreamCoderTest_6_output.mov", "mpeg4", "libmp3lame", "mov");
 
   RefPointer<IPacket> opacket = IPacket::make();
   VS_TUT_ENSURE("! opacket", opacket);

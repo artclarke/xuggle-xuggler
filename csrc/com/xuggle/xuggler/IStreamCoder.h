@@ -967,6 +967,60 @@ namespace com { namespace xuggle { namespace xuggler
      * @since 3.3
      */
     virtual int32_t getExtraDataSize()=0;
+
+    /**
+     * An enumeration of how strictly Codecs may follow the spec.
+     * Not all settings follow these requirements, but some
+     * experimental codecs require this flag to be set to use.
+     *
+     * @since 5.0
+     */
+    typedef enum {
+      /**
+       * Strictly conform to an older more strict version of the spec or reference software.
+       */
+      COMPLIANCE_VERY_STRICT=2,
+      /**
+       * Strictly conform to all the things in the spec no matter what consequences
+       */
+      COMPLIANCE_STRICT=1,
+      /**
+       * Take normal liberties with the spec, including taking the spec out to dinner, and
+       * making suggestive comments to the spec.
+       */
+      COMPLIANCE_NORMAL=0,
+      /**
+       * Allow unofficial, but still mostly chaste, extensions to the spec.
+       */
+      COMPLIANCE_UNOFFICIAL=-1,
+      /**
+       * Allow nonstandardized experimental things. Potentially deviant things.  The
+       * type of things spec authors don't like to talk about, but secretly
+       * fantasize about.  You know what I mean MPEG Working Group.
+       */
+      COMPLIANCE_EXPERIMENTAL=-2,
+    } CodecStandardsCompliance;
+
+    /**
+     * Gets the current level of standards compliance.
+     * @return The level of standards compliance.
+     * @see CodecStandardsCompliance
+     * @since 5.0
+     */
+    virtual CodecStandardsCompliance getStandardsCompliance()=0;
+
+    /**
+     * Set the level of standards compliance.  Only paid attention to
+     * before the code is opened.
+     *
+     * @param compliance The desired compliance level to set
+     * @return 0 on success; non-zero on failure
+     * @see CodecStandardsCompliance
+     * @since 5.0
+     */
+    virtual int32_t setStandardsCompliance(CodecStandardsCompliance compliance)=0;
+
+
   };
 
 }}}

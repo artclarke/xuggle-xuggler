@@ -1141,6 +1141,28 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
     return XugglerJNI.IStreamCoder_getExtraDataSize(swigCPtr, this);
   }
 
+/**
+ * Gets the current level of standards compliance.  
+ * @return	The level of standards compliance.  
+ * @see		CodecStandardsCompliance  
+ * @since	5.0  
+ */
+  public IStreamCoder.CodecStandardsCompliance getStandardsCompliance() {
+    return IStreamCoder.CodecStandardsCompliance.swigToEnum(XugglerJNI.IStreamCoder_getStandardsCompliance(swigCPtr, this));
+  }
+
+/**
+ * Set the level of standards compliance. Only paid attention to  
+ * before the code is opened.  
+ * @param	compliance The desired compliance level to set  
+ * @return	0 on success; non-zero on failure  
+ * @see		CodecStandardsCompliance  
+ * @since	5.0  
+ */
+  public int setStandardsCompliance(IStreamCoder.CodecStandardsCompliance compliance) {
+    return XugglerJNI.IStreamCoder_setStandardsCompliance(swigCPtr, this, compliance.swigValue());
+  }
+
   public enum Direction {
   /**
    * The Direction in which this StreamCoder will work.
@@ -1273,6 +1295,79 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
 
     @SuppressWarnings("unused")
     private Flags(Flags swigEnum) {
+      this.swigValue = swigEnum.swigValue;
+      SwigNext.next = this.swigValue+1;
+    }
+
+    private final int swigValue;
+
+    private static class SwigNext {
+      private static int next = 0;
+    }
+  }
+
+  public enum CodecStandardsCompliance {
+  /**
+   * An enumeration of how strictly Codecs may follow the spec.
+   * Not all settings follow these requirements, but some
+   * experimental codecs require this flag to be set to use.
+   * @since	5.0
+   * Strictly conform to an older more strict version of the spec or reference 
+   * software.
+   */
+    COMPLIANCE_VERY_STRICT(XugglerJNI.IStreamCoder_COMPLIANCE_VERY_STRICT_get()),
+  /**
+   * Strictly conform to all the things in the spec no matter what consequences 
+   *
+   */
+    COMPLIANCE_STRICT(XugglerJNI.IStreamCoder_COMPLIANCE_STRICT_get()),
+  /**
+   * Take normal liberties with the spec, including taking the spec out 
+   * to dinner, and
+   * making suggestive comments to the spec.
+   */
+    COMPLIANCE_NORMAL(XugglerJNI.IStreamCoder_COMPLIANCE_NORMAL_get()),
+  /**
+   * Allow unofficial, but still mostly chaste, extensions to the spec. 
+   *
+   */
+    COMPLIANCE_UNOFFICIAL(XugglerJNI.IStreamCoder_COMPLIANCE_UNOFFICIAL_get()),
+  /**
+   * Allow nonstandardized experimental things. Potentially deviant things. 
+   * The
+   * type of things spec authors don't like to talk about, but secretly 
+   *
+   * fantasize about. You know what I mean MPEG Working Group.
+   */
+    COMPLIANCE_EXPERIMENTAL(XugglerJNI.IStreamCoder_COMPLIANCE_EXPERIMENTAL_get());
+
+    public final int swigValue() {
+      return swigValue;
+    }
+
+    public static CodecStandardsCompliance swigToEnum(int swigValue) {
+      CodecStandardsCompliance[] swigValues = CodecStandardsCompliance.class.getEnumConstants();
+      if (swigValue < swigValues.length && swigValue >= 0 && swigValues[swigValue].swigValue == swigValue)
+        return swigValues[swigValue];
+      for (CodecStandardsCompliance swigEnum : swigValues)
+        if (swigEnum.swigValue == swigValue)
+          return swigEnum;
+      throw new IllegalArgumentException("No enum " + CodecStandardsCompliance.class + " with value " + swigValue);
+    }
+
+    @SuppressWarnings("unused")
+    private CodecStandardsCompliance() {
+      this.swigValue = SwigNext.next++;
+    }
+
+    @SuppressWarnings("unused")
+    private CodecStandardsCompliance(int swigValue) {
+      this.swigValue = swigValue;
+      SwigNext.next = swigValue+1;
+    }
+
+    @SuppressWarnings("unused")
+    private CodecStandardsCompliance(CodecStandardsCompliance swigEnum) {
       this.swigValue = swigEnum.swigValue;
       SwigNext.next = this.swigValue+1;
     }
