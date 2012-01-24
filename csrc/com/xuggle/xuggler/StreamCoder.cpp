@@ -20,6 +20,8 @@
 #include <stdexcept>
 #include <cstring>
 
+#define attribute_deprecated
+
 #include <com/xuggle/ferry/Logger.h>
 #include <com/xuggle/ferry/RefPointer.h>
 

@@ -196,19 +196,19 @@ static SwsContext *xuggleSws_getContext(int srcW, int srcH, enum PixelFormat src
     if(!(c=sws_alloc_context()))
         return NULL;
 
-    av_set_int(c, "sws_flags", flags);
-    av_set_int(c, "srcw", srcW);
-    av_set_int(c, "srch", srcH);
-    av_set_int(c, "dstw", dstW);
-    av_set_int(c, "dsth", dstH);
-    av_set_int(c, "src_range", srcRange);
-    av_set_int(c, "dst_range", dstRange);
-    av_set_int(c, "src_format", srcFormat);
-    av_set_int(c, "dst_format", dstFormat);
+    av_opt_set_int(c, "sws_flags", flags, 0);
+    av_opt_set_int(c, "srcw", srcW, 0);
+    av_opt_set_int(c, "srch", srcH, 0);
+    av_opt_set_int(c, "dstw", dstW, 0);
+    av_opt_set_int(c, "dsth", dstH, 0);
+    av_opt_set_int(c, "src_range", srcRange, 0);
+    av_opt_set_int(c, "dst_range", dstRange, 0);
+    av_opt_set_int(c, "src_format", srcFormat, 0);
+    av_opt_set_int(c, "dst_format", dstFormat, 0);
 
     if (param) {
-        av_set_double(c, "param0", param[0]);
-        av_set_double(c, "param1", param[1]);
+        av_opt_set_double(c, "param0", param[0], 0);
+        av_opt_set_double(c, "param1", param[1], 0);
     }
 
     coeff = sws_getCoefficients(SWS_CS_DEFAULT);
