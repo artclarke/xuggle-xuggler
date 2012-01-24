@@ -27,7 +27,6 @@ check_PROGRAMS=\
   xugglerTestStreamCoderProperty \
   xugglerTestStreamCoderX264 \
   xugglerTestStreamCoderSpeex \
-  xugglerTestStreamCoderFaac \
   xugglerTestStream \
   xugglerTestTimeValue \
   xugglerTestError
@@ -231,17 +230,6 @@ nodist_xugglerTestStreamCoderSpeex_SOURCES=\
 xugglerTestStreamCoderSpeex_LDADD=\
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
-xugglerTestStreamCoderFaac_SOURCES=\
-  StreamCoderFaacTest.cpp \
-  Main.cpp \
-  Helper.cpp
-
-nodist_xugglerTestStreamCoderFaac_SOURCES=\
-  StreamCoderFaacTest_CXXRunner.cpp
-
-xugglerTestStreamCoderFaac_LDADD=\
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
-
 xugglerTestStreamCoderProperty_SOURCES=\
   StreamCoderPropertyTest.cpp \
   Main.cpp \
@@ -319,7 +307,6 @@ BUILT_SOURCES= \
   VideoResamplerTest_CXXRunner.cpp \
   StreamCoderTest_CXXRunner.cpp \
   StreamCoderPropertyTest_CXXRunner.cpp \
-  StreamCoderFaacTest_CXXRunner.cpp \
   StreamCoderSpeexTest_CXXRunner.cpp \
   StreamCoderX264Test_CXXRunner.cpp
 
@@ -342,7 +329,6 @@ noinst_HEADERS = \
   StreamCoderTest.h \
   StreamCoderPropertyTest.h \
   StreamCoderX264Test.h \
-  StreamCoderFaacTest.h \
   StreamCoderSpeexTest.h \
   StreamTest.h \
   TimeValueTest.h \
