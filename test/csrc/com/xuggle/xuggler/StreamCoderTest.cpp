@@ -305,8 +305,6 @@ StreamCoderTest :: testDecodingAndEncodingFullyInterleavedFile()
     const char* invalidValue="c9xu1nxL28fJ9";
     inputProps->setValue(invalidKey, invalidValue);
 
-    oc->setBitRate(ic->getBitRate());
-
     samples = IAudioSamples::make(1024, ic->getChannels());
     VS_TUT_ENSURE("got no samples", samples);
 
