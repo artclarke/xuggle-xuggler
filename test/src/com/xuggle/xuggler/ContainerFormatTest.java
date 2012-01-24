@@ -199,7 +199,7 @@ public class ContainerFormatTest extends TestCase
         fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_AUDIO));
     
     fmt.setOutputFormat("mp4", null, null);
-    assertEquals(ICodec.ID.CODEC_ID_MPEG4,
+    assertEquals(ICodec.ID.CODEC_ID_H264,
         fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_VIDEO));
     assertEquals(ICodec.ID.CODEC_ID_AAC,
         fmt.establishOutputCodecId(ICodec.Type.CODEC_TYPE_AUDIO));
@@ -274,6 +274,20 @@ public class ContainerFormatTest extends TestCase
         // and the test is now finished.
         break;
       }
+    }
+  }
+  
+  /**
+   * This test is not really a test -- it's used to show all enums
+   * and how they map to codecs
+   */
+  @Test
+  public void testShowEnumsWithoutNativeCode()
+  {
+    ICodec.ID ids[] = ICodec.ID.values();
+    for (ICodec.ID id : ids)
+    {
+      System.out.println("ID: " + id + "; Value: " + id.swigValue());
     }
   }
 
