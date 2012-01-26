@@ -442,7 +442,7 @@ AC_ARG_ENABLE([captive-librtmp],
               [AS_HELP_STRING([--enable-captive-librtmp],
                               [use our own captive versions of the rtmp protocol library (default is no)])],
                               [],
-                              [enable_captive_librtmp=no])
+                              [enable_captive_librtmp=yes])
 if test "x$enable_captives" != "xyes"; then
   enable_captive_librtmp=no
 fi
