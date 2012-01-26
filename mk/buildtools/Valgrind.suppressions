@@ -91,3 +91,178 @@
    Memcheck:Cond
    fun:ff_print_debug_info
 }
+{
+   os_x_leak_001
+   Memcheck:Leak
+   fun:malloc
+   fun:malloc
+   fun:_Znwm
+   fun:_ZNSt6vectorIPFPKc17dyld_image_statesjPK15dyld_image_infoESaIS7_EE13_M_insert_auxEN9__gnu_cxx17__normal_iteratorIPS7_S9_EERKS7_
+   fun:_ZNSt6vectorIPFPKc17dyld_image_statesjPK15dyld_image_infoESaIS7_EE6insertEN9__gnu_cxx17__normal_iteratorIPS7_S9_EERKS7_
+   fun:_ZN4dyld36registerImageStateBatchChangeHandlerE17dyld_image_statesPFPKcS0_jPK15dyld_image_infoE
+   fun:dyld_register_image_state_change_handler
+   fun:_dyld_initializer
+   fun:libSystem_initializer
+   fun:_ZN16ImageLoaderMachO18doModInitFunctionsERKN11ImageLoader11LinkContextE
+   fun:_ZN16ImageLoaderMachO16doInitializationERKN11ImageLoader11LinkContextE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader15runInitializersERKNS_11LinkContextERNS_21InitializerTimingListE
+   fun:_ZN4dyld24initializeMainExecutableEv
+   fun:_ZN4dyld5_mainEPK12macho_headermiPPKcS5_S5_
+   fun:_dyld_start
+   obj:*
+}
+{
+   os_x_leak_002
+   Memcheck:Leak
+   fun:malloc
+   fun:strdup
+   fun:_xpc_strdup
+   fun:_xpc_dictionary_insert
+   fun:xpc_dictionary_set_string
+   fun:_libxpc_initializer
+   fun:libSystem_initializer
+   fun:_ZN16ImageLoaderMachO18doModInitFunctionsERKN11ImageLoader11LinkContextE
+   fun:_ZN16ImageLoaderMachO16doInitializationERKN11ImageLoader11LinkContextE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader15runInitializersERKNS_11LinkContextERNS_21InitializerTimingListE
+   fun:_ZN4dyld24initializeMainExecutableEv
+   fun:_ZN4dyld5_mainEPK12macho_headermiPPKcS5_S5_
+   fun:_dyld_start
+   obj:*
+}
+{
+   os_x_leak_003
+   Memcheck:Leak
+   fun:malloc
+   fun:get_or_create_key_element
+   fun:_keymgr_get_and_lock_processwide_ptr_2
+   fun:__keymgr_initializer
+   fun:libSystem_initializer
+   fun:_ZN16ImageLoaderMachO18doModInitFunctionsERKN11ImageLoader11LinkContextE
+   fun:_ZN16ImageLoaderMachO16doInitializationERKN11ImageLoader11LinkContextE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader15runInitializersERKNS_11LinkContextERNS_21InitializerTimingListE
+   fun:_ZN4dyld24initializeMainExecutableEv
+   fun:_ZN4dyld5_mainEPK12macho_headermiPPKcS5_S5_
+   fun:_dyld_start
+   obj:*
+}
+{
+   os_x_leak_004
+   Memcheck:Leak
+   fun:calloc
+   fun:_xpc_calloc
+   fun:_xpc_base_create
+   fun:_xpc_domain_create
+   fun:_libxpc_initializer
+   fun:libSystem_initializer
+   fun:_ZN16ImageLoaderMachO18doModInitFunctionsERKN11ImageLoader11LinkContextE
+   fun:_ZN16ImageLoaderMachO16doInitializationERKN11ImageLoader11LinkContextE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader15runInitializersERKNS_11LinkContextERNS_21InitializerTimingListE
+   fun:_ZN4dyld24initializeMainExecutableEv
+   fun:_ZN4dyld5_mainEPK12macho_headermiPPKcS5_S5_
+   fun:_dyld_start
+   obj:*
+}
+{
+   os_x_leak_005
+   Memcheck:Leak
+   fun:malloc
+   fun:_xpc_malloc
+   fun:_xpc_dictionary_insert
+   fun:xpc_dictionary_set_string
+   fun:_libxpc_initializer
+   fun:libSystem_initializer
+   fun:_ZN16ImageLoaderMachO18doModInitFunctionsERKN11ImageLoader11LinkContextE
+   fun:_ZN16ImageLoaderMachO16doInitializationERKN11ImageLoader11LinkContextE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader15runInitializersERKNS_11LinkContextERNS_21InitializerTimingListE
+   fun:_ZN4dyld24initializeMainExecutableEv
+   fun:_ZN4dyld5_mainEPK12macho_headermiPPKcS5_S5_
+   fun:_dyld_start
+   obj:*
+}
+{
+   os_x_leak_006
+   Memcheck:Leak
+   fun:malloc
+   fun:strdup
+   fun:_xpc_strdup
+   fun:xpc_string_create
+   fun:xpc_dictionary_set_string
+   fun:_libxpc_initializer
+   fun:libSystem_initializer
+   fun:_ZN16ImageLoaderMachO18doModInitFunctionsERKN11ImageLoader11LinkContextE
+   fun:_ZN16ImageLoaderMachO16doInitializationERKN11ImageLoader11LinkContextE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader15runInitializersERKNS_11LinkContextERNS_21InitializerTimingListE
+   fun:_ZN4dyld24initializeMainExecutableEv
+   fun:_ZN4dyld5_mainEPK12macho_headermiPPKcS5_S5_
+   fun:_dyld_start
+   obj:*
+}
+{
+   os_x_leak_007
+   Memcheck:Leak
+   fun:calloc
+   fun:_xpc_calloc
+   fun:_xpc_base_create
+   fun:xpc_dictionary_create
+   fun:_libxpc_initializer
+   fun:libSystem_initializer
+   fun:_ZN16ImageLoaderMachO18doModInitFunctionsERKN11ImageLoader11LinkContextE
+   fun:_ZN16ImageLoaderMachO16doInitializationERKN11ImageLoader11LinkContextE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader15runInitializersERKNS_11LinkContextERNS_21InitializerTimingListE
+   fun:_ZN4dyld24initializeMainExecutableEv
+   fun:_ZN4dyld5_mainEPK12macho_headermiPPKcS5_S5_
+   fun:_dyld_start
+   obj:*
+}
+{
+   os_x_leak_008
+   Memcheck:Leak
+   fun:calloc
+   fun:_xpc_calloc
+   fun:_xpc_base_create
+   fun:xpc_string_create
+   fun:xpc_dictionary_set_string
+   fun:_libxpc_initializer
+   fun:libSystem_initializer
+   fun:_ZN16ImageLoaderMachO18doModInitFunctionsERKN11ImageLoader11LinkContextE
+   fun:_ZN16ImageLoaderMachO16doInitializationERKN11ImageLoader11LinkContextE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+   fun:_ZN11ImageLoader15runInitializersERKNS_11LinkContextERNS_21InitializerTimingListE
+   fun:_ZN4dyld24initializeMainExecutableEv
+   fun:_ZN4dyld5_mainEPK12macho_headermiPPKcS5_S5_
+   fun:_dyld_start
+   obj:*
+}
+{
+   os_x_leak_009
+   Memcheck:Leak
+   fun:malloc
+   fun:__smakebuf
+   fun:__swsetup
+   fun:__sfvwrite
+   fun:fwrite
+   fun:_ZSt16__ostream_insertIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_PKS3_l
+   fun:_ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_PKc
+   fun:_ZN7CxxTest12ErrorPrinter7AdapterlsEPKc
+   fun:_ZN7CxxTest14ErrorFormatter10enterWorldERKNS_16WorldDescriptionE
+   fun:_ZN7CxxTest11TestTracker10enterWorldERKNS_16WorldDescriptionE
+   fun:_ZN7CxxTest10TestRunner8runWorldEv
+   fun:_ZN7CxxTest10TestRunner11runAllTestsERNS_12TestListenerE
+   fun:_ZN7CxxTest14ErrorFormatter3runEv
+   fun:main
+}
