@@ -90,7 +90,7 @@ check_leaks(){
   fi
 }
 
-$LIBTOOL_CMD $VALGRIND --tool=memcheck --error-exitcode=255 --leak-check=full --show-reachable=yes --smc-check=all --suppressions=$VALGRIND_SUPPRESSIONS $* >> $VS_MEMCHECK_LOGFILE 2>&1
+$LIBTOOL_CMD $VALGRIND --tool=memcheck --error-exitcode=255 --leak-check=full --show-reachable=yes --smc-check=all --suppressions=$VALGRIND_SUPPRESSIONS --gen-suppressions=all $* >> $VS_MEMCHECK_LOGFILE 2>&1
 
 process_status $?
 
