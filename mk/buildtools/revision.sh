@@ -29,7 +29,12 @@
 
 # look with GIT
 # prints the commiter time as a UNIX timestamp
-revision=`git log -1 --pretty=format:"%ct" --date=short 2>/dev/null`
+# revision=`git log -1 --pretty=format:"%ct" --date=short 2>/dev/null`
+# Unfortunately with GIT there is no longer small incremental version
+# numbers, and LD on different platforms DO NOT do well with large
+# revision numbers.  And so we're just going to hardcode revision to zero
+#
+revision=0
 
 if test -f "$2" ; then
   test $revision || revision=`cat "$2"`
