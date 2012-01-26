@@ -442,6 +442,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int64_t getNextPredictedPts()=0;
 
     /**
+     * @deprecated Use {@link #open(IMetaData,IMetaData)} instead.
      * Open the Codec associated with this StreamCoder.
      *
      * You can get the codec through getCodec(...) and
@@ -454,7 +455,6 @@ namespace com { namespace xuggle { namespace xuggler
      * when it is closed.
      *
      * @return >= 0 on success; < 0 on error.
-     * @deprecated
      */
     virtual int32_t open()=0;
     /**
@@ -561,6 +561,7 @@ namespace com { namespace xuggle { namespace xuggler
         IAudioSamples* pSamples, uint32_t sampleToStartFrom)=0;
 
     /**
+     * @deprecated Use {@link #make(Direction, ICodec)} instead.
      * Create a standalone StreamCoder that can decode data without regard to
      * which IStream or IContainer it came from.
      * <p>
@@ -573,7 +574,6 @@ namespace com { namespace xuggle { namespace xuggler
      * @param direction The direction this StreamCoder will work in.
      * @return a new stream coder, or null if error.
      *
-     * @deprecated Use {@link make(Direction, ICodec) instead}.
      */
     static IStreamCoder* make(Direction direction);
 
@@ -1018,7 +1018,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int32_t open(IMetaData *options, IMetaData* unsetOptions)=0;
 
     /**
-     * Create a standaloen StreamCoder that can encode or decode data independent
+     * Create a standalone StreamCoder that can encode or decode data independent
      * of the stream it is attached to.
 
      * <p>

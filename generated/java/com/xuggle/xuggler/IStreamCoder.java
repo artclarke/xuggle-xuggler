@@ -609,6 +609,7 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
   }
 
 /**
+ * @deprecated	Use {@link #open(IMetaData,IMetaData)} instead.  
  * Open the Codec associated with this StreamCoder.  
  * You can get the codec through getCodec(...) and  
  * set it with setCodec(...). You cannot call any  
@@ -618,10 +619,8 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
  * the container will clean up after you (but yell at you)  
  * when it is closed.  
  * @return	>= 0 on success; < 0 on error.  
- * 
- * 
  */
-  public int open() {
+  @Deprecated public int open() {
     return XugglerJNI.IStreamCoder_open__SWIG_0(swigCPtr, this);
   }
 
@@ -739,6 +738,7 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
   }
 
 /**
+ * @deprecated	Use {@link #make(Direction, ICodec)} instead.  
  * Create a standalone StreamCoder that can decode data without regard 
  * to  
  * which IStream or IContainer it came from.  
@@ -756,10 +756,8 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
  * </p>  
  * @param	direction The direction this StreamCoder will work in.  
  * @return	a new stream coder, or null if error.  
- * 
- * 
  */
-  public static IStreamCoder make(IStreamCoder.Direction direction) {
+  @Deprecated public static IStreamCoder make(IStreamCoder.Direction direction) {
     long cPtr = XugglerJNI.IStreamCoder_make__SWIG_0(direction.swigValue());
     return (cPtr == 0) ? null : new IStreamCoder(cPtr, false);
   }
@@ -1185,7 +1183,7 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
   }
 
 /**
- * Create a standaloen StreamCoder that can encode or decode data independent 
+ * Create a standalone StreamCoder that can encode or decode data independent 
  *  
  * of the stream it is attached to.  
  * <p>  

@@ -130,5 +130,7 @@
 %}
 
 %typemap(javainterfaces) com::xuggle::xuggler::IStreamCoder, com::xuggle::xuggler::IStreamCoder*, com::xuggle::xuggler::IStreamCoder& "com.xuggle.xuggler.IConfigurable";
+%javamethodmodifiers com::xuggle::xuggler::IStreamCoder::open() "@Deprecated public"
+%javamethodmodifiers com::xuggle::xuggler::IStreamCoder::make(Direction) "@Deprecated public"
 %include <com/xuggle/xuggler/IStreamCoder.h>
 
