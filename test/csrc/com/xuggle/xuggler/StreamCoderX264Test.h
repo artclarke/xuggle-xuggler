@@ -35,7 +35,6 @@ public:
   // empty test
   void testSuccess();
 
-  void testDecodingAndEncodingH264Video();
   void testDecodingAndEncodingH264VideoWithBFrames();
 
 private:

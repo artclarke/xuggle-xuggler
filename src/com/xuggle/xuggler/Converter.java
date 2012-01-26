@@ -742,9 +742,7 @@ public class Converter
          * as).
          */
         IStreamCoder oc = os.getStreamCoder();
-        String apreset = cmdLine.getOptionValue("apreset");
-        if (apreset != null)
-          Configuration.configure(apreset, oc);
+
 
         mOStreams[i] = os;
         mOCoders[i] = oc;
@@ -785,6 +783,10 @@ public class Converter
           oc.setCodec(codec);
         }
 
+        final String apreset = cmdLine.getOptionValue("apreset");
+        if (apreset != null)
+          Configuration.configure(apreset, oc);
+        
         /**
          * In general a IStreamCoder encoding audio needs to know: 1) A ICodec
          * to use. 2) The sample rate and number of channels of the audio. Most
@@ -866,11 +868,9 @@ public class Converter
          * comments and will only document something substantially different
          * here.
          */
-        IStream os = mOContainer.addNewStream(i);
-        IStreamCoder oc = os.getStreamCoder();
-        String vpreset = cmdLine.getOptionValue("vpreset");
-        if (vpreset != null)
-          Configuration.configure(vpreset, oc);
+        final IStream os = mOContainer.addNewStream(i);
+        final IStreamCoder oc = os.getStreamCoder();
+
 
         mOStreams[i] = os;
         mOCoders[i] = oc;
@@ -894,7 +894,11 @@ public class Converter
 
           oc.setCodec(codec);
         }
-
+        // Set options AFTER selecting codec
+        final String vpreset = cmdLine.getOptionValue("vpreset");
+        if (vpreset != null)
+          Configuration.configure(vpreset, oc);
+        
         /**
          * In general a IStreamCoder encoding video needs to know: 1) A ICodec
          * to use. 2) The Width and Height of the Video 3) The pixel format
@@ -997,6 +1001,11 @@ public class Converter
        */
       if (mOCoders[i] != null)
       {
+        // some codecs require experimental mode to be set, and so we set it here.
+        retval = mOCoders[i].setStandardsCompliance(IStreamCoder.CodecStandardsCompliance.COMPLIANCE_EXPERIMENTAL);
+        if (retval < 0)
+          throw new RuntimeException ("could not set compliance mode to experimental");
+        
         retval = mOCoders[i].open();
         if (retval < 0)
           throw new RuntimeException(

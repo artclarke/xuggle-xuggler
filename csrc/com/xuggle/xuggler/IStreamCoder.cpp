@@ -20,6 +20,7 @@
 #include "IStreamCoder.h"
 #include "Global.h"
 #include "StreamCoder.h"
+#include "Codec.h"
 namespace com { namespace xuggle { namespace xuggler
 {
 
@@ -35,7 +36,7 @@ namespace com { namespace xuggle { namespace xuggler
   IStreamCoder :: make(Direction direction)
   {
     Global::init();
-    return StreamCoder::make(direction, 0);
+    return IStreamCoder::make(direction, (ICodec*)0);
   }
   
   IStreamCoder*
@@ -43,6 +44,13 @@ namespace com { namespace xuggle { namespace xuggler
   {
     Global::init();
     return StreamCoder::make(direction, coder);
+  }
+
+  IStreamCoder*
+  IStreamCoder :: make(Direction direction, ICodec* codec)
+  {
+    Global::init();
+    return StreamCoder::make(direction, dynamic_cast<Codec*>(codec));
   }
 
 }}}

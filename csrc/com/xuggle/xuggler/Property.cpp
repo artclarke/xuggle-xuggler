@@ -22,6 +22,7 @@
 #include <com/xuggle/xuggler/Property.h>
 extern "C" {
 #include "FfmpegIncludes.h"
+#include <libavutil/log.h>
 }
 
 #include <stdexcept>
@@ -208,7 +209,20 @@ namespace com { namespace xuggle { namespace xuggler {
       if (!aName  || !*aName)
         throw std::runtime_error("empty property name passed to setProperty");
 
-      retval = av_opt_set(aContext, aName, aValue, PROPERTY_SEARCH_DEFAULT);
+      void * target=0;
+      const AVOption *o = av_opt_find2(aContext, aName, 0, PROPERTY_SEARCH_CHILDREN, 1, &target);
+      if (o) {
+        AVClass *c = *(AVClass**)target;
+        (void) c;
+        VS_LOG_TRACE("Found option \"%s\" with help: %s; in unit: %s; object type: %s; instance name: %s",
+          o->name,
+          o->help,
+          o->unit,
+          c->class_name,
+          c->item_name(aContext));
+      }
+      VS_LOG_TRACE("Setting %s to %s", aName, aValue);
+      retval = av_opt_set(aContext, aName, aValue, PROPERTY_SEARCH_CHILDREN);
     }
     catch (std::exception & e)
     {
@@ -491,7 +505,7 @@ namespace com { namespace xuggle { namespace xuggler {
       
       if (!aName  || !*aName)
         throw std::runtime_error("empty property name passed to setProperty");
-      retval = av_opt_set_double(aContext, aName, value, PROPERTY_SEARCH_DEFAULT);
+      retval = av_opt_set_double(aContext, aName, value, PROPERTY_SEARCH_CHILDREN);
     }
     catch (std::exception &e)
     {
@@ -513,7 +527,7 @@ namespace com { namespace xuggle { namespace xuggler {
       if (!aName  || !*aName)
         throw std::runtime_error("empty property name passed to setProperty");
    
-      retval = av_opt_set_int(aContext, aName, value, PROPERTY_SEARCH_DEFAULT);
+      retval = av_opt_set_int(aContext, aName, value, PROPERTY_SEARCH_CHILDREN);
     }
     catch (std::exception &e)
     {
@@ -547,7 +561,7 @@ namespace com { namespace xuggle { namespace xuggler {
       AVRational rational;
       rational.num = value->getNumerator();
       rational.den = value->getDenominator();
-      retval = av_opt_set_q(aContext, aName, rational, PROPERTY_SEARCH_DEFAULT);
+      retval = av_opt_set_q(aContext, aName, rational, PROPERTY_SEARCH_CHILDREN);
     }
     catch (std::exception &e)
     {

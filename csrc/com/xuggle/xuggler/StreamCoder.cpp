@@ -101,25 +101,45 @@ StreamCoder::reset()
 }
 
 StreamCoder *
+StreamCoder :: make (Direction direction, Codec* codec)
+{
+  StreamCoder* retval=make(direction, (IStreamCoder*)0);
+  if (retval)
+    retval->setCodec(codec);
+  return retval;
+}
+StreamCoder *
 StreamCoder::make(Direction direction, IStreamCoder* aCoder)
 {
   StreamCoder *retval = 0;
+  StreamCoder *coder = dynamic_cast<StreamCoder*> (aCoder);
+
   try
   {
-    AVCodecContext* codecCtx = avcodec_alloc_context3(0);
+    AVCodecContext* codecCtx=0;
+    RefPointer<Codec> codecToUse;
+
+    if (coder)
+      codecToUse = coder->getCodec();
+
+    if (coder && coder->mCodecContext && coder->mCodecContext->codec)
+      codecCtx=avcodec_alloc_context3(codecToUse->getAVCodec());
+    else
+      codecCtx = avcodec_alloc_context3(0);
+
     if (!codecCtx)
       throw std::bad_alloc();
 
     retval = StreamCoder::make();
     if (retval)
     {
+      retval->mCodec = codecToUse;
       retval->mCodecContext = codecCtx;
       retval->mDirection = direction;
       retval->mStream = 0;
       // Set the private data to this object.
       codecCtx->opaque = retval;
 
-      StreamCoder *coder = dynamic_cast<StreamCoder*> (aCoder);
       if (aCoder && !coder)
         throw std::runtime_error(
             "Passed in stream coder not of expected underlying C++ type");
@@ -165,10 +185,6 @@ StreamCoder::make(Direction direction, IStreamCoder* aCoder)
         default:
           break;
         }
-        // set the codec to the codec_id
-        ICodec* tempCodec = aCoder->getCodec();
-        retval->setCodec(tempCodec);
-        tempCodec->release();
       }
       else
       {
@@ -176,7 +192,7 @@ StreamCoder::make(Direction direction, IStreamCoder* aCoder)
         if (retval->mCodecContext->sample_fmt == SAMPLE_FMT_NONE)
           retval->mCodecContext->sample_fmt = SAMPLE_FMT_S16;
 
-}
+      }
     }
   }
   catch (std::bad_alloc &e)
@@ -199,6 +215,7 @@ StreamCoder::make(Direction direction, AVCodecContext * codecCtx,
   StreamCoder *retval = 0;
   if (codecCtx)
   {
+
     try
     {
       retval = StreamCoder::make();
@@ -208,6 +225,11 @@ StreamCoder::make(Direction direction, AVCodecContext * codecCtx,
       if (codecCtx->sample_fmt == SAMPLE_FMT_NONE)
         codecCtx->sample_fmt = SAMPLE_FMT_S16;
 
+      if (direction == ENCODING) {
+        retval->mCodec = dynamic_cast<Codec*>(ICodec::findEncodingCodecByIntID(codecCtx->codec_id));
+      } else {
+        retval->mCodec = dynamic_cast<Codec*>(ICodec::findDecodingCodecByIntID(codecCtx->codec_id));
+      }
       retval->mCodecContext = codecCtx;
       retval->mDirection = direction;
       retval->mStream = stream; //do not ref count.
@@ -219,6 +241,11 @@ StreamCoder::make(Direction direction, AVCodecContext * codecCtx,
     {
       VS_REF_RELEASE(retval);
       throw e;
+    }
+    catch (...)
+    {
+        VS_REF_RELEASE(retval);
+        throw;
     }
   }
   return retval;
@@ -232,19 +259,10 @@ StreamCoder::getStream()
   return mStream;
 }
 
-ICodec *
+Codec *
 StreamCoder::getCodec()
 {
-  ICodec *retval = 0;
-  if (!mCodec && mCodecContext)
-  {
-    // Try getting it from the context
-    setCodec(mCodecContext->codec_id);
-  }
-  if (mCodec)
-    retval = mCodec.get();
-
-  return retval;
+  return mCodec ? mCodec.get() : 0;
 }
 
 ICodec::Type
@@ -280,26 +298,46 @@ StreamCoder::getCodecID()
 void
 StreamCoder::setCodec(ICodec * newCodec)
 {
-  // reset our code and acquire the one passed in
-  if (mCodec.value() != newCodec)
+  Codec* codec = dynamic_cast<Codec*>(newCodec);
+
+  if (mOpened) {
+    VS_LOG_ERROR("Cannot set codec while codec is opened; ignoring setCodec call");
+    return;
+  }
+  if (mCodec.value() == newCodec) {
+    // setting to the same value; don't reset anything
+    return;
+  }
+  if (codec && mCodecContext && mCodecContext->codec) {
+    VS_LOG_ERROR("StreamCoder previously set to a non-null ICodec so ignoring this call");
+    return;
+  }
+  mCodecContext->codec = 0;
+  mCodec.reset(codec, true);
+  if (mCodecContext) {
+    avcodec_get_context_defaults3(mCodecContext, mCodec ? mCodec->getAVCodec() : 0);
+  } else {
+    mCodecContext = avcodec_alloc_context3(mCodec ? mCodec->getAVCodec() : 0);
+  }
+  if (mCodecContext)
   {
-    mCodec.reset(dynamic_cast<Codec*> (newCodec), true);
-    // Check that the new codec can do the right
-    // thing
-    if (mCodec && mCodecContext && !mOpened)
-    {
-      mCodecContext->codec_type = (enum AVMediaType) mCodec->getType();
-      //      if (mDirection == ENCODING)
-      //      {
-      //        avcodec_get_context_defaults2(mCodecContext, mCodecContext->codec_type);
-      //      }
-      mCodecContext->codec_id = (enum CodecID) mCodec->getIDAsInt();
+    if (codec) {
+      AVCodec* avCodec = codec->getAVCodec();
+      if (!avCodec) {
+        VS_LOG_ERROR("Codec has no underlying AVCodec; fatal error and things are likely to go wrong");
+        return;
+      }
+
+      // FFmpeg actually does this in the call to avcodec_open2, but needs these
+      // set for av_opt_set methods to work.  It's very annoying.  See hack in
+      // {@link open}.
+      mCodecContext->codec_id = avCodec->id;
+      mCodecContext->codec_type = avCodec->type;
+      mCodecContext->codec = avCodec;
+      VS_LOG_TRACE("StreamCoder codec set to: %s; %s", avCodec->name, avCodec->long_name);
     }
-    else
-    {
-      VS_LOG_INFO("Cannot set Codec because StreamCoder is either not initialized or already open");
-      mCodec = 0;
-    }
+    if (mCodecContext->sample_fmt == SAMPLE_FMT_NONE)
+      mCodecContext->sample_fmt = SAMPLE_FMT_S16;
   }
 }
 
@@ -638,7 +676,23 @@ StreamCoder::open(IMetaData* aOptions, IMetaData* aUnsetOptions)
       }
     }
 
-    retval = avcodec_open2(mCodecContext, mCodec->getAVCodec(), &tmp);
+    {
+      /*
+       * This is a very annoying bug.  FFmpeg will NOT find sub-codec options
+       * if AVCodecContext->codec is not set to a non-null value, but
+       * avcodec_open2 will fail if it is set null.  To allow users to set
+       * options easily prior to opening the AVCodecContext, we stash the
+       * value we had been using, and we check after the open call and log
+       * an error if it changed for some reason.
+       */
+      AVCodec* cachedCodec = mCodecContext->codec;
+      mCodecContext->codec = 0;
+      retval = avcodec_open2(mCodecContext, mCodec->getAVCodec(), &tmp);
+      if (cachedCodec != 0 && cachedCodec != mCodecContext->codec)
+      {
+        VS_LOG_ERROR("When opening StreamCoder the codec was changed by FFmpeg.  This is not good");
+      }
+    }
 
     if (retval < 0)
       throw std::runtime_error("could not open codec");

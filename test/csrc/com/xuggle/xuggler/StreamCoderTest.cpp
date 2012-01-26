@@ -192,19 +192,21 @@ StreamCoderTest :: testSetCodec()
   VS_TUT_ENSURE_EQUALS("ac3 codec refcount wrong",
       codec->getCurrentRefCount(),
       1);
+
+  coder = IStreamCoder::make(IStreamCoder::DECODING);
+  VS_TUT_ENSURE("got coder", coder);
+
   coder->setCodec(codec.value());
   VS_TUT_ENSURE_EQUALS("ac3 codec refcount wrong after setting",
       codec->getCurrentRefCount(),
       2);
 
-  // This should fail because it's an Encoder, not a Decoder
-  RefPointer<ICodec> encodec = h->codecs[0];
-
-  encodec = ICodec::findEncodingCodecByName("libmp3lame");
-
+  RefPointer<ICodec> encodec = ICodec::findEncodingCodecByName("libmp3lame");
   VS_TUT_ENSURE("could not find libmp3lame encoder", codec);
-  coder->setSampleRate(22050);
+  coder = IStreamCoder::make(IStreamCoder::ENCODING);
+  VS_TUT_ENSURE("got coder", coder);
   coder->setCodec(encodec.value());
+  coder->setSampleRate(22050);
   codec = coder->getCodec();
   VS_TUT_ENSURE_EQUALS("should allow wrong direction", codec.value(), encodec.value());
   int retval = coder->open();

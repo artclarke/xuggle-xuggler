@@ -25,11 +25,10 @@
 #include <com/xuggle/xuggler/FfmpegIncludes.h>
 #include <com/xuggle/xuggler/Stream.h>
 #include <com/xuggle/ferry/IBuffer.h>
+#include <com/xuggle/xuggler/Codec.h>
 
 namespace com { namespace xuggle { namespace xuggler
 {
-
-  class Codec;
   class Packet;
 
   class StreamCoder : public IStreamCoder
@@ -45,7 +44,7 @@ namespace com { namespace xuggle { namespace xuggler
 
     virtual IStream* getStream();
 
-    virtual ICodec* getCodec();
+    virtual Codec* getCodec();
     virtual ICodec::Type getCodecType();
     virtual ICodec::ID getCodecID();
 
@@ -154,6 +153,7 @@ namespace com { namespace xuggle { namespace xuggler
     static StreamCoder* make(Direction direction,
         AVCodecContext *context, Stream* stream);
     static StreamCoder* make(Direction direction, IStreamCoder* copyCoder);
+    static StreamCoder* make(Direction direction, Codec* codec);
     
     int32_t setStream(Stream*, bool assumeOnlyStream);
     int32_t streamClosed(Stream*);

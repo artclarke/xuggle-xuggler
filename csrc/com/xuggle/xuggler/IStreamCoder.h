@@ -57,7 +57,7 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * XUGGLER Flags that can be passed to the setFlag(Flags, bool) method
      */
-    typedef enum {
+    typedef enum Flags {
       FLAG_QSCALE=0x0002,  ///< Use fixed qscale.
       FLAG_4MV   =0x0004,  ///< 4 MV per MB allowed / advanced prediction for H.263.
       FLAG_QPEL  =0x0010,  ///< Use qpel MC.
@@ -572,8 +572,29 @@ namespace com { namespace xuggle { namespace xuggler
      * </p>
      * @param direction The direction this StreamCoder will work in.
      * @return a new stream coder, or null if error.
+     *
+     * @deprecated Use {@link make(Direction, ICodec) instead}.
      */
     static IStreamCoder* make(Direction direction);
+
+    /**
+     * Create a standaloen StreamCoder that can encode or decode data independent
+     * of the stream it is attached to.
+
+     * <p>
+     * If you're reading or writing to a XUGGLER file or URL you almost definitely
+     * don't want to use this method.  Use the {@link IContainer#getStream(long)}
+     * and {@link IStream#getStreamCoder()} methods instead as it will set up the
+     * resulting IStreamCoder with sensible defaults.  Use of a un-attached
+     * StreamCoder returned from this method is for advanced users only.
+     * </p>
+     * @param direction The direction this StreamCoder will work in.
+     * @param codec The code you want to use (in lieu of calling {@link setCodec}
+     * @return a new stream coder, or null if error.
+     *
+     * @since 5.0
+     */
+    static IStreamCoder* make(Direction direction, ICodec* codec);
   protected:
     IStreamCoder();
     virtual ~IStreamCoder();
