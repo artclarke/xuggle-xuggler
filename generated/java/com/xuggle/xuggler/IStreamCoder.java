@@ -765,33 +765,6 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
   }
 
 /**
- * Create a standaloen StreamCoder that can encode or decode data independent 
- *  
- * of the stream it is attached to.  
- * <p>  
- * If you're reading or writing to a XUGGLER file or URL you almost 
- * definitely  
- * don't want to use this method. Use the {@link IContainer#getStream(long)} 
- *  
- * and {@link IStream#getStreamCoder()} methods instead as it will set 
- * up the  
- * resulting IStreamCoder with sensible defaults. Use of a un-attached 
- *  
- * StreamCoder returned from this method is for advanced users only. 
- *  
- * </p>  
- * @param	direction The direction this StreamCoder will work in.  
- * @param	codec The code you want to use (in lieu of calling {@link 
- *		 setCodec}  
- * @return	a new stream coder, or null if error.  
- * @since	5.0  
- */
-  public static IStreamCoder make(IStreamCoder.Direction direction, ICodec codec) {
-    long cPtr = XugglerJNI.IStreamCoder_make__SWIG_1(direction.swigValue(), ICodec.getCPtr(codec), codec);
-    return (cPtr == 0) ? null : new IStreamCoder(cPtr, false);
-  }
-
-/**
  * Returns the 4-byte FOURCC tag (Least Significant Byte first).  
  * This is really a packed 4-byte array so it's only useful if you use 
  *  
@@ -1015,7 +988,7 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
  * @since	1.22  
  */
   public static IStreamCoder make(IStreamCoder.Direction direction, IStreamCoder copyCoder) {
-    long cPtr = XugglerJNI.IStreamCoder_make__SWIG_2(direction.swigValue(), IStreamCoder.getCPtr(copyCoder), copyCoder);
+    long cPtr = XugglerJNI.IStreamCoder_make__SWIG_1(direction.swigValue(), IStreamCoder.getCPtr(copyCoder), copyCoder);
     return (cPtr == 0) ? null : new IStreamCoder(cPtr, false);
   }
 
@@ -1209,6 +1182,33 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
  */
   public int open(IMetaData options, IMetaData unsetOptions) {
     return XugglerJNI.IStreamCoder_open__SWIG_1(swigCPtr, this, IMetaData.getCPtr(options), options, IMetaData.getCPtr(unsetOptions), unsetOptions);
+  }
+
+/**
+ * Create a standaloen StreamCoder that can encode or decode data independent 
+ *  
+ * of the stream it is attached to.  
+ * <p>  
+ * If you're reading or writing to a XUGGLER file or URL you almost 
+ * definitely  
+ * don't want to use this method. Use the {@link IContainer#getStream(long)} 
+ *  
+ * and {@link IStream#getStreamCoder()} methods instead as it will set 
+ * up the  
+ * resulting IStreamCoder with sensible defaults. Use of a un-attached 
+ *  
+ * StreamCoder returned from this method is for advanced users only. 
+ *  
+ * </p>  
+ * @param	direction The direction this StreamCoder will work in.  
+ * @param	codec The code you want to use (in lieu of calling {@link 
+ *		 #setCodec}  
+ * @return	a new stream coder, or null if error.  
+ * @since	5.0  
+ */
+  public static IStreamCoder make(IStreamCoder.Direction direction, ICodec codec) {
+    long cPtr = XugglerJNI.IStreamCoder_make__SWIG_2(direction.swigValue(), ICodec.getCPtr(codec), codec);
+    return (cPtr == 0) ? null : new IStreamCoder(cPtr, false);
   }
 
   public enum Direction {

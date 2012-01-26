@@ -406,7 +406,6 @@ class XugglerJNI {
   public final static native int IStreamCoder_encodeVideo(long jarg1, IStreamCoder jarg1_, long jarg2, IPacket jarg2_, long jarg3, IVideoPicture jarg3_, int jarg4);
   public final static native int IStreamCoder_encodeAudio(long jarg1, IStreamCoder jarg1_, long jarg2, IPacket jarg2_, long jarg3, IAudioSamples jarg3_, long jarg4);
   public final static native long IStreamCoder_make__SWIG_0(int jarg1);
-  public final static native long IStreamCoder_make__SWIG_1(int jarg1, long jarg2, ICodec jarg2_);
   public final static native int IStreamCoder_getCodecTag(long jarg1, IStreamCoder jarg1_);
   public final static native void IStreamCoder_setCodecTag(long jarg1, IStreamCoder jarg1_, int jarg2);
   public final static native int IStreamCoder_getNumProperties(long jarg1, IStreamCoder jarg1_);
@@ -425,7 +424,7 @@ class XugglerJNI {
   public final static native boolean IStreamCoder_isOpen(long jarg1, IStreamCoder jarg1_);
   public final static native int IStreamCoder_getDefaultAudioFrameSize(long jarg1, IStreamCoder jarg1_);
   public final static native void IStreamCoder_setDefaultAudioFrameSize(long jarg1, IStreamCoder jarg1_, int jarg2);
-  public final static native long IStreamCoder_make__SWIG_2(int jarg1, long jarg2, IStreamCoder jarg2_);
+  public final static native long IStreamCoder_make__SWIG_1(int jarg1, long jarg2, IStreamCoder jarg2_);
   public final static native long IStreamCoder_getNumDroppedFrames(long jarg1, IStreamCoder jarg1_);
   public final static native void IStreamCoder_setAutomaticallyStampPacketsForStream(long jarg1, IStreamCoder jarg1_, boolean jarg2);
   public final static native boolean IStreamCoder_getAutomaticallyStampPacketsForStream(long jarg1, IStreamCoder jarg1_);
@@ -441,6 +440,7 @@ class XugglerJNI {
   public final static native int IStreamCoder_getStandardsCompliance(long jarg1, IStreamCoder jarg1_);
   public final static native int IStreamCoder_setStandardsCompliance(long jarg1, IStreamCoder jarg1_, int jarg2);
   public final static native int IStreamCoder_open__SWIG_1(long jarg1, IStreamCoder jarg1_, long jarg2, IMetaData jarg2_, long jarg3, IMetaData jarg3_);
+  public final static native long IStreamCoder_make__SWIG_2(int jarg1, long jarg2, ICodec jarg2_);
   public final static native int IIndexEntry_IINDEX_FLAG_KEYFRAME_get();
   public final static native long IIndexEntry_make(long jarg1, long jarg2, int jarg3, int jarg4, int jarg5);
   public final static native long IIndexEntry_getPosition(long jarg1, IIndexEntry jarg1_);
