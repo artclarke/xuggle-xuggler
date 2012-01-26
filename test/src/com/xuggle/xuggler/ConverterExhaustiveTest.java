@@ -77,7 +77,6 @@ public class ConverterExhaustiveTest extends TestCase
     final long delta = endTime - startTime;
     // 20 second test file;
     assertTrue("did not take long enough", delta >= 18L*1000*1000*1000);
-    System.err.println("Total time taken: " + delta);
     assertTrue("took too long", delta <= 60L*1000*1000*1000);
   }
 
@@ -184,7 +183,7 @@ public class ConverterExhaustiveTest extends TestCase
         "--containerformat",
         "mov",
         "--acodec",
-        "aac",
+        "libvo_aacenc",
         "--asamplerate",
         "22050",
         "--achannels",
