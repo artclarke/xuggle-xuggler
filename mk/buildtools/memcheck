@@ -81,11 +81,11 @@ check_leaks(){
 # if Valgrind did not say no leaks are possible, make sure all
 # leaks are suppressed
     echo -n "Ensuring no unsuppressed leaks"
-    grep -q "definitely lost: 0 bytes in 0 blocks." $VS_MEMCHECK_LOGFILE
+    grep -q "definitely lost: 0 bytes in 0 blocks" $VS_MEMCHECK_LOGFILE
     process_status $?
-    grep -q "possibly lost: 0 bytes in 0 blocks." $VS_MEMCHECK_LOGFILE
+    grep -q "possibly lost: 0 bytes in 0 blocks" $VS_MEMCHECK_LOGFILE
     process_status $?
-    grep -q "still reachable: 0 bytes in 0 blocks." $VS_MEMCHECK_LOGFILE
+    grep -q "still reachable: 0 bytes in 0 blocks" $VS_MEMCHECK_LOGFILE
     process_status $?
   fi
 }
