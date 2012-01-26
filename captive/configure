@@ -630,6 +630,9 @@ CAPTIVE_ENABLE_LIBVORBIS_TRUE
 CAPTIVE_ENABLE_LIBOGG
 CAPTIVE_ENABLE_LIBOGG_FALSE
 CAPTIVE_ENABLE_LIBOGG_TRUE
+CAPTIVE_ENABLE_LIBVO_AACENC
+CAPTIVE_ENABLE_LIBVO_AACENC_FALSE
+CAPTIVE_ENABLE_LIBVO_AACENC_TRUE
 CAPTIVE_ENABLE_LIBOPENCORE_AMR
 CAPTIVE_ENABLE_LIBOPENCORE_AMR_FALSE
 CAPTIVE_ENABLE_LIBOPENCORE_AMR_TRUE
@@ -785,6 +788,7 @@ enable_captive_libx264
 enable_captive_libmp3lame
 enable_captive_libspeex
 enable_captive_libopencore_amr
+enable_captive_libvo_aacenc
 enable_captive_libogg
 enable_captive_libvorbis
 enable_captive_libtheora
@@ -1449,6 +1453,9 @@ Optional Features:
                           encoder (default is yes)
   --enable-captive-libopencore-amr
                           use our own captive versions of the libopencore-amr
+                          library encoder (default is yes)
+  --enable-captive-libvo-aacenc
+                          use our own captive versions of the libvo-aacenc
                           library encoder (default is yes)
   --enable-captive-libogg use our own captive versions of the ogg library
                           encoder (default is yes)
@@ -15327,7 +15334,6 @@ CAPTIVE_ENABLE_LIBOPENCORE_AMR=$enable_captive_libopencore_amr
 
 # libopencore-amr headers
 if test "x$enable_captive_libopencore_amr" != "xyes"; then
-  # We only check for Lame if we're not building it
 for ac_header in opencore-amrnb/interf_enc.h
 do :
   ac_fn_cxx_check_header_mongrel "$LINENO" "opencore-amrnb/interf_enc.h" "ac_cv_header_opencore_amrnb_interf_enc_h" "$ac_includes_default"
@@ -15345,6 +15351,62 @@ done
 if test "x$HAVE_LIBOPENCORE_AMR" = xno; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: cannot find libopencore-amr.  We will likely not be able to encode amr audio" >&5
 $as_echo "$as_me: WARNING: cannot find libopencore-amr.  We will likely not be able to encode amr audio" >&2;}
+fi
+fi
+
+#
+# Captive libvo-aacenc support
+#
+# Check whether --enable-captive-libvo-aacenc was given.
+if test "${enable_captive_libvo_aacenc+set}" = set; then :
+  enableval=$enable_captive_libvo_aacenc;
+else
+  enable_captive_libvo_aacenc=yes
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to use captive version of libvo-aacenc" >&5
+$as_echo_n "checking whether to use captive version of libvo-aacenc... " >&6; }
+if test "x$enable_captives" != "xyes"; then
+  enable_captive_libvo_aacenc=no
+fi
+if test "x$enable_captive_ffmpeg" != "xyes"; then
+  # no point in making a captive libvo-aacenc if we're not
+  # incarcerating ffmpeg
+  enable_captive_libvo_aacenc=no
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $enable_captive_libvo_aacenc" >&5
+$as_echo "$enable_captive_libvo_aacenc" >&6; }
+ if  test "x$enable_captive_libvo_aacenc" = "xyes" ; then
+  CAPTIVE_ENABLE_LIBVO_AACENC_TRUE=
+  CAPTIVE_ENABLE_LIBVO_AACENC_FALSE='#'
+else
+  CAPTIVE_ENABLE_LIBVO_AACENC_TRUE='#'
+  CAPTIVE_ENABLE_LIBVO_AACENC_FALSE=
+fi
+
+
+CAPTIVE_ENABLE_LIBVO_AACENC=$enable_captive_libvo_aacenc
+
+# libvo-aacenc headers
+if test "x$enable_captive_libvo_aacenc" != "xyes"; then
+for ac_header in vo-aacenc/voAAC.h
+do :
+  ac_fn_cxx_check_header_mongrel "$LINENO" "vo-aacenc/voAAC.h" "ac_cv_header_vo_aacenc_voAAC_h" "$ac_includes_default"
+if test "x$ac_cv_header_vo_aacenc_voAAC_h" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_VO_AACENC_VOAAC_H 1
+_ACEOF
+ HAVE_LIBVO_AACENC=yes
+else
+  HAVE_LIBVO_AACENC=no
+fi
+
+done
+
+if test "x$HAVE_LIBVO_AACENC" = xno; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: cannot find libvo_aacenc.  We will likely not be able to encode aac audio" >&5
+$as_echo "$as_me: WARNING: cannot find libvo_aacenc.  We will likely not be able to encode aac audio" >&2;}
 fi
 fi
 
@@ -15816,7 +15878,7 @@ fi
 
 
 
-ac_config_files="$ac_config_files Makefile Makefile.global librtmp/Makefile librtmp/incarcerate librtmp/install.sh librtmp/uninstall.sh libopencore-amr/Makefile libopencore-amr/incarcerate libogg/Makefile libogg/incarcerate libvorbis/Makefile libvorbis/incarcerate libtheora/Makefile libtheora/incarcerate libspeex/Makefile libspeex/incarcerate libx264/Makefile libx264/incarcerate libmp3lame/Makefile libmp3lame/incarcerate ffmpeg/Makefile ffmpeg/incarcerate ffmpeg/install.sh ffmpeg/uninstall.sh"
+ac_config_files="$ac_config_files Makefile Makefile.global librtmp/Makefile librtmp/incarcerate librtmp/install.sh librtmp/uninstall.sh libvo-aacenc/Makefile libvo-aacenc/incarcerate libopencore-amr/Makefile libopencore-amr/incarcerate libogg/Makefile libogg/incarcerate libvorbis/Makefile libvorbis/incarcerate libtheora/Makefile libtheora/incarcerate libspeex/Makefile libspeex/incarcerate libx264/Makefile libx264/incarcerate libmp3lame/Makefile libmp3lame/incarcerate ffmpeg/Makefile ffmpeg/incarcerate ffmpeg/install.sh ffmpeg/uninstall.sh"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -16005,6 +16067,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${CAPTIVE_ENABLE_LIBOPENCORE_AMR_TRUE}" && test -z "${CAPTIVE_ENABLE_LIBOPENCORE_AMR_FALSE}"; then
   as_fn_error $? "conditional \"CAPTIVE_ENABLE_LIBOPENCORE_AMR\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${CAPTIVE_ENABLE_LIBVO_AACENC_TRUE}" && test -z "${CAPTIVE_ENABLE_LIBVO_AACENC_FALSE}"; then
+  as_fn_error $? "conditional \"CAPTIVE_ENABLE_LIBVO_AACENC\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${CAPTIVE_ENABLE_LIBOGG_TRUE}" && test -z "${CAPTIVE_ENABLE_LIBOGG_FALSE}"; then
@@ -16977,6 +17043,8 @@ do
     "librtmp/incarcerate") CONFIG_FILES="$CONFIG_FILES librtmp/incarcerate" ;;
     "librtmp/install.sh") CONFIG_FILES="$CONFIG_FILES librtmp/install.sh" ;;
     "librtmp/uninstall.sh") CONFIG_FILES="$CONFIG_FILES librtmp/uninstall.sh" ;;
+    "libvo-aacenc/Makefile") CONFIG_FILES="$CONFIG_FILES libvo-aacenc/Makefile" ;;
+    "libvo-aacenc/incarcerate") CONFIG_FILES="$CONFIG_FILES libvo-aacenc/incarcerate" ;;
     "libopencore-amr/Makefile") CONFIG_FILES="$CONFIG_FILES libopencore-amr/Makefile" ;;
     "libopencore-amr/incarcerate") CONFIG_FILES="$CONFIG_FILES libopencore-amr/incarcerate" ;;
     "libogg/Makefile") CONFIG_FILES="$CONFIG_FILES libogg/Makefile" ;;

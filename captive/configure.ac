@@ -332,10 +332,41 @@ CAPTIVE_ENABLE_LIBOPENCORE_AMR=$enable_captive_libopencore_amr
 AC_SUBST([CAPTIVE_ENABLE_LIBOPENCORE_AMR])
 # libopencore-amr headers
 if test "x$enable_captive_libopencore_amr" != "xyes"; then
-  # We only check for Lame if we're not building it
 AC_CHECK_HEADERS([opencore-amrnb/interf_enc.h], [HAVE_LIBOPENCORE_AMR=yes], [HAVE_LIBOPENCORE_AMR=no])
 if test "x$HAVE_LIBOPENCORE_AMR" = xno; then
   AC_MSG_WARN([cannot find libopencore-amr.  We will likely not be able to encode amr audio])
+fi
+fi
+
+#
+# Captive libvo-aacenc support
+#
+AC_ARG_ENABLE([captive-libvo-aacenc],
+              [AS_HELP_STRING([--enable-captive-libvo-aacenc],
+                              [use our own captive versions of the libvo-aacenc library encoder (default is yes)])],
+                              [],
+                              [enable_captive_libvo_aacenc=yes])
+AC_MSG_CHECKING([whether to use captive version of libvo-aacenc])
+if test "x$enable_captives" != "xyes"; then
+  enable_captive_libvo_aacenc=no
+fi
+if test "x$enable_captive_ffmpeg" != "xyes"; then
+  # no point in making a captive libvo-aacenc if we're not
+  # incarcerating ffmpeg
+  enable_captive_libvo_aacenc=no
+fi
+
+AC_MSG_RESULT([$enable_captive_libvo_aacenc])
+AM_CONDITIONAL(CAPTIVE_ENABLE_LIBVO_AACENC,
+               [ test "x$enable_captive_libvo_aacenc" = "xyes" ])
+
+CAPTIVE_ENABLE_LIBVO_AACENC=$enable_captive_libvo_aacenc
+AC_SUBST([CAPTIVE_ENABLE_LIBVO_AACENC])
+# libvo-aacenc headers
+if test "x$enable_captive_libvo_aacenc" != "xyes"; then
+AC_CHECK_HEADERS([vo-aacenc/voAAC.h], [HAVE_LIBVO_AACENC=yes], [HAVE_LIBVO_AACENC=no])
+if test "x$HAVE_LIBVO_AACENC" = xno; then
+  AC_MSG_WARN([cannot find libvo_aacenc.  We will likely not be able to encode aac audio])
 fi
 fi
 
@@ -493,6 +524,8 @@ AC_CONFIG_FILES([Makefile
                  librtmp/incarcerate
                  librtmp/install.sh
                  librtmp/uninstall.sh
+                 libvo-aacenc/Makefile
+                 libvo-aacenc/incarcerate
                  libopencore-amr/Makefile
                  libopencore-amr/incarcerate
                  libogg/Makefile

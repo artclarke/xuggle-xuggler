@@ -33,7 +33,6 @@ if test "x$VS_ENABLE_64BIT" = "xyes"; then
   esac
 fi
   
-cd @abs_top_builddir
 PATH="$PATH:@abs_top_builddir@@bindir@@" sh @abs_srcdir@/csrc/configure \
   CPPFLAGS="$CPPFLAGS -I@abs_top_builddir@@includedir@" \
   CFLAGS="$CFLAGS -I@abs_top_builddir@@includedir@ -O2" \
