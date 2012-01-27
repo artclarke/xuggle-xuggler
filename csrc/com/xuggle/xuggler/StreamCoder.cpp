@@ -688,14 +688,17 @@ StreamCoder::open(IMetaData* aOptions, IMetaData* aUnsetOptions)
       AVCodec* cachedCodec = mCodecContext->codec;
       mCodecContext->codec = 0;
       retval = avcodec_open2(mCodecContext, mCodec->getAVCodec(), &tmp);
-      if (cachedCodec != 0 && cachedCodec != mCodecContext->codec)
+
+      if (retval >= 0 && cachedCodec != 0 && cachedCodec != mCodecContext->codec)
       {
         VS_LOG_ERROR("When opening StreamCoder the codec was changed by FFmpeg.  This is not good");
       }
+      if (retval < 0)
+      {
+        mCodecContext->codec = cachedCodec;
+        throw std::runtime_error("could not open codec");
+      }
     }
-
-    if (retval < 0)
-      throw std::runtime_error("could not open codec");
     mOpened = true;
 
     mNumDroppedFrames = 0;
