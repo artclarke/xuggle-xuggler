@@ -54,7 +54,7 @@ public:
    * These are based on FFMPEG Git versions later than this:
    * 391a1327bd076c25c2b2509ab7ae0081c443b94e
    */
-  typedef enum
+  typedef enum ID
   {
 
       CODEC_ID_NONE,
@@ -418,7 +418,7 @@ public:
   /**
    * The different types of Codecs that can exist in the system.
    */
-  typedef enum
+  typedef enum Type
   {
     CODEC_TYPE_UNKNOWN = -1,
     CODEC_TYPE_VIDEO,
@@ -558,7 +558,7 @@ public:
   /**
    * Capability flags
    */
-  typedef enum
+  typedef enum Capabilities
   {
     CAP_DRAW_HORIZ_BAND = 0x0001,
     CAP_DR1 = 0x0002,

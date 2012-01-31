@@ -476,6 +476,7 @@ class XugglerJNI {
   public final static native int IStream_findTimeStampPositionInIndex(long jarg1, IStream jarg1_, long jarg2, int jarg3);
   public final static native long IStream_getIndexEntry(long jarg1, IStream jarg1_, int jarg2);
   public final static native int IStream_addIndexEntry(long jarg1, IStream jarg1_, long jarg2, IIndexEntry jarg2_);
+  public final static native void IStream_setId(long jarg1, IStream jarg1_, int jarg2);
   public final static native long IContainerParameters_getTimeBase(long jarg1, IContainerParameters jarg1_);
   public final static native void IContainerParameters_setTimeBase(long jarg1, IContainerParameters jarg1_, long jarg2, IRational jarg2_);
   public final static native int IContainerParameters_getAudioSampleRate(long jarg1, IContainerParameters jarg1_);
@@ -549,7 +550,7 @@ class XugglerJNI {
   public final static native int IContainer_getType(long jarg1, IContainer jarg1_);
   public final static native int IContainer_getNumStreams(long jarg1, IContainer jarg1_);
   public final static native long IContainer_getStream(long jarg1, IContainer jarg1_, long jarg2);
-  public final static native long IContainer_addNewStream(long jarg1, IContainer jarg1_, int jarg2);
+  public final static native long IContainer_addNewStream__SWIG_0(long jarg1, IContainer jarg1_, int jarg2);
   public final static native int IContainer_writeHeader(long jarg1, IContainer jarg1_);
   public final static native int IContainer_writeTrailer(long jarg1, IContainer jarg1_);
   public final static native int IContainer_readNextPacket(long jarg1, IContainer jarg1_, long jarg2, IPacket jarg2_);
@@ -608,6 +609,9 @@ class XugglerJNI {
   public final static native int IContainer_getPreload(long jarg1, IContainer jarg1_);
   public final static native int IContainer_setMaxDelay(long jarg1, IContainer jarg1_, int jarg2);
   public final static native int IContainer_getMaxDelay(long jarg1, IContainer jarg1_);
+  public final static native long IContainer_addNewStream__SWIG_1(long jarg1, IContainer jarg1_, int jarg2);
+  public final static native long IContainer_addNewStream__SWIG_2(long jarg1, IContainer jarg1_, long jarg2, ICodec jarg2_);
+  public final static native long IContainer_addNewStream__SWIG_3(long jarg1, IContainer jarg1_, long jarg2, IStreamCoder jarg2_);
   public final static native void IMediaDataWrapper_wrap(long jarg1, IMediaDataWrapper jarg1_, long jarg2, IMediaData jarg2_);
   public final static native void IMediaDataWrapper_setKey(long jarg1, IMediaDataWrapper jarg1_, boolean jarg2);
   public final static native long IMediaDataWrapper_make(long jarg1, IMediaData jarg1_);

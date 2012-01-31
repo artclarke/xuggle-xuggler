@@ -80,8 +80,7 @@ namespace com { namespace xuggle { namespace xuggler
         newStream->mDirection = direction;
   
         newStream->mCoder = StreamCoder::make(
-              direction == INBOUND?IStreamCoder::DECODING :
-              IStreamCoder::ENCODING,
+              direction == INBOUND?IStreamCoder::DECODING : IStreamCoder::ENCODING,
               aStream->codec,
               newStream);
         newStream->mContainer = container;
@@ -483,4 +482,11 @@ namespace com { namespace xuggle { namespace xuggler
         entry->getFlags());
   }
 
+  void
+  Stream :: setId(int32_t aId)
+  {
+    if (!mStream)
+      return;
+    mStream->id = aId;
+  }
 }}}

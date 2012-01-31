@@ -714,12 +714,13 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
   }
 
 /**
+ * @deprecated	Use {@link #addNewStream(ICodec.ID)} instead.  
  * Creates a new stream in this container and returns it.  
  * @param	id A format-dependent id for this stream.  
  * @return	A new stream.  
  */
   public IStream addNewStream(int id) {
-    long cPtr = XugglerJNI.IContainer_addNewStream(swigCPtr, this, id);
+    long cPtr = XugglerJNI.IContainer_addNewStream__SWIG_0(swigCPtr, this, id);
     return (cPtr == 0) ? null : new IStream(cPtr, false);
   }
 
@@ -1399,6 +1400,50 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  */
   public int getMaxDelay() {
     return XugglerJNI.IContainer_getMaxDelay(swigCPtr, this);
+  }
+
+/**
+ * Add a new stream that will use the given codec.  
+ * @param	id The id for the codec used to insert packets. If you are 
+ *		 adding an arbitrary data stream, use {@link ICodec.ID.CODEC_ID_NONE}, 
+ *		 otherwise  
+ * use the ID of the code type you plan to use.  
+ * @return	An {@link IStream} for the new stream on success, or null 
+ *		 on failure.  
+ * @since	5.0  
+ */
+  public IStream addNewStream(ICodec.ID id) {
+    long cPtr = XugglerJNI.IContainer_addNewStream__SWIG_1(swigCPtr, this, id.swigValue());
+    return (cPtr == 0) ? null : new IStream(cPtr, false);
+  }
+
+/**
+ * Add a new stream that will use the given codec.  
+ * @param	codec The codec that will be used to insert packets.  
+ * @return	An {@link IStream} for the new stream on success, or null 
+ *		 on failure.  
+ * @since	5.0  
+ */
+  public IStream addNewStream(ICodec codec) {
+    long cPtr = XugglerJNI.IContainer_addNewStream__SWIG_2(swigCPtr, this, ICodec.getCPtr(codec), codec);
+    return (cPtr == 0) ? null : new IStream(cPtr, false);
+  }
+
+/**
+ * Add a new stream that will use the given StreamCoder. The StreamCoder 
+ * passed in MUST contain the {@link IStreamCoder#getExtraData} that 
+ *  
+ * was used to encode the packet.  
+ * @param	coder The {@link StreamCoder} that contains the meta-information 
+ *		 needed for decoding the packets that will be muexed 
+ *		 into this stream.  
+ * @return	An {@link IStream} for the new stream on success, or null 
+ *		 on failure.  
+ * @since	5.0  
+ */
+  public IStream addNewStream(IStreamCoder coder) {
+    long cPtr = XugglerJNI.IContainer_addNewStream__SWIG_3(swigCPtr, this, IStreamCoder.getCPtr(coder), coder);
+    return (cPtr == 0) ? null : new IStream(cPtr, false);
   }
 
   public enum Type {

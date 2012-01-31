@@ -161,6 +161,8 @@ namespace com { namespace xuggle { namespace xuggler
       av_log_set_callback(xuggler_log_callback);
       av_log_set_level(AV_LOG_ERROR); // Only log errors by default
       av_register_all();
+      avformat_network_init();
+
       // and set up the device library for webcam support
       avdevice_register_all();
       // TODO: Determine how to set interrupt handler when I convert to avio.

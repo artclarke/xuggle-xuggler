@@ -89,6 +89,7 @@ namespace com { namespace xuggle { namespace xuggler
         int64_t wantedTimeStamp, int32_t flags);
     virtual IIndexEntry* getIndexEntry(int32_t position);
     virtual int32_t addIndexEntry(IIndexEntry* entry);
+    void setId(int32_t id);
 
   protected:
     Stream();

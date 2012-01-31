@@ -52,9 +52,9 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int32_t close(bool);
     virtual int32_t getNumStreams();
 
-    virtual IStream* getStream(uint32_t position);
+    virtual Stream* getStream(uint32_t position);
 
-    virtual IStream* addNewStream(int32_t id);
+    virtual Stream* addNewStream(int32_t id);
 
     virtual int32_t readNextPacket(IPacket *packet);
     virtual int32_t writePacket(IPacket *packet, bool forceInterleave);
@@ -127,6 +127,12 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int32_t seekKeyFrame(int32_t streamIndex, int64_t minTimeStamp,
         int64_t targetTimeStamp, int64_t maxTimeStamp, int32_t flags);
 
+    /*
+     * Added for 5.0
+     */
+    virtual Stream* addNewStream(ICodec::ID id);
+    virtual Stream* addNewStream(ICodec* codec);
+    virtual Stream* addNewStream(IStreamCoder* coder);
   protected:
     virtual ~Container();
     Container();

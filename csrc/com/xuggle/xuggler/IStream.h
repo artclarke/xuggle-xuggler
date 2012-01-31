@@ -399,6 +399,15 @@ namespace com { namespace xuggle { namespace xuggler
     * @since 3.4
     */
    virtual int32_t addIndexEntry(IIndexEntry* entry)=0;
+
+   /**
+    * Set the format-specific stream id.
+    *
+    * @param id The id to set.
+    * @see #getId()
+    * @since 5.0
+    */
+   virtual void setId(int32_t id) = 0;
   };
 }}}
 

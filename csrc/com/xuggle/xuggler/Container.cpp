@@ -365,51 +365,6 @@ namespace com { namespace xuggle { namespace xuggler
     return retval;
   }
 
-  IStream*
-  Container :: addNewStream(int32_t id)
-  {
-    Stream *retval=0;
-    try
-    {
-      if (!mFormatContext)
-        throw std::runtime_error("no format context");
-      
-      if (!isOpened())
-        throw std::runtime_error("attempted to add stream to "
-            " unopened container");
-      
-      if (isHeaderWritten())
-        throw std::runtime_error("cannot add stream after header is written"
-            );
-      
-      AVStream * stream=0;
-      stream = av_new_stream(mFormatContext, id);
-      if (!stream)
-        throw std::runtime_error("could not allocate stream");
-
-      RefPointer<Stream>* p = new RefPointer<Stream>(
-          Stream::make(this, stream, IStream::OUTBOUND)
-      );
-      if (!p) throw std::bad_alloc();
-      if (*p)
-      {
-        mStreams.push_back(p);
-        mNumStreams++;
-        retval = p->get(); // acquire for caller
-      }
-      else
-      {
-        delete p;
-        throw std::bad_alloc();
-      }
-    } catch (std::exception & e)
-    {
-      VS_LOG_DEBUG("Error: %s", e.what());
-      VS_REF_RELEASE(retval);
-    }
-    return retval;
-  }
-
   int32_t
   Container :: close()
   {
@@ -473,7 +428,7 @@ namespace com { namespace xuggle { namespace xuggler
     return retval;
   }
 
-  IStream *
+  Stream *
   Container :: getStream(uint32_t position)
   {
     Stream *retval = 0;
@@ -1198,5 +1153,115 @@ namespace com { namespace xuggle { namespace xuggler
     return retval;
   }
 
+  Stream*
+  Container :: addNewStream(ICodec::ID id)
+  {
+    Stream* retval=0;
+    RefPointer<ICodec> codec;
+    try
+    {
+      codec = ICodec::findEncodingCodec(id);
+
+      if (!codec) {
+        VS_LOG_ERROR("Could not find encoding codec: %d", id);
+        throw std::runtime_error("Could not find encoding codec");
+      }
+      retval = addNewStream(codec.value());
+    }
+    catch (std::exception & e)
+    {
+      VS_LOG_DEBUG("Error: %s", e.what());
+      VS_REF_RELEASE(retval);
+    }
+    return retval;
+  }
+
+  Stream*
+  Container:: addNewStream(ICodec* aCodec)
+  {
+    Codec* codec = dynamic_cast<Codec*>(aCodec);
+    Stream *retval=0;
+    try
+    {
+      AVCodec* avCodec = codec ? codec->getAVCodec() : 0;
+
+      if (!mFormatContext)
+        throw std::runtime_error("no format context");
+
+      if (!isOpened())
+        throw std::runtime_error("attempted to add stream to "
+            " unopened container");
+
+      if (isHeaderWritten())
+        throw std::runtime_error("cannot add stream after header is written"
+            );
+
+      AVStream * stream=0;
+      stream = avformat_new_stream(mFormatContext, avCodec);
+      if (!stream)
+        throw std::runtime_error("could not allocate stream");
+
+      RefPointer<Stream>* p = new RefPointer<Stream>(
+          Stream::make(this, stream, IStream::OUTBOUND)
+      );
+      if (!p) throw std::bad_alloc();
+      if (*p)
+      {
+        mStreams.push_back(p);
+        mNumStreams++;
+        retval = p->get(); // acquire for caller
+      }
+      else
+      {
+        delete p;
+        throw std::bad_alloc();
+      }
+    } catch (std::exception & e)
+    {
+      VS_LOG_DEBUG("Error: %s", e.what());
+      VS_REF_RELEASE(retval);
+    }
+    return retval;
+  }
+
+  Stream*
+  Container :: addNewStream(IStreamCoder* aCoder)
+  {
+    Stream *retval=0;
+    StreamCoder * coder = dynamic_cast<StreamCoder*>(aCoder);
+    RefPointer<ICodec> codec;
+    try
+    {
+      if (!coder)
+        throw std::runtime_error("must pass non-null coder");
+      codec = coder->getCodec();
+      if (!codec)
+        throw std::runtime_error("StreamCoder has no attached Codec");
+
+      retval = this->addNewStream(codec.value());
+      if (retval)
+      {
+        if (retval->setStreamCoder(coder) < 0)
+          throw std::runtime_error("Could not set StreamCoder on stream");
+      }
+
+    } catch (std::exception & e)
+    {
+      VS_LOG_DEBUG("addNewStream Error: %s", e.what());
+      VS_REF_RELEASE(retval);
+    }
+    return retval;
+  }
   
+  Stream*
+  Container :: addNewStream(int32_t id)
+  {
+    Stream *retval=0;
+    retval = addNewStream((ICodec*)0);
+    if (retval)
+      retval->setId(id);
+    return retval;
+  }
+
+
 }}}

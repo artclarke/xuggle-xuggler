@@ -27,6 +27,7 @@
 #include <com/xuggle/xuggler/IContainerParameters.h>
 #include <com/xuggle/xuggler/IContainerFormat.h>
 #include <com/xuggle/xuggler/IStream.h>
+#include <com/xuggle/xuggler/IStreamCoder.h>
 #include <com/xuggle/xuggler/IPacket.h>
 #include <com/xuggle/xuggler/IProperty.h>
 
@@ -103,7 +104,7 @@ namespace com { namespace xuggle { namespace xuggler
      * The different types of Containers Xuggler supports.  A container
      * may only be opened in a uni-directional mode.
      */
-    typedef enum {
+    typedef enum Type {
       READ,
       WRITE,
     } Type;
@@ -263,6 +264,8 @@ namespace com { namespace xuggle { namespace xuggler
     virtual IStream* getStream(uint32_t streamIndex)=0;
 
     /**
+     * @deprecated Use {@link #addNewStream(ICodec.ID)} instead.
+     *
      * Creates a new stream in this container and returns it.
      *
      * @param id A format-dependent id for this stream.
@@ -628,7 +631,7 @@ namespace com { namespace xuggle { namespace xuggler
      */
     virtual bool getPropertyAsBoolean(const char* name)=0;
 
-    typedef enum {
+    typedef enum Flags {
       FLAG_GENPTS=0x0001,
       FLAG_IGNIDX=0x0002,
       FLAG_NONBLOCK=0x0004,
@@ -918,6 +921,36 @@ namespace com { namespace xuggle { namespace xuggler
     * @since 4.0
     */
     virtual int32_t getMaxDelay()=0;
+
+    /**
+     * Add a new stream that will use the given codec.
+     *
+     * @param id The id for the codec used to insert packets.  If you are adding an arbitrary data stream, use {@link ICodec.ID.CODEC_ID_NONE}, otherwise
+     *   use the ID of the code type you plan to use.
+     *
+     * @return An {@link IStream} for the new stream on success, or null on failure.
+     * @since 5.0
+     */
+    virtual IStream* addNewStream(ICodec::ID id)=0;
+    /**
+     * Add a new stream that will use the given codec.
+     *
+     * @param codec The codec that will be used to insert packets.
+     *
+     * @return An {@link IStream} for the new stream on success, or null on failure.
+     * @since 5.0
+     */
+    virtual IStream* addNewStream(ICodec* codec)=0;
+
+    /**
+     * Add a new stream that will use the given StreamCoder.  The StreamCoder passed in MUST contain the {@link IStreamCoder#getExtraData} that
+     * was used to encode the packet.
+     *
+     * @param coder The {@link StreamCoder} that contains the meta-information needed for decoding the packets that will be muexed into this stream.
+     * @return An {@link IStream} for the new stream on success, or null on failure.
+     * @since 5.0
+     */
+    virtual IStream* addNewStream(IStreamCoder* coder)=0;
   };
 }}}
 #endif /*ICONTAINER_H_*/

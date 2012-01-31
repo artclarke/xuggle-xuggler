@@ -559,6 +559,16 @@ public class IStream extends RefCounted {
     return XugglerJNI.IStream_addIndexEntry(swigCPtr, this, IIndexEntry.getCPtr(entry), entry);
   }
 
+/**
+ * Set the format-specific stream id.  
+ * @param	id The id to set.  
+ * @see		#getId()  
+ * @since	5.0  
+ */
+  public void setId(int id) {
+    XugglerJNI.IStream_setId(swigCPtr, this, id);
+  }
+
   public enum Direction {
   /**
    * The direction this stream is going (based on the container).

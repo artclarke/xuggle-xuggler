@@ -79,7 +79,11 @@ StreamCoderTest :: testGetters()
 
     codec = coder->getCodec();
     refcount = codec->getCurrentRefCount();
-    coder->setCodec(codec.value());
+    {
+      LoggerStack stack;
+      stack.setGlobalLevel(Logger::LEVEL_ERROR, false);
+      coder->setCodec(codec.value());
+    }
     // ensure that one release and one acquire happens
     VS_TUT_ENSURE_EQUALS("invalid releasing or acquiring of codec",
         codec->getCurrentRefCount(),
@@ -169,10 +173,14 @@ StreamCoderTest :: testSetCodec()
       3);
 
   coder->setCodec(0);
-  // The helper, and me
+  // as of 5.0 this should be ILLEGAL and ignored, causing no change
+  // The helper, the codec and me
   VS_TUT_ENSURE_EQUALS("wrong codec ref count",
       codec->getCurrentRefCount(),
-      2);
+      3);
+
+  coder = IStreamCoder::make(IStreamCoder::ENCODING, (ICodec*)0);
+  VS_TUT_ENSURE("Could not create codec", coder);
 
   coder->setCodec(ICodec::CODEC_ID_NELLYMOSER);
   codec = coder->getCodec();
@@ -182,10 +190,10 @@ StreamCoderTest :: testSetCodec()
   VS_TUT_ENSURE_EQUALS("codec refcount wrong",
       codec->getCurrentRefCount(),
       2);
-  // Just the helper
+  // Just the helper and the original coder in the helper
   VS_TUT_ENSURE_EQUALS("codec refcount wrong",
       h->codecs[0]->getCurrentRefCount(),
-      1);
+      2);
 
   codec = ICodec::findDecodingCodecByName("aac");
   VS_TUT_ENSURE("could not find ac3 decoder", codec);
