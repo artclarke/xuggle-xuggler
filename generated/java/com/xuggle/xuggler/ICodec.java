@@ -765,10 +765,6 @@ public class ICodec extends RefCounted {
     CODEC_ID_G2M(XugglerJNI.ICodec_CODEC_ID_G2M_get()),
     CODEC_ID_V308(XugglerJNI.ICodec_CODEC_ID_V308_get()),
     CODEC_ID_YUV4(XugglerJNI.ICodec_CODEC_ID_YUV4_get()),
-  /**
-   * A dummy id pointing at the start of audio codecs
-   */
-    CODEC_ID_FIRST_AUDIO(XugglerJNI.ICodec_CODEC_ID_FIRST_AUDIO_get()),
     CODEC_ID_PCM_S16LE(XugglerJNI.ICodec_CODEC_ID_PCM_S16LE_get()),
     CODEC_ID_PCM_S16BE,
     CODEC_ID_PCM_U16LE,
@@ -900,10 +896,6 @@ public class ICodec extends RefCounted {
     CODEC_ID_G723_1(XugglerJNI.ICodec_CODEC_ID_G723_1_get()),
     CODEC_ID_FFWAVESYNTH(XugglerJNI.ICodec_CODEC_ID_FFWAVESYNTH_get()),
     CODEC_ID_8SVX_RAW(XugglerJNI.ICodec_CODEC_ID_8SVX_RAW_get()),
-  /**
-   * A dummy ID pointing at the start of subtitle codecs.
-   */
-    CODEC_ID_FIRST_SUBTITLE(XugglerJNI.ICodec_CODEC_ID_FIRST_SUBTITLE_get()),
     CODEC_ID_DVD_SUBTITLE(XugglerJNI.ICodec_CODEC_ID_DVD_SUBTITLE_get()),
     CODEC_ID_DVB_SUBTITLE,
   /**
@@ -917,10 +909,6 @@ public class ICodec extends RefCounted {
     CODEC_ID_DVB_TELETEXT,
     CODEC_ID_SRT,
     CODEC_ID_MICRODVD(XugglerJNI.ICodec_CODEC_ID_MICRODVD_get()),
-  /**
-   * A dummy ID pointing at the start of various fake codecs.
-   */
-    CODEC_ID_FIRST_UNKNOWN(XugglerJNI.ICodec_CODEC_ID_FIRST_UNKNOWN_get()),
     CODEC_ID_TTF(XugglerJNI.ICodec_CODEC_ID_TTF_get()),
     CODEC_ID_BINTEXT(XugglerJNI.ICodec_CODEC_ID_BINTEXT_get()),
     CODEC_ID_XBIN(XugglerJNI.ICodec_CODEC_ID_XBIN_get()),

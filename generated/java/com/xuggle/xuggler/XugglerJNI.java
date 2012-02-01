@@ -233,7 +233,6 @@ class XugglerJNI {
   public final static native int ICodec_CODEC_ID_G2M_get();
   public final static native int ICodec_CODEC_ID_V308_get();
   public final static native int ICodec_CODEC_ID_YUV4_get();
-  public final static native int ICodec_CODEC_ID_FIRST_AUDIO_get();
   public final static native int ICodec_CODEC_ID_PCM_S16LE_get();
   public final static native int ICodec_CODEC_ID_ADPCM_IMA_QT_get();
   public final static native int ICodec_CODEC_ID_AMR_NB_get();
@@ -244,10 +243,8 @@ class XugglerJNI {
   public final static native int ICodec_CODEC_ID_G723_1_get();
   public final static native int ICodec_CODEC_ID_FFWAVESYNTH_get();
   public final static native int ICodec_CODEC_ID_8SVX_RAW_get();
-  public final static native int ICodec_CODEC_ID_FIRST_SUBTITLE_get();
   public final static native int ICodec_CODEC_ID_DVD_SUBTITLE_get();
   public final static native int ICodec_CODEC_ID_MICRODVD_get();
-  public final static native int ICodec_CODEC_ID_FIRST_UNKNOWN_get();
   public final static native int ICodec_CODEC_ID_TTF_get();
   public final static native int ICodec_CODEC_ID_BINTEXT_get();
   public final static native int ICodec_CODEC_ID_XBIN_get();

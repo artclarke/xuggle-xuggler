@@ -151,7 +151,7 @@ namespace com { namespace xuggle { namespace xuggler
      * stream in a container.
      */
     static StreamCoder* make(Direction direction,
-        AVCodecContext *context, Stream* stream);
+        AVCodecContext *context, AVCodec*, Stream* stream);
     static StreamCoder* make(Direction direction, IStreamCoder* copyCoder);
     static StreamCoder* make(Direction direction, Codec* codec);
     
@@ -201,16 +201,23 @@ namespace com { namespace xuggle { namespace xuggler
     bool mAutomaticallyStampPacketsForStream;
     int64_t mPtsBuffer[MAX_REORDER_DELAY+1];
     
-    int32_t calcAudioFrameSize();
-
-    void setCodecInternal(int32_t id);
-
     void reset();
     void setPacketParameters(Packet *packet, int32_t size,
         int64_t dts,
         IRational * timebase,
         bool keyframe,
         int64_t duration);
+    /**
+     * Convenience method used by the make and setCodec methods to
+     * ensure certain initialization steps are consistent.
+     */
+    static int32_t readyAVContexts(
+        Direction aDirection,
+        StreamCoder *aCoder,
+        Stream* aStream,
+        Codec *aCodec,
+        AVCodecContext *avContext,
+        AVCodec *avCodec);
   };
 
 }}}

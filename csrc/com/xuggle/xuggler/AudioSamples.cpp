@@ -379,20 +379,24 @@ namespace com { namespace xuggle { namespace xuggler
       return;
     switch(format)
     {
+      case FMT_DBL:
+      case FMT_DBLP:
+        buffer->setType(IBuffer::IBUFFER_DBL64);
+        break;
       case FMT_FLT:
+      case FMT_FLTP:
         buffer->setType(IBuffer::IBUFFER_FLT32);
         break;
       case FMT_S16:
+      case FMT_S16P:
         buffer->setType(IBuffer::IBUFFER_SINT16);
         break;
-      case FMT_S24:
-        // Dear god.. don't use this type of audio
-        buffer->setType(IBuffer::IBUFFER_UINT8);
-        break;
       case FMT_S32:
+      case FMT_S32P:
         buffer->setType(IBuffer::IBUFFER_SINT32);
         break;
       case FMT_U8:
+      case FMT_U8P:
         buffer->setType(IBuffer::IBUFFER_UINT8);
         break;
       default:

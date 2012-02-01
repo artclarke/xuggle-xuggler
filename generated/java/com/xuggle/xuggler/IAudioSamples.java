@@ -410,11 +410,46 @@ public class IAudioSamples extends IMediaData {
    * only FMT_S16 (signed integer 16-bit audio) is supported.
    */
     FMT_NONE(XugglerJNI.IAudioSamples_FMT_NONE_get()),
+  /**
+   * unsigned 8 bits
+   */
     FMT_U8,
+  /**
+   * signed 16 bits
+   */
     FMT_S16,
-    FMT_S24,
+  /**
+   * signed 32 bits
+   */
     FMT_S32,
-    FMT_FLT;
+  /**
+   * float
+   */
+    FMT_FLT,
+  /**
+   * double
+   */
+    FMT_DBL,
+  /**
+   * unsigned 8 bits, planar
+   */
+    FMT_U8P,
+  /**
+   * signed 16 bits, planar
+   */
+    FMT_S16P,
+  /**
+   * signed 32 bits, planar
+   */
+    FMT_S32P,
+  /**
+   * float, planar
+   */
+    FMT_FLTP,
+  /**
+   * double, planar
+   */
+    FMT_DBLP;
 
     public final int swigValue() {
       return swigValue;

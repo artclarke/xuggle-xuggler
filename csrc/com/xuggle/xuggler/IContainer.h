@@ -925,7 +925,7 @@ namespace com { namespace xuggle { namespace xuggler
     /**
      * Add a new stream that will use the given codec.
      *
-     * @param id The id for the codec used to insert packets.  If you are adding an arbitrary data stream, use {@link ICodec.ID.CODEC_ID_NONE}, otherwise
+     * @param id The id for the codec used to insert packets.  If you are adding an arbitrary data stream, use {@link ICodec.ID#CODEC_ID_NONE}, otherwise
      *   use the ID of the code type you plan to use.
      *
      * @return An {@link IStream} for the new stream on success, or null on failure.
@@ -946,7 +946,7 @@ namespace com { namespace xuggle { namespace xuggler
      * Add a new stream that will use the given StreamCoder.  The StreamCoder passed in MUST contain the {@link IStreamCoder#getExtraData} that
      * was used to encode the packet.
      *
-     * @param coder The {@link StreamCoder} that contains the meta-information needed for decoding the packets that will be muexed into this stream.
+     * @param coder The {@link IStreamCoder} that contains the meta-information needed for decoding the packets that will be muexed into this stream.
      * @return An {@link IStream} for the new stream on success, or null on failure.
      * @since 5.0
      */

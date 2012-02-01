@@ -113,56 +113,6 @@ public class RegressionsExhaustiveTest
     }
   }
 
-
-  /**
-   * This test attempts to convert a file using the FFMPEG
-   * nellymoser encodec.
-   *
-   * It is currently disabled as the Nellymoser codec appears
-   * to override areas of native memory, and hence can crash
-   * Valgrind or a JVM.  It's here so once we fix this in FFMPEG
-   * we can add this back to our regression suite.
-   */
-  @Test
-  public void testConversionNellymoser() throws ParseException
-  {
-    // We do this to determine if this version of Xuggler can
-    // support resampling
-    boolean testResampling = IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_IMAGERESCALING);
-    String[] args = new String[]{
-        "--containerformat",
-        "flv",
-        "--acodec",
-        "nellymoser",
-        "--asamplerate",
-        "22050",
-        "--achannels",
-        "1",
-        "--abitrate",
-        "64000",
-        "--aquality",
-        "0",
-        "--vcodec",
-        "flv",
-        "--vscalefactor",
-        !testResampling  ? "1.0" : "2.0",
-            "--vbitrate",
-            "300000",
-            "--vquality",
-            "0",
-            "fixtures/testfile.flv",
-            this.getClass().getName()+"_"+mTestName+".flv"
-    };
-    converter = new Converter();
-
-    Options options = converter.defineOptions();
-
-    CommandLine cmdLine = converter.parseOptions(options, args);
-    assertTrue("all commandline options successful", cmdLine != null);
-
-    converter.run(cmdLine);
-  }
-
   /**
    * Tests for http://code.google.com/p/xuggle/issues/detail?id=51
    * 
@@ -266,12 +216,12 @@ public class RegressionsExhaustiveTest
     assertNotNull(picture);
     IStreamCoder coder = IStreamCoder.make(IStreamCoder.Direction.ENCODING);
     assertNotNull(coder);
-    coder.setTimeBase(IRational.make(1,1000000));
     coder.setCodec(ICodec.ID.CODEC_ID_FLV1);
+    coder.setTimeBase(IRational.make(1,1000000));
     coder.setPixelType(IPixelFormat.Type.YUV420P);
     coder.setWidth(20);
     coder.setHeight(20);
-    assertTrue(coder.open()>= 0);
+    assertTrue("could not open coder", coder.open()>= 0);
     
     IPacket packet = IPacket.make();
     assertNotNull(packet);
@@ -353,4 +303,55 @@ public class RegressionsExhaustiveTest
     for (ICodec c: ICodec.getInstalledCodecs())
       c.getID();
   }
+
+  /**
+   * This test attempts to convert a file using the FFMPEG
+   * nellymoser encodec.
+   *
+   * It is currently disabled as the Nellymoser codec appears
+   * to override areas of native memory, and hence can crash
+   * Valgrind or a JVM.  It's here so once we fix this in FFMPEG
+   * we can add this back to our regression suite.
+   */
+  @Test
+  public void testConversionNellymoser() throws ParseException
+  {
+    // We do this to determine if this version of Xuggler can
+    // support resampling
+    boolean testResampling = IVideoResampler.isSupported(IVideoResampler.Feature.FEATURE_IMAGERESCALING);
+    String[] args = new String[]{
+        "--containerformat",
+        "flv",
+        "--acodec",
+        "nellymoser",
+        "--asamplerate",
+        "22050",
+        "--achannels",
+        "1",
+        "--abitrate",
+        "64000",
+        "--aquality",
+        "0",
+        "--vcodec",
+        "flv",
+        "--vscalefactor",
+        !testResampling  ? "1.0" : "2.0",
+            "--vbitrate",
+            "300000",
+            "--vquality",
+            "0",
+            "fixtures/testfile.flv",
+            this.getClass().getName()+"_"+mTestName+".flv"
+    };
+    converter = new Converter();
+
+    Options options = converter.defineOptions();
+
+    CommandLine cmdLine = converter.parseOptions(options, args);
+    assertTrue("all commandline options successful", cmdLine != null);
+
+    converter.run(cmdLine);
+  }
+
+
 }

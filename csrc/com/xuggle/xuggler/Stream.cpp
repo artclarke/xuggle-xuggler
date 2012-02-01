@@ -69,7 +69,7 @@ namespace com { namespace xuggle { namespace xuggler
     mContainer = 0;
   }
   Stream*
-  Stream :: make(Container *container, AVStream * aStream, Direction direction)
+  Stream :: make(Container *container, AVStream * aStream, Direction direction, AVCodec* avCodec)
   {
     // note: make will acquire this for us.
     Stream *newStream = 0;
@@ -82,6 +82,7 @@ namespace com { namespace xuggle { namespace xuggler
         newStream->mCoder = StreamCoder::make(
               direction == INBOUND?IStreamCoder::DECODING : IStreamCoder::ENCODING,
               aStream->codec,
+              avCodec,
               newStream);
         newStream->mContainer = container;
       } catch (std::bad_alloc & e) {

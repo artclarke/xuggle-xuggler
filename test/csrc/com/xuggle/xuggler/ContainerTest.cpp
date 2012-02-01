@@ -322,13 +322,12 @@ ContainerTest :: testWriteHeader()
   LoggerStack stack;
   stack.setGlobalLevel(Logger::LEVEL_WARN, false);
 
-  RefPointer<IStream> stream = container->addNewStream(0);
+  RefPointer<IStream> stream = container->addNewStream(ICodec::CODEC_ID_MP3);
   VS_TUT_ENSURE("got stream", stream);
   
   RefPointer<IStreamCoder> coder = stream->getStreamCoder();
   VS_TUT_ENSURE("got coder", coder);
   
-  coder->setCodec(ICodec::CODEC_ID_MP3);
   coder->setSampleRate(22050);
   coder->setChannels(1);
   VS_TUT_ENSURE("couldn't open", coder->open() >= 0);
@@ -461,9 +460,8 @@ ContainerTest :: testGetSDP()
   cont = IContainer::make();
   cont->open("rtp://127.0.0.1:23832",
       IContainer::WRITE, format.value());
-  stream = cont->addNewStream(0);
+  stream = cont->addNewStream(ICodec::CODEC_ID_H263);
   RefPointer<IStreamCoder> coder = stream->getStreamCoder();
-  coder->setCodec(ICodec::CODEC_ID_H263);
   coder->setWidth(352);
   coder->setHeight(288);
   coder->setPixelType(IPixelFormat::YUV420P);

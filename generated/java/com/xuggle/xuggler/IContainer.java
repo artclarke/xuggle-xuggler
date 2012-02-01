@@ -1405,7 +1405,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
 /**
  * Add a new stream that will use the given codec.  
  * @param	id The id for the codec used to insert packets. If you are 
- *		 adding an arbitrary data stream, use {@link ICodec.ID.CODEC_ID_NONE}, 
+ *		 adding an arbitrary data stream, use {@link ICodec.ID#CODEC_ID_NONE}, 
  *		 otherwise  
  * use the ID of the code type you plan to use.  
  * @return	An {@link IStream} for the new stream on success, or null 
@@ -1434,7 +1434,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  * passed in MUST contain the {@link IStreamCoder#getExtraData} that 
  *  
  * was used to encode the packet.  
- * @param	coder The {@link StreamCoder} that contains the meta-information 
+ * @param	coder The {@link IStreamCoder} that contains the meta-information 
  *		 needed for decoding the packets that will be muexed 
  *		 into this stream.  
  * @return	An {@link IStream} for the new stream on success, or null 

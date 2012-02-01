@@ -223,7 +223,7 @@ namespace com { namespace xuggle { namespace xuggler
             Stream::make(this, avStream,
                 (this->getType() == READ ?
                     IStream::INBOUND : IStream::OUTBOUND
-                ))
+                ), 0)
         );
 
         if (stream)
@@ -1198,11 +1198,13 @@ namespace com { namespace xuggle { namespace xuggler
 
       AVStream * stream=0;
       stream = avformat_new_stream(mFormatContext, avCodec);
+
+
       if (!stream)
         throw std::runtime_error("could not allocate stream");
 
       RefPointer<Stream>* p = new RefPointer<Stream>(
-          Stream::make(this, stream, IStream::OUTBOUND)
+          Stream::make(this, stream, IStream::OUTBOUND, avCodec)
       );
       if (!p) throw std::bad_alloc();
       if (*p)

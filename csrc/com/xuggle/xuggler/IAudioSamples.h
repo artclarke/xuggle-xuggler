@@ -43,13 +43,19 @@ namespace com { namespace xuggle { namespace xuggler
      * The format we use to represent audio.  Today
      * only FMT_S16 (signed integer 16-bit audio) is supported.
      */
-    typedef enum {
+    typedef enum Format {
       FMT_NONE = -1,
-      FMT_U8,
-      FMT_S16,
-      FMT_S24,
-      FMT_S32,
-      FMT_FLT,
+      FMT_U8,          ///< unsigned 8 bits
+      FMT_S16,         ///< signed 16 bits
+      FMT_S32,         ///< signed 32 bits
+      FMT_FLT,         ///< float
+      FMT_DBL,         ///< double
+
+      FMT_U8P,         ///< unsigned 8 bits, planar
+      FMT_S16P,        ///< signed 16 bits, planar
+      FMT_S32P,        ///< signed 32 bits, planar
+      FMT_FLTP,        ///< float, planar
+      FMT_DBLP,        ///< double, planar
     } Format;
 
     /**

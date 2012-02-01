@@ -52,7 +52,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int64_t getNumFrames();
 
     // Not for calling from Java
-    static Stream * make(Container* container, AVStream *, Direction direction);
+    static Stream * make(Container* container, AVStream *, Direction direction, AVCodec*);
 
     // The StreamCoder will call this if it needs to
     virtual void setTimeBase(IRational *);

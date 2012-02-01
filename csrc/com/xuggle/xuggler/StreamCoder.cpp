@@ -103,6 +103,76 @@ StreamCoder::reset()
   mStream = 0;
 }
 
+int32_t
+StreamCoder :: readyAVContexts(
+    Direction aDirection,
+    StreamCoder *aCoder,
+    Stream* aStream,
+    Codec *aCodec,
+    AVCodecContext *avContext,
+    AVCodec *avCodec)
+{
+  int retval = -1;
+  if (!avContext)
+    return retval;
+
+  if (avContext->sample_fmt == SAMPLE_FMT_NONE)
+    avContext->sample_fmt = SAMPLE_FMT_S16;
+
+  if (!aCodec) {
+    if (avCodec) {
+      aCoder->mCodec = Codec::make(avCodec);
+    } else if (aDirection == ENCODING) {
+      aCoder->mCodec = dynamic_cast<Codec*>(ICodec::findEncodingCodecByIntID(avContext->codec_id));
+    } else {
+      aCoder->mCodec = dynamic_cast<Codec*>(ICodec::findDecodingCodecByIntID(avContext->codec_id));
+    }
+  } else
+    aCoder->mCodec.reset(aCodec, true);
+
+  aCodec = aCoder->mCodec.value(); // re-use reference
+  avCodec = aCodec ? aCodec->getAVCodec() : 0;
+  if (aCoder->mCodecContext) {
+    // was previously set; we should do something about that.
+  }
+  aCoder->mCodecContext = avContext;
+  aCoder->mStream = aStream;
+  aCoder->mDirection = aDirection;
+
+  avContext->opaque = aCodec;
+
+  // these settings are necessary to have property setting work correctly
+  // and avContext->codec will need to be temporarily disabled BEFORE
+  // #open is called.
+  avContext->codec_id = avCodec ? avCodec->id : CODEC_ID_NONE;
+  avContext->codec_type = avCodec ? avCodec->type : AVMEDIA_TYPE_UNKNOWN;
+  avContext->codec = avCodec;
+
+  switch (avContext->codec_type)
+  {
+    case AVMEDIA_TYPE_AUDIO:
+      if (avContext->block_align == 1 && avContext->codec_id == CODEC_ID_MP3)
+        avContext->block_align = 0;
+      if (avContext->codec_id == CODEC_ID_AC3)
+        avContext->block_align = 0;
+      break;
+    default:
+      break;
+  }
+
+  VS_LOG_TRACE("StreamCoder %p codec set to: %s [%s]",
+      aCoder,
+      avCodec ? avCodec->name : "unknown",
+      avCodec ? avCodec->long_name : "unknown; caller must call IStreamCoder.setCodec(ICodec)");
+  if (!avCodec && (avContext->codec_type == AVMEDIA_TYPE_AUDIO || avContext->codec_type == AVMEDIA_TYPE_VIDEO)) {
+    VS_LOG_WARN("DEPRECATED; StreamCoder %p created without Codec.  Caller must call"
+        " IStreamCoder.setCodec(ICodec) before any other methods", aCoder);
+  }
+
+  retval = 0;
+  return retval;
+}
+
 void
 StreamCoder::setCodec(ICodec * aCodec)
 {
@@ -131,11 +201,8 @@ StreamCoder::setCodec(ICodec * aCodec)
     return;
   }
 
-  mCodecContext->codec = 0;
-  mCodec.reset(codec, true);
-
   if (mCodecContext) {
-    // avcodc_get_context_defaults3 does not clear these out if already allocated
+    // avcodec_get_context_defaults3 does not clear these out if already allocated
     // so we do.
     av_freep(&mCodecContext->extradata);
     av_freep(&mCodecContext->subtitle_header);
@@ -147,24 +214,12 @@ StreamCoder::setCodec(ICodec * aCodec)
   }
 
   if (mCodecContext)
-  {
-    if (codec) {
-      if (!avCodec) {
-        VS_LOG_ERROR("Codec has no underlying AVCodec; fatal error and things are likely to go wrong");
-        return;
-      }
-
-      // FFmpeg actually does this in the call to avcodec_open2, but needs these
-      // set for av_opt_set methods to work.  It's very annoying.  See hack in
-      // {@link #open(IMetaData,IMetaData)}.
-      mCodecContext->codec_id = avCodec->id;
-      mCodecContext->codec_type = avCodec->type;
-      mCodecContext->codec = avCodec;
-      VS_LOG_TRACE("StreamCoder codec set to: %s; %s", avCodec->name, avCodec->long_name);
-    }
-    if (mCodecContext->sample_fmt == SAMPLE_FMT_NONE)
-      mCodecContext->sample_fmt = SAMPLE_FMT_S16;
-  }
+    readyAVContexts(mDirection,
+        this,
+        mStream,
+        codec,
+        mCodecContext,
+        0);
 }
 
 void
@@ -208,19 +263,14 @@ StreamCoder :: make (Direction direction, Codec* codec)
 
     codecCtx = avcodec_alloc_context3(avCodec);
 
-    if (!codecCtx)
-      throw std::bad_alloc();
-
-    retval->mCodec.reset(codec,true);
-    retval->mCodecContext = codecCtx;
-    retval->mDirection = direction;
-    retval->mStream = 0;
-    // Set the private data to this object.
-    codecCtx->opaque = retval;
-
-    // we are going to set the mCodecContext->codec value here (and will set to null BEFORE open) so that
-    // the properties API works as people expect
-    codecCtx->codec = avCodec;
+    if (readyAVContexts(
+        direction,
+        retval,
+        0,
+        codec,
+        codecCtx,
+        avCodec) < 0)
+      throw std::runtime_error("could not initialize codec");
   }
   catch (std::exception & e)
   {
@@ -237,67 +287,54 @@ StreamCoder::make(Direction direction, IStreamCoder* aCoder)
 
   try
   {
+    if (!coder)
+      throw std::runtime_error("cannot make stream coder from null coder");
+
     RefPointer<Codec> codecToUse;
 
-    if (coder)
-      codecToUse = coder->getCodec();
+    codecToUse = coder->getCodec();
 
     retval = make(direction, codecToUse.value());
     if (!retval)
       throw std::bad_alloc();
 
-    if (coder)
+    AVCodecContext* codec = retval->mCodecContext;
+    AVCodecContext* icodec = coder->mCodecContext;
+
+    // temporarily set this back to zero
+    codec->codec = 0;
+    avcodec_copy_context(codec, icodec);
+    // and copy it back by hand to ensure setProperty methods
+    // work again
+    codec->codec = icodec->codec;
+
+    RefPointer<IStream> stream = coder->getStream();
+    RefPointer<IRational> streamBase = stream ? stream->getTimeBase() : 0;
+    double base = streamBase ? streamBase->getDouble() : 0;
+
+    if (base && av_q2d(icodec->time_base) * icodec->ticks_per_frame > base
+        && base < 1.0 / 1000)
     {
-      AVCodecContext* codec = retval->mCodecContext;
-      AVCodecContext* icodec = coder->mCodecContext;
-
-      // temporarily set this back to zero
-      codec->codec = 0;
-      avcodec_copy_context(codec, icodec);
-      // and copy it back by hand to ensure setProperty methods
-      // work again
-      codec->codec = icodec->codec;
-
-      if (codec->sample_fmt == SAMPLE_FMT_NONE)
-        codec->sample_fmt = SAMPLE_FMT_S16;
-
-      RefPointer<IStream> stream = coder->getStream();
-      RefPointer<IRational> streamBase = stream ? stream->getTimeBase() : 0;
-      double base = streamBase ? streamBase->getDouble() : 0;
-
-      if (base && av_q2d(icodec->time_base) * icodec->ticks_per_frame > base
-          && base < 1.0 / 1000)
+      codec->time_base.num *= icodec->ticks_per_frame;
+    }
+    if (!codec->time_base.num || !codec->time_base.den)
+    {
+      RefPointer<IRational> iStreamBase = coder->getTimeBase();
+      if (iStreamBase)
       {
-        codec->time_base.num *= icodec->ticks_per_frame;
-      }
-      if (!codec->time_base.num || !codec->time_base.den)
-      {
-        RefPointer<IRational> iStreamBase = coder->getTimeBase();
-        if (iStreamBase)
-        {
-          codec->time_base.num = iStreamBase->getNumerator();
-          codec->time_base.den = iStreamBase->getDenominator();
-        }
-      }
-      switch (codec->codec_type)
-      {
-        case AVMEDIA_TYPE_AUDIO:
-          if (codec->block_align == 1 && codec->codec_id == CODEC_ID_MP3)
-            codec->block_align = 0;
-          if (codec->codec_id == CODEC_ID_AC3)
-            codec->block_align = 0;
-          break;
-        default:
-          break;
+        codec->time_base.num = iStreamBase->getNumerator();
+        codec->time_base.den = iStreamBase->getDenominator();
       }
     }
-    else
-    {
-      if (retval->mCodecContext->codec_id == CODEC_ID_NONE)
-        retval->mCodecContext->codec_id = CODEC_ID_PROBE; // Tell FFMPEG we don't know, but to probe to find out
-      if (retval->mCodecContext->sample_fmt == SAMPLE_FMT_NONE)
-        retval->mCodecContext->sample_fmt = SAMPLE_FMT_S16;
-    }
+
+    if (readyAVContexts(
+        direction,
+        retval,
+        0,
+        codecToUse.value(),
+        codec,
+        icodec->codec) < 0)
+      throw std::runtime_error("could not initialize AVContext");
 
   }
   catch (std::exception &e)
@@ -310,7 +347,7 @@ StreamCoder::make(Direction direction, IStreamCoder* aCoder)
 
 StreamCoder *
 StreamCoder::make(Direction direction, AVCodecContext * codecCtx,
-    Stream* stream)
+    AVCodec* avCodec, Stream* stream)
 {
   StreamCoder *retval = 0;
   RefPointer<Codec> codec;
@@ -320,27 +357,14 @@ StreamCoder::make(Direction direction, AVCodecContext * codecCtx,
     try
     {
        retval = StreamCoder::make();
-      // In FFmpeg r20623 they started defaulting the sample
-      // format to NONE, but Xuggler uses assume S16, so we
-      // override that.
-      if (codecCtx->sample_fmt == SAMPLE_FMT_NONE)
-        codecCtx->sample_fmt = SAMPLE_FMT_S16;
-
-      if (direction == ENCODING) {
-        retval->mCodec = dynamic_cast<Codec*>(ICodec::findEncodingCodecByIntID(codecCtx->codec_id));
-      } else {
-        retval->mCodec = dynamic_cast<Codec*>(ICodec::findDecodingCodecByIntID(codecCtx->codec_id));
-      }
-      retval->mCodecContext = codecCtx;
-      retval->mDirection = direction;
-      retval->mStream = stream; //do not ref count.
-
-      // Set the private data to this object.
-      codecCtx->opaque = retval;
-
-      // we are going to set the mCodecContext->codec value here (and will set to null BEFORE open) so that
-      // the properties API works as people expect
-      codecCtx->codec = (retval->mCodec ? retval->mCodec->getAVCodec() : 0);
+       if (readyAVContexts(
+           direction,
+           retval,
+           stream,
+           0,
+           codecCtx,
+           avCodec) < 0)
+         throw std::runtime_error("could not initialize codec");
     }
     catch (std::exception &e)
     {
@@ -1385,9 +1409,11 @@ StreamCoder::encodeAudio(IPacket * pOutPacket, IAudioSamples* pSamples,
       throw std::runtime_error("Decoding StreamCoder not valid for encoding");
     if (!mCodec)
       throw std::runtime_error("Codec not set");
-    if (!mCodec->canEncode())
-      throw std::runtime_error("Codec cannot be used to encode");
-
+    if (!mCodec->canEncode()) {
+      std::string msg = "Codec cannot be used to encode: ";
+      msg += mCodec->getName();
+      throw std::runtime_error(msg);
+    }
     if (!packet)
       throw std::invalid_argument("Invalid packet to encode to");
     // Zero out our packet

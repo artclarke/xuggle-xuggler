@@ -56,6 +56,7 @@ public class ContainerExhaustiveTest
           {
             IContainer retval = IContainer.make();
             assertTrue(
+                "Xuggler Custom IO failed",
                 retval.open(new FileInputStream(TEST_FILE), null) >=0
             );
             return retval;
@@ -98,6 +99,7 @@ public class ContainerExhaustiveTest
           {
             IContainer retval = IContainer.make();
             assertTrue(
+                "Xuggler Custom IO failed",
                 retval.open(
                     new DataInputStream(new FileInputStream(TEST_FILE)),
                     null) >=0

@@ -19,6 +19,8 @@
 
 package com.xuggle.xuggler;
 
+import java.util.List;
+
 import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,6 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.xuggle.xuggler.Global;
 import com.xuggle.xuggler.IAudioResampler;
 import com.xuggle.xuggler.IAudioSamples;
+import com.xuggle.xuggler.IAudioSamples.Format;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
@@ -726,12 +729,40 @@ public class Converter
       if (cType == ICodec.Type.CODEC_TYPE_AUDIO && mHasAudio
           && (astream == -1 || astream == i))
       {
+         /**
+         * First, did the user specify an audio codec?
+         */
+        ICodec codec = null;
+        if (acodec != null)
+        {
+          /**
+           * Looks like they did specify one; let's look it up by name.
+           */
+          codec = ICodec.findEncodingCodecByName(acodec);
+          if (codec == null || codec.getType() != cType)
+            throw new RuntimeException("could not find encoder: " + acodec);
+ 
+        }
+        else
+        {
+          /**
+           * Looks like the user didn't specify an output coder for audio.
+           * 
+           * So we ask Xuggler to guess an appropriate output coded based on the
+           * URL, container format, and that it's audio.
+           */
+          codec = ICodec.guessEncodingCodec(oFmt, null, outputURL, null,
+              cType);
+          if (codec == null)
+            throw new RuntimeException("could not guess " + cType
+                + " encoder for: " + outputURL);
+        }
         /**
          * So it looks like this stream as an audio stream. Now we add an audio
          * stream to the output container that we will use to encode our
          * resampled audio.
          */
-        IStream os = mOContainer.addNewStream(i);
+        IStream os = mOContainer.addNewStream(codec);
 
         /**
          * And we ask the IStream for an appropriately configured IStreamCoder
@@ -743,44 +774,20 @@ public class Converter
          */
         IStreamCoder oc = os.getStreamCoder();
 
-
         mOStreams[i] = os;
         mOCoders[i] = oc;
 
-        /**
-         * First, did the user specify an audio codec?
+       /**
+         * Now let's see if the codec can support the input sample format; if not
+         * we pick the last sample format the codec supports.
          */
-        if (acodec != null)
-        {
-          ICodec codec = null;
-          /**
-           * Looks like they did specify one; let's look it up by name.
-           */
-          codec = ICodec.findEncodingCodecByName(acodec);
-          if (codec == null || codec.getType() != cType)
-            throw new RuntimeException("could not find encoder: " + acodec);
-          /**
-           * Now, tell the output stream coder that it's to use that codec.
-           */
-          oc.setCodec(codec);
-        }
-        else
-        {
-          /**
-           * Looks like the user didn't specify an output coder for audio.
-           * 
-           * So we ask Xuggler to guess an appropriate output coded based on the
-           * URL, container format, and that it's audio.
-           */
-          ICodec codec = ICodec.guessEncodingCodec(oFmt, null, outputURL, null,
-              cType);
-          if (codec == null)
-            throw new RuntimeException("could not guess " + cType
-                + " encoder for: " + outputURL);
-          /**
-           * Now let's use that.
-           */
-          oc.setCodec(codec);
+        Format preferredFormat = ic.getSampleFormat();
+        
+        List<Format> formats = codec.getSupportedAudioSampleFormats();
+        for(Format format : formats) {
+          oc.setSampleFormat(format);
+          if (format == preferredFormat)
+            break;
         }
 
         final String apreset = cmdLine.getOptionValue("apreset");
@@ -833,13 +840,15 @@ public class Converter
          * the right format to output.
          */
         if (oc.getChannels() != ic.getChannels()
-            || oc.getSampleRate() != ic.getSampleRate())
+            || oc.getSampleRate() != ic.getSampleRate()
+            || oc.getSampleFormat() != ic.getSampleFormat())
         {
           /**
            * Create an audio resampler to do that job.
            */
           mASamplers[i] = IAudioResampler.make(oc.getChannels(), ic
-              .getChannels(), oc.getSampleRate(), ic.getSampleRate());
+              .getChannels(), oc.getSampleRate(), ic.getSampleRate(),
+              oc.getSampleFormat(), ic.getSampleFormat());
           if (mASamplers[i] == null)
           {
             throw new RuntimeException(
@@ -856,8 +865,8 @@ public class Converter
          * 
          * We'll use these repeated during the #run(CommandLine) method.
          */
-        mISamples[i] = IAudioSamples.make(1024, ic.getChannels());
-        mOSamples[i] = IAudioSamples.make(1024, oc.getChannels());
+        mISamples[i] = IAudioSamples.make(1024, ic.getChannels(), ic.getSampleFormat());
+        mOSamples[i] = IAudioSamples.make(1024, oc.getChannels(), oc.getSampleFormat());
       }
       else if (cType == ICodec.Type.CODEC_TYPE_VIDEO && mHasVideo
           && (vstream == -1 || vstream == i))
@@ -868,32 +877,29 @@ public class Converter
          * comments and will only document something substantially different
          * here.
          */
-        final IStream os = mOContainer.addNewStream(i);
-        final IStreamCoder oc = os.getStreamCoder();
-
-
-        mOStreams[i] = os;
-        mOCoders[i] = oc;
-
+        ICodec codec = null;
         if (vcodec != null)
         {
-          ICodec codec = null;
           codec = ICodec.findEncodingCodecByName(vcodec);
           if (codec == null || codec.getType() != cType)
             throw new RuntimeException("could not find encoder: " + vcodec);
-          oc.setCodec(codec);
-          oc.setGlobalQuality(0);
         }
         else
         {
-          ICodec codec = ICodec.guessEncodingCodec(oFmt, null, outputURL, null,
+          codec = ICodec.guessEncodingCodec(oFmt, null, outputURL, null,
               cType);
           if (codec == null)
             throw new RuntimeException("could not guess " + cType
                 + " encoder for: " + outputURL);
 
-          oc.setCodec(codec);
         }
+        final IStream os = mOContainer.addNewStream(codec);
+        final IStreamCoder oc = os.getStreamCoder();
+
+        mOStreams[i] = os;
+        mOCoders[i] = oc;
+
+
         // Set options AFTER selecting codec
         final String vpreset = cmdLine.getOptionValue("vpreset");
         if (vpreset != null)
@@ -1006,11 +1012,11 @@ public class Converter
         if (retval < 0)
           throw new RuntimeException ("could not set compliance mode to experimental");
         
-        retval = mOCoders[i].open();
+        retval = mOCoders[i].open(null, null);
         if (retval < 0)
           throw new RuntimeException(
               "could not open output encoder for stream: " + i);
-        retval = mICoders[i].open();
+        retval = mICoders[i].open(null, null);
         if (retval < 0)
           throw new RuntimeException(
               "could not open input decoder for stream: " + i);
