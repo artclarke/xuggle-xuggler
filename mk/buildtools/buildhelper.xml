@@ -509,6 +509,7 @@
     </copy>
     <!-- Compile the java code from ${src.dir} into ${build.dir} -->
     <javac
+        includeantruntime="false"
         source="${java.source}"
         destdir="${classes.dir}"
         classpathref="compile.classpath"
