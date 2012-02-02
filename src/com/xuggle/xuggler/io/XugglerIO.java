@@ -98,7 +98,7 @@ public class XugglerIO implements IURLProtocolHandlerFactory
   /**
    * A thread-safe mapping between URLs and registration information
    */
-  private ConcurrentMap<String, RegistrationInformation> mURLs = new ConcurrentHashMap<String, RegistrationInformation>();
+  private final ConcurrentMap<String, RegistrationInformation> mURLs = new ConcurrentHashMap<String, RegistrationInformation>();
 
   /**
    * The singleton Factory object for this class loader.
