@@ -28,14 +28,10 @@
 #define ContainerParameters_H_
 
 #include <com/xuggle/xuggler/IContainerParameters.h>
-// This is hear temporarily; this entire object will be depcreated.
+
 extern "C" {
-#define attribute_deprecated
+  struct AVFormatParameters;
 }
-
-#include <com/xuggle/xuggler/FfmpegIncludes.h>
-
-
 namespace com { namespace xuggle { namespace xuggler
 {
 
@@ -83,7 +79,7 @@ protected:
   virtual ~ContainerParameters();
   
 private:
-  AVFormatParameters mParameters;
+  struct AVFormatParameters* mParameters;
   char mStandard[256];
 };
 

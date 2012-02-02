@@ -19,17 +19,16 @@
 
 #include <stdexcept>
 
-// Temporarily turn off deprecation warnings in FFmpeg
-#define attribute_deprecated
-
 // for strncpy
 #include <cstring>
 
+#define attribute_deprecated
+
 #include <com/xuggle/ferry/JNIHelper.h>
 #include <com/xuggle/ferry/Logger.h>
+#include <com/xuggle/xuggler/ContainerParameters.h>
 #include <com/xuggle/xuggler/Container.h>
 #include <com/xuggle/xuggler/ContainerFormat.h>
-#include <com/xuggle/xuggler/ContainerParameters.h>
 #include <com/xuggle/xuggler/Stream.h>
 #include <com/xuggle/xuggler/Packet.h>
 #include <com/xuggle/xuggler/Global.h>

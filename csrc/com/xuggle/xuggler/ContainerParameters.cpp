@@ -24,114 +24,125 @@
  *      Author: aclarke
  */
 
+#include <stdexcept>
+
+#define attribute_deprecated
+
 #include <com/xuggle/xuggler/ContainerParameters.h>
+#include <com/xuggle/xuggler/FfmpegIncludes.h>
+
 
 namespace com { namespace xuggle { namespace xuggler
 {
 
 ContainerParameters :: ContainerParameters()
 {
-  memset(&mParameters, 0, sizeof(mParameters));
+  mParameters = (AVFormatParameters*)av_malloc(sizeof(AVFormatParameters));
+  if (!mParameters)
+    throw std::bad_alloc();
+
+  memset(mParameters, 0, sizeof(*mParameters));
   mStandard[sizeof(mStandard)-1] = 0;
   mStandard[0] = 0;
 }
 
 ContainerParameters :: ~ContainerParameters()
 {
+  av_free(mParameters);
 }
 
 IRational *
 ContainerParameters :: getTimeBase()
 {
-  return IRational::make(mParameters.time_base.num, mParameters.time_base.den);
+  return IRational::make(mParameters->time_base.num, mParameters->time_base.den);
 }
 
 void
 ContainerParameters :: setTimeBase(IRational* base)
 {
   if (base) {
-    mParameters.time_base.num = base->getNumerator();
-    mParameters.time_base.den = base->getDenominator();
+    mParameters->time_base.num = base->getNumerator();
+    mParameters->time_base.den = base->getDenominator();
   }
 }
 
 int32_t
 ContainerParameters :: getAudioSampleRate()
 {
-  return mParameters.sample_rate;
+  return mParameters->sample_rate;
 }
 
 void
 ContainerParameters :: setAudioSampleRate(int32_t sampleRate)
 {
   if (sampleRate > 0)
-    mParameters.sample_rate=sampleRate;
+    mParameters->sample_rate=sampleRate;
 }
 
 int32_t 
 ContainerParameters :: getAudioChannels()
 {
-  return mParameters.channels;
+  return mParameters->channels;
 }
 void
 ContainerParameters :: setAudioChannels(int32_t channels)
 {
   if (channels > 0)
-    mParameters.channels = channels;
+    mParameters->channels = channels;
 }
 
 int32_t
 ContainerParameters :: getVideoWidth()
 {
-  return mParameters.width;
+  return mParameters->width;
 }
 
 void
 ContainerParameters :: setVideoWidth(int32_t width)
 {
   if (width > 0)
-    mParameters.width = width;
+    mParameters->width = width;
 }
 
 int32_t
 ContainerParameters :: getVideoHeight()
 {
-  return mParameters.height;
+  return mParameters->height;
 }
 
 void ContainerParameters :: setVideoHeight(int32_t height)
 {
   if (height > 0)
-    mParameters.height = height;
+    mParameters->height = height;
 }
 
 IPixelFormat::Type
 ContainerParameters :: getPixelFormat()
 {
-  return (IPixelFormat::Type)mParameters.pix_fmt;
+  return (IPixelFormat::Type)mParameters->pix_fmt;
 }
 
 void ContainerParameters :: setPixelFormat(IPixelFormat::Type type)
 {
-  mParameters.pix_fmt = (enum PixelFormat) type;
+  mParameters->pix_fmt = (enum PixelFormat) type;
 }
 
 int32_t
 ContainerParameters :: getTVChannel()
 {
-  return mParameters.channel;
+  return mParameters->channel;
 }
 void
 ContainerParameters :: setTVChannel(int32_t channel)
 {
   if (channel >= 0)
-    mParameters.channel = channel;
+    mParameters->channel = channel;
 }
 
 const char*
 ContainerParameters :: getTVStandard()
 {
-  return *mParameters.standard ? mParameters.standard : 0;
+  return *mParameters->standard ? mParameters->standard : 0;
 }
 
 void
@@ -140,51 +151,51 @@ ContainerParameters :: setTVStandard(const char* standard)
   if (standard && *standard)
   {
     strncpy(mStandard, standard, sizeof(mStandard)-1);
-    mParameters.standard = mStandard;
+    mParameters->standard = mStandard;
   } else {
-    mParameters.standard = 0;
+    mParameters->standard = 0;
   }
 } 
 
 bool
 ContainerParameters :: isMPEG2TSRaw()
 {
-  return mParameters.mpeg2ts_raw;
+  return mParameters->mpeg2ts_raw;
 }
 
 void
 ContainerParameters :: setMPEG2TSRaw(bool setting)
 {
-  mParameters.mpeg2ts_raw = setting;
+  mParameters->mpeg2ts_raw = setting;
 }
 
 bool
 ContainerParameters :: isMPEG2TSComputePCR()
 {
-  return mParameters.mpeg2ts_compute_pcr;
+  return mParameters->mpeg2ts_compute_pcr;
 }
 void
 ContainerParameters :: setMPEG2TSComputePCR(bool setting)
 {
-  mParameters.mpeg2ts_compute_pcr=setting;
+  mParameters->mpeg2ts_compute_pcr=setting;
 }
 
 bool
 ContainerParameters :: isInitialPause()
 {
-  return mParameters.initial_pause;
+  return mParameters->initial_pause;
 }
 
 void
 ContainerParameters :: setInitialPause(bool setting)
 {
-  mParameters.initial_pause=setting;
+  mParameters->initial_pause=setting;
 }
 
 AVFormatParameters*
 ContainerParameters :: getAVParameters()
 {
-  return &mParameters;
+  return mParameters;
 }
 
 }}}

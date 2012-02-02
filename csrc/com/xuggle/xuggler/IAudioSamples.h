@@ -261,7 +261,7 @@ namespace com { namespace xuggle { namespace xuggler
      * Added for 2.1
      */
   public:
-    typedef enum {
+    typedef enum ChannelLayout {
       CH_FRONT_LEFT             =0x00000001,
       CH_FRONT_RIGHT            =0x00000002,
       CH_FRONT_CENTER           =0x00000004,
