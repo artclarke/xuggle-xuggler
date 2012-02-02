@@ -23,7 +23,6 @@ import com.xuggle.ferry.IBuffer;
 import com.xuggle.test_utils.TestUtils;
 import com.xuggle.xuggler.io.IURLProtocolHandler;
 import junit.framework.TestCase;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,14 +32,8 @@ public class ContainerTest extends TestCase
   private final String mSampleFile = "fixtures/testfile.flv";
   private final Logger log = LoggerFactory.getLogger(this.getClass());
 
-  /**
-   * At FFmpeg revision r22821 this started
-   * failing.  I wasn't able to find a cause easily, so I'm disabling for
-   * now.
-   */
   @Test
-  @Ignore
-  public void disabled_testContainerOpenAndClose2()
+  public void testContainerOpenAndClose2()
   {
     IContainer container = null;
     IContainerFormat fmt = null;    
@@ -671,6 +664,7 @@ public class ContainerTest extends TestCase
     assertEquals(sdp, otherSdp);
   }
 
+  @SuppressWarnings("deprecation")
   @Test
   public void testPreloadAndMaxDelay()
   {
@@ -681,7 +675,7 @@ public class ContainerTest extends TestCase
     assertTrue("could not open file", retval >= 0);
 
     retval = container.getPreload();
-    assertEquals("container should have 0 preload value: " + retval, retval, 0);
+    assertEquals("As of 5.0 getPreload is depcreated: " + retval, retval, -1);
 
     retval = container.getMaxDelay();
     assertEquals("container should have 0 maxdelay value: " + retval, retval, 0);
@@ -693,7 +687,7 @@ public class ContainerTest extends TestCase
     container = IContainer.make();
 
     retval = container.setPreload(10);
-    assertEquals("container should have allowed setting preload: " + retval, 10, container.getPreload());
+    assertEquals("As of 5.0 get and set preload are deprecated: " + retval, -1, container.getPreload());
 
     retval = container.setMaxDelay(20);
     assertEquals("container should have allowed setting maxdelay: " + retval, 20, container.getMaxDelay());

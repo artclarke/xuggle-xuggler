@@ -890,6 +890,8 @@ namespace com { namespace xuggle { namespace xuggler
         int64_t targetTimeStamp, int64_t maxTimeStamp, int32_t flags)=0;
 
    /**
+    * @Deprecated use {@link #setProperty} instead.
+    *
     * If the container has not already been opened, sets the AVFormatContext.preload property
     * which can be useful in some circumstances such as when dealing with mpeg formats.
     *
@@ -900,6 +902,7 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int32_t setPreload(int32_t preload)=0;
 
    /**
+    * @Deprecated use {@link #getPropertyAsLong} instead.
     * The amount container will attemtp to preload.
     *
     * @return The amount to preload, error code otherwise.

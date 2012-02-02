@@ -22,7 +22,7 @@
 // for strncpy
 #include <cstring>
 
-#define attribute_deprecated
+//#define attribute_deprecated
 
 #include <com/xuggle/ferry/JNIHelper.h>
 #include <com/xuggle/ferry/Logger.h>
@@ -57,7 +57,9 @@ namespace com { namespace xuggle { namespace xuggler
     mFormatContext = avformat_alloc_context();
     if (!mFormatContext)
       throw std::bad_alloc();
-    
+    // Set up thread interrupt handling.
+    mFormatContext->interrupt_callback.callback = Global::avioInterruptCB;
+    mFormatContext->interrupt_callback.opaque = this;
     mIsOpened = false;
     mIsMetaDataQueried=false;
     mNeedTrailerWrite = false;
@@ -265,14 +267,18 @@ namespace com { namespace xuggle { namespace xuggler
       params = cParams->getAVParameters();
 
     // We have prealloced the format
-    params->prealloced_context = 1;
     if (containerFormat)
     {
       inputFormat = containerFormat->getInputFormat();
     } else {
       inputFormat = 0;
     }
-    retval = av_open_input_file(&mFormatContext, url, inputFormat, mInputBufferLength, params);
+    retval = avformat_open_input(
+        &mFormatContext,
+        url,
+        inputFormat,
+        0
+        );
     if (retval >= 0) {
       mIsOpened = true;
       if (aStreamsCanBeAddedDynamically)
@@ -322,7 +328,11 @@ namespace com { namespace xuggle { namespace xuggler
       }
       mFormatContext->oformat = outputFormat;
 
-      retval = avio_open(&mFormatContext->pb, url, URL_WRONLY);
+      retval = avio_open2(&mFormatContext->pb,
+          url, URL_WRONLY,
+          &mFormatContext->interrupt_callback,
+          0
+          );
       if (retval >= 0) {
         mIsOpened = true;
         strncpy(mFormatContext->filename, url, sizeof(mFormatContext->filename)-1);
@@ -411,7 +421,7 @@ namespace com { namespace xuggle { namespace xuggler
 
       if (this->getType() == READ)
       {
-        av_close_input_file(mFormatContext);
+        avformat_close_input(&mFormatContext);
         retval = 0;
         mFormatContext = 0;
       } else
@@ -597,16 +607,6 @@ namespace com { namespace xuggle { namespace xuggler
       // dump_format(mFormatContext, 0, (mFormatContext ? mFormatContext->filename :0), 1);
 #endif // VS_DEBUG
 
-      // This checks to make sure that parameters are set correctly.
-      AVFormatParameters* params = 0;
-      ContainerParameters* cParams = dynamic_cast<ContainerParameters*>(mParameters.value());
-      if (cParams)
-        params = cParams->getAVParameters();
-
-      retval = av_set_parameters(mFormatContext, params);
-      if (retval < 0)
-        throw std::runtime_error("incorrect parameters set on container");
-
       // now we're going to walk through and record each open stream coder.
       // this is needed to catch a potential error on writeTrailer().
       mOpenCoders.clear();
@@ -641,7 +641,7 @@ namespace com { namespace xuggle { namespace xuggler
           }
         }
       }
-      retval = av_write_header(mFormatContext);
+      retval = avformat_write_header(mFormatContext,0);
       if (retval < 0)
         throw std::runtime_error("could not write header for container");
 
@@ -711,7 +711,7 @@ namespace com { namespace xuggle { namespace xuggler
     {
       if (!mIsMetaDataQueried)
       {
-        retval = av_find_stream_info(mFormatContext);
+        retval = avformat_find_stream_info(mFormatContext, 0);
         // for shits and giggles, dump the ffmpeg output
         // dump_format(mFormatContext, 0, (mFormatContext ? mFormatContext->filename :0), 0);
         mIsMetaDataQueried = true;
@@ -806,8 +806,14 @@ namespace com { namespace xuggle { namespace xuggler
   {
     int64_t retval = -1;
     queryStreamMetaData();
-    if (mFormatContext)
-      retval = mFormatContext->file_size;
+    if (mFormatContext) {
+      if (mFormatContext->iformat && mFormatContext->iformat->flags & AVFMT_NOFILE)
+        retval = 0;
+      else {
+        retval = avio_size(mFormatContext->pb);
+        retval = FFMAX(0, retval);
+      }
+    }
     return retval;
   }
 
@@ -822,28 +828,17 @@ namespace com { namespace xuggle { namespace xuggler
   }
 
   int32_t
-  Container :: setPreload(int32_t preload)
+  Container :: setPreload(int32_t)
   {
-    int32_t retval = -1;
-    if (mIsOpened || !mFormatContext)
-    {
-      VS_LOG_WARN("Attempting to set preload while file is opened; ignoring");
-    }
-    else
-    {
-      mFormatContext->preload = preload;
-      retval = preload;
-    }
-    return retval;
+    VS_LOG_WARN("Deprecated and will be removed; does nothing now.");
+    return -1;
   }
 
   int32_t
   Container :: getPreload()
   {
-    int32_t retval = -1;
-    if (mFormatContext)
-      retval = mFormatContext->preload;
-    return retval;
+    VS_LOG_WARN("Deprecated and will be removed; does nothing now.");
+    return -1;
   }
 
   int32_t

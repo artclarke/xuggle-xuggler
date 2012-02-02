@@ -128,6 +128,13 @@ namespace com { namespace xuggle { namespace xuggler
      * @see #lock()
      */
     static void unlock();
+
+
+    /**
+     * Internal Only.  Do not call.
+     * Checks to determine if there is
+     */
+    static int avioInterruptCB(void*);
 #endif // ! SWIG
 
 
@@ -153,6 +160,7 @@ namespace com { namespace xuggle { namespace xuggler
      *   shut up.
      */
     static void setFFmpegLoggingLevel(int32_t level);
+
   private:
     Global();
     ~Global();

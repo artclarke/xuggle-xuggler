@@ -163,6 +163,7 @@ namespace com { namespace xuggle { namespace xuggler
     int32_t mReadRetryCount;
     com::xuggle::ferry::RefPointer<IContainerParameters> mParameters;
     com::xuggle::ferry::RefPointer<IMetaData> mMetaData;
+    com::xuggle::ferry::RefPointer<IContainerFormat> mFormat;
 
     bool mCustomIO;
   };

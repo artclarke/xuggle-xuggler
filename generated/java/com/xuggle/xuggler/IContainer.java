@@ -1363,6 +1363,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
   }
 
 /**
+ * @deprecated	use {@link #setProperty} instead.  
  * If the container has not already been opened, sets the AVFormatContext.preload 
  * property  
  * which can be useful in some circumstances such as when dealing with 
@@ -1376,10 +1377,11 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
   }
 
 /**
+ * @deprecated	use {@link #getPropertyAsLong} instead.  
  * The amount container will attemtp to preload.  
  * @return	The amount to preload, error code otherwise.  
  */
-  public int getPreload() {
+  @Deprecated public int getPreload() {
     return XugglerJNI.IContainer_getPreload(swigCPtr, this);
   }
 

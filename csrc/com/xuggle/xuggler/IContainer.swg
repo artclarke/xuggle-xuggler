@@ -380,4 +380,8 @@
 %}
 
 %javamethodmodifiers com::xuggle::xuggler::IContainer::addNewStream(int) "@Deprecated public"
+%javamethodmodifiers com::xuggle::xuggler::IContainer::getPreload() "@Deprecated public"
+%javamethodmodifiers com::xuggle::xuggler::IContainer::setPreload(int) "@Deprecated public"
+
+
 %include <com/xuggle/xuggler/IContainer.h>

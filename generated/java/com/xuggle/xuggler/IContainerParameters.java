@@ -9,6 +9,7 @@
 package com.xuggle.xuggler;
 import com.xuggle.ferry.*;
 /**
+ * @deprecated	Use IContainer#setProperty instead  
  * Parameters that can be set on a {@link IContainer} before opening. 
  *  
  * <p>  

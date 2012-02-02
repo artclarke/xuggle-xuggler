@@ -111,7 +111,8 @@ namespace com { namespace xuggle { namespace xuggler
       ffmpegLogger->logVA(0, 0, logLevel, revisedFmt, va);
   }
 
-  static int xuggler_interrupt_cb(void)
+  int
+  Global :: avioInterruptCB(void*)
   {
     JNIHelper* helper = JNIHelper::getHelper();
     int retval = 0;
@@ -165,9 +166,7 @@ namespace com { namespace xuggle { namespace xuggler
 
       // and set up the device library for webcam support
       avdevice_register_all();
-      // TODO: Determine how to set interrupt handler when I convert to avio.
-      xuggler_interrupt_cb();
-//      avio_set_interrupt_cb(xuggler_interrupt_cb);
+
       // turn down logging
       sGlobal = new Global();
     }

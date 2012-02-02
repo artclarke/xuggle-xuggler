@@ -36,6 +36,7 @@ namespace com { namespace xuggle { namespace xuggler
 {
 
 /**
+ * @Deprecated Use IContainer#setProperty instead
  * Parameters that can be set on a {@link IContainer} before opening.
  * <p>
  * Normally this class can be ignored, but for some container formats, such
