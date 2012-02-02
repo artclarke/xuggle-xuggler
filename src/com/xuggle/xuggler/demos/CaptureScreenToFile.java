@@ -145,15 +145,14 @@ public class CaptureScreenToFile
     if (retval < 0)
       throw new RuntimeException("could not open output file");
 
-    outStream = outContainer.addNewStream(0);
-    outStreamCoder = outStream.getStreamCoder();
-
     ICodec codec = ICodec.guessEncodingCodec(null, null, outFile, null,
         ICodec.Type.CODEC_TYPE_VIDEO);
     if (codec == null)
       throw new RuntimeException("could not guess a codec");
 
-    codec = ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_FLASHSV);
+    outStream = outContainer.addNewStream(codec);
+    outStreamCoder = outStream.getStreamCoder();
+
     outStreamCoder.setNumPicturesInGroupOfPictures(30);
     outStreamCoder.setCodec(codec);
 
@@ -173,7 +172,7 @@ public class CaptureScreenToFile
     outStreamCoder.setTimeBase(IRational.make(frameRate.getDenominator(),
         frameRate.getNumerator()));
 
-    retval = outStreamCoder.open();
+    retval = outStreamCoder.open(null, null);
     if (retval < 0)
       throw new RuntimeException("could not open input decoder");
     retval = outContainer.writeHeader();

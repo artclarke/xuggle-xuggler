@@ -438,6 +438,7 @@ class XugglerJNI {
   public final static native int IStreamCoder_setStandardsCompliance(long jarg1, IStreamCoder jarg1_, int jarg2);
   public final static native int IStreamCoder_open__SWIG_1(long jarg1, IStreamCoder jarg1_, long jarg2, IMetaData jarg2_, long jarg3, IMetaData jarg3_);
   public final static native long IStreamCoder_make__SWIG_2(int jarg1, long jarg2, ICodec jarg2_);
+  public final static native long IStreamCoder_make__SWIG_3(int jarg1, int jarg2);
   public final static native int IIndexEntry_IINDEX_FLAG_KEYFRAME_get();
   public final static native long IIndexEntry_make(long jarg1, long jarg2, int jarg3, int jarg4, int jarg5);
   public final static native long IIndexEntry_getPosition(long jarg1, IIndexEntry jarg1_);

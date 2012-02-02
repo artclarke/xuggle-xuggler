@@ -31,7 +31,7 @@ public class ConfigurationTest
 
     Properties props = new Properties();
     props.load(new FileInputStream(TEST_FILE));
-    IStreamCoder coder = IStreamCoder.make(Direction.ENCODING);
+    IStreamCoder coder = IStreamCoder.make(Direction.ENCODING, ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3));
     final long defaultValue = coder.getPropertyAsLong("subq");
     assertEquals(""+defaultValue, coder.getPropertyAsString("subq"));
     Configuration.printOption(System.out, coder, coder.getPropertyMetaData("subq"));
@@ -47,7 +47,7 @@ public class ConfigurationTest
   {
     final String TEST_FILE = "fixtures/"+this.getClass().getName()+".properties";
 
-    IStreamCoder coder = IStreamCoder.make(Direction.ENCODING);
+    IStreamCoder coder = IStreamCoder.make(Direction.ENCODING, ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_H264));
     final long defaultValue = coder.getPropertyAsLong("subq");
     assertEquals(""+defaultValue, coder.getPropertyAsString("subq"));
     Configuration.printOption(System.out, coder, coder.getPropertyMetaData("subq"));

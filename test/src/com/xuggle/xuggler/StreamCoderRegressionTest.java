@@ -84,7 +84,7 @@ public class StreamCoderRegressionTest
       {
         log.debug("found video on stream: {}", i);
         videoId = i;
-        retval = coder.open();
+        retval = coder.open(null, null);
         assertTrue("could not open decoder", retval >= 0);
         break;
       }

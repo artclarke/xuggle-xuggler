@@ -231,7 +231,7 @@ StreamCoder::setCodec(ICodec::ID id)
 void
 StreamCoder::setCodec(int32_t id)
 {
-  RefPointer<ICodec> codec = 0;
+  RefPointer<Codec> codec = 0;
   if (ENCODING == mDirection)
   {
     codec = Codec::findEncodingCodecByIntID(id);
@@ -242,6 +242,24 @@ StreamCoder::setCodec(int32_t id)
   }
   if (codec)
     setCodec(codec.value());
+}
+
+StreamCoder*
+StreamCoder::make(Direction direction, ICodec::ID id)
+{
+  RefPointer<Codec> codec = 0;
+  StreamCoder* retval = 0;
+  if (ENCODING == direction)
+  {
+    codec = Codec::findEncodingCodec(id);
+  }
+  else
+  {
+    codec = Codec::findDecodingCodec(id);
+  }
+  if (codec)
+    retval = StreamCoder::make(direction, codec.value());
+  return retval;
 }
 
 StreamCoder *

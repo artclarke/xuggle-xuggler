@@ -94,7 +94,7 @@ public class DecodeAndPlayAudio
      * Now we have found the audio stream in this file.  Let's open up our decoder so it can
      * do work.
      */
-    if (audioCoder.open() < 0)
+    if (audioCoder.open(null, null) < 0)
       throw new RuntimeException("could not open audio decoder for container: "+filename);
     
     /*

@@ -165,7 +165,7 @@ public class Configuration
    */
   public static void printSupportedStreamCoderProperties(java.io.PrintStream stream)
   {
-    printConfigurable(stream, IStreamCoder.make(IStreamCoder.Direction.ENCODING));
+    printConfigurable(stream, IStreamCoder.make(IStreamCoder.Direction.ENCODING, (ICodec)null));
   }
 
   /**

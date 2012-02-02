@@ -53,4 +53,11 @@ namespace com { namespace xuggle { namespace xuggler
     return StreamCoder::make(direction, dynamic_cast<Codec*>(codec));
   }
 
+  IStreamCoder*
+  IStreamCoder :: make(Direction direction, ICodec::ID id)
+  {
+    Global::init();
+    return StreamCoder::make(direction, id);
+  }
+
 }}}

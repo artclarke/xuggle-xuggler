@@ -89,12 +89,11 @@ public class MetaDataTest
     String filename = getClass().getName()+".mp3";
     IContainer container = IContainer.make();
     container.open(filename, IContainer.Type.WRITE, null);
-    IStream stream = container.addNewStream(0);
+    IStream stream = container.addNewStream(ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3));
     IStreamCoder coder = stream.getStreamCoder();
-    coder.setCodec(ICodec.ID.CODEC_ID_MP3);
     coder.setSampleRate(22050);
     coder.setChannels(1);
-    coder.open();
+    coder.open(null, null);
     
     IMetaData meta = container.getMetaData();
     String author = "Your Mom";

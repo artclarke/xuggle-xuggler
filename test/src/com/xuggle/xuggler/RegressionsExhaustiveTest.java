@@ -214,14 +214,14 @@ public class RegressionsExhaustiveTest
   {
     IVideoPicture picture = Utils.getBlankFrame(10, 10, 0);
     assertNotNull(picture);
-    IStreamCoder coder = IStreamCoder.make(IStreamCoder.Direction.ENCODING);
+    IStreamCoder coder = IStreamCoder.make(IStreamCoder.Direction.ENCODING,
+        ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_FLV1));
     assertNotNull(coder);
-    coder.setCodec(ICodec.ID.CODEC_ID_FLV1);
     coder.setTimeBase(IRational.make(1,1000000));
     coder.setPixelType(IPixelFormat.Type.YUV420P);
     coder.setWidth(20);
     coder.setHeight(20);
-    assertTrue("could not open coder", coder.open()>= 0);
+    assertTrue("could not open coder", coder.open(null, null)>= 0);
     
     IPacket packet = IPacket.make();
     assertNotNull(packet);

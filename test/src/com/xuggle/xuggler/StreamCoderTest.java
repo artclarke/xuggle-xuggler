@@ -210,7 +210,7 @@ public class StreamCoderTest extends TestCase
     int retval = -1;
     mCoder = getStreamCoder(sampleFile, 1);
 
-    retval = mCoder.open();
+    retval = mCoder.open(null, null);
     assertTrue("Could not open codec", retval >= 0);
     retval = mCoder.close();
     assertTrue("Could not close codec", retval >= 0);
@@ -295,13 +295,12 @@ public class StreamCoderTest extends TestCase
     // sample file has nellymoser audio, which has a non default frame size
     assertTrue(coder.getAudioFrameSize() != coder.getDefaultAudioFrameSize());
     
-    coder = IStreamCoder.make(IStreamCoder.Direction.ENCODING);
-    coder.setCodec(ICodec.ID.CODEC_ID_PCM_S16LE);
+    coder = IStreamCoder.make(IStreamCoder.Direction.ENCODING, ICodec.ID.CODEC_ID_PCM_S16LE);
     assertNotNull(coder.getCodec());
     log.debug("Coder: {}", coder.getCodec());
     coder.setSampleRate(22050);
     coder.setChannels(1);
-    assertTrue("could not open coder", coder.open() >= 0);
+    assertTrue("could not open coder", coder.open(null, null) >= 0);
     assertEquals(coder.getAudioFrameSize(), coder.getDefaultAudioFrameSize());
     coder.setDefaultAudioFrameSize(3);
     assertEquals(coder.getAudioFrameSize(), coder.getDefaultAudioFrameSize());
@@ -331,7 +330,7 @@ public class StreamCoderTest extends TestCase
   @Test
   public void testGetPropertyNames()
   {
-    IStreamCoder coder = IStreamCoder.make(Direction.ENCODING);
+    IStreamCoder coder = IStreamCoder.make(Direction.ENCODING, ICodec.ID.CODEC_ID_H263);
     Collection<String> properties = coder.getPropertyNames();
     assertTrue(properties.size() > 0);
     for(String name : properties)
@@ -344,7 +343,8 @@ public class StreamCoderTest extends TestCase
   @Test
   public void testGetAutomaticallyStampOutputStream()
   {
-    IStreamCoder coder = IStreamCoder.make(Direction.ENCODING);
+    IStreamCoder coder = IStreamCoder.make(Direction.ENCODING,
+        ICodec.ID.CODEC_ID_FLV1);
     assertTrue(coder.getAutomaticallyStampPacketsForStream());
   }
   
@@ -362,7 +362,7 @@ public class StreamCoderTest extends TestCase
     mCoder = getStreamCoder("fixtures/testfile_h264_mp4a_tmcd.mov", 0);
 
     assertEquals(ICodec.Type.CODEC_TYPE_VIDEO, mCoder.getCodecType());
-    retval = mCoder.open();
+    retval = mCoder.open(null, null);
     assertTrue("Could not open codec", retval >= 0);
     int extraDataSize = mCoder.getExtraDataSize();
     assertEquals(expected.length, extraDataSize);

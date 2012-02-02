@@ -56,7 +56,7 @@ public class AudioSamplesTest extends TestCase
       {
         audioStream = i;
         // open our stream coder
-        retval = h.mCoders[i].open();
+        retval = h.mCoders[i].open(null, null);
         assertTrue("Could not open decoder", retval >=0);
 
         assertTrue("unexpected samples inbuffer",
@@ -113,7 +113,7 @@ public class AudioSamplesTest extends TestCase
       {
         audioStream = i;
         // open our stream coder
-        retval = h.mCoders[i].open();
+        retval = h.mCoders[i].open(null, null);
         assertTrue("Could not open decoder", retval >=0);
 
         assertTrue("unexpected samples inbuffer",

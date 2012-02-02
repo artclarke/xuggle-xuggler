@@ -142,12 +142,11 @@ public class ContainerTest extends TestCase
         IContainer.Type.WRITE, null);
     assertTrue("could not open file", retval >= 0);
     
-    IStream stream = container.addNewStream(0);
+    IStream stream = container.addNewStream(ICodec.ID.CODEC_ID_MP3);
     IStreamCoder coder = stream.getStreamCoder();
-    coder.setCodec(ICodec.ID.CODEC_ID_MP3);
     coder.setSampleRate(22050);
     coder.setChannels(1);
-    retval = coder.open();
+    retval = coder.open(null, null);
     assertTrue("could not open coder", retval >= 0);
     
     retval = container.writeHeader();
@@ -518,12 +517,11 @@ public class ContainerTest extends TestCase
     assertTrue("could not open file for writing", retval >= 0);
 
     // add a stream
-    IStream stream = container.addNewStream(0);
+    IStream stream = container.addNewStream(ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3));
     IStreamCoder coder = stream.getStreamCoder();
-    coder.setCodec(ICodec.ID.CODEC_ID_MP3);
     coder.setChannels(1);
     coder.setSampleRate(22050);
-    retval = coder.open();
+    retval = coder.open(null, null);
     assertTrue("could not open audio codec", retval >= 0);
     retval = container.writeHeader();
     assertTrue("could not write header", retval >= 0);
@@ -577,12 +575,11 @@ public class ContainerTest extends TestCase
     assertTrue("could not open file for writing", retval >= 0);
 
     // add a stream
-    IStream stream = container.addNewStream(0);
+    IStream stream = container.addNewStream(ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_MP3));
     IStreamCoder coder = stream.getStreamCoder();
-    coder.setCodec(ICodec.ID.CODEC_ID_MP3);
     coder.setChannels(1);
     coder.setSampleRate(22050);
-    retval = coder.open();
+    retval = coder.open(null, null);
     assertTrue("could not open audio codec", retval >= 0);
     retval = container.writeHeader();
     assertTrue("could not write header", retval >= 0);
@@ -653,14 +650,13 @@ public class ContainerTest extends TestCase
     format.setOutputFormat("rtp", null, null);
     IContainer container = IContainer.make();
     container.open("rtp://127.0.0.1:23832", IContainer.Type.WRITE, format);
-    IStream stream = container.addNewStream(0);
+    IStream stream = container.addNewStream(ICodec.findEncodingCodec(ICodec.ID.CODEC_ID_H263));
     IStreamCoder coder = stream.getStreamCoder();
-    coder.setCodec(ICodec.ID.CODEC_ID_H263);
     coder.setWidth(352);
     coder.setHeight(288);
     coder.setPixelType(IPixelFormat.Type.YUV420P);
     coder.setTimeBase(IRational.make(1,90000));
-    coder.open();
+    coder.open(null, null);
     
     IBuffer buffer = IBuffer.make(null, 4192);
     int len = container.createSDPData(buffer);

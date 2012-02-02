@@ -395,7 +395,7 @@ class MediaReader extends AMediaCoderMixin implements IMediaReader
       if (!coder.isOpen()
           && (type == ICodec.Type.CODEC_TYPE_AUDIO || type == ICodec.Type.CODEC_TYPE_VIDEO))
       {
-        if (coder.open() < 0)
+        if (coder.open(null, null) < 0)
           throw new RuntimeException("could not open coder for stream: "
               + streamIndex);
         mOpenedStreams.add(stream);

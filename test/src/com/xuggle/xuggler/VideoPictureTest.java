@@ -101,7 +101,7 @@ public class VideoPictureTest extends TestCase
       {
         videoStream = i;
         // open our stream coder
-        retval = h.mCoders[i].open();
+        retval = h.mCoders[i].open(null, null);
         assertTrue("Could not open decoder", retval >=0);
         assertTrue("Frame should not be complete",
             !h.mFrames[i].isComplete());
@@ -181,7 +181,7 @@ public class VideoPictureTest extends TestCase
       {
         videoStream = i;
         // open our stream coder
-        retval = h.mCoders[i].open();
+        retval = h.mCoders[i].open(null, null);
         assertTrue("Could not open decoder", retval >=0);
         assertTrue("Frame should not be complete",
             !h.mFrames[i].isComplete());

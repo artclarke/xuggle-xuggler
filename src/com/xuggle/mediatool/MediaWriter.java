@@ -628,18 +628,11 @@ implements IMediaWriter
 
     // add the new stream at the correct index
 
-    IStream stream = getContainer().addNewStream(streamId);
+    IStream stream = getContainer().addNewStream(codec);
     if (stream == null)
       throw new RuntimeException("Unable to create stream id " + streamId +
         ", index " + inputIndex + ", codec " + codec);
     
-    // configure the stream coder
-
-    IStreamCoder coder = stream.getStreamCoder();
-    coder.setCodec(codec);
-    coder.delete();
-    coder = null;
-
     // if the stream count is 1, don't force interleave
 
     setForceInterleave(getContainer().getNumStreams() != 1);
@@ -1194,7 +1187,7 @@ implements IMediaWriter
       {
         // open the coder
 
-        int rv = coder.open();
+        int rv = coder.open(null, null);
         if (rv < 0)
           throw new RuntimeException("could not open stream " + stream + ": "
               + getErrorMessage(rv));

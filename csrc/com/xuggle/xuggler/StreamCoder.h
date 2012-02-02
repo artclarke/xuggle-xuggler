@@ -154,6 +154,7 @@ namespace com { namespace xuggle { namespace xuggler
         AVCodecContext *context, AVCodec*, Stream* stream);
     static StreamCoder* make(Direction direction, IStreamCoder* copyCoder);
     static StreamCoder* make(Direction direction, Codec* codec);
+    static StreamCoder* make(Direction direction, ICodec::ID id);
     
     int32_t setStream(Stream*, bool assumeOnlyStream);
     int32_t streamClosed(Stream*);

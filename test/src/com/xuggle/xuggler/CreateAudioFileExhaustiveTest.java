@@ -192,18 +192,15 @@ public class CreateAudioFileExhaustiveTest
     retval = mContainer.open(url, IContainer.Type.WRITE, null);
     assertTrue("couldn't open file", retval >= 0);
 
-    mStream = mContainer.addNewStream(0);
+   ICodec codec = ICodec.guessEncodingCodec(null, null, url, null,
+        ICodec.Type.CODEC_TYPE_AUDIO);
+    assertTrue("could not guess a codec", codec != null);
+
+    mStream = mContainer.addNewStream(codec);
     assertTrue("couldn't add a stream", mStream != null);
 
     mCoder = mStream.getStreamCoder();
     assertTrue("couldn't get a stream coder", mCoder != null);
-
-    ICodec codec = ICodec.guessEncodingCodec(null, null, url, null,
-        ICodec.Type.CODEC_TYPE_AUDIO);
-    assertTrue("could not guess a codec", codec != null);
-
-    mCoder.setCodec(codec);
-    log.debug("Got codec: {}", mCoder.getCodec().getName());
 
     mCoder.setChannels(mNumChannels);
     log.debug("Setting channels: {}", mCoder.getChannels());
@@ -214,7 +211,7 @@ public class CreateAudioFileExhaustiveTest
     mCoder.setGlobalQuality(0);
     log.debug("Setting global quality: {}", mCoder.getGlobalQuality());
     // and open the coder
-    retval = mCoder.open();
+    retval = mCoder.open(null, null);
     assertTrue("couldn't open coder", retval >= 0);
 
     // and write the header
