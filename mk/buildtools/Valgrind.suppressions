@@ -10892,3 +10892,35 @@
    fun:vsnprintf_l
    fun:__snprintf_chk
 }
+{
+   ditto above
+   Memcheck:Leak
+   fun:malloc
+   fun:__Balloc_D2A
+   fun:__d2b_D2A
+   fun:__dtoa
+   fun:__vfprintf
+   fun:vsnprintf_l
+}
+{
+   ditto above
+   Memcheck:Leak
+   fun:malloc
+   fun:__Balloc_D2A
+   fun:__rv_alloc_D2A
+   fun:__nrv_alloc_D2A
+   fun:__dtoa
+   fun:__vfprintf
+   fun:vsnprintf_l
+}
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc
+   fun:__Balloc_D2A
+   fun:__rv_alloc_D2A
+   fun:__nrv_alloc_D2A
+   fun:__dtoa
+   fun:__vfprintf
+   fun:vsnprintf_l
+}
