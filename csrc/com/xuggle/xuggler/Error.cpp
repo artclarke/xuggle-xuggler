@@ -54,6 +54,12 @@ static struct ErrorMappingTable sErrorMappingTable[] = {
     { AVERROR(EAGAIN),      IError::ERROR_AGAIN },
     { AVERROR(ERANGE),      IError::ERROR_RANGE },
     { AVERROR(EINTR),       IError::ERROR_INTERRUPTED },
+    { AVERROR_EOF,          IError::ERROR_EOF },
+    { AVERROR_DECODER_NOT_FOUND, IError::ERROR_NOFMT },
+    { AVERROR_DEMUXER_NOT_FOUND, IError::ERROR_NOFMT },
+    { AVERROR_ENCODER_NOT_FOUND, IError::ERROR_NOFMT },
+    { AVERROR_MUXER_NOT_FOUND, IError::ERROR_NOFMT },
+    { AVERROR_OPTION_NOT_FOUND, IError::ERROR_NOFMT },
 };
 static int32_t sErrorMappingTableSize = sizeof(sErrorMappingTable)/sizeof(struct ErrorMappingTable);
 
