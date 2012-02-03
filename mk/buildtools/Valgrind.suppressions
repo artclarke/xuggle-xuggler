@@ -10859,3 +10859,36 @@
    fun:av_malloc
    fun:avcodec_alloc_context3
 }
+{
+   os_x_stdlib_leak
+   Memcheck:Leak
+   fun:calloc
+   fun:__cxa_get_globals
+   fun:__cxa_uncaught_exception
+   fun:_ZSt18uncaught_exceptionv
+   fun:_ZNSo6sentryD2Ev
+   fun:_ZSt16__ostream_insertIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_PKS3_l
+   fun:_ZStlsISt11char_traitsIcEERSt13basic_ostreamIcT_ES5_PKc
+}
+{
+   os_x snprintf reachable at shutdown
+   Memcheck:Leak
+   fun:malloc
+   fun:__Balloc_D2A
+   fun:__d2b_D2A
+   fun:__dtoa
+   fun:__vfprintf
+   fun:vsnprintf_l
+   fun:__snprintf_chk
+}
+{
+   ditto above
+   Memcheck:Leak
+   fun:malloc
+   fun:__Balloc_D2A
+   fun:__rv_alloc_D2A
+   fun:__dtoa
+   fun:__vfprintf
+   fun:vsnprintf_l
+   fun:__snprintf_chk
+}
