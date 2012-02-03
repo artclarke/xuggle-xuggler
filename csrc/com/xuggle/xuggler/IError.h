@@ -62,7 +62,7 @@ public:
   /**
    * A set of errors that Xuggler knows about.
    */
-  typedef enum {
+  typedef enum Type {
     /* Unknown error */
     ERROR_UNKNOWN,
     /* IO error */
