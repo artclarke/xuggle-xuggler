@@ -1236,6 +1236,13 @@ public class IStreamCoder extends RefCounted implements com.xuggle.xuggler.IConf
     return (cPtr == 0) ? null : new IStreamCoder(cPtr, false);
   }
 
+/**
+ * {@inheritDoc}  
+ */
+  public int setProperty(IMetaData valuesToSet, IMetaData valuesNotFound) {
+    return XugglerJNI.IStreamCoder_setProperty__SWIG_5(swigCPtr, this, IMetaData.getCPtr(valuesToSet), valuesToSet, IMetaData.getCPtr(valuesNotFound), valuesNotFound);
+  }
+
   public enum Direction {
   /**
    * The Direction in which this StreamCoder will work.

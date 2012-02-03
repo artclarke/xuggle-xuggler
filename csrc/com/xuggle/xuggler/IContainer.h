@@ -726,6 +726,8 @@ namespace com { namespace xuggle { namespace xuggler
 
     
     /**
+     * @Deprecated Use {@link IConfigurable} API instead.
+     *
      * Get the parameters that will be used when opening.
      * 
      * @see #setParameters(IContainerParameters)
@@ -736,6 +738,9 @@ namespace com { namespace xuggle { namespace xuggler
 
     
     /**
+     *
+     * @Deprecated Use {@link IConfigurable} API instead.
+     *
      * Set the parameters for this container.
      * <p> 
      * Normally this is not required, but if you're opening
@@ -925,6 +930,10 @@ namespace com { namespace xuggle { namespace xuggler
     */
     virtual int32_t getMaxDelay()=0;
 
+    /*
+     * Added for 5.0
+     */
+
     /**
      * Add a new stream that will use the given codec.
      *
@@ -954,6 +963,38 @@ namespace com { namespace xuggle { namespace xuggler
      * @since 5.0
      */
     virtual IStream* addNewStream(IStreamCoder* coder)=0;
+
+    /**
+     * {@inheritDoc}
+     */
+    virtual int32_t setProperty(IMetaData* valuesToSet, IMetaData* valuesNotFound)=0;
+
+    /**
+     * Get the {@link IContainerFormat} that is used by this {@link IContainer}.
+     *
+     * @return The format, or null if none is set yet.
+     * @since 5.0
+     */
+    virtual IContainerFormat *getFormat()=0;
+
+    /**
+     * Set the {@link IContainerFormat} to use with this {@link IContainer}.  If called when the
+     * {@link IContainer} is opened, or if previously called with a non-null value,
+     * an error is returned and no action is taken.
+     * @param format The format to use
+     * return 0 on success; <0 on failure
+     * @since 5.0
+     */
+    virtual int32_t setFormat(IContainerFormat* format)=0;
+
+    /**
+     * Create a new {@link IContainer} and call {@link #setFormat(IContainerFormat)} on it immediately.
+     * @param format The format to pass to {@link #setFormat(IContainerFormat)}
+     * @return An {@link IContainer} on success, or null on failure.
+     * @since 5.0
+     */
+    static IContainer* make(IContainerFormat* format);
+
   };
 }}}
 #endif /*ICONTAINER_H_*/

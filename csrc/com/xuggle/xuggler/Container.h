@@ -26,6 +26,9 @@
 #include <com/xuggle/xuggler/FfmpegIncludes.h>
 #include <com/xuggle/xuggler/Stream.h>
 #include <com/xuggle/xuggler/StreamCoder.h>
+#include <com/xuggle/xuggler/ContainerFormat.h>
+#include <com/xuggle/xuggler/ContainerParameters.h>
+#include <com/xuggle/xuggler/MetaData.h>
 
 #include <vector>
 #include <list>
@@ -133,6 +136,12 @@ namespace com { namespace xuggle { namespace xuggler
     virtual Stream* addNewStream(ICodec::ID id);
     virtual Stream* addNewStream(ICodec* codec);
     virtual Stream* addNewStream(IStreamCoder* coder);
+
+    virtual ContainerFormat *getFormat() { return mFormat.get(); };
+    virtual int32_t setFormat(IContainerFormat* format);
+    static Container* make(IContainerFormat* format);
+
+    virtual int32_t setProperty(IMetaData* valuesToSet, IMetaData* valuesNotFound);
   protected:
     virtual ~Container();
     Container();
@@ -161,9 +170,9 @@ namespace com { namespace xuggle { namespace xuggler
     uint32_t mInputBufferLength;
     
     int32_t mReadRetryCount;
-    com::xuggle::ferry::RefPointer<IContainerParameters> mParameters;
-    com::xuggle::ferry::RefPointer<IMetaData> mMetaData;
-    com::xuggle::ferry::RefPointer<IContainerFormat> mFormat;
+    com::xuggle::ferry::RefPointer<ContainerParameters> mParameters;
+    com::xuggle::ferry::RefPointer<MetaData> mMetaData;
+    com::xuggle::ferry::RefPointer<ContainerFormat> mFormat;
 
     bool mCustomIO;
   };

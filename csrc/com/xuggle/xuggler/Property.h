@@ -199,6 +199,20 @@ namespace com { namespace xuggle { namespace xuggler {
      * @return boolean value of property, or false on error.
      */
     static bool getPropertyAsBoolean(void * context, const char* name);
+
+    /**
+     * Sets all properties in valuesToSet on object context.
+     *
+     * @param context AVClass context to set options on
+     * @param valuesToSet The set of key-value pairs to try to set
+     * @param valuesNotFound If non null will contain all key-values pairs in valuesToSet
+     *                       that were not found in context.
+     *
+     * @return 0 on success; <0 on failure
+     * @since 5.0
+     */
+    static int32_t setProperty(void *context, IMetaData* valuesToSet, IMetaData* valuesNotFound);
+
   protected:
     Property();
     virtual

@@ -66,7 +66,7 @@ namespace com { namespace xuggle { namespace xuggler
     mNumStreams = 0;
     mInputBufferLength = 0;
     mReadRetryCount = 1;
-    mParameters = IContainerParameters::make();
+    mParameters = ContainerParameters::make();
   }
 
   Container :: ~Container()
@@ -885,6 +885,12 @@ namespace com { namespace xuggle { namespace xuggler
   }
 
   int32_t
+  Container :: setProperty(IMetaData* valuesToSet, IMetaData* valuesNotFound)
+  {
+    return Property::setProperty(mFormatContext, valuesToSet, valuesNotFound);
+  }
+
+  int32_t
   Container :: setProperty(const char* aName, const char *aValue)
   {
     return Property::setProperty(mFormatContext, aName, aValue);
@@ -1037,10 +1043,31 @@ namespace com { namespace xuggle { namespace xuggler
   void
   Container :: setParameters(IContainerParameters* params)
   {
-    if (params)
-      mParameters.reset(params, true);
+    mParameters.reset(dynamic_cast<ContainerParameters*>(params), true);
+    return;
   }
 
+  int32_t
+  Container :: setFormat(IContainerFormat* format)
+  {
+    int32_t retval = -1;
+    try {
+      if (!mFormatContext)
+        throw std::runtime_error("no underlying AVFormatContext");
+      if (mFormatContext->iformat || mFormatContext->oformat)
+        throw std::runtime_error("format already set on this IContainer; cannot be reset");
+      if (mIsOpened)
+        throw std::runtime_error("container already opened");
+     mFormat.reset(dynamic_cast<ContainerFormat*>(format), true);
+     ContainerFormat* value = mFormat.value();
+     mFormatContext->iformat = value ? value->getInputFormat() : 0;
+     mFormatContext->oformat = value ? value->getOutputFormat() : 0;
+    } catch (std::exception &e)
+    {
+      retval = -1;
+    }
+    return retval;
+  }
   bool
   Container :: canStreamsBeAddedDynamically()
   {
@@ -1259,5 +1286,15 @@ namespace com { namespace xuggle { namespace xuggler
     return retval;
   }
 
+  Container*
+  Container :: make(IContainerFormat* format)
+  {
+    Container* retval;
+    retval = Container::make();
+    if (retval)
+      if (retval->setFormat(format) < 0)
+        VS_REF_RELEASE(retval);
+    return retval;
+  }
 
 }}}

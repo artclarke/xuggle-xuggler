@@ -18,6 +18,7 @@
  *******************************************************************************/
 
 #include <com/xuggle/xuggler/Property.h>
+#include <com/xuggle/xuggler/MetaData.h>
 #include <com/xuggle/ferry/Logger.h>
 #include <com/xuggle/xuggler/Property.h>
 extern "C" {
@@ -273,9 +274,9 @@ namespace com { namespace xuggle { namespace xuggler {
       if (retval)
         delete [] retval;
       retval = 0;
-      if (value)
-        av_free(value);
     }
+    if (value)
+      av_free(value);
 
     // NOTE: Caller must call delete[] on returned value; we mean it!
     return retval;
@@ -571,5 +572,36 @@ namespace com { namespace xuggle { namespace xuggler {
     return retval;
   }
   
+  int32_t
+  Property :: setProperty(void *aContext, IMetaData* aValuesToSet, IMetaData* aValuesNotFound)
+  {
+    int32_t retval =-1;
+    AVDictionary *tmp = 0;
+    MetaData* valuesToSet = dynamic_cast<MetaData*>(aValuesToSet);
+    MetaData* valuesNotFound = dynamic_cast<MetaData*>(aValuesNotFound);
+    AVDictionary *orig = valuesToSet ? valuesToSet->getDictionary() : 0;
+
+    try {
+      if (!aContext)
+        throw std::runtime_error("no context passed in");
+
+      if (orig)
+        av_dict_copy(&tmp, orig, 0);
+
+      // try setting the values.
+      retval = av_opt_set_dict(aContext, &tmp);
+      if (retval < 0)
+        throw std::runtime_error("failed to set options on context");
+
+      if (valuesNotFound)
+        retval = valuesNotFound->copy(tmp);
+      av_dict_free(&tmp);
+      retval = 0;
+    } catch (std::exception &e) {
+      av_dict_free(&tmp);
+      retval = -1;
+    }
+    return retval;
+  }
   
 }}}

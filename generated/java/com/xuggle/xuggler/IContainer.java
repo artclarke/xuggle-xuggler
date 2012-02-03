@@ -850,7 +850,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  * @return	a new container, or null on error.  
  */
   public static IContainer make() {
-    long cPtr = XugglerJNI.IContainer_make();
+    long cPtr = XugglerJNI.IContainer_make__SWIG_0();
     return (cPtr == 0) ? null : new IContainer(cPtr, false);
   }
 
@@ -1189,6 +1189,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
   }
 
 /**
+ * @deprecated	Use {@link IConfigurable} API instead.  
  * Get the parameters that will be used when opening.  
  * @see		#setParameters(IContainerParameters)  
  * @return	The parameters  
@@ -1199,6 +1200,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
   }
 
 /**
+ * @deprecated	Use {@link IConfigurable} API instead.  
  * Set the parameters for this container.  
  * <p>  
  * Normally this is not required, but if you're opening  
@@ -1446,6 +1448,51 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
   public IStream addNewStream(IStreamCoder coder) {
     long cPtr = XugglerJNI.IContainer_addNewStream__SWIG_3(swigCPtr, this, IStreamCoder.getCPtr(coder), coder);
     return (cPtr == 0) ? null : new IStream(cPtr, false);
+  }
+
+/**
+ * {@inheritDoc}  
+ */
+  public int setProperty(IMetaData valuesToSet, IMetaData valuesNotFound) {
+    return XugglerJNI.IContainer_setProperty__SWIG_5(swigCPtr, this, IMetaData.getCPtr(valuesToSet), valuesToSet, IMetaData.getCPtr(valuesNotFound), valuesNotFound);
+  }
+
+/**
+ * Get the {@link IContainerFormat} that is used by this {@link IContainer}. 
+ *  
+ * @return	The format, or null if none is set yet.  
+ * @since	5.0  
+ */
+  public IContainerFormat getFormat() {
+    long cPtr = XugglerJNI.IContainer_getFormat(swigCPtr, this);
+    return (cPtr == 0) ? null : new IContainerFormat(cPtr, false);
+  }
+
+/**
+ * Set the {@link IContainerFormat} to use with this {@link IContainer}. 
+ * If called when the  
+ * {@link IContainer} is opened, or if previously called with a non-null 
+ * value,  
+ * an error is returned and no action is taken.  
+ * @param	format The format to use  
+ * return 0 on success; <0 on failure  
+ * @since	5.0  
+ */
+  public int setFormat(IContainerFormat format) {
+    return XugglerJNI.IContainer_setFormat(swigCPtr, this, IContainerFormat.getCPtr(format), format);
+  }
+
+/**
+ * Create a new {@link IContainer} and call {@link #setFormat(IContainerFormat)} 
+ * on it immediately.  
+ * @param	format The format to pass to {@link #setFormat(IContainerFormat)} 
+ *		  
+ * @return	An {@link IContainer} on success, or null on failure.  
+ * @since	5.0  
+ */
+  public static IContainer make(IContainerFormat format) {
+    long cPtr = XugglerJNI.IContainer_make__SWIG_1(IContainerFormat.getCPtr(format), format);
+    return (cPtr == 0) ? null : new IContainer(cPtr, false);
   }
 
   public enum Type {

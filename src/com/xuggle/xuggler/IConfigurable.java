@@ -148,5 +148,18 @@ public interface IConfigurable
    * @return      boolean value of property, or false on error.  
    */
   public boolean getPropertyAsBoolean(String name);
+  
+  /**
+   * Sets all properties in valuesToSet on this {@link IConfigurable} object.
+   *
+   * @param valuesToSet The set of key-value pairs to try to set
+   * @param valuesNotFound If non null will contain all key-values pairs in valuesToSet
+   *                       that were not found in context.
+   *
+   * @return 0 on success; <0 on failure
+   * @since 5.0
+   */  
+  public int setProperty(IMetaData valuesToSet, IMetaData valuesNotFound);
+  
 
 }

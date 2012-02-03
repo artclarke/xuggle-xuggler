@@ -361,6 +361,13 @@ public class IVideoResampler extends RefCounted implements com.xuggle.xuggler.IC
     return XugglerJNI.IVideoResampler_isSupported(feature.swigValue());
   }
 
+/**
+ * {@inheritDoc}  
+ */
+  public int setProperty(IMetaData valuesToSet, IMetaData valuesNotFound) {
+    return XugglerJNI.IVideoResampler_setProperty__SWIG_5(swigCPtr, this, IMetaData.getCPtr(valuesToSet), valuesToSet, IMetaData.getCPtr(valuesNotFound), valuesNotFound);
+  }
+
   public enum Feature {
   /**
    * Features that the VideoResampler may optionally support.

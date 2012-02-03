@@ -311,6 +311,13 @@ static SwsContext *xuggleSws_getContext(int srcW, int srcH, enum PixelFormat src
   }
 
   int32_t
+  VideoResampler :: setProperty(IMetaData* valuesToSet, IMetaData* valuesNotFound)
+  {
+    return Property::setProperty(mContext, valuesToSet, valuesNotFound);
+  }
+
+
+  int32_t
   VideoResampler :: setProperty(const char* aName, const char *aValue)
   {
     return Property::setProperty(mContext, aName, aValue);

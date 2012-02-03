@@ -9,6 +9,7 @@ EXTRA_LIBS=
 
 check_PROGRAMS=\
   xugglerTestMetaData \
+  xugglerTestProperty \
   xugglerTestAudioResampler \
   xugglerTestAudioSamples \
   xugglerTestAudioResampler \
@@ -63,6 +64,17 @@ nodist_xugglerTestMetaData_SOURCES= \
   MetaDataTest_CXXRunner.cpp
 
 xugglerTestMetaData_LDADD= \
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+
+xugglerTestProperty_SOURCES= \
+  PropertyTest.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestProperty_SOURCES= \
+  PropertyTest_CXXRunner.cpp
+
+xugglerTestProperty_LDADD= \
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
 xugglerTestAudioSamples_SOURCES= \
@@ -289,6 +301,7 @@ xugglerTestVideoResampler_LDADD=\
 BUILT_SOURCES= \
   IndexEntryTest_CXXRunner.cpp \
   MetaDataTest_CXXRunner.cpp \
+  PropertyTest_CXXRunner.cpp \
   AudioSamplesTest_CXXRunner.cpp \
   AudioResamplerTest_CXXRunner.cpp \
   CodecTest_CXXRunner.cpp \
@@ -313,6 +326,7 @@ BUILT_SOURCES= \
 noinst_HEADERS = \
   IndexEntryTest.h \
   MetaDataTest.h \
+  PropertyTest.h \
   AudioResamplerTest.h \
   AudioSamplesTest.h \
   CodecTest.h \

@@ -382,6 +382,8 @@
 %javamethodmodifiers com::xuggle::xuggler::IContainer::addNewStream(int) "@Deprecated public"
 %javamethodmodifiers com::xuggle::xuggler::IContainer::getPreload() "@Deprecated public"
 %javamethodmodifiers com::xuggle::xuggler::IContainer::setPreload(int) "@Deprecated public"
+%javamethodmodifiers com::xuggle::xuggler::IContainer::getParamaters() "@Deprecated public"
+%javamethodmodifiers com::xuggle::xuggler::IContainer::setParamaters(com::xuggle::xuggler::IContainerParameters*) "@Deprecated public"
 
 
 %include <com/xuggle/xuggler/IContainer.h>

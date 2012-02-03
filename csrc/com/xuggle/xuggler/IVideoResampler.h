@@ -257,6 +257,10 @@ namespace com { namespace xuggle { namespace xuggler
      */
     static bool isSupported(Feature feature);
 
+    /**
+     * {@inheritDoc}
+     */
+    virtual int32_t setProperty(IMetaData* valuesToSet, IMetaData* valuesNotFound)=0;
   protected:
     IVideoResampler();
     virtual ~IVideoResampler();

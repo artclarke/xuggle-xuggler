@@ -35,6 +35,7 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 check_PROGRAMS = xugglerTestMetaData$(EXEEXT) \
+	xugglerTestProperty$(EXEEXT) \
 	xugglerTestAudioResampler$(EXEEXT) \
 	xugglerTestAudioSamples$(EXEEXT) \
 	xugglerTestAudioResampler$(EXEEXT) xugglerTestCodec$(EXEEXT) \
@@ -188,6 +189,14 @@ xugglerTestPixelFormat_OBJECTS = $(am_xugglerTestPixelFormat_OBJECTS) \
 xugglerTestPixelFormat_DEPENDENCIES =  \
 	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
 	$(am__DEPENDENCIES_1)
+am_xugglerTestProperty_OBJECTS = PropertyTest.$(OBJEXT) Main.$(OBJEXT) \
+	Helper.$(OBJEXT)
+nodist_xugglerTestProperty_OBJECTS = PropertyTest_CXXRunner.$(OBJEXT)
+xugglerTestProperty_OBJECTS = $(am_xugglerTestProperty_OBJECTS) \
+	$(nodist_xugglerTestProperty_OBJECTS)
+xugglerTestProperty_DEPENDENCIES =  \
+	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
+	$(am__DEPENDENCIES_1)
 am_xugglerTestRational_OBJECTS = RationalTest.$(OBJEXT) Main.$(OBJEXT) \
 	Helper.$(OBJEXT)
 nodist_xugglerTestRational_OBJECTS = RationalTest_CXXRunner.$(OBJEXT)
@@ -309,6 +318,8 @@ SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(nodist_xugglerTestPacket_SOURCES) \
 	$(xugglerTestPixelFormat_SOURCES) \
 	$(nodist_xugglerTestPixelFormat_SOURCES) \
+	$(xugglerTestProperty_SOURCES) \
+	$(nodist_xugglerTestProperty_SOURCES) \
 	$(xugglerTestRational_SOURCES) \
 	$(nodist_xugglerTestRational_SOURCES) \
 	$(xugglerTestStream_SOURCES) \
@@ -337,8 +348,8 @@ DIST_SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(xugglerTestMemoryAllocation_SOURCES) \
 	$(xugglerTestMetaData_SOURCES) $(xugglerTestPacket_SOURCES) \
 	$(xugglerTestPixelFormat_SOURCES) \
-	$(xugglerTestRational_SOURCES) $(xugglerTestStream_SOURCES) \
-	$(xugglerTestStreamCoder_SOURCES) \
+	$(xugglerTestProperty_SOURCES) $(xugglerTestRational_SOURCES) \
+	$(xugglerTestStream_SOURCES) $(xugglerTestStreamCoder_SOURCES) \
 	$(xugglerTestStreamCoderProperty_SOURCES) \
 	$(xugglerTestStreamCoderSpeex_SOURCES) \
 	$(xugglerTestStreamCoderX264_SOURCES) \
@@ -523,6 +534,17 @@ nodist_xugglerTestMetaData_SOURCES = \
   MetaDataTest_CXXRunner.cpp
 
 xugglerTestMetaData_LDADD = \
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+
+xugglerTestProperty_SOURCES = \
+  PropertyTest.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestProperty_SOURCES = \
+  PropertyTest_CXXRunner.cpp
+
+xugglerTestProperty_LDADD = \
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
 xugglerTestAudioSamples_SOURCES = \
@@ -748,6 +770,7 @@ xugglerTestVideoResampler_LDADD = \
 BUILT_SOURCES = \
   IndexEntryTest_CXXRunner.cpp \
   MetaDataTest_CXXRunner.cpp \
+  PropertyTest_CXXRunner.cpp \
   AudioSamplesTest_CXXRunner.cpp \
   AudioResamplerTest_CXXRunner.cpp \
   CodecTest_CXXRunner.cpp \
@@ -772,6 +795,7 @@ BUILT_SOURCES = \
 noinst_HEADERS = \
   IndexEntryTest.h \
   MetaDataTest.h \
+  PropertyTest.h \
   AudioResamplerTest.h \
   AudioSamplesTest.h \
   CodecTest.h \
@@ -877,6 +901,9 @@ xugglerTestPacket$(EXEEXT): $(xugglerTestPacket_OBJECTS) $(xugglerTestPacket_DEP
 xugglerTestPixelFormat$(EXEEXT): $(xugglerTestPixelFormat_OBJECTS) $(xugglerTestPixelFormat_DEPENDENCIES) 
 	@rm -f xugglerTestPixelFormat$(EXEEXT)
 	$(CXXLINK) $(xugglerTestPixelFormat_OBJECTS) $(xugglerTestPixelFormat_LDADD) $(LIBS)
+xugglerTestProperty$(EXEEXT): $(xugglerTestProperty_OBJECTS) $(xugglerTestProperty_DEPENDENCIES) 
+	@rm -f xugglerTestProperty$(EXEEXT)
+	$(CXXLINK) $(xugglerTestProperty_OBJECTS) $(xugglerTestProperty_LDADD) $(LIBS)
 xugglerTestRational$(EXEEXT): $(xugglerTestRational_OBJECTS) $(xugglerTestRational_DEPENDENCIES) 
 	@rm -f xugglerTestRational$(EXEEXT)
 	$(CXXLINK) $(xugglerTestRational_OBJECTS) $(xugglerTestRational_LDADD) $(LIBS)

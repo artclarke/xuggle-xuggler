@@ -22,6 +22,7 @@
 
 #include <com/xuggle/xuggler/Xuggler.h>
 #include <com/xuggle/ferry/RefCounted.h>
+#include <com/xuggle/xuggler/IMetaData.h>
 namespace com { namespace xuggle { namespace xuggler {
   /**
    * Represents settable properties that effect how Xuggler objects

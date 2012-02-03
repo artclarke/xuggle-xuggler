@@ -93,10 +93,14 @@ StreamCoder::reset()
   {
     // Don't free if we're attached to a Stream.
     // The Container will do that.
+    if (mCodecContext->codec && mCodecContext->codec->priv_class)
+        av_opt_free(mCodecContext->priv_data);
+    av_opt_free(mCodecContext);
     av_freep(&mCodecContext->extradata);
     av_freep(&mCodecContext->subtitle_header);
     av_freep(&mCodecContext->priv_data);
-    av_free(mCodecContext);
+
+    av_freep(&mCodecContext);
   }
   mCodecContext = 0;
   // We do not refcount the stream
@@ -1879,6 +1883,13 @@ StreamCoder::getPropertyMetaData(const char *name)
 {
   return Property::getPropertyMetaData(mCodecContext, name);
 }
+
+int32_t
+StreamCoder :: setProperty(IMetaData* valuesToSet, IMetaData* valuesNotFound)
+{
+  return Property::setProperty(mCodecContext, valuesToSet, valuesNotFound);
+}
+
 
 int32_t
 StreamCoder::setProperty(const char* aName, const char *aValue)

@@ -329,6 +329,7 @@ class XugglerJNI {
   public final static native boolean IVideoResampler_getPropertyAsBoolean(long jarg1, IVideoResampler jarg1_, String jarg2);
   public final static native long IVideoResampler_make(int jarg1, int jarg2, int jarg3, int jarg4, int jarg5, int jarg6);
   public final static native boolean IVideoResampler_isSupported(int jarg1);
+  public final static native int IVideoResampler_setProperty__SWIG_5(long jarg1, IVideoResampler jarg1_, long jarg2, IMetaData jarg2_, long jarg3, IMetaData jarg3_);
   public final static native int IStreamCoder_FLAG_QSCALE_get();
   public final static native int IStreamCoder_FLAG_4MV_get();
   public final static native int IStreamCoder_FLAG_QPEL_get();
@@ -439,6 +440,7 @@ class XugglerJNI {
   public final static native int IStreamCoder_open__SWIG_1(long jarg1, IStreamCoder jarg1_, long jarg2, IMetaData jarg2_, long jarg3, IMetaData jarg3_);
   public final static native long IStreamCoder_make__SWIG_2(int jarg1, long jarg2, ICodec jarg2_);
   public final static native long IStreamCoder_make__SWIG_3(int jarg1, int jarg2);
+  public final static native int IStreamCoder_setProperty__SWIG_5(long jarg1, IStreamCoder jarg1_, long jarg2, IMetaData jarg2_, long jarg3, IMetaData jarg3_);
   public final static native int IIndexEntry_IINDEX_FLAG_KEYFRAME_get();
   public final static native long IIndexEntry_make(long jarg1, long jarg2, int jarg3, int jarg4, int jarg5);
   public final static native long IIndexEntry_getPosition(long jarg1, IIndexEntry jarg1_);
@@ -554,7 +556,7 @@ class XugglerJNI {
   public final static native int IContainer_readNextPacket(long jarg1, IContainer jarg1_, long jarg2, IPacket jarg2_);
   public final static native int IContainer_writePacket__SWIG_0(long jarg1, IContainer jarg1_, long jarg2, IPacket jarg2_, boolean jarg3);
   public final static native int IContainer_writePacket__SWIG_1(long jarg1, IContainer jarg1_, long jarg2, IPacket jarg2_);
-  public final static native long IContainer_make();
+  public final static native long IContainer_make__SWIG_0();
   public final static native int IContainer_queryStreamMetaData(long jarg1, IContainer jarg1_);
   public final static native int IContainer_seekKeyFrame__SWIG_0(long jarg1, IContainer jarg1_, int jarg2, long jarg3, int jarg4);
   public final static native long IContainer_getDuration(long jarg1, IContainer jarg1_);
@@ -610,6 +612,10 @@ class XugglerJNI {
   public final static native long IContainer_addNewStream__SWIG_1(long jarg1, IContainer jarg1_, int jarg2);
   public final static native long IContainer_addNewStream__SWIG_2(long jarg1, IContainer jarg1_, long jarg2, ICodec jarg2_);
   public final static native long IContainer_addNewStream__SWIG_3(long jarg1, IContainer jarg1_, long jarg2, IStreamCoder jarg2_);
+  public final static native int IContainer_setProperty__SWIG_5(long jarg1, IContainer jarg1_, long jarg2, IMetaData jarg2_, long jarg3, IMetaData jarg3_);
+  public final static native long IContainer_getFormat(long jarg1, IContainer jarg1_);
+  public final static native int IContainer_setFormat(long jarg1, IContainer jarg1_, long jarg2, IContainerFormat jarg2_);
+  public final static native long IContainer_make__SWIG_1(long jarg1, IContainerFormat jarg1_);
   public final static native void IMediaDataWrapper_wrap(long jarg1, IMediaDataWrapper jarg1_, long jarg2, IMediaData jarg2_);
   public final static native void IMediaDataWrapper_setKey(long jarg1, IMediaDataWrapper jarg1_, boolean jarg2);
   public final static native long IMediaDataWrapper_make(long jarg1, IMediaData jarg1_);

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008, 2010 Xuggle Inc.  All rights reserved.
+ * Copyright (c) 2012 Xuggle Inc.  All rights reserved.
  *  
  * This file is part of Xuggle-Xuggler-Main.
  *
@@ -16,28 +16,33 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with Xuggle-Xuggler-Main.  If not, see <http://www.gnu.org/licenses/>.
  *******************************************************************************/
+/*
+ * PropertyTest.h
+ *
+ *  Created on: Feb 2, 2012
+ *      Author: aclarke
+ */
 
-#include "IContainer.h"
-#include "Global.h"
-#include "Container.h"
+#ifndef PROPERTYTEST_H_
+#define PROPERTYTEST_H_
 
-namespace com { namespace xuggle { namespace xuggler
+#include <com/xuggle/testutils/TestUtils.h>
+#include "Helper.h"
+using namespace VS_CPP_NAMESPACE;
+
+class com::xuggle::xuggler::IStreamCoder;
+class com::xuggle::xuggler::IProperty;
+class PropertyTest: public CxxTest::TestSuite
 {
-  IContainer :: ~IContainer()
-  {
-  }
-  
-  IContainer*
-  IContainer :: make()
-  {
-    Global::init();
-    return Container::make();
-  }
+public:
+  PropertyTest();
+  virtual
+  ~PropertyTest();
+  void setUp();
+  void tearDown();
+  void testCreation();
+  void testIteration();
+  void testSetMetaData();
+};
 
-  IContainer*
-  IContainer :: make (IContainerFormat* format)
-  {
-    Global::init();
-    return Container::make(format);
-  }
-}}}
+#endif /* PROPERTYTEST_H_ */
