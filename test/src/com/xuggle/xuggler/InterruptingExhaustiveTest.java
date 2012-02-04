@@ -18,16 +18,18 @@
  *******************************************************************************/
 package com.xuggle.xuggler;
 
-import java.util.concurrent.atomic.AtomicBoolean;
+import static org.junit.Assert.*;
 
-import org.junit.Ignore;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.xuggle.ferry.JNIThreadProxy;
+import com.xuggle.ferry.JNIThreadProxy.Interruptable;
 import com.xuggle.xuggler.io.IURLProtocolHandler;
-
-import static org.junit.Assert.*;
 
 /**
  * Tests to make sure we can interrupt long-running Xuggler calls.
@@ -43,11 +45,11 @@ public class InterruptingExhaustiveTest
   // test on a slow machine (oh like our build server) it can
   // sometime fail.
   @Test(timeout=120*1000)
-  @Ignore // disabling for 3.3
   public void testXugglerSupportInterruptions() throws InterruptedException
   {
     final AtomicBoolean testStarted = new AtomicBoolean(false);
     final AtomicBoolean testPassed = new AtomicBoolean(false);
+    final AtomicReference<Thread> threadInterrupted = new AtomicReference<Thread>();
     final Object lock = new Object();
     Thread thread = new Thread(
         new Runnable(){
@@ -59,25 +61,52 @@ public class InterruptingExhaustiveTest
               testStarted.set(true);
               lock.notifyAll();
             }
-            log.info("About to call blocking ffmpeg method");
+            log.info("About to call blocking ffmpeg method: {}", Thread.currentThread());
+
             int retval = container.open(
 //                "fixtures/testfile.flv",
                "udp://127.0.0.1:12345/notvalid.flv?localport=28302",
                 IContainer.Type.READ,
                 null, true, false);
-            log.info("ffmpeg method returned");
+            log.info("ffmpeg method returned: {}", Thread.currentThread());
             // we should return from this method in an
             // interrupted state.
-            if (Thread.interrupted()) {
-              log.info("thread was interrupted");
-              // clear the interrupt
-              if (retval < 0)
-                testPassed.set(true);
-              else
-                log.info("but test did not pass");
+            Thread thread = threadInterrupted.get();
+            if (thread != null) {
+              log.info("thread was interrupted: {}", thread);
+              testPassed.set(true);
+            } else {
+              log.info("but test did not pass");
             }
           }},
         "xuggler thread");
+    
+    // First, let's set up a global interrupt handler because UDP handling
+    // in FFmpeg starts its own threads
+    JNIThreadProxy.setGlobalInterruptable(new Interruptable()
+    {
+      
+      public boolean preInterruptCheck()
+      {
+        log.debug("forcing an interrupt");
+        // we're going to interrupt the checkign thread
+        Thread.currentThread().interrupt();
+        // and tell the global handler to keep going
+        return true;
+      }
+      
+      public boolean postInterruptCheck(boolean interruptStatus)
+      {
+        // because we interrupted the thread, this should be true
+        assertTrue(Thread.interrupted());
+        assertTrue(interruptStatus);
+        threadInterrupted.set(Thread.currentThread());
+        // and remove myself
+        Interruptable oldHandler = JNIThreadProxy.setGlobalInterruptable(null);
+        assertEquals(this, oldHandler);
+        return interruptStatus;
+      }
+    });
     
     synchronized(lock) {
       thread.start();
@@ -87,16 +116,13 @@ public class InterruptingExhaustiveTest
       }
     }
     // give the thread about a half a second to get into ffmpeg land
-    Thread.sleep(500);
-    log.info("about to interrupt ffmpeg-calling thread");
-    thread.interrupt();
-    log.info("interrupted ffmpeg-calling thread");
+    log.info("joining interrupted ffmpeg-calling thread: {}", thread);
     thread.join();
     assertTrue("test did not pass", testPassed.get());
   }
 
   @Test
-  public void testInteruptStatusPreservedAccrossJNICalls()
+  public void testInteruptStatusPreservedAcrossJNICalls()
   {
     IContainer container = IContainer.make();
     

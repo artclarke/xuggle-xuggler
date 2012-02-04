@@ -213,7 +213,7 @@ namespace com { namespace xuggle { namespace ferry {
 
       env->DeleteLocalRef(cls);
 
-      cls = env->FindClass("java/lang/Thread");
+      cls = env->FindClass("com/xuggle/ferry/JNIThreadProxy");
       if (!cls || env->ExceptionCheck())
         return;
       // Keep a reference around
@@ -399,8 +399,15 @@ namespace com { namespace xuggle { namespace ferry {
   JNIHelper :: getEnv()
   {
     JNIEnv *env=0;
-    if (mCachedVM)
+    if (mCachedVM) {
+      // sometimes libraries will start separate threads; if they do
+      // we try to catch them here. Examples of this is Xuggler
+      // when parsing UDP
       mCachedVM->GetEnv((void**)(void*)&env, mVersion);
+      if (!env) {
+        mCachedVM->AttachCurrentThread((void**)(void*)&env, 0);
+      }
+    }
     return env;
   }
 
@@ -565,7 +572,7 @@ namespace com { namespace xuggle { namespace ferry {
         mThread_isInterrupted_mid);
     env->DeleteLocalRef(thread);
     if (env->ExceptionCheck())
-      result = false;
+      result = true;
     if (result != JNI_FALSE)
       return 1;
     return 0; 
