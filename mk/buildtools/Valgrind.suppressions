@@ -11110,3 +11110,12 @@
    fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
    fun:_ZN11ImageLoader15runInitializersERKNS_11LinkContextERNS_21InitializerTimingListE
 }
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc_zone_malloc
+   fun:malloc_set_zone_name
+   fun:_malloc_initialize
+   fun:posix_memalign
+   fun:av_malloc
+}
