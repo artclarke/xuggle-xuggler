@@ -45,7 +45,7 @@ import com.xuggle.xuggler.Version;
  * </p></p>
  * Lastly this class, unlike other classes in the library, does not use SWIG to generate
  * the Java objects, so you need to be careful not to change method names as the corresponding
- * native code relies on specific naming and paramaeters.
+ * native code relies on specific naming and parameters.
  * </p>
  * @author aclarke
  *

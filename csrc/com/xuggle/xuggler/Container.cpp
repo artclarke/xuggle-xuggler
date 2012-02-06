@@ -153,15 +153,18 @@ namespace com { namespace xuggle { namespace xuggler
         throw std::bad_alloc();
     }
 
+    if (pContainerFormat)
+      setFormat(pContainerFormat);
+
     if (url && *url)
     {
       if (type == WRITE)
       {
-        retval = openOutputURL(url, pContainerFormat,
+        retval = openOutputURL(url,
             aStreamsCanBeAddedDynamically);
       } else if (type == READ)
       {
-        retval = openInputURL(url, pContainerFormat,
+        retval = openInputURL(url,
             aStreamsCanBeAddedDynamically, aLookForAllStreams);
       }
       else
@@ -254,72 +257,97 @@ namespace com { namespace xuggle { namespace xuggler
 
   int32_t
   Container :: openInputURL(const char *url,
-      IContainerFormat* pContainerFormat,
       bool aStreamsCanBeAddedDynamically,
       bool aLookForAllStreams)
   {
     int32_t retval = -1;
     AVInputFormat *inputFormat = 0;
-    ContainerFormat *containerFormat = dynamic_cast<ContainerFormat*>(pContainerFormat);
-    AVFormatParameters* params = 0;
-    ContainerParameters* cParams = dynamic_cast<ContainerParameters*>(mParameters.value());
-    if (cParams)
-      params = cParams->getAVParameters();
 
-    // We have prealloced the format
-    if (containerFormat)
-    {
-      inputFormat = containerFormat->getInputFormat();
-    } else {
-      inputFormat = 0;
-    }
-    retval = avformat_open_input(
-        &mFormatContext,
-        url,
-        inputFormat,
-        0
+    try {
+      // We have prealloced the format
+      if (mFormat)
+      {
+        inputFormat = mFormat->getInputFormat();
+      }
+
+      // We are going to create our own avio context
+      const bool customIO = false;
+      if (customIO) {
+        // magic code will go here
+      } else {
+        retval = avio_open2(&mFormatContext->pb,
+            url, URL_RDONLY,
+            &mFormatContext->interrupt_callback,
+            0
         );
-    if (retval >= 0) {
-      mIsOpened = true;
-      if (aStreamsCanBeAddedDynamically)
-      {
-        mFormatContext->ctx_flags |= AVFMTCTX_NOHEADER;
       }
+      retval = avformat_open_input(
+          &mFormatContext,
+          url,
+          inputFormat,
+          0
+      );
+      if (retval >= 0) {
+        if (!mFormatContext && mFormatContext->iformat) {
+          // we didn't know the format before, but we sure as hell know it now
+          // so we set it back.
+          RefPointer<ContainerFormat> format = ContainerFormat::make();
+          if (format)
+          {
+            format->setInputFormat(mFormatContext->iformat);
+            setFormat(format.value());
+          }
+        }
+        mIsOpened = true;
+        if (aStreamsCanBeAddedDynamically)
+        {
+          mFormatContext->ctx_flags |= AVFMTCTX_NOHEADER;
+        }
 
-      if (aLookForAllStreams)
-      {
-        retval = queryStreamMetaData();
+        if (aLookForAllStreams)
+        {
+          retval = queryStreamMetaData();
+        }
+      } else {
+        // kill the old context
+        if (mFormatContext)
+          avformat_free_context(mFormatContext);
+        mFormatContext = avformat_alloc_context();
+        if (!mFormatContext)
+          throw std::bad_alloc();
+
+        VS_LOG_TRACE("Could not open output file: %s", url);
       }
-    } else {
-      // kill the old context
-      if (mFormatContext)
-        avformat_free_context(mFormatContext);
-      mFormatContext = avformat_alloc_context();
-      if (!mFormatContext)
-        throw std::bad_alloc();
-
-      VS_LOG_TRACE("Could not open output file: %s", url);
+    } catch (std::exception &e) {
+      if (retval >= 0)
+        retval = -1;
     }
     return retval;
   }
 
   int32_t
   Container :: openOutputURL(const char* url,
-      IContainerFormat* pContainerFormat,
       bool aStreamsCanBeAddedDynamically)
   {
     int32_t retval = -1;
     AVOutputFormat *outputFormat = 0;
-    ContainerFormat *containerFormat = dynamic_cast<ContainerFormat*>(pContainerFormat);
 
-    if (containerFormat)
+    if (mFormat)
     {
       // ask for it from the container
-      outputFormat = containerFormat->getOutputFormat();
-    } else {
+      outputFormat = mFormat->getOutputFormat();
+    }
+
+    if (!outputFormat) {
       // guess it.
       outputFormat = av_guess_format(0, url, 0);
+      RefPointer<ContainerFormat> format = ContainerFormat::make();
+      if (format) {
+        format->setOutputFormat(outputFormat);
+        setFormat(format.value());
+      }
     }
+
     if (outputFormat)
     {
       if (aStreamsCanBeAddedDynamically)
@@ -419,17 +447,15 @@ namespace com { namespace xuggle { namespace xuggler
       }
       mNumStreams = 0;
 
+      // we need to remember the avio context
+      AVIOContext* pb = mFormatContext->pb;
+
       if (this->getType() == READ)
-      {
         avformat_close_input(&mFormatContext);
-        retval = 0;
-        mFormatContext = 0;
-      } else
-      {
-        retval = avio_close(mFormatContext->pb);
+      else
         avformat_free_context(mFormatContext);
-        mFormatContext = 0;
-      }
+      retval = avio_close(pb);
+      mFormatContext = 0;
       mIsOpened = false;
       mIsMetaDataQueried=false;
     }

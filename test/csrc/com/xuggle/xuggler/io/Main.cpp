@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2012 Xuggle Inc.  All rights reserved.
+ * Copyright (c) 2008, 2010 Xuggle Inc.  All rights reserved.
  *  
  * This file is part of Xuggle-Xuggler-Main.
  *
@@ -17,30 +17,17 @@
  * along with Xuggle-Xuggler-Main.  If not, see <http://www.gnu.org/licenses/>.
  *******************************************************************************/
 
-#include <com/xuggle/xuggler/io/URLProtocolHandler.h>
+#include <cxxtest/ErrorPrinter.h>
+#include <com/xuggle/ferry/JNIHelper.h>
 #include <com/xuggle/xuggler/io/URLProtocolManager.h>
 
-namespace com { namespace xuggle{ namespace xuggler { namespace io
-{
-
-URLProtocolHandler :: URLProtocolHandler(
-    URLProtocolManager* mgr)
-{
-  mManager = mgr;
+int main() {
+ int retval = CxxTest::ErrorPrinter().run();
+ // This method is used to clean up static memory
+ // to that Valgrind doesn't think I'm a sloppy leaker.
+ com::xuggle::ferry::JNIHelper::shutdownHelper();
+ // And unregister all protocols
+ com::xuggle::xuggler::io::URLProtocolManager::unregisterAllProtocols();
+ return retval;
 }
 
-URLProtocolHandler :: ~URLProtocolHandler()
-{
-
-}
-
-const char*
-URLProtocolHandler :: getProtocolName()
-{
-  const char* retval = 0;
-  if (mManager)
-    retval = mManager->getProtocolName();
-  return retval;
-}
-
-}}}}

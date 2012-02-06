@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008, 2010 Xuggle Inc.  All rights reserved.
+ * Copyright (c) 2012 Xuggle Inc.  All rights reserved.
  *  
  * This file is part of Xuggle-Xuggler-Main.
  *
@@ -19,177 +19,189 @@
 
 #include <exception>
 #include <stdexcept>
-
-#include <string.h>
-
-#include <com/xuggle/ferry/JNIHelper.h>
-
+#include <cstring>
 #include <com/xuggle/xuggler/io/URLProtocolManager.h>
 
 namespace com { namespace xuggle { namespace xuggler { namespace io
 {
 using namespace std;
-using namespace com::xuggle::ferry;
 
-URLProtocolManager::URLProtocolManager(const char * aProtocolName,
-    jobject aJavaProtoMgr)
+
+static const char*
+URLProtocolManager_VALID_PROTOCOL_CHARS =
+    "abcdefghijklmnopqrstuvwxyz"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "0123456789+-.";
+
+const char *
+URLProtocolManager::parseProtocol(
+    char * dest,
+    int32_t dest_len,
+    const char* url)
 {
-  if (aProtocolName == NULL || aJavaProtoMgr == NULL || *aProtocolName == 0)
+  if (!dest || dest_len <=0 || !url || !*url)
+    return 0;
+  size_t url_len = strlen(url);
+  if (url_len <= 1)
+    return 0;
+
+  size_t proto_len = strspn(url, URLProtocolManager_VALID_PROTOCOL_CHARS);
+  if (proto_len <= 0)
+    return 0;
+
+  // file protocol
+  if (url[proto_len] != ':' && url[proto_len] != ',') {
+    return 0;
+  }
+  if (url[0] && url[1] == ':') {
+    return 0;
+  }
+  if (proto_len >= (size_t)dest_len)
+    // not enough space
+    return 0;
+  strncpy(dest, url, proto_len);
+  dest[proto_len] = 0;
+
+  return dest;
+}
+
+URLProtocolManager* URLProtocolManager :: mFirstProtocol = 0;
+
+URLProtocolManager*
+URLProtocolManager :: getNextProtocol(URLProtocolManager *prev)
+{
+  return prev ? prev->mNext : mFirstProtocol;
+}
+
+URLProtocolManager*
+URLProtocolManager :: registerProtocol(URLProtocolManager* mgr)
+{
+  if (mgr) {
+    URLProtocolManager**p;
+    p = &mFirstProtocol;
+    while(*p) p = &(*p)->mNext;
+    *p = mgr;
+  }
+  return mgr;
+}
+
+int
+URLProtocolManager :: unregisterAllProtocols()
+{
+  int total = 0;
+  URLProtocolManager *p=mFirstProtocol;
+  while (p) {
+    URLProtocolManager* casualty = p;
+    p = p->mNext;
+    delete casualty;
+    ++total;
+  }
+  mFirstProtocol=0;
+  return total;
+}
+
+URLProtocolManager*
+URLProtocolManager :: unregisterProtocol(URLProtocolManager * mgr)
+{
+  if (mgr) {
+    URLProtocolManager **p;
+    p = &mFirstProtocol;
+    while(*p && *p != mgr)
+      p = &(*p)->mNext;
+    if (*p)
+      *p = mgr->mNext;
+    mgr->mNext = 0;
+  }
+  return mgr;
+}
+
+URLProtocolManager :: URLProtocolManager(
+    const char * aProtocolName)
+{
+  if (aProtocolName == NULL || *aProtocolName == 0)
     throw invalid_argument("bad argument to protocol manager");
-  // I hate C++; I need to make a copy of the protocol name.
-  int len = strlen(aProtocolName);
-  char * protoName = new char[len+1];
-  strcpy(protoName, aProtocolName);
+  size_t len = strlen(aProtocolName);
+  size_t validChars = strspn(aProtocolName, URLProtocolManager_VALID_PROTOCOL_CHARS);
+  if (validChars != len)
+    throw invalid_argument("protocol name contains invalid characters");
 
-  this->cacheJavaMethods(aJavaProtoMgr);
-
-  // Now, find the getHandler() factory function method and keep it around
-  // for later use.
-
-  mWrapper = new URLProtocolWrapper;
-
-  mWrapper->proto.name = protoName;
-  protoName = NULL;
-  mWrapper->proto.url_open = URLProtocolManager::url_open;
-  mWrapper->proto.url_read = URLProtocolManager::url_read;
-  mWrapper->proto.url_write = URLProtocolManager::url_write;
-  mWrapper->proto.url_seek = URLProtocolManager::url_seek;
-  mWrapper->proto.url_close = URLProtocolManager::url_close;
-  // Unsupported...
-  mWrapper->proto.url_read_pause = 0;
-  mWrapper->proto.url_read_seek = 0;
-  mWrapper->proto.url_get_file_handle=0;
-  mWrapper->proto.priv_data_size = 0;
-  mWrapper->proto.priv_data_class = 0;
-  // and remember ourselves...
-  mWrapper->protocolMgr = this;
+  mProtoName = new char[len+1];
+  strcpy(mProtoName, aProtocolName);
+  mNext = 0;
 }
 
-URLProtocolManager::~URLProtocolManager()
+URLProtocolManager :: ~URLProtocolManager()
 {
-  if (mWrapper == NULL)
-  {
-    if (mWrapper->proto.name != NULL)
-    {
-      delete [] mWrapper->proto.name;
-      mWrapper->proto.name = NULL;
-    }
-
-    delete mWrapper;
-    mWrapper = NULL;
-  }
-  if (mJavaURLProtocolManager_class)
-  {
-    JNIHelper::sDeleteGlobalRef(mJavaURLProtocolManager_class);
-    mJavaURLProtocolManager_class = NULL;
-  }
-  if (mJavaProtoMgr)
-  {
-    JNIHelper::sDeleteGlobalRef((jobject)mJavaProtoMgr);
-    mJavaProtoMgr = NULL;
-  }
-
+  delete [] mProtoName;
 }
 
-void URLProtocolManager::cacheJavaMethods(jobject aProtoMgr)
+URLProtocolManager*
+URLProtocolManager :: findProtocol(const char* protocol,
+    const char* url,
+    int,
+    URLProtocolManager *previous)
 {
-  // Now, let's cache the commonly used classes.
-  JNIEnv *env=JNIHelper::sGetEnv();
-
-  mJavaProtoMgr = env->NewGlobalRef(aProtoMgr);
-
-  // I don't check for NULL here because... well I don.t
-  jclass cls=env->GetObjectClass(aProtoMgr);
-
-  // Keep a reference around
-  mJavaURLProtocolManager_class=(jclass)env->NewGlobalRef(cls);
-
-  // Now, look for our get and set mehods.
-  mJavaURLProtocolManager_getHandler_mid
-      = env->GetMethodID(
-          cls,
-          "getHandler",
-          "(Ljava/lang/String;I)Lcom/xuggle/xuggler/io/IURLProtocolHandler;");
-
+  char proto[256];
+  if (!protocol || !*protocol) {
+    // parse the protocol from the URL
+    protocol = URLProtocolManager::parseProtocol(proto, sizeof(proto), url);
+    if (!protocol || !*protocol)
+      return 0;
+  }
+  URLProtocolManager *p = previous ? previous : mFirstProtocol;
+  while(p && strcmp(protocol, p->mProtoName) != 0)
+    p = p->mNext;
+  return p;
 }
 
-URLProtocol* URLProtocolManager::getURLProtocol(void)
+URLProtocolHandler*
+URLProtocolManager :: findHandler(
+    const char* url,
+    int flags,
+    URLProtocolManager *previous)
 {
-  return (URLProtocol*)mWrapper;
+  URLProtocolManager* mgr = findProtocol(0, url, flags, previous);
+  return mgr ? mgr->getHandler(url, flags) : 0;
 }
 
 /*
  * Here lie static functions that forward to the right class function in the protocol manager
  */
-int URLProtocolManager::url_open(URLContext* h, const char* url, int flags)
+int
+URLProtocolManager :: url_open(void* h, const char* url, int flags)
 {
   int retval = -1;
-  jstring jUrl= NULL;
-  jobject jHandler= NULL;
-
-  JNIEnv * env = JNIHelper::sGetEnv();
 
   try
   {
-    if (!h) throw invalid_argument("missing handle");
-    URLProtocolWrapper* proto = (URLProtocolWrapper*)h->prot;
-    if (!proto) throw invalid_argument ("missing proto wrapper");
-    URLProtocolManager* mgr = (URLProtocolManager*)proto->protocolMgr;
-    if (!mgr) throw invalid_argument("missing proto mgr");
-
-    // we need to use our manager to get a URLProtocolHandler object to pass
-    // into the native URLProtocolHandler
-    // now we need to allocate a new ProtocolHandler and attach it to this
-    // URLContext
-    jUrl = env->NewStringUTF(url);
-    if (!jUrl) throw invalid_argument("should throw bad alloc here...");
-    jHandler = env->CallObjectMethod(mgr->mJavaProtoMgr,
-        mgr->mJavaURLProtocolManager_getHandler_mid,
-        jUrl,
-        flags);
-    if (!jHandler) throw invalid_argument("couldn't find handler for protocol");
-
-    URLProtocolHandler* handler = new URLProtocolHandler(proto->proto.name,
-        jHandler);
-    h->priv_data = (void*)handler;
-    retval = handler->url_open(h, url, flags);
+    URLProtocolHandler* handler = URLProtocolManager::getHandler(h);
+    retval = handler->url_open(url, flags);
   }
   catch (...)
   {
     retval = -1;
   }
-  // delete your local refs, as this is a running inside another library that likely
-  // is not returning to Java soon.
-  if (jUrl)
-    env->DeleteLocalRef(jUrl);
-  if (jHandler)
-    env->DeleteLocalRef(jHandler);
-  jUrl = NULL;
-  jHandler = NULL;
-
   return retval;
 }
 
-URLProtocolHandler * URLProtocolManager::url_getHandle(URLContext *h)
+URLProtocolHandler *
+URLProtocolManager :: getHandler(void *h)
 {
   if (!h)
     throw invalid_argument("missing handle");
-  URLProtocolHandler* handler = (URLProtocolHandler*)h->priv_data;
-  if (!handler)
-    throw invalid_argument("no URLProtocolHandler set");
-  return handler;
+  return (URLProtocolHandler*)h;
 }
 
-int URLProtocolManager::url_close(URLContext *h)
+int
+URLProtocolManager :: url_close(void *h)
 {
   int retval = -1;
   try
   {
-    URLProtocolHandler* handler = URLProtocolManager::url_getHandle(h);
-    retval = handler->url_close(h);
+    URLProtocolHandler* handler = URLProtocolManager::getHandler(h);
+    retval = handler->url_close();
     // when we close that handler is no longer valid; you must re-open to re-use.
     delete handler;
-    h->priv_data = 0;
   }
   catch (...)
   {
@@ -198,13 +210,14 @@ int URLProtocolManager::url_close(URLContext *h)
   return retval;
 }
 
-int URLProtocolManager::url_read(URLContext *h, unsigned char* buf, int size)
+int
+URLProtocolManager :: url_read(void *h, unsigned char* buf, int size)
 {
   int retval = -1;
   try
   {
-    URLProtocolHandler* handler = URLProtocolManager::url_getHandle(h);
-    retval = handler->url_read(h, buf, size);
+    URLProtocolHandler* handler = URLProtocolManager::getHandler(h);
+    retval = handler->url_read(buf, size);
   }
   catch(...)
   {
@@ -213,14 +226,15 @@ int URLProtocolManager::url_read(URLContext *h, unsigned char* buf, int size)
   return retval;
 }
 
-int URLProtocolManager::url_write(URLContext *h, const unsigned char* buf,
+int
+URLProtocolManager :: url_write(void *h, const unsigned char* buf,
     int size)
 {
   int retval = -1;
   try
   {
-    URLProtocolHandler* handler = URLProtocolManager::url_getHandle(h);
-    retval = handler->url_write(h, buf, size);
+    URLProtocolHandler* handler = URLProtocolManager::getHandler(h);
+    retval = handler->url_write(buf, size);
   }
   catch(...)
   {
@@ -229,18 +243,34 @@ int URLProtocolManager::url_write(URLContext *h, const unsigned char* buf,
   return retval;
 }
 
-int64_t URLProtocolManager::url_seek(URLContext *h, int64_t position,
+int64_t
+URLProtocolManager :: url_seek(void *h, int64_t position,
     int whence)
 {
   int64_t retval = -1;
   try
   {
-    URLProtocolHandler* handler = URLProtocolManager::url_getHandle(h);
-    retval = handler->url_seek(h, position, whence);
+    URLProtocolHandler* handler = URLProtocolManager::getHandler(h);
+    retval = handler->url_seek(position, whence);
   }
   catch(...)
   {
     retval = -1;
+  }
+  return retval;
+}
+
+URLProtocolHandler::SeekableFlags
+URLProtocolManager :: url_seekflags(void *h, const char* url, int flags)
+{
+  URLProtocolHandler::SeekableFlags retval = URLProtocolHandler::SK_NOT_SEEKABLE;
+  try
+  {
+    URLProtocolHandler* handler = URLProtocolManager::getHandler(h);
+    retval = handler->url_seekflags(url, flags);
+  }
+  catch(...)
+  {
   }
   return retval;
 }

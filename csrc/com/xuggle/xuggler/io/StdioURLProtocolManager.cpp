@@ -17,23 +17,40 @@
  * along with Xuggle-Xuggler-Main.  If not, see <http://www.gnu.org/licenses/>.
  *******************************************************************************/
 
-#ifndef URLPROTOCOLWRAPPER_H_
-#define URLPROTOCOLWRAPPER_H_
+#include <exception>
+#include <stdexcept>
 
-#include <com/xuggle/xuggler/io/FfmpegIncludes.h>
+#include <string.h>
 
-extern "C"
+#include <com/xuggle/ferry/JNIHelper.h>
+
+#include <com/xuggle/xuggler/io/StdioURLProtocolManager.h>
+
+namespace com { namespace xuggle { namespace xuggler { namespace io
 {
-  typedef struct URLProtocolWrapper
-  {
-    // This must be the first element in this wrapper to ensure we can
-    // trick FFMPEG into passing it around for us.
-    URLProtocol proto;
-    // You can add anything you need after this.  This will be passed
-    // in the URLContext->proto field in the protocol functions.
-    // You should note that the same proto gets passed for all threads, and
-    // so you should only have 'global' variables here.
-    void * protocolMgr;
-  } URLProtocolWrapper;
+using namespace std;
+using namespace com::xuggle::ferry;
+
+StdioURLProtocolManager*
+StdioURLProtocolManager :: registerProtocol(const char *aProtocolName)
+{
+  StdioURLProtocolManager* mgr = new StdioURLProtocolManager(aProtocolName);
+  return dynamic_cast<StdioURLProtocolManager*>(URLProtocolManager::registerProtocol(mgr));
 }
-#endif /*URLPROTOCOLWRAPPER_H_*/
+
+
+StdioURLProtocolManager :: StdioURLProtocolManager(
+    const char * aProtocolName) : URLProtocolManager(aProtocolName)
+{
+}
+
+StdioURLProtocolManager :: ~StdioURLProtocolManager()
+{
+}
+
+StdioURLProtocolHandler *
+StdioURLProtocolManager :: getHandler(const char *, int)
+{
+  return new StdioURLProtocolHandler(this);
+}
+}}}}

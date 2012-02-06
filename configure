@@ -16685,7 +16685,7 @@ ac_config_headers="$ac_config_headers csrc/com/xuggle/xuggler/config.h:config.h.
 
 ac_config_headers="$ac_config_headers csrc/com/xuggle/xuggler/io/config.h:config.h.in"
 
-ac_config_files="$ac_config_files Makefile mk/Makefile.global:mk/buildtools/Makefile.global.in csrc/Makefile csrc/com/Makefile csrc/com/xuggle/Makefile csrc/com/xuggle/ferry/Makefile csrc/com/xuggle/xuggler/Makefile csrc/com/xuggle/xuggler/io/Makefile test/csrc/Makefile test/csrc/com/Makefile test/csrc/com/xuggle/Makefile test/csrc/com/xuggle/testutils/Makefile test/csrc/com/xuggle/ferry/Makefile test/csrc/com/xuggle/xuggler/Makefile"
+ac_config_files="$ac_config_files Makefile mk/Makefile.global:mk/buildtools/Makefile.global.in csrc/Makefile csrc/com/Makefile csrc/com/xuggle/Makefile csrc/com/xuggle/ferry/Makefile csrc/com/xuggle/xuggler/Makefile csrc/com/xuggle/xuggler/io/Makefile test/csrc/Makefile test/csrc/com/Makefile test/csrc/com/xuggle/Makefile test/csrc/com/xuggle/testutils/Makefile test/csrc/com/xuggle/ferry/Makefile test/csrc/com/xuggle/xuggler/Makefile test/csrc/com/xuggle/xuggler/io/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -17813,6 +17813,7 @@ do
     "test/csrc/com/xuggle/testutils/Makefile") CONFIG_FILES="$CONFIG_FILES test/csrc/com/xuggle/testutils/Makefile" ;;
     "test/csrc/com/xuggle/ferry/Makefile") CONFIG_FILES="$CONFIG_FILES test/csrc/com/xuggle/ferry/Makefile" ;;
     "test/csrc/com/xuggle/xuggler/Makefile") CONFIG_FILES="$CONFIG_FILES test/csrc/com/xuggle/xuggler/Makefile" ;;
+    "test/csrc/com/xuggle/xuggler/io/Makefile") CONFIG_FILES="$CONFIG_FILES test/csrc/com/xuggle/xuggler/io/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

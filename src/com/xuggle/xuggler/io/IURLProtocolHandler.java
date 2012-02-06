@@ -19,6 +19,7 @@
 
 package com.xuggle.xuggler.io;
 
+import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.io.FileProtocolHandler;
 import com.xuggle.xuggler.io.URLProtocolManager;
 
@@ -93,8 +94,15 @@ public interface IURLProtocolHandler
   /**
    * This method gets called by FFMPEG when it tries to read data.
    * <p>
-   * Implementators should block until data is available; returning 0 signals
-   * to FFMPEG that the file is empty.
+   * For non-blocking IO, return:
+   * {@link IError#typeToErrorNumber(com.xuggle.xuggler.IError.Type)}
+   * pass in {@link IError.Type#ERROR_AGAIN} for the error type.  This
+   * returns the platform specific number for EAGAIN on your platform
+   * signaling that callers should try again later.
+   * </p>
+   * <p>
+   * Alternately implementators may block until data is returning, but they should then
+   * respect the {@link Thread#isInterrupted()} setting.
    * </p>
    * 
    * @param buf The buffer to write your data to.
@@ -106,8 +114,15 @@ public interface IURLProtocolHandler
   /**
    * This method gets called by FFMPEG when it tries to write data.
    * <p>
-   * Implementators should block until data can be written; returning 0 signals
-   * to FFMPEG that the file is empty.
+   * For non-blocking IO, return:
+   * {@link IError#typeToErrorNumber(com.xuggle.xuggler.IError.Type)}
+   * pass in {@link IError.Type#ERROR_AGAIN} for the error type.  This
+   * returns the platform specific number for EAGAIN on your platform
+   * signaling that callers should try again later.
+   * </p>
+   * <p>
+   * Alternately implementators may block until data is returning, but they should then
+   * respect the {@link Thread#isInterrupted()} setting.
    * </p>
    * 
    * @param buf The data you should write.

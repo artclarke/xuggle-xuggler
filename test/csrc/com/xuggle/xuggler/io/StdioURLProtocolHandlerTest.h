@@ -16,31 +16,42 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with Xuggle-Xuggler-Main.  If not, see <http://www.gnu.org/licenses/>.
  *******************************************************************************/
+/*
+ * StdioURLProtocolHandlerTest.h
+ *
+ *  Created on: Feb 6, 2012
+ *      Author: aclarke
+ */
 
-#include <com/xuggle/xuggler/io/URLProtocolHandler.h>
-#include <com/xuggle/xuggler/io/URLProtocolManager.h>
+#ifndef STDIOURLHANDLERTEST_H_
+#define STDIOURLHANDLERTEST_H_
 
-namespace com { namespace xuggle{ namespace xuggler { namespace io
+#include <com/xuggle/testutils/TestUtils.h>
+#include <com/xuggle/ferry/Logger.h>
+#include <com/xuggle/xuggler/io/StdioURLProtocolManager.h>
+
+using namespace VS_CPP_NAMESPACE;
+
+
+class StdioURLProtocolHandlerTest: public CxxTest::TestSuite
 {
+public:
+  StdioURLProtocolHandlerTest();
+  virtual
+  ~StdioURLProtocolHandlerTest();
+  void setUp();
+  void tearDown();
+  void testCreation();
+  void testOpenClose();
+  void testRead();
+  void testReadWrite();
+  void testSeek();
+  void testSeekableFlags();
+private:
+  const char * FIXTURE_DIRECTORY;
+  const char * SAMPLE_FILE;
+  char mFixtureDir[4098];
+  char mSampleFile[4098];
+};
 
-URLProtocolHandler :: URLProtocolHandler(
-    URLProtocolManager* mgr)
-{
-  mManager = mgr;
-}
-
-URLProtocolHandler :: ~URLProtocolHandler()
-{
-
-}
-
-const char*
-URLProtocolHandler :: getProtocolName()
-{
-  const char* retval = 0;
-  if (mManager)
-    retval = mManager->getProtocolName();
-  return retval;
-}
-
-}}}}
+#endif /* STDIOURLHANDLERTEST_H_ */

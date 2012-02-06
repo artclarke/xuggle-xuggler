@@ -1,4 +1,4 @@
-VS_PRODUCT=theyard_xuggler_io
+VS_PRODUCT=xuggle_xuggler_io
 VS_CPP_PATH=com/xuggle/xuggler/io
 VS_CPP_PACKAGE=com.xuggle.xuggler.io
 VS_CPP_NAMESPACE=com::xuggle::xuggler:IO
@@ -10,6 +10,10 @@ libxuggle_xuggler_io_la_LIBADD=$(top_builddir)/csrc/com/xuggle/ferry/libxuggle-f
 
 libxuggle_xuggler_io_la_SOURCES= \
   FfmpegIO.cpp \
+  StdioURLProtocolHandler.cpp \
+  StdioURLProtocolManager.cpp \
+  JavaURLProtocolHandler.cpp \
+  JavaURLProtocolManager.cpp \
   URLProtocolHandler.cpp \
   URLProtocolManager.cpp
 
@@ -19,6 +23,9 @@ libxuggle_xuggler_io_la_HEADERS= \
   FfmpegIO.h \
   config.h \
   IO.h \
+  StdioURLProtocolHandler.h \
+  StdioURLProtocolManager.h \
+  JavaURLProtocolHandler.h \
+  JavaURLProtocolManager.h \
   URLProtocolHandler.h \
-  URLProtocolManager.h \
-  URLProtocolWrapper.h 
+  URLProtocolManager.h 

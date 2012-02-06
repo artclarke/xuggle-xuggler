@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008, 2010 Xuggle Inc.  All rights reserved.
+ * Copyright (c) 2012 Xuggle Inc.  All rights reserved.
  *  
  * This file is part of Xuggle-Xuggler-Main.
  *
@@ -20,36 +20,48 @@
 #ifndef URLPROTOCOLHANDLER_H_
 #define URLPROTOCOLHANDLER_H_
 
-#include <jni.h>
-#include <com/xuggle/xuggler/io/FfmpegIncludes.h>
+#include <stdint.h>
 
 namespace com { namespace xuggle { namespace xuggler { namespace io
 {
-class URLProtocolHandler
-{
-public:
-  URLProtocolHandler(const char * protoName, jobject aJavaProtocolHandler);
-  virtual ~URLProtocolHandler();
+  class URLProtocolManager;
+  class URLProtocolHandler
+  {
+  public:
+    typedef enum SeekFlags {
+      SK_SEEK_SET=0,
+      SK_SEEK_CUR=1,
+      SK_SEEK_END=2,
+      SK_SEEK_SIZE=0x10000,
+    } SeekFlags;
+    typedef enum OpenFlags {
+      URL_RDONLY_MODE=0,
+      URL_WRONLY_MODE=1,
+      URL_RDWR_MODE=2,
+    } OpenFlags;
 
-  // Now, let's have our forwarding functions
-  int url_open(URLContext *h, const char *url, int flags);
-  int url_close(URLContext *h);
-  int url_read(URLContext *h, unsigned char* buf, int size);
-  int url_write(URLContext *h, const unsigned char* buf, int size);
-  int64_t url_seek(URLContext *h, int64_t position, int whence);
+    typedef enum SeekableFlags {
+      SK_NOT_SEEKABLE   =0x00000000,
+      SK_SEEKABLE_NORMAL=0x00000001,
+    } SeekableFlags;
+    virtual ~URLProtocolHandler();
+    virtual const char* getProtocolName();
+    virtual URLProtocolManager *getProtocolManager() { return mManager; }
 
-private:
-  const char * mProtoName;
+    // Now, let's have our forwarding functions
+    virtual int url_open(const char *url, int flags)=0;
+    virtual int url_close()=0;
+    virtual int url_read(unsigned char* buf, int size)=0;
+    virtual int url_write(const unsigned char* buf, int size)=0;
+    virtual int64_t url_seek(int64_t position, int whence)=0;
+    virtual SeekableFlags url_seekflags(const char* url, int flags)=0;
 
-  void cacheJavaMethods(jobject aProtoHandler);
-  jobject mJavaProtoHandler;
-  jmethodID mJavaUrlOpen_mid;
-  jmethodID mJavaUrlClose_mid;
-  jmethodID mJavaUrlRead_mid;
-  jmethodID mJavaUrlWrite_mid;
-  jmethodID mJavaUrlSeek_mid;
-  jmethodID mJavaUrlIsStreamed_mid;
+  protected:
+    URLProtocolHandler(
+        URLProtocolManager* mgr);
 
-};
+  private:
+    URLProtocolManager* mManager;
+  };
 }}}}
 #endif /*URLPROTOCOLHANDLER_H_*/

@@ -22,22 +22,16 @@
 #include <com/xuggle/ferry/JNIHelper.h>
 #include <com/xuggle/xuggler/io/FfmpegIO.h>
 #include <com/xuggle/xuggler/io/FfmpegIncludes.h>
-#include <com/xuggle/xuggler/io/URLProtocolManager.h>
+#include <com/xuggle/xuggler/io/JavaURLProtocolManager.h>
 extern "C"
 {
   // FFmpeg put these into the private API in libavformat/url.h but
   // we still need it.  Very dangerous this.  Should replace with right API when it returns.
-    int ffurl_alloc(URLContext **h, const char *url, int flags);
-    int ffurl_connect(URLContext *h);
     int ffurl_open(URLContext **h, const char *url, int flags);
     int ffurl_read(URLContext *h, unsigned char *buf, int size);
-    int ffurl_read_complete(URLContext *h, unsigned char *buf, int size);
     int ffurl_write(URLContext *h, const unsigned char *buf, int size);
     int64_t ffurl_seek(URLContext *h, int64_t pos, int whence);
     int ffurl_close(URLContext *h);
-    int64_t ffurl_size(URLContext *h);
-    int ffurl_get_file_handle(URLContext *h);
-    int ffurl_register_protocol(URLProtocol *protocol, int size);
 }
 
 using namespace com::xuggle::ferry;
@@ -46,7 +40,7 @@ using namespace com::xuggle::xuggler::io;
 JNIEXPORT jint JNICALL
 JNI_OnLoad(JavaVM *, void *)
 {
-    /* Because of static initialize in Mac OS, the only safe thing
+    /* Because of static initialization in Mac OS, the only safe thing
      * to do here is return the version */
     return com::xuggle::ferry::JNIHelper::sGetJNIVersion();
 }
@@ -59,6 +53,7 @@ JNIEXPORT void JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_init(JNIEnv *env, jcl
     env->GetJavaVM(&vm);
     com::xuggle::ferry::JNIHelper::sSetVM(vm);
     av_register_all();
+    avformat_network_init();
   }
 }
 
@@ -67,20 +62,41 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1registerProto
 {
   int retval = -1;
   const char *protoName= NULL;
-  protoName = jenv->GetStringUTFChars(aProtoName, NULL);
-  if (protoName != NULL)
+  try {
+    protoName = jenv->GetStringUTFChars(aProtoName, NULL);
+    if (protoName != NULL)
+    {
+      // Yes, we deliberately leak the URLProtocolManager...
+      JavaURLProtocolManager::registerProtocol(protoName, aProtoMgr);
+      retval = 0;
+    }
+  }
+  catch(std::exception & e)
   {
-    URLProtocolManager* mgr = new URLProtocolManager(protoName, aProtoMgr);
-
-    URLProtocol* proto = mgr->getURLProtocol();
-    retval = ffurl_register_protocol(proto, sizeof(URLProtocolWrapper));
-
+    // we don't let a native exception override a java exception
+    if (!jenv->ExceptionCheck())
+    {
+      jclass cls=jenv->FindClass("java/lang/RuntimeException");
+      if (cls)
+        jenv->ThrowNew(cls, e.what());
+    }
+    retval = -1;
+  }
+  catch(...)
+  {
+    // we don't let a native exception override a java exception
+    if (!jenv->ExceptionCheck())
+    {
+      jclass cls=jenv->FindClass("java/lang/RuntimeException");
+      if (cls)
+        jenv->ThrowNew(cls, "Unhandled and unknown native exception");
+    }
+    retval = -1;
+  }
+  if (protoName != NULL) {
     jenv->ReleaseStringUTFChars(aProtoName, protoName);
     protoName = NULL;
-
-    // Yes, we deliberately leak the URLProtocolManager...
   }
-
   return retval;
 }
 

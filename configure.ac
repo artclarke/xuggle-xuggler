@@ -369,5 +369,6 @@ AC_CONFIG_FILES([Makefile
                  test/csrc/com/xuggle/testutils/Makefile
                  test/csrc/com/xuggle/ferry/Makefile
                  test/csrc/com/xuggle/xuggler/Makefile
+                 test/csrc/com/xuggle/xuggler/io/Makefile
                  ])
 AC_OUTPUT
