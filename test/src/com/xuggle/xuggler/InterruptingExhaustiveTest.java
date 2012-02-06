@@ -63,7 +63,7 @@ public class InterruptingExhaustiveTest
             }
             log.info("About to call blocking ffmpeg method: {}", Thread.currentThread());
 
-            int retval = container.open(
+            container.open(
 //                "fixtures/testfile.flv",
                "udp://127.0.0.1:12345/notvalid.flv?localport=28302",
                 IContainer.Type.READ,
