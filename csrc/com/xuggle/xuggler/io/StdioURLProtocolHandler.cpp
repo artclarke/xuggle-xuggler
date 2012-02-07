@@ -64,7 +64,7 @@ StdioURLProtocolHandler :: url_open(const char *url, int flags)
       mode="w";
       break;
     case URLProtocolHandler::URL_RDWR_MODE:
-      mode="rw";
+      mode="r+";
       break;
     default:
       return -1;
@@ -81,6 +81,7 @@ StdioURLProtocolHandler :: url_open(const char *url, int flags)
     if (*url == ':' || *url == ',')
       ++url;
   }
+//  fprintf(stderr, "protocol: %s; url: %s; mode: %s\n", protocol, url, mode);
   mFile = fopen(url, mode);
   if (!mFile)
     return -1;

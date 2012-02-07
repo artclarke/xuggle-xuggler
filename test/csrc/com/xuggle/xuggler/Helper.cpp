@@ -213,6 +213,11 @@ namespace com { namespace xuggle { namespace xuggler {
   void
   Helper :: setupReading(const char* url)
   {
+    setupReading(0, url);
+  }
+  void
+  Helper :: setupReading(const char* protocol, const char* url)
+  {
     int retval = -1;
     char actualUrl[4096];
     VS_TUT_ENSURE("invalid url", url);
@@ -220,9 +225,15 @@ namespace com { namespace xuggle { namespace xuggler {
     if (*url == '/' || *url == '\\')
     {
       // assume this is an absolute path
-      snprintf(actualUrl, sizeof(actualUrl), "%s", url);
+      if (protocol)
+        snprintf(actualUrl, sizeof(actualUrl), "%s:%s", protocol, url);
+      else
+        snprintf(actualUrl, sizeof(actualUrl), "%s", url);
     } else {
-      snprintf(actualUrl, sizeof(actualUrl), "%s/%s", FIXTURE_DIRECTORY, url);
+      if (protocol)
+        snprintf(actualUrl, sizeof(actualUrl), "%s:%s/%s", protocol, FIXTURE_DIRECTORY, url);
+      else
+        snprintf(actualUrl, sizeof(actualUrl), "%s/%s", FIXTURE_DIRECTORY, url);
     }
 
     std::string errorStr("");

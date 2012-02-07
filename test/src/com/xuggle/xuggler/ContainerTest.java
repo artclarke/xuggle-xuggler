@@ -472,7 +472,7 @@ public class ContainerTest extends TestCase
     assertTrue("could not open file", retval >= 0);
 
     int flags = container.getFlags();
-    assertEquals("container should have no flags: " + flags, flags, 0);
+    assertEquals("container should have no flags: " + flags, 0, flags);
     
     container.close();
   }

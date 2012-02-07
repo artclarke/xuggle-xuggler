@@ -189,10 +189,20 @@ public class XugglerIOTest extends TestCase
 
   }
 
+  /**
+   * As of Xuggler 5.0 we no longer have Xuggle IO call into FFmpeg; that was test-only functionality.
+   * So if you try to use the test methods to read a file WITHOUT registering a protocol handler, you should get
+   * an exception.
+   */
   @Test
   public void testFFMPEGUrlRead()
   {
-    testFFMPEGUrlReadTestFile(mSampleFile);
+    try {
+      testFFMPEGUrlReadTestFile(mSampleFile);
+      fail("should not allow reading a file without a protocol");
+    } catch (Exception e) {
+      // pass.
+    }
   }
 
   @Test

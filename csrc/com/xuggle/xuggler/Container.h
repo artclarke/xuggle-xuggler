@@ -30,6 +30,7 @@
 #include <com/xuggle/xuggler/ContainerParameters.h>
 #include <com/xuggle/xuggler/MetaData.h>
 
+#include <com/xuggle/xuggler/io/URLProtocolHandler.h>
 #include <vector>
 #include <list>
 
@@ -153,6 +154,7 @@ namespace com { namespace xuggle { namespace xuggler
     int32_t setupAllInputStreams();
     AVFormatContext *mFormatContext;
     void reset();
+    void resetContext();
     // We do pointer to RefPointers to avoid too many
     // acquire() / release() cycles as the vector manages
     // itself.
@@ -174,7 +176,7 @@ namespace com { namespace xuggle { namespace xuggler
     com::xuggle::ferry::RefPointer<MetaData> mMetaData;
     com::xuggle::ferry::RefPointer<ContainerFormat> mFormat;
 
-    bool mCustomIO;
+    io::URLProtocolHandler *mCustomIOHandler;
   };
 }}}
 

@@ -109,6 +109,8 @@ namespace com { namespace xuggle { namespace xuggler
      */
     void setupReading(const char* url);
 
+    void setupReading(const char* protocol, const char* url);
+
     /**
      * Resets the helper object to help with writing files.
      * 

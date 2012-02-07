@@ -149,7 +149,7 @@ public class NullProtocolHandlerTest extends TestCase
     // note that without a protocol string, should default to file:
     
     FfmpegIOHandle handle = new FfmpegIOHandle();
-    retval = FfmpegIO.url_open(handle, sampleFile, IURLProtocolHandler.URL_RDONLY_MODE);
+    retval = FfmpegIO.url_open(handle, URLProtocolManager.DEFAULT_PROTOCOL + ":" + sampleFile, IURLProtocolHandler.URL_RDONLY_MODE);
     assertTrue("could not open url: " + sampleFile, retval == 0);
 
     long bytesWritten = 0;

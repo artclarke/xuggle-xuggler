@@ -86,7 +86,8 @@ am__installdirs = "$(DESTDIR)$(libdir)" \
 LTLIBRARIES = $(lib_LTLIBRARIES)
 am__DEPENDENCIES_1 =
 libxuggle_xuggler_la_DEPENDENCIES = $(am__DEPENDENCIES_1) \
-	$(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la
+	$(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la \
+	$(top_builddir)/csrc/com/xuggle/xuggler/io/libxuggle-xuggler-io.la
 am__libxuggle_xuggler_la_SOURCES_DIST = AudioResampler.cpp \
 	AudioSamples.cpp Codec.cpp Container.cpp ContainerFormat.cpp \
 	ContainerParameters.cpp Error.cpp VideoPicture.cpp Global.cpp \
@@ -320,7 +321,8 @@ SUFFIXES = .i
 lib_LTLIBRARIES = libxuggle-xuggler.la
 libxuggle_xuggler_la_LIBADD = -lavdevice -lavformat -lavcodec -lavutil \
 	$(am__append_1) \
-	$(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la
+	$(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la \
+	$(top_builddir)/csrc/com/xuggle/xuggler/io/libxuggle-xuggler-io.la
 libxuggle_xuggler_la_SOURCES = AudioResampler.cpp AudioSamples.cpp \
 	Codec.cpp Container.cpp ContainerFormat.cpp \
 	ContainerParameters.cpp Error.cpp VideoPicture.cpp Global.cpp \

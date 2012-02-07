@@ -4,6 +4,7 @@ VS_CPP_PACKAGE=com.xuggle.xuggler
 VS_CPP_NAMESPACE=com::xuggle::xuggler
 VS_TEST=1
 include @top_builddir@/mk/Makefile.global
+SUBDIRS=io
 
 EXTRA_LIBS=
 
@@ -15,6 +16,7 @@ check_PROGRAMS=\
   xugglerTestAudioResampler \
   xugglerTestCodec \
   xugglerTestContainerFormat \
+  xugglerTestContainerCustomIO \
   xugglerTestContainer \
   xugglerTestVideoPicture \
   xugglerTestHelper \
@@ -130,6 +132,17 @@ nodist_xugglerTestContainer_SOURCES=\
   ContainerTest_CXXRunner.cpp
 
 xugglerTestContainer_LDADD=\
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+
+xugglerTestContainerCustomIO_SOURCES=\
+  ContainerCustomIOTest.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestContainerCustomIO_SOURCES=\
+  ContainerCustomIOTest_CXXRunner.cpp
+
+xugglerTestContainerCustomIO_LDADD=\
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
 xugglerTestVideoPicture_SOURCES=\
@@ -306,6 +319,7 @@ BUILT_SOURCES= \
   AudioResamplerTest_CXXRunner.cpp \
   CodecTest_CXXRunner.cpp \
   ContainerFormatTest_CXXRunner.cpp \
+  ContainerCustomIOTest_CXXRunner.cpp \
   ContainerTest_CXXRunner.cpp \
   VideoPictureTest_CXXRunner.cpp \
   HelperTest_CXXRunner.cpp \
@@ -331,6 +345,7 @@ noinst_HEADERS = \
   AudioSamplesTest.h \
   CodecTest.h \
   ContainerFormatTest.h \
+  ContainerCustomIOTest.h \
   ContainerTest.h \
   VideoPictureTest.h \
   Helper.h \

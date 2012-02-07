@@ -13,6 +13,7 @@ if VS_ENABLE_GPL
 libxuggle_xuggler_la_LIBADD+= -lswscale
 endif
 libxuggle_xuggler_la_LIBADD+= $(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la 
+libxuggle_xuggler_la_LIBADD+= $(top_builddir)/csrc/com/xuggle/xuggler/io/libxuggle-xuggler-io.la 
 
 libxuggle_xuggler_la_SOURCES= \
   AudioResampler.cpp \

@@ -21,18 +21,7 @@
 
 #include <com/xuggle/ferry/JNIHelper.h>
 #include <com/xuggle/xuggler/io/FfmpegIO.h>
-#include <com/xuggle/xuggler/io/FfmpegIncludes.h>
 #include <com/xuggle/xuggler/io/JavaURLProtocolManager.h>
-extern "C"
-{
-  // FFmpeg put these into the private API in libavformat/url.h but
-  // we still need it.  Very dangerous this.  Should replace with right API when it returns.
-    int ffurl_open(URLContext **h, const char *url, int flags);
-    int ffurl_read(URLContext *h, unsigned char *buf, int size);
-    int ffurl_write(URLContext *h, const unsigned char *buf, int size);
-    int64_t ffurl_seek(URLContext *h, int64_t pos, int whence);
-    int ffurl_close(URLContext *h);
-}
 
 using namespace com::xuggle::ferry;
 using namespace com::xuggle::xuggler::io;
@@ -52,8 +41,6 @@ JNIEXPORT void JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_init(JNIEnv *env, jcl
   if (!com::xuggle::ferry::JNIHelper::sGetVM()) {
     env->GetJavaVM(&vm);
     com::xuggle::ferry::JNIHelper::sSetVM(vm);
-    av_register_all();
-    avformat_network_init();
   }
 }
 
@@ -103,7 +90,7 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1registerProto
 JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1open(
     JNIEnv * jenv, jclass, jobject handle, jstring url, jint flags)
 {
-  URLContext*handleVal= NULL;
+  URLProtocolHandler*handleVal= NULL;
   const char *nativeURL= NULL;
   jint retval = -1;
 
@@ -112,7 +99,10 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1open(
   {
     try
     {
-      retval = ffurl_open(&handleVal, nativeURL, flags);
+      handleVal = URLProtocolManager::findHandler(nativeURL, flags, 0);
+      if (!handleVal)
+        throw std::runtime_error("could not find protocol manager for url");
+      retval = handleVal->url_open(nativeURL, flags);
     }
     catch(std::exception & e)
     {
@@ -151,16 +141,17 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1open(
 JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1read(
     JNIEnv *jenv, jclass, jobject handle, jbyteArray javaBuf, jint buflen)
 {
-  URLContext*handleVal= NULL;
+  URLProtocolHandler* handleVal= NULL;
 
   jint retval = -1;
 
-  handleVal = (URLContext*)JNIHelper::sGetPointer(handle);
+  handleVal = (URLProtocolHandler*)JNIHelper::sGetPointer(handle);
 
   jbyte *byteArray = jenv->GetByteArrayElements(javaBuf, NULL);
   try
   {
-    retval = ffurl_read(handleVal, (unsigned char*)byteArray, buflen);
+    if (handleVal)
+      retval = handleVal->url_read((uint8_t*)byteArray, buflen);
   }
   catch(std::exception & e)
   {
@@ -189,16 +180,17 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1read(
 JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1write(
     JNIEnv *jenv, jclass, jobject handle, jbyteArray javaBuf, jint buflen)
 {
-  URLContext*handleVal= NULL;
+  URLProtocolHandler* handleVal= NULL;
 
   jint retval = -1;
 
-  handleVal = (URLContext*)JNIHelper::sGetPointer(handle);
+  handleVal = (URLProtocolHandler*)JNIHelper::sGetPointer(handle);
 
   jbyte *byteArray = jenv->GetByteArrayElements(javaBuf, NULL);
   try
   {
-    retval = ffurl_write(handleVal, (unsigned char*)byteArray, buflen);
+    if (handleVal)
+      retval = handleVal->url_write((uint8_t*)byteArray, buflen);
   }
   catch(std::exception & e)
   {
@@ -227,14 +219,15 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1write(
 JNIEXPORT jlong JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1seek(
     JNIEnv *jenv, jclass, jobject handle, jlong position, jint whence)
 {
-  URLContext*handleVal= NULL;
+  URLProtocolHandler* handleVal= NULL;
 
   jint retval = -1;
 
-  handleVal = (URLContext*)JNIHelper::sGetPointer(handle);
+  handleVal = (URLProtocolHandler*)JNIHelper::sGetPointer(handle);
   try
   {
-    retval = ffurl_seek(handleVal, position, whence);
+    if (handleVal)
+      retval = handleVal->url_seek(position, whence);
   }
   catch(std::exception & e)
   {
@@ -262,14 +255,15 @@ JNIEXPORT jlong JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1seek(
 JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1close(
     JNIEnv *jenv, jclass, jobject handle)
 {
-  URLContext*handleVal= NULL;
+  URLProtocolHandler* handleVal= NULL;
 
   jint retval = -1;
 
-  handleVal = (URLContext*)JNIHelper::sGetPointer(handle);
+  handleVal = (URLProtocolHandler*)JNIHelper::sGetPointer(handle);
   try
   {
-    retval = ffurl_close(handleVal);
+    if (handleVal)
+      retval = handleVal->url_close();
   }
   catch(std::exception & e)
   {

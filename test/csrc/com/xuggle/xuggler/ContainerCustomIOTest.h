@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2008, 2010 Xuggle Inc.  All rights reserved.
+ * Copyright (c) 2012 Xuggle Inc.  All rights reserved.
  *  
  * This file is part of Xuggle-Xuggler-Main.
  *
@@ -17,29 +17,26 @@
  * along with Xuggle-Xuggler-Main.  If not, see <http://www.gnu.org/licenses/>.
  *******************************************************************************/
 
-#ifndef FFMPEGINCLUDES_H_
-#define FFMPEGINCLUDES_H_
+#ifndef __CONTAINERCUSTOMIO_TEST_H__
+#define __CONTAINERCUSTOMIO_TEST_H__
 
-extern "C"
+#include <com/xuggle/testutils/TestUtils.h>
+#include "Helper.h"
+using namespace VS_CPP_NAMESPACE;
+
+class ContainerCustomIOTest : public CxxTest::TestSuite
 {
-// WARNING: This is GCC specific and is to fix a build issue
-// in FFmpeg where UINT64_C is not always defined.  The
-// __WORDSIZE value is a GCC constant
-#define __STDC_CONSTANT_MACROS 1
-#include <stdint.h>
-#ifndef UINT64_C
-# if __WORDSIZE == 64
-#  define UINT64_C(c)	c ## UL
-# else
-#  define UINT64_C(c)	c ## ULL
-# endif
-#endif
+  public:
+    ContainerCustomIOTest();
+    virtual ~ContainerCustomIOTest();
+    void setUp();
+    void tearDown();
+    void testWriteToFileFromFile();
+  private:
+    Helper* h;
+    RefPointer<IContainer> container;
+};
 
-// Sigh; the latest FFmpeg puts in a deprecated statement
-// in an enum which just will not compile with most GCC
-// versions.  So we unset it here.
-#define attribute_deprecated
-#include <libavutil/avutil.h>
-#include <libavformat/avformat.h>
-}
-#endif /*FFMPEGINCLUDES_H_*/
+
+#endif // __CONTAINERCUSTOMIO_TEST_H__
+

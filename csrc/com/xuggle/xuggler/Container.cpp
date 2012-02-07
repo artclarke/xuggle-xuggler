@@ -35,7 +35,7 @@
 #include <com/xuggle/xuggler/Property.h>
 #include <com/xuggle/xuggler/MetaData.h>
 #include <com/xuggle/ferry/IBuffer.h>
-
+#include <com/xuggle/xuggler/io/URLProtocolManager.h>
 VS_LOG_SETUP(VS_CPP_PACKAGE);
 
 #define XUGGLER_CHECK_INTERRUPT(retval) do { \
@@ -47,6 +47,55 @@ VS_LOG_SETUP(VS_CPP_PACKAGE);
 } while(0)
 
 using namespace com::xuggle::ferry;
+using namespace com::xuggle::xuggler::io;
+
+/** Some static functions used by custom IO
+ */
+int
+Container_url_read(void*h, unsigned char* buf, int size)
+{
+  int retval = -1;
+  try {
+    URLProtocolHandler* handler = (URLProtocolHandler*)h;
+    if (handler)
+      retval = handler->url_read(buf,size);
+  } catch (...)
+  {
+    retval = -1;
+  }
+  VS_LOG_TRACE("URLProtocolHandler[%p]->url_read(%p, %d) ==> %d", h, buf, size, retval);
+  return retval;
+}
+int
+Container_url_write(void*h, unsigned char* buf, int size)
+{
+  int retval = -1;
+  try {
+    URLProtocolHandler* handler = (URLProtocolHandler*)h;
+    if (handler)
+      retval = handler->url_write(buf,size);
+  } catch (...)
+  {
+    retval = -1;
+  }
+  VS_LOG_TRACE("URLProtocolHandler[%p]->url_write(%p, %d) ==> %d", h, buf, size, retval);
+  return retval;
+}
+int64_t
+Container_url_seek(void*h, int64_t position, int whence)
+{
+  int64_t retval = -1;
+  try {
+    URLProtocolHandler* handler = (URLProtocolHandler*)h;
+    if (handler)
+      retval = handler->url_seek(position,whence);
+  } catch (...)
+  {
+    retval = -1;
+  }
+  VS_LOG_TRACE("URLProtocolHandler[%p]->url_seek(%p, %lld) ==> %d", h, position, whence, retval);
+  return retval;
+}
 
 namespace com { namespace xuggle { namespace xuggler
 {
@@ -67,16 +116,29 @@ namespace com { namespace xuggle { namespace xuggler
     mInputBufferLength = 0;
     mReadRetryCount = 1;
     mParameters = ContainerParameters::make();
+    mCustomIOHandler = 0;
   }
 
   Container :: ~Container()
   {
     reset();
-    if (mFormatContext)
-      avformat_free_context(mFormatContext);
+    resetContext();
     VS_LOG_TRACE("Destroyed container: %p", this);
   }
 
+  void
+  Container :: resetContext()
+  {
+    if (mFormatContext) {
+      if (mCustomIOHandler) {
+        if (mFormatContext->pb)
+          av_freep(&mFormatContext->pb->buffer);
+        av_freep(&mFormatContext->pb);
+      }
+      avformat_free_context(mFormatContext);
+      mFormatContext = 0;
+    }
+  }
   void
   Container :: reset()
   {
@@ -86,6 +148,15 @@ namespace com { namespace xuggle { namespace xuggler
       VS_LOG_DEBUG("Closing dangling Container");
       (void) this->close(true);
     }
+    if (mCustomIOHandler) {
+      if (mFormatContext) {
+        if(mFormatContext->pb)
+          av_freep(&mFormatContext->pb->buffer);
+        av_freep(&mFormatContext->pb);
+      }
+      delete mCustomIOHandler;
+    }
+    mCustomIOHandler = 0;
   }
 
   AVFormatContext *
@@ -151,6 +222,32 @@ namespace com { namespace xuggle { namespace xuggler
       mFormatContext = avformat_alloc_context();
       if (!mFormatContext)
         throw std::bad_alloc();
+    }
+    // Let's check for custom IO
+    mCustomIOHandler = URLProtocolManager::findHandler(
+        url,
+        type == WRITE ? URLProtocolHandler::URL_WRONLY_MODE : URLProtocolHandler::URL_RDONLY_MODE,
+            0);
+    if (mCustomIOHandler) {
+      if (mInputBufferLength <= 0)
+        // default to 2k
+        mInputBufferLength = 2048;
+      // free and realloc the input buffer length
+      uint8_t* buffer = (uint8_t*)av_malloc(mInputBufferLength);
+      if (!buffer)
+        throw std::bad_alloc();
+
+      // we will allocate ourselves an io context; ownership of buffer passes here.
+      mFormatContext->pb = avio_alloc_context(
+          buffer,
+          mInputBufferLength,
+          type == WRITE ? 1 : 0,
+          mCustomIOHandler,
+          Container_url_read,
+          Container_url_write,
+          Container_url_seek);
+      if (!mFormatContext->pb)
+        av_free(buffer);
     }
 
     if (pContainerFormat)
@@ -270,10 +367,8 @@ namespace com { namespace xuggle { namespace xuggler
         inputFormat = mFormat->getInputFormat();
       }
 
-      // We are going to create our own avio context
-      const bool customIO = false;
-      if (customIO) {
-        // magic code will go here
+      if (mCustomIOHandler) {
+        retval = mCustomIOHandler->url_open(url, URLProtocolHandler::URL_RDONLY_MODE);
       } else {
         retval = avio_open2(&mFormatContext->pb,
             url, URL_RDONLY,
@@ -281,6 +376,9 @@ namespace com { namespace xuggle { namespace xuggler
             0
         );
       }
+      if (retval < 0)
+        throw std::runtime_error("could not open url");
+
       retval = avformat_open_input(
           &mFormatContext,
           url,
@@ -310,8 +408,7 @@ namespace com { namespace xuggle { namespace xuggler
         }
       } else {
         // kill the old context
-        if (mFormatContext)
-          avformat_free_context(mFormatContext);
+        resetContext();
         mFormatContext = avformat_alloc_context();
         if (!mFormatContext)
           throw std::bad_alloc();
@@ -356,17 +453,21 @@ namespace com { namespace xuggle { namespace xuggler
       }
       mFormatContext->oformat = outputFormat;
 
-      retval = avio_open2(&mFormatContext->pb,
-          url, URL_WRONLY,
-          &mFormatContext->interrupt_callback,
-          0
-          );
+      if (mCustomIOHandler)
+        retval = mCustomIOHandler->url_open(url, URLProtocolHandler::URL_WRONLY_MODE);
+      else
+        retval = avio_open2(&mFormatContext->pb,
+            url, URL_WRONLY,
+            &mFormatContext->interrupt_callback,
+            0
+        );
       if (retval >= 0) {
         mIsOpened = true;
         strncpy(mFormatContext->filename, url, sizeof(mFormatContext->filename)-1);
       } else {
+        VS_LOG_ERROR("Could not open file: %s", url);
         // failed to open; kill the context.
-        avformat_free_context(mFormatContext);
+        resetContext();
         // and make a new one
         mFormatContext = avformat_alloc_context();
         if (!mFormatContext)
@@ -452,10 +553,17 @@ namespace com { namespace xuggle { namespace xuggler
 
       if (this->getType() == READ)
         avformat_close_input(&mFormatContext);
-      else
-        avformat_free_context(mFormatContext);
-      retval = avio_close(pb);
-      mFormatContext = 0;
+
+      if (mCustomIOHandler) {
+        retval = mCustomIOHandler->url_close();
+        if (!mFormatContext) {
+          if (pb)
+            av_freep(&pb->buffer);
+          av_free(pb);
+        }
+      } else
+        retval = avio_close(pb);
+      resetContext();
       mIsOpened = false;
       mIsMetaDataQueried=false;
     }
@@ -981,14 +1089,20 @@ namespace com { namespace xuggle { namespace xuggler
   int32_t
   Container :: getFlags()
   {
-    return (mFormatContext ? mFormatContext->flags: 0);
+    int32_t flags = (mFormatContext ? mFormatContext->flags : 0);
+    // remove custom io if set
+    flags &= ~(AVFMT_FLAG_CUSTOM_IO);
+    return flags;
   }
 
   void
   Container :: setFlags(int32_t newFlags)
   {
-    if (mFormatContext)
+    if (mFormatContext) {
       mFormatContext->flags = newFlags;
+      // force custom io
+      mFormatContext->flags |= AVFMT_FLAG_CUSTOM_IO;
+    }
   }
 
   bool

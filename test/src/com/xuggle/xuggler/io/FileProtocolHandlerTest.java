@@ -203,7 +203,12 @@ public class FileProtocolHandlerTest extends TestCase
   @Test
   public void testFFMPEGUrlRead()
   {
-    testFFMPEGUrlReadTestFile(sampleFile);
+    try {
+      testFFMPEGUrlReadTestFile(sampleFile);
+      fail("should raise exception as of Xuggler 5.0");
+    } catch (Exception e) {
+      
+    }
   }
 
   @Test
@@ -251,7 +256,10 @@ public class FileProtocolHandlerTest extends TestCase
   @Test
   public void testDefaultUrlWrite()
   {
-    testFFMPEGUrlWriteTestFile("file:"+this.getClass().getName()+"_"+this.getName()+".flv");
+    try {
+      testFFMPEGUrlWriteTestFile("file:"+this.getClass().getName()+"_"+this.getName()+".flv");
+      fail("should raise exception as of Xuggler 5.0");
+    } catch (Exception e) {}
   }
 
   @Test

@@ -40,6 +40,7 @@ check_PROGRAMS = xugglerTestMetaData$(EXEEXT) \
 	xugglerTestAudioSamples$(EXEEXT) \
 	xugglerTestAudioResampler$(EXEEXT) xugglerTestCodec$(EXEEXT) \
 	xugglerTestContainerFormat$(EXEEXT) \
+	xugglerTestContainerCustomIO$(EXEEXT) \
 	xugglerTestContainer$(EXEEXT) xugglerTestVideoPicture$(EXEEXT) \
 	xugglerTestHelper$(EXEEXT) xugglerTestIndexEntry$(EXEEXT) \
 	xugglerTestMediaDataWrapper$(EXEEXT) \
@@ -107,6 +108,17 @@ nodist_xugglerTestContainer_OBJECTS =  \
 xugglerTestContainer_OBJECTS = $(am_xugglerTestContainer_OBJECTS) \
 	$(nodist_xugglerTestContainer_OBJECTS)
 xugglerTestContainer_DEPENDENCIES =  \
+	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
+	$(am__DEPENDENCIES_1)
+am_xugglerTestContainerCustomIO_OBJECTS =  \
+	ContainerCustomIOTest.$(OBJEXT) Main.$(OBJEXT) \
+	Helper.$(OBJEXT)
+nodist_xugglerTestContainerCustomIO_OBJECTS =  \
+	ContainerCustomIOTest_CXXRunner.$(OBJEXT)
+xugglerTestContainerCustomIO_OBJECTS =  \
+	$(am_xugglerTestContainerCustomIO_OBJECTS) \
+	$(nodist_xugglerTestContainerCustomIO_OBJECTS)
+xugglerTestContainerCustomIO_DEPENDENCIES =  \
 	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
 	$(am__DEPENDENCIES_1)
 am_xugglerTestContainerFormat_OBJECTS = ContainerFormatTest.$(OBJEXT) \
@@ -301,6 +313,8 @@ SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(xugglerTestCodec_SOURCES) $(nodist_xugglerTestCodec_SOURCES) \
 	$(xugglerTestContainer_SOURCES) \
 	$(nodist_xugglerTestContainer_SOURCES) \
+	$(xugglerTestContainerCustomIO_SOURCES) \
+	$(nodist_xugglerTestContainerCustomIO_SOURCES) \
 	$(xugglerTestContainerFormat_SOURCES) \
 	$(nodist_xugglerTestContainerFormat_SOURCES) \
 	$(xugglerTestError_SOURCES) $(nodist_xugglerTestError_SOURCES) \
@@ -341,6 +355,7 @@ SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 DIST_SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(xugglerTestAudioSamples_SOURCES) $(xugglerTestCodec_SOURCES) \
 	$(xugglerTestContainer_SOURCES) \
+	$(xugglerTestContainerCustomIO_SOURCES) \
 	$(xugglerTestContainerFormat_SOURCES) \
 	$(xugglerTestError_SOURCES) $(xugglerTestHelper_SOURCES) \
 	$(xugglerTestIndexEntry_SOURCES) \
@@ -356,12 +371,50 @@ DIST_SOURCES = $(xugglerTestAudioResampler_SOURCES) \
 	$(xugglerTestTimeValue_SOURCES) \
 	$(xugglerTestVideoPicture_SOURCES) \
 	$(xugglerTestVideoResampler_SOURCES)
+RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
+	html-recursive info-recursive install-data-recursive \
+	install-dvi-recursive install-exec-recursive \
+	install-html-recursive install-info-recursive \
+	install-pdf-recursive install-ps-recursive install-recursive \
+	installcheck-recursive installdirs-recursive pdf-recursive \
+	ps-recursive uninstall-recursive
 HEADERS = $(noinst_HEADERS)
+RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
+  distclean-recursive maintainer-clean-recursive
+AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
+	$(RECURSIVE_CLEAN_TARGETS:-recursive=) tags TAGS ctags CTAGS \
+	distdir
 ETAGS = etags
 CTAGS = ctags
 am__tty_colors = \
 red=; grn=; lgn=; blu=; std=
+DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
+am__relativize = \
+  dir0=`pwd`; \
+  sed_first='s,^\([^/]*\)/.*$$,\1,'; \
+  sed_rest='s,^[^/]*/*,,'; \
+  sed_last='s,^.*/\([^/]*\)$$,\1,'; \
+  sed_butlast='s,/*[^/]*$$,,'; \
+  while test -n "$$dir1"; do \
+    first=`echo "$$dir1" | sed -e "$$sed_first"`; \
+    if test "$$first" != "."; then \
+      if test "$$first" = ".."; then \
+        dir2=`echo "$$dir0" | sed -e "$$sed_last"`/"$$dir2"; \
+        dir0=`echo "$$dir0" | sed -e "$$sed_butlast"`; \
+      else \
+        first2=`echo "$$dir2" | sed -e "$$sed_first"`; \
+        if test "$$first2" = "$$first"; then \
+          dir2=`echo "$$dir2" | sed -e "$$sed_rest"`; \
+        else \
+          dir2="../$$dir2"; \
+        fi; \
+        dir0="$$dir0"/"$$first"; \
+      fi; \
+    fi; \
+    dir1=`echo "$$dir1" | sed -e "$$sed_rest"`; \
+  done; \
+  reldir="$$dir2"
 ACLOCAL = @ACLOCAL@
 AMTAR = @AMTAR@
 AR = @AR@
@@ -507,6 +560,7 @@ VS_CPP_PATH = com/xuggle/xuggler
 VS_CPP_PACKAGE = com.xuggle.xuggler
 VS_CPP_NAMESPACE = com::xuggle::xuggler
 VS_TEST = 1
+SUBDIRS = io
 EXTRA_LIBS = 
 inst_check = $(check_PROGRAMS)
 inst_checkdir = $(bindir)
@@ -600,6 +654,17 @@ nodist_xugglerTestContainer_SOURCES = \
   ContainerTest_CXXRunner.cpp
 
 xugglerTestContainer_LDADD = \
+  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+
+xugglerTestContainerCustomIO_SOURCES = \
+  ContainerCustomIOTest.cpp \
+  Main.cpp \
+  Helper.cpp
+
+nodist_xugglerTestContainerCustomIO_SOURCES = \
+  ContainerCustomIOTest_CXXRunner.cpp
+
+xugglerTestContainerCustomIO_LDADD = \
   $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
 
 xugglerTestVideoPicture_SOURCES = \
@@ -775,6 +840,7 @@ BUILT_SOURCES = \
   AudioResamplerTest_CXXRunner.cpp \
   CodecTest_CXXRunner.cpp \
   ContainerFormatTest_CXXRunner.cpp \
+  ContainerCustomIOTest_CXXRunner.cpp \
   ContainerTest_CXXRunner.cpp \
   VideoPictureTest_CXXRunner.cpp \
   HelperTest_CXXRunner.cpp \
@@ -800,6 +866,7 @@ noinst_HEADERS = \
   AudioSamplesTest.h \
   CodecTest.h \
   ContainerFormatTest.h \
+  ContainerCustomIOTest.h \
   ContainerTest.h \
   VideoPictureTest.h \
   Helper.h \
@@ -819,7 +886,7 @@ noinst_HEADERS = \
   VideoResamplerTest.h
 
 all: $(BUILT_SOURCES)
-	$(MAKE) $(AM_MAKEFLAGS) all-am
+	$(MAKE) $(AM_MAKEFLAGS) all-recursive
 
 .SUFFIXES:
 .SUFFIXES: .cpp .lo .o .obj
@@ -874,6 +941,9 @@ xugglerTestCodec$(EXEEXT): $(xugglerTestCodec_OBJECTS) $(xugglerTestCodec_DEPEND
 xugglerTestContainer$(EXEEXT): $(xugglerTestContainer_OBJECTS) $(xugglerTestContainer_DEPENDENCIES) 
 	@rm -f xugglerTestContainer$(EXEEXT)
 	$(CXXLINK) $(xugglerTestContainer_OBJECTS) $(xugglerTestContainer_LDADD) $(LIBS)
+xugglerTestContainerCustomIO$(EXEEXT): $(xugglerTestContainerCustomIO_OBJECTS) $(xugglerTestContainerCustomIO_DEPENDENCIES) 
+	@rm -f xugglerTestContainerCustomIO$(EXEEXT)
+	$(CXXLINK) $(xugglerTestContainerCustomIO_OBJECTS) $(xugglerTestContainerCustomIO_LDADD) $(LIBS)
 xugglerTestContainerFormat$(EXEEXT): $(xugglerTestContainerFormat_OBJECTS) $(xugglerTestContainerFormat_DEPENDENCIES) 
 	@rm -f xugglerTestContainerFormat$(EXEEXT)
 	$(CXXLINK) $(xugglerTestContainerFormat_OBJECTS) $(xugglerTestContainerFormat_LDADD) $(LIBS)
@@ -953,6 +1023,76 @@ mostlyclean-libtool:
 clean-libtool:
 	-rm -rf .libs _libs
 
+# This directory's subdirectories are mostly independent; you can cd
+# into them and run `make' without going through this Makefile.
+# To change the values of `make' variables: instead of editing Makefiles,
+# (1) if the variable is set in `config.status', edit `config.status'
+#     (which will cause the Makefiles to be regenerated when you run `make');
+# (2) otherwise, pass the desired values on the `make' command line.
+$(RECURSIVE_TARGETS):
+	@fail= failcom='exit 1'; \
+	for f in x $$MAKEFLAGS; do \
+	  case $$f in \
+	    *=* | --[!k]*);; \
+	    *k*) failcom='fail=yes';; \
+	  esac; \
+	done; \
+	dot_seen=no; \
+	target=`echo $@ | sed s/-recursive//`; \
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  echo "Making $$target in $$subdir"; \
+	  if test "$$subdir" = "."; then \
+	    dot_seen=yes; \
+	    local_target="$$target-am"; \
+	  else \
+	    local_target="$$target"; \
+	  fi; \
+	  ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
+	  || eval $$failcom; \
+	done; \
+	if test "$$dot_seen" = "no"; then \
+	  $(MAKE) $(AM_MAKEFLAGS) "$$target-am" || exit 1; \
+	fi; test -z "$$fail"
+
+$(RECURSIVE_CLEAN_TARGETS):
+	@fail= failcom='exit 1'; \
+	for f in x $$MAKEFLAGS; do \
+	  case $$f in \
+	    *=* | --[!k]*);; \
+	    *k*) failcom='fail=yes';; \
+	  esac; \
+	done; \
+	dot_seen=no; \
+	case "$@" in \
+	  distclean-* | maintainer-clean-*) list='$(DIST_SUBDIRS)' ;; \
+	  *) list='$(SUBDIRS)' ;; \
+	esac; \
+	rev=''; for subdir in $$list; do \
+	  if test "$$subdir" = "."; then :; else \
+	    rev="$$subdir $$rev"; \
+	  fi; \
+	done; \
+	rev="$$rev ."; \
+	target=`echo $@ | sed s/-recursive//`; \
+	for subdir in $$rev; do \
+	  echo "Making $$target in $$subdir"; \
+	  if test "$$subdir" = "."; then \
+	    local_target="$$target-am"; \
+	  else \
+	    local_target="$$target"; \
+	  fi; \
+	  ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) $$local_target) \
+	  || eval $$failcom; \
+	done && test -z "$$fail"
+tags-recursive:
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  test "$$subdir" = . || ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) tags); \
+	done
+ctags-recursive:
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  test "$$subdir" = . || ($(am__cd) $$subdir && $(MAKE) $(AM_MAKEFLAGS) ctags); \
+	done
+
 ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
@@ -963,10 +1103,23 @@ ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
 	mkid -fID $$unique
 tags: TAGS
 
-TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+TAGS: tags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	set x; \
 	here=`pwd`; \
+	if ($(ETAGS) --etags-include --version) >/dev/null 2>&1; then \
+	  include_option=--etags-include; \
+	  empty_fix=.; \
+	else \
+	  include_option=--include; \
+	  empty_fix=; \
+	fi; \
+	list='$(SUBDIRS)'; for subdir in $$list; do \
+	  if test "$$subdir" = .; then :; else \
+	    test ! -f $$subdir/TAGS || \
+	      set "$$@" "$$include_option=$$here/$$subdir/TAGS"; \
+	  fi; \
+	done; \
 	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
 	    if test -f "$$i"; then echo $$i; else echo $(srcdir)/$$i; fi; \
@@ -985,7 +1138,7 @@ TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 	  fi; \
 	fi
 ctags: CTAGS
-CTAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
+CTAGS: ctags-recursive $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) \
 		$(TAGS_FILES) $(LISP)
 	list='$(SOURCES) $(HEADERS)  $(LISP) $(TAGS_FILES)'; \
 	unique=`for i in $$list; do \
@@ -1128,23 +1281,52 @@ distdir: $(DISTFILES)
 	    || exit 1; \
 	  fi; \
 	done
+	@list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
+	  if test "$$subdir" = .; then :; else \
+	    test -d "$(distdir)/$$subdir" \
+	    || $(MKDIR_P) "$(distdir)/$$subdir" \
+	    || exit 1; \
+	  fi; \
+	done
+	@list='$(DIST_SUBDIRS)'; for subdir in $$list; do \
+	  if test "$$subdir" = .; then :; else \
+	    dir1=$$subdir; dir2="$(distdir)/$$subdir"; \
+	    $(am__relativize); \
+	    new_distdir=$$reldir; \
+	    dir1=$$subdir; dir2="$(top_distdir)"; \
+	    $(am__relativize); \
+	    new_top_distdir=$$reldir; \
+	    echo " (cd $$subdir && $(MAKE) $(AM_MAKEFLAGS) top_distdir="$$new_top_distdir" distdir="$$new_distdir" \\"; \
+	    echo "     am__remove_distdir=: am__skip_length_check=: am__skip_mode_fix=: distdir)"; \
+	    ($(am__cd) $$subdir && \
+	      $(MAKE) $(AM_MAKEFLAGS) \
+	        top_distdir="$$new_top_distdir" \
+	        distdir="$$new_distdir" \
+		am__remove_distdir=: \
+		am__skip_length_check=: \
+		am__skip_mode_fix=: \
+	        distdir) \
+	      || exit 1; \
+	  fi; \
+	done
 check-am: all-am
 	$(MAKE) $(AM_MAKEFLAGS) $(check_PROGRAMS)
 	$(MAKE) $(AM_MAKEFLAGS) check-TESTS
 check: $(BUILT_SOURCES)
-	$(MAKE) $(AM_MAKEFLAGS) check-am
+	$(MAKE) $(AM_MAKEFLAGS) check-recursive
 all-am: Makefile $(HEADERS)
-installdirs:
+installdirs: installdirs-recursive
+installdirs-am:
 install: $(BUILT_SOURCES)
-	$(MAKE) $(AM_MAKEFLAGS) install-am
-install-exec: install-exec-am
-install-data: install-data-am
-uninstall: uninstall-am
+	$(MAKE) $(AM_MAKEFLAGS) install-recursive
+install-exec: install-exec-recursive
+install-data: install-data-recursive
+uninstall: uninstall-recursive
 
 install-am: all-am
 	@$(MAKE) $(AM_MAKEFLAGS) install-exec-am install-data-am
 
-installcheck: installcheck-am
+installcheck: installcheck-recursive
 install-strip:
 	if test -z '$(STRIP)'; then \
 	  $(MAKE) $(AM_MAKEFLAGS) INSTALL_PROGRAM="$(INSTALL_STRIP_PROGRAM)" \
@@ -1167,90 +1349,93 @@ maintainer-clean-generic:
 	@echo "This command is intended for maintainers to use"
 	@echo "it deletes files that may require special tools to rebuild."
 	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
-clean: clean-am
+clean: clean-recursive
 
 clean-am: clean-checkPROGRAMS clean-generic clean-libtool clean-local \
 	mostlyclean-am
 
-distclean: distclean-am
+distclean: distclean-recursive
 	-rm -f Makefile
 distclean-am: clean-am distclean-compile distclean-generic \
 	distclean-tags
 
-dvi: dvi-am
+dvi: dvi-recursive
 
 dvi-am:
 
-html: html-am
+html: html-recursive
 
 html-am:
 
-info: info-am
+info: info-recursive
 
 info-am:
 
 install-data-am:
 
-install-dvi: install-dvi-am
+install-dvi: install-dvi-recursive
 
 install-dvi-am:
 
 install-exec-am:
 
-install-html: install-html-am
+install-html: install-html-recursive
 
 install-html-am:
 
-install-info: install-info-am
+install-info: install-info-recursive
 
 install-info-am:
 
 install-man:
 
-install-pdf: install-pdf-am
+install-pdf: install-pdf-recursive
 
 install-pdf-am:
 
-install-ps: install-ps-am
+install-ps: install-ps-recursive
 
 install-ps-am:
 
 installcheck-am:
 
-maintainer-clean: maintainer-clean-am
+maintainer-clean: maintainer-clean-recursive
 	-rm -f Makefile
 maintainer-clean-am: distclean-am maintainer-clean-generic
 
-mostlyclean: mostlyclean-am
+mostlyclean: mostlyclean-recursive
 
 mostlyclean-am: mostlyclean-compile mostlyclean-generic \
 	mostlyclean-libtool
 
-pdf: pdf-am
+pdf: pdf-recursive
 
 pdf-am:
 
-ps: ps-am
+ps: ps-recursive
 
 ps-am:
 
 uninstall-am:
 
-.MAKE: all check check-am install install-am install-strip
+.MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) all check \
+	check-am ctags-recursive install install-am install-strip \
+	tags-recursive
 
-.PHONY: CTAGS GTAGS all all-am check check-TESTS check-am clean \
+.PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
+	all all-am check check-TESTS check-am clean \
 	clean-checkPROGRAMS clean-generic clean-libtool clean-local \
-	ctags distclean distclean-compile distclean-generic \
-	distclean-libtool distclean-tags distdir dvi dvi-am html \
-	html-am info info-am install install-am install-data \
-	install-data-am install-dvi install-dvi-am install-exec \
-	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip installcheck \
-	installcheck-am installdirs maintainer-clean \
-	maintainer-clean-generic mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags uninstall uninstall-am
+	ctags ctags-recursive distclean distclean-compile \
+	distclean-generic distclean-libtool distclean-tags distdir dvi \
+	dvi-am html html-am info info-am install install-am \
+	install-data install-data-am install-dvi install-dvi-am \
+	install-exec install-exec-am install-html install-html-am \
+	install-info install-info-am install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	installcheck installcheck-am installdirs installdirs-am \
+	maintainer-clean maintainer-clean-generic mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags tags-recursive uninstall uninstall-am
 
 include @top_builddir@/mk/Makefile.global
 
