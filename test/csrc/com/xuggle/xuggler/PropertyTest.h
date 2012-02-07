@@ -30,8 +30,6 @@
 #include "Helper.h"
 using namespace VS_CPP_NAMESPACE;
 
-class com::xuggle::xuggler::IStreamCoder;
-class com::xuggle::xuggler::IProperty;
 class PropertyTest: public CxxTest::TestSuite
 {
 public:
