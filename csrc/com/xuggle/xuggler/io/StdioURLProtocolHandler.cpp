@@ -92,9 +92,12 @@ StdioURLProtocolHandler :: url_open(const char *url, int flags)
 int
 StdioURLProtocolHandler :: url_close()
 {
+  int retval = -1;
   if (!mFile)
     return -1;
-  return fclose(mFile);
+  retval = fclose(mFile);
+  mFile = 0;
+  return retval;
 }
 
 int64_t
