@@ -18,6 +18,7 @@
  *******************************************************************************/
 
 #include <stdexcept>
+#include <cstring>
 
 #include <com/xuggle/ferry/JNIHelper.h>
 #include <com/xuggle/ferry/Logger.h>
