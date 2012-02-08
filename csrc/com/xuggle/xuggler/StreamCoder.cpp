@@ -36,7 +36,6 @@
 #include <com/xuggle/xuggler/MetaData.h>
 
 extern "C" {
-#include <libavcodec/opt.h>
 #include <libavutil/dict.h>
 }
 VS_LOG_SETUP(VS_CPP_PACKAGE);
