@@ -245,8 +245,12 @@ public class VideoPictureTest extends TestCase
     assertEquals(WIDTH/2, pic.getDataLineSize(1));
     assertEquals(WIDTH/2, pic.getDataLineSize(2));
     assertEquals(0, pic.getDataLineSize(3));
+    assertEquals(0, pic.getDataLineSize(4));
+    assertEquals(0, pic.getDataLineSize(5));
+    assertEquals(0, pic.getDataLineSize(6));
+    assertEquals(0, pic.getDataLineSize(7));
+    assertEquals(-1, pic.getDataLineSize(8));
     assertEquals(-1, pic.getDataLineSize(-1));
-    assertEquals(-1, pic.getDataLineSize(4));
   }
   
   @Test
@@ -262,7 +266,11 @@ public class VideoPictureTest extends TestCase
     assertEquals(WIDTH/2, pic.getDataLineSize(1));
     assertEquals(WIDTH/2, pic.getDataLineSize(2));
     assertEquals(0, pic.getDataLineSize(3));
+    assertEquals(0, pic.getDataLineSize(4));
+    assertEquals(0, pic.getDataLineSize(5));
+    assertEquals(0, pic.getDataLineSize(6));
+    assertEquals(0, pic.getDataLineSize(7));
+    assertEquals(-1, pic.getDataLineSize(8));
     assertEquals(-1, pic.getDataLineSize(-1));
-    assertEquals(-1, pic.getDataLineSize(4));
   }
 }
