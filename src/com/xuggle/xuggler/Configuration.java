@@ -25,6 +25,9 @@ import java.util.Collection;
 import java.util.Enumeration;
 import java.util.Properties;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * A global configuration class for Xuggler.  
  * <p>
@@ -42,6 +45,8 @@ import java.util.Properties;
  */
 public class Configuration
 {
+  static private final Logger log = LoggerFactory.getLogger(Configuration.class);
+
   /** don't allow construction */
   private Configuration() {}
   
@@ -270,8 +275,15 @@ public class Configuration
       final String value = properties.getProperty(name);
       if (value != null) {
         final int retval = config.setProperty(name, value);
-        if (retval < 0)
+        if (retval < 0) {
+          log.warn("Invalid property on object {}; name=\"{}\"; value=\"{}\"",
+              new Object[]{
+              config,
+              name,
+              value
+          });
           return retval;
+        }
       }
     }
     return 0;
