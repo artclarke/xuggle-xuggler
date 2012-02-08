@@ -5,4 +5,4 @@
 # is to add all remote origins; each captive library will
 # have its own pull.git script which will be used to pull the
 # branch that the current version is tied to.
-git remote add -f xuggle-build-remote git@github.com:xuggle/xuggle-build.git 2>/dev/null
+# git remote add -f xuggle-build-remote git@github.com:xuggle/xuggle-build.git 2>/dev/null

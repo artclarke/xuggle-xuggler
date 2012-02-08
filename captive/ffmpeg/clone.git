@@ -5,5 +5,4 @@
 # is to add all remote origins; each captive library will
 # have its own pull.git script which will be used to pull the
 # branch that the current version is tied to.
-git remote add -f ffmpeg-remote git://source.ffmpeg.org/ffmpeg.git 2>/dev/null
-git remote add -f libav-remote git://git.libav.org/libav.git 2>/dev/null
+git subtree add --prefix=captive/ffmpeg/csrc --squash git://git.ffmpeg.org/ffmpeg.git master

@@ -6,4 +6,4 @@
 # have its own pull.git script which will be used to pull the
 # branch that the current version is tied to.
 
-git remote add -f libx264-remote git://git.videolan.org/x264.git 2>/dev/null
+git subtree add --prefix=captive/libx264/csrc --squash git://git.videolan.org/x264.git master

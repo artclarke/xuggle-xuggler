@@ -1,4 +1,4 @@
 #!/bin/sh
 
 # This script is here to update the branch to the latest version
-git merge --commit --squash -s recursive -Xsubtree=captive/ffmpeg/csrc ffmpeg-remote/master
+git subtree pull --prefix=captive/ffmpeg/csrc --squash git://git.ffmpeg.org/ffmpeg.git master

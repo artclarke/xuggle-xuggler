@@ -1,4 +1,4 @@
 #!/bin/sh
 
 # This script is here to update the branch to the latest version
-git merge --commit --squash -s recursive -Xsubtree=captive/librtmp/csrc/src librtmp-remote/master
+git subtree pull --prefix=captive/librtmp/csrc/src --squash git://git.ffmpeg.org/rtmpdump master
