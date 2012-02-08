@@ -588,7 +588,7 @@ public class ICodec extends RefCounted {
   /**
    * These are the codecs this library currently supports.
    * These are based on FFMPEG Git versions later than this:
-   * 391a1327bd076c25c2b2509ab7ae0081c443b94e
+   * fba318a4b02faf7b591dd941f0857db2ea1b3a8f
    */
     CODEC_ID_NONE,
     CODEC_ID_MPEG1VIDEO,
@@ -748,18 +748,24 @@ public class ICodec extends RefCounted {
     CODEC_ID_DFA,
     CODEC_ID_WMV3IMAGE,
     CODEC_ID_VC1IMAGE,
-    CODEC_ID_UTVIDEO_DEPRECATED,
+    CODEC_ID_UTVIDEO,
     CODEC_ID_BMV_VIDEO,
     CODEC_ID_VBLE,
     CODEC_ID_DXTORY,
     CODEC_ID_V410,
+    CODEC_ID_XWD,
     CODEC_ID_Y41P(XugglerJNI.ICodec_CODEC_ID_Y41P_get()),
-    CODEC_ID_UTVIDEO(XugglerJNI.ICodec_CODEC_ID_UTVIDEO_get()),
     CODEC_ID_ESCAPE130(XugglerJNI.ICodec_CODEC_ID_ESCAPE130_get()),
     CODEC_ID_AVRP(XugglerJNI.ICodec_CODEC_ID_AVRP_get()),
     CODEC_ID_G2M(XugglerJNI.ICodec_CODEC_ID_G2M_get()),
+    CODEC_ID_AYUV(XugglerJNI.ICodec_CODEC_ID_AYUV_get()),
     CODEC_ID_V308(XugglerJNI.ICodec_CODEC_ID_V308_get()),
+    CODEC_ID_V408(XugglerJNI.ICodec_CODEC_ID_V408_get()),
     CODEC_ID_YUV4(XugglerJNI.ICodec_CODEC_ID_YUV4_get()),
+  /**
+   * A dummy id pointing at the start of audio codecs
+   */
+    CODEC_ID_FIRST_AUDIO(XugglerJNI.ICodec_CODEC_ID_FIRST_AUDIO_get()),
     CODEC_ID_PCM_S16LE(XugglerJNI.ICodec_CODEC_ID_PCM_S16LE_get()),
     CODEC_ID_PCM_S16BE,
     CODEC_ID_PCM_U16LE,
@@ -817,6 +823,7 @@ public class ICodec extends RefCounted {
     CODEC_ID_ADPCM_EA_MAXIS_XA,
     CODEC_ID_ADPCM_IMA_ISS,
     CODEC_ID_ADPCM_G722,
+    CODEC_ID_ADPCM_IMA_APC,
     CODEC_ID_AMR_NB(XugglerJNI.ICodec_CODEC_ID_AMR_NB_get()),
     CODEC_ID_AMR_WB,
     CODEC_ID_RA_144(XugglerJNI.ICodec_CODEC_ID_RA_144_get()),
@@ -884,15 +891,19 @@ public class ICodec extends RefCounted {
     CODEC_ID_AAC_LATM,
     CODEC_ID_QDMC,
     CODEC_ID_CELT,
-    CODEC_ID_G723_1_DEPRECATED,
-    CODEC_ID_G729_DEPRECATED,
+    CODEC_ID_G723_1,
+    CODEC_ID_G729,
     CODEC_ID_8SVX_EXP,
     CODEC_ID_8SVX_FIB,
     CODEC_ID_BMV_AUDIO,
-    CODEC_ID_G729(XugglerJNI.ICodec_CODEC_ID_G729_get()),
-    CODEC_ID_G723_1(XugglerJNI.ICodec_CODEC_ID_G723_1_get()),
     CODEC_ID_FFWAVESYNTH(XugglerJNI.ICodec_CODEC_ID_FFWAVESYNTH_get()),
     CODEC_ID_8SVX_RAW(XugglerJNI.ICodec_CODEC_ID_8SVX_RAW_get()),
+    CODEC_ID_SONIC(XugglerJNI.ICodec_CODEC_ID_SONIC_get()),
+    CODEC_ID_SONIC_LS(XugglerJNI.ICodec_CODEC_ID_SONIC_LS_get()),
+  /**
+   * A dummy ID pointing at the start of subtitle codecs.
+   */
+    CODEC_ID_FIRST_SUBTITLE(XugglerJNI.ICodec_CODEC_ID_FIRST_SUBTITLE_get()),
     CODEC_ID_DVD_SUBTITLE(XugglerJNI.ICodec_CODEC_ID_DVD_SUBTITLE_get()),
     CODEC_ID_DVB_SUBTITLE,
   /**
@@ -906,6 +917,10 @@ public class ICodec extends RefCounted {
     CODEC_ID_DVB_TELETEXT,
     CODEC_ID_SRT,
     CODEC_ID_MICRODVD(XugglerJNI.ICodec_CODEC_ID_MICRODVD_get()),
+  /**
+   * A dummy ID pointing at the start of various fake codecs.
+   */
+    CODEC_ID_FIRST_UNKNOWN(XugglerJNI.ICodec_CODEC_ID_FIRST_UNKNOWN_get()),
     CODEC_ID_TTF(XugglerJNI.ICodec_CODEC_ID_TTF_get()),
     CODEC_ID_BINTEXT(XugglerJNI.ICodec_CODEC_ID_BINTEXT_get()),
     CODEC_ID_XBIN(XugglerJNI.ICodec_CODEC_ID_XBIN_get()),

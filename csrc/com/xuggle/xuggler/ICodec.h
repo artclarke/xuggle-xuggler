@@ -52,7 +52,7 @@ public:
   /**
    * These are the codecs this library currently supports.
    * These are based on FFMPEG Git versions later than this:
-   * 391a1327bd076c25c2b2509ab7ae0081c443b94e
+   * fba318a4b02faf7b591dd941f0857db2ea1b3a8f
    */
   typedef enum ID
   {
@@ -159,9 +159,6 @@ public:
       CODEC_ID_TIERTEXSEQVIDEO,
       CODEC_ID_TIFF,
       CODEC_ID_GIF,
-  #if LIBAVCODEC_VERSION_MAJOR == 53
-      CODEC_ID_FFH264,
-  #endif
       CODEC_ID_DXA,
       CODEC_ID_DNXHD,
       CODEC_ID_THP,
@@ -179,10 +176,6 @@ public:
       CODEC_ID_INDEO5,
       CODEC_ID_MIMIC,
       CODEC_ID_RL2,
-  #if LIBAVCODEC_VERSION_MAJOR == 53
-      CODEC_ID_8SVX_EXP,
-      CODEC_ID_8SVX_FIB,
-  #endif
       CODEC_ID_ESCAPE124,
       CODEC_ID_DIRAC,
       CODEC_ID_BFI,
@@ -221,25 +214,24 @@ public:
       CODEC_ID_DFA,
       CODEC_ID_WMV3IMAGE,
       CODEC_ID_VC1IMAGE,
-  #if LIBAVCODEC_VERSION_MAJOR == 53
-      CODEC_ID_G723_1_DEPRECATED,
-      CODEC_ID_G729_DEPRECATED,
-  #endif
-      CODEC_ID_UTVIDEO_DEPRECATED,
+      CODEC_ID_UTVIDEO,
       CODEC_ID_BMV_VIDEO,
       CODEC_ID_VBLE,
       CODEC_ID_DXTORY,
       CODEC_ID_V410,
+      CODEC_ID_XWD,
       CODEC_ID_Y41P       = MKBETAG('Y','4','1','P'),
-      CODEC_ID_UTVIDEO = 0x800,
       CODEC_ID_ESCAPE130  = MKBETAG('E','1','3','0'),
       CODEC_ID_AVRP       = MKBETAG('A','V','R','P'),
 
       CODEC_ID_G2M        = MKBETAG( 0 ,'G','2','M'),
+      CODEC_ID_AYUV       = MKBETAG('A','Y','U','V'),
       CODEC_ID_V308       = MKBETAG('V','3','0','8'),
+      CODEC_ID_V408       = MKBETAG('V','4','0','8'),
       CODEC_ID_YUV4       = MKBETAG('Y','U','V','4'),
 
       /* various PCM "codecs" */
+      CODEC_ID_FIRST_AUDIO = 0x10000,     ///< A dummy id pointing at the start of audio codecs
       CODEC_ID_PCM_S16LE = 0x10000,
       CODEC_ID_PCM_S16BE,
       CODEC_ID_PCM_U16LE,
@@ -299,6 +291,7 @@ public:
       CODEC_ID_ADPCM_EA_MAXIS_XA,
       CODEC_ID_ADPCM_IMA_ISS,
       CODEC_ID_ADPCM_G722,
+      CODEC_ID_ADPCM_IMA_APC,
 
       /* AMR */
       CODEC_ID_AMR_NB = 0x12000,
@@ -327,10 +320,6 @@ public:
       CODEC_ID_MACE3,
       CODEC_ID_MACE6,
       CODEC_ID_VMDAUDIO,
-  #if LIBAVCODEC_VERSION_MAJOR == 53
-      CODEC_ID_SONIC,
-      CODEC_ID_SONIC_LS,
-  #endif
       CODEC_ID_FLAC,
       CODEC_ID_MP3ADU,
       CODEC_ID_MP3ON4,
@@ -372,19 +361,18 @@ public:
       CODEC_ID_AAC_LATM,
       CODEC_ID_QDMC,
       CODEC_ID_CELT,
-  #if LIBAVCODEC_VERSION_MAJOR > 53
-      CODEC_ID_G723_1_DEPRECATED,
-      CODEC_ID_G729_DEPRECATED,
+      CODEC_ID_G723_1,
+      CODEC_ID_G729,
       CODEC_ID_8SVX_EXP,
       CODEC_ID_8SVX_FIB,
-  #endif
       CODEC_ID_BMV_AUDIO,
-      CODEC_ID_G729 = 0x15800,
-      CODEC_ID_G723_1= 0x15801,
       CODEC_ID_FFWAVESYNTH = MKBETAG('F','F','W','S'),
       CODEC_ID_8SVX_RAW   = MKBETAG('8','S','V','X'),
+      CODEC_ID_SONIC       = MKBETAG('S','O','N','C'),
+      CODEC_ID_SONIC_LS    = MKBETAG('S','O','N','L'),
 
       /* subtitle codecs */
+      CODEC_ID_FIRST_SUBTITLE = 0x17000,          ///< A dummy ID pointing at the start of subtitle codecs.
       CODEC_ID_DVD_SUBTITLE = 0x17000,
       CODEC_ID_DVB_SUBTITLE,
       CODEC_ID_TEXT,  ///< raw UTF-8 text
@@ -397,6 +385,7 @@ public:
       CODEC_ID_MICRODVD   = MKBETAG('m','D','V','D'),
 
       /* other specific kind of codecs (generally used for attachments) */
+      CODEC_ID_FIRST_UNKNOWN = 0x18000,           ///< A dummy ID pointing at the start of various fake codecs.
       CODEC_ID_TTF = 0x18000,
       CODEC_ID_BINTEXT    = MKBETAG('B','T','X','T'),
       CODEC_ID_XBIN       = MKBETAG('X','B','I','N'),
@@ -409,7 +398,6 @@ public:
       CODEC_ID_MPEG4SYSTEMS = 0x20001, /**< _FAKE_ codec to indicate a MPEG-4 Systems
                                   * stream (only used by libavformat) */
       CODEC_ID_FFMETADATA = 0x21000,   ///< Dummy codec for streams containing only metadata information.
-
   } ID;
 
   /**
