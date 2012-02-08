@@ -27,7 +27,6 @@
 #include <com/xuggle/xuggler/Stream.h>
 #include <com/xuggle/xuggler/StreamCoder.h>
 #include <com/xuggle/xuggler/ContainerFormat.h>
-#include <com/xuggle/xuggler/ContainerParameters.h>
 #include <com/xuggle/xuggler/MetaData.h>
 
 #include <com/xuggle/xuggler/io/URLProtocolHandler.h>
@@ -172,7 +171,6 @@ namespace com { namespace xuggle { namespace xuggler
     uint32_t mInputBufferLength;
     
     int32_t mReadRetryCount;
-    com::xuggle::ferry::RefPointer<ContainerParameters> mParameters;
     com::xuggle::ferry::RefPointer<MetaData> mMetaData;
     com::xuggle::ferry::RefPointer<ContainerFormat> mFormat;
 
