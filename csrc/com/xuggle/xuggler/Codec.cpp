@@ -333,7 +333,7 @@ namespace com { namespace xuggle { namespace xuggler
     if (!mCodec)
       return 0;
     int i = 0;
-    for(const enum SampleFormat* p=mCodec->sample_fmts;
+    for(const enum AVSampleFormat* p=mCodec->sample_fmts;
       p && (*p != -1);
       p++,i++)
       ;
@@ -346,7 +346,7 @@ namespace com { namespace xuggle { namespace xuggler
     if (!mCodec)
       return IAudioSamples::FMT_NONE;
     int i = 0;
-    for(const enum SampleFormat* p=mCodec->sample_fmts;
+    for(const enum AVSampleFormat* p=mCodec->sample_fmts;
       p && (*p != -1);
       p++,i++)
       if (index == i)

@@ -26,7 +26,6 @@
 
 #include <com/xuggle/ferry/JNIHelper.h>
 #include <com/xuggle/ferry/Logger.h>
-#include <com/xuggle/xuggler/ContainerParameters.h>
 #include <com/xuggle/xuggler/Container.h>
 #include <com/xuggle/xuggler/ContainerFormat.h>
 #include <com/xuggle/xuggler/Stream.h>
@@ -115,7 +114,6 @@ namespace com { namespace xuggle { namespace xuggler
     mNumStreams = 0;
     mInputBufferLength = 0;
     mReadRetryCount = 1;
-    mParameters = ContainerParameters::make();
     mCustomIOHandler = 0;
   }
 
@@ -371,7 +369,7 @@ namespace com { namespace xuggle { namespace xuggler
         retval = mCustomIOHandler->url_open(url, URLProtocolHandler::URL_RDONLY_MODE);
       } else {
         retval = avio_open2(&mFormatContext->pb,
-            url, URL_RDONLY,
+            url, AVIO_FLAG_READ,
             &mFormatContext->interrupt_callback,
             0
         );
@@ -457,7 +455,7 @@ namespace com { namespace xuggle { namespace xuggler
         retval = mCustomIOHandler->url_open(url, URLProtocolHandler::URL_WRONLY_MODE);
       else
         retval = avio_open2(&mFormatContext->pb,
-            url, URL_WRONLY,
+            url, AVIO_FLAG_WRITE,
             &mFormatContext->interrupt_callback,
             0
         );
@@ -1174,19 +1172,6 @@ namespace com { namespace xuggle { namespace xuggler
     mReadRetryCount = aCount;
   }
   
-  IContainerParameters*
-  Container :: getParameters()
-  {
-    return mParameters.get();
-  }
-  
-  void
-  Container :: setParameters(IContainerParameters* params)
-  {
-    mParameters.reset(dynamic_cast<ContainerParameters*>(params), true);
-    return;
-  }
-
   int32_t
   Container :: setFormat(IContainerFormat* format)
   {

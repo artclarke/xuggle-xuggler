@@ -112,9 +112,6 @@ namespace com { namespace xuggle { namespace xuggler
     virtual int32_t getReadRetryCount();
     virtual void setReadRetryCount(int32_t count);
 
-    virtual IContainerParameters *getParameters();
-    virtual void setParameters(IContainerParameters* parameters);
-
     virtual bool canStreamsBeAddedDynamically();
 
     virtual IMetaData* getMetaData();

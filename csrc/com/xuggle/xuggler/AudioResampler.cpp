@@ -119,7 +119,7 @@ namespace com { namespace xuggle { namespace xuggler
       {
         retval->mContext = av_audio_resample_init(outputChannels, inputChannels,
             outputRate, inputRate,
-            (enum SampleFormat) outputFmt, (enum SampleFormat) inputFmt,
+            (enum AVSampleFormat) outputFmt, (enum AVSampleFormat) inputFmt,
             filterLen, log2PhaseCount, (int)linear, cutoff);
         if (retval->mContext)
         {

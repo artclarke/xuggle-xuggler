@@ -24,7 +24,6 @@
 #include <com/xuggle/ferry/IBuffer.h>
 #include <com/xuggle/xuggler/Xuggler.h>
 #include <com/xuggle/xuggler/ICodec.h>
-#include <com/xuggle/xuggler/IContainerParameters.h>
 #include <com/xuggle/xuggler/IContainerFormat.h>
 #include <com/xuggle/xuggler/IStream.h>
 #include <com/xuggle/xuggler/IStreamCoder.h>
@@ -724,33 +723,6 @@ namespace com { namespace xuggle { namespace xuggler
      */
     virtual void setReadRetryCount(int32_t count)=0;
 
-    
-    /**
-     * @Deprecated Use {@link IConfigurable} API instead.
-     *
-     * Get the parameters that will be used when opening.
-     * 
-     * @see #setParameters(IContainerParameters)
-     * 
-     * @return The parameters
-     */
-    virtual IContainerParameters *getParameters()=0;
-
-    
-    /**
-     *
-     * @Deprecated Use {@link IConfigurable} API instead.
-     *
-     * Set the parameters for this container.
-     * <p> 
-     * Normally this is not required, but if you're opening
-     * something like a webcam, you need to specify to the
-     * {@link IContainer} parameters such as a time base, width, height,
-     * etc.
-     *  </p>
-     * @param parameters The parameters to set.  Ignored if null.
-     */
-    virtual void setParameters(IContainerParameters* parameters)=0;
     
     /*
      * Added for 3.0

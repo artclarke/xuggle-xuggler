@@ -120,8 +120,8 @@ StreamCoder :: readyAVContexts(
   if (!avContext)
     return retval;
 
-  if (avContext->sample_fmt == SAMPLE_FMT_NONE)
-    avContext->sample_fmt = SAMPLE_FMT_S16;
+  if (avContext->sample_fmt == AV_SAMPLE_FMT_NONE)
+    avContext->sample_fmt = AV_SAMPLE_FMT_S16;
 
   if (!aCodec) {
     if (avCodec) {
@@ -609,7 +609,7 @@ void
 StreamCoder::setSampleFormat(IAudioSamples::Format val)
 {
   if (mCodecContext && !mOpened && val > 0)
-    mCodecContext->sample_fmt = (SampleFormat) val;
+    mCodecContext->sample_fmt = (enum AVSampleFormat) val;
 }
 
 int32_t

@@ -1189,33 +1189,6 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
   }
 
 /**
- * @deprecated	Use {@link IConfigurable} API instead.  
- * Get the parameters that will be used when opening.  
- * @see		#setParameters(IContainerParameters)  
- * @return	The parameters  
- */
-  public IContainerParameters getParameters() {
-    long cPtr = XugglerJNI.IContainer_getParameters(swigCPtr, this);
-    return (cPtr == 0) ? null : new IContainerParameters(cPtr, false);
-  }
-
-/**
- * @deprecated	Use {@link IConfigurable} API instead.  
- * Set the parameters for this container.  
- * <p>  
- * Normally this is not required, but if you're opening  
- * something like a webcam, you need to specify to the  
- * {@link IContainer} parameters such as a time base, width, height, 
- *  
- * etc.  
- * </p>  
- * @param	parameters The parameters to set. Ignored if null.  
- */
-  public void setParameters(IContainerParameters parameters) {
-    XugglerJNI.IContainer_setParameters(swigCPtr, this, IContainerParameters.getCPtr(parameters), parameters);
-  }
-
-/**
  * Can streams be added dynamically to this container?  
  * @return	true if streams can be added dynamically  
  */
