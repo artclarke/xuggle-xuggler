@@ -140,6 +140,9 @@ namespace com { namespace xuggle { namespace xuggler
     static Container* make(IContainerFormat* format);
 
     virtual int32_t setProperty(IMetaData* valuesToSet, IMetaData* valuesNotFound);
+    virtual int32_t open(const char *url, Type type,
+        IContainerFormat* pContainerFormat, bool, bool,
+        IMetaData*, IMetaData*);
   protected:
     virtual ~Container();
     Container();

@@ -24,10 +24,9 @@ import javax.swing.JFrame;
 import com.xuggle.mediatool.IMediaReader;
 import com.xuggle.mediatool.ToolFactory;
 import com.xuggle.xuggler.IError;
-import com.xuggle.xuggler.IRational;
+import com.xuggle.xuggler.IMetaData;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
-import com.xuggle.xuggler.IContainerParameters;
 
 
 /**
@@ -112,26 +111,6 @@ public class DisplayWebcamVideo
 
     IContainer container = IContainer.make();
 
-    // devices, unlike most files, need to have parameters set in order
-    // for Xuggler to know how to configure them, for a webcam, these
-    // parameters make sense
-
-    IContainerParameters params = IContainerParameters.make();
-    
-    // the timebase is used as the camera frame rate
-
-    params.setTimeBase(IRational.make(30,1));
-    
-    // tell the driver what video with and height to use
-
-    params.setVideoWidth(320);
-    params.setVideoHeight(240);
-    
-    // set these parameters on the container before
-    // opening
-
-    container.setParameters(params);
-    
     // tell Xuggler about the device format
 
     IContainerFormat format = IContainerFormat.make();
@@ -139,9 +118,19 @@ public class DisplayWebcamVideo
       throw new IllegalArgumentException(
         "couldn't open webcam device: " + driverName);
     
+    // devices, unlike most files, need to have parameters set in order
+    // for Xuggler to know how to configure them, for a webcam, these
+    // parameters make sense
+
+    IMetaData params = IMetaData.make();
+    
+    params.setValue("framerate", "30/1");
+    params.setValue("video_size", "320x240");
+    
     // open the container
 
-    int retval = container.open(deviceName, IContainer.Type.READ, format);
+    int retval = container.open(deviceName, IContainer.Type.READ, format,
+        false, true, params, null);
     if (retval < 0)
     {
       // this little trick converts the non friendly integer return

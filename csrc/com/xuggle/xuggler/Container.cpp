@@ -210,6 +210,22 @@ namespace com { namespace xuggle { namespace xuggler
       bool aStreamsCanBeAddedDynamically,
       bool aLookForAllStreams)
   {
+    return open(url, type, pContainerFormat,
+      aStreamsCanBeAddedDynamically, aLookForAllStreams,
+      0, 0);
+  }
+  int32_t
+  Container :: open(const char *url,Type type,
+      IContainerFormat *pContainerFormat,
+      bool aStreamsCanBeAddedDynamically,
+      bool aLookForAllStreams,
+      IMetaData* aOptions,
+      IMetaData* aOptionsNotSet)
+  {
+    // TODO: Use these
+    (void) aOptions;
+    (void) aOptionsNotSet;
+
     int32_t retval = -1;
 
     // reset if an open is called before a close.

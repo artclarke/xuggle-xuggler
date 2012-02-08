@@ -24,11 +24,10 @@ import java.awt.image.BufferedImage;
 import com.xuggle.xuggler.ICodec;
 import com.xuggle.xuggler.IContainer;
 import com.xuggle.xuggler.IContainerFormat;
-import com.xuggle.xuggler.IContainerParameters;
 import com.xuggle.xuggler.IError;
+import com.xuggle.xuggler.IMetaData;
 import com.xuggle.xuggler.IPacket;
 import com.xuggle.xuggler.IPixelFormat;
-import com.xuggle.xuggler.IRational;
 import com.xuggle.xuggler.IStream;
 import com.xuggle.xuggler.IStreamCoder;
 import com.xuggle.xuggler.IVideoPicture;
@@ -103,28 +102,23 @@ public class DisplayWebcamVideo
     // Create a Xuggler container object
     IContainer container = IContainer.make();
 
-    // Devices, unlike most files, need to have parameters set in order
-    // for Xuggler to know how to configure them.  For a webcam, these
-    // parameters make sense
-    IContainerParameters params = IContainerParameters.make();
-    
-    // The timebase here is used as the camera frame rate
-    params.setTimeBase(IRational.make(30,1));
-    
-    // we need to tell the driver what video with and height to use
-    params.setVideoWidth(320);
-    params.setVideoHeight(240);
-    
-    // and finally, we set these parameters on the container before opening
-    container.setParameters(params);
-    
     // Tell Xuggler about the device format
     IContainerFormat format = IContainerFormat.make();
     if (format.setInputFormat(driverName) < 0)
       throw new IllegalArgumentException("couldn't open webcam device: " + driverName);
+
+    // devices, unlike most files, need to have parameters set in order
+    // for Xuggler to know how to configure them, for a webcam, these
+    // parameters make sense
+
+    IMetaData params = IMetaData.make();
     
+    params.setValue("framerate", "30/1");
+    params.setValue("video_size", "320x240");    
+
     // Open up the container
-    int retval = container.open(deviceName, IContainer.Type.READ, format);
+    int retval = container.open(deviceName, IContainer.Type.READ, format,
+        false, true, params, null);
     if (retval < 0)
     {
       // This little trick converts the non friendly integer return value into

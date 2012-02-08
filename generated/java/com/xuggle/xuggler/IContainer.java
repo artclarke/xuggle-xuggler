@@ -1468,6 +1468,61 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
     return (cPtr == 0) ? null : new IContainer(cPtr, false);
   }
 
+/**
+ * Open this container and make it ready for reading or writing, optionally 
+ *  
+ * reading as far into the container as necessary to find all streams. 
+ *  
+ * <p>The caller must call {@link #close()} when done, but if not, the 
+ *  
+ * {@link IContainer} will eventually close  
+ * them later but warn to the logging system.  
+ * </p><p>If the current thread is interrupted while this blocking method 
+ *  
+ * is running the method will return with a negative value.  
+ * To check if the method exited because of an interruption  
+ * pass the return value to {@link IError#make(int)} and then  
+ * check {@link IError#getType()} to see if it is  
+ * {@link IError.Type#ERROR_INTERRUPTED}.  
+ * </p>  
+ * @param	url The resource to open; The format of this string is any 
+ *		  
+ * url that FFMPEG supports (including additional protocols if added 
+ *  
+ * through the xuggler.io library).  
+ * @param	type The type of this container.  
+ * @param	containerFormat A pointer to a ContainerFormat object specifying 
+ *		  
+ * the format of this container, or 0 (NULL) if you want us to guess. 
+ *  
+ * @param	streamsCanBeAddedDynamically If true, open() will expect that 
+ *		 new  
+ * streams can be added at any time, even after the format header has 
+ * been read.  
+ * @param	queryStreamMetaData If true, open() will call {@link #queryStreamMetaData()} 
+ *		  
+ * on this container, which will potentially block until it has ready 
+ *  
+ * enough data to find all streams in a container. If false, it will 
+ * only  
+ * block to read a minimal header for this container format.  
+ * @param	options If not null, a set of key-value pairs that will be 
+ *		 set on the container immediately  
+ * the format is determined. Some options cannot be set (especially 
+ * for input containers) until the  
+ * system has a chance to parse what data is in the file.  
+ * @param	optionsNotSet If not null, on return this {@link IMetaData} 
+ *		 object will be cleared out, and  
+ * replace with any key/value pairs that were in <code>options</code> 
+ * but could not be set on this  
+ * {@link IContainer}.  
+ * @return	>= 0 on success; < 0 on error.  
+ * @since	5.0  
+ */
+  public int open(String url, IContainer.Type type, IContainerFormat containerFormat, boolean streamsCanBeAddedDynamically, boolean queryStreamMetaData, IMetaData options, IMetaData optionsNotSet) {
+    return XugglerJNI.IContainer_open__SWIG_2(swigCPtr, this, url, type.swigValue(), IContainerFormat.getCPtr(containerFormat), containerFormat, streamsCanBeAddedDynamically, queryStreamMetaData, IMetaData.getCPtr(options), options, IMetaData.getCPtr(optionsNotSet), optionsNotSet);
+  }
+
   public enum Type {
   /**
    *

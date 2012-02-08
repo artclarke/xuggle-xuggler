@@ -627,14 +627,16 @@ public class Converter
     /**
      * Open the input container for Reading.
      */
-    IContainerParameters parameters = IContainerParameters.make();
+    IMetaData parameters = IMetaData.make();
+    
     if (isampleRate > 0)
-      parameters.setAudioSampleRate(isampleRate);
-    if (ichannels > 0)
-      parameters.setAudioChannels(ichannels);
-    mIContainer.setParameters(parameters);
+      parameters.setValue("sample_rate", ""+isampleRate);
 
-    retval = mIContainer.open(inputURL, IContainer.Type.READ, iFmt);
+    if (ichannels > 0)
+      parameters.setValue("channels", ""+ichannels);
+
+    retval = mIContainer.open(inputURL, IContainer.Type.READ, iFmt, false, true, 
+        parameters, null);
     if (retval < 0)
       throw new RuntimeException("could not open url: " + inputURL);
 

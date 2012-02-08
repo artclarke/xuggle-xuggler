@@ -591,6 +591,7 @@ class XugglerJNI {
   public final static native long IContainer_getFormat(long jarg1, IContainer jarg1_);
   public final static native int IContainer_setFormat(long jarg1, IContainer jarg1_, long jarg2, IContainerFormat jarg2_);
   public final static native long IContainer_make__SWIG_1(long jarg1, IContainerFormat jarg1_);
+  public final static native int IContainer_open__SWIG_2(long jarg1, IContainer jarg1_, String jarg2, int jarg3, long jarg4, IContainerFormat jarg4_, boolean jarg5, boolean jarg6, long jarg7, IMetaData jarg7_, long jarg8, IMetaData jarg8_);
   public final static native void IMediaDataWrapper_wrap(long jarg1, IMediaDataWrapper jarg1_, long jarg2, IMediaData jarg2_);
   public final static native void IMediaDataWrapper_setKey(long jarg1, IMediaDataWrapper jarg1_, boolean jarg2);
   public final static native long IMediaDataWrapper_make(long jarg1, IMediaData jarg1_);
