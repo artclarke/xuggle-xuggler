@@ -76,6 +76,17 @@ StreamCoder::~StreamCoder()
 }
 
 void
+StreamCoder::resetOptions(AVCodecContext* ctx)
+{
+  if (!ctx)
+    return;
+  if (ctx->codec && ctx->codec->priv_class && ctx->priv_data)
+    av_opt_free(ctx->priv_data);
+  av_opt_free(ctx);
+  av_freep(&ctx->priv_data);
+}
+
+void
 StreamCoder::reset()
 {
   // Auto-close if the caller forgot to close this
@@ -88,18 +99,18 @@ StreamCoder::reset()
 
   mAutomaticallyStampPacketsForStream = true;
   mOpened = false;
-  if (mCodecContext && !mStream)
-  {
-    // Don't free if we're attached to a Stream.
-    // The Container will do that.
-    if (mCodecContext->codec && mCodecContext->codec->priv_class)
-        av_opt_free(mCodecContext->priv_data);
-    av_opt_free(mCodecContext);
-    av_freep(&mCodecContext->extradata);
-    av_freep(&mCodecContext->subtitle_header);
-    av_freep(&mCodecContext->priv_data);
-
-    av_freep(&mCodecContext);
+  // Don't free if we're attached to a Stream.
+  // The Container will do that.
+  if (mCodecContext) {
+    // for reasons that I'm sure they will fix some day, avformat_free_context
+    // does not free private options.  it should.
+    resetOptions(mCodecContext);
+    if(!mStream)
+    {
+      av_freep(&mCodecContext->extradata);
+      av_freep(&mCodecContext->subtitle_header);
+      av_freep(&mCodecContext);
+    }
   }
   mCodecContext = 0;
   // We do not refcount the stream
@@ -137,6 +148,8 @@ StreamCoder :: readyAVContexts(
   avCodec = aCodec ? aCodec->getAVCodec() : 0;
   if (aCoder->mCodecContext) {
     // was previously set; we should do something about that.
+//    VS_LOG_ERROR("Warning... mojo rising");
+    resetOptions(aCoder->mCodecContext);
   }
   aCoder->mCodecContext = avContext;
   aCoder->mStream = aStream;
@@ -207,9 +220,9 @@ StreamCoder::setCodec(ICodec * aCodec)
   if (mCodecContext) {
     // avcodec_get_context_defaults3 does not clear these out if already allocated
     // so we do.
+    resetOptions(mCodecContext);
     av_freep(&mCodecContext->extradata);
     av_freep(&mCodecContext->subtitle_header);
-    av_freep(&mCodecContext->priv_data);
 
     avcodec_get_context_defaults3(mCodecContext, avCodec);
   } else {
@@ -321,6 +334,12 @@ StreamCoder::make(Direction direction, IStreamCoder* aCoder)
 
     AVCodecContext* codec = retval->mCodecContext;
     AVCodecContext* icodec = coder->mCodecContext;
+
+    // no really; I hate FFmpeg memory management; a lot of sensible
+    // defaults got set up that we'll need to clear now.
+    resetOptions(codec);
+    av_freep(&codec->extradata);
+    av_freep(&codec->subtitle_header);
 
     // temporarily set this back to zero
     codec->codec = 0;
@@ -811,8 +830,9 @@ StreamCoder::open(IMetaData* aOptions, IMetaData* aUnsetOptions)
   {
     VS_LOG_WARN("Error: %s", e.what());
     retval = -1;
-    av_dict_free(&tmp);
   }
+  if (tmp)
+    av_dict_free(&tmp);
   return retval;
 }
 
@@ -1982,8 +2002,12 @@ StreamCoder::setStream(Stream* stream, bool assumeOnlyStream)
     // codeccontext and thinks it'll free it later when the input
     // file closes.  in this case, we free the old value because
     // we're about to overwrite it.
-    if (avStream->codec)
+    if (avStream->codec) {
+      resetOptions(avStream->codec);
+      av_freep(&avStream->codec->extradata);
+      av_freep(&avStream->codec->subtitle_header);
       av_free(avStream->codec);
+    }
     avStream->codec = mCodecContext;
   }
   retval = 0;
