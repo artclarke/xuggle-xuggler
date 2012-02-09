@@ -220,11 +220,9 @@ namespace com { namespace xuggle { namespace xuggler
       bool aStreamsCanBeAddedDynamically,
       bool aLookForAllStreams,
       IMetaData* aOptions,
-      IMetaData* aOptionsNotSet)
+      IMetaData* aUnsetOptions)
   {
-    // TODO: Use these
-    (void) aOptions;
-    (void) aOptionsNotSet;
+    AVDictionary *tmp=0;
 
     int32_t retval = -1;
 
@@ -267,16 +265,24 @@ namespace com { namespace xuggle { namespace xuggler
     if (pContainerFormat)
       setFormat(pContainerFormat);
 
+    // set up our options
+    if (aOptions) {
+      MetaData* options = dynamic_cast<MetaData*>(aOptions);
+      if (!options)
+        throw std::runtime_error("um, this shouldn't ever happen");
+      // make a copy of the data returned
+      av_dict_copy(&tmp, options->getDictionary(), 0);
+    }
     if (url && *url)
     {
       if (type == WRITE)
       {
         retval = openOutputURL(url,
-            aStreamsCanBeAddedDynamically);
+            aStreamsCanBeAddedDynamically, &tmp);
       } else if (type == READ)
       {
         retval = openInputURL(url,
-            aStreamsCanBeAddedDynamically, aLookForAllStreams);
+            aStreamsCanBeAddedDynamically, aLookForAllStreams, &tmp);
       }
       else
       {
@@ -285,6 +291,14 @@ namespace com { namespace xuggle { namespace xuggler
       }
     }
     XUGGLER_CHECK_INTERRUPT(retval);
+    if (aUnsetOptions) {
+      MetaData* unsetOptions = dynamic_cast<MetaData*>(aUnsetOptions);
+      if (!unsetOptions)
+        throw std::runtime_error("a little part of me just died inside");
+      unsetOptions->copy(tmp);
+    }
+    if (tmp)
+      av_dict_free(&tmp);
     return retval;
   }
 
@@ -369,7 +383,8 @@ namespace com { namespace xuggle { namespace xuggler
   int32_t
   Container :: openInputURL(const char *url,
       bool aStreamsCanBeAddedDynamically,
-      bool aLookForAllStreams)
+      bool aLookForAllStreams,
+      AVDictionary** options)
   {
     int32_t retval = -1;
     AVInputFormat *inputFormat = 0;
@@ -397,7 +412,7 @@ namespace com { namespace xuggle { namespace xuggler
           &mFormatContext,
           url,
           inputFormat,
-          0
+          options
       );
       if (retval >= 0) {
         if (!mFormatContext && mFormatContext->iformat) {
@@ -421,13 +436,7 @@ namespace com { namespace xuggle { namespace xuggler
           retval = queryStreamMetaData();
         }
       } else {
-        // kill the old context
-        resetContext();
-        mFormatContext = avformat_alloc_context();
-        if (!mFormatContext)
-          throw std::bad_alloc();
-
-        VS_LOG_TRACE("Could not open output file: %s", url);
+        VS_LOG_DEBUG("Could not open output file: %s", url);
       }
     } catch (std::exception &e) {
       if (retval >= 0)
@@ -438,34 +447,55 @@ namespace com { namespace xuggle { namespace xuggler
 
   int32_t
   Container :: openOutputURL(const char* url,
-      bool aStreamsCanBeAddedDynamically)
+      bool aStreamsCanBeAddedDynamically,
+      AVDictionary** options)
   {
     int32_t retval = -1;
     AVOutputFormat *outputFormat = 0;
 
-    if (mFormat)
-    {
-      // ask for it from the container
-      outputFormat = mFormat->getOutputFormat();
-    }
+    try {
+      if (mFormat)
+        // ask for it from the container
+        outputFormat = mFormat->getOutputFormat();
 
-    if (!outputFormat) {
-      // guess it.
-      outputFormat = av_guess_format(0, url, 0);
-      RefPointer<ContainerFormat> format = ContainerFormat::make();
-      if (format) {
+      if (!outputFormat) {
+        // guess it.
+        outputFormat = av_guess_format(0, url, 0);
+        RefPointer<ContainerFormat> format = ContainerFormat::make();
+        if (!format)
+          throw std::bad_alloc();
+
         format->setOutputFormat(outputFormat);
         setFormat(format.value());
       }
-    }
 
-    if (outputFormat)
-    {
+      if (!outputFormat)
+        throw std::runtime_error("could not find output format");
+
       if (aStreamsCanBeAddedDynamically)
       {
         mFormatContext->ctx_flags |= AVFMTCTX_NOHEADER;
       }
       mFormatContext->oformat = outputFormat;
+      // now because we can guess at the last moment, we need to set up
+      // private options
+      {
+        AVFormatContext *s = mFormatContext;
+        if (!s->priv_data && s->oformat->priv_data_size > 0) {
+          s->priv_data = av_mallocz(s->oformat->priv_data_size);
+          if (!s->priv_data)
+            throw std::bad_alloc();
+          if (s->oformat->priv_class) {
+            *(const AVClass**)s->priv_data= s->oformat->priv_class;
+            av_opt_set_defaults(s->priv_data);
+          }
+        }
+      }
+
+      // set options
+      retval = av_opt_set_dict(mFormatContext, options);
+      if (retval < 0)
+        throw std::runtime_error("could not set options");
 
       if (mCustomIOHandler)
         retval = mCustomIOHandler->url_open(url, URLProtocolHandler::URL_WRONLY_MODE);
@@ -475,23 +505,17 @@ namespace com { namespace xuggle { namespace xuggler
             &mFormatContext->interrupt_callback,
             0
         );
-      if (retval >= 0) {
-        mIsOpened = true;
-        strncpy(mFormatContext->filename, url, sizeof(mFormatContext->filename)-1);
-      } else {
-        VS_LOG_ERROR("Could not open file: %s", url);
-        // failed to open; kill the context.
-        resetContext();
-        // and make a new one
-        mFormatContext = avformat_alloc_context();
-        if (!mFormatContext)
-          throw std::bad_alloc();
-      }
-    }
-    else
-    {
-      // bad output format
-      VS_LOG_ERROR("Could not find output format");
+      if (retval < 0)
+        throw std::runtime_error("could not open file");
+
+      mIsOpened = true;
+      strncpy(mFormatContext->filename, url, sizeof(mFormatContext->filename)-1);
+      // force a null termination
+      mFormatContext->filename[sizeof(mFormatContext->filename)-1] = 0;
+    } catch (std::exception & e) {
+      VS_LOG_ERROR("URL: %s; Error: %s", url, e.what());
+      if (retval >= 0)
+        retval = -1;
     }
     return retval;
   }
@@ -1189,20 +1213,40 @@ namespace com { namespace xuggle { namespace xuggler
   }
   
   int32_t
-  Container :: setFormat(IContainerFormat* format)
+  Container :: setFormat(IContainerFormat* aFormat)
   {
     int32_t retval = -1;
+    ContainerFormat* format = dynamic_cast<ContainerFormat*>(aFormat);
     try {
+      if (!format)
+        throw std::runtime_error("no format set");
+
       if (!mFormatContext)
         throw std::runtime_error("no underlying AVFormatContext");
       if (mFormatContext->iformat || mFormatContext->oformat)
         throw std::runtime_error("format already set on this IContainer; cannot be reset");
       if (mIsOpened)
         throw std::runtime_error("container already opened");
-     mFormat.reset(dynamic_cast<ContainerFormat*>(format), true);
-     ContainerFormat* value = mFormat.value();
-     mFormatContext->iformat = value ? value->getInputFormat() : 0;
-     mFormatContext->oformat = value ? value->getOutputFormat() : 0;
+
+      AVOutputFormat* oformat = format->getOutputFormat();
+      AVInputFormat* iformat = format->getInputFormat();
+
+      if (!iformat && !oformat)
+        throw std::runtime_error("no input or output format set");
+
+      // iformat, if set, always wins
+      if (iformat) {
+        mFormatContext->iformat = iformat;
+        mFormatContext->oformat = 0;
+      } else {
+        // throw away the old context and use the new to get the correct options set up
+        resetContext();
+        mFormatContext = 0;
+        if (avformat_alloc_output_context2(&mFormatContext, oformat, 0, 0)<0)
+          throw std::runtime_error("could not allocate output context");
+      }
+      mFormat.reset(format, true);
+      retval = 0;
     } catch (std::exception &e)
     {
       retval = -1;

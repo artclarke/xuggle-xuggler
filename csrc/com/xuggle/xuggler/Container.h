@@ -148,8 +148,8 @@ namespace com { namespace xuggle { namespace xuggler
 
   private:
     // This is the object we wrap
-    int32_t openInputURL(const char*url, bool, bool);
-    int32_t openOutputURL(const char*url, bool);
+    int32_t openInputURL(const char*url, bool, bool, AVDictionary** options);
+    int32_t openOutputURL(const char*url, bool, AVDictionary **options);
     int32_t setupAllInputStreams();
     AVFormatContext *mFormatContext;
     void reset();
