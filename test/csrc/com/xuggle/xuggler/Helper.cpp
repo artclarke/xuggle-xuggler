@@ -441,13 +441,11 @@ namespace com { namespace xuggle { namespace xuggler {
         newcodec = ICodec::findEncodingCodecByName(codecStr);
         VS_TUT_ENSURE("could not find codec", newcodec);
 
-        newstream = container->addNewStream(i);
+        newstream = container->addNewStream(newcodec.value());
         VS_TUT_ENSURE("could not add stream", newstream);
         newcoder = newstream->getStreamCoder();
         VS_TUT_ENSURE("could not get a coder", newcoder);
 
-        // And put some default settings into the coder
-        newcoder->setCodec(newcodec.value());
         if (newcodec->getType() == ICodec::CODEC_TYPE_VIDEO)
         {
           if (width > 0)
@@ -493,10 +491,10 @@ namespace com { namespace xuggle { namespace xuggler {
             newcoder->getCurrentRefCount(),
             2);
 
-        // me and coder
+        // me; coder creates its own codec copy
         VS_TUT_ENSURE_EQUALS("bad ref count",
             newcodec->getCurrentRefCount(),
-            2);
+            1);
 
         numStreamsAdded++;
       }
