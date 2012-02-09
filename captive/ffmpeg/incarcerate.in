@@ -45,6 +45,7 @@ FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-version3"
 if test ! "x$VS_DEBUG" = "x"; then
   echo "Creating debug version of ffmpeg: $VS_DEBUG"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-stripping"
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-asm"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-optimizations"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-mmx"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-mmx2"
