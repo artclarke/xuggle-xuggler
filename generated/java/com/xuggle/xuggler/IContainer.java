@@ -719,7 +719,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  * @param	id A format-dependent id for this stream.  
  * @return	A new stream.  
  */
-  public IStream addNewStream(int id) {
+  @Deprecated public IStream addNewStream(int id) {
     long cPtr = XugglerJNI.IContainer_addNewStream__SWIG_0(swigCPtr, this, id);
     return (cPtr == 0) ? null : new IStream(cPtr, false);
   }
@@ -1347,7 +1347,7 @@ public class IContainer extends RefCounted implements com.xuggle.xuggler.IConfig
  * @return	>= 0 on success, error code otherwise  
  * @since	4.0  
  */
-  public int setPreload(int preload) {
+  @Deprecated public int setPreload(int preload) {
     return XugglerJNI.IContainer_setPreload(swigCPtr, this, preload);
   }
 
