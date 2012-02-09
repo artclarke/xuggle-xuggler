@@ -11119,3 +11119,19 @@
    fun:posix_memalign
    fun:av_malloc
 }
+{
+   <insert_a_suppression_name_here>
+   Memcheck:Leak
+   fun:malloc_zone_calloc
+   fun:NXHashInsert
+   fun:_Z12realizeClassP7class_t
+   fun:_Z12realizeClassP7class_t
+   fun:look_up_class
+   fun:____FoundationPresent_block_invoke_1
+   fun:dispatch_once_f
+   fun:CFArrayCreate
+   fun:__CFInitialize
+   fun:_ZN16ImageLoaderMachO11doImageInitERKN11ImageLoader11LinkContextE
+   fun:_ZN16ImageLoaderMachO16doInitializationERKN11ImageLoader11LinkContextE
+   fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
+}
