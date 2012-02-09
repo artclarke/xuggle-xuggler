@@ -18,6 +18,7 @@
  *******************************************************************************/
 
 #include <string>
+#include <cstring>
 #include <com/xuggle/ferry/Logger.h>
 #include <com/xuggle/xuggler/IContainer.h>
 #include <com/xuggle/xuggler/io/StdioURLProtocolManager.h>
