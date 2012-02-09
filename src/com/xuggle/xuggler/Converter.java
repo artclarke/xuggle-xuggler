@@ -634,12 +634,15 @@ public class Converter
 
     if (ichannels > 0)
       parameters.setValue("channels", ""+ichannels);
+    
+    IMetaData rejectParameters = IMetaData.make();
 
     retval = mIContainer.open(inputURL, IContainer.Type.READ, iFmt, false, true, 
-        parameters, null);
+        parameters, rejectParameters);
     if (retval < 0)
       throw new RuntimeException("could not open url: " + inputURL);
-
+    if (rejectParameters.getNumKeys() > 0)
+      throw new RuntimeException("some parameters were rejected: " + rejectParameters);
     /**
      * If the user EXPLICITLY asked for a output container format, we'll try to
      * honor their request here.
