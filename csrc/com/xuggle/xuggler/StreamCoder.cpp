@@ -818,7 +818,7 @@ StreamCoder::open(IMetaData* aOptions, IMetaData* aUnsetOptions)
     {
       MetaData* unsetOptions = dynamic_cast<MetaData*>(aUnsetOptions);
       if (!unsetOptions)
-        throw new std::runtime_error("really... seriously?");
+        throw std::runtime_error("really... seriously?");
       unsetOptions->copy(tmp);
     }
   }
