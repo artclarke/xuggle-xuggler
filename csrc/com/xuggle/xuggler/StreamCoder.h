@@ -220,6 +220,7 @@ namespace com { namespace xuggle { namespace xuggler
         Codec *aCodec,
         AVCodecContext *avContext,
         AVCodec *avCodec);
+    static void resetOptions(AVCodecContext*);
   };
 
 }}}
