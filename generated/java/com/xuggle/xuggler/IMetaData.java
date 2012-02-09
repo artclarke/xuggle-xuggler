@@ -182,7 +182,7 @@ public class IMetaData extends RefCounted {
  * {@link IMetaData} object.  
  * @return	the number of keys.  
  */
-  private int getNumKeys() {
+  public int getNumKeys() {
     return XugglerJNI.IMetaData_getNumKeys(swigCPtr, this);
   }
 
