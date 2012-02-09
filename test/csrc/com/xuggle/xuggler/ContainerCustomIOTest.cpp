@@ -61,18 +61,44 @@ ContainerCustomIOTest :: testWriteToFileFromFile()
 {
   int numPackets = 0;
   int retval = -1;
+  const char* OUTPUT_FILE="test:ContainerCustomIOTest_testWriteToFileFromFile.flv";
 
   // let's register a custom protocol
   com::xuggle::xuggler::io::StdioURLProtocolManager::registerProtocol("test");
 
   h->setupReading("test", h->SAMPLE_FILE);
 
-  RefPointer<IContainer> outContainer = IContainer::make();
+  // get an output format
+  RefPointer<IContainerFormat> outputFormat =
+      IContainerFormat::make();
+  outputFormat->setOutputFormat("flv", OUTPUT_FILE, 0);
+  VS_TUT_ENSURE("", outputFormat);
+
+  RefPointer<IContainer> outContainer = IContainer::make(outputFormat.value());
   VS_TUT_ENSURE("no container", outContainer);
   
-  retval = outContainer->open("test:ContainerCustomIOTest_testWriteToFileFromFile.flv",
-      IContainer::WRITE, 0);
+  // let's set some options; this helps us test for memory leaks
+  RefPointer<IMetaData> options = IMetaData::make();
+  options->setValue("packetsize", "0");
+  options->setValue("xuggle-not-an-option", "55");
+
+  RefPointer<IMetaData> rejectedOptions = IMetaData::make();
+
+  retval = outContainer->open(OUTPUT_FILE,
+      IContainer::WRITE, 0, false, true, options.value(), rejectedOptions.value());
   VS_TUT_ENSURE("couldn't write", retval >=0);
+
+  for(int32_t i = rejectedOptions->getNumKeys()-1; i >= 0; i--)
+  {
+    const char* key=rejectedOptions->getKey(i);
+    const char* value=rejectedOptions->getValue(key, IMetaData::METADATA_NONE);
+    (void) key;
+    (void) value;
+    VS_LOG_TRACE("key: %s; value: %s;", key, value);
+  }
+  VS_TUT_ENSURE_EQUALS("", 1, rejectedOptions->getNumKeys());
+  VS_TUT_ENSURE_EQUALS("", 0, strcmp("55", rejectedOptions->getValue("xuggle-not-an-option",
+      IMetaData::METADATA_NONE)));
 
   int32_t numInStreams = h->container->getNumStreams();
   for(int i = 0; i < numInStreams; i++)
