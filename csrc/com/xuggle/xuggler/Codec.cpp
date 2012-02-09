@@ -161,7 +161,7 @@ namespace com { namespace xuggle { namespace xuggler
   bool
   Codec :: canEncode()
   {
-    return mCodec ? mCodec->encode : false;
+    return mCodec ? mCodec->encode || mCodec->encode2 : false;
   }
 
   Codec*

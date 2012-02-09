@@ -40,6 +40,7 @@ class CodecTest : public CxxTest::TestSuite
     void testGetSupportedAudioSampleRates();
     void testGetSupportedAudioSampleFormats();
     void testGetSupportedAudioChannelLayouts();
+    void testEncodePCM();
   private:
     RefPointer<ICodec> codec;
 };

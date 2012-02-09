@@ -230,3 +230,11 @@ CodecTest :: testGetSupportedAudioChannelLayouts()
   VS_TUT_ENSURE("should fail quietly",
       0 == codec->getSupportedAudioChannelLayout(0x7FFFFFFF));
 }
+
+void
+CodecTest :: testEncodePCM()
+{
+  codec = ICodec::findEncodingCodecByName("pcm_s16le");
+  VS_TUT_ENSURE("", codec);
+  VS_TUT_ENSURE("", codec->canEncode());
+}
