@@ -9,9 +9,23 @@ m4_define([VSM4_LIB_MINOR_VERSION], [0])
 
 AC_INIT([xuggler],[VSM4_LIB_MAJOR_VERSION.VSM4_LIB_MINOR_VERSION],[info@xuggle.com])
 AC_PREREQ([2.63])
-AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.10.2 ])
+AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax silent-rules 1.10.2 ])
 AM_MAINTAINER_MODE
 AC_PREFIX_DEFAULT([${XUGGLE_HOME:-/usr/local}])
+
+AC_CANONICAL_BUILD
+AC_CANONICAL_HOST
+
+# This will be set to true if we are cross-compiling and will be accessible
+# in Makefile.am
+if test "x$host_alias" != "x$build_alias" ; then
+  VS_CROSSCOMPILE=1
+else
+  VS_CROSSCOMPILE=0
+fi
+AC_SUBST([VS_CROSSCOMPILE])
+AM_CONDITIONAL(VS_CROSSCOMPILE, [test "x${host_alias}" != "x${build_alias} ])
+
 
 LIB_MAJOR_VERSION=VSM4_LIB_MAJOR_VERSION
 LIB_MINOR_VERSION=VSM4_LIB_MINOR_VERSION
@@ -80,8 +94,6 @@ if test "x$enable_swig" != xno; then
   fi
 fi
 
-AC_CANONICAL_BUILD
-AC_CANONICAL_HOST
 AC_MSG_CHECKING([whether we saw a bunny])
 AC_MSG_RESULT([no])
 
@@ -103,8 +115,6 @@ esac
 enable_warningerrors=yes
 case $HOST_TYPE in
   Windows)
-  CC="gcc -mno-cygwin "
-  CXX="g++ -mno-cygwin "
   # Don't ask.
   VS_LDFLAGS+=" -Wl,--add-stdcall-alias -Wl,--enable-runtime-pseudo-reloc -Wl,--enable-auto-image-base"
   HOST_SO_LIBPATH=[PATH]
@@ -199,20 +209,6 @@ AC_ARG_VAR(PERL,
           [Location of the 'perl' program; [PERL] is required if you add new tests or change exisitng tests.])
 AM_CONDITIONAL(HAVE_PERL, [ test "x$PERL" != "x" ])
 
-case $HOST_TYPE in
-  Windows)
-    AC_PATH_PROG([MSVC_LIB],[lib])
-    if test "x$MSVC_LIB" = "x"; then
-      AC_MSG_FAILURE([Could not find Microsoft Visual C++'s 'LIB' tool.  This is required to build xuggler.
-                      You can download a free version from http://www.microsoft.com/express/download.
-                      Also make sure you have defined the variables in vcvars32.bat before running configure.])
-    fi
-    ;;
-  *)
-    ;;
-esac
-
-
 #----------------------------------------------------------------
 # Look for java
 #----------------------------------------------------------------
@@ -292,6 +288,7 @@ AC_TYPE_UINT32_T
 AC_TYPE_UINT16_T
 AC_TYPE_UINT8_T
 AC_TYPE_SIZE_T
+AC_TYPE_OFF_T
 AC_STRUCT_TM
 AC_MSG_CHECKING([if i'm gonna get you wabbit])
 AC_MSG_RESULT([no])
@@ -300,6 +297,8 @@ AC_C_VOLATILE
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_MALLOC
+# Check for 64-bit stdio; not available on windows
+AC_FUNC_FSEEKO
 AC_CHECK_FUNCS([memmove memset])
 
 AC_LANG_WERROR
@@ -321,16 +320,7 @@ if test "x$enable_warningerrors" = xyes; then
   AC_SUBST([VS_WARN_ISERROR])
 fi
 
-AC_ARG_ENABLE([javamemory],
-              [AS_HELP_STRING([--enable-javamemory],
-                              [use the Java Virtual Machine instead of the Native Heap to allocate large memory objects (default is yes)])],
-                              [],
-                              [enable_javamemory=yes])
-AC_MSG_CHECKING([whether to use java for large memory allocations])
-AC_MSG_RESULT([$enable_javamemory])
-if test "x$enable_javamemory" = xyes; then
-  AC_DEFINE(VSJNI_USE_JVM_FOR_MEMMANAGEMENT, 1, AC_PACKAGE_NAME [ will use Java to allocate large memory blogs if running inside a Java Virtual Machine])
-fi
+AC_DEFINE(VSJNI_USE_JVM_FOR_MEMMANAGEMENT, 1, AC_PACKAGE_NAME [ will use Java to allocate large memory blogs if running inside a Java Virtual Machine])
 AC_MSG_CHECKING([if you smiled])
 AC_MSG_RESULT([let us know: info@xuggle.com])
 

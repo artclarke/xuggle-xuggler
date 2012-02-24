@@ -9,9 +9,23 @@ m4_define([VSM4_LIB_MINOR_VERSION], [0])
 
 AC_INIT([xuggle-ffmpeg],[VSM4_LIB_MAJOR_VERSION.VSM4_LIB_MINOR_VERSION],[info@xuggle.com])
 AC_PREREQ([2.63])
-AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.10.2 ])
+AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax silent-rules 1.10.2 ])
 AM_MAINTAINER_MODE
 AC_PREFIX_DEFAULT([${XUGGLE_HOME:-/usr/local}])
+
+AC_CANONICAL_BUILD
+AC_CANONICAL_HOST
+# check for cross compiling
+AC_MSG_CHECKING([for cross-compiling])
+
+if test "x$host_alias" != "x"; then
+  VS_CROSS_COMPILE=1
+  AC_MSG_RESULT([yes])
+else
+  AC_MSG_RESULT([no])
+fi 
+AC_SUBST([VS_CROSS_COMPILE])
+AM_CONDITIONAL([VS_CROSS_COMPILE], [ test "x$host_alias" != "x" ])
 
 LIB_MAJOR_VERSION=VSM4_LIB_MAJOR_VERSION
 LIB_MINOR_VERSION=VSM4_LIB_MINOR_VERSION
@@ -39,8 +53,6 @@ if test "x$enable_optimizations" = xno; then
   AC_SUBST([VS_DEBUG])
 fi
 
-AC_CANONICAL_BUILD
-AC_CANONICAL_HOST
 AC_MSG_CHECKING([whether we saw a bunny])
 AC_MSG_RESULT([no])
 
@@ -59,33 +71,15 @@ case $host in
   HOST_TYPE=Linux
   ;;
 esac
-enable_warningerrors=yes
-case $HOST_TYPE in
-  Windows)
-  CC="gcc -mno-cygwin "
-  CXX="g++ -mno-cygwin "
-  # Don't ask.
-  VS_LDFLAGS+=" -Wl,--add-stdcall-alias -Wl,--enable-runtime-pseudo-reloc -Wl,--enable-auto-image-base"
-  HOST_SO_LIBPATH=[PATH]
-  VS_OS_WINDOWS=1
-  AC_SUBST([VS_OS_WINDOWS])
-  dnl For libtool
-  export need_lib_prefix=no
-  dnl Turns out older versions of G++ on windows have warnings
-  dnl in their std:: header files.  shame on them.
-  enable_warningerrors=no
-  ;;
-  Mac)
-  HOST_SO_LIBPATH=[DYLD_LIBRARY_PATH]
-  ;;
-  Linux)
-  HOST_SO_LIBPATH=[LD_LIBRARY_PATH]
-  ;;
-esac
 
 AC_SUBST([HOST_TYPE])
 AC_SUBST([HOST_OS])
 AC_SUBST([HOST_SO_LIBPATH])
+
+# Checks for programs.
+AC_LANG([C++])
+AC_PROG_CC
+AC_PROG_CXX
 
 LT_INIT([disable-static disable-fast-install win32-dll])
 AC_MSG_CHECKING([whether we smell bunny poop])
@@ -133,28 +127,10 @@ if test "x$enable_m64" = xyes; then
   esac
 fi
 
-# Checks for programs.
-AC_PROG_CC
-AC_PROG_CXX
-AC_LANG(C++)
-
 AC_PATH_PROG([YASM],[yasm])
 AC_ARG_VAR(YASM,
           [Location of the 'yasm' program; if found, we'll build with some cool assembly on x86/x86_64 systems.])
 AM_CONDITIONAL(HAVE_YASM, [ test "x$YASM" != "x" ])
-
-case $HOST_TYPE in
-  Windows)
-    AC_PATH_PROG([MSVC_LIB],[lib])
-    if test "x$MSVC_LIB" = "x"; then
-      AC_MSG_FAILURE([Could not find Microsoft Visual C++'s 'LIB' tool.  This is required to build FFmpeg.
-                      You can download a free version from http://www.microsoft.com/express/download.
-                      Also make sure you have defined the variables in vcvars32.bat before running configure.])
-    fi
-    ;;
-  *)
-    ;;
-esac
 
 AC_MSG_CHECKING([whether to compile FFmpeg with GPL V3 code])
 AC_ARG_ENABLE([gpl],
@@ -182,6 +158,13 @@ fi
 AC_SUBST(VS_ENABLE_GPL)
 AM_CONDITIONAL(VS_ENABLE_GPL,
                [ test "x$VS_ENABLE_GPL" = "xyes" ])
+
+# Let's check for zlib
+AC_CHECK_HEADERS([zlib.h], [HAVE_ZLIB=yes], [HAVE_ZLIB=no])
+if test "x$HAVE_ZLIB" = "xyes"; then
+  AC_SEARCH_LIBS(inflateEnd, z, [HAVE_ZLIB=yes], [HAVE_ZLIB=no])
+fi
+AC_SUBST(HAVE_ZLIB)
 
 #
 # CAPTIVE building support
@@ -520,6 +503,10 @@ AC_SUBST(HAVE_LIBFAAC)
 AC_CONFIG_MACRO_DIR([m4])
 AC_CONFIG_FILES([Makefile
                  Makefile.global
+                 zlib/Makefile
+                 zlib/incarcerate
+                 zlib/install.sh
+                 zlib/uninstall.sh
                  librtmp/Makefile
                  librtmp/incarcerate
                  librtmp/install.sh
