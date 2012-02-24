@@ -507,6 +507,10 @@ AC_CONFIG_FILES([Makefile
                  zlib/incarcerate
                  zlib/install.sh
                  zlib/uninstall.sh
+                 openssl/Makefile
+                 openssl/incarcerate
+                 openssl/install.sh
+                 openssl/uninstall.sh
                  librtmp/Makefile
                  librtmp/incarcerate
                  librtmp/install.sh

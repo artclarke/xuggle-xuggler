@@ -1,0 +1,74 @@
+#!/bin/sh
+
+# Modify this script to pass the necessary parameters to 
+# the configure of the captive package you're configuring
+prefix="@prefix@"
+install_prefix="@abs_top_builddir@/captive"
+HOST_OS="@HOST_OS@"
+VS_CROSS_COMPILE="@VS_CROSS_COMPILE@"
+if [ "x${VS_CROSS_COMPILE}" = "x" ]; then
+  CROSS_COMPILE=
+else
+  CROSS_COMPILE="${HOST_OS}-"
+fi
+
+OPENSSL_CONFIG=
+# OpenSSL does not follow the GNU conventions and so we
+# do minimal translation here.  This will only be used
+# when we are doing cross-compiling under our control
+# and we only support windows, linux and mac today
+# on the i386 or x86_64 architectures, so it's pretty
+# safe
+case $HOST_OS in
+  *cygwin*|*mingw*)
+    case $HOST_OS in
+      *x86_64*)
+      OPENSSL_CONFIG=mingw64
+      ;;
+      *)
+      OPENSSL_CONFIG=mingw
+      ;;
+    esac
+  ;;
+  *darwin*)
+    case $HOST_OS in
+      *x86_64*)
+      OPENSSL_CONFIG=darwin64-x86_64-cc
+      ;;
+      *ppc*)
+      OPENSSL_CONFIG=darwin-ppc-cc
+      ;;
+      *)
+      OPENSSL_CONFIG=darwin-i386-cc
+      ;;
+    esac
+  ;;
+  *linux*)
+    case $HOST_OS in
+      *x86_64*)
+      OPENSSL_CONFIG=linux-generic64
+      ;;
+      *)
+      OPENSSL_CONFIG=linux-generic32
+      ;;
+    esac
+  ;;
+esac
+
+# OpenSSL does not support in-tree builds, and so we copy the entire source
+# directory to the build directory, and then build in place.
+echo "Copying @abs_srcdir@/csrc to @abs_builddir@/csrc"
+# create the directory
+mkdir -p "@abs_builddir@/csrc"
+# copy over all the source
+cp -r "@abs_srcdir@/csrc/"* "@abs_builddir@/csrc/"
+# and make everything user writeable so distcheck will pass
+chmod -R u+w "@abs_builddir@/csrc/"*
+
+PATH="$PATH:@abs_top_builddir@@bindir@@" sh "@abs_builddir@/csrc/Configure" \
+  ${OPENSSL_CONFIG} shared zlib \
+  --cross-compile-prefix="${CROSS_COMPILE}" \
+  --openssldir=${prefix} \
+  --install_prefix="${install_prefix}" \
+  --prefix="${prefix}" || \
+  (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)

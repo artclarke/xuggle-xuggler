@@ -15381,7 +15381,7 @@ fi
 
 
 
-ac_config_files="$ac_config_files Makefile Makefile.global zlib/Makefile zlib/incarcerate zlib/install.sh zlib/uninstall.sh librtmp/Makefile librtmp/incarcerate librtmp/install.sh librtmp/uninstall.sh libvo-aacenc/Makefile libvo-aacenc/incarcerate libopencore-amr/Makefile libopencore-amr/incarcerate libogg/Makefile libogg/incarcerate libvorbis/Makefile libvorbis/incarcerate libtheora/Makefile libtheora/incarcerate libspeex/Makefile libspeex/incarcerate libx264/Makefile libx264/incarcerate libmp3lame/Makefile libmp3lame/incarcerate ffmpeg/Makefile ffmpeg/incarcerate ffmpeg/install.sh ffmpeg/uninstall.sh"
+ac_config_files="$ac_config_files Makefile Makefile.global zlib/Makefile zlib/incarcerate zlib/install.sh zlib/uninstall.sh openssl/Makefile openssl/incarcerate openssl/install.sh openssl/uninstall.sh librtmp/Makefile librtmp/incarcerate librtmp/install.sh librtmp/uninstall.sh libvo-aacenc/Makefile libvo-aacenc/incarcerate libopencore-amr/Makefile libopencore-amr/incarcerate libogg/Makefile libogg/incarcerate libvorbis/Makefile libvorbis/incarcerate libtheora/Makefile libtheora/incarcerate libspeex/Makefile libspeex/incarcerate libx264/Makefile libx264/incarcerate libmp3lame/Makefile libmp3lame/incarcerate ffmpeg/Makefile ffmpeg/incarcerate ffmpeg/install.sh ffmpeg/uninstall.sh"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -16550,6 +16550,10 @@ do
     "zlib/incarcerate") CONFIG_FILES="$CONFIG_FILES zlib/incarcerate" ;;
     "zlib/install.sh") CONFIG_FILES="$CONFIG_FILES zlib/install.sh" ;;
     "zlib/uninstall.sh") CONFIG_FILES="$CONFIG_FILES zlib/uninstall.sh" ;;
+    "openssl/Makefile") CONFIG_FILES="$CONFIG_FILES openssl/Makefile" ;;
+    "openssl/incarcerate") CONFIG_FILES="$CONFIG_FILES openssl/incarcerate" ;;
+    "openssl/install.sh") CONFIG_FILES="$CONFIG_FILES openssl/install.sh" ;;
+    "openssl/uninstall.sh") CONFIG_FILES="$CONFIG_FILES openssl/uninstall.sh" ;;
     "librtmp/Makefile") CONFIG_FILES="$CONFIG_FILES librtmp/Makefile" ;;
     "librtmp/incarcerate") CONFIG_FILES="$CONFIG_FILES librtmp/incarcerate" ;;
     "librtmp/install.sh") CONFIG_FILES="$CONFIG_FILES librtmp/install.sh" ;;
