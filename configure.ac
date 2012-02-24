@@ -24,7 +24,7 @@ else
   VS_CROSSCOMPILE=0
 fi
 AC_SUBST([VS_CROSSCOMPILE])
-AM_CONDITIONAL(VS_CROSSCOMPILE, [test "x${host_alias}" != "x${build_alias} ])
+AM_CONDITIONAL(VS_CROSSCOMPILE, [test "x${host_alias}" != "x${build_alias}" ])
 
 
 LIB_MAJOR_VERSION=VSM4_LIB_MAJOR_VERSION

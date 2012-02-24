@@ -3427,7 +3427,7 @@ else
   VS_CROSSCOMPILE=0
 fi
 
- if test "x${host_alias}" != "x${build_alias} ; then
+ if test "x${host_alias}" != "x${build_alias}" ; then
   VS_CROSSCOMPILE_TRUE=
   VS_CROSSCOMPILE_FALSE='#'
 else
