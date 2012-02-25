@@ -16,32 +16,44 @@
  * -------------------------------------------------------------------
  */
 
-#ifndef WAV_H
-#define WAV_H
-
 #include <stdio.h>
+#include <stdint.h>
+#include <math.h>
+#include <interf_enc.h>
 
-class WavWriter {
-public:
-	WavWriter(const char *filename, int sampleRate, int bitsPerSample, int channels);
-	~WavWriter();
+int main(int argc, char *argv[]) {
+	int i, j;
+	void* amr;
+	FILE* out;
+	int sample_pos = 0;
 
-	void writeData(const unsigned char* data, int length);
+	if (argc < 2) {
+		fprintf(stderr, "%s out.amr\n", argv[0]);
+		return 1;
+	}
 
-private:
-	void writeString(const char *str);
-	void writeInt32(int value);
-	void writeInt16(int value);
+	amr = Encoder_Interface_init(0);
+	out = fopen(argv[1], "wb");
+	if (!out) {
+		perror(argv[1]);
+		return 1;
+	}
 
-	void writeHeader(int length);
+	fwrite("#!AMR\n", 1, 6, out);
+	for (i = 0; i < 1000; i++) {
+		short buf[160];
+		uint8_t outbuf[500];
+		int n;
+		for (j = 0; j < 160; j++) {
+			buf[j] = 32767*sin(440*2*3.141592654*sample_pos/8000);
+			sample_pos++;
+		}
+		n = Encoder_Interface_Encode(amr, MR475, buf, outbuf, 0);
+		fwrite(outbuf, 1, n, out);
+	}
+	fclose(out);
+	Encoder_Interface_exit(amr);
 
-	FILE *wav;
-	int dataLength;
-
-	int sampleRate;
-	int bitsPerSample;
-	int channels;
-};
-
-#endif
+	return 0;
+}
 

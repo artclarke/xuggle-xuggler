@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (C) 1998-2010 PacketVideo
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -522,7 +522,6 @@ extern "C"
 
     static inline   int32 fxp_mul32_by_16b(int32 L_var1, const int32 L_var2)
     {
-
         int32 L_mul = (int32)(((int64)L_var1 * (L_var2 << 16)) >> 32);
 
         return L_mul;

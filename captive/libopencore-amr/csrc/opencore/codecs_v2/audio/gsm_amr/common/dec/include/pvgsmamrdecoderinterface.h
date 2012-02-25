@@ -188,6 +188,7 @@ typedef struct tPVAmrDecoderExternal
 class CDecoder_AMRInterface
 {
     public:
+        virtual ~CDecoder_AMRInterface() {};
         OSCL_IMPORT_REF virtual int32 StartL(tPVAmrDecoderExternal * pExt,
                                              bool aAllocateInputBuffer  = false,
                                              bool aAllocateOutputBuffer = false) = 0;

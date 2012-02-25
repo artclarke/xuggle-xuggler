@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (C) 1998-2010 PacketVideo
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -87,22 +87,7 @@ extern "C"
     ; GLOBAL FUNCTION DEFINITIONS
     ; Function Prototype declaration
     ----------------------------------------------------------------------------*/
-#if defined(PV_ARM_V5) /* Instructions for ARM Assembly on ADS*/
-
-    __inline Word32 L_add(register Word32 L_var1, register Word32 L_var2, Flag *pOverflow)
-    {
-        Word32 result;
-
-        OSCL_UNUSED_ARG(pOverflow);
-        __asm
-        {
-            QADD result, L_var1, L_var2
-        }
-        return(result);
-    }
-
-#elif defined(PV_ARM_GCC_V5) /* Instructions for ARM-linux cross-compiler*/
-
+#if   ((PV_CPU_ARCH_VERSION >=5) && (PV_COMPILER == EPV_ARM_GNUC))/* Instructions for ARM-linux cross-compiler*/
     __inline Word32 L_add(register Word32 L_var1, register Word32 L_var2, Flag *pOverflow)
     {
         register Word32 ra = L_var1;

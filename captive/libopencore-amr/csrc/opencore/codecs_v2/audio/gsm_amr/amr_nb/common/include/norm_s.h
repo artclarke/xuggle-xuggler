@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (C) 1998-2010 PacketVideo
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -86,31 +86,9 @@ extern "C"
     ; GLOBAL FUNCTION DEFINITIONS
     ; Function Prototype declaration
     ----------------------------------------------------------------------------*/
-#if !( defined(PV_ARM_V5) || defined(PV_ARM_GCC_V5) )
 
-    /* C EQUIVALENT */
 
-    OSCL_IMPORT_REF Word16 norm_s(Word16 var1);
-
-#elif defined(PV_ARM_V5)
-
-    __inline Word16  norm_s(Word16 var)
-    {
-        register Word32 var_out = 0;
-        Word32 var1 = var << 16;
-
-        __asm
-        {
-            CMP    var1, #0
-            EORNE  var1, var1, var1, LSL #1
-            CLZNE  var_out, var1
-        }
-
-        return ((Word16)var_out);
-    }
-
-#elif defined(PV_ARM_GCC_V5)
-
+#if   ((PV_CPU_ARCH_VERSION >=5) && (PV_COMPILER == EPV_ARM_GNUC))
     static inline Word16 norm_s(Word16 var1)
     {
         register Word32 var_out = 0;
@@ -118,7 +96,7 @@ extern "C"
         if (ra)
         {
             ra ^= (ra << 1);
-            asm volatile(
+            __asm__ volatile(
                 "clz %0, %1"
     : "=r"(var_out)
                         : "r"(ra)
@@ -126,7 +104,9 @@ extern "C"
         }
         return (var_out);
     }
-
+#else
+    /*C EQUIVALENT */
+    OSCL_IMPORT_REF Word16 norm_s(Word16 var1);
 #endif
     /*----------------------------------------------------------------------------
     ; END
@@ -136,5 +116,3 @@ extern "C"
 #endif
 
 #endif
-
-

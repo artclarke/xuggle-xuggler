@@ -16,24 +16,22 @@
  * -------------------------------------------------------------------
  */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <interf_dec.h>
-#include <interf_enc.h>
-#include <dec_if.h>
+#ifndef WAVREADER_H
+#define WAVREADER_H
 
-int main(int argc, char *argv[]) {
-#ifndef DISABLE_AMRNB_DECODER
-	void* amrnb = Decoder_Interface_init();
-	Decoder_Interface_exit(amrnb);
+#ifdef __cplusplus
+extern "C" {
 #endif
-#ifndef DISABLE_AMRNB_ENCODER
-	void* amrnb_enc = Encoder_Interface_init(0);
-	Encoder_Interface_exit(amrnb_enc);
-#endif
-	void* amrwb = D_IF_init();
-	D_IF_exit(amrwb);
-	return 0;
+
+void* wav_read_open(const char *filename);
+void wav_read_close(void* obj);
+
+int wav_get_header(void* obj, int* format, int* channels, int* sample_rate, int* bits_per_sample, unsigned int* data_length);
+int wav_read_data(void* obj, unsigned char* data, unsigned int length);
+
+#ifdef __cplusplus
 }
+#endif
+
+#endif
 

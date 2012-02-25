@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (C) 1998-2010 PacketVideo
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,6 +40,7 @@ terms listed above has been obtained from the copyright holder.
 *
 ********************************************************************************
 */
+#include "oscl_base_macros.h"// has integer values of PV_COMPILER
 #ifndef typedef_h
 #define typedef_h "$Id $"
 

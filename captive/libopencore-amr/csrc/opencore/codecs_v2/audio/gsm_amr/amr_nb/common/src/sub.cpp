@@ -157,7 +157,7 @@ OSCL_EXPORT_REF Word16 sub(Word16 var1, Word16 var2, Flag *pOverflow)
     /*  to conserve MIPS, i.e., var_out = saturate (diff)  */
 
 
-    if ((UWord32)(diff - 0xFFFF8000L) > 0x000FFFF)
+    if ((UWord32)(diff + 32768) > 0x000FFFF)
     {
         if (diff > (Word32) 0x0007FFFL)
         {

@@ -1,10 +1,11 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_INIT([opencore-amr], [0.1.2], [https://sourceforge.net/apps/trac/opencore-amr/])
+AC_INIT([opencore-amr], [0.1.3], [http://sourceforge.net/projects/opencore-amr/])
 AC_CONFIG_AUX_DIR(.)
 AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE([tar-ustar])
+m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_CONFIG_HEADERS([config.h])
 AM_MAINTAINER_MODE
 
@@ -18,9 +19,29 @@ AC_ARG_ENABLE([compile-c],
                [enable compiling as C program (default is yes)])],
             [compile_as_c=$enableval],
             [compile_as_c=yes])
+AC_ARG_ENABLE([gcc-armv5],
+            [AS_HELP_STRING([--enable-gcc-armv5],
+               [enable GCC specific ARMv5 assembler (default is no)])],
+            [gcc_armv5=$enableval], [gcc_armv5=no])
+AC_ARG_ENABLE([amrnb-encoder],
+            [AS_HELP_STRING([--enable-amrnb-encoder],
+               [enable AMR-NB encoder (default is yes)])],
+            [amrnb_encoder=$enableval], [amrnb_encoder=yes])
+AC_ARG_ENABLE([amrnb-decoder],
+            [AS_HELP_STRING([--enable-amrnb-decoder],
+               [enable AMR-NB decoder (default is yes)])],
+            [amrnb_decoder=$enableval], [amrnb_decoder=yes])
+AC_ARG_ENABLE([examples],
+            [AS_HELP_STRING([--enable-examples],
+               [enable example encoding/decoding programs (default is no)])],
+            [examples=$enableval], [examples=no])
 
 # Automake conditionals to set
 AM_CONDITIONAL(COMPILE_AS_C, test x$compile_as_c = xyes)
+AM_CONDITIONAL(GCC_ARMV5, test x$gcc_armv5 = xyes)
+AM_CONDITIONAL(AMRNB_ENCODER, test x$amrnb_encoder = xyes)
+AM_CONDITIONAL(AMRNB_DECODER, test x$amrnb_decoder = xyes)
+AM_CONDITIONAL(EXAMPLES, test x$examples = xyes)
 
 # Checks for programs.
 AC_PROG_CXX
@@ -58,8 +79,8 @@ AC_CHECK_FUNCS([memset])
 # OpenCORE AMR soname version to use
 # goes by ‘current[:revision[:age]]’ with the soname ending up as
 # current.age.revision.
-OPENCORE_AMRNB_VERSION=0:2:0
-OPENCORE_AMRWB_VERSION=0:2:0
+OPENCORE_AMRNB_VERSION=0:3:0
+OPENCORE_AMRWB_VERSION=0:3:0
 AC_SUBST(OPENCORE_AMRNB_VERSION)
 AC_SUBST(OPENCORE_AMRWB_VERSION)
 

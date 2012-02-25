@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (C) 1998-2010 PacketVideo
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,7 +75,7 @@ terms listed above has been obtained from the copyright holder.
                range : 0x8000 <= var_out <= 0x7fff.
  ----------------------------------------------------------------------------*/
 
-static inline int16 negate_int16(int16 var1)
+static inline  int16 negate_int16(int16 var1)
 {
     return (((var1 == MIN_16) ? MAX_16 : -var1));
 }
@@ -105,7 +105,7 @@ static inline int16 negate_int16(int16 var1)
                range : 0x8000 <= var_out <= 0x7fff.
  ----------------------------------------------------------------------------*/
 
-static inline int16 shl_int16(int16 var1, int16 var2)
+static inline  int16 shl_int16(int16 var1, int16 var2)
 {
     int16 var_out;
 
@@ -149,7 +149,7 @@ static inline int16 shl_int16(int16 var1, int16 var2)
 
  ----------------------------------------------------------------------------*/
 
-static inline int32 shl_int32(int32 L_var1, int16 var2)
+static inline  int32 shl_int32(int32 L_var1, int16 var2)
 {
     int32 L_var_out;
 
@@ -193,7 +193,7 @@ static inline int32 shl_int32(int32 L_var1, int16 var2)
 
  ----------------------------------------------------------------------------*/
 
-static inline int32 shr_int32(int32 L_var1, int16 var2)
+static inline  int32 shr_int32(int32 L_var1, int16 var2)
 {
     int32 L_var_out;
 
@@ -220,11 +220,7 @@ static inline int32 shr_int32(int32 L_var1, int16 var2)
 
 
 
-#if defined(PV_ARM_V5)
-
-#include "pvamrwbdecoder_basic_op_armv5.h"
-
-#elif defined(PV_ARM_GCC_V5)
+#if   ((PV_CPU_ARCH_VERSION >=5) && (PV_COMPILER == EPV_ARM_GNUC))
 
 #include "pvamrwbdecoder_basic_op_gcc_armv5.h"
 

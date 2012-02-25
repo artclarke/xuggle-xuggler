@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (C) 1998-2010 PacketVideo
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,13 +42,12 @@ terms listed above has been obtained from the copyright holder.
 #ifndef PVAMRWBDECODER_BASIC_OP_GCC_ARMV5_H
 #define PVAMRWBDECODER_BASIC_OP_GCC_ARMV5_H
 
+
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-
-#if (defined(PV_ARM_GCC_V5)||defined(PV_ARM_GCC_V4))
 
     static inline int16 sub_int16(int16 var1, int16 var2)
     {
@@ -300,7 +299,6 @@ extern "C"
 #define fxp_mul32_by_16b( a, b)   fxp_mul32_by_16( a, b)
 
 
-#endif
 
 #ifdef __cplusplus
 }

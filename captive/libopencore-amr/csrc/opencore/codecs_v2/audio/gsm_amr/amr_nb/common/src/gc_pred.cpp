@@ -479,7 +479,7 @@ OSCL_EXPORT_REF void gc_pred(
 
     ener_code <<= 4;
 
-    if (ener_code < 0)      /*  Check for saturation */
+    if ((ener_code >> 31))     /*  Check for saturation */
     {
         ener_code = MAX_32;
     }
@@ -648,7 +648,7 @@ OSCL_EXPORT_REF void gc_pred(
             *pOverflow = 1;
             L_tmp = MAX_32;
         }
-        else if (L_tmp < (Word32) 0xffe00000L)
+        else if (L_tmp < -2097152)
         {
             *pOverflow = 1;
             L_tmp = MIN_32;

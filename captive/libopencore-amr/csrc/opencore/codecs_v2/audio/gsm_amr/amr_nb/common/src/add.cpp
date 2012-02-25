@@ -158,7 +158,7 @@ OSCL_EXPORT_REF Word16 add_16(Word16 var1, Word16 var2, Flag *pOverflow)
         *pOverflow = 1;
         sum = MAX_16;
     }
-    else if (sum < (Word32) 0xffff8000L)
+    else if (sum < (Word32) - 32768)
     {
         *pOverflow = 1;
         sum = MIN_16;

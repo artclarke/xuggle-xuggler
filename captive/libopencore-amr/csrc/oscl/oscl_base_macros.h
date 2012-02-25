@@ -16,24 +16,10 @@
  * -------------------------------------------------------------------
  */
 
-#include <stdio.h>
-#include <stdint.h>
-#include <string.h>
-#include <interf_dec.h>
-#include <interf_enc.h>
-#include <dec_if.h>
+#ifndef OSCL_BASE_MACROS_H
+#define OSCL_BASE_MACROS_H
 
-int main(int argc, char *argv[]) {
-#ifndef DISABLE_AMRNB_DECODER
-	void* amrnb = Decoder_Interface_init();
-	Decoder_Interface_exit(amrnb);
-#endif
-#ifndef DISABLE_AMRNB_ENCODER
-	void* amrnb_enc = Encoder_Interface_init(0);
-	Encoder_Interface_exit(amrnb_enc);
-#endif
-	void* amrwb = D_IF_init();
-	D_IF_exit(amrwb);
-	return 0;
-}
+#define EPV_ARM_GNUC 1
+#define EPV_ARM_RVCT 2
 
+#endif

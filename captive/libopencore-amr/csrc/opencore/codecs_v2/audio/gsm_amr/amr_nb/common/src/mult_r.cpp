@@ -173,7 +173,7 @@ OSCL_EXPORT_REF Word16 mult_r(Word16 var1, Word16 var2, Flag *pOverflow)
         *pOverflow = 1;
         L_product_arr = MAX_16;
     }
-    else if (L_product_arr < (Word32) 0xffff8000L)
+    else if (L_product_arr < (Word32) - 32768)
     {
         *pOverflow = 1;
         L_product_arr = MIN_16;

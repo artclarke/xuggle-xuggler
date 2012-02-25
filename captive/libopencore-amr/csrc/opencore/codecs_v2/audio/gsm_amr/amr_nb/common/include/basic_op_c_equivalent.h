@@ -117,9 +117,9 @@ extern "C"
 
         if ((L_var1 ^ L_var2) >= 0)
         {
-            if ((L_sum ^ L_var1) < 0)
+            if ((L_sum ^ L_var1) >> 31)
             {
-                L_sum = (L_var1 < 0) ? MIN_32 : MAX_32;
+                L_sum = (L_var1 >> 31) ? MIN_32 : MAX_32;
                 *pOverflow = 1;
             }
         }
@@ -155,11 +155,11 @@ extern "C"
 
         L_diff = L_var1 - L_var2;
 
-        if ((L_var1 ^ L_var2) < 0)
+        if ((L_var1 ^ L_var2) >> 31)
         {
             if ((L_diff ^ L_var1) & MIN_32)
             {
-                L_diff = (L_var1 < 0L) ? MIN_32 : MAX_32;
+                L_diff = (L_var1 >> 31) ? MIN_32 : MAX_32;
                 *pOverflow = 1;
             }
         }
@@ -202,9 +202,9 @@ extern "C"
             /* Check if L_sum and L_var_3 share the same sign */
             if ((L_var3 ^ result) > 0)
             {
-                if ((L_sum ^ L_var3) < 0)
+                if ((L_sum ^ L_var3) >> 31)
                 {
-                    L_sum = (L_var3 < 0) ? MIN_32 : MAX_32;
+                    L_sum = (L_var3 >> 31) ? MIN_32 : MAX_32;
                     *pOverflow = 1;
                 }
             }
@@ -342,9 +342,9 @@ extern "C"
 
         if ((L_product ^ product32) > 0)
         {
-            if ((L_sum ^ L_product) < 0)
+            if ((L_sum ^ L_product) >> 31)
             {
-                L_sum = (L_product < 0) ? MIN_32 : MAX_32;
+                L_sum = (L_product >> 31) ? MIN_32 : MAX_32;
             }
         }
 
@@ -358,9 +358,9 @@ extern "C"
 
         if ((L_product ^ product32) > 0)
         {
-            if ((L_sum ^ L_product) < 0)
+            if ((L_sum ^ L_product) >> 31)
             {
-                L_sum = (L_product < 0) ? MIN_32 : MAX_32;
+                L_sum = (L_product >> 31) ? MIN_32 : MAX_32;
             }
         }
         return (L_sum);
@@ -413,9 +413,9 @@ extern "C"
 
         if ((L_product ^ result) > 0)
         {
-            if ((L_sum ^ L_product) < 0)
+            if ((L_sum ^ L_product) >> 31)
             {
-                L_sum = (L_product < 0) ? MIN_32 : MAX_32;
+                L_sum = (L_product >> 31) ? MIN_32 : MAX_32;
                 *pOverflow = 1;
             }
         }

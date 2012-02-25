@@ -10,8 +10,17 @@ OSCL = $(top_srcdir)/oscl
 AM_CFLAGS = -I$(OSCL) -I$(DEC_SRC_DIR) -I$(DEC_DIR)/include \
     -I$(AMR_BASE)/common/dec/include
 
+if GCC_ARMV5
+    AM_CFLAGS += -DPV_CPU_ARCH_VERSION=5 -DPV_COMPILER=1
+endif
+
 if COMPILE_AS_C
     AM_CFLAGS += -x c -std=c99
+    libopencore_amrwb_la_LINK = $(LINK) $(libopencore_amrwb_la_LDFLAGS)
+    # Mention a dummy pure C file to trigger generation of the $(LINK) variable
+    nodist_EXTRA_libopencore_amrwb_la_SOURCES = dummy.c
+else
+    libopencore_amrwb_la_LINK = $(CXXLINK) $(libopencore_amrwb_la_LDFLAGS)
 endif
 
 AM_CXXFLAGS = $(AM_CFLAGS)
@@ -24,7 +33,8 @@ pkgconfig_DATA = opencore-amrwb.pc
 
 lib_LTLIBRARIES = libopencore-amrwb.la
 
-libopencore_amrwb_la_LDFLAGS = -version-info @OPENCORE_AMRWB_VERSION@
+libopencore_amrwb_la_LDFLAGS = -version-info @OPENCORE_AMRWB_VERSION@ -no-undefined -export-symbols $(top_srcdir)/amrwb/opencore-amrwb.sym
+EXTRA_DIST = $(top_srcdir)/amrwb/opencore-amrwb.sym
 
 # Our sources to include. There are certain sources we exclude and they are
 # $(DEC_SRC_DIR)/decoder_amr_wb.cpp
@@ -70,4 +80,3 @@ libopencore_amrwb_la_SOURCES = \
         $(DEC_SRC_DIR)/wb_syn_filt.cpp \
         $(DEC_SRC_DIR)/weight_amrwb_lpc.cpp
 
-EXTRA_DIST = Makefile.alt

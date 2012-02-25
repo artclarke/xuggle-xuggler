@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (C) 1998-2010 PacketVideo
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -88,34 +88,12 @@ extern "C"
     ; GLOBAL FUNCTION DEFINITIONS
     ; Function Prototype declaration
     ----------------------------------------------------------------------------*/
-#if defined(PV_ARM_V5) /* Instructions for ARM Assembly on ADS*/
+#if   ((PV_CPU_ARCH_VERSION >=5) && (PV_COMPILER == EPV_ARM_GNUC))/* Instructions for ARM-linux cross-compiler*/
 
-    __inline Word32 Mpy_32_16(Word16 L_var1_hi,
+    static inline Word32 Mpy_32_16(Word16 L_var1_hi,
     Word16 L_var1_lo,
     Word16 var2,
     Flag *pOverflow)
-    {
-
-        Word32 L_product;
-        Word32 L_sum;
-        Word32 result;
-
-        OSCL_UNUSED_ARG(pOverflow);
-
-        __asm {SMULBB L_product, L_var1_hi, var2}
-        __asm {QDADD L_product, 0, L_product}
-        __asm {SMULBB result, L_var1_lo, var2}
-        result >>= 15;
-        __asm {QDADD L_sum, L_product, result}
-        return (L_sum);
-    }
-
-#elif defined(PV_ARM_GCC_V5) /* Instructions for ARM-linux cross-compiler*/
-
-    static inline Word32 Mpy_32_16(Word16 L_var1_hi,
-                                   Word16 L_var1_lo,
-                                   Word16 var2,
-                                   Flag *pOverflow)
     {
 
         register Word32 ra = L_var1_hi;
@@ -125,29 +103,29 @@ extern "C"
 
         OSCL_UNUSED_ARG(pOverflow);
 
-        asm volatile("smulbb %0, %1, %2"
+        __asm__ volatile("smulbb %0, %1, %2"
              : "=r"(L_product)
                              : "r"(ra), "r"(rc)
                             );
-        asm volatile("mov %0, #0"
+        __asm__ volatile("mov %0, #0"
              : "=r"(result)
                     );
 
-        asm volatile("qdadd %0, %1, %2"
+        __asm__ volatile("qdadd %0, %1, %2"
              : "=r"(L_product)
                              : "r"(result), "r"(L_product)
                             );
 
-        asm volatile("smulbb %0, %1, %2"
+        __asm__ volatile("smulbb %0, %1, %2"
              : "=r"(result)
                              : "r"(rb), "r"(rc)
                             );
 
-        asm volatile("mov %0, %1, ASR #15"
+        __asm__ volatile("mov %0, %1, ASR #15"
              : "=r"(ra)
                              : "r"(result)
                             );
-        asm volatile("qdadd %0, %1, %2"
+        __asm__ volatile("qdadd %0, %1, %2"
              : "=r"(result)
                              : "r"(L_product), "r"(ra)
                             );

@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (C) 1998-2010 PacketVideo
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -153,7 +153,7 @@ Word16 norm_s (Word16 var1)
 /*----------------------------------------------------------------------------
 ; FUNCTION CODE
 ----------------------------------------------------------------------------*/
-#if !( defined(PV_ARM_V5) || defined(PV_ARM_GCC_V5) )
+#if !((PV_CPU_ARCH_VERSION >=5) && ((PV_COMPILER == EPV_ARM_GNUC) || (PV_COMPILER == EPV_ARM_RVCT)))
 
 OSCL_EXPORT_REF Word16 norm_s(register Word16 var1)
 {

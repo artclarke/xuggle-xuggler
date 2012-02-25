@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (C) 1998-2010 PacketVideo
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -296,7 +296,8 @@ void Post_Process(
         L_tmp += ((Word32) st->x0) * c_b0;
         L_tmp += ((Word32) st->x1) * c_b1;
         L_tmp += ((Word32) x2) * c_b2;
-        L_tmp <<= 3;
+
+        L_tmp = L_shl(L_tmp, 3, pOverflow);
 
 
         /* Multiplication by two of output speech with saturation. */

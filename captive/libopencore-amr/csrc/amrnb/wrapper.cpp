@@ -24,6 +24,7 @@
 #include "interf_enc.h"
 #include <stdlib.h>
 
+#ifndef DISABLE_AMRNB_DECODER
 void* Decoder_Interface_init(void) {
 	void* ptr = NULL;
 	GSMInitDecode(&ptr, (int8*)"Decoder");
@@ -39,7 +40,9 @@ void Decoder_Interface_Decode(void* state, const unsigned char* in, short* out, 
 	in++;
 	AMRDecode(state, (enum Frame_Type_3GPP) type, (UWord8*) in, out, MIME_IETF);
 }
+#endif
 
+#ifndef DISABLE_AMRNB_ENCODER
 struct encoder_state {
 	void* encCtx;
 	void* pidSyncCtx;
@@ -64,4 +67,5 @@ int Encoder_Interface_Encode(void* s, enum Mode mode, const short* speech, unsig
 	out[0] |= 0x04;
 	return ret;
 }
+#endif
 

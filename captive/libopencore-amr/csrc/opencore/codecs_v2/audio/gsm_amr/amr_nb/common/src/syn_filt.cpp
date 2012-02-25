@@ -225,7 +225,7 @@ OSCL_EXPORT_REF void Syn_filt(
         }
 
         /* check for overflow on s1 */
-        if ((UWord32)(s1 - 0xf8000000L) < 0x0fffffffL)
+        if ((UWord32)(s1 + 134217728) < 0x0fffffffL)
         {
             temp = (Word16)(s1 >> 12);
         }
@@ -246,7 +246,7 @@ OSCL_EXPORT_REF void Syn_filt(
         p_yy1 = yy;
 
         /* check for overflow on s2 */
-        if ((UWord32)(s2 - 0xf8000000L) < 0x0fffffffL)
+        if ((UWord32)(s2 + 134217728) < 0x0fffffffL)
         {
             temp = (Word16)(s2 >> 12);
         }
@@ -283,7 +283,7 @@ OSCL_EXPORT_REF void Syn_filt(
             s1 = amrnb_fxp_msu_16_by_16bb((Word32) * (p_a++), (Word32) * (p_yy1), s1);
         }
 
-        if ((UWord32)(s1 - 0xf8000000L) < 0x0fffffffL)
+        if ((UWord32)(s1 + 134217728) < 0x0fffffffL)
         {
             temp = (Word16)(s1 >> 12);
         }
@@ -301,7 +301,7 @@ OSCL_EXPORT_REF void Syn_filt(
         *(p_y++) = temp;
         p_yy1 = p_y;
 
-        if ((UWord32)(s2 - 0xf8000000L) < 0x0fffffffL)
+        if ((UWord32)(s2 + 134217728) < 0x0fffffffL)
         {
             *(p_y++) = (Word16)(s2 >> 12);
         }

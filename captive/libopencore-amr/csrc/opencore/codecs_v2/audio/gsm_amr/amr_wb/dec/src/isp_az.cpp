@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (C) 1998-2010 PacketVideo
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -265,11 +265,7 @@ void Isp_Az(
     }
 
     /* a[NC] = 0.5*f1[NC]*(1.0 + isp[M-1]); */
-
-
     t0 = (int32)(((int64)f1[nc] * isp[m - 1]) >> 16) << 1;
-
-
     t0 = add_int32(f1[nc], t0);
 
     /* from Q23 to Q12 and * 0.5 */

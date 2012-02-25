@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (C) 1998-2010 PacketVideo
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -86,21 +86,7 @@ extern "C"
     ; GLOBAL FUNCTION DEFINITIONS
     ; Function Prototype declaration
     ----------------------------------------------------------------------------*/
-#if defined(PV_ARM_V5) /* Instructions for ARM Assembly on ADS*/
-
-    __inline Word32 L_mac(Word32 L_var3, Word16 var1, Word16 var2, Flag *pOverflow)
-    {
-        Word32 result;
-        Word32 L_sum;
-
-        OSCL_UNUSED_ARG(pOverflow);
-
-        __asm {SMULBB result, var1, var2}
-        __asm {QDADD L_sum, L_var3, result}
-        return (L_sum);
-    }
-
-#elif defined(PV_ARM_GCC_V5) /* Instructions for ARM-linux cross-compiler*/
+#if   ((PV_CPU_ARCH_VERSION >=5) && (PV_COMPILER == EPV_ARM_GNUC))/* Instructions for ARM-linux cross-compiler*/
 
     static inline Word32 L_mac(Word32 L_var3, Word16 var1, Word16 var2, Flag *pOverflow)
     {

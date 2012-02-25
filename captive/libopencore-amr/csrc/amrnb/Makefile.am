@@ -14,21 +14,31 @@ OSCL = $(top_srcdir)/oscl
 AM_CFLAGS = -I$(OSCL) -I$(DEC_SRC_DIR) -I$(COMMON_DIR)/include \
     -I$(DEC_DIR)/include -I$(AMR_BASE)/common/dec/include -I$(ENC_SRC_DIR)
 
+if GCC_ARMV5
+    AM_CFLAGS += -DPV_CPU_ARCH_VERSION=5 -DPV_COMPILER=1
+endif
+
 if COMPILE_AS_C
     AM_CFLAGS += -x c -std=c99
+    libopencore_amrnb_la_LINK = $(LINK) $(libopencore_amrnb_la_LDFLAGS)
+    # Mention a dummy pure C file to trigger generation of the $(LINK) variable
+    nodist_EXTRA_libopencore_amrnb_la_SOURCES = dummy.c
+else
+    libopencore_amrnb_la_LINK = $(CXXLINK) $(libopencore_amrnb_la_LDFLAGS)
 endif
 
 AM_CXXFLAGS = $(AM_CFLAGS)
 
 amrnbincludedir = $(includedir)/opencore-amrnb
-amrnbinclude_HEADERS = interf_dec.h interf_enc.h
+amrnbinclude_HEADERS =
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = opencore-amrnb.pc
 
 lib_LTLIBRARIES = libopencore-amrnb.la
 
-libopencore_amrnb_la_LDFLAGS = -version-info @OPENCORE_AMRNB_VERSION@
+libopencore_amrnb_la_LDFLAGS = -version-info @OPENCORE_AMRNB_VERSION@ -no-undefined -export-symbols $(top_srcdir)/amrnb/opencore-amrnb.sym
+EXTRA_DIST = $(top_srcdir)/amrnb/opencore-amrnb.sym
 
 # Our sources to include. There are certain sources we exclude and they are
 # $(DEC_SRC_DIR)/decoder_gsm_amr.cpp
@@ -42,7 +52,10 @@ libopencore_amrnb_la_LDFLAGS = -version-info @OPENCORE_AMRNB_VERSION@
 # $(COMMON_SRC_DIR)/vad1.cpp
 # $(COMMON_SRC_DIR)/vad2.cpp
 libopencore_amrnb_la_SOURCES = \
-    wrapper.cpp \
+    wrapper.cpp
+
+if AMRNB_DECODER
+    libopencore_amrnb_la_SOURCES += \
     $(DEC_SRC_DIR)/agc.cpp \
         $(DEC_SRC_DIR)/amrdecode.cpp \
         $(DEC_SRC_DIR)/a_refl.cpp \
@@ -77,7 +90,14 @@ libopencore_amrnb_la_SOURCES = \
         $(DEC_SRC_DIR)/pstfilt.cpp \
         $(DEC_SRC_DIR)/qgain475_tab.cpp \
         $(DEC_SRC_DIR)/sp_dec.cpp \
-        $(DEC_SRC_DIR)/wmf_to_ets.cpp \
+        $(DEC_SRC_DIR)/wmf_to_ets.cpp
+    amrnbinclude_HEADERS += interf_dec.h
+else
+    AM_CFLAGS += -DDISABLE_AMRNB_DECODER
+endif
+
+if AMRNB_ENCODER
+    libopencore_amrnb_la_SOURCES += \
     $(ENC_SRC_DIR)/amrencode.cpp \
         $(ENC_SRC_DIR)/autocorr.cpp \
         $(ENC_SRC_DIR)/c1035pf.cpp \
@@ -138,12 +158,17 @@ libopencore_amrnb_la_SOURCES = \
         $(ENC_SRC_DIR)/spreproc.cpp \
         $(ENC_SRC_DIR)/spstproc.cpp \
         $(ENC_SRC_DIR)/ton_stab.cpp \
-        $(ENC_SRC_DIR)/vad1.cpp \
+        $(ENC_SRC_DIR)/vad1.cpp
+    amrnbinclude_HEADERS += interf_enc.h
+else
+    AM_CFLAGS += -DDISABLE_AMRNB_ENCODER
+endif
+
+libopencore_amrnb_la_SOURCES += \
     $(COMMON_SRC_DIR)/add.cpp \
         $(COMMON_SRC_DIR)/az_lsp.cpp \
         $(COMMON_SRC_DIR)/bitno_tab.cpp \
         $(COMMON_SRC_DIR)/bitreorder_tab.cpp \
-        $(COMMON_SRC_DIR)/bytesused.cpp \
         $(COMMON_SRC_DIR)/c2_9pf_tab.cpp \
         $(COMMON_SRC_DIR)/div_s.cpp \
         $(COMMON_SRC_DIR)/extract_h.cpp \
@@ -197,4 +222,3 @@ libopencore_amrnb_la_SOURCES = \
         $(COMMON_SRC_DIR)/weight_a.cpp \
         $(COMMON_SRC_DIR)/window_tab.cpp
 
-EXTRA_DIST = Makefile.alt

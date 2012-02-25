@@ -904,7 +904,7 @@ void agc2(
         {
             s = MAX_32;
         }
-        else if (s < (Word32) 0xFF000000L)
+        else if (s < (Word32) - 16777216)
         {
             s = MIN_32;
         }
@@ -920,7 +920,7 @@ void agc2(
         {
             L_temp = MAX_32;
         }
-        else if (s < (Word32) 0xFFC00000L)
+        else if (s < (Word32) - 4194304)
         {
             L_temp = MIN_32;
         }
@@ -940,7 +940,7 @@ void agc2(
         {
             sig_out[i] = MAX_16;
         }
-        else if (L_temp < (Word32) 0xF0000000L)
+        else if (L_temp < (Word32) - 268435456)
         {
             sig_out[i] = MIN_16;
         }

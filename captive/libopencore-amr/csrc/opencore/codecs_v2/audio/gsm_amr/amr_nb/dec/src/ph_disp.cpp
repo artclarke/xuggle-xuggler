@@ -625,7 +625,7 @@ void ph_disp(
         *pOverflow = 1;
         L_temp = MAX_32;
     }
-    else if (L_temp < (Word32) 0xe0000000L)
+    else if (L_temp < (Word32) - 536870912)
     {
         *pOverflow = 1;
         L_temp = MIN_32;

@@ -1,5 +1,5 @@
 /* ------------------------------------------------------------------
- * Copyright (C) 1998-2009 PacketVideo
+ * Copyright (C) 1998-2010 PacketVideo
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -88,47 +88,13 @@ extern "C"
     ; GLOBAL FUNCTION DEFINITIONS
     ; Function Prototype declaration
     ----------------------------------------------------------------------------*/
-#if defined(PV_ARM_V5) /* Instructions for ARM Assembly on ADS*/
+#if   ((PV_CPU_ARCH_VERSION >=5) && (PV_COMPILER == EPV_ARM_GNUC))/* Instructions for ARM-linux cross-compiler*/
 
-    __inline Word32 Mpy_32(Word16 L_var1_hi,
+    static inline Word32 Mpy_32(Word16 L_var1_hi,
     Word16 L_var1_lo,
     Word16 L_var2_hi,
     Word16 L_var2_lo,
     Flag   *pOverflow)
-
-    {
-        /*----------------------------------------------------------------------------
-        ; Define all local variables
-        ----------------------------------------------------------------------------*/
-        Word32 L_product;
-        Word32 L_sum;
-        Word32 product32;
-
-        OSCL_UNUSED_ARG(pOverflow);
-        /*----------------------------------------------------------------------------
-        ; Function body here
-        ----------------------------------------------------------------------------*/
-        /* L_product = L_mult (L_var1_hi, L_var2_hi, pOverflow);*/
-
-        __asm {SMULBB L_product, L_var1_hi, L_var2_hi}
-        __asm {QDADD L_product, 0, L_product}
-        __asm {SMULBB product32, L_var1_hi, L_var2_lo}
-        product32 >>= 15;
-        __asm {QDADD L_sum, L_product, product32}
-        L_product = L_sum;
-        __asm {SMULBB product32, L_var1_lo, L_var2_hi}
-        product32 >>= 15;
-        __asm {QDADD L_sum, L_product, product32}
-        return (L_sum);
-    }
-
-#elif defined(PV_ARM_GCC_V5) /* Instructions for ARM-linux cross-compiler*/
-
-    static inline Word32 Mpy_32(Word16 L_var1_hi,
-                                Word16 L_var1_lo,
-                                Word16 L_var2_hi,
-                                Word16 L_var2_lo,
-                                Flag   *pOverflow)
     {
         register Word32 product32;
         register Word32 L_sum;
