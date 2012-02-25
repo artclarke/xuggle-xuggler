@@ -3,8 +3,8 @@
 /* debug define */
 #undef ABORTFP
 
-/* enable VBR bitrate histogram */
-#undef BRHIST
+/* Define if building universal (internal helper macro) */
+#undef AC_APPLE_UNIVERSAL_BUILD
 
 /* Define to one of `_getb67', `GETB67', `getb67' for Cray-2 and Cray-YMP
    systems. This function is required for `alloca.c' support on those systems.
@@ -22,9 +22,6 @@
 
 /* double is faster than float on Alpha */
 #undef FLOAT
-
-/* float instead of double */
-#undef FLOAT8
 
 /* Define to 1 if you have `alloca', as a function or macro. */
 #undef HAVE_ALLOCA
@@ -47,6 +44,9 @@
 
 /* Define to 1 if you have the `gettimeofday' function. */
 #undef HAVE_GETTIMEOFDAY
+
+/* Define if you have the iconv() function and it works. */
+#undef HAVE_ICONV
 
 /* add ieee754_float32_t type */
 #undef HAVE_IEEE754_FLOAT32_T
@@ -192,11 +192,18 @@
 /* Define to 1 if you have the <xmmintrin.h> header file. */
 #undef HAVE_XMMINTRIN_H
 
+/* Define as const if the declaration of iconv() needs const. */
+#undef ICONV_CONST
+
 /* requested by Frank, seems to be temporary needed for a smooth transition */
 #undef LAME_LIBRARY_BUILD
 
 /* set to 1 if you have libsndfile */
 #undef LIBSNDFILE
+
+/* Define to the sub-directory in which libtool stores uninstalled libraries.
+   */
+#undef LT_OBJDIR
 
 /* use MMX version of choose_table */
 #undef MMX_choose_table
@@ -221,6 +228,9 @@
 
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
+
+/* Define to the home page for this package. */
+#undef PACKAGE_URL
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
@@ -281,11 +291,27 @@
 /* faster log implementation with less but enough precission */
 #undef USE_FAST_LOG
 
-/* build with layer 1 decoding */
-#undef USE_LAYER_1
+/* Enable extensions on AIX 3, Interix.  */
+#ifndef _ALL_SOURCE
+# undef _ALL_SOURCE
+#endif
+/* Enable GNU extensions on systems that have them.  */
+#ifndef _GNU_SOURCE
+# undef _GNU_SOURCE
+#endif
+/* Enable threading extensions on Solaris.  */
+#ifndef _POSIX_PTHREAD_SEMANTICS
+# undef _POSIX_PTHREAD_SEMANTICS
+#endif
+/* Enable extensions on HP NonStop.  */
+#ifndef _TANDEM_SOURCE
+# undef _TANDEM_SOURCE
+#endif
+/* Enable general extensions on Solaris.  */
+#ifndef __EXTENSIONS__
+# undef __EXTENSIONS__
+#endif
 
-/* build with layer 2 decoding */
-#undef USE_LAYER_2
 
 /* Version number of package */
 #undef VERSION
@@ -293,15 +319,16 @@
 /* Define if using the dmalloc debugging malloc package */
 #undef WITH_DMALLOC
 
-/* Define to 1 if your processor stores words with the most significant byte
-   first (like Motorola and SPARC, unlike Intel and VAX). */
-#undef WORDS_BIGENDIAN
-
-/* Define to 1 if on AIX 3.
-   System headers sometimes define this.
-   We just want to avoid a redefinition error message.  */
-#ifndef _ALL_SOURCE
-# undef _ALL_SOURCE
+/* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
+   significant byte first (like Motorola and SPARC, unlike Intel). */
+#if defined AC_APPLE_UNIVERSAL_BUILD
+# if defined __BIG_ENDIAN__
+#  define WORDS_BIGENDIAN 1
+# endif
+#else
+# ifndef WORDS_BIGENDIAN
+#  undef WORDS_BIGENDIAN
+# endif
 #endif
 
 /* Number of bits in a file offset, on hosts where this is settable. */

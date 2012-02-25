@@ -4,7 +4,7 @@
  *	Copyright (c) 2000 Mark Taylor
  *
  * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
+ * modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
  *
@@ -13,13 +13,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU
  * Library General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
+ * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
  */
 
-/* $Id: lametime.c,v 1.18.8.1 2009/01/18 15:44:28 robert Exp $ */
+/* $Id: lametime.c,v 1.21 2011/05/07 16:05:17 rbrito Exp $ */
 
 /*
  * name:        GetCPUTime ( void )
@@ -145,25 +145,5 @@ lame_set_stream_binary_mode(FILE * const fp)
     return 0;
 }
 
-
-#if defined(__riscos__)
-# include <kernel.h>
-# include <sys/swis.h>
-#elif defined(_WIN32)
-# include <sys/types.h>
-# include <sys/stat.h>
-#else
-# include <sys/stat.h>
-#endif
-
-off_t
-lame_get_file_size(const char *const filename)
-{
-    struct stat sb;
-
-    if (0 == stat(filename, &sb))
-        return sb.st_size;
-    return (off_t) - 1;
-}
 
 /* End of lametime.c */

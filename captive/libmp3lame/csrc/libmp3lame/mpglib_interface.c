@@ -7,7 +7,7 @@
  *      Copyright (c) 2008 Robert Hegemann
  *
  * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
+ * modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
  *
@@ -16,13 +16,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Library General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
+ * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
  */
 
-/* $Id: mpglib_interface.c,v 1.35.2.2 2008/10/11 19:08:32 robert Exp $ */
+/* $Id: mpglib_interface.c,v 1.42 2011/05/07 16:05:17 rbrito Exp $ */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -38,7 +38,49 @@
 #include "util.h"
 
 
-static MPSTR   mp; /* ugly, used by obsolete lame_decode functions */
+
+#if DEPRECATED_OR_OBSOLETE_CODE_REMOVED
+/*
+ * OBSOLETE:
+ * - kept to let it link
+ * - forward declaration to silence compiler
+ */
+int CDECL lame_decode_init(void);
+int CDECL lame_decode(
+        unsigned char *  mp3buf,
+        int              len,
+        short            pcm_l[],
+        short            pcm_r[] );
+int CDECL lame_decode_headers(
+        unsigned char*   mp3buf,
+        int              len,
+        short            pcm_l[],
+        short            pcm_r[],
+        mp3data_struct*  mp3data );
+int CDECL lame_decode1(
+        unsigned char*  mp3buf,
+        int             len,
+        short           pcm_l[],
+        short           pcm_r[] );
+int CDECL lame_decode1_headers(
+        unsigned char*   mp3buf,
+        int              len,
+        short            pcm_l[],
+        short            pcm_r[],
+        mp3data_struct*  mp3data );
+int CDECL lame_decode1_headersB(
+        unsigned char*   mp3buf,
+        int              len,
+        short            pcm_l[],
+        short            pcm_r[],
+        mp3data_struct*  mp3data,
+        int              *enc_delay,
+        int              *enc_padding );
+int CDECL lame_decode_exit(void);
+#endif
+
+
+static MPSTR   mp;
 
 int
 lame_decode_exit(void)
@@ -322,7 +364,7 @@ hip_decode1_unclipped(hip_t hip, unsigned char *buffer, size_t len, sample_t pcm
 }
 
 /*
- * For lame_decode:  return code
+ * For hip_decode:  return code
  *  -1     error
  *   0     ok, but need more data before outputing any samples
  *   n     number of samples output.  Will be at most one frame of
@@ -403,6 +445,29 @@ void hip_set_pinfo(hip_t hip, plotting_data* pinfo)
 {
     if (hip) {
         hip->pinfo = pinfo;
+    }
+}
+
+
+
+void hip_set_errorf(hip_t hip, lame_report_function func)
+{
+    if (hip) {
+        hip->report_err = func;
+    }
+}
+
+void hip_set_debugf(hip_t hip, lame_report_function func)
+{
+    if (hip) {
+        hip->report_dbg = func;
+    }
+}
+
+void hip_set_msgf  (hip_t hip, lame_report_function func)
+{
+    if (hip) {
+        hip->report_msg = func;
     }
 }
 

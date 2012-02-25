@@ -55,8 +55,8 @@ extern  "C" {
 #define MAX_SAMP_FREQ   48000L /* maximum allowed sample frequency [Hz] */
 #define RMS_WINDOW_TIME_NUMERATOR    1L
 #define RMS_WINDOW_TIME_DENOMINATOR 20L /* numerator / denominator = time slice size [s] */
-#define STEPS_per_dB      100. /* Table entries per dB */
-#define MAX_dB            120. /* Table entries for 0...MAX_dB (normal max. values are 70...80 dB) */
+#define STEPS_per_dB      100 /* Table entries per dB */
+#define MAX_dB            120 /* Table entries for 0...MAX_dB (normal max. values are 70...80 dB) */
 
     enum { GAIN_NOT_ENOUGH_SAMPLES = -24601, GAIN_ANALYSIS_ERROR = 0, GAIN_ANALYSIS_OK =
             1, INIT_GAIN_ANALYSIS_ERROR = 0, INIT_GAIN_ANALYSIS_OK = 1
@@ -85,8 +85,8 @@ extern  "C" {
         double  rsum;
         int     freqindex;
         int     first;
-        uint32_t A[(size_t) (STEPS_per_dB * MAX_dB)];
-        uint32_t B[(size_t) (STEPS_per_dB * MAX_dB)];
+        uint32_t A[STEPS_per_dB * MAX_dB];
+        uint32_t B[STEPS_per_dB * MAX_dB];
 
     };
 #ifndef replaygain_data_defined
@@ -100,9 +100,7 @@ extern  "C" {
     int     InitGainAnalysis(replaygain_t * rgData, long samplefreq);
     int     AnalyzeSamples(replaygain_t * rgData, const Float_t * left_samples,
                            const Float_t * right_samples, size_t num_samples, int num_channels);
-    int     ResetSampleFrequency(replaygain_t * rgData, long samplefreq);
     Float_t GetTitleGain(replaygain_t * rgData);
-    Float_t GetAlbumGain(replaygain_t * rgData);
 
 
 #ifdef __cplusplus

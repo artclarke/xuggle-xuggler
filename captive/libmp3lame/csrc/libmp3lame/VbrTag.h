@@ -4,7 +4,7 @@
  *      Copyright (c) 1999 A.L. Faber
  *
  * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
+ * modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
  *
@@ -13,7 +13,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Library General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
+ * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
@@ -47,8 +47,11 @@
 
 #define NUMTOCENTRIES 100
 
-#define FRAMES_AND_BYTES (FRAMES_FLAG | BYTES_FLAG)
-
+#ifndef lame_internal_flags_defined
+#define lame_internal_flags_defined
+struct lame_internal_flags;
+typedef struct lame_internal_flags lame_internal_flags;
+#endif
 
 
 /*structure to receive extracted header */
@@ -66,13 +69,11 @@ typedef struct {
     int     enc_padding;     /* encoder paddign added at end of stream */
 } VBRTAGDATA;
 
-int     CheckVbrTag(unsigned char *buf);
-int     GetVbrTag(VBRTAGDATA * pTagData, unsigned char *buf);
+int     GetVbrTag(VBRTAGDATA * pTagData, const unsigned char *buf);
 
-int     SeekPoint(unsigned char TOC[NUMTOCENTRIES], int file_bytes, float percent);
 int     InitVbrTag(lame_global_flags * gfp);
-int     PutVbrTag(lame_global_flags const* gfp, FILE * fid);
-void    AddVbrFrame(lame_global_flags * gfp);
-void    UpdateMusicCRC(uint16_t * crc, unsigned char *buffer, int size);
+int     PutVbrTag(lame_global_flags const *gfp, FILE * fid);
+void    AddVbrFrame(lame_internal_flags * gfc);
+void    UpdateMusicCRC(uint16_t * crc, const unsigned char *buffer, int size);
 
 #endif

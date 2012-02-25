@@ -1,4 +1,4 @@
-.TH lame 1 "July 08, 2008" "LAME 3.98" "LAME audio compressor"
+.TH lame 1 "July 08, 2008" "LAME 3.99" "LAME audio compressor"
 .SH NAME
 lame \- create mp3 audio files
 .SH SYNOPSIS
@@ -10,7 +10,7 @@ LAME is a program which can be used to create compressed audio files.
 These audio files can be played back by popular MP3 players such as
 mpg123 or madplay.
 To read from stdin, use "\-" for <infile>.
-To write to stdout, use a "\-" for <outfile>.
+To write to stdout, use "\-" for <outfile>.
 .SH OPTIONS
 Input options:
 .TP
@@ -110,7 +110,7 @@ Operational options:
 .TP
 .BI \-m  " mode"
 .I mode
-= s, j, f, d, m
+= s, j, f, d, m, l, r
 
 Joint-stereo is the default mode for stereo files with VBR when
 .B \-V
@@ -175,6 +175,19 @@ If it was a stereo signal,
 it will be downsampled to mono.
 The downmix is calculated as the sum of the left and right channel,
 attenuated by 6 dB.
+
+.B (l)eft channel only
+.br
+The input will be encoded as a mono signal.
+If it was a stereo signal,
+the left channel will be encoded only.
+
+.B (r)ight channel only
+.br
+The input will be encoded as a mono signal.
+If it was a stereo signal,
+the right channel will be encoded only.
+
 .TP
 .B \-a
 Mix the stereo input file to mono and encode as mono.
@@ -412,7 +425,7 @@ disabled in the build of LAME.
 See also:
 .B \-\-replaygain-accurate
 .TP
-.B \-\-preset " [fast] type | [cbr] kbps"
+.B \-\-preset " type | [cbr] kbps"
 Use one of the built-in presets.
 
 Have a look at the PRESETS section below.
@@ -420,7 +433,7 @@ Have a look at the PRESETS section below.
 .B \-\-preset help
 gives more infos about the the used options in these presets.
 .TP
-.B \-\-preset " [fast] type | [cbr] kbps"
+.B \-\-preset " type | [cbr] kbps"
 Use one of the built-in  presets.
 .TP
 .B \-\-noasm " type"
@@ -684,27 +697,6 @@ i.e. when the music level is below the absolute threshold of
 human hearing (ATH). 
 
 .PP
-PSY related:
-.TP
-.B \-\-nssafejoint
-M/S switching criterion
-.TP
-.BI \-\-nsmsfix " arg"
-M/S switching tuning [effective 0-3.5]
-.TP
-.BI \-\-ns-bass " x"
-Adjust masking for sfbs  0 -  6 (long)  0 -  5 (short)
-.TP
-.BI \-\-ns-alto " x"
-Adjust masking for sfbs  7 - 13 (long)  6 - 10 (short)
-.TP
-.BI \-\-ns-treble " x"
-Adjust masking for sfbs 14 - 21 (long) 11 - 12 (short)
-.TP
-.BI \-\-ns-sfb21 " x"
-Change ns-treble by x dB for sfb21
-
-.PP
 Experimental options:
 .TP
 .BI -X " n"
@@ -724,7 +716,7 @@ being the default mode:
 
 .B -X0 
 .br
-The criterions are (in order of importance):
+The criteria are (in order of importance):
 .br
 * less distorted scalefactor bands
 .br
@@ -754,7 +746,7 @@ Not yet documented.
 
 .B -X5
 .br
-The criterions are (in order of importance):
+The criteria are (in order of importance):
 .br
 * the sum of noise over the thresholds is lower 
 .br
@@ -762,7 +754,7 @@ The criterions are (in order of importance):
 
 .B -X6 
 .br
-The criterions are (in order of importance):
+The criteria are (in order of importance):
 .br
 * the sum of noise over the thresholds is lower
 .br
@@ -772,7 +764,7 @@ The criterions are (in order of importance):
 
 .B -X7 
 .br
-The criterions are:
+The criteria are:
 .br
 * less distorted scalefactor bands
 .br
@@ -900,6 +892,12 @@ add only a version 1 tag
 .B \-\-id3v2-only
 add only a version 2 tag
 .TP
+.B \-\-id3v2-latin1
+add following options in ISO-8859-1 text encoding.
+.TP
+.B \-\-id3v2-utf16
+add following options in unicode text encoding.
+.TP
 .B \-\-space-id3v1
 pad version 1 tag with spaces instead of nulls
 .TP
@@ -1020,13 +1018,10 @@ and usually will not attain the same level of quality as VBR at higher bitrates.
 .PP
 The following options are also available for the corresponding profiles:
 .PP
-.B fast standard|extreme
+.B standard|extreme
 .br
 .B cbr " kbps"
 .PP
-.TP
-.B fast
-Enables the new fast VBR for a particular profile.
 .TP
 .B cbr
 If you use the ABR mode (read above) with a significant bitrate such as 80,
@@ -1115,10 +1110,10 @@ with downsampling to 22.05 kHz:
 
 .LP
 Encode with the
-.B fast standard
+.B standard
 preset:
 .IP
-.B lame \-\-preset fast standard
+.B lame \-\-preset standard
 .I sample.wav sample.mp3
 
 .SH BUGS

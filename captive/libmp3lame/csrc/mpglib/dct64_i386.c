@@ -28,7 +28,7 @@
  * even for Intel processors.
  */
 
-/* $Id: dct64_i386.c,v 1.10.10.2 2010/03/22 14:17:14 robert Exp $ */
+/* $Id: dct64_i386.c,v 1.14 2010/03/22 14:30:19 robert Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>

@@ -21,6 +21,8 @@
 #ifndef _MPGLIB_H_
 #define _MPGLIB_H_
 
+#include "lame.h"
+
 #ifndef plotting_data_defined
 #define plotting_data_defined
 struct plotting_data;
@@ -28,7 +30,7 @@ typedef struct plotting_data plotting_data;
 #endif
 
 
-
+extern void lame_report_fnc(lame_report_function f, const char *format, ...);
 
 struct buf {
     unsigned char *pnt;
@@ -65,6 +67,7 @@ typedef struct mpstr_tag {
     int     fsizeold;        /* size of previous frame, -1 for first */
     int     fsizeold_nopadding;
     struct frame fr;         /* holds the parameters decoded from the header */
+    struct III_sideinfo sideinfo;
     unsigned char bsspace[2][MAXFRAMESIZE + 1024]; /* bit stream space used ???? */ /* MAXFRAMESIZE */
     real    hybrid_block[2][2][SBLIMIT * SSLIMIT];
     int     hybrid_blc[2];
@@ -77,6 +80,10 @@ typedef struct mpstr_tag {
     int     bitindex;
     unsigned char *wordpointer;
     plotting_data *pinfo;
+
+    lame_report_function report_msg;
+    lame_report_function report_dbg;
+    lame_report_function report_err;
 } MPSTR, *PMPSTR;
 
 

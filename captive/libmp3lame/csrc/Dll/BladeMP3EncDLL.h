@@ -5,16 +5,16 @@
  * Based on bladedll.h version 1.0 written by Jukka Poikolainen
  *
  * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
+ * modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
  * 
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
+ * Library General Public License for more details.
  * 
- * You should have received a copy of the GNU Lesser General Public
+ * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA  02111-1307, USA.
@@ -42,7 +42,7 @@ extern "C" {
 
 /* type definitions */
 
-typedef		unsigned long			HBE_STREAM;
+typedef		void*			HBE_STREAM;
 typedef		HBE_STREAM				*PHBE_STREAM;
 typedef		unsigned long			BE_ERR;
 
@@ -262,7 +262,7 @@ __declspec(dllexport) BE_ERR	beEncodeChunk(HBE_STREAM hbeStream, DWORD nSamples,
 __declspec(dllexport) BE_ERR	beEncodeChunkFloatS16NI(HBE_STREAM hbeStream, DWORD nSamples, PFLOAT buffer_l, PFLOAT buffer_r, PBYTE pOutput, PDWORD pdwOutput);
 __declspec(dllexport) BE_ERR	beDeinitStream(HBE_STREAM hbeStream, PBYTE pOutput, PDWORD pdwOutput);
 __declspec(dllexport) BE_ERR	beCloseStream(HBE_STREAM hbeStream);
-__declspec(dllexport) VOID		beVersion(PBE_VERSION pbeVersion);
+__declspec(dllexport) VOID	beVersion(PBE_VERSION pbeVersion);
 __declspec(dllexport) BE_ERR	beWriteVBRHeader(LPCSTR lpszFileName);
 __declspec(dllexport) BE_ERR	beFlushNoGap(HBE_STREAM hbeStream, PBYTE pOutput, PDWORD pdwOutput);
 __declspec(dllexport) BE_ERR	beWriteInfoTag( HBE_STREAM hbeStream, LPCSTR lpszFileName );

@@ -17,7 +17,7 @@
 		EnableFunctionLevelLinking="true"
 		AssemblerListingLocation="$(IntDir)\"
 		BrowseInformation="1"
-		WarningLevel="3"
+		WarningLevel="4"
 		DisableSpecificWarnings="4995;4996"
 	/>
 	<Tool

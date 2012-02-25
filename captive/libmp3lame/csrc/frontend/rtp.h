@@ -1,38 +1,44 @@
+/*
+ *      rtp socket communication include file
+ *
+ *      initially contributed by Felix von Leitner
+ *
+ *      Copyright (c) 2000 Mark Taylor
+ *                    2010 Robert Hegemann
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Library General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Library General Public License for more details.
+ *
+ * You should have received a copy of the GNU Library General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
+ */
+
 #ifndef LAME_RTP_H
 #define LAME_RTP_H
 
-#include <sys/socket.h>
-#include <netinet/in.h>
-
-struct rtpbits {
-    int     sequence:16;     /* sequence number: random */
-    int     pt:7;            /* payload type: 14 for MPEG audio */
-    int     m:1;             /* marker: 0 */
-    int     cc:4;            /* number of CSRC identifiers: 0 */
-    int     x:1;             /* number of extension headers: 0 */
-    int     p:1;             /* is there padding appended: 0 */
-    int     v:2;             /* version: 2 */
-};
-
-struct rtpheader {           /* in network byte order */
-    struct rtpbits b;
-    int     timestamp;       /* start: random */
-    int     ssrc;            /* random */
-    int     iAudioHeader;    /* =0?! */
-};
-
-void    initrtp(struct rtpheader *foo);
-int     sendrtp(int fd, struct sockaddr_in *sSockAddr, struct rtpheader *foo, const void *data,
-                int len);
-int     makesocket(char *szAddr, unsigned short port, unsigned char TTL,
-                   struct sockaddr_in *sSockAddr);
-void    rtp_output(const char *mp3buffer, int mp3size);
-
-#if 0
-int     rtp_send(SOCKET s, struct rtpheader *foo, void *data, int len);
-
-int     rtp_socket(SOCKET * ps, char *Address, unsigned short port, int TTL);
+#if defined(__cplusplus)
+extern  "C" {
 #endif
 
+    struct RtpStruct;
+    typedef struct RtpStruct *RtpHandle;
 
+    void    rtp_initialization(void);
+    void    rtp_deinitialization(void);
+    int     rtp_socket( /*RtpHandle rtp, */ char const *Address, unsigned int port,
+                       unsigned int TTL);
+    void    rtp_output( /*RtpHandle rtp, */ unsigned char const *mp3buffer, int mp3size);
+
+#if defined(__cplusplus)
+}
+#endif
 #endif

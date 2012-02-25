@@ -22,7 +22,7 @@
  
 /*!
 	\author Steve Lhomme
-	\version \$Id: ACM.cpp,v 1.20.8.1 2008/11/01 20:41:47 robert Exp $
+	\version \$Id: ACM.cpp,v 1.20 2007/05/17 22:25:40 robert Exp $
 */
 
 #if !defined(STRICT)
@@ -1238,7 +1238,7 @@ void ACM::GetMP3FormatForIndex(const DWORD the_Index, WAVEFORMATEX & the_Format,
 		tmpFormat->wID             = 1;
 		// this is the only way I found to know if we do CBR or ABR
 		tmpFormat->fdwFlags        = 2 + ((bitrate_table[the_Index].mode == vbr_abr)?0:2);
-		tmpFormat->nBlockSize      = WORD(Block_size * the_Format.nAvgBytesPerSec / the_Format.nSamplesPerSec);
+		tmpFormat->nBlockSize      = Block_size * the_Format.nAvgBytesPerSec / the_Format.nSamplesPerSec;
 		tmpFormat->nFramesPerBlock = 1;
 		tmpFormat->nCodecDelay     = 0; // 0x0571 on FHG
 	

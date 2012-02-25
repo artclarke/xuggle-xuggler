@@ -93,7 +93,6 @@ char   *strchr(), *strrchr();
 
 struct frame {
     int     stereo;
-    int     jsbound;
     int     single;          /* single channel (monophonic) */
     int     lsf;             /* 0 = MPEG-1, 1 = MPEG-2/2.5 */
     int     mpeg25;          /* 1 = MPEG-2.5, 0 = MPEG-1/2 */

@@ -26,11 +26,12 @@ typedef enum short_block_e {
 ***********************************************************************/
 struct lame_global_struct {
     unsigned int class_id;
+
     /* input description */
     unsigned long num_samples; /* number of samples. default=2^32-1           */
     int     num_channels;    /* input number of channels. default=2         */
-    int     in_samplerate;   /* input_samp_rate in Hz. default=44.1 kHz     */
-    int     out_samplerate;  /* output_samp_rate.
+    int     samplerate_in;   /* input_samp_rate in Hz. default=44.1 kHz     */
+    int     samplerate_out;  /* output_samp_rate.
                                 default: LAME picks best value
                                 at least not used for MP3 decoding:
                                 Remember 44.1 kHz MP3s and AC97           */
@@ -43,7 +44,7 @@ struct lame_global_struct {
 
     /* general control params */
     int     analysis;        /* collect data for a MP3 frame analyzer?      */
-    int     bWriteVbrTag;    /* add Xing VBR tag?                           */
+    int     write_lame_tag;  /* add Xing VBR tag?                           */
     int     decode_only;     /* use lame/mpglib to convert mp3 to wav       */
     int     quality;         /* quality setting 0=best,  9=worst  default=5 */
     MPEG_mode mode;          /* see enum in lame.h
@@ -53,6 +54,14 @@ struct lame_global_struct {
     int     findReplayGain;  /* find the RG value? default=0       */
     int     decode_on_the_fly; /* decode on the fly? default=0                */
     int     write_id3tag_automatic; /* 1 (default) writes ID3 tags, 0 not */
+
+    int     nogap_total;
+    int     nogap_current;
+
+    int     substep_shaping;
+    int     noise_shaping;
+    int     subblock_gain;   /*  0 = no, 1 = yes */
+    int     use_best_huffman; /* 0 = no.  1=outside loop  2=inside loop(slow) */
 
     /*
      * set either brate>0  or compression_ratio>0, LAME will compute
@@ -125,9 +134,8 @@ struct lame_global_struct {
     int     noATH;           /* disable ATH                          */
     int     ATHtype;         /* select ATH formula                   */
     float   ATHcurve;        /* change ATH formula 4 shape           */
-    float   ATHlower;        /* lower ATH by this many db            */
+    float   ATH_lower_db;    /* lower ATH by this many db            */
     int     athaa_type;      /* select ATH auto-adjust scheme        */
-    int     athaa_loudapprox; /* select ATH auto-adjust loudness calc */
     float   athaa_sensitivity; /* dB, tune active region of auto-level */
     short_block_t short_blocks;
     int     useTemporal;     /* use temporal masking effect          */
@@ -136,6 +144,10 @@ struct lame_global_struct {
 
     int     tune;            /* 0 off, 1 on */
     float   tune_value_a;    /* used to pass values for debugging and stuff */
+
+    float   attackthre;      /* attack threshold for L/R/M channel */
+    float   attackthre_s;    /* attack threshold for S channel */
+
 
     struct {
         void    (*msgf) (const char *format, va_list ap);
@@ -148,11 +160,6 @@ struct lame_global_struct {
     /* provided because they may be of use to calling application           */
   /************************************************************************/
 
-    int     version;         /* 0=MPEG-2/2.5  1=MPEG-1               */
-    int     encoder_delay;
-    int     encoder_padding; /* number of samples of padding appended to input */
-    int     framesize;
-    int     frameNum;        /* number of frames encoded             */
     int     lame_allocated_gfp; /* is this struct owned by calling
                                    program or lame?                     */
 
@@ -171,5 +178,7 @@ struct lame_global_struct {
 
     } asm_optimizations;
 };
+
+int     is_lame_global_flags_valid(const lame_global_flags * gfp);
 
 #endif /* LAME_GLOBAL_FLAGS_H */

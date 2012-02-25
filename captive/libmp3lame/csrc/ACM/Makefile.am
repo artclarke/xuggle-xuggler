@@ -1,4 +1,4 @@
-## $Id: Makefile.am,v 1.6 2005/08/21 17:32:07 bouvigne Exp $
+## $Id: Makefile.am,v 1.7 2008/11/09 13:50:16 aleidinger Exp $
 
 include $(top_srcdir)/Makefile.am.global
 
@@ -19,8 +19,6 @@ EXTRA_DIST = \
 	adebug.h \
 	lame.ico \
 	lameACM.def \
-	lameACM_vc6.dsp \
-	lameACM_vc7.vcproj \
 	lame_acm.xml \
 	main.cpp \
 	readme.txt \

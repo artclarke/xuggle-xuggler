@@ -1,26 +1,25 @@
-This package was originally debianized by Stefan Karrmann <S.Karrmann@gmx.net>
+This package was originally made by Stefan Karrmann <S.Karrmann@gmx.net>
 on Thu, 31 Aug 2000 22:15:07 +0200.
 
 The current maintainer is Rogério Brito <rbrito@users.sf.net>.
 
 It was downloaded from the CVS repository at <http://sf.net/projects/lame>.
 
-Upstream Authors: please, see the file html/contributors.html for a
-list of contributors to the lame project.
+Upstream Authors: The LAME team <lame-dev@lists.sf.net>.
 
-Copyright: 1999-2010 see html/contributors.html
+Copyright © 1999-2009 The LAME team <lame-dev@lists.sf.net> and contributors.
 
     LAME is free software; you can redistribute it and/or
-    modify it under the terms of the GNU Lesser General Public
+    modify it under the terms of the GNU Library General Public
     License as published by the Free Software Foundation; either
     version 2 of the License, or (at your option) any later version.
 
     LAME is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-    Lesser General Public License for more details.
+    Library General Public License for more details.
 
-    You should have received a copy of the GNU Lesser General Public
+    You should have received a copy of the GNU Library General Public
     License along with this library; if not, write to the
     Free Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston,
     MA 02110-1301, USA.
@@ -52,5 +51,5 @@ GPL unless you obtain such permission from the MPG123 project (www.mpg123.de).
 On Debian systems, the complete text of the GNU Library General Public
 License can be found in `/usr/share/common-licenses/LGPL-2'.
 
-The Debian packaging is Copyright © 2005-2010, Rogério Brito <rbrito@users.sf.net>
-and is licensed under the same license as the upstream software.
+The Debian packaging is © 2005-2009, Rogério Brito <rbrito@users.sf.net>
+and is licensed under the GPL, see above.

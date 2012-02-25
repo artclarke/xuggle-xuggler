@@ -22,7 +22,7 @@
  
 /*!
 	\author Steve Lhomme
-	\version \$Id: AEncodeProperties.cpp,v 1.9.8.1 2008/11/01 20:41:47 robert Exp $
+	\version \$Id: AEncodeProperties.cpp,v 1.9 2006/12/25 21:37:34 robert Exp $
 */
 
 #if !defined(STRICT)
@@ -1329,13 +1329,13 @@ void AEncodeProperties::SaveValuesToElement(TiXmlElement * the_element) const
 	{
 		tmpElt = new TiXmlElement("Smart");
 		SetAttributeBool( tmpElt, "use", bSmartOutput);
-		tmpElt->SetAttribute("ratio", int(SmartRatioMax));
+		tmpElt->SetAttribute("ratio", SmartRatioMax);
 		the_element->InsertEndChild(*tmpElt);
 	}
 	else
 	{
 		SetAttributeBool( tmpElt, "use", bSmartOutput);
-		tmpElt->SetAttribute("ratio", int(SmartRatioMax));
+		tmpElt->SetAttribute("ratio", SmartRatioMax);
 	}
 
 	// Smart Output parameter

@@ -21,7 +21,7 @@
  * Boston, MA 02111-1307, USA.
  */
 
-/* $Id: common.c,v 1.32.8.4 2010/03/22 14:32:36 robert Exp $ */
+/* $Id: common.c,v 1.40 2010/03/22 14:30:19 robert Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
@@ -42,6 +42,8 @@
 #include  <sys/types.h>
 #include  <sys/stat.h>
 #endif
+
+#include <assert.h>
 
 #include "common.h"
 
@@ -143,12 +145,45 @@ head_check(unsigned long head, int check_layer)
 }
 
 
+#if 0
+static void
+print_header(PMPSTR mp, struct frame *fr)
+{
+    static const char *modes[4] = { "Stereo", "Joint-Stereo", "Dual-Channel", "Single-Channel" };
+    static const char *layers[4] = { "Unknown", "I", "II", "III" };
+
+    lame_report_fnc(mp->report_msg, "MPEG %s, Layer: %s, Freq: %ld, mode: %s, modext: %d, BPF : %d\n",
+            fr->mpeg25 ? "2.5" : (fr->lsf ? "2.0" : "1.0"),
+            layers[fr->lay], freqs[fr->sampling_frequency],
+            modes[fr->mode], fr->mode_ext, fr->framesize + 4);
+    lame_report_fnc(mp->report_msg, "Channels: %d, copyright: %s, original: %s, CRC: %s, emphasis: %d.\n",
+            fr->stereo, fr->copyright ? "Yes" : "No",
+            fr->original ? "Yes" : "No", fr->error_protection ? "Yes" : "No", fr->emphasis);
+    lame_report_fnc(mp->report_msg, "Bitrate: %d Kbits/s, Extension value: %d\n",
+            tabsel_123[fr->lsf][fr->lay - 1][fr->bitrate_index], fr->extension);
+}
+
+static void
+print_header_compact(PMPSTR mp, struct frame *fr)
+{
+    static const char *modes[4] = { "stereo", "joint-stereo", "dual-channel", "mono" };
+    static const char *layers[4] = { "Unknown", "I", "II", "III" };
+
+    lame_report_fnc(mp->report_err, "MPEG %s layer %s, %d kbit/s, %ld Hz %s\n",
+            fr->mpeg25 ? "2.5" : (fr->lsf ? "2.0" : "1.0"),
+            layers[fr->lay],
+            tabsel_123[fr->lsf][fr->lay - 1][fr->bitrate_index],
+            freqs[fr->sampling_frequency], modes[fr->mode]);
+}
+
+#endif
+
 /*
  * decode a header and write the information
  * into the frame structure
  */
 int
-decode_header(struct frame *fr, unsigned long newhead)
+decode_header(PMPSTR mp, struct frame *fr, unsigned long newhead)
 {
 
 
@@ -164,7 +199,7 @@ decode_header(struct frame *fr, unsigned long newhead)
 
     fr->lay = 4 - ((newhead >> 17) & 3);
     if (((newhead >> 10) & 0x3) == 0x3) {
-        fprintf(stderr, "Stream error\n");
+        lame_report_fnc(mp->report_err, "Stream error\n");
         exit(1);
     }
     if (fr->mpeg25) {
@@ -220,7 +255,7 @@ decode_header(struct frame *fr, unsigned long newhead)
             ssize += 2;
 #endif
         if (fr->framesize > MAX_INPUT_FRAMESIZE) {
-            fprintf(stderr, "Frame size too big.\n");
+            lame_report_fnc(mp->report_err, "Frame size too big.\n");
             fr->framesize = MAX_INPUT_FRAMESIZE;
             return (0);
         }
@@ -235,47 +270,14 @@ decode_header(struct frame *fr, unsigned long newhead)
         }
         break;
     default:
-        fprintf(stderr, "Sorry, layer %d not supported\n", fr->lay);
+        lame_report_fnc(mp->report_err, "Sorry, layer %d not supported\n", fr->lay);
         return (0);
     }
-    /*    print_header(fr); */
+    /*    print_header(mp, fr); */
 
     return 1;
 }
 
-
-#if 1
-void
-print_header(struct frame *fr)
-{
-    static const char *modes[4] = { "Stereo", "Joint-Stereo", "Dual-Channel", "Single-Channel" };
-    static const char *layers[4] = { "Unknown", "I", "II", "III" };
-
-    fprintf(stderr, "MPEG %s, Layer: %s, Freq: %ld, mode: %s, modext: %d, BPF : %d\n",
-            fr->mpeg25 ? "2.5" : (fr->lsf ? "2.0" : "1.0"),
-            layers[fr->lay], freqs[fr->sampling_frequency],
-            modes[fr->mode], fr->mode_ext, fr->framesize + 4);
-    fprintf(stderr, "Channels: %d, copyright: %s, original: %s, CRC: %s, emphasis: %d.\n",
-            fr->stereo, fr->copyright ? "Yes" : "No",
-            fr->original ? "Yes" : "No", fr->error_protection ? "Yes" : "No", fr->emphasis);
-    fprintf(stderr, "Bitrate: %d Kbits/s, Extension value: %d\n",
-            tabsel_123[fr->lsf][fr->lay - 1][fr->bitrate_index], fr->extension);
-}
-
-void
-print_header_compact(struct frame *fr)
-{
-    static const char *modes[4] = { "stereo", "joint-stereo", "dual-channel", "mono" };
-    static const char *layers[4] = { "Unknown", "I", "II", "III" };
-
-    fprintf(stderr, "MPEG %s layer %s, %d kbit/s, %ld Hz %s\n",
-            fr->mpeg25 ? "2.5" : (fr->lsf ? "2.0" : "1.0"),
-            layers[fr->lay],
-            tabsel_123[fr->lsf][fr->lay - 1][fr->bitrate_index],
-            freqs[fr->sampling_frequency], modes[fr->mode]);
-}
-
-#endif
 
 unsigned int
 getbits(PMPSTR mp, int number_of_bits)
@@ -325,6 +327,19 @@ getbits_fast(PMPSTR mp, int number_of_bits)
     return rval;
 }
 
+unsigned char
+get_leq_8_bits(PMPSTR mp, unsigned int number_of_bits)
+{
+    assert(number_of_bits <= 8);
+    return (unsigned char) getbits_fast(mp, number_of_bits);
+}
+
+unsigned short
+get_leq_16_bits(PMPSTR mp, unsigned int number_of_bits)
+{
+    assert(number_of_bits <= 16);
+    return (unsigned short) getbits_fast(mp, number_of_bits);
+}
 
 int
 set_pointer(PMPSTR mp, long backstep)
@@ -332,7 +347,7 @@ set_pointer(PMPSTR mp, long backstep)
     unsigned char *bsbufold;
 
     if (mp->fsizeold < 0 && backstep > 0) {
-        fprintf(stderr, "hip: Can't step back %ld bytes!\n", backstep);
+        lame_report_fnc(mp->report_err, "hip: Can't step back %ld bytes!\n", backstep);
         return MP3_ERR;
     }
     bsbufold = mp->bsspace[1 - mp->bsnum] + 512;

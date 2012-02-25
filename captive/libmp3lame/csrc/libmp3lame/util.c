@@ -5,7 +5,7 @@
  *	Copyright (c) 2000-2005 Alexander Leidinger
  *
  * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
+ * modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
  *
@@ -14,13 +14,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU
  * Library General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
+ * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
  */
 
-/* $Id: util.c,v 1.140.2.4 2010/03/21 12:15:56 robert Exp $ */
+/* $Id: util.c,v 1.154.2.1 2012/01/08 23:49:58 robert Exp $ */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -30,7 +30,7 @@
 #include "machine.h"
 #include "encoder.h"
 #include "util.h"
-#include "lame_global_flags.h"
+#include "tables.h"
 
 #define PRECOMPUTE
 #if defined(__FreeBSD__) && !defined(__alpha__)
@@ -71,15 +71,6 @@ free_id3tag(lame_internal_flags * const gfc)
         gfc->tag_spec.albumart_size = 0;
         gfc->tag_spec.albumart_mimetype = MIMETYPE_NONE;
     }
-    if (gfc->tag_spec.values != 0) {
-        unsigned int i;
-        for (i = 0; i < gfc->tag_spec.num_values; ++i) {
-            free(gfc->tag_spec.values[i]);
-        }
-        free(gfc->tag_spec.values);
-        gfc->tag_spec.values = 0;
-        gfc->tag_spec.num_values = 0;
-    }
     if (gfc->tag_spec.v2_head != 0) {
         FrameDataNode *node = gfc->tag_spec.v2_head;
         do {
@@ -97,6 +88,24 @@ free_id3tag(lame_internal_flags * const gfc)
 }
 
 
+static void
+free_global_data(lame_internal_flags * gfc)
+{
+    if (gfc && gfc->cd_psy) {
+        if (gfc->cd_psy->l.s3) {
+            /* XXX allocated in psymodel_init() */
+            free(gfc->cd_psy->l.s3);
+        }
+        if (gfc->cd_psy->s.s3) {
+            /* XXX allocated in psymodel_init() */
+            free(gfc->cd_psy->s.s3);
+        }
+        free(gfc->cd_psy);
+        gfc->cd_psy = 0;
+    }
+}
+
+
 void
 freegfc(lame_internal_flags * const gfc)
 {                       /* bit stream structure */
@@ -104,17 +113,17 @@ freegfc(lame_internal_flags * const gfc)
 
 
     for (i = 0; i <= 2 * BPC; i++)
-        if (gfc->blackfilt[i] != NULL) {
-            free(gfc->blackfilt[i]);
-            gfc->blackfilt[i] = NULL;
+        if (gfc->sv_enc.blackfilt[i] != NULL) {
+            free(gfc->sv_enc.blackfilt[i]);
+            gfc->sv_enc.blackfilt[i] = NULL;
         }
-    if (gfc->inbuf_old[0]) {
-        free(gfc->inbuf_old[0]);
-        gfc->inbuf_old[0] = NULL;
+    if (gfc->sv_enc.inbuf_old[0]) {
+        free(gfc->sv_enc.inbuf_old[0]);
+        gfc->sv_enc.inbuf_old[0] = NULL;
     }
-    if (gfc->inbuf_old[1]) {
-        free(gfc->inbuf_old[1]);
-        gfc->inbuf_old[1] = NULL;
+    if (gfc->sv_enc.inbuf_old[1]) {
+        free(gfc->sv_enc.inbuf_old[1]);
+        gfc->sv_enc.inbuf_old[1] = NULL;
     }
 
     if (gfc->bs.buf != NULL) {
@@ -130,33 +139,26 @@ freegfc(lame_internal_flags * const gfc)
     if (gfc->ATH) {
         free(gfc->ATH);
     }
-    if (gfc->PSY) {
-        free(gfc->PSY);
+    if (gfc->sv_rpg.rgdata) {
+        free(gfc->sv_rpg.rgdata);
     }
-    if (gfc->rgdata) {
-        free(gfc->rgdata);
+    if (gfc->sv_enc.in_buffer_0) {
+        free(gfc->sv_enc.in_buffer_0);
     }
-    if (gfc->s3_ll) {
-        /* XXX allocated in psymodel_init() */
-        free(gfc->s3_ll);
-    }
-    if (gfc->s3_ss) {
-        /* XXX allocated in psymodel_init() */
-        free(gfc->s3_ss);
-    }
-    if (gfc->in_buffer_0) {
-        free(gfc->in_buffer_0);
-    }
-    if (gfc->in_buffer_1) {
-        free(gfc->in_buffer_1);
+    if (gfc->sv_enc.in_buffer_1) {
+        free(gfc->sv_enc.in_buffer_1);
     }
     free_id3tag(gfc);
+
 #ifdef DECODE_ON_THE_FLY
     if (gfc->hip) {
         hip_decode_exit(gfc->hip);
         gfc->hip = 0;
     }
 #endif
+
+    free_global_data(gfc);
+
     free(gfc);
 }
 
@@ -192,7 +194,7 @@ free_aligned(aligned_pointer_t * ptr)
 their minimum value for input = -1*/
 
 static  FLOAT
-ATHformula_GB(FLOAT f, FLOAT value)
+ATHformula_GB(FLOAT f, FLOAT value, FLOAT f_min, FLOAT f_max)
 {
     /* from Painter & Spanias
        modified by Gabriel Bouvigne to better fit the reality
@@ -223,9 +225,9 @@ bitrate is more balanced according to the -V value.*/
         f = 3410;
 
     f /= 1000;          /* convert to khz */
-    f = Max(0.1, f);
-/*  f  = Min(21.0, f);
-*/
+    f = Max(f_min, f);
+    f = Min(f_max, f);
+
     ath = 3.640 * pow(f, -0.8)
         - 6.800 * exp(-0.6 * pow(f - 3.4, 2.0))
         + 6.000 * exp(-0.15 * pow(f - 8.7, 2.0))
@@ -236,27 +238,30 @@ bitrate is more balanced according to the -V value.*/
 
 
 FLOAT
-ATHformula(FLOAT f, lame_global_flags const *gfp)
+ATHformula(SessionConfig_t const *cfg, FLOAT f)
 {
     FLOAT   ath;
-    switch (gfp->ATHtype) {
+    switch (cfg->ATHtype) {
     case 0:
-        ath = ATHformula_GB(f, 9);
+        ath = ATHformula_GB(f, 9, 0.1f, 24.0f);
         break;
     case 1:
-        ath = ATHformula_GB(f, -1); /*over sensitive, should probably be removed */
+        ath = ATHformula_GB(f, -1, 0.1f, 24.0f); /*over sensitive, should probably be removed */
         break;
     case 2:
-        ath = ATHformula_GB(f, 0);
+        ath = ATHformula_GB(f, 0, 0.1f, 24.0f);
         break;
     case 3:
-        ath = ATHformula_GB(f, 1) + 6; /*modification of GB formula by Roel */
+        ath = ATHformula_GB(f, 1, 0.1f, 24.0f) + 6; /*modification of GB formula by Roel */
         break;
     case 4:
-        ath = ATHformula_GB(f, gfp->ATHcurve);
+        ath = ATHformula_GB(f, cfg->ATHcurve, 0.1f, 24.0f);
+        break;
+    case 5:
+        ath = ATHformula_GB(f, cfg->ATHcurve, 3.41f, 16.1f);
         break;
     default:
-        ath = ATHformula_GB(f, 0);
+        ath = ATHformula_GB(f, 0, 0.1f, 24.0f);
         break;
     }
     return ath;
@@ -273,6 +278,9 @@ freq2bark(FLOAT freq)
     return 13.0 * atan(.76 * freq) + 3.5 * atan(freq * freq / (7.5 * 7.5));
 }
 
+#if 0
+extern FLOAT freq2cbw(FLOAT freq);
+
 /* see for example "Zwicker: Psychoakustik, 1982; ISBN 3-540-11401-7 */
 FLOAT
 freq2cbw(FLOAT freq)
@@ -282,7 +290,7 @@ freq2cbw(FLOAT freq)
     return 25 + 75 * pow(1 + 1.4 * (freq * freq), 0.69);
 }
 
-
+#endif
 
 
 
@@ -331,7 +339,7 @@ FindNearestBitrate(int bRate, /* legal rates from 8 to 320 */
  * Gabriel Bouvigne 2002-11-03
  */
 int
-nearestBitrateFullIndex(const int bitrate)
+nearestBitrateFullIndex(uint16_t bitrate)
 {
     /* borrowed from DM abr presets */
 
@@ -502,59 +510,29 @@ blackman(FLOAT x, FLOAT fcn, int l)
 
 }
 
+
+
+
 /* gcd - greatest common divisor */
 /* Joint work of Euclid and M. Hendry */
 
 static int
 gcd(int i, int j)
 {
-/*    assert ( i > 0  &&  j > 0 ); */
+    /*    assert ( i > 0  &&  j > 0 ); */
     return j ? gcd(j, i % j) : i;
 }
 
 
 
-/* copy in new samples from in_buffer into mfbuf, with resampling
-   if necessary.  n_in = number of samples from the input buffer that
-   were used.  n_out = number of samples copied into mfbuf  */
-
-void
-fill_buffer(lame_global_flags const *gfp,
-            sample_t * mfbuf[2], sample_t const *in_buffer[2], int nsamples, int *n_in, int *n_out)
-{
-    lame_internal_flags const *const gfc = gfp->internal_flags;
-    int     ch, i;
-
-    /* copy in new samples into mfbuf, with resampling if necessary */
-    if ((gfc->resample_ratio < .9999) || (gfc->resample_ratio > 1.0001)) {
-        for (ch = 0; ch < gfc->channels_out; ch++) {
-            *n_out =
-                fill_buffer_resample(gfp, &mfbuf[ch][gfc->mf_size],
-                                     gfp->framesize, in_buffer[ch], nsamples, n_in, ch);
-        }
-    }
-    else {
-        *n_out = Min(gfp->framesize, nsamples);
-        *n_in = *n_out;
-        for (i = 0; i < *n_out; ++i) {
-            mfbuf[0][gfc->mf_size + i] = in_buffer[0][i];
-            if (gfc->channels_out == 2)
-                mfbuf[1][gfc->mf_size + i] = in_buffer[1][i];
-        }
-    }
-}
-
-
-
-
-int
-fill_buffer_resample(lame_global_flags const *gfp,
+static int
+fill_buffer_resample(lame_internal_flags * gfc,
                      sample_t * outbuf,
                      int desired_len, sample_t const *inbuf, int len, int *num_used, int ch)
 {
-
-
-    lame_internal_flags *const gfc = gfp->internal_flags;
+    SessionConfig_t const *const cfg = &gfc->cfg;
+    EncStateVar_t *esv = &gfc->sv_enc;
+    double  resample_ratio = (double)cfg->samplerate_in / (double)cfg->samplerate_out;
     int     BLACKSIZE;
     FLOAT   offset, xvalue;
     int     i, j = 0, k;
@@ -562,53 +540,50 @@ fill_buffer_resample(lame_global_flags const *gfp,
     FLOAT   fcn, intratio;
     FLOAT  *inbuf_old;
     int     bpc;             /* number of convolution functions to pre-compute */
-    bpc = gfp->out_samplerate / gcd(gfp->out_samplerate, gfp->in_samplerate);
+    bpc = cfg->samplerate_out / gcd(cfg->samplerate_out, cfg->samplerate_in);
     if (bpc > BPC)
         bpc = BPC;
 
-    intratio = (fabs(gfc->resample_ratio - floor(.5 + gfc->resample_ratio)) < .0001);
-    fcn = 1.00 / gfc->resample_ratio;
+    intratio = (fabs(resample_ratio - floor(.5 + resample_ratio)) < .0001);
+    fcn = 1.00 / resample_ratio;
     if (fcn > 1.00)
         fcn = 1.00;
-    filter_l = 31;
-    if (0 == filter_l % 2)
-        --filter_l;     /* must be odd */
+    filter_l = 31;     /* must be odd */
     filter_l += intratio; /* unless resample_ratio=int, it must be even */
 
 
     BLACKSIZE = filter_l + 1; /* size of data needed for FIR */
 
     if (gfc->fill_buffer_resample_init == 0) {
-        gfc->inbuf_old[0] = calloc(BLACKSIZE, sizeof(gfc->inbuf_old[0][0]));
-        gfc->inbuf_old[1] = calloc(BLACKSIZE, sizeof(gfc->inbuf_old[0][0]));
+        esv->inbuf_old[0] = calloc(BLACKSIZE, sizeof(esv->inbuf_old[0][0]));
+        esv->inbuf_old[1] = calloc(BLACKSIZE, sizeof(esv->inbuf_old[0][0]));
         for (i = 0; i <= 2 * bpc; ++i)
-            gfc->blackfilt[i] = calloc(BLACKSIZE, sizeof(gfc->blackfilt[0][0]));
+            esv->blackfilt[i] = calloc(BLACKSIZE, sizeof(esv->blackfilt[0][0]));
 
-        gfc->itime[0] = 0;
-        gfc->itime[1] = 0;
+        esv->itime[0] = 0;
+        esv->itime[1] = 0;
 
         /* precompute blackman filter coefficients */
         for (j = 0; j <= 2 * bpc; j++) {
             FLOAT   sum = 0.;
             offset = (j - bpc) / (2. * bpc);
             for (i = 0; i <= filter_l; i++)
-                sum += gfc->blackfilt[j][i] = blackman(i - offset, fcn, filter_l);
+                sum += esv->blackfilt[j][i] = blackman(i - offset, fcn, filter_l);
             for (i = 0; i <= filter_l; i++)
-                gfc->blackfilt[j][i] /= sum;
+                esv->blackfilt[j][i] /= sum;
         }
         gfc->fill_buffer_resample_init = 1;
     }
 
-    inbuf_old = gfc->inbuf_old[ch];
+    inbuf_old = esv->inbuf_old[ch];
 
     /* time of j'th element in inbuf = itime + j/ifreq; */
     /* time of k'th element in outbuf   =  j/ofreq */
     for (k = 0; k < desired_len; k++) {
-        double  time0;
+        double  time0 = k * resample_ratio; /* time of k'th output sample */
         int     joff;
 
-        time0 = k * gfc->resample_ratio; /* time of k'th output sample */
-        j = floor(time0 - gfc->itime[ch]);
+        j = floor(time0 - esv->itime[ch]);
 
         /* check if we need more input data */
         if ((filter_l + j - filter_l / 2) >= len)
@@ -616,7 +591,7 @@ fill_buffer_resample(lame_global_flags const *gfp,
 
         /* blackman filter.  by default, window centered at j+.5(filter_l%2) */
         /* but we want a window centered at time0.   */
-        offset = (time0 - gfc->itime[ch] - (j + .5 * (filter_l % 2)));
+        offset = (time0 - esv->itime[ch] - (j + .5 * (filter_l % 2)));
         assert(fabs(offset) <= .501);
 
         /* find the closest precomputed window for this offset: */
@@ -630,7 +605,7 @@ fill_buffer_resample(lame_global_flags const *gfp,
             assert(j2 + BLACKSIZE >= 0);
             y = (j2 < 0) ? inbuf_old[BLACKSIZE + j2] : inbuf[j2];
 #ifdef PRECOMPUTE
-            xvalue += y * gfc->blackfilt[joff][i];
+            xvalue += y * esv->blackfilt[joff][i];
 #else
             xvalue += y * blackman(i - offset, fcn, filter_l); /* very slow! */
 #endif
@@ -648,7 +623,7 @@ fill_buffer_resample(lame_global_flags const *gfp,
     /* adjust our input time counter.  Incriment by the number of samples used,
      * then normalize so that next output sample is at time 0, next
      * input buffer is at time itime[ch] */
-    gfc->itime[ch] += *num_used - k * gfc->resample_ratio;
+    esv->itime[ch] += *num_used - k * resample_ratio;
 
     /* save the last BLACKSIZE samples into the inbuf_old buffer */
     if (*num_used >= BLACKSIZE) {
@@ -673,6 +648,49 @@ fill_buffer_resample(lame_global_flags const *gfp,
     return k;           /* return the number samples created at the new samplerate */
 }
 
+int
+isResamplingNecessary(SessionConfig_t const* cfg)
+{
+    int const l = cfg->samplerate_out * 0.9995f;
+    int const h = cfg->samplerate_out * 1.0005f;
+    return (cfg->samplerate_in < l) || (h < cfg->samplerate_in) ? 1 : 0;
+}
+
+/* copy in new samples from in_buffer into mfbuf, with resampling
+   if necessary.  n_in = number of samples from the input buffer that
+   were used.  n_out = number of samples copied into mfbuf  */
+
+void
+fill_buffer(lame_internal_flags * gfc,
+            sample_t * const mfbuf[2], sample_t const * const in_buffer[2], int nsamples, int *n_in, int *n_out)
+{
+    SessionConfig_t const *const cfg = &gfc->cfg;
+    int     mf_size = gfc->sv_enc.mf_size;
+    int     framesize = 576 * cfg->mode_gr;
+    int     nout, ch = 0;
+    int     nch = cfg->channels_out;
+
+    /* copy in new samples into mfbuf, with resampling if necessary */
+    if (isResamplingNecessary(cfg)) {
+        do {
+            nout =
+                fill_buffer_resample(gfc, &mfbuf[ch][mf_size],
+                                     framesize, in_buffer[ch], nsamples, n_in, ch);
+        } while (++ch < nch);
+        *n_out = nout;
+    }
+    else {
+        nout = Min(framesize, nsamples);
+        do {
+            memcpy(&mfbuf[ch][mf_size], &in_buffer[ch][0], nout * sizeof(mfbuf[0][0]));
+        } while (++ch < nch);
+        *n_out = nout;
+        *n_in = nout;
+    }
+}
+
+
+
 
 
 
@@ -682,60 +700,59 @@ fill_buffer_resample(lame_global_flags const *gfp,
 *  Message Output
 *
 ***********************************************************************/
+
 void
-lame_debugf(const lame_internal_flags * gfc, const char *format, ...)
+lame_report_def(const char *format, va_list args)
 {
-    va_list args;
+    (void) vfprintf(stderr, format, args);
+    fflush(stderr); /* an debug function should flush immediately */
+}
 
-    va_start(args, format);
-
-    if (gfc->report.debugf != NULL) {
-        gfc->report.debugf(format, args);
+void 
+lame_report_fnc(lame_report_function print_f, const char *format, ...)
+{
+    if (print_f) {
+        va_list args;
+        va_start(args, format);
+        print_f(format, args);
+        va_end(args);
     }
-    else {
-        (void) vfprintf(stderr, format, args);
-        fflush(stderr); /* an debug function should flush immediately */
-    }
-
-    va_end(args);
 }
 
 
 void
-lame_msgf(const lame_internal_flags * gfc, const char *format, ...)
+lame_debugf(const lame_internal_flags* gfc, const char *format, ...)
 {
-    va_list args;
-
-    va_start(args, format);
-
-    if (gfc->report.msgf != NULL) {
-        gfc->report.msgf(format, args);
+    if (gfc && gfc->report_dbg) {
+        va_list args;
+        va_start(args, format);
+        gfc->report_dbg(format, args);
+        va_end(args);
     }
-    else {
-        (void) vfprintf(stderr, format, args);
-        fflush(stderr); /* we print to stderr, so me may want to flush */
-    }
-
-    va_end(args);
 }
 
 
 void
-lame_errorf(const lame_internal_flags * gfc, const char *format, ...)
+lame_msgf(const lame_internal_flags* gfc, const char *format, ...)
 {
-    va_list args;
-
-    va_start(args, format);
-
-    if (gfc->report.errorf != NULL) {
-        gfc->report.errorf(format, args);
+    if (gfc && gfc->report_msg) {
+        va_list args;
+        va_start(args, format);
+        gfc->report_msg(format, args);
+        va_end(args);
     }
-    else {
-        (void) vfprintf(stderr, format, args);
-        fflush(stderr); /* an error function should flush immediately */
-    }
+}
 
-    va_end(args);
+
+void
+lame_errorf(const lame_internal_flags* gfc, const char *format, ...)
+{
+    if (gfc && gfc->report_err) {
+        va_list args;
+        va_start(args, format);
+        gfc->report_err(format, args);
+        va_end(args);
+    }
 }
 
 
@@ -782,7 +799,7 @@ has_SSE(void)
 #ifdef HAVE_NASM
     return has_SSE_nasm();
 #else
-#ifdef _M_X64
+#if defined( _M_X64 ) || defined( MIN_ARCH_SSE )
     return 1;
 #else
     return 0;           /* don't know, assume not */
@@ -796,7 +813,7 @@ has_SSE2(void)
 #ifdef HAVE_NASM
     return has_SSE2_nasm();
 #else
-#ifdef _M_X64
+#if defined( _M_X64 ) || defined( MIN_ARCH_SSE )
     return 1;
 #else
     return 0;           /* don't know, assume not */

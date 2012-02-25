@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="lame"
+	Name="app lame"
 	ProjectGUID="{EEF5B49E-DBD1-4E1B-8B86-C5D64FCBAD38}"
 	RootNamespace="lame"
 	TargetFrameworkVersion="0"
@@ -18,7 +18,7 @@
 		<Configuration
 			Name="ReleaseNASM|Win32"
 			ConfigurationType="1"
-			InheritedPropertySheets=".\vc9_lame_config.vsprops"
+			InheritedPropertySheets=".\vc9_lame_config.vsprops;.\arch_nasm.vsprops"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			>
@@ -47,7 +47,6 @@
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="..,../mpglib,../libmp3lame,../include,../"
 				PreprocessorDefinitions="NDEBUG;WIN32;_WIN32;_CONSOLE;_WINDOWS;HAVE_MPGLIB;HAVE_CONFIG_H;HAVE_NASM;MMX_choose_table"
-				RuntimeLibrary="2"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -62,6 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				OutputFile="$(OutDir)\lame.exe"
 				SubSystem="1"
 			/>
 			<Tool
@@ -89,7 +89,7 @@
 		<Configuration
 			Name="Debug|Win32"
 			ConfigurationType="1"
-			InheritedPropertySheets=".\vc9_lame_config.vsprops"
+			InheritedPropertySheets=".\vc9_lame_config.vsprops;.\arch_x87.vsprops"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			>
@@ -115,7 +115,7 @@
 				Optimization="0"
 				AdditionalIncludeDirectories="../,../mpglib,../libmp3lame,../include"
 				PreprocessorDefinitions="_DEBUG;WIN32;_WIN32;_CONSOLE;_WINDOWS;HAVE_MPGLIB;HAVE_CONFIG_H"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				DebugInformationFormat="3"
 			/>
 			<Tool
@@ -131,6 +131,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				OutputFile="$(OutDir)\lame.exe"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 			/>
@@ -159,7 +160,7 @@
 		<Configuration
 			Name="Release|Win32"
 			ConfigurationType="1"
-			InheritedPropertySheets=".\vc9_lame_config.vsprops"
+			InheritedPropertySheets=".\vc9_lame_config.vsprops;.\arch_x87.vsprops"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			>
@@ -188,7 +189,6 @@
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="..,../mpglib,../libmp3lame,../include,../"
 				PreprocessorDefinitions="NDEBUG;WIN32;_WIN32;_CONSOLE;_WINDOWS;HAVE_MPGLIB;HAVE_CONFIG_H"
-				RuntimeLibrary="2"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -203,7 +203,78 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				ProgramDatabaseFile="..\output\Release/lame.pdb"
+				OutputFile="$(OutDir)\lame.exe"
+				SubSystem="1"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCManifestTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCAppVerifierTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="ReleaseSSE2|Win32"
+			ConfigurationType="1"
+			InheritedPropertySheets=".\vc9_lame_config.vsprops;.\arch_sse2.vsprops"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="false"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+				TypeLibraryName="..\output\Release/lame.tlb"
+				HeaderFileName=""
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="3"
+				InlineFunctionExpansion="2"
+				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
+				AdditionalIncludeDirectories="..,../mpglib,../libmp3lame,../include,../"
+				PreprocessorDefinitions="NDEBUG;WIN32;_WIN32;_CONSOLE;_WINDOWS;HAVE_MPGLIB;HAVE_CONFIG_H"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				PreprocessorDefinitions="NDEBUG;_APP=$(TargetFileName)"
+				Culture="1033"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLinkerTool"
+				OutputFile="$(OutDir)\lame.exe"
 				SubSystem="1"
 			/>
 			<Tool
@@ -239,226 +310,34 @@
 			<File
 				RelativePath="..\frontend\brhist.c"
 				>
-				<FileConfiguration
-					Name="ReleaseNASM|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\frontend\console.c"
 				>
-				<FileConfiguration
-					Name="ReleaseNASM|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\frontend\get_audio.c"
 				>
-				<FileConfiguration
-					Name="ReleaseNASM|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\frontend\lame_main.c"
+				>
 			</File>
 			<File
 				RelativePath="..\frontend\lametime.c"
 				>
-				<FileConfiguration
-					Name="ReleaseNASM|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\frontend\main.c"
 				>
-				<FileConfiguration
-					Name="ReleaseNASM|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\frontend\parse.c"
 				>
-				<FileConfiguration
-					Name="ReleaseNASM|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\frontend\portableio.c"
-				>
-				<FileConfiguration
-					Name="ReleaseNASM|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\frontend\timestatus.c"
 				>
-				<FileConfiguration
-					Name="ReleaseNASM|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalIncludeDirectories=""
-					/>
-				</FileConfiguration>
 			</File>
 		</Filter>
 		<Filter
@@ -487,10 +366,6 @@
 			</File>
 			<File
 				RelativePath="..\frontend\parse.h"
-				>
-			</File>
-			<File
-				RelativePath="..\frontend\portableio.h"
 				>
 			</File>
 			<File

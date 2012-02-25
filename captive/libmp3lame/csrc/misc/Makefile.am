@@ -1,4 +1,4 @@
-## $Id: Makefile.am,v 1.10 2002/01/25 11:23:23 aleidinger Exp $
+## $Id: Makefile.am,v 1.11 2011/11/05 16:32:13 robert Exp $
 
 include $(top_srcdir)/Makefile.am.global
 
@@ -10,7 +10,8 @@ EXTRA_SCRIPTS = \
 	auenc \
 	lameid3.pl \
 	mugeco.sh \
-	mlame
+	mlame \
+	mk_mp3.sh
 
 EXTRA_DIST = \
 	$(EXTRA_SCRIPTS) \

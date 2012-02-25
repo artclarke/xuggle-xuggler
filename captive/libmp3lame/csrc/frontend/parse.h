@@ -1,3 +1,9 @@
+#ifndef PARSE_H_INCLUDED
+#define PARSE_H_INCLUDED
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 int     usage(FILE * const fp, const char *ProgramName);
 int     short_help(const lame_global_flags * gfp, FILE * const fp, const char *ProgramName);
@@ -10,4 +16,9 @@ int     parse_args(lame_global_flags * gfp, int argc, char **argv, char *const i
 
 void    parse_close();
 
+#if defined(__cplusplus)
+}
+#endif
+
+#endif
 /* end of parse.h */

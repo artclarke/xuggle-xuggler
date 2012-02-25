@@ -227,6 +227,9 @@ filterButter(const Float_t * input, Float_t * output, size_t nSamples, const Flo
 }
 
 
+
+static int ResetSampleFrequency(replaygain_t * rgData, long samplefreq);
+
 /* returns a INIT_GAIN_ANALYSIS_OK if successful, INIT_GAIN_ANALYSIS_ERROR if not */
 
 int
@@ -454,7 +457,8 @@ static  Float_t
 analyzeResult(uint32_t const *Array, size_t len)
 {
     uint32_t elems;
-    int32_t upper;
+    uint32_t upper;
+    uint32_t sum;
     size_t  i;
 
     elems = 0;
@@ -463,10 +467,13 @@ analyzeResult(uint32_t const *Array, size_t len)
     if (elems == 0)
         return GAIN_NOT_ENOUGH_SAMPLES;
 
-    upper = (int32_t) ceil(elems * (1. - RMS_PERCENTILE));
+    upper = (uint32_t) ceil(elems * (1. - RMS_PERCENTILE));
+    sum = 0;
     for (i = len; i-- > 0;) {
-        if ((upper -= Array[i]) <= 0)
+        sum += Array[i];
+        if (sum >= upper) {
             break;
+        }
     }
 
     return (Float_t) ((Float_t) PINK_REF - (Float_t) i / (Float_t) STEPS_per_dB);
@@ -498,11 +505,14 @@ GetTitleGain(replaygain_t * rgData)
     return retval;
 }
 
+#if 0
+static Float_t GetAlbumGain(replaygain_t const* rgData);
 
 Float_t
-GetAlbumGain(replaygain_t * rgData)
+GetAlbumGain(replaygain_t const* rgData)
 {
     return analyzeResult(rgData->B, sizeof(rgData->B) / sizeof(*(rgData->B)));
 }
+#endif
 
 /* end of gain_analysis.c */

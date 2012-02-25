@@ -32,6 +32,7 @@ endif
 
 HAVE_NASM = NO
 HAVE_NEWER_GLIBC = NO
+NASM_FLAGS=elf
 
 # generic defaults. OS specific options go in versious sections below
 PGM = lame
@@ -59,15 +60,14 @@ CPP_OPTS += -DHAVE_CONFIG_H -I.
 CPP_OPTS += -DHAVE_MPGLIB
 
 ##########################################################################
-# -DUSE_LAYER_1/2 enables Layer1 or Layer2 *decoding* abilities
-##########################################################################
-CPP_OPTS += -DUSE_LAYER_1 -DUSE_LAYER_2
-
-##########################################################################
 # -DTAKEHIRO_IEEE754_HACK enables Takehiro's IEEE hack
 ##########################################################################
 ifeq ($(iARCH),x86)
+ ifeq ($(CFG),RH_SSE)
+# SSE and IEEE754 HACK don't work together
+ else
 	CPP_OPTS += -DTAKEHIRO_IEEE754_HACK
+ endif
 endif
 
 ##########################################################################
@@ -122,7 +122,7 @@ ifeq ($(UNAME),Linux)
 #   GTK = -DHAVE_GTK `gtk-config --cflags`
 #   GTKLIBS = `gtk-config --libs`
 # Comment out next 2 lines if you want to remove VBR histogram capability
-   BRHIST_SWITCH = -DBRHIST -DHAVE_TERMCAP -DHAVE_TERMCAP_H
+   BRHIST_SWITCH = -DHAVE_TERMCAP -DHAVE_TERMCAP_H
    LIBTERMCAP = -lncurses
 #  uncomment to use LIBSNDFILE
 #   SNDLIB = -DLIBSNDFILE
@@ -155,11 +155,11 @@ ifeq ($(UNAME),Linux)
 ifeq ($(CFG),RH)
    GTK = -DHAVE_GTK `gtk-config --cflags`
    GTKLIBS = `gtk-config --libs`
-  CPP_OPTS += -DFLOAT8=float -DREAL_IS_FLOAT=1 -DHAVE_ICONV -DHAVE_XMMINTRIN_H -D_ALLOW_INTERNAL_OPTIONS
+   CPP_OPTS += -DFLOAT8=float -DREAL_IS_FLOAT=1 -DHAVE_ICONV -DHAVE_XMMINTRIN_H -D_ALLOW_INTERNAL_OPTIONS
 # these options for gcc-3.2 & AthlonXP
    CC_OPTS = \
 	-pipe -O3 \
-	-Wall -W -Wmissing-declarations -Wfloat-equal \
+	-Wall -W -Wmissing-declarations -Wfloat-equal -Wformat \
 	-Wcast-qual -Wcast-align -Wdisabled-optimization -Wshadow \
 	-march=athlon-xp \
 	-malign-double \
@@ -168,6 +168,48 @@ ifeq ($(CFG),RH)
 
    HAVE_NEWER_GLIBC = YES
    HAVE_NASM = YES
+endif
+
+ifeq ($(CFG),RH_SSE)
+   GTK = -DHAVE_GTK `gtk-config --cflags`
+   GTKLIBS = `gtk-config --libs`
+   CPP_OPTS += -DFLOAT8=float -DREAL_IS_FLOAT=1 -DHAVE_ICONV -DHAVE_XMMINTRIN_H -DMIN_ARCH_SSE -D_ALLOW_INTERNAL_OPTIONS
+# these options for gcc-3.2 & AthlonXP
+   CC_OPTS = \
+	-std=c99 -pipe -O3 -fstrict-aliasing \
+	-Wall -W -Wmissing-declarations -Wfloat-equal -Wformat \
+	-Wcast-qual -Wcast-align -Wdisabled-optimization -Wshadow \
+	-Wunsafe-loop-optimizations \
+	-march=k8 \
+	-ffast-math \
+	-mfpmath=sse -msse -msse2  \
+	-malign-double \
+	-funsafe-math-optimizations \
+	-funsafe-loop-optimizations \
+	-maccumulate-outgoing-args
+# -Dpowf=pow -Dfabsf=fabs -Dlog10f=log10
+#	-fsingle-precision-constant \
+#	-Wconversion -Wunreachable-code \
+# -ftree-vectorizer-verbose=10 \
+
+   HAVE_NEWER_GLIBC = YES
+#   HAVE_NASM = YES
+   NASM_FLAGS = elf64
+endif
+
+ifeq ($(CFG),RH_INTEL)
+   CC=icc
+   GTK = -DHAVE_GTK `gtk-config --cflags`
+   GTKLIBS = `gtk-config --libs`
+   CPP_OPTS += -DFLOAT8=float -DREAL_IS_FLOAT=1 -DHAVE_ICONV -DHAVE_XMMINTRIN_H -DMIN_ARCH_SSE -D_ALLOW_INTERNAL_OPTIONS
+
+  CC_OPTS = \
+	-cxxlib-nostd \
+	-O3 -fno-alias -ip -finline-limit=400 \
+ 	-scalar-rep
+# -vec_report5 -opt-report
+# -parallel
+
 endif
 
 ifeq ($(CFG),PFK)
@@ -252,7 +294,7 @@ ifeq ($(UNAME),FreeBSD)
    GTK = -DHAVE_GTK `gtk12-config --cflags`
    GTKLIBS = `gtk12-config --libs`
 # Comment out next 2 lines if you want to remove VBR histogram capability
-   BRHIST_SWITCH = -DBRHIST -DHAVE_TERMCAP -DHAVE_TERMCAP_H
+   BRHIST_SWITCH = -DHAVE_TERMCAP -DHAVE_TERMCAP_H
    LIBTERMCAP = -lncurses
 
 endif
@@ -267,7 +309,7 @@ ifeq ($(UNAME),OpenBSD)
    GTK = -DHAVE_GTK `gtk-config --cflags`
    GTKLIBS = `gtk-config --libs`
 # Comment out next 2 lines if you want to remove VBR histogram capability
-   BRHIST_SWITCH = -DBRHIST -DHAVE_TERMCAP -DHAVE_TERMCAP_H
+   BRHIST_SWITCH = -DHAVE_TERMCAP -DHAVE_TERMCAP_H
    LIBTERMCAP = -lcurses
 endif
 
@@ -366,7 +408,7 @@ ifeq ($(UNAME),OS/2)
 # CC_OPTS = -O6 -ffast-math -funroll-loops -mpentium -march=pentium -D__OS2__
 
 # Comment out next 2 lines if you want to remove VBR histogram capability
-   BRHIST_SWITCH = -DBRHIST -DHAVE_TERMCAP -DHAVE_{NCURSES_}TERMCAP_H
+   BRHIST_SWITCH = -DHAVE_TERMCAP -DHAVE_{NCURSES_}TERMCAP_H
    LIBTERMCAP = -lncurses
 
 # Uncomment & inspect the 2 GTK lines to use MP3x GTK frame analyzer.
@@ -434,12 +476,12 @@ endif
 
 CC_SWITCHES += -DNDEBUG $(CC_OPTS) $(SNDLIB) $(BRHIST_SWITCH)
 frontend_sources = \
+	frontend/main.c \
 	frontend/amiga_mpega.c \
         frontend/brhist.c \
 	frontend/get_audio.c \
         frontend/lametime.c \
         frontend/parse.c \
-	frontend/portableio.c \
 	frontend/timestatus.c \
 	frontend/console.c \
 
@@ -492,7 +534,7 @@ gtk_dep = $(gtk_sources:.c=.d)
 
 
 NASM = nasm
-ASFLAGS=-f elf -i libmp3lame/i386/
+ASFLAGS=-f $(NASM_FLAGS) -i libmp3lame/i386/
 
 # for people with nasmw
 ifeq ($(UNAME),MSDOS)
@@ -558,8 +600,8 @@ config.h: configMS.h
 	cp configMS.h config.h
   endif
 
-frontend/$(PGM):	frontend/main.o $(frontend_obj)  $(MP3LIB)
-	$(CC) $(CC_OPTS) -o frontend/$(PGM)  frontend/main.o $(frontend_obj) \
+frontend/$(PGM):	frontend/lame_main.o $(frontend_obj)  $(MP3LIB)
+	$(CC) $(CC_OPTS) -o frontend/$(PGM)  frontend/lame_main.o $(frontend_obj) \
         $(MP3LIB) $(LIBS) $(LIBSNDFILE) $(LIBTERMCAP)
 
 mp3x:   $(frontend_obj) $(gtk_obj) $(MP3LIB)

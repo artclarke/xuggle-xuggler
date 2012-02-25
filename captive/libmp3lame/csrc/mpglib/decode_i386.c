@@ -27,7 +27,7 @@
  * even for Intel processors.
  */
 
-/* $Id: decode_i386.c,v 1.18.2.2 2010/03/22 14:17:14 robert Exp $ */
+/* $Id: decode_i386.c,v 1.22 2010/03/22 14:30:19 robert Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>

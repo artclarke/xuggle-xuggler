@@ -4,7 +4,7 @@
  *      Copyright (c) 1999 Mark Taylor
  *
  * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
+ * modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
  *
@@ -13,13 +13,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Library General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
+ * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
  */
 
-/* $Id: gtkanal.c,v 1.41.8.3 2009/01/18 15:44:28 robert Exp $ */
+/* $Id: gtkanal.c,v 1.49 2011/05/07 16:05:17 rbrito Exp $ */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
@@ -152,7 +152,8 @@ gtkmakeframe(void)
     gfc->pinfo = pinfo;
     hip_set_pinfo(hip, pinfo);
 
-    if (is_mpeg_file_format(input_format)) {
+    if (is_mpeg_file_format(global_reader.input_format)) {
+        hip_set_pinfo(get_hip(), pplot);
         iread = get_audio16(gfp, Buffer);
 
 
@@ -256,7 +257,7 @@ plot_frame(void)
     plotting_data *pplot2 = NULL;
 
     double  en, samp;
-    int     sampindex, version = 0;
+    /*int     sampindex, version = 0;*/
     int     barthick;
     static int firstcall = 1;
     static GdkColor *barcolor, *color, *grcolor[2];
@@ -315,7 +316,7 @@ plot_frame(void)
         samp = pplot1->sampfreq;
     else
         samp = 1;
-    sampindex = SmpFrqIndex((long) samp, &version);
+    /*sampindex = SmpFrqIndex((long) samp, &version);*/
 
     ch = gtkinfo.chflag;
 
@@ -1448,11 +1449,11 @@ gtkcontrol(lame_global_flags * gfp2, char *inPath)
     gfc = gfp->internal_flags;
 
     /* set some global defaults/variables */
-    gtkinfo.filetype = is_mpeg_file_format(input_format) ? 1 : 0;
+    gtkinfo.filetype = is_mpeg_file_format(global_reader.input_format) ? 1 : 0;
     gtkinfo.msflag = 0;
     gtkinfo.chflag = 0;
     gtkinfo.kbflag = 0;
-    gtkinfo.flag123 = is_mpeg_file_format(input_format) ? 1 : 0; /* MP3 file=use mpg123 output */
+    gtkinfo.flag123 = is_mpeg_file_format(global_reader.input_format) ? 1 : 0; /* MP3 file=use mpg123 output */
     gtkinfo.pupdate = 0;
     gtkinfo.avebits = 0;
     gtkinfo.maxbits = 0;

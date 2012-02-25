@@ -31,8 +31,9 @@ struct al_table2 {
 
 
 
-void    init_layer2(void);
-int     do_layer2(PMPSTR mp, unsigned char *pcm_sample, int *pcm_point);
+void    hip_init_tables_layer2(void);
+int     decode_layer2_sideinfo(PMPSTR mp);
+int     decode_layer2_frame(PMPSTR mp, unsigned char *pcm_sample, int *pcm_point);
 
 
 #endif

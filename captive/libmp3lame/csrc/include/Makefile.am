@@ -1,8 +1,8 @@
-## $Id: Makefile.am,v 1.2.16.1 2010/02/26 03:40:57 robert Exp $
+## $Id: Makefile.am,v 1.4 2010/03/14 17:23:35 robert Exp $
 
 include $(top_srcdir)/Makefile.am.global
 
 pkginclude_HEADERS = lame.h
 
-EXTRA_DIST = \
-	lame.def
+EXTRA_DIST = lame.def libmp3lame.sym
+

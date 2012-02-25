@@ -1,4 +1,4 @@
-dnl $Id: configure.in,v 1.134.2.3 2010/03/22 20:25:26 robert Exp $
+dnl $Id: configure.in,v 1.140.2.3 2011/11/26 19:49:21 robert Exp $
 dnl
 dnl
 dnl don't forget to set ASM_FOR_ARCH to a space delimited list of
@@ -17,9 +17,10 @@ dnl FRONTEND_LDFLAGS
 dnl FRONTEND_CFLAGS
 dnl FRONTEND_LDADD
 
-AC_PREREQ(2.59)
-AC_INIT([lame],[3.98.4],[lame-dev@lists.sf.net])
+AC_PREREQ(2.68)
+AC_INIT([lame],[3.99.4],[lame-dev@lists.sf.net])
 AC_CONFIG_SRCDIR([libmp3lame/lame.c])
+AC_LANG([C])
 
 dnl check system
 AC_CANONICAL_HOST
@@ -369,6 +370,8 @@ AC_CHECK_HEADERS(ncurses/termcap.h)
 AC_CHECK_LIB(termcap, initscr, HAVE_TERMCAP="termcap")
 AC_CHECK_LIB(curses, initscr, HAVE_TERMCAP="curses")
 AC_CHECK_LIB(ncurses, initscr, HAVE_TERMCAP="ncurses")
+
+AM_ICONV
  
 dnl math lib
 AC_CHECK_LIB(m, cos, USE_LIBM="-lm")
@@ -482,29 +485,13 @@ AC_MSG_CHECKING(use of mpg123 decoder)
 AC_ARG_ENABLE(decoder, 
   [  --disable-decoder          Exclude mpg123 decoder],
   CONFIG_DECODER="${enableval}", CONFIG_DECODER="yes")
-AC_ARG_ENABLE(decode-layer1, 
-  [  --enable-decode-layer1     Include layer1 decoding [default=no]],
-  CONFIG_DECODER_L1="${enableval}", CONFIG_DECODER_L1="no")
-AC_ARG_ENABLE(decode-layer2, 
-  [  --disable-decode-layer2    Exclude layer2 decoding],
-  CONFIG_DECODER_L2="${enableval}", CONFIG_DECODER_L2="yes")
 
 AM_CONDITIONAL(LIB_WITH_DECODER, test "x${CONFIG_DECODER}" = "xyes")
 
 if test "${CONFIG_DECODER}" != "no" ; then
-	CONFIG_DECODER="yes (Layer"
+	CONFIG_DECODER="yes (Layer 1, 2, 3)"
 	AC_DEFINE(HAVE_MPGLIB, 1, build with mpglib support)
 	AC_DEFINE(DECODE_ON_THE_FLY, 1, allow to compute a more accurate replaygain value)
-  
-	if test "${CONFIG_DECODER_L1}" != "no"; then
-		CONFIG_DECODER="${CONFIG_DECODER} 1,"
-		AC_DEFINE(USE_LAYER_1, 1, build with layer 1 decoding)
-	fi
-	if test "${CONFIG_DECODER_L2}" != "no"; then
-		CONFIG_DECODER="${CONFIG_DECODER} 2,"
-		AC_DEFINE(USE_LAYER_2, 1, build with layer 2 decoding)
-	fi
-	CONFIG_DECODER="${CONFIG_DECODER} 3)"
 fi
 AC_MSG_RESULT($CONFIG_DECODER)
 
@@ -561,6 +548,19 @@ else
 	AC_MSG_RESULT(no)
 fi
 
+AC_MSG_CHECKING(if dynamic linking of the frontends is requested)
+AC_ARG_ENABLE(dynamic-frontends,
+  [  --enable-dynamic-frontends Link frontends against shared libraries [default=no]],
+    FRONTEND_LDFLAGS="${FRONTEND_LDFLAGS}", FRONTEND_LDFLAGS="${FRONTEND_LDFLAGS} -static")
+case "x${FRONTEND_LDFLAGS}" in
+*-static*)
+	AC_MSG_RESULT(no)
+	;;
+*)
+	AC_MSG_RESULT(yes)
+	;;
+esac
+
 
 #
 # this is from vorbis
@@ -614,30 +614,15 @@ esac
 
 dnl configure use of VBR bitrate histogram
 dnl todo: always use yes as default, use simulation instead ?
-AC_MSG_CHECKING(use of VBR bitrate histogram)
+AC_MSG_CHECKING(for termcap)
 if test "x${HAVE_TERMCAP}" != "x"; then
+  FRONTEND_LDADD="-l${HAVE_TERMCAP} ${FRONTEND_LDADD}"
+  AC_DEFINE(HAVE_TERMCAP, 1, have termcap)
   TERMCAP_DEFAULT="yes"
 else
   TERMCAP_DEFAULT="no"
 fi
-AC_ARG_ENABLE(brhist, 
-  [  --disable-brhist          Include the VBR bitrate histogram feature]
-  [                           [default=yes]],
-  CONFIG_BRHIST="${enableval}", CONFIG_BRHIST="yes")
-if test "${CONFIG_BRHIST}" != "no" ; then
-	AC_DEFINE(BRHIST, 1, enable VBR bitrate histogram)
-
-	if test "${TERMCAP_DEFAULT}" = "yes" ; then
-		FRONTEND_LDADD="-l${HAVE_TERMCAP} ${FRONTEND_LDADD}"
-		CONFIG_BRHIST="yes, with ${HAVE_TERMCAP}"
-		AC_DEFINE(HAVE_TERMCAP, 1, have termcap)
-	else
-		CONFIG_BRHIST="yes, simulated termcap"
-	fi
-fi
-AC_MSG_RESULT(${CONFIG_BRHIST})
-AM_CONDITIONAL(WITH_BRHIST, test "${CONFIG_BRHIST}" != "no")
-
+AC_MSG_RESULT(${TERMCAP_DEFAULT})
 
 
 dnl ### processor specific options ###
@@ -686,24 +671,6 @@ AM_CONDITIONAL(WITH_XMM, test "x${WITH_XMM}" = "xyes")
 AM_CONDITIONAL(WITH_VECTOR, test "x${WITH_VECTOR}" = "xyes")
 AC_MSG_CHECKING(if I have to build the internal vector lib)
 AC_MSG_RESULT(${WITH_VECTOR})
-
-AC_MSG_CHECKING(for FLOAT8 as float)
-AC_ARG_ENABLE(all-float,
-  [  --enable-all-float         Whether to make all floting point variables as float, not double]
-  [                           [default=no]],   
-    CONFIG_ALLFLOAT="${enableval}", CONFIG_ALLFLOAT="no")
-case "${CONFIG_ALLFLOAT}" in
-no)
-	;;
-yes)
-	AC_DEFINE(FLOAT8, float, float instead of double)
-	;;
-*)
-	AC_MSG_ERROR(bad value �${CONFIG_ALLFLOAT}� for all-float option)
-	;;
-esac
-AC_MSG_RESULT(${CONFIG_ALLFLOAT})
-
 
 
 AC_PATH_PROG(NASM, nasm, no)
@@ -915,8 +882,15 @@ if test "x$GCC" = "xyes"; then
 					-mtune=native"
 				;;
 			*86)
-				OPTIMIZATION="${OPTIMIZATION} -march=generic \
+				OPTIMIZATION="${OPTIMIZATION} -march=native \
 					-mtune=native"
+				;;
+			arm*-gnueabi)
+				if [ -z "$(echo ${GCC_version} | awk '/4\.0/')" ]; then
+					# Work round buggy softfloat optimization in ARM EABI compilers
+					# -gnueabi in only gcc-4.1 onwards
+					OPTIMIZATION="${OPTIMIZATION} -fno-finite-math-only"
+				fi
 				;;
 			esac
 			;;
@@ -1141,7 +1115,8 @@ fi
 
 CFLAGS="${OPTIMIZATION} ${CFLAGS}"
 LDADD="${LDADD}"
-FRONTEND_LDADD="${FRONTEND_LDADD} ${CONFIG_MATH_LIB}"
+FRONTEND_CFLAGS="${INCICONV} ${FRONTEND_CFLAGS}"
+FRONTEND_LDADD="${FRONTEND_LDADD} ${LTLIBICONV} ${CONFIG_MATH_LIB}"
 
 
 AC_SUBST(INCLUDES)
@@ -1172,6 +1147,6 @@ AC_SUBST(CPUCCODE)
 
 AC_SUBST(CONFIG_DEFS)
 
-AC_CONFIG_FILES([Makefile libmp3lame/Makefile libmp3lame/i386/Makefile libmp3lame/vector/Makefile frontend/Makefile mpglib/Makefile doc/Makefile doc/html/Makefile doc/man/Makefile include/Makefile Dll/Makefile misc/Makefile debian/Makefile dshow/Makefile ACM/Makefile ACM/ADbg/Makefile ACM/ddk/Makefile ACM/tinyxml/Makefile lame.spec mac/Makefile macosx/Makefile macosx/English.lproj/Makefile macosx/LAME.xcodeproj/Makefile] vc_solution/Makefile)
+AC_CONFIG_FILES([Makefile libmp3lame/Makefile libmp3lame/i386/Makefile libmp3lame/vector/Makefile frontend/Makefile mpglib/Makefile doc/Makefile doc/html/Makefile doc/man/Makefile include/Makefile Dll/Makefile misc/Makefile debian/Makefile dshow/Makefile ACM/Makefile ACM/ADbg/Makefile ACM/ddk/Makefile ACM/tinyxml/Makefile lame.spec mac/Makefile macosx/Makefile macosx/English.lproj/Makefile macosx/LAME.xcodeproj/Makefile vc_solution/Makefile])
 
 AC_OUTPUT

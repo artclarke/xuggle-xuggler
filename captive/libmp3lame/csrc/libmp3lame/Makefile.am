@@ -1,4 +1,4 @@
-## $Id: Makefile.am,v 1.37.2.2 2010/02/26 22:24:35 robert Exp $
+## $Id: Makefile.am,v 1.39 2010/10/30 13:21:02 robert Exp $
 
 include $(top_srcdir)/Makefile.am.global
 
@@ -29,10 +29,8 @@ INCLUDES = @INCLUDES@ -I$(top_srcdir)/mpglib -I$(top_builddir)
 DEFS = @DEFS@ @CONFIG_DEFS@
 
 EXTRA_DIST = \
-	libmp3lame_vc6.dsp \
-	libmp3lame_dll_vc6.dsp \
-	libmp3lame_vc8.vcproj \
 	lame.rc \
+	vbrquantize.h \
 	logoe.ico
 
 libmp3lame_la_SOURCES = \
@@ -67,6 +65,7 @@ noinst_HEADERS= \
 	l3side.h \
 	lame-analysis.h \
 	lame_global_flags.h \
+	lameerror.h \
 	machine.h \
 	newmdct.h \
 	psymodel.h \

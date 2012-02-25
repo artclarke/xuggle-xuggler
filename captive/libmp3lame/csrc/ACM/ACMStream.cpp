@@ -22,7 +22,7 @@
  
 /*!
 	\author Steve Lhomme
-	\version \$Id: ACMStream.cpp,v 1.12.2.1 2008/11/01 20:41:47 robert Exp $
+	\version \$Id: ACMStream.cpp,v 1.12 2007/12/26 22:04:08 robert Exp $
 */
 
 #if !defined(STRICT)
@@ -387,9 +387,9 @@ unsigned int ACMStream::GetOutputSampleRate(int samples_per_sec, int bitrate, in
 	unsigned int OutputFrequency;
 	double compression_ratio = double(samples_per_sec * 16 * channels / (bitrate * 8));
 	if (compression_ratio > 13.)
-		OutputFrequency = map2MP3Frequency( int((10. * bitrate * 8) / (16 * channels)));
+		OutputFrequency = map2MP3Frequency( (10. * bitrate * 8) / (16 * channels));
 	else
-		OutputFrequency = map2MP3Frequency( int(0.97 * samples_per_sec) );
+		OutputFrequency = map2MP3Frequency( 0.97 * samples_per_sec );
 
 	return OutputFrequency;
 

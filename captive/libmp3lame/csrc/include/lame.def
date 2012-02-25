@@ -243,9 +243,13 @@ get_lame_os_bitness	@166
 lame_set_VBR_quality	@167
 lame_get_VBR_quality	@168
 
+lame_encode_buffer_ieee_float	@169
+lame_encode_buffer_interleaved_ieee_float	@170
+lame_encode_buffer_ieee_double	@171
+lame_encode_buffer_interleaved_ieee_double	@172
 
-bitrate_table		@500
-samplerate_table	@501
+lame_get_bitrate	@502
+lame_get_samplerate	@503
 
 lame_decode_init	@1000
 lame_decode		@1001
@@ -262,6 +266,9 @@ hip_decode_headers	@1103
 hip_decode1		@1104
 hip_decode1_headers	@1105
 hip_decode1_headersB	@1106
+hip_set_debugf	@1107
+hip_set_errorf	@1108
+hip_set_msgf	@1109
 
 id3tag_genre_list	@2000
 id3tag_init   		@2001
@@ -284,3 +291,9 @@ lame_get_id3v2_tag	@2017
 lame_set_write_id3tag_automatic	@2018
 lame_get_write_id3tag_automatic	@2019
 id3tag_set_pad	@2020
+id3tag_set_comment_ucs2	@2021
+id3tag_set_textinfo_ucs2 @2022
+id3tag_set_fieldvalue_ucs2	@2023
+id3tag_set_comment_utf16	@2024
+id3tag_set_textinfo_utf16 @2025
+id3tag_set_fieldvalue_utf16	@2026

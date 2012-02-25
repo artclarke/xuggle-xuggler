@@ -4,7 +4,7 @@
  * Copyright (C) 2003 Gabriel Bouvigne / Lame project
  *
  * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
+ * modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
  *
@@ -13,7 +13,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Library General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
+ * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
  */
@@ -21,18 +21,11 @@
 #ifndef __SET_GET_H__
 #define __SET_GET_H__
 
+#include <lame.h>
 
 #if defined(__cplusplus)
 extern  "C" {
 #endif
-
-#if defined(WIN32)
-#undef CDECL
-#define CDECL _cdecl
-#else
-#define CDECL
-#endif
-
 
 /* select psychoacoustic model */
 
@@ -73,6 +66,8 @@ extern  "C" {
 /*presets*/
     int     apply_preset(lame_global_flags *, int preset, int enforce);
 
+    void CDECL lame_set_tune(lame_t, float); /* FOR INTERNAL USE ONLY */
+    void CDECL lame_set_msfix(lame_t gfp, double msfix);
 
 
 #if defined(__cplusplus)

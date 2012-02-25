@@ -4,7 +4,7 @@
  *	Copyright (c) 1999 Takehiro TOMINAGA
  *
  * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
+ * modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
  *
@@ -13,7 +13,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU
  * Library General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
+ * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
@@ -57,7 +57,6 @@ extern FLOAT adj43[PRECALC_SIZE];
 
 extern FLOAT pow20[Q_MAX + Q_MAX2 + 1];
 extern FLOAT ipow20[Q_MAX];
-extern FLOAT iipow20[Q_MAX2 + 1];
 
 typedef struct calc_noise_result_t {
     FLOAT   over_noise;      /* sum of quantization noise > masking */
@@ -82,23 +81,23 @@ typedef struct calc_noise_data_t {
 } calc_noise_data;
 
 
-int     on_pe(lame_global_flags const *gfp, FLOAT pe[2][2],
+int     on_pe(lame_internal_flags * gfc, const FLOAT pe[2][2],
               int targ_bits[2], int mean_bits, int gr, int cbr);
 
 void    reduce_side(int targ_bits[2], FLOAT ms_ener_ratio, int mean_bits, int max_bits);
 
 
-void    iteration_init(lame_global_flags * gfp);
+void    iteration_init(lame_internal_flags * gfc);
 
 
-int     calc_xmin(lame_global_flags const *gfp,
+int     calc_xmin(lame_internal_flags const *gfc,
                   III_psy_ratio const *const ratio, gr_info * const cod_info, FLOAT * l3_xmin);
 
 int     calc_noise(const gr_info * const cod_info,
                    const FLOAT * l3_xmin,
                    FLOAT * distort, calc_noise_result * const res, calc_noise_data * prev_noise);
 
-void    set_frame_pinfo(lame_global_flags const *gfp, III_psy_ratio ratio[2][2]);
+void    set_frame_pinfo(lame_internal_flags * gfc, const III_psy_ratio ratio[2][2]);
 
 
 
@@ -116,14 +115,13 @@ void    best_huffman_divide(const lame_internal_flags * const gfc, gr_info * con
 void    best_scalefac_store(const lame_internal_flags * gfc, const int gr, const int ch,
                             III_side_info_t * const l3_side);
 
-int     scale_bitcount(gr_info * const cod_info);
-int     scale_bitcount_lsf(const lame_internal_flags * gfp, gr_info * const cod_info);
+int     scale_bitcount(const lame_internal_flags * gfc, gr_info * cod_info);
 
 void    huffman_init(lame_internal_flags * const gfc);
 
 void    init_xrpow_core_init(lame_internal_flags * const gfc);
 
-FLOAT   athAdjust(FLOAT a, FLOAT x, FLOAT athFloor);
+FLOAT   athAdjust(FLOAT a, FLOAT x, FLOAT athFloor, float ATHfixpoint);
 
 #define LARGE_BITS 100000
 

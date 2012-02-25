@@ -1,28 +1,63 @@
-lame (3.98.3) unstable; urgency=low
+lame (3.99~cvs20110302) UNRELEASED; urgency=low
 
-  * New upstream bugfix version.
+  * New update of the debian infra-structure.
   * debian/rules:
-    + remove excessive quoting from the LDFLAGS variable.
-    + remove useless comments from the file, to make it tidier.
-    + make the detection of the cross-compilation more robust.
-    + avoid passing -O2 to CFLAGS, so that we can optimize for size.
+    + Transition to the short debhelper 7 format.
+    + Use the --parallel flag so that building in parallel is supported.
   * debian/control:
-    + add ${misc:Depends} to each binary package (due to debhelper).
-  * debian/copyright:
-    + update copyright years.
-    + add the © symbol, since (C) may not have legal value.
-    + update reference to a versioned LGPL.
+    + Rewrap the Build-Depends field for legibility.
+    + Change B-D on nasm to allow any i386 platform (no amd64, though).
+    + Update the B-D on debhelper to >= 7.0.50~, as we use overrides in
+      debian/rules.
+    + Fix lintian's debhelper-but-no-misc-depends from the binary packages.
+    + Remove unused Conflicts: and Replaces: fields.
+    + Verified that the packaging conforms to the Policy version 3.9.1.
+  * debian/changelog:
+    + Put my SF email or we get warnings from lintian.
 
- -- Rogério Brito <rbrito@users.sf.net>  Wed, 24 Feb 2010 04:51:34 -0300
+ -- Rogério Brito <rbrito@users.sf.net>  Wed, 02 Mar 2011 13:31:29 -0300
 
-lame (3.98.1) unstable; urgency=low
+lame (3.99~cvs20091122) unstable; urgency=low
 
-  * New upstream version:
-    + Fix executable stacks (Thanks to Gentoo people);
-    + Fix for text relocations (Thanks to the PaX Team and Gentoo people).
+  * Update based on many suggestions by Fabian Greffrath.
+  * debian/compat: update to 7.
+  * debian/control:
+    + remame libmp3lame0-dev to libmp3lame-dev.
+    + remove dependency on libc6-dev from libmp3lame-dev.
+    + bump dependency on debhelper to 7.
+    + bump Standards-Version to 3.8.0.
+  * debian/libmp3lame0-dev.files: rename to libmp3lame-dev.files.
+  * debian/*.files: rename to *.install.
+  * debian/rules:
+    + replace obsolete dh_clean -k with dh_prep.
+    + substitute the use of dh_movefiles with dh_install.
+    + changed the *FLAGS variables to use appends, not attributions.
+    + include options -O1, -z,defs for the linker.
+    + no need to pass options to dh_installman.
+    + no need to pass options to dh_installchangelogs.
+  * Initial transition to source format "3.0 (quilt)".
+
+ -- Rogério Brito <rbrito@users.sf.net>  Sun, 22 Nov 2009 19:19:39 -0200
+
+lame (3.99~cvs20090419) unstable; urgency=low
+
+  * Updating the packaging of lame.
+  * debian/control: include autotools-dev as a build dependency.
+  * debian/rules:
+    + made use of autotools-dev.
+    + remove switch --without-vorbis.
+    + substituted `pwd` by $(CURDIR).
+  * debian/watch: also consider versions with a letter in them.
+
+ -- Rogério Brito <rbrito@users.sf.net>  Sun, 19 Apr 2009 20:20:27 -0300
+
+lame (3.99~cvs20081106) unstable; urgency=low
+
   * changes are now (mostly) committed to changelog.
   * debian/rules: include -Wl,--as-needed for the loader at compile time.
-  * Numerous improvements thanks to Fabian Greffrath. Sincere thanks.
+  * debian/rules: remove (not needed) hack for rpath (Tks Fabian Greffrath).
+  * debian/control: depend libsndfile1-dev (Tks Fabian Greffrath).
+  * debian/control: get rid of transitional liblame0.
 
  -- Rogério Brito <rbrito@users.sf.net>  Sat, 12 Jul 2008 09:14:54 -0300
 

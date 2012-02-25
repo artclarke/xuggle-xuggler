@@ -1,6 +1,6 @@
 #	Makefile.MSVC: MSVC Makefile for LAME
 #
-#	2000-2007 Robert Hegemann
+#	2000-2010 Robert Hegemann
 #	dedicated to the LAME project http://www.mp3dev.org
 ###############################################################################
 
@@ -39,6 +39,7 @@
 
 T_LAME = lame.exe
 T_MP3X = mp3x.exe
+T_MP3RTP = mp3rtp.exe
 T_DLL = libmp3lame.dll
 T_LIB_DYNAMIC = libmp3lame.lib
 T_LIB_STATIC = libmp3lame-static.lib
@@ -230,13 +231,13 @@ CC_OPTS = $(CC_OPTS) /W$(WARN)
 CC_OPTS = $(CC_OPTS) /DFLOAT8=float /DREAL_IS_FLOAT=1
 !	ENDIF
 
-CC_OPTS = $(CC_OPTS) /DNDEBUG /MD
+CC_OPTS = $(CC_OPTS) /DNDEBUG /MT
 
 LN_OPTS = /nologo /opt:NOWIN98 /pdb:none
 LN_DLL = /nologo /DLL /opt:NOWIN98
 
 CC_OUT = /Fo
-LN_OUT = /force /OUT:
+LN_OUT = /OUT:
 
 CC = cl
 LN = link
@@ -363,8 +364,6 @@ LIBSNDFILE = $(SNDFILE_DIR)libsndfile.lib
 
 
 #-- MISC --
-BRHIST_SWITCH = /DBRHIST
-
 CPP_OPTS = /DHAVE_CONFIG_H -I.
 
 
@@ -400,13 +399,13 @@ PGM = $(T_MP3X) $(PGM)
 
 
 
-#__ MPG123 DECODING ___________________________________________________________
+#__ HIP DECODING ______________________________________________________________
 #
 #	uncomment the following if you want decoding support
 #	It's always a good idea to compile it in!
 #
-CPP_OPTS = $(CPP_OPTS) /DHAVE_MPGLIB /DUSE_LAYER_1 /DUSE_LAYER_2
-#___________________________________________________________ MPG123 DECODING __
+CPP_OPTS = $(CPP_OPTS) /DHAVE_MPGLIB
+#___________________________________________________________ HIP DECODING _____
 
 
 
@@ -431,24 +430,28 @@ LN_OPTS = $(LN_OPTS) /LTCG
 
 
 
-CC_SWITCHES = $(CC_OPTS) $(SNDFILE_OPTS) $(BRHIST_SWITCH) \
+CC_SWITCHES = $(CC_OPTS) $(SNDFILE_OPTS) \
               $(GTK_OPTS) /DBS_FORMAT=BINARY
 
 LN_SWITCHES = $(LN_OPTS)
 
 lame_sources = \
-	frontend/main.c
+	frontend/lame_main.c
 
 mpx_sources = \
 	frontend/gpkplotting.c \
 	frontend/gtkanal.c \
 	frontend/mp3x.c
 
+mp3rtp_sources = \
+	frontend/rtp.c \
+	frontend/mp3rtp.c
+
 dll_sources = \
 	dll/BladeMP3EncDll.c
 
 common_sources = \
-	frontend/portableio.c \
+	frontend/main.c \
 	frontend/get_audio.c \
 	frontend/parse.c \
 	frontend/timestatus.c \
@@ -495,12 +498,12 @@ ADDL_OBJ = bufferoverflowU.lib
 !ENDIF
 
 LIB_OBJ = $(lamelib_sources:.c=.obj)
-MPG_OBJ = $(mpglib_sources:.c=.obj)
+HIP_OBJ = $(mpglib_sources:.c=.obj)
 CMMN_OBJ = $(common_sources:.c=.obj)
 LAME_OBJ = $(lame_sources:.c=.obj)
 MPX_OBJ = $(mpx_sources:.c=.obj)
+MPRTP_OBJ = $(mp3rtp_sources:.c=.obj)
 DLL_OBJ = $(dll_sources:.c=.obj)
-
 
 .c.obj:
 	@$(CC) $(CPP_OPTS) $(CC_SWITCHES) -Iinclude -Ilibmp3lame -Impglib \
@@ -591,31 +594,53 @@ libA:	$(LIB_OBJ)
 	@echo --- LAME MP3 ENCODING LIBRARY UPTODATE ---
 	@echo.
 
-libB:	$(MPG_OBJ)
+libB:	$(HIP_OBJ)
 	@echo.
-	@echo --- MPG123 DECODING LIBRARY UPTODATE ---
+	@echo --- HIP DECODING LIBRARY UPTODATE ---
 	@echo.
 
 lib: $(ASM_OBJ) libA libB
 
-$(T_LAME) : target_directory config.h $(T_LIB_STATIC) common $(LAME_OBJ)
+lame.res: ./libmp3lame/lame.rc
+	@rc.exe /d "NDEBUG" /d "_APP=lame.exe" /l 0x409 /fo"./frontend/lame.res" "./libmp3lame/lame.rc"
+
+mp3rtp.res: ./libmp3lame/lame.rc
+	@rc.exe /d "NDEBUG" /d "_APP=mp3rtp.exe" /l 0x409 /fo"./frontend/mp3rtp.res" "./libmp3lame/lame.rc"
+
+mp3x.res: ./libmp3lame/lame.rc
+	@rc.exe /d "NDEBUG" /d "_APP=mp3x.exe" /l 0x409 /fo"./frontend/mp3x.res" "./libmp3lame/lame.rc"
+
+lame_enc.res: ./libmp3lame/lame.rc
+	@rc.exe /d "NDEBUG" /d "_DLL=lame_enc.dll" /l 0x409 /fo"./frontend/lame_enc.res" "./libmp3lame/lame.rc"
+
+$(T_LAME) : target_directory config.h $(T_LIB_STATIC) common $(LAME_OBJ) lame.res
 	@$(LN) $(LN_OUT)$(TARGET_DIR)$@ $(LN_SWITCHES) $(LIBSNDFILE) \
-	       $(TARGET_DIR)$(T_LIB_STATIC) $(CMMN_OBJ) $(LAME_OBJ) $(ADDL_OBJ)
+	       $(TARGET_DIR)$(T_LIB_STATIC) $(CMMN_OBJ) $(LAME_OBJ) $(ADDL_OBJ) \
+	       ./frontend/lame.res
 	@echo.
 	@echo --=*  $(TARGET_DIR)$@ ready  *=--
 	@echo.
 
-$(T_MP3X) : target_directory config.h lib common $(MPX_OBJ)
+$(T_MP3X) : target_directory config.h lib common $(MPX_OBJ) mp3x.res
 	@$(LN) $(LN_OUT)$(TARGET_DIR)$@ $(LN_SWITCHES) $(GTK_LIBS) $(LIBSNDFILE) \
-	       $(TARGET_DIR)$(T_LIB_STATIC) $(CMMN_OBJ) $(MPX_OBJ) $(ADDL_OBJ)
+	       $(TARGET_DIR)$(T_LIB_STATIC) $(CMMN_OBJ) $(MPX_OBJ) $(ADDL_OBJ) \
+	       ./frontend/mp3x.res
 	@echo.
 	@echo --=*  $(TARGET_DIR)$@ ready  *=--
 	@echo.
 
-$(T_LEGACY_DLL) : target_directory config.h $(DLL_OBJ)
+$(T_MP3RTP) : target_directory config.h lib common $(MPRTP_OBJ) mp3rtp.res
+	@$(LN) $(LN_OUT)$(TARGET_DIR)$@ $(LN_SWITCHES) $(LIBSNDFILE) \
+	       $(TARGET_DIR)$(T_LIB_STATIC) $(CMMN_OBJ) $(MPRTP_OBJ) $(ADDL_OBJ) \
+	       ./frontend/mp3rtp.res wsock32.lib
+	@echo.
+	@echo --=*  $(TARGET_DIR)$@ ready  *=--
+	@echo.
+
+$(T_LEGACY_DLL) : target_directory config.h $(DLL_OBJ) lame_enc.res
 	@$(LN) $(LN_OUT)$(TARGET_DIR)$@ $(LN_SWITCHES) \
 	       $(TARGET_DIR)$(T_LIB_STATIC) $(LN_DLL) \
-	       $(DLL_OBJ) $(ADDL_OBJ)
+	       $(DLL_OBJ) $(ADDL_OBJ) ./frontend/lame_enc.res user32.lib
 	@echo.
 	@echo --=*  $(TARGET_DIR)$@ ready  *=--
 	@echo.
@@ -633,7 +658,7 @@ $(T_DLL) : target_directory config.h $(T_LIB_STATIC)
 $(T_LIB_STATIC) : target_directory lib
 	@lib $(LIB_OPTS) \
 		/OUT:"$(TARGET_DIR)$@" \
-		$(ASM_OBJ) $(LIB_OBJ) $(MPG_OBJ)
+		$(ASM_OBJ) $(LIB_OBJ) $(HIP_OBJ)
 	@echo.
 	@echo --=*  $(TARGET_DIR)$@ ready  *=--
 	@echo.
@@ -644,6 +669,7 @@ config.h : configMS.h
 clean:
 	@-del $(TARGET_DIR)$(T_LAME)
 	@-del $(TARGET_DIR)$(T_MP3X)
+	@-del $(TARGET_DIR)$(T_MP3RTP)
 	@-del $(TARGET_DIR)$(T_DLL)
 	@-del $(TARGET_DIR)$(T_LIB_STATIC)
 	@-del $(TARGET_DIR)$(T_LIB_DYNAMIC)
@@ -657,6 +683,8 @@ clean:
 	@-del libmp3lame\*.obj
 	@-del libmp3lame\i386\*.obj
 	@-del libmp3lame\vector\*.obj
+	@-del libmp3lame\*.res
+	@-del frontend\*.res
 
 
 rebuild: clean all
@@ -666,9 +694,10 @@ lame	:	$(T_LAME)
 lame_enc:	$(T_LEGACY_DLL)
 dll 	:	$(T_DLL) $(T_LEGACY_DLL) 
 mp3x	:	$(T_MP3X)
+mp3rtp	:	$(T_MP3RTP)
 
 
-all :	$(PGM) dll lame_enc 
+all :	$(PGM) mp3rtp dll lame_enc 
 	@echo.
 	@echo --=*  all uptodate  *=--
 	@echo.

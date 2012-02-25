@@ -30,7 +30,151 @@ affect quality</font> <br>
 affect speed</font> <br>
 
 black = usability, portability, other
+
 <hr>
+<h3>LAME 3.99.4&nbsp; &nbsp;January 25 2012</h3>
+<ul>
+  <li>Robert Hegemann
+    <ul>
+      <li>Fix for tracker item <i>[ 3475581 ] lame crashes at .w64 input file</i> 
+      </li>
+      <li>Addressing things brought to attention by tracker item <i>[ 3463197 ] 3.99.x problem WFED and PCST frames </i>
+      <ul><li> WFED and PCST frames can now be added, to tag podcasts iTunes recognizes</li>
+          <li> USER frames are now supported</li>
+          <li> COMM frames can now have a description, when passed via --tv "COMM=description=full text"</li>
+          <li> possible divide-by-zero exception should be fixed</li>
+          <li> adding malformed user-defined-frames could result in abnormal program termination, fixed</li>
+      </ul>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<br>
+<h3>LAME 3.99.3&nbsp; &nbsp;November 26 2011</h3>
+<ul>
+  <li>Robert Hegemann
+    <ul>
+      <li>Fix for tracker item <i>[ 3441349 ] --tg does not handle genre number when adding unicode tag</i> 
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<br>
+<h3>LAME 3.99.2&nbsp; &nbsp;November 18 2011</h3>
+<ul>
+  <li>Robert Hegemann
+    <ul>
+      <li>Due to some bugs in 3rd party HW/SW decoders, those were not
+          be able to make use of LAME's extended info tag anymore,
+          resulting in problems with things like gapless playback.
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<br>
+<h3>LAME 3.99.1&nbsp; &nbsp;November 05 2011</h3>
+<ul>
+  <li>Robert Hegemann
+    <ul>
+      <li>Fixes for several issues with ID3v2 unicode tags, using Big-Endian text encodings.
+          Because of several other software (like Windows Media Player),
+          LAME writes Little-Endian unicode tags only.<br>
+          Thanks to Taihei Monma, for reporting these issues.
+          Tracker items: <i>[ 3431203, 3431222, 3431241 ]</i>
+      </li>
+    </ul>
+  </li>
+</ul>
+
+<br>
+<h3>LAME 3.99&nbsp; &nbsp;October 15 2011</h3>
+<ul>
+  <li>3.99 beta 1 becomes 3.99 </li>
+</ul>
+
+<br>
+<h3>LAME 3.99 beta 1&nbsp; &nbsp;not yet released</h3>
+<ul>
+  <li>Robert Hegemann
+    <ul>
+      <li>Fix for Bugtracker item <i>[ 3395813 ] id3tag_set_fieldvalue for URL link frames Broken</i>
+      </li>
+      <li>Fix for Bugtracker item <i>[ 3368977 ] Wave Parser doesn't pad chunks</i>
+      </li>
+      <li>Fix for Bugtracker item <i>[ 3034259 ] confusing fatal error: can't update LAME-tag frame!</i>
+      </li>
+    </ul>
+  </li>
+</ul>
+<h3>LAME 3.99 beta 0&nbsp; &nbsp;not officially released</h3>
+<ul>
+  <li>Josep Maria Antol&iacute;n Segura
+    <ul>
+      <li>Documentation work
+      </li>
+    </ul>
+  </li>
+  <li>Rog&eacute;rio Brito
+    <ul>
+      <li>Improve Debian packaging.
+	<ul>
+	  <li>Include suggestions made by Fabian Greffrat</li>
+	  <li>Update version of the Debian package to reflect that it is taken from CVS.</li>
+	  <li>Get rid of a transitional package</li>
+	  <li>Much more to come...</li>
+	</ul>
+      <li>Minor fix to validate the history file correctly</li>
+    </ul>
+  </li>
+
+  <li>Robert Hegemann
+    <ul>
+      <li>Porting of LAME <b>mp3rtp</b> program to Windows platform
+      </li>
+      <li>Fix: <font color="#ff0000">for free format mp3 above 320 kbps, the maximum allowed bits was limited too far.</font>
+      </li>
+      <li>Changed behaviour: LAME replaces common suffixes by MP3/WAV when no output filename was given. For example, a simple <tt>lame x.wav</tt> will create output file <tt>x.mp3</tt>
+      </li>
+      <li>UNICODE support on Windows OS, file names and ID3v2 tags;
+       related: Bugtracker item <i>[ 3052230 ] Lame.exe can't find files with non-ASCII names</i>
+      </li>
+      <li>Added  support for WAVE FORMAT IEEE FLOAT input files
+      </li>
+      <li>New switch <b>--swap-channel</b> added, see tracker item <i>[ 1118412 ] RFE: option to swap L and R channels</i>
+      </li>
+      <li>New switches <b>-m l</b> and <b>-m r</b> to select either left or right channel for mono encoding.
+      </li>
+      <li>Feature request item <i>[ 3134258 ] Allow larger images with LAME (>128KB)</i>
+      </li>
+      <li>Fix for Bugtracker item <i>[ 2962223 ] Encoder delay and padding values ignored when re-encoding</i>
+      </li>
+      <li>Fix for Bugtracker item <i>[ 2986823 ] Error when building Lame with NASM support -still exists</i>
+      </li>
+      <li>Fix for Bugtracker item <i>[ 3125235 ] make -f Makefile.mingw32 fails</i>
+      </li>
+      <li>Fix for Bugtracker item <i>[ 3021935 ] ID3 tag TXXX cannot be used more than once</i>
+      </li>
+      <li>Fix for Bugtracker item <i>[ 3025801 ] gain_analysis.h needs int constants</i>
+      </li>
+      <li>Fix for Bugtracker item <i>[ 3277412 ] Segmentation fault at layer2.c:105 with --decode</i>
+      </li>
+      <li>Changes in new VBR code:
+      	<ul>
+      	  <li><font color="#ff0000">tuning on PSY model</font></li>
+      	  <li><font color="#770000">tuning on VBR scale and resulting bitrates</font></li>
+      	  <li><font color="#ff0000">Minor bug fix for sfb21 encoding</font></li>
+      	</ul>
+      </li>
+      <li><font color="#ff0000">All encoding modes use the PSY model from new VBR code, addresses Bugtracker item <i>[ 3187397 ] Strange compression behavior</i></font>
+      </li>
+      <li>Fix for a possible out of bounds array access in HIP decoder, addresses Bugtracker item <i>[ 3091776 ] crash at III_dequantize_sample</i>
+      </li>
+    </ul>
+  </li>
+</ul>
 
 <hr>
 <h3>LAME 3.98.4 &nbsp; &nbsp;March 22 2010</h3>
@@ -108,17 +252,18 @@ black = usability, portability, other
       </li>
     </ul>
   </li>
-</ul>  
-  
+</ul>
+
 <h3>LAME 3.98.2 &nbsp; &nbsp;September 22 2008</h3>
 <ul>
-  <li>Robert Hegemann</li>
-  <ul>
-    <li>Fix for Bugtracker item <i>[ 2123206 ] lame 3.98.1 segfaults with -h</i>
+  <li>Robert Hegemann
+    <ul>
+      <li>Fix for Bugtracker item <i>[ 2123206 ] lame 3.98.1 segfaults with -h</i>
+      </li>
+    </ul>
   </li>
-  </ul>
 </ul>
-  
+
 <h3>LAME 3.98.1 &nbsp; &nbsp;September 21 2008</h3>
 <ul>
   <li>Rog&eacute;rio Brito:
@@ -159,6 +304,7 @@ black = usability, portability, other
   </li>
 </ul>
 
+<hr>
 <h3>LAME 3.98 &nbsp; &nbsp;July 4 2008</h3>
 <ul>
   <li>Anton Sergunov:
@@ -203,7 +349,7 @@ black = usability, portability, other
 <ul>
   <li>Robert Hegemann:
     <ul>
-      <li>libmp3lame API: allow frontends to separately retrieve LAME/Xing and ID3 data, because the old library automatism 
+      <li>libmp3lame API: allow frontends to separately retrieve LAME/Xing and ID3 data, because the old library automatism
           makes it impossible to make fully buffered encodes.
       </li>
       <li>libmp3lame API: added some experimental unicode ID3 tagging code.
@@ -229,36 +375,36 @@ black = usability, portability, other
 <ul>
   <li>Robert Hegemann:
     <ul>
-    
+
       <li>Feature request <i>[ 1811483 ] WAVE_FORMAT_EXTENSIBLE support (PCM)</i>
       </li>
-      
+
       <li><font color="#ff0000">Fix for some rare scalefactor selection issue the newer vbr code had at low compression levels
       </font></li>
-      
+
       <li>Fix for Bugtracker item<i>[ 1813496 ] AIFF parsing bug</i>
       </li>
-      
+
       <li>Latest changes to the new VBR code:
       <ul>
-      
+
       <li><font color="#3366ff">it now has its own psy model, a derivation from NSPSY.</font>
       </li>
-      
+
       <li><font color="#ff0000">some more tuning has been done for this new psy model.</font>
         Many thanks to Horst Albrecht and Myles Thaiss.
       </li>
-      
+
       <li><font color="#ff0000">the "out-of-bits" strategy is reworked</font>
       </li>
-      
+
       </ul>
-      
+
       <li><font color="#ff0000">It was possible, that the "interchannel masking effects feature"
         was used by the dual-channel-mode for bi-lingual encodings too. It was meant to work
         on stereo L/R channels only.</font>
       </li>
-      
+
     </ul>
   </li>
 </ul>
@@ -268,25 +414,25 @@ black = usability, portability, other
 <ul>
 
   <li>Jonathan Stott:
-  
+
     <ul>
 
       <li>Bug tracker items: <i>[ 1590693 ] ID3v2 tag not writing, [ 1636267 ] ID3v2 tags overwritten</i><br>
       If the output file is opened 'write-only', then LAME can't update the LAME tag.
       In this case LAME silently overwrote the first bytes of the file and an
       optional ID3v2 tag disappeared. Now an error message will be printed and
-      no data is written in this case.       
+      no data is written in this case.
       </li>
-      
+
     </ul>
 
   </li>
-  
+
   <li>Robert Hegemann:
     <ul>
-    
+
         <li>Fix for Bugtracker item <i>[ 1719593 ] Track numbers > 255 not allowed even with --id3v2-only</i>
-        
+
         <li>Fix for Bugtracker item <i>[ 1742623 ] fail(lame --mp3input -m m -b 128 --resample 8 *.mp3 **.mp3)</i><br>
         The problem here was, the input files are MPEG-1 Layer2 files named as MP3s. Even if you leave out
         the --mp3input switch LAME tried to decode the input files as Layer3 files because of the file name
@@ -295,28 +441,28 @@ black = usability, portability, other
         depending on the first found MPEG sync word. The files in question are now correctly detected as
         Layer2 files and transcoding does succeed.
         </li>
-        
+
         <li>Fix for Bugtracker item <i>[ 1445175 ] Input being stdin fails in Windows on WAV files</i><br>
         The problem here was, seeking on pipes shows some different behaviour depending on C-Library
         implementations. The workaround tries to detect it's working on a pipe and doing some
         reading instead of seeking in that case.
         </li>
-        
+
         <li>Fixing some memory leak in the 'lame_enc.dll'.
         </li>
-        
+
         <li>Fix for Bugtracker items <i>[ 1160757, 1160741 ] --little-endian / --big-endian not working</i><br>
         These switches where originally intended to be used together with Libsndfile only.
         </li>
-        
+
         <li>Fix for Bugtracker item <i>[ 1746336 ] Incorrect Bitrate with ABR und --resample, LAME 3.98b4</i><br>
-        Some earlier bug-fix had some typo. As a result, when adding a '--resample 123' switch, 
+        Some earlier bug-fix had some typo. As a result, when adding a '--resample 123' switch,
         the average bitrate rised upto maximum bitrate.
         </li>
-        
+
     </ul>
   </li>
-  
+
 </ul>
 
 <h3>LAME 3.98 beta 4&nbsp; &nbsp;June 23 2007</h3>
@@ -325,14 +471,14 @@ black = usability, portability, other
 
   <li>Dennis Lambe Jr: Added support for total track count (id3v2) in the frontend
   </li>
-  
+
   <li>Nyaochi:
     <ul>
 
       <li>Ability to set user-defined ID3v2.3 frame</li>
-      
+
       <li>Ability to include albumArt in ID3v2.3 tag</li>
-      
+
     </ul>
 
   </li>
@@ -342,13 +488,13 @@ black = usability, portability, other
 
       <li>Bugfix: the "play length in ms", which is stored in the ID3v2 tag TLEN, was not correctly computed.
                 Some hardware and software players were confused by this garbage data.</li>
-      
-      <li><font color="#ff0000">Out of bits strategy for the newer VBR code overhauled</font></li> 
-      
+
+      <li><font color="#ff0000">Out of bits strategy for the newer VBR code overhauled</font></li>
+
       <li>LAME API: the ID3 tag functions do not store the pointers passed anymore,
       they do make deep copies of strings passed as parameters.
       </li>
-      
+
       <li>Changes in LAME frontend switches regarding ID3 tags:
       <br><tt>--tg "MyGenre"</tt> will route unknown ID3v1 genres to "Other" for ID3v1 tags
       and will be stored as plain text "MyGenre" for ID3v2 tags. Genres given by known
@@ -372,7 +518,7 @@ black = usability, portability, other
     <ul>
 
       <li>Fixes regarding max number of bits limitation</li>
-      
+
     </ul>
 
   </li>
@@ -390,11 +536,11 @@ black = usability, portability, other
 
       <li>Bug tracker item: <i>[ 1693461 ];</i>
       Fixed memory leaks in ACM codec</li>
-      
+
       <li>Fixed encoding of non-standard sampling rates in CBR</li>
 
       <li><font color="#ff0000">Improved VBR strategy when running out of bits</font></li>
-      
+
     </ul>
 
   </li>
@@ -3235,7 +3381,7 @@ the exe. Thanks to <b>Lars Magne Ingebrigtseni</b></li>
 	options. Also added a pow20() function in l3loop.c to speed up
 	(ever so slightly) calls to pow(2.0, x)
       </li>
-      
+
       <li>m11
 	<ul>
           <li>

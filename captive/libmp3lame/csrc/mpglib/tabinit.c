@@ -20,7 +20,7 @@
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
  */
-/* $Id: tabinit.c,v 1.12.10.2 2010/03/22 14:17:14 robert Exp $ */
+/* $Id: tabinit.c,v 1.16 2010/03/22 14:30:19 robert Exp $ */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>

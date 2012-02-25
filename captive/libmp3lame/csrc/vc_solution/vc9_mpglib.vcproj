@@ -2,8 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="9,00"
-	Name="mpglib"
+	Name="libmpghip-static"
 	ProjectGUID="{E2DAB91A-8248-4625-8A85-2C2C2A390DD8}"
+	RootNamespace="libmpghip"
 	TargetFrameworkVersion="0"
 	>
 	<Platforms>
@@ -17,7 +18,7 @@
 		<Configuration
 			Name="ReleaseNASM|Win32"
 			ConfigurationType="4"
-			InheritedPropertySheets=".\vc9_lame_config.vsprops"
+			InheritedPropertySheets=".\vc9_lame_config.vsprops;.\arch_nasm.vsprops"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			>
@@ -44,7 +45,6 @@
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="../libmp3lame,../include,.."
 				PreprocessorDefinitions="NDEBUG;HAVE_MPGLIB;_WINDOWS;USE_LAYER_2;WIN32;HAVE_CONFIG_H"
-				RuntimeLibrary="2"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -58,7 +58,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="$(OutDir)/mpglib-static.lib"
+				OutputFile="$(OutDir)/libmpghip-static.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -79,7 +79,7 @@
 		<Configuration
 			Name="Release|Win32"
 			ConfigurationType="4"
-			InheritedPropertySheets=".\vc9_lame_config.vsprops"
+			InheritedPropertySheets=".\vc9_lame_config.vsprops;.\arch_x87.vsprops"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			>
@@ -106,7 +106,6 @@
 				FavorSizeOrSpeed="1"
 				AdditionalIncludeDirectories="../libmp3lame,../include,.."
 				PreprocessorDefinitions="NDEBUG;HAVE_MPGLIB;_WINDOWS;USE_LAYER_2;WIN32;HAVE_CONFIG_H"
-				RuntimeLibrary="2"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -120,7 +119,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="$(OutDir)/mpglib-static.lib"
+				OutputFile="$(OutDir)/libmpghip-static.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -141,7 +140,7 @@
 		<Configuration
 			Name="Debug|Win32"
 			ConfigurationType="4"
-			InheritedPropertySheets=".\vc9_lame_config.vsprops"
+			InheritedPropertySheets=".\vc9_lame_config.vsprops;.\arch_x87.vsprops"
 			UseOfMFC="0"
 			ATLMinimizesCRunTimeLibraryUsage="false"
 			>
@@ -165,7 +164,7 @@
 				Optimization="0"
 				AdditionalIncludeDirectories="../libmp3lame,../include,.."
 				PreprocessorDefinitions="_DEBUG;_WINDOWS;USE_LAYER_2;HAVE_MPGLIB;WIN32;HAVE_CONFIG_H"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				ProgramDataBaseFileName="$(OutDir)\$(TargetName).pdb"
 				DebugInformationFormat="3"
 			/>
@@ -181,7 +180,68 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
-				OutputFile="$(OutDir)/mpglib-static.lib"
+				OutputFile="$(OutDir)/libmpghip-static.lib"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+			/>
+		</Configuration>
+		<Configuration
+			Name="ReleaseSSE2|Win32"
+			ConfigurationType="4"
+			InheritedPropertySheets=".\vc9_lame_config.vsprops;.\arch_sse2.vsprops"
+			UseOfMFC="0"
+			ATLMinimizesCRunTimeLibraryUsage="false"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				Optimization="3"
+				InlineFunctionExpansion="2"
+				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
+				AdditionalIncludeDirectories="../libmp3lame,../include,.."
+				PreprocessorDefinitions="NDEBUG;HAVE_MPGLIB;_WINDOWS;USE_LAYER_2;WIN32;HAVE_CONFIG_H"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+				Culture="1033"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				OutputFile="$(OutDir)/libmpghip-static.lib"
 			/>
 			<Tool
 				Name="VCALinkTool"
@@ -234,6 +294,14 @@
 						AdditionalIncludeDirectories=""
 					/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\mpglib\dct64_i386.c"
@@ -256,6 +324,14 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -290,6 +366,14 @@
 						AdditionalIncludeDirectories=""
 					/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\mpglib\interface.c"
@@ -312,6 +396,14 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -346,6 +438,14 @@
 						AdditionalIncludeDirectories=""
 					/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\mpglib\layer2.c"
@@ -368,6 +468,14 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -402,6 +510,14 @@
 						AdditionalIncludeDirectories=""
 					/>
 				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\mpglib\tabinit.c"
@@ -424,6 +540,14 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						AdditionalIncludeDirectories=""
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
@@ -465,6 +589,16 @@
 				</FileConfiguration>
 				<FileConfiguration
 					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCustomBuildTool"
+						Description="Performing Custom Build Step on $(InputName)"
+						CommandLine="copy ..\configMS.h ..\config.h&#x0D;&#x0A;"
+						Outputs="..\config.h"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="ReleaseSSE2|Win32"
 					>
 					<Tool
 						Name="VCCustomBuildTool"

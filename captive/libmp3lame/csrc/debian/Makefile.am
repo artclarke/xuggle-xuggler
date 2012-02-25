@@ -1,4 +1,4 @@
-## $Id: Makefile.am,v 1.5.10.1 2010/03/21 12:28:44 robert Exp $
+## $Id: Makefile.am,v 1.8 2011/10/15 14:31:09 robert Exp $
 
 include $(top_srcdir)/Makefile.am.global
 
@@ -7,12 +7,13 @@ EXTRA_DIST = \
 	compat \
 	control \
 	copyright \
-	libmp3lame0-dev.docs \
-	libmp3lame0-dev.files \
-	libmp3lame0.files \
+	libmp3lame-dev.install \
+	libmp3lame0.install \
 	lame.docs \
-	lame.files \
-	rules
+	lame.install \
+	lame.manpages \
+	rules \
+	watch
 
 dist-hook:
 	chmod +x $(distdir)/rules

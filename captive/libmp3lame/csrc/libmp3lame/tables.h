@@ -4,7 +4,7 @@
  *	Copyright (c) 1999 Albert L Faber
  *
  * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
+ * modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
  *
@@ -13,7 +13,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU
  * Library General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
+ * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
@@ -22,7 +22,7 @@
 #ifndef LAME_TABLES_H
 #define LAME_TABLES_H
 
-
+#if 0
 typedef struct {
     unsigned char no;
     unsigned char width;
@@ -63,15 +63,15 @@ typedef struct {
 
 extern const type5_t table5[6];
 
-
+#endif
 
 #define HTN	34
 
 struct huffcodetab {
-    const int xlen;          /* max. x-index+   */
-    const int linmax;        /* max number to be stored in linbits */
-    const short *table;      /* pointer to array[xlen][ylen]  */
-    const char *hlen;        /* pointer to array[xlen][ylen]  */
+    const unsigned int xlen;          /* max. x-index+   */
+    const unsigned int linmax;        /* max number to be stored in linbits */
+    const uint16_t *table;      /* pointer to array[xlen][ylen]  */
+    const uint8_t *hlen;        /* pointer to array[xlen][ylen]  */
 };
 
 extern const struct huffcodetab ht[HTN];
@@ -80,13 +80,16 @@ extern const struct huffcodetab ht[HTN];
     /* 0..31 Huffman code table 0..31  */
     /* 32,33 count1-tables   */
 
-extern const char t32l[];
-extern const char t33l[];
+extern const uint8_t t32l[];
+extern const uint8_t t33l[];
 
-extern const unsigned int largetbl[16 * 16];
-extern const unsigned int table23[3 * 3];
-extern const unsigned int table56[4 * 4];
+extern const uint32_t largetbl[16 * 16];
+extern const uint32_t table23[3 * 3];
+extern const uint32_t table56[4 * 4];
 
 extern const int scfsi_band[5];
+
+extern const int bitrate_table    [3][16];
+extern const int samplerate_table [3][ 4];
 
 #endif /* LAME_TABLES_H */

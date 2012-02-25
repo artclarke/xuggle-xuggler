@@ -4,7 +4,7 @@
  *	Copyright (c) 1999 Albert L Faber
  *
  * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
+ * modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
  *
@@ -13,56 +13,56 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU
  * Library General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
+ * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
  */
 
-/* $Id: tables.c,v 1.25 2008/04/12 18:18:07 robert Exp $ */
+/* $Id: tables.c,v 1.29 2011/05/07 16:05:17 rbrito Exp $ */
 
 #ifdef HAVE_CONFIG_H
 # include <config.h>
 #endif
 
-#include "lame.h"
 #include "machine.h"
-#include "encoder.h"
+
+#include "lame.h"
 #include "tables.h"
 
 
-static const short t1HB[] = {
+static const uint16_t t1HB[] = {
     1, 1,
     1, 0
 };
 
-static const short t2HB[] = {
+static const uint16_t t2HB[] = {
     1, 2, 1,
     3, 1, 1,
     3, 2, 0
 };
 
-static const short t3HB[] = {
+static const uint16_t t3HB[] = {
     3, 2, 1,
     1, 1, 1,
     3, 2, 0
 };
 
-static const short t5HB[] = {
+static const uint16_t t5HB[] = {
     1, 2, 6, 5,
     3, 1, 4, 4,
     7, 5, 7, 1,
     6, 1, 1, 0
 };
 
-static const short t6HB[] = {
+static const uint16_t t6HB[] = {
     7, 3, 5, 1,
     6, 2, 3, 2,
     5, 4, 4, 1,
     3, 3, 2, 0
 };
 
-static const short t7HB[] = {
+static const uint16_t t7HB[] = {
     1, 2, 10, 19, 16, 10,
     3, 3, 7, 10, 5, 3,
     11, 4, 13, 17, 8, 4,
@@ -71,7 +71,7 @@ static const short t7HB[] = {
     6, 4, 5, 3, 2, 0
 };
 
-static const short t8HB[] = {
+static const uint16_t t8HB[] = {
     3, 4, 6, 18, 12, 5,
     5, 1, 2, 16, 9, 3,
     7, 3, 5, 14, 7, 3,
@@ -80,7 +80,7 @@ static const short t8HB[] = {
     12, 4, 4, 1, 1, 0
 };
 
-static const short t9HB[] = {
+static const uint16_t t9HB[] = {
     7, 5, 9, 14, 15, 7,
     6, 4, 5, 5, 6, 7,
     7, 6, 8, 8, 8, 5,
@@ -89,7 +89,7 @@ static const short t9HB[] = {
     14, 4, 6, 2, 6, 0
 };
 
-static const short t10HB[] = {
+static const uint16_t t10HB[] = {
     1, 2, 10, 23, 35, 30, 12, 17,
     3, 3, 8, 12, 18, 21, 12, 7,
     11, 9, 15, 21, 32, 40, 19, 6,
@@ -100,7 +100,7 @@ static const short t10HB[] = {
     9, 8, 7, 8, 4, 4, 2, 0
 };
 
-static const short t11HB[] = {
+static const uint16_t t11HB[] = {
     3, 4, 10, 24, 34, 33, 21, 15,
     5, 3, 4, 10, 32, 17, 11, 10,
     11, 7, 13, 18, 30, 31, 20, 5,
@@ -111,7 +111,7 @@ static const short t11HB[] = {
     11, 4, 6, 6, 6, 3, 2, 0
 };
 
-static const short t12HB[] = {
+static const uint16_t t12HB[] = {
     9, 6, 16, 33, 41, 39, 38, 26,
     7, 5, 6, 9, 23, 16, 26, 11,
     17, 7, 11, 14, 21, 30, 10, 7,
@@ -122,7 +122,7 @@ static const short t12HB[] = {
     27, 12, 8, 12, 6, 3, 1, 0
 };
 
-static const short t13HB[] = {
+static const uint16_t t13HB[] = {
     1, 5, 14, 21, 34, 51, 46, 71, 42, 52, 68, 52, 67, 44, 43, 19,
     3, 4, 12, 19, 31, 26, 44, 33, 31, 24, 32, 24, 31, 35, 22, 14,
     15, 13, 23, 36, 59, 49, 77, 65, 29, 40, 30, 40, 27, 33, 42, 16,
@@ -141,7 +141,7 @@ static const short t13HB[] = {
     16, 15, 17, 27, 25, 20, 29, 11, 17, 12, 16, 8, 1, 1, 0, 1
 };
 
-static const short t15HB[] = {
+static const uint16_t t15HB[] = {
     7, 12, 18, 53, 47, 76, 124, 108, 89, 123, 108, 119, 107, 81, 122, 63,
     13, 5, 16, 27, 46, 36, 61, 51, 42, 70, 52, 83, 65, 41, 59, 36,
     19, 17, 15, 24, 41, 34, 59, 48, 40, 64, 50, 78, 62, 80, 56, 33,
@@ -160,7 +160,7 @@ static const short t15HB[] = {
     71, 37, 34, 30, 28, 20, 17, 26, 21, 16, 10, 6, 8, 6, 2, 0
 };
 
-static const short t16HB[] = {
+static const uint16_t t16HB[] = {
     1, 5, 14, 44, 74, 63, 110, 93, 172, 149, 138, 242, 225, 195, 376, 17,
     3, 4, 12, 20, 35, 62, 53, 47, 83, 75, 68, 119, 201, 107, 207, 9,
     15, 13, 23, 38, 67, 58, 103, 90, 161, 72, 127, 117, 110, 209, 206, 16,
@@ -179,7 +179,7 @@ static const short t16HB[] = {
     12, 10, 7, 11, 10, 17, 11, 9, 13, 12, 10, 7, 5, 3, 1, 3
 };
 
-static const short t24HB[] = {
+static const uint16_t t24HB[] = {
     15, 13, 46, 80, 146, 262, 248, 434, 426, 669, 653, 649, 621, 517, 1032, 88,
     14, 12, 21, 38, 71, 130, 122, 216, 209, 198, 327, 345, 319, 297, 279, 42,
     47, 22, 41, 74, 68, 128, 120, 221, 207, 194, 182, 340, 315, 295, 541, 18,
@@ -198,49 +198,49 @@ static const short t24HB[] = {
     43, 20, 19, 17, 15, 13, 11, 9, 7, 6, 4, 7, 5, 3, 1, 3
 };
 
-static const short t32HB[] = {
+static const uint16_t t32HB[] = {
     1 << 0, 5 << 1, 4 << 1, 5 << 2, 6 << 1, 5 << 2, 4 << 2, 4 << 3,
     7 << 1, 3 << 2, 6 << 2, 0 << 3, 7 << 2, 2 << 3, 3 << 3, 1 << 4
 };
 
-static const short t33HB[] = {
+static const uint16_t t33HB[] = {
     15 << 0, 14 << 1, 13 << 1, 12 << 2, 11 << 1, 10 << 2, 9 << 2, 8 << 3,
     7 << 1, 6 << 2, 5 << 2, 4 << 3, 3 << 2, 2 << 3, 1 << 3, 0 << 4
 };
 
 
-const char t1l[] = {
+const uint8_t t1l[] = {
     1, 4,
     3, 5
 };
 
-const char t2l[] = {
+static const uint8_t t2l[] = {
     1, 4, 7,
     4, 5, 7,
     6, 7, 8
 };
 
-const char t3l[] = {
+static const uint8_t t3l[] = {
     2, 3, 7,
     4, 4, 7,
     6, 7, 8
 };
 
-const char t5l[] = {
+static const uint8_t t5l[] = {
     1, 4, 7, 8,
     4, 5, 8, 9,
     7, 8, 9, 10,
     8, 8, 9, 10
 };
 
-const char t6l[] = {
+static const uint8_t t6l[] = {
     3, 4, 6, 8,
     4, 4, 6, 7,
     5, 6, 7, 8,
     7, 7, 8, 9
 };
 
-const char t7l[] = {
+static const uint8_t t7l[] = {
     1, 4, 7, 9, 9, 10,
     4, 6, 8, 9, 9, 10,
     7, 7, 9, 10, 10, 11,
@@ -249,7 +249,7 @@ const char t7l[] = {
     9, 10, 11, 12, 12, 12
 };
 
-const char t8l[] = {
+static const uint8_t t8l[] = {
     2, 4, 7, 9, 9, 10,
     4, 4, 6, 10, 10, 10,
     7, 6, 8, 10, 10, 11,
@@ -258,7 +258,7 @@ const char t8l[] = {
     10, 10, 11, 11, 13, 13
 };
 
-const char t9l[] = {
+static const uint8_t t9l[] = {
     3, 4, 6, 7, 9, 10,
     4, 5, 6, 7, 8, 10,
     5, 6, 7, 8, 9, 10,
@@ -267,7 +267,7 @@ const char t9l[] = {
     9, 9, 10, 10, 11, 11
 };
 
-const char t10l[] = {
+static const uint8_t t10l[] = {
     1, 4, 7, 9, 10, 10, 10, 11,
     4, 6, 8, 9, 10, 11, 10, 10,
     7, 8, 9, 10, 11, 12, 11, 11,
@@ -278,7 +278,7 @@ const char t10l[] = {
     10, 10, 11, 12, 12, 13, 13, 13
 };
 
-const char t11l[] = {
+static const uint8_t t11l[] = {
     2, 4, 6, 8, 9, 10, 9, 10,
     4, 5, 6, 8, 10, 10, 9, 10,
     6, 7, 8, 9, 10, 11, 10, 10,
@@ -289,7 +289,7 @@ const char t11l[] = {
     9, 9, 10, 11, 12, 12, 12, 12
 };
 
-const char t12l[] = {
+static const uint8_t t12l[] = {
     4, 4, 6, 8, 9, 10, 10, 10,
     4, 5, 6, 7, 9, 9, 10, 10,
     6, 6, 7, 8, 9, 10, 9, 10,
@@ -300,7 +300,7 @@ const char t12l[] = {
     10, 10, 10, 11, 11, 11, 11, 12
 };
 
-const char t13l[] = {
+static const uint8_t t13l[] = {
     1, 5, 7, 8, 9, 10, 10, 11, 10, 11, 12, 12, 13, 13, 14, 14,
     4, 6, 8, 9, 10, 10, 11, 11, 11, 11, 12, 12, 13, 14, 14, 14,
     7, 8, 9, 10, 11, 11, 12, 12, 11, 12, 12, 13, 13, 14, 15, 15,
@@ -319,7 +319,7 @@ const char t13l[] = {
     13, 14, 15, 16, 16, 16, 17, 16, 17, 17, 18, 18, 21, 20, 21, 18
 };
 
-const char t15l[] = {
+static const uint8_t t15l[] = {
     3, 5, 6, 8, 8, 9, 10, 10, 10, 11, 11, 12, 12, 12, 13, 14,
     5, 5, 7, 8, 9, 9, 10, 10, 10, 11, 11, 12, 12, 12, 13, 13,
     6, 7, 7, 8, 9, 9, 10, 10, 10, 11, 11, 12, 12, 13, 13, 13,
@@ -338,7 +338,7 @@ const char t15l[] = {
     13, 13, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 15, 15, 15, 15
 };
 
-const char t16_5l[] = {
+static const uint8_t t16_5l[] = {
     1, 5, 7, 9, 10, 10, 11, 11, 12, 12, 12, 13, 13, 13, 14, 11,
     4, 6, 8, 9, 10, 11, 11, 11, 12, 12, 12, 13, 14, 13, 14, 11,
     7, 8, 9, 10, 11, 11, 12, 12, 13, 12, 13, 13, 13, 14, 14, 12,
@@ -357,7 +357,7 @@ const char t16_5l[] = {
     11, 11, 11, 12, 12, 13, 13, 13, 14, 14, 14, 14, 14, 14, 14, 12
 };
 
-const char t16l[] = {
+static const uint8_t t16l[] = {
     1, 5, 7, 9, 10, 10, 11, 11, 12, 12, 12, 13, 13, 13, 14, 10,
     4, 6, 8, 9, 10, 11, 11, 11, 12, 12, 12, 13, 14, 13, 14, 10,
     7, 8, 9, 10, 11, 11, 12, 12, 13, 12, 13, 13, 13, 14, 14, 11,
@@ -376,7 +376,7 @@ const char t16l[] = {
     10, 10, 10, 11, 11, 12, 12, 12, 13, 13, 13, 13, 13, 13, 13, 10
 };
 
-const char t24l[] = {
+static const uint8_t t24l[] = {
     4, 5, 7, 8, 9, 10, 10, 11, 11, 12, 12, 12, 12, 12, 13, 10,
     5, 6, 7, 8, 9, 10, 10, 11, 11, 11, 12, 12, 12, 12, 12, 10,
     7, 7, 8, 9, 9, 10, 10, 11, 11, 11, 11, 12, 12, 12, 13, 9,
@@ -395,12 +395,12 @@ const char t24l[] = {
     9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 9, 10, 10, 10, 10, 6
 };
 
-const char t32l[] = {
+const uint8_t t32l[] = {
     1 + 0, 4 + 1, 4 + 1, 5 + 2, 4 + 1, 6 + 2, 5 + 2, 6 + 3,
     4 + 1, 5 + 2, 5 + 2, 6 + 3, 5 + 2, 6 + 3, 6 + 3, 6 + 4
 };
 
-const char t33l[] = {
+const uint8_t t33l[] = {
     4 + 0, 4 + 1, 4 + 1, 4 + 2, 4 + 1, 4 + 2, 4 + 2, 4 + 3,
     4 + 1, 4 + 2, 4 + 2, 4 + 3, 4 + 2, 4 + 3, 4 + 3, 4 + 4
 };
@@ -455,7 +455,7 @@ const struct huffcodetab ht[HTN] = {
  *      largetbl[i] = ((ht[16].hlen[i]) << 16) + ht[24].hlen[i];
  *  }
  */
-const unsigned int largetbl[16 * 16] = {
+const uint32_t largetbl[16 * 16] = {
     0x010004, 0x050005, 0x070007, 0x090008, 0x0a0009, 0x0a000a, 0x0b000a, 0x0b000b,
     0x0c000b, 0x0c000c, 0x0c000c, 0x0d000c, 0x0d000c, 0x0d000c, 0x0e000d, 0x0a000a,
     0x040005, 0x060006, 0x080007, 0x090008, 0x0a0009, 0x0b000a, 0x0b000a, 0x0b000b,
@@ -494,7 +494,7 @@ const unsigned int largetbl[16 * 16] = {
  *      table23[i] = ((ht[2].hlen[i]) << 16) + ht[3].hlen[i];
  *  }
  */
-const unsigned int table23[3 * 3] = {
+const uint32_t table23[3 * 3] = {
     0x010002, 0x040003, 0x070007,
     0x040004, 0x050004, 0x070007,
     0x060006, 0x070007, 0x080008
@@ -504,7 +504,7 @@ const unsigned int table23[3 * 3] = {
  *       table56[i] = ((ht[5].hlen[i]) << 16) + ht[6].hlen[i];
  *   }
  */
-const unsigned int table56[4 * 4] = {
+const uint32_t table56[4 * 4] = {
     0x010003, 0x040004, 0x070006, 0x080008, 0x040004, 0x050004, 0x080006, 0x090007,
     0x070005, 0x080006, 0x090007, 0x0a0008, 0x080007, 0x080007, 0x090008, 0x0a0009
 };
@@ -535,9 +535,28 @@ const int samplerate_table[3][4] = {
     {11025, 12000, 8000, -1}, /* MPEG 2.5 */
 };
 
-const char *version_string[3] = { "2", "1", "2.5" };
+int
+lame_get_bitrate(int mpeg_version, int table_index)
+{
+    if (0 <= mpeg_version && mpeg_version <= 2) {
+        if (0 <= table_index && table_index <= 15) {
+            return bitrate_table[mpeg_version][table_index];
+        }
+    }
+    return -1;
+}
 
-const unsigned header_word[3] = { 0xFFF00000, 0xFFF80000, 0xFFE00000 };
+int
+lame_get_samplerate(int mpeg_version, int table_index)
+{
+    if (0 <= mpeg_version && mpeg_version <= 2) {
+        if (0 <= table_index && table_index <= 3) {
+            return samplerate_table[mpeg_version][table_index];
+        }
+    }
+    return -1;
+}
+
 
 /* This is the scfsi_band table from 2.4.2.7 of the IS */
 const int scfsi_band[5] = { 0, 6, 11, 16, 21 };

@@ -4,7 +4,7 @@
  *	Copyright (c) 2000 Mark Taylor
  *
  * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
+ * modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
  *
@@ -13,19 +13,17 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the GNU
  * Library General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
+ * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
  */
 
-/* $Id: brhist.c,v 1.53 2008/04/05 17:38:50 robert Exp $ */
+/* $Id: brhist.c,v 1.57 2011/05/07 16:05:17 rbrito Exp $ */
 
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
-
-#ifdef BRHIST
 
 /* basic #define's */
 
@@ -61,7 +59,7 @@
 
 extern Console_IO_t Console_IO;
 
-static struct {
+static struct brhist_struct {
     int     vbr_bitrate_min_index;
     int     vbr_bitrate_max_index;
     int     kbps[BRHIST_WIDTH];
@@ -139,7 +137,6 @@ brhist_disp_line(int i, int br_hist_TOT, int br_hist_LR, int full, int frames)
     char    brppt[14];       /* [%] and max. 10 characters for kbps */
     int     barlen_TOT;
     int     barlen_LR;
-    int     ppt = 0;
     int     res = digits(frames) + 3 + 4 + 1;
 
     if (full != 0) {
@@ -150,9 +147,6 @@ brhist_disp_line(int i, int br_hist_TOT, int br_hist_LR, int full, int frames)
     else {
         barlen_TOT = barlen_LR = 0;
     }
-
-    if (frames > 0)
-        ppt = (1000 * br_hist_TOT + frames / 2) / frames; /* round nearest */
 
     sprintf(brppt, " [%*i]", digits(frames), br_hist_TOT);
 
@@ -385,4 +379,4 @@ brhist_jump_back(void)
  * But one day, for one kind of terminal, that was not enough.)
  */
 
-#endif /* ifdef BRHIST */
+

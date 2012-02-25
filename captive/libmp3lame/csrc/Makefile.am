@@ -1,4 +1,4 @@
-## $Id: Makefile.am,v 1.36.2.2 2010/02/26 22:33:06 robert Exp $
+## $Id: Makefile.am,v 1.38 2010/10/30 13:21:01 robert Exp $
 
 include $(top_srcdir)/Makefile.am.global
 
@@ -25,10 +25,6 @@ EXTRA_DIST = \
 	lame.bat \
 	lame.spec.in \
 	lame.spec \
-	lame_projects_vc6.dsp \
-	lame_vc6.dsw \
-	lame_clients_vc6.dsw \
-	lame_vc8.sln \
 	testcase.mp3 \
 	testcase.wav
 

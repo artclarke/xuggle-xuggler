@@ -4,7 +4,7 @@
  *      Copyright (c) 1999 A.L. Faber
  *
  * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
+ * modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
  *
@@ -13,7 +13,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Library General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
+ * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
@@ -141,7 +141,7 @@ typedef float FLOAT;
 # endif
 #endif
 
-#ifndef FLOAT8 
+#ifndef FLOAT8
 typedef double FLOAT8;
 # ifdef DBL_MAX
 #  define FLOAT8_MAX DBL_MAX
@@ -158,7 +158,6 @@ typedef double FLOAT8;
 
 /* sample_t must be floating point, at least 32 bits */
 typedef FLOAT sample_t;
-typedef sample_t stereo_t[2];
 
 #define dimension_of(array) (sizeof(array)/sizeof(array[0]))
 #define beyond(array) (array+dimension_of(array))
@@ -170,10 +169,19 @@ typedef sample_t stereo_t[2];
  : (fabs((a)-(b)) <= (fabs(b) * 1e-6f)))
 #else
 #define EQ(a,b) (fabs((a)-(b))<1E-37)
-#endif 
+#endif
 
 #define NEQ(a,b) (!EQ(a,b))
 
 #endif
+
+#ifdef _MSC_VER
+#  if _MSC_VER < 1400
+#  define fabsf fabs
+#  define powf pow
+#  define log10f log10
+#  endif
+#endif
+
 
 /* end of machine.h */

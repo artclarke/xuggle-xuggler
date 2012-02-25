@@ -4,7 +4,7 @@
  *      Copyright (c) 2000 Mark Taylor
  *
  * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
+ * modify it under the terms of the GNU Library General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
  *
@@ -13,7 +13,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Library General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
+ * You should have received a copy of the GNU Library General Public
  * License along with this library; if not, write to the
  * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
  * Boston, MA 02111-1307, USA.
@@ -130,14 +130,26 @@
  *  -mf: MPG_MD_MS_LR
  *  -mi: all
  */
-
+#if 0
 #define MPG_MD_LR_LR  0
 #define MPG_MD_LR_I   1
 #define MPG_MD_MS_LR  2
 #define MPG_MD_MS_I   3
+#endif
+enum MPEGChannelMode
+{   MPG_MD_LR_LR = 0
+,   MPG_MD_LR_I  = 1
+,   MPG_MD_MS_LR = 2
+,   MPG_MD_MS_I  = 3
+};
 
+#ifndef lame_internal_flags_defined
+#define lame_internal_flags_defined
+struct lame_internal_flags;
+typedef struct lame_internal_flags lame_internal_flags;
+#endif
 
-int     lame_encode_mp3_frame(lame_global_flags * const gfp,
+int     lame_encode_mp3_frame(lame_internal_flags * gfc,
                               sample_t const *inbuf_l,
                               sample_t const *inbuf_r, unsigned char *mp3buf, int mp3buf_size);
 

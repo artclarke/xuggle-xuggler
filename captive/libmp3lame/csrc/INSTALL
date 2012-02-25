@@ -50,7 +50,6 @@ On unix systems, they are set via ./configure.
 Options for the command line encoder:
 #define LIBSNDFILE   to use Erik de Castro Lopo's libsndfile
                      for input.
-#define BRHIST       to allow the optional display of the VBR histogram
 
 
 
@@ -82,9 +81,6 @@ For the LAME front end encoder:
 
   --with-sndfile-prefix=DIR   Alternate location for libsndfile
                               (if --with-fileio=sndfile)
-
-  --enable-brhist             Include the VBR bitrate histogram feature 
-                              (default:yes if any ncurses/termcap available)"
 
 
 Other usefull configure options:

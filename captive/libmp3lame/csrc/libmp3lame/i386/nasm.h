@@ -18,6 +18,8 @@
 
 BITS 32
 
+section .note.GNU-stack noalloc noexec nowrite progbits
+
 %ifdef YASM
 	%define segment_code segment .text align=16 use32
 	%define segment_data segment .data align=16 use32
