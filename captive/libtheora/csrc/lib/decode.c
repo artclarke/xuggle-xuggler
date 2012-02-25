@@ -11,7 +11,7 @@
  ********************************************************************
 
   function:
-    last mod: $Id: decode.c 16557 2009-09-15 04:21:05Z tterribe $
+    last mod: $Id: decode.c 16581 2009-09-25 22:56:16Z gmaxwell $
 
  ********************************************************************/
 
@@ -1777,8 +1777,8 @@ static void oc_dec_deblock_frag_rows(oc_dec_ctx *_dec,
 
 static void oc_dering_block(unsigned char *_idata,int _ystride,int _b,
  int _dc_scale,int _sharp_mod,int _strong){
-  static const unsigned char MOD_MAX[2]={24,32};
-  static const unsigned char MOD_SHIFT[2]={1,0};
+  static const unsigned char OC_MOD_MAX[2]={24,32};
+  static const unsigned char OC_MOD_SHIFT[2]={1,0};
   const unsigned char *psrc;
   const unsigned char *src;
   const unsigned char *nsrc;
@@ -1788,14 +1788,14 @@ static void oc_dering_block(unsigned char *_idata,int _ystride,int _b,
   int                  mod_hi;
   int                  by;
   int                  bx;
-  mod_hi=OC_MINI(3*_dc_scale,MOD_MAX[_strong]);
+  mod_hi=OC_MINI(3*_dc_scale,OC_MOD_MAX[_strong]);
   dst=_idata;
   src=dst;
   psrc=src-(_ystride&-!(_b&4));
   for(by=0;by<9;by++){
     for(bx=0;bx<8;bx++){
       int mod;
-      mod=32+_dc_scale-(abs(src[bx]-psrc[bx])<<MOD_SHIFT[_strong]);
+      mod=32+_dc_scale-(abs(src[bx]-psrc[bx])<<OC_MOD_SHIFT[_strong]);
       vmod[(by<<3)+bx]=mod<-64?_sharp_mod:OC_CLAMPI(0,mod,mod_hi);
     }
     psrc=src;
@@ -1807,7 +1807,7 @@ static void oc_dering_block(unsigned char *_idata,int _ystride,int _b,
     src=nsrc;
     for(by=0;by<8;by++){
       int mod;
-      mod=32+_dc_scale-(abs(*src-*psrc)<<MOD_SHIFT[_strong]);
+      mod=32+_dc_scale-(abs(*src-*psrc)<<OC_MOD_SHIFT[_strong]);
       hmod[(bx<<3)+by]=mod<-64?_sharp_mod:OC_CLAMPI(0,mod,mod_hi);
       psrc+=_ystride;
       src+=_ystride;

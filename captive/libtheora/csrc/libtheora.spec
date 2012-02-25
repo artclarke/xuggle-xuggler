@@ -1,5 +1,5 @@
 Name:		libtheora
-Version:	1.1.0
+Version:	1.1.1
 Release:	0.xiph.0.4.alpha5
 Summary:	The Theora Video Compression Codec.
 

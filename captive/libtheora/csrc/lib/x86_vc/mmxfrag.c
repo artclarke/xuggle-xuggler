@@ -11,7 +11,7 @@
  ********************************************************************
 
   function:
-    last mod: $Id: mmxfrag.c 16503 2009-08-22 18:14:02Z giles $
+    last mod: $Id: mmxfrag.c 16578 2009-09-25 19:50:48Z cristianadam $
 
  ********************************************************************/
 
@@ -33,7 +33,7 @@ void oc_frag_copy_mmx(unsigned char *_dst,
 #define SRC edx
 #define DST eax
 #define YSTRIDE ecx
-#define YSTRIDE3 ebx
+#define YSTRIDE3 esi
   OC_FRAG_COPY_MMX(_dst,_src,_ystride);
 #undef SRC
 #undef DST
@@ -47,7 +47,7 @@ void oc_frag_recon_intra_mmx(unsigned char *_dst,int _ystride,
 #define DST edx
 #define DST4 esi
 #define YSTRIDE eax
-#define YSTRIDE3 ebx
+#define YSTRIDE3 edi
 #define RESIDUE ecx
     mov DST,_dst
     mov YSTRIDE,_ystride
@@ -173,7 +173,7 @@ void oc_frag_recon_inter_mmx(unsigned char *_dst,const unsigned char *_src,
     __asm{
 #define DST edx
 #define SRC ecx
-#define YSTRIDE ebx
+#define YSTRIDE edi
 #define RESIDUE eax
       mov DST,_dst
       mov SRC,_src
@@ -236,7 +236,7 @@ void oc_frag_recon_inter2_mmx(unsigned char *_dst,const unsigned char *_src1,
   for(i=4;i-->0;){
     __asm{
 #define SRC1 ecx
-#define SRC2 ebx
+#define SRC2 edi
 #define YSTRIDE esi
 #define RESIDUE edx
 #define DST eax

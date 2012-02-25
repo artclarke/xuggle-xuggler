@@ -11,7 +11,7 @@
  ********************************************************************
 
  function: illustrate simple use of chained bitstream and vorbisfile.a
- last mod: $Id: chaining_example.c 13293 2007-07-24 00:09:47Z xiphmont $
+ last mod: $Id: chaining_example.c 16243 2009-07-10 02:49:31Z xiphmont $
 
  ********************************************************************/
 
@@ -29,7 +29,7 @@ int main(){
   int i;
 
 #ifdef _WIN32 /* We need to set stdin to binary mode. Damn windows. */
-  /* Beware the evil ifdef. We avoid these where we can, but this one we 
+  /* Beware the evil ifdef. We avoid these where we can, but this one we
      cannot. Don't add any more, you'll probably go to hell if you do. */
   _setmode( _fileno( stdin ), _O_BINARY );
 #endif
@@ -39,29 +39,29 @@ int main(){
     printf("Could not open input as an OggVorbis file.\n\n");
     exit(1);
   }
-  
+
   /* print details about each logical bitstream in the input */
   if(ov_seekable(&ov)){
     printf("Input bitstream contained %ld logical bitstream section(s).\n",
-	   ov_streams(&ov));
+           ov_streams(&ov));
     printf("Total bitstream samples: %ld\n\n",
-	   (long)ov_pcm_total(&ov,-1));
+           (long)ov_pcm_total(&ov,-1));
     printf("Total bitstream playing time: %ld seconds\n\n",
-	   (long)ov_time_total(&ov,-1));
+           (long)ov_time_total(&ov,-1));
 
   }else{
     printf("Standard input was not seekable.\n"
-	   "First logical bitstream information:\n\n");
+           "First logical bitstream information:\n\n");
   }
 
   for(i=0;i<ov_streams(&ov);i++){
     vorbis_info *vi=ov_info(&ov,i);
     printf("\tlogical bitstream section %d information:\n",i+1);
     printf("\t\t%ldHz %d channels bitrate %ldkbps serial number=%ld\n",
-	   vi->rate,vi->channels,ov_bitrate(&ov,i)/1000,
-	   ov_serialnumber(&ov,i));
+           vi->rate,vi->channels,ov_bitrate(&ov,i)/1000,
+           ov_serialnumber(&ov,i));
     printf("\t\theader length: %ld bytes\n",(long)
-	   (ov.dataoffsets[i]-ov.offsets[i]));
+           (ov.dataoffsets[i]-ov.offsets[i]));
     printf("\t\tcompressed length: %ld bytes\n",(long)(ov_raw_total(&ov,i)));
     printf("\t\tplay time: %lds\n",(long)ov_time_total(&ov,i));
   }

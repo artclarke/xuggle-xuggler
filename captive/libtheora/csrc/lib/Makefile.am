@@ -3,6 +3,7 @@ AM_CFLAGS = $(OGG_CFLAGS) $(CAIRO_CFLAGS)
 
 EXTRA_DIST = \
 	cpu.c \
+	encoder_disabled.c \
 	x86/mmxencfrag.c \
 	x86/mmxfdct.c \
 	x86/sse2fdct.c \

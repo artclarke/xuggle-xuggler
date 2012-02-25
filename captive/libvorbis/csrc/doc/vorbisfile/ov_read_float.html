@@ -9,7 +9,7 @@
 <table border=0 width=100%>
 <tr>
 <td><p class=tiny>Vorbisfile documentation</p></td>
-<td align=right><p class=tiny>vorbisfile version 1.2.0 - 20070723</p></td>
+<td align=right><p class=tiny>vorbisfile version 1.3.2 - 20101101</p></td>
 </tr>
 </table>
 
@@ -21,7 +21,7 @@
    This is the function used to decode a Vorbis file within a loop, but
    returns samples in native float format instead of in integer formats.
 </p><p>
-   For more information on how ov_read_float() deals with the complex issues 
+   For information on channel ordering and how ov_read_float() deals with the complex issues 
    of chaining, etc, refer to the documentation for <a href="ov_read.html">ov_read()</a>.
 </p>
 
@@ -60,6 +60,10 @@ functions.</dd>
 <dt>OV_EBADLINK</dt>
   <dd>indicates that an invalid stream section was supplied to
       libvorbisfile, or the requested link is corrupt.</dd>
+<dt>OV_EINVAL</dt>
+  <dd>indicates the initial file headers couldn't be read or
+      are corrupt, or that the initial open call for <i>vf</i> 
+      failed.</dd>
 <dt>0</dt>
   <dd>indicates EOF</dd>
 <dt><i>n</i></dt>
@@ -85,10 +89,10 @@ This decodes up to 1024 float samples.
 <table border=0 width=100%>
 <tr valign=top>
 <td><p class=tiny>copyright &copy; 2002 vorbis team</p></td>
-<td align=right><p class=tiny><a href="http://www.xiph.org/ogg/vorbis/index.html">Ogg Vorbis</a><br><a href="mailto:team@vorbis.org">team@vorbis.org</a></p></td>
+<td align=right><p class=tiny><a href="http://www.xiph.org/ogg/vorbis/index.html">Ogg Vorbis</a></p></td>
 </tr><tr>
 <td><p class=tiny>Vorbisfile documentation</p></td>
-<td align=right><p class=tiny>vorbisfile version 1.2.0 - 20070723</p></td>
+<td align=right><p class=tiny>vorbisfile version 1.3.2 - 20101101</p></td>
 </tr>
 </table>
 

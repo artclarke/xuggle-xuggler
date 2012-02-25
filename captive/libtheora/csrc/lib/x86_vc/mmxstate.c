@@ -11,7 +11,7 @@
  ********************************************************************
 
   function:
-    last mod: $Id: mmxstate.c 16503 2009-08-22 18:14:02Z giles $
+    last mod: $Id: mmxstate.c 16584 2009-09-26 19:35:55Z tterribe $
 
  ********************************************************************/
 
@@ -44,7 +44,7 @@ void oc_state_frag_recon_mmx(const oc_theora_state *_state,ptrdiff_t _fragi,
 #define Y eax
 #define P ecx
       mov Y,_dct_coeffs
-      movd P,p
+      movzx P,p
       /*mm0=0000 0000 0000 AAAA*/
       movd mm0,P
       /*mm0=0000 0000 AAAA AAAA*/
@@ -125,7 +125,7 @@ void oc_state_frag_copy_list_mmx(const oc_theora_state *_state,
 #define SRC edx
 #define DST eax
 #define YSTRIDE ecx
-#define YSTRIDE3 ebx
+#define YSTRIDE3 edi
     OC_FRAG_COPY_MMX(dst_frame_data+frag_buf_off,
      src_frame_data+frag_buf_off,ystride);
 #undef SRC

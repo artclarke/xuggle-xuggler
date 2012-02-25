@@ -11,7 +11,7 @@
  ********************************************************************
 
  function: simple example decoder using vorbisfile
- last mod: $Id: vorbisfile_example.c 13293 2007-07-24 00:09:47Z xiphmont $
+ last mod: $Id: vorbisfile_example.c 16328 2009-07-24 01:51:10Z xiphmont $
 
  ********************************************************************/
 
@@ -60,7 +60,7 @@ int main(){
     }
     fprintf(stderr,"\nBitstream is %d channel, %ldHz\n",vi->channels,vi->rate);
     fprintf(stderr,"\nDecoded length: %ld samples\n",
-	    (long)ov_pcm_total(&vf,-1));
+            (long)ov_pcm_total(&vf,-1));
     fprintf(stderr,"Encoded by: %s\n\n",ov_comment(&vf,-1)->vendor);
   }
   
@@ -70,11 +70,16 @@ int main(){
       /* EOF */
       eof=1;
     } else if (ret < 0) {
-      /* error in the stream.  Not a problem, just reporting it in
-	 case we (the app) cares.  In this case, we don't. */
+      if(ret==OV_EBADLINK){
+        fprintf(stderr,"Corrupt bitstream section! Exiting.\n");
+        exit(1);
+      }
+
+      /* some other error in the stream.  Not a problem, just reporting it in
+         case we (the app) cares.  In this case, we don't. */
     } else {
       /* we don't bother dealing with sample rate changes, etc, but
-	 you'll have to*/
+         you'll have to*/
       fwrite(pcmout,1,ret,stdout);
     }
   }

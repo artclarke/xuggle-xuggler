@@ -26,7 +26,7 @@ unsigned oc_enc_frag_sad_mmxext(const unsigned char *_src,
 #define SRC esi
 #define REF edx
 #define YSTRIDE ecx
-#define YSTRIDE3 ebx
+#define YSTRIDE3 edi
     mov YSTRIDE,_ystride
     mov SRC,_src
     mov REF,_ref
@@ -571,7 +571,7 @@ static void oc_int_frag_copy2_mmxext(unsigned char *_dst,int _dst_ystride,
  const unsigned char *_src1,const unsigned char *_src2,int _src_ystride){
   __asm{
     /*Load the first 3 rows.*/
-#define DST_YSTRIDE ebx
+#define DST_YSTRIDE edi
 #define SRC_YSTRIDE esi
 #define DST eax
 #define SRC1 edx
@@ -802,7 +802,7 @@ void oc_enc_frag_sub_mmx(ogg_int16_t _residue[64],
   for(i=4;i-->0;){
     __asm{
 #define SRC edx
-#define YSTRIDE ebx
+#define YSTRIDE esi
 #define RESIDUE eax
 #define REF ecx
       mov YSTRIDE,_ystride
@@ -858,7 +858,7 @@ void oc_enc_frag_sub_128_mmx(ogg_int16_t _residue[64],
  const unsigned char *_src,int _ystride){
    __asm{
 #define YSTRIDE edx
-#define YSTRIDE3 ebx
+#define YSTRIDE3 edi
 #define RESIDUE ecx
 #define SRC eax
     mov YSTRIDE,_ystride
