@@ -18,14 +18,15 @@ AC_CANONICAL_HOST
 
 # This will be set to true if we are cross-compiling and will be accessible
 # in Makefile.am
-if test "x$host_alias" != "x$build_alias" ; then
-  VS_CROSSCOMPILE=1
+AC_MSG_CHECKING([for cross-compiling])
+if test "x$host_alias" != "x"; then
+  VS_CROSS_COMPILE=1
+  AC_MSG_RESULT([yes])
 else
-  VS_CROSSCOMPILE=0
-fi
-AC_SUBST([VS_CROSSCOMPILE])
-AM_CONDITIONAL(VS_CROSSCOMPILE, [test "x${host_alias}" != "x${build_alias}" ])
-
+  AC_MSG_RESULT([no])
+fi 
+AC_SUBST([VS_CROSS_COMPILE])
+AM_CONDITIONAL([VS_CROSS_COMPILE], [ test "x$host_alias" != "x" ])
 
 LIB_MAJOR_VERSION=VSM4_LIB_MAJOR_VERSION
 LIB_MINOR_VERSION=VSM4_LIB_MINOR_VERSION

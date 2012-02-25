@@ -1,4 +1,9 @@
 ACLOCAL_AMFLAGS=-I m4
+if VS_WINDOWS
+ VS_LINK_LIBS = 
+else
+ VS_LINK_LIBS = -lpthread
+endif
 
 bin_PROGRAMS = rtmpdump rtmpgw rtmpsrv rtmpsuck
 
@@ -11,19 +16,19 @@ rtmpgw_SOURCES = \
  src/rtmpgw.c \
  src/thread.c
 
-rtmpgw_LDADD = librtmp.la -lpthread
+rtmpgw_LDADD = librtmp.la $(VS_LINK_LIBS)
 
 rtmpsrv_SOURCES =  \
   src/rtmpsrv.c \
   src/thread.c
 
-rtmpsrv_LDADD = librtmp.la -lpthread
+rtmpsrv_LDADD = librtmp.la $(VS_LINK_LIBS)
 
 rtmpsuck_SOURCES = \
   src/rtmpsuck.c \
   src/thread.c
 
-rtmpsuck_LDADD = librtmp.la -lpthread
+rtmpsuck_LDADD = librtmp.la $(VS_LINK_LIBS)
 
 noinst_HEADERS = src/thread.h
 
@@ -31,12 +36,15 @@ lib_LTLIBRARIES = librtmp.la
 
 AM_CFLAGS=-DRTMPDUMP_VERSION=\"@VERSION@\"
 AM_CFLAGS+=-DUSE_OPENSSL
-AM_LDFLAGS=-version-number @LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = librtmp.pc
 
-librtmp_la_LIBADD= -lssl -lcrypto -lz
+librtmp_la_LIBADD= -lssl -lcrypto -lz $(VS_LINK_LIBS)
+librtmp_la_LDFLAGS=-version-number @LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@
+if VS_WINDOWS
+librtmp_la_LDFLAGS +=-shared -no-undefined -Wl,--out-implib,librtmp.dll.a -Wl,-Bsymbolic -Wl,--warn-common -Wl,--as-needed
+endif
 
 librtmp_la_SOURCES= \
   src/librtmp/amf.c \

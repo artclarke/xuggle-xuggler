@@ -3,7 +3,8 @@
 # Modify this script to pass the necessary parameters to 
 # the configure of the captive package you're configuring
 prefix="@prefix@"
-install_prefix="@abs_top_builddir@/captive"
+exec_prefix="@exec_prefix@"
+install_prefix="@abs_top_builddir@"
 HOST_OS="@HOST_OS@"
 VS_CROSS_COMPILE="@VS_CROSS_COMPILE@"
 if [ "x${VS_CROSS_COMPILE}" = "x" ]; then
@@ -70,5 +71,7 @@ PATH="$PATH:@abs_top_builddir@@bindir@@" sh "@abs_builddir@/csrc/Configure" \
   --cross-compile-prefix="${CROSS_COMPILE}" \
   --openssldir=${prefix} \
   --install_prefix="${install_prefix}" \
+  --with-zlib-include="@abs_top_builddir@@includedir@" \
+  --with-zlib-lib="@abs_top_builddir@@libdir@" \
   --prefix="${prefix}" || \
   (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)

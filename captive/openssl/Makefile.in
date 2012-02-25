@@ -120,6 +120,7 @@ LN_S = @LN_S@
 LTLIBOBJS = @LTLIBOBJS@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
+MANIFEST_TOOL = @MANIFEST_TOOL@
 MKDIR_P = @MKDIR_P@
 NM = @NM@
 NMEDIT = @NMEDIT@
@@ -151,6 +152,7 @@ abs_builddir = @abs_builddir@
 abs_srcdir = @abs_srcdir@
 abs_top_builddir = @abs_top_builddir@
 abs_top_srcdir = @abs_top_srcdir@
+ac_ct_AR = @ac_ct_AR@
 ac_ct_CC = @ac_ct_CC@
 ac_ct_CXX = @ac_ct_CXX@
 ac_ct_DUMPBIN = @ac_ct_DUMPBIN@
@@ -430,11 +432,10 @@ dist-hook:
 
 install-exec-hook: incarcerate-package
 	@echo "make install-exec-hook; DESTDIR=$(DESTDIR)"
-	cd csrc && $(MAKE) install-exec
 
 install-data-hook: incarcerate-package
 	@echo "make install-data-hook; DESTDIR=$(DESTDIR)"
-	cd csrc && $(MAKE) install-data
+	cd csrc && $(MAKE) install
 	if test -f $(builddir)/install.sh; then \
 	  DESTDIR="$(DESTDIR)" sh $(builddir)/install.sh; \
 	fi

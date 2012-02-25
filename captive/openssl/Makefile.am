@@ -34,11 +34,10 @@ dist-hook:
 
 install-exec-hook: incarcerate-package
 	@echo "make install-exec-hook; DESTDIR=$(DESTDIR)"
-	cd csrc && $(MAKE) install-exec
 
 install-data-hook: incarcerate-package
 	@echo "make install-data-hook; DESTDIR=$(DESTDIR)"
-	cd csrc && $(MAKE) install-data
+	cd csrc && $(MAKE) install
 	if test -f $(builddir)/install.sh; then \
 	  DESTDIR="$(DESTDIR)" sh $(builddir)/install.sh; \
 	fi

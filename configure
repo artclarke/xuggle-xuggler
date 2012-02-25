@@ -694,9 +694,9 @@ CAPTIVES_ENABLED_FALSE
 CAPTIVES_ENABLED_TRUE
 LIB_MINOR_VERSION
 LIB_MAJOR_VERSION
-VS_CROSSCOMPILE_FALSE
-VS_CROSSCOMPILE_TRUE
-VS_CROSSCOMPILE
+VS_CROSS_COMPILE_FALSE
+VS_CROSS_COMPILE_TRUE
+VS_CROSS_COMPILE
 host_os
 host_vendor
 host_cpu
@@ -3421,20 +3421,24 @@ case $host_os in *\ *) host_os=`echo "$host_os" | sed 's/ /-/g'`;; esac
 
 # This will be set to true if we are cross-compiling and will be accessible
 # in Makefile.am
-if test "x$host_alias" != "x$build_alias" ; then
-  VS_CROSSCOMPILE=1
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for cross-compiling" >&5
+$as_echo_n "checking for cross-compiling... " >&6; }
+if test "x$host_alias" != "x"; then
+  VS_CROSS_COMPILE=1
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
+$as_echo "yes" >&6; }
 else
-  VS_CROSSCOMPILE=0
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
 fi
 
- if test "x${host_alias}" != "x${build_alias}" ; then
-  VS_CROSSCOMPILE_TRUE=
-  VS_CROSSCOMPILE_FALSE='#'
+ if  test "x$host_alias" != "x" ; then
+  VS_CROSS_COMPILE_TRUE=
+  VS_CROSS_COMPILE_FALSE='#'
 else
-  VS_CROSSCOMPILE_TRUE='#'
-  VS_CROSSCOMPILE_FALSE=
+  VS_CROSS_COMPILE_TRUE='#'
+  VS_CROSS_COMPILE_FALSE=
 fi
-
 
 
 LIB_MAJOR_VERSION=5
@@ -17605,8 +17609,8 @@ if test -z "${MAINTAINER_MODE_TRUE}" && test -z "${MAINTAINER_MODE_FALSE}"; then
   as_fn_error $? "conditional \"MAINTAINER_MODE\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
-if test -z "${VS_CROSSCOMPILE_TRUE}" && test -z "${VS_CROSSCOMPILE_FALSE}"; then
-  as_fn_error $? "conditional \"VS_CROSSCOMPILE\" was never defined.
+if test -z "${VS_CROSS_COMPILE_TRUE}" && test -z "${VS_CROSS_COMPILE_FALSE}"; then
+  as_fn_error $? "conditional \"VS_CROSS_COMPILE\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${CAPTIVES_ENABLED_TRUE}" && test -z "${CAPTIVES_ENABLED_FALSE}"; then

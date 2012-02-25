@@ -6,7 +6,19 @@ m4_define([MLIB_MINOR_VERSION], [2])
 AC_PREREQ(2.63b)
 AC_INIT([librtmp],[MLIB_MAJOR_VERSION.MLIB_MINOR_VERSION],[info@xuggle.com])
 AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.10.2 ])
+AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax silent-rules 1.10.2 ])
+AC_CANONICAL_BUILD
+AC_CANONICAL_HOST
+
+case $host in
+  *cygwin*|*mingw*)
+    VS_WINDOWS=1
+  ;;
+  *)
+  ;;
+esac
+AM_CONDITIONAL(VS_WINDOWS, [ test "x$VS_WINDOWS" != "x" ])
+
 AC_CONFIG_SRCDIR([src/librtmp/rtmp.h])
 AC_CONFIG_HEADERS([config.h])
 
@@ -31,7 +43,7 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 
 LT_PREREQ([2.2.7b])
-LT_INIT
+LT_INIT([disable-static disable-fast-install win32-dll])
 
 # Checks for libraries.
 AC_CHECK_LIB([crypto], [main])
