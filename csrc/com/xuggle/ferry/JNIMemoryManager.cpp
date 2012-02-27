@@ -59,7 +59,7 @@ static void *
 VSJNI_alignMemory(void *);
 static void *
 VSJNI_unalignMemory(void*);
-static int VSJNI_ALIGNMENT_BOUNDARY = 16; // Must be power of two
+static size_t VSJNI_ALIGNMENT_BOUNDARY = 16; // Must be power of two
 
 /**
  * Must match numbers in JNIMemoryManager.java
@@ -270,7 +270,7 @@ VS_JNI_malloc_native(JNIEnv *env, jobject obj, size_t requested_size,
   }
 
   // We're not in a JVM, so use malloc/free instead
-  buffer = requested_size > 0 ? malloc((int) requested_size + sizeof(VSJNI_AllocationHeader)
+  buffer = requested_size > 0 ? malloc((size_t) requested_size + sizeof(VSJNI_AllocationHeader)
       + VSJNI_ALIGNMENT_BOUNDARY) : 0;
   VSJNI_AllocationHeader *header = (VSJNI_AllocationHeader*) buffer;
   if (!header)
@@ -470,7 +470,7 @@ VSJNI_malloc(jobject obj, size_t requested_size)
     void* retval = 0;
     JNIEnv* env = 0;
 
-    if ((int) requested_size > INT_MAX - VSJNI_ALIGNMENT_BOUNDARY)
+    if ((size_t) requested_size > INT_MAX - VSJNI_ALIGNMENT_BOUNDARY)
       // we need 16 byte clearance; and only support up to 4GBs.  Sorry folks, if
       // you need more than 4GB of contiguous memory, it's not us.
       return 0;
@@ -506,8 +506,8 @@ VSJNI_malloc(jobject obj, size_t requested_size)
 #ifdef VSJNI_MEMMANAGER_DEBUG
     fprintf (stderr, "alloc: returned %p(%lld) size (%ld); model: %d\n",
         retval,
-        (long long) retval,
-        (long)requested_size,
+        (int64_t) retval,
+        (size_t)requested_size,
         model);
 #endif
     // Now, align on VSJNI_ALIGNMENT_BOUNDARY byte boundary;
@@ -520,7 +520,7 @@ VSJNI_malloc(jobject obj, size_t requested_size)
   {
 #ifdef VSJNI_MEMMANAGER_DEBUG
     fprintf (stderr, "alloc: bad_alloc of size %ld\n",
-        (long)requested_size);
+        (size_t)requested_size);
 #endif
     return 0;
   }
@@ -635,9 +635,9 @@ VSJNI_free(void * mem)
 #ifdef VSJNI_MEMMANAGER_DEBUG
     printf("free: orig %p (%lld) adjusted %p (%lld); model %d\n",
         mem,
-        (long long) mem,
+        (int64_t) mem,
         buffer,
-        (long long)buffer,
+        (int64_t)buffer,
         model);
 #endif
   }
@@ -649,8 +649,8 @@ static void *VSJNI_malloc(jobject, size_t requested_size)
   void* retval = 0;
 
   if (
-      (sizeof(size_t) == 4 && (int)requested_size > INT_MAX - VSJNI_ALIGNMENT_BOUNDARY) ||
-      ((long long)requested_size > LLONG_MAX - VSJNI_ALIGNMENT_BOUNDARY))
+      (sizeof(size_t) == 4 && (size_t)requested_size > INT_MAX - VSJNI_ALIGNMENT_BOUNDARY) ||
+      ((int64_t)requested_size > LLONG_MAX - VSJNI_ALIGNMENT_BOUNDARY))
   // we need 16 byte clearance; ok, for 64-bit machines if you're
   // asking for 9-Tera-Whatevers of memory, you'll fail anyway,
   // but we try to be complete.
@@ -677,13 +677,13 @@ VSJNI_alignMemory(void* aInput)
 {
   void* retval = aInput;
   retval = aInput;
-  int alignDiff = ((-(long) retval - 1) & (VSJNI_ALIGNMENT_BOUNDARY - 1)) + 1;
+  size_t alignDiff = ((-(size_t) retval - 1) & (VSJNI_ALIGNMENT_BOUNDARY - 1)) + 1;
   retval = (char*) retval + alignDiff;
   ((char*) retval)[-1] = (char) alignDiff;
 #ifdef VSJNI_MEMMANAGER_DEBUG
   printf ("align: orig(%p:%lld) new(%p:%lld) align(%d)\n",
-      aInput, (long long)aInput,
-      retval, (long long) retval,
+      aInput, (int64_t)aInput,
+      retval, (int64_t) retval,
       alignDiff);
 #endif
 
@@ -699,12 +699,12 @@ VSJNI_alignMemory(void* aInput)
 static void*
 VSJNI_unalignMemory(void *aInput)
 {
-  int alignDiff = ((char*) aInput)[-1];
+  size_t alignDiff = ((char*) aInput)[-1];
   void * retval = (void*) (((char*) aInput) - alignDiff);
 #ifdef VSJNI_MEMMANAGER_DEBUG
   printf ("unalign: orig(%p:%lld) new(%p:%lld) align(%d)\n",
-      aInput, (long long)aInput,
-      retval, (long long) retval,
+      aInput, (int64_t)aInput,
+      retval, (int64_t) retval,
       alignDiff);
 #endif
   return retval;

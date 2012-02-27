@@ -385,7 +385,7 @@ namespace com { namespace xuggle { namespace ferry {
     if (!pointerRef)
       return 0;
 
-    jlong newPointerVal = (jlong)(long)newVal;
+    jlong newPointerVal = (jlong)(size_t)newVal;
 
     jlong pointerVal = env->CallLongMethod(pointerRef,
         mJNIPointerReference_setPointer_mid, newPointerVal);
