@@ -1,37 +1,21 @@
 ACLOCAL_AMFLAGS=-I m4
 include $(abs_top_builddir)/Makefile.global
 EXTRA_DIST=COPYING
-if CAPTIVE_ENABLE_LIBOGG
-  LIBOGG=libogg
-endif
-if CAPTIVE_ENABLE_LIBVORBIS
-  LIBVORBIS=libvorbis
-endif
-if CAPTIVE_ENABLE_LIBTHEORA
-  LIBTHEORA=libtheora
-endif
-if CAPTIVE_ENABLE_LIBX264
-  LIBX264=libx264
-endif
-if CAPTIVE_ENABLE_LIBMP3LAME
-  LIBMP3LAME=libmp3lame
-endif
-if CAPTIVE_ENABLE_LIBSPEEX
-  LIBSPEEX=libspeex
-endif
-if CAPTIVE_ENABLE_LIBVO_AACENC
-  LIBVO_AACENC=libvo-aacenc
-endif
-if CAPTIVE_ENABLE_LIBOPENCORE_AMR
-  LIBOPENCORE_AMR=libopencore-amr
-endif
-if CAPTIVE_ENABLE_LIBRTMP
-  LIBRTMP=librtmp
-endif
-if CAPTIVE_ENABLE_FFMPEG
-  FFMPEG=ffmpeg
-endif
+# Order matters; dependency tree is:
+#
+# libz
+#  |
+# openssl                                                    ogg
+#    |                                                        |
+#  -----                                                -------------
+#  |   |                                                |     |     |
+#  | rtmp vo-aacenc opencore-amr speex mp3lame x264 vorbis theora   |
+#  |   |      |          |         |      |      |      |     |     |
+#  ------------------------------------------------------------------
+#                                  |
+#                               ffmpeg
 SUBDIRS= \
-  zlib openssl $(LIBRTMP) $(LIBVO_AACENC) $(LIBOPENCORE_AMR) $(LIBOGG) $(LIBVORBIS) $(LIBTHEORA) \
-  $(LIBSPEEX) $(LIBX264) $(LIBMP3LAME) $(FFMPEG)
+  zlib openssl librtmp libvo-aacenc libopencore-amr libspeex \
+  libogg libvorbis libtheora \
+  libmp3lame libx264 ffmpeg
 
