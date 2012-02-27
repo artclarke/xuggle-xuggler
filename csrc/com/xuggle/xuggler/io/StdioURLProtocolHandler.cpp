@@ -26,6 +26,16 @@
 #include <com/xuggle/xuggler/io/StdioURLProtocolHandler.h>
 #include <com/xuggle/xuggler/io/StdioURLProtocolManager.h>
 
+#ifdef _WIN32
+#    ifdef __MINGW32__
+#        define fseeko fseeko64
+#        define ftello ftello64
+#    else
+#        define fseeko _fseeki64
+#        define ftello _ftelli64
+#    endif
+#endif
+
 using namespace com::xuggle::ferry;
 
 VS_LOG_SETUP(VS_CPP_PACKAGE);
