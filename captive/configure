@@ -619,6 +619,8 @@ LIBOBJS
 VS_ENABLE_GPL_FALSE
 VS_ENABLE_GPL_TRUE
 VS_ENABLE_GPL
+VS_CAPTIVE_ZLIB_FALSE
+VS_CAPTIVE_ZLIB_TRUE
 HAVE_YASM_FALSE
 HAVE_YASM_TRUE
 YASM
@@ -11499,6 +11501,7 @@ CC="$lt_save_CC"
 
 
 
+
 # Checks for programs.
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
@@ -15629,7 +15632,6 @@ $as_echo "no" >&6; }
 
 
 
-
 # Extract the first word of "yasm", so it can be a program name with args.
 set dummy yasm; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -15677,6 +15679,15 @@ fi
 else
   HAVE_YASM_TRUE='#'
   HAVE_YASM_FALSE=
+fi
+
+
+ if  test "${HOST_TYPE}" != "Mac" ; then
+  VS_CAPTIVE_ZLIB_TRUE=
+  VS_CAPTIVE_ZLIB_FALSE='#'
+else
+  VS_CAPTIVE_ZLIB_TRUE='#'
+  VS_CAPTIVE_ZLIB_FALSE=
 fi
 
 
@@ -15900,6 +15911,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_YASM_TRUE}" && test -z "${HAVE_YASM_FALSE}"; then
   as_fn_error $? "conditional \"HAVE_YASM\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${VS_CAPTIVE_ZLIB_TRUE}" && test -z "${VS_CAPTIVE_ZLIB_FALSE}"; then
+  as_fn_error $? "conditional \"VS_CAPTIVE_ZLIB\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${VS_ENABLE_GPL_TRUE}" && test -z "${VS_ENABLE_GPL_FALSE}"; then

@@ -14,6 +14,7 @@ AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.10.2 ])
 AM_MAINTAINER_MODE
 AM_SILENT_RULES([yes])
 LT_INIT([disable-static disable-fast-install win32-dll])
+LT_PREREQ([2.2.6])
 
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
@@ -98,13 +99,14 @@ AC_SUBST([HOST_SO_LIBPATH])
 AC_MSG_CHECKING([whether we smell bunny poop])
 AC_MSG_RESULT([no])
 
-LT_PREREQ([2.2.6])
 AC_SUBST([LIBTOOL_DEPS])
 
 AC_PATH_PROG([YASM],[yasm])
 AC_ARG_VAR(YASM,
           [Location of the 'yasm' program; if found, we will build with some cool assembly on x86/x86_64 systems.])
 AM_CONDITIONAL(HAVE_YASM, [ test "x$YASM" != "x" ])
+
+AM_CONDITIONAL(VS_CAPTIVE_ZLIB, [ test "${HOST_TYPE}" != "Mac" ])
 
 AC_MSG_CHECKING([whether to compile FFmpeg with GPL V3 code])
 AC_ARG_ENABLE([gpl],
