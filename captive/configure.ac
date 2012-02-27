@@ -71,9 +71,16 @@ case $host in
   HOST_TYPE=Linux
   ;;
 esac
+HOST_CPU=$host_cpu
+HOST_VENDOR=$host_vendor
+# strip gnu from the OS_C variable if there
+HOST_OS_C=$( echo $host_os | sed -e "s/-gnu//" )
 
 AC_SUBST([HOST_TYPE])
 AC_SUBST([HOST_OS])
+AC_SUBST([HOST_CPU])
+AC_SUBST([HOST_VENDOR])
+AC_SUBST([HOST_OS_C])
 AC_SUBST([HOST_SO_LIBPATH])
 
 # Checks for programs.
