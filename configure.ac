@@ -9,13 +9,19 @@ m4_define([VSM4_LIB_MINOR_VERSION], [0])
 
 AC_INIT([xuggler],[VSM4_LIB_MAJOR_VERSION.VSM4_LIB_MINOR_VERSION],[info@xuggle.com])
 AC_PREREQ([2.63])
+AC_PREFIX_DEFAULT([${XUGGLE_HOME:-/usr/local}])
 AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.10.2 ])
 AM_MAINTAINER_MODE
 AM_SILENT_RULES([yes])
-AC_PREFIX_DEFAULT([${XUGGLE_HOME:-/usr/local}])
+LT_INIT([disable-static disable-fast-install win32-dll])
 
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
+
+# Checks for programs.
+AC_PROG_CC
+AC_PROG_CXX
+AC_LANG(C++)
 
 # This will be set to true if we are cross-compiling and will be accessible
 # in Makefile.am
@@ -23,9 +29,18 @@ AC_MSG_CHECKING([for cross-compiling])
 if test "x$host_alias" != "x"; then
   VS_CROSS_COMPILE=1
   AC_MSG_RESULT([yes])
+  AC_MSG_CHECKING([for separate cross-compiling toolchain])
+  if $( echo "${CC}" | grep -q "^${host_alias}-" ) ; then
+    VS_CROSS_PREFIX="${host_alias}-"
+    AC_MSG_RESULT([yes: \"${VS_CROSS_PREFIX}\" ]) #"
+  else
+    VS_CROSS_PREFIX=""
+    AC_MSG_RESULT([no])
+  fi
 else
   AC_MSG_RESULT([no])
 fi 
+AC_SUBST([VS_CROSS_PREFIX])
 AC_SUBST([VS_CROSS_COMPILE])
 AM_CONDITIONAL([VS_CROSS_COMPILE], [ test "x$host_alias" != "x" ])
 
@@ -140,7 +155,6 @@ AC_SUBST([HOST_TYPE])
 AC_SUBST([HOST_OS])
 AC_SUBST([HOST_SO_LIBPATH])
 
-LT_INIT([disable-static disable-fast-install win32-dll])
 AC_MSG_CHECKING([whether we smell bunny poop])
 AC_MSG_RESULT([no])
 
@@ -151,10 +165,6 @@ dnl AM_PROG_LIBTOOL
 AC_SUBST([LIBTOOL_DEPS])
 
 
-# Checks for programs.
-AC_PROG_CC
-AC_PROG_CXX
-AC_LANG(C++)
 AC_FUNC_STRERROR_R
 AC_MSG_CHECKING([for bunny tracks])
 AC_MSG_RESULT([no])
