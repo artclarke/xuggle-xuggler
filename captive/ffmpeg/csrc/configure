@@ -1813,6 +1813,7 @@ pkg_config_default=pkg-config
 ranlib="ranlib"
 strip_default="strip"
 yasmexe_default="yasm"
+dlltool_default="dlltool"
 
 nm_opts='-g'
 nogas=":"
@@ -2056,10 +2057,11 @@ nm_default="${cross_prefix}${nm_default}"
 pkg_config_default="${cross_prefix}${pkg_config_default}"
 ranlib="${cross_prefix}${ranlib}"
 strip_default="${cross_prefix}${strip_default}"
+dlltool_default="${cross_prefix}${dlltool_default}"
 
 sysinclude_default="${sysroot}/usr/include"
 
-set_default cc cxx nm pkg_config strip sysinclude yasmexe
+set_default cc cxx nm pkg_config strip sysinclude yasmexe dlltool
 enabled cross_compile || host_cc_default=$cc
 set_default host_cc
 
@@ -2674,7 +2676,10 @@ case $target_os in
         SLIBSUF=".dll"
         SLIBNAME_WITH_VERSION='$(SLIBPREF)$(FULLNAME)-$(LIBVERSION)$(SLIBSUF)'
         SLIBNAME_WITH_MAJOR='$(SLIBPREF)$(FULLNAME)-$(LIBMAJOR)$(SLIBSUF)'
-        SLIB_EXTRA_CMD='-lib.exe /machine:$(LIBTARGET) /def:$$(@:$(SLIBSUF)=.def) /out:$(SUBDIR)$(SLIBNAME:$(SLIBSUF)=.lib)'
+        SLIB_EXTRA_CMD=-'$(DLLTOOL) -d $$(@:$(SLIBSUF)=.def) -l $(SUBDIR)$(SLIBNAME:$(SLIBSUF)=.lib) -D $(SLIBNAME_WITH_MAJOR)'
+#	 Edits made by Xuggle to use DLLTOOL.  The resulting .lib file is
+#        broken but it will get past the install stage
+#        SLIB_EXTRA_CMD='-lib.exe /machine:$(LIBTARGET) /def:$$(@:$(SLIBSUF)=.def) /out:$(SUBDIR)$(SLIBNAME:$(SLIBSUF)=.lib)'
         SLIB_INSTALL_NAME='$(SLIBNAME_WITH_MAJOR)'
         SLIB_INSTALL_LINKS=
         SLIB_INSTALL_EXTRA_SHLIB='$(SLIBNAME:$(SLIBSUF)=.lib)'
@@ -3586,6 +3591,7 @@ ASFLAGS=$ASFLAGS
 AS_O=$CC_O
 CC_O=$CC_O
 CXX_O=$CXX_O
+DLLTOOL=$dlltool
 LDFLAGS=$LDFLAGS
 FFSERVERLDFLAGS=$FFSERVERLDFLAGS
 SHFLAGS=$SHFLAGS
