@@ -133,6 +133,7 @@ SHELL = @SHELL@
 STRIP = @STRIP@
 VERSION = @VERSION@
 VS_CROSS_COMPILE = @VS_CROSS_COMPILE@
+VS_CROSS_PREFIX = @VS_CROSS_PREFIX@
 VS_DEBUG = @VS_DEBUG@
 VS_ENABLE_GPL = @VS_ENABLE_GPL@
 YASM = @YASM@
@@ -410,7 +411,7 @@ all-local: incarcerate-package
 	@cd csrc && \
 	  ( $(MAKE) -q all || \
 	    (echo "Out of date files; re-running make" && $(MAKE) all && \
-	     DESTDIR="$(vs_captive_prefix)" $(MAKE) install && \
+	     DESTDIR="$(vs_captive_prefix)" $(MAKE) install_sw && \
 	     cd .. && if test -f install.sh; then \
 	       DESTDIR="$(vs_captive_prefix)" sh install.sh; \
 	     fi \
@@ -427,7 +428,7 @@ install-exec-hook: incarcerate-package
 
 install-data-hook: incarcerate-package
 	@echo "make install-data-hook; DESTDIR=$(DESTDIR)"
-	cd csrc && $(MAKE) install
+	cd csrc && $(MAKE) install_sw
 	if test -f $(builddir)/install.sh; then \
 	  DESTDIR="$(DESTDIR)" sh $(builddir)/install.sh; \
 	fi
@@ -439,7 +440,8 @@ uninstall-local: incarcerate-package
 	cd csrc && $(MAKE) uninstall
 
 check: incarcerate-package
-	cd csrc && $(MAKE) check
+	@echo "make check; DESTDIR=$(DESTDIR)"
+#	cd csrc && $(MAKE) check
 
 clean-local: incarcerate-package
 	if test -f $(builddir)/uninstall.sh; then \

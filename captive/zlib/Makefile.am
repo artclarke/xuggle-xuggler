@@ -19,25 +19,19 @@ include $(abs_top_builddir)/Makefile.global
 # script choosing the correct type of Makefile -- libz has very non standard
 # build rules
 
-if VS_CROSS_COMPILE
-PREFIX="$(HOST_OS)-"
-else
-PREFIX=
-endif
+PREFIX=$(VS_CROSS_PREFIX)
 SHARED_MODE=1
 DESTDIR=$(vs_captive_prefix)
 
 export SHARED_MODE
 export PREFIX
-export CC
-export AR
-export RANLIB
-export CFLAGS
-export ARFLAGS
-export SFLAGS
-export LDFLAGS
-export SHELL
-export CPP
+export CC=@CC@
+export AR=@AR@
+export RANLIB=@RANLIB@
+export CFLAGS=@CFLAGS@
+export LDFLAGS=@LDFLAGS@
+export SHELL=@SHELL@
+export CPP=@CPP@
 
 all-local: incarcerate-package
 	@echo "Incarcerating package $(srcdir) to fake DESTDIR=$(DESTDIR)"

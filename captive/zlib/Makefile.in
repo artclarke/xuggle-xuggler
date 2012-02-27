@@ -133,6 +133,7 @@ SHELL = @SHELL@
 STRIP = @STRIP@
 VERSION = @VERSION@
 VS_CROSS_COMPILE = @VS_CROSS_COMPILE@
+VS_CROSS_PREFIX = @VS_CROSS_PREFIX@
 VS_DEBUG = @VS_DEBUG@
 VS_ENABLE_GPL = @VS_ENABLE_GPL@
 YASM = @YASM@
@@ -187,7 +188,6 @@ target_alias = @target_alias@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-@VS_CROSS_COMPILE_FALSE@PREFIX = 
 
 # This file assume the container folder contains the following files:
 # README : A file saying (at least) what revision we have captive
@@ -207,7 +207,7 @@ top_srcdir = @top_srcdir@
 # This Makefile is different than standard -- it relies on the incarcerate
 # script choosing the correct type of Makefile -- libz has very non standard
 # build rules
-@VS_CROSS_COMPILE_TRUE@PREFIX = "$(HOST_OS)-"
+PREFIX = $(VS_CROSS_PREFIX)
 SHARED_MODE = 1
 DESTDIR = $(vs_captive_prefix)
 all: all-am
@@ -411,15 +411,13 @@ include $(abs_top_builddir)/Makefile.global
 
 export SHARED_MODE
 export PREFIX
-export CC
-export AR
-export RANLIB
-export CFLAGS
-export ARFLAGS
-export SFLAGS
-export LDFLAGS
-export SHELL
-export CPP
+export CC=@CC@
+export AR=@AR@
+export RANLIB=@RANLIB@
+export CFLAGS=@CFLAGS@
+export LDFLAGS=@LDFLAGS@
+export SHELL=@SHELL@
+export CPP=@CPP@
 
 all-local: incarcerate-package
 	@echo "Incarcerating package $(srcdir) to fake DESTDIR=$(DESTDIR)"

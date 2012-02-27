@@ -37,7 +37,7 @@ fi
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-version3"
 
 if [ "@VS_CROSS_COMPILE@" = "1" ]; then
-  FFMPEG_OPTIONS="${FFMPEG_OPTIONS} --enable-cross-compile --cross-prefix=${HOST_OS}- --arch=${HOST_CPU} --target-os=${HOST_OS_C}"
+  FFMPEG_OPTIONS="${FFMPEG_OPTIONS} --enable-cross-compile --cross-prefix=@VS_CROSS_PREFIX@ --arch=${HOST_CPU} --target-os=${HOST_OS_C}"
   # Override the cross setting for PKG-CONFIG since that is not usually set up to
   # be cross-compile friendly
   if ! "${HOST_OS}-pkg-config" --version > /dev/null 2>&1; then
@@ -86,3 +86,9 @@ cd @abs_builddir@/csrc
 PATH="$PATH:@abs_top_builddir@@bindir@@" sh @abs_srcdir@/csrc/configure \
   --prefix="${prefix}" $FFMPEG_OPTIONS || \
   (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)
+# Attempt to stop unnecessary re-configs by touching this
+MAKEFILE="@abs_builddir@/csrc/Makefile"
+if [ -f "${MAKEFILE}" ]; then
+  echo "Updating ${MAKEFILE} to stop unnecessary builds"
+  touch "${MAKEFILE}"
+fi

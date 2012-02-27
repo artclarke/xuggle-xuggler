@@ -5,7 +5,7 @@ VS_CPP_NAMESPACE=com::xuggle::xuggler::io
 VS_TEST=1
 include @top_builddir@/mk/Makefile.global
 
-EXTRA_LIBS=
+EXTRA_LIBS= $(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la
 
 check_PROGRAMS=\
   xugglerioTestStdioURLProtocolHandler

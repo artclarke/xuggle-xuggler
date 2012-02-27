@@ -58,10 +58,9 @@ nodist_xugglerioTestStdioURLProtocolHandler_OBJECTS =  \
 xugglerioTestStdioURLProtocolHandler_OBJECTS =  \
 	$(am_xugglerioTestStdioURLProtocolHandler_OBJECTS) \
 	$(nodist_xugglerioTestStdioURLProtocolHandler_OBJECTS)
-am__DEPENDENCIES_1 =
 xugglerioTestStdioURLProtocolHandler_DEPENDENCIES =  \
 	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler-io.la \
-	$(am__DEPENDENCIES_1)
+	$(EXTRA_LIBS)
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
 am__v_lt_0 = --silent
@@ -180,6 +179,7 @@ VERSION = @VERSION@
 VS_CFLAGS = @VS_CFLAGS@
 VS_CPPFLAGS = @VS_CPPFLAGS@
 VS_CROSS_COMPILE = @VS_CROSS_COMPILE@
+VS_CROSS_PREFIX = @VS_CROSS_PREFIX@
 VS_CXXFLAGS = @VS_CXXFLAGS@
 VS_DEBUG = @VS_DEBUG@
 VS_ENABLE_GPL = @VS_ENABLE_GPL@
@@ -245,7 +245,7 @@ VS_CPP_PATH = com/xuggle/xuggler/io
 VS_CPP_PACKAGE = com.xuggle.xuggler.io
 VS_CPP_NAMESPACE = com::xuggle::xuggler::io
 VS_TEST = 1
-EXTRA_LIBS = 
+EXTRA_LIBS = $(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la
 inst_check = $(check_PROGRAMS)
 inst_checkdir = $(bindir)
 

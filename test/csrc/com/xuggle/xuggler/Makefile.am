@@ -6,7 +6,8 @@ VS_TEST=1
 include @top_builddir@/mk/Makefile.global
 SUBDIRS=io
 
-EXTRA_LIBS=
+EXTRA_LIBS= $(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la \
+  $(top_builddir)/csrc/com/xuggle/xuggler/io/libxuggle-xuggler-io.la
 
 check_PROGRAMS=\
   xugglerTestMetaData \

@@ -13,7 +13,7 @@ HOST_OS=@HOST_OS@
 VS_DEBUG=@VS_DEBUG@
 
 if [ "@VS_CROSS_COMPILE@" = "1" ]; then
-  X264_OPTIONS="${X264_OPTIONS} --host=${HOST_OS} --cross-prefix=${HOST_OS}-"
+  X264_OPTIONS="${X264_OPTIONS} --host=${HOST_OS} --cross-prefix=@VS_CROSS_PREFIX@"
 fi
 
 case $HOST_OS in
