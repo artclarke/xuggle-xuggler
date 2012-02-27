@@ -9,8 +9,9 @@ m4_define([VSM4_LIB_MINOR_VERSION], [0])
 
 AC_INIT([xuggler],[VSM4_LIB_MAJOR_VERSION.VSM4_LIB_MINOR_VERSION],[info@xuggle.com])
 AC_PREREQ([2.63])
-AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax silent-rules 1.10.2 ])
+AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.10.2 ])
 AM_MAINTAINER_MODE
+AM_SILENT_RULES([yes])
 AC_PREFIX_DEFAULT([${XUGGLE_HOME:-/usr/local}])
 
 AC_CANONICAL_BUILD
