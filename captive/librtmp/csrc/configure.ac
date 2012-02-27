@@ -6,7 +6,8 @@ m4_define([MLIB_MINOR_VERSION], [2])
 AC_PREREQ(2.63b)
 AC_INIT([librtmp],[MLIB_MAJOR_VERSION.MLIB_MINOR_VERSION],[info@xuggle.com])
 AC_CONFIG_MACRO_DIR([m4])
-AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax silent-rules 1.10.2 ])
+AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.10.2 ])
+AM_SILENT_RULES([yes])
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 
