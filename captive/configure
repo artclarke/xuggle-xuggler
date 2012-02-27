@@ -693,6 +693,9 @@ LDFLAGS
 CFLAGS
 CC
 HOST_SO_LIBPATH
+HOST_OS_C
+HOST_VENDOR
+HOST_CPU
 HOST_OS
 HOST_TYPE
 VS_DEBUG
@@ -3187,6 +3190,13 @@ case $host in
   HOST_TYPE=Linux
   ;;
 esac
+HOST_CPU=$host_cpu
+HOST_VENDOR=$host_vendor
+# strip gnu from the OS_C variable if there
+HOST_OS_C=$( echo $host_os | sed -e "s/-gnu//" )
+
+
+
 
 
 

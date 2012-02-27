@@ -74,8 +74,7 @@ AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
 	distdir dist dist-all distcheck
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = zlib openssl librtmp libvo-aacenc libopencore-amr \
-	libogg libvorbis libtheora libspeex libx264 libmp3lame ffmpeg
+DIST_SUBDIRS = $(SUBDIRS)
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -153,9 +152,12 @@ FGREP = @FGREP@
 GREP = @GREP@
 HAVE_LIBFAAC = @HAVE_LIBFAAC@
 HAVE_ZLIB = @HAVE_ZLIB@
+HOST_CPU = @HOST_CPU@
 HOST_OS = @HOST_OS@
+HOST_OS_C = @HOST_OS_C@
 HOST_SO_LIBPATH = @HOST_SO_LIBPATH@
 HOST_TYPE = @HOST_TYPE@
+HOST_VENDOR = @HOST_VENDOR@
 INSTALL = @INSTALL@
 INSTALL_DATA = @INSTALL_DATA@
 INSTALL_PROGRAM = @INSTALL_PROGRAM@
@@ -255,19 +257,23 @@ top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = COPYING
-@CAPTIVE_ENABLE_LIBOGG_TRUE@LIBOGG = libogg
-@CAPTIVE_ENABLE_LIBVORBIS_TRUE@LIBVORBIS = libvorbis
-@CAPTIVE_ENABLE_LIBTHEORA_TRUE@LIBTHEORA = libtheora
-@CAPTIVE_ENABLE_LIBX264_TRUE@LIBX264 = libx264
-@CAPTIVE_ENABLE_LIBMP3LAME_TRUE@LIBMP3LAME = libmp3lame
-@CAPTIVE_ENABLE_LIBSPEEX_TRUE@LIBSPEEX = libspeex
-@CAPTIVE_ENABLE_LIBVO_AACENC_TRUE@LIBVO_AACENC = libvo-aacenc
-@CAPTIVE_ENABLE_LIBOPENCORE_AMR_TRUE@LIBOPENCORE_AMR = libopencore-amr
-@CAPTIVE_ENABLE_LIBRTMP_TRUE@LIBRTMP = librtmp
-@CAPTIVE_ENABLE_FFMPEG_TRUE@FFMPEG = ffmpeg
+# Order matters; dependency tree is:
+#
+# libz
+#  |
+# openssl                                                    ogg
+#    |                                                        |
+#  -----                                                -------------
+#  |   |                                                |     |     |
+#  | rtmp vo-aacenc opencore-amr speex mp3lame x264 vorbis theora   |
+#  |   |      |          |         |      |      |      |     |     |
+#  ------------------------------------------------------------------
+#                                  |
+#                               ffmpeg
 SUBDIRS = \
-  zlib openssl $(LIBRTMP) $(LIBVO_AACENC) $(LIBOPENCORE_AMR) $(LIBOGG) $(LIBVORBIS) $(LIBTHEORA) \
-  $(LIBSPEEX) $(LIBX264) $(LIBMP3LAME) $(FFMPEG)
+  zlib openssl librtmp libvo-aacenc libopencore-amr libspeex \
+  libogg libvorbis libtheora \
+  libmp3lame libx264 ffmpeg
 
 all: all-recursive
 
