@@ -33,6 +33,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+@VS_ENABLE_GPL_TRUE@am__append_1 = libx264
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.global.in $(srcdir)/Makefile.in \
@@ -74,7 +75,8 @@ AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
 	distdir dist dist-all distcheck
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = $(SUBDIRS)
+DIST_SUBDIRS = zlib openssl librtmp libvo-aacenc libopencore-amr \
+	libogg libspeex libvorbis libtheora libmp3lame libx264 ffmpeg
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -120,17 +122,6 @@ AUTOCONF = @AUTOCONF@
 AUTOHEADER = @AUTOHEADER@
 AUTOMAKE = @AUTOMAKE@
 AWK = @AWK@
-CAPTIVES_ENABLED = @CAPTIVES_ENABLED@
-CAPTIVE_ENABLE_FFMPEG = @CAPTIVE_ENABLE_FFMPEG@
-CAPTIVE_ENABLE_LIBMP3LAME = @CAPTIVE_ENABLE_LIBMP3LAME@
-CAPTIVE_ENABLE_LIBOGG = @CAPTIVE_ENABLE_LIBOGG@
-CAPTIVE_ENABLE_LIBOPENCORE_AMR = @CAPTIVE_ENABLE_LIBOPENCORE_AMR@
-CAPTIVE_ENABLE_LIBRTMP = @CAPTIVE_ENABLE_LIBRTMP@
-CAPTIVE_ENABLE_LIBSPEEX = @CAPTIVE_ENABLE_LIBSPEEX@
-CAPTIVE_ENABLE_LIBTHEORA = @CAPTIVE_ENABLE_LIBTHEORA@
-CAPTIVE_ENABLE_LIBVORBIS = @CAPTIVE_ENABLE_LIBVORBIS@
-CAPTIVE_ENABLE_LIBVO_AACENC = @CAPTIVE_ENABLE_LIBVO_AACENC@
-CAPTIVE_ENABLE_LIBX264 = @CAPTIVE_ENABLE_LIBX264@
 CC = @CC@
 CFLAGS = @CFLAGS@
 CPP = @CPP@
@@ -150,8 +141,6 @@ EGREP = @EGREP@
 EXEEXT = @EXEEXT@
 FGREP = @FGREP@
 GREP = @GREP@
-HAVE_LIBFAAC = @HAVE_LIBFAAC@
-HAVE_ZLIB = @HAVE_ZLIB@
 HOST_CPU = @HOST_CPU@
 HOST_OS = @HOST_OS@
 HOST_OS_C = @HOST_OS_C@
@@ -192,7 +181,6 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
-PKGCONFIG = @PKGCONFIG@
 RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
@@ -201,7 +189,6 @@ STRIP = @STRIP@
 VERSION = @VERSION@
 VS_CROSS_COMPILE = @VS_CROSS_COMPILE@
 VS_DEBUG = @VS_DEBUG@
-VS_ENABLE_64BIT = @VS_ENABLE_64BIT@
 VS_ENABLE_GPL = @VS_ENABLE_GPL@
 YASM = @YASM@
 abs_builddir = @abs_builddir@
@@ -270,11 +257,8 @@ EXTRA_DIST = COPYING
 #  ------------------------------------------------------------------
 #                                  |
 #                               ffmpeg
-SUBDIRS = \
-  zlib openssl librtmp libvo-aacenc libopencore-amr libspeex \
-  libogg libvorbis libtheora \
-  libmp3lame libx264 ffmpeg
-
+SUBDIRS = zlib openssl librtmp libvo-aacenc libopencore-amr libogg \
+	libspeex libvorbis libtheora libmp3lame $(am__append_1) ffmpeg
 all: all-recursive
 
 .SUFFIXES:

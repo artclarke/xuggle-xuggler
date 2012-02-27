@@ -31,6 +31,8 @@ FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-shared"
 
 if test "x$CAPTIVE_ENABLE_FFMPEG_GPL" = "xyes"; then
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-gpl --enable-nonfree"
+  # x264 can only be used in GPL mode
+  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libx264"
 fi
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-version3"
 
@@ -55,7 +57,6 @@ if test ! "x$VS_DEBUG" = "x"; then
 else
   echo "Creating release version of ffmpeg: $VS_DEBUG"
 fi
-FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libx264"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libmp3lame"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libvorbis"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libtheora"

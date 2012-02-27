@@ -21,8 +21,9 @@ case $HOST_OS in
   *cygwin*)
   CC="${CC} -mno-cygwin"
   LDFLAGS="$LDFLAGS -mno-cygwin"
+  CFLAGS="${CFLAGS} -DFORCEINLINE="
   ;;
-  *x86_64*mingw*)
+  *mingw*)
   CFLAGS="${CFLAGS} -DFORCEINLINE="
   ;;
   *)

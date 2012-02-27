@@ -45,13 +45,16 @@ fi
 # X264, despite claiming it, does not support in-tree builds,
 # and so we copy the entire source
 # directory to the build directory, and then build in place.
-echo "Copying @abs_srcdir@/csrc to @abs_builddir@/csrc"
-# create the directory
-mkdir -p "@abs_builddir@/csrc"
 # copy over all the source
-cp -r "@abs_srcdir@/csrc/"* "@abs_builddir@/csrc/"
-# and make everything user writeable so distcheck will pass
-chmod -R u+w "@abs_builddir@/csrc/"*
+if [ ! -f "@abs_builddir@/csrc/configure" ]; then
+  echo "Copying @abs_srcdir@/csrc to @abs_builddir@/csrc"
+  # create the directory
+  mkdir -p "@abs_builddir@/csrc"
+  # copy over all the source
+  cp -r "@abs_srcdir@/csrc/"* "@abs_builddir@/csrc/"
+  # and make everything user writeable so distcheck will pass
+  chmod -R u+w "@abs_builddir@/csrc/"*
+fi
 
 echo "Configuring X264 with these options: $X264_OPTIONS"
 PATH="$PATH:@abs_top_builddir@@bindir@@" bash @abs_builddir@/csrc/configure \
