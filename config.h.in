@@ -100,9 +100,6 @@
    Java Virtual Machine */
 #undef VSJNI_USE_JVM_FOR_MEMMANAGEMENT
 
-/* compiled for 64-bit OS support */
-#undef VS_ENABLE_64BIT
-
 /* xuggler will enable any code that depends on GPL code */
 #undef VS_ENABLE_GPL
 

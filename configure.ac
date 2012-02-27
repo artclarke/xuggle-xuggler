@@ -150,41 +150,6 @@ dnl AC_PROG_LIBTOOL
 dnl AM_PROG_LIBTOOL
 AC_SUBST([LIBTOOL_DEPS])
 
-# Do this BEFORE we start testing the copiler
-AC_ARG_ENABLE([m64],
-              [AS_HELP_STRING([--enable-m64],
-                              [build 64 bit version of the library instead of 32 bit version (default is yes on OS-X, no everywhere else)])],
-                              [],
-                              [
-                               case $HOST_TYPE in
-                                 Mac)
-                                  enable_m64=yes
-                                  ;;
-                                *)
-                                  enable_m64=no
-                                  ;;
-                                esac
-                                ])
-AC_MSG_CHECKING([whether to build 64 bit version of package])
-AC_MSG_RESULT([$enable_m64])
-VS_ENABLE_64BIT=$enable_m64
-AC_SUBST([VS_ENABLE_64BIT])
-if test "x$enable_m64" = xyes; then
-  AC_DEFINE(VS_ENABLE_64BIT, [1], [compiled for 64-bit OS support])
-  VS_CFLAGS+=" -m64"
-  VS_CXXFLAGS+=" -m64"
-  VS_LDFLAGS+=" -m64"
-  case $HOST_TYPE in
-    Mac)
-    # Mac requires an additional flag for 64 bit builds
-    VS_CFLAGS+=" -arch x86_64"
-    VS_CXXFLAGS+=" -arch x86_64"
-    VS_LDFLAGS+=" -arch x86_64"
-    ;;
-    *)
-    ;;
-  esac
-fi
 
 # Checks for programs.
 AC_PROG_CC
@@ -257,8 +222,8 @@ else
   if test "$JAVAMDDIR" = "" ; then
     AC_MSG_RESULT(not found)
     AC_MSG_FAILURE([Could not find required Java header file jni_md.h. 
-                  Try defining JAVA_HOME to point to where you've
-                  installed the JAVA JDK])
+                  Try defining JAVA_HOME to point to where you've 
+                  installed the JAVA JDK]) #'
   else
     JAVAMDDIR=`dirname "$JAVAMDDIR" | tail -1`
     VS_JNI_INCLUDE="${VS_JNI_INCLUDE} -I\"$JAVAMDDIR\""
@@ -292,7 +257,7 @@ AC_TYPE_UINT8_T
 AC_TYPE_SIZE_T
 AC_TYPE_OFF_T
 AC_STRUCT_TM
-AC_MSG_CHECKING([if i'm gonna get you wabbit])
+AC_MSG_CHECKING([if i'm gonna get you wabbit]) #'
 AC_MSG_RESULT([no])
 AC_C_VOLATILE
 
@@ -304,7 +269,7 @@ AC_FUNC_FSEEKO
 AC_CHECK_FUNCS([memmove memset])
 
 AC_LANG_WERROR
-AC_MSG_CHECKING([if you're now hunting rabbits as well])
+AC_MSG_CHECKING([if you're now hunting rabbits as well]) #'
 AC_MSG_RESULT([yes])
 
 AC_PROG_CPP_WERROR

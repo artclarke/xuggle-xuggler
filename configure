@@ -645,7 +645,6 @@ CXXCPP
 ac_ct_CXX
 CXXFLAGS
 CXX
-VS_ENABLE_64BIT
 LIBTOOL_DEPS
 CPP
 OTOOL64
@@ -786,7 +785,6 @@ with_pic
 with_gnu_ld
 with_sysroot
 enable_libtool_lock
-enable_m64
 with_javaincl
 enable_assert
 enable_warningerrors
@@ -1443,9 +1441,6 @@ Optional Features:
                           optimize for fast installation [default=no]
   --enable-shared[=PKGS]  build shared libraries [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
-  --enable-m64            build 64 bit version of the library instead of 32
-                          bit version (default is yes on OS-X, no everywhere
-                          else)
   --disable-assert        turn off assertions
   --enable-warningerrors  treat warnings as errors that stop the build
                           (default is $enable_warningerrors)
@@ -12193,47 +12188,6 @@ $as_echo "no" >&6; }
 
 
 
-# Do this BEFORE we start testing the copiler
-# Check whether --enable-m64 was given.
-if test "${enable_m64+set}" = set; then :
-  enableval=$enable_m64;
-else
-
-                               case $HOST_TYPE in
-                                 Mac)
-                                  enable_m64=yes
-                                  ;;
-                                *)
-                                  enable_m64=no
-                                  ;;
-                                esac
-
-fi
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to build 64 bit version of package" >&5
-$as_echo_n "checking whether to build 64 bit version of package... " >&6; }
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $enable_m64" >&5
-$as_echo "$enable_m64" >&6; }
-VS_ENABLE_64BIT=$enable_m64
-
-if test "x$enable_m64" = xyes; then
-
-$as_echo "#define VS_ENABLE_64BIT 1" >>confdefs.h
-
-  VS_CFLAGS+=" -m64"
-  VS_CXXFLAGS+=" -m64"
-  VS_LDFLAGS+=" -m64"
-  case $HOST_TYPE in
-    Mac)
-    # Mac requires an additional flag for 64 bit builds
-    VS_CFLAGS+=" -arch x86_64"
-    VS_CXXFLAGS+=" -arch x86_64"
-    VS_LDFLAGS+=" -arch x86_64"
-    ;;
-    *)
-    ;;
-  esac
-fi
 
 # Checks for programs.
 ac_ext=c
@@ -16654,7 +16608,7 @@ $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "Could not find required Java header file jni_md.h.
                   Try defining JAVA_HOME to point to where you've
                   installed the JAVA JDK
-See \`config.log' for more details" "$LINENO" 5; }
+See \`config.log' for more details" "$LINENO" 5; } #'
   else
     JAVAMDDIR=`dirname "$JAVAMDDIR" | tail -1`
     VS_JNI_INCLUDE="${VS_JNI_INCLUDE} -I\"$JAVAMDDIR\""
@@ -17194,7 +17148,7 @@ $as_echo "#define TM_IN_SYS_TIME 1" >>confdefs.h
 fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking if i'm gonna get you wabbit" >&5
-$as_echo_n "checking if i'm gonna get you wabbit... " >&6; }
+$as_echo_n "checking if i'm gonna get you wabbit... " >&6; } #'
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
 $as_echo "no" >&6; }
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for working volatile" >&5
@@ -17420,7 +17374,7 @@ done
 
 ac_cxx_werror_flag=yes
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking if you're now hunting rabbits as well" >&5
-$as_echo_n "checking if you're now hunting rabbits as well... " >&6; }
+$as_echo_n "checking if you're now hunting rabbits as well... " >&6; } #'
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 $as_echo "yes" >&6; }
 
