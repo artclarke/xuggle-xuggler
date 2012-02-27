@@ -397,20 +397,38 @@
     <property name="library.version" 
         value="${library.version.major}.${library.version.minor}.${library.revision}"
       />
-    <!-- Get the native OS name, if available -->
-    <delete failonerror="false" file="${build.dir}/OS.properties" />
-    <exec executable="sh"
-        dir="${top.dir}"
-        failonerror="false"
-        output="${build.dir}/OS.properties"
-        failifexecutionfails="false">
-      <arg value="${xuggle-buildhelper.basedir}/guess_os.sh"/>
-      <arg value="${top.dir}"/>
-    </exec>
-    <!-- And read it -->
-    <property file="${build.dir}/OS.properties"/>
-    <!-- And delete it so it doesn't show up in src bundles -->
-    <delete failonerror="false" file="${build.dir}/OS.properties" />
+    <!-- Get the native OS name, if available.  Let command line override -->
+    <condition property="xuggle.os" value="${build.configure.os}">
+      <isset property="build.configure.os"/>
+    </condition>
+    <if>
+      <!-- we are cross-compiling -->
+      <isset property="build.configure.os"/>
+      <then>
+        <property name="build.configure.host.flag" value="--host=${build.configure.os}"/>
+      </then>
+      <else>
+        <property name="build.configure.host.flag" value=""/>
+      </else>
+    </if>
+    <if>
+      <not><isset property="xuggle.os"/></not>
+      <then>
+        <delete failonerror="false" file="${build.dir}/OS.properties" />
+        <exec executable="sh"
+          dir="${top.dir}"
+          failonerror="false"
+          output="${build.dir}/OS.properties"
+          failifexecutionfails="false">
+          <arg value="${xuggle-buildhelper.basedir}/guess_os.sh"/>
+          <arg value="${top.dir}"/>
+        </exec>
+        <!-- And read it -->
+        <property file="${build.dir}/OS.properties"/>
+        <!-- And delete it so it doesn't show up in src bundles -->
+        <delete failonerror="false" file="${build.dir}/OS.properties" />
+      </then>
+    </if>
     <condition property="xuggle.os" value="${os.name}">
       <not>
         <isset property="xuggle.os"/>
@@ -1081,15 +1099,6 @@
       description="Run configure">
     <mkdir dir="${build-native.dir}"/>
     <if>
-      <isset property="build.m64"/>
-      <then>
-        <property name="build.m64.flag" value="--enable-m64=${build.m64}"/>
-      </then>
-      <else>
-        <property name="build.m64.flag" value=""/>
-      </else>
-    </if>
-    <if>
       <isset property="build.configure"/>
       <then>
         <property name="build.configure.flag" value="${build.configure}"/>
@@ -1117,7 +1126,7 @@
       </else>
     </if>
     <property name="configure.line"
-      value="../../../configure ${build.m64.flag} ${build.configure.flag} ${build.configure.maintainer.flag} ${build.configure.debug.flag} --prefix=${xuggle.dir}"/>
+      value="../../../configure ${build.configure.host.flag} ${build.configure.flag} ${build.configure.maintainer.flag} ${build.configure.debug.flag} --prefix=${xuggle.dir}"/>
 
     <!-- Yes, Windows is annoying and doesn't do well with
       unescaped paths... so we convert to Unix format -->
