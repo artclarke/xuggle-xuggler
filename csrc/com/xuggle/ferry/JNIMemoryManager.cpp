@@ -42,6 +42,11 @@
 #endif
 
 #include <com/xuggle/ferry/config.h>
+// AUTOCONF will sometimes replace malloc with rpl_malloc; we don't want
+// that.
+#ifdef malloc
+#undef malloc
+#endif
 
 #include "Ferry.h"
 #include "RefCounted.h"
@@ -265,8 +270,8 @@ VS_JNI_malloc_native(JNIEnv *env, jobject obj, size_t requested_size,
   }
 
   // We're not in a JVM, so use malloc/free instead
-  buffer = malloc((int) requested_size + sizeof(VSJNI_AllocationHeader)
-      + VSJNI_ALIGNMENT_BOUNDARY);
+  buffer = requested_size > 0 ? malloc((int) requested_size + sizeof(VSJNI_AllocationHeader)
+      + VSJNI_ALIGNMENT_BOUNDARY) : 0;
   VSJNI_AllocationHeader *header = (VSJNI_AllocationHeader*) buffer;
   if (!header)
     throw std::bad_alloc();
