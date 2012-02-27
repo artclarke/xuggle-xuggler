@@ -1,3 +1,6 @@
+# This is needed to have the rule for csrc/Makefile correctly
+# look for Configure with the right capitalization
+export VS_CONFIGURE=$(srcdir)/csrc/Configure
 include $(abs_top_builddir)/Makefile.global
 
 # This file assume the container folder contains the following files:
