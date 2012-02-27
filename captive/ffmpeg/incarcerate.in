@@ -6,21 +6,13 @@ prefix="@prefix@"
 exec_prefix="@exec_prefix@"
 HOST_TYPE=@HOST_TYPE@
 HOST_OS=@HOST_OS@
+HOST_CPU=@HOST_CPU@
+HOST_VENDOR=@HOST_VENDOR@
+HOST_OS_C=@HOST_OS_C@
 
-VS_ENABLE_64BIT=@VS_ENABLE_64BIT@
 VS_DEBUG=@VS_DEBUG@
 
-CAPTIVE_ENABLE_LIBVORBIS=@CAPTIVE_ENABLE_LIBVORBIS@
-CAPTIVE_ENABLE_LIBTHEORA=@CAPTIVE_ENABLE_LIBTHEORA@
-CAPTIVE_ENABLE_LIBSPEEX=@CAPTIVE_ENABLE_LIBSPEEX@
-CAPTIVE_ENABLE_LIBX264=@CAPTIVE_ENABLE_LIBX264@
-CAPTIVE_ENABLE_LIBMP3LAME=@CAPTIVE_ENABLE_LIBMP3LAME@
-CAPTIVE_ENABLE_LIBVO_AACENC=@CAPTIVE_ENABLE_LIBVO_AACENC@
-CAPTIVE_ENABLE_LIBOPENCORE_AMR=@CAPTIVE_ENABLE_LIBOPENCORE_AMR@
-CAPTIVE_ENABLE_LIBRTMP=@CAPTIVE_ENABLE_LIBRTMP@
 CAPTIVE_ENABLE_FFMPEG_GPL=@VS_ENABLE_GPL@
-HAVE_LIBRTMP=@HAVE_LIBRTMP@
-HAVE_LIBFAAC=@HAVE_LIBFAAC@
 
 SVN_REVISION=`@abs_top_srcdir@/revision.sh @abs_top_srcdir@ @abs_top_srcdir@/LastRevisionBuilt.txt @abs_top_srcdir@/LastRevisionBuild.txt`
 
@@ -42,6 +34,17 @@ if test "x$CAPTIVE_ENABLE_FFMPEG_GPL" = "xyes"; then
 fi
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-version3"
 
+if [ "@VS_CROSS_COMPILE@" = "1" ]; then
+  FFMPEG_OPTIONS="${FFMPEG_OPTIONS} --enable-cross-compile --cross-prefix=${HOST_OS}- --arch=${HOST_CPU} --target-os=${HOST_OS_C}"
+  # Override the cross setting for PKG-CONFIG since that is not usually set up to
+  # be cross-compile friendly
+  if ! "${HOST_OS}-pkg-config" --version > /dev/null 2>&1; then
+    # default to pkg-config WITHOUT a prefix; we don't really care since
+    # we're faking out pkg-config anyway
+    FFMPEG_OPTIONS="$FFMPEG_OPTIONS --pkg-config=pkg-config"
+  fi
+fi
+
 if test ! "x$VS_DEBUG" = "x"; then
   echo "Creating debug version of ffmpeg: $VS_DEBUG"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-stripping"
@@ -52,64 +55,26 @@ if test ! "x$VS_DEBUG" = "x"; then
 else
   echo "Creating release version of ffmpeg: $VS_DEBUG"
 fi
-if test "x$HAVE_LIBFAAC" = "xyes"; then
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libfaac"
-fi
-if test "x$CAPTIVE_ENABLE_LIBX264" = "xyes"; then
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libx264"
-fi
-if test "x$CAPTIVE_ENABLE_LIBMP3LAME" = "xyes"; then
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libmp3lame"
-fi
-if test "x$CAPTIVE_ENABLE_LIBVORBIS" = "xyes"; then
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libvorbis"
-fi
-if test "x$CAPTIVE_ENABLE_LIBTHEORA" = "xyes"; then
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libtheora"
-fi
-if test "x$CAPTIVE_ENABLE_LIBSPEEX" = "xyes"; then
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libspeex"
-fi
-if test "x$CAPTIVE_ENABLE_LIBVO_AACENC" = "xyes"; then
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libvo-aacenc"
-fi
-if test "x$CAPTIVE_ENABLE_LIBOPENCORE_AMR" = "xyes"; then
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libopencore-amrnb --enable-libopencore-amrwb"
-fi
-if test "x$CAPTIVE_ENABLE_LIBRTMP" = "xyes"; then
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-librtmp"
-fi
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libx264"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libmp3lame"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libvorbis"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libtheora"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libspeex"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libvo-aacenc"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libopencore-amrnb --enable-libopencore-amrwb"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-librtmp"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-openssl"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-zlib"
 
-if test "x$VS_ENABLE_64BIT" = "xyes"; then
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=-m64"
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=-m64"
-fi
-
-case $HOST_TYPE in
-  Windows)
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=-mno-cygwin"
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=-fno-common"
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=-mno-cygwin"
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=--out-implib"
-
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-w32threads"
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-memalign-hack"
+case $HOST_OS in
+  *cygwin*)
+  CC="${CC} -mno-cygwin"
+  LDFLAGS="$LDFLAGS -mno-cygwin"
   ;;
-  Mac)
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-pthreads"
+  *darwin*)
 # Mac OS X Lion ships uses llvm to link and ffmpeg doesn't play nice
 # So we force clang as the compiler
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --cc=clang"
-  if test "x$VS_ENABLE_64BIT" = "xyes"; then
-    FFMPEG_OPTIONS="$FFMPEG_OPTIONS --arch=x86_64"
-    FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=-arch"
-    FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=x86_64"
-    FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=-arch"
-    FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=x86_64"
-  fi
-  ;;
-  Linux)
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-pthreads"
   ;;
   *)
   ;;
