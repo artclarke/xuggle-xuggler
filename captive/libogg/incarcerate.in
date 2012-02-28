@@ -27,10 +27,12 @@ case $HOST_OS in
 esac
   
 PATH="$PATH:@abs_top_builddir@@bindir@@" sh @abs_srcdir@/csrc/configure \
-  CPPFLAGS="$CPPFLAGS -I@abs_top_builddir@@includedir@" \
-  CFLAGS="$CFLAGS -I@abs_top_builddir@@includedir@" \
-  CXXFLAGS="$CXXFLAGS -I@abs_top_builddir@@includedir@" \
-  LDFLAGS="$LDFLAGS -L@abs_top_builddir@@libdir@" \
+# For some reason, gcc on Mac OS X lion and these includes don't work well, so we disable
+# Technically libogg doesn't need them since it depends on nothing
+#  CPPFLAGS="$CPPFLAGS -I@abs_top_builddir@@includedir@" \
+#  CFLAGS="$CFLAGS -I@abs_top_builddir@@includedir@" \
+#  CXXFLAGS="$CXXFLAGS -I@abs_top_builddir@@includedir@" \
+#  LDFLAGS="$LDFLAGS -L@abs_top_builddir@@libdir@" \
   ${CROSS} \
   --disable-dependency-tracking \
   --prefix="${prefix}" || \
