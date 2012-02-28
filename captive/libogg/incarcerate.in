@@ -17,15 +17,6 @@ else
   CROSS=
 fi
 
-case $HOST_OS in
-  *cygwin*)
-  CC="${CC} -mno-cygwin"
-  LDFLAGS="$LDFLAGS -mno-cygwin"
-  ;;
-  *)
-  ;;
-esac
-  
 PATH="$PATH:@abs_top_builddir@@bindir@@" sh @abs_srcdir@/csrc/configure \
 # For some reason, gcc on Mac OS X lion and these includes don't work well, so we disable
 # Technically libogg doesn't need them since it depends on nothing
