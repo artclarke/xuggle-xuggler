@@ -63,6 +63,21 @@ if [ ! -f "@abs_builddir@/csrc/Configure" ]; then
   chmod -R u+w "@abs_builddir@/csrc/"*
 fi
 
+CC="@CC@" \
+CFLAGS="-I@abs_top_builddir@@includedir@ @CFLAGS@" \
+LD="@LD@" \
+LDFLAGS="-L@abs_top_builddir@@libdir@ @LDFLAGS@" \
+CPP="@CPP@" \
+CPPFLAGS="@CPPFLAGS@" \
+CXX="@CXX@" \
+CXXFLAGS="@CXXFLAGS@" \
+NM="@NM@" \
+AS="@AS@" \
+ASFLAGS="@ASFLAGS@" \
+STRIP="@STRIP@" \
+RANLIB="@RANLIB@" \
+AR="@AR@" \
+DLLTOOL="@DLLTOOL@" \
 PATH="$PATH:@abs_top_builddir@@bindir@@" sh "@abs_builddir@/csrc/Configure" \
   ${OPENSSL_CONFIG} shared zlib \
   --cross-compile-prefix="${CROSS_COMPILE}" \

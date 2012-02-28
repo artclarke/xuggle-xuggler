@@ -38,11 +38,20 @@ case $HOST_OS in
   *)
   CHOST="@HOST_OS@" \
   CC="@CC@" \
-  CFLAGS="@CFLAGS@" \
+  CFLAGS="-I@abs_top_builddir@@includedir@ @CFLAGS@" \
+  LD="@LD@" \
+  LDFLAGS="-L@abs_top_builddir@@libdir@ @LDFLAGS@" \
+  CPP="@CPP@" \
+  CPPFLAGS="@CPPFLAGS@" \
+  CXX="@CXX@" \
+  CXXFLAGS="@CXXFLAGS@" \
+  NM="@NM@" \
+  AS="@AS@" \
+  ASFLAGS="@ASFLAGS@" \
+  STRIP="@STRIP@" \
   RANLIB="@RANLIB@" \
   AR="@AR@" \
-  NM="@NM@" \
-  STRIP="@STRIP@" \
+  DLLTOOL="@DLLTOOL@" \
   prefix="${prefix}" \
   exec_prefix="${exec_prefix}" \
   libdir="${libdir}" \

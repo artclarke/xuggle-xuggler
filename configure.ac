@@ -18,6 +18,33 @@ LT_INIT([disable-static disable-fast-install win32-dll])
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 
+# I hate building on Mac even more than windows; really; it's hard to explain my loathing
+CFLAGS="${CFLAGS}"
+CXXFLAGS="${CXXFLAGS}"
+LDFLAGS="${LDFLAGS}"
+ASFLAGS="${ASFLAGS}"
+case $host_os in
+  *darwin*)
+  case $host_cpu in
+     *i?86*)
+     CFLAGS="-arch i386 ${CFLAGS}"
+     CXXFLAGS="-arch i386 ${CXXFLAGS}"
+     LDFLAGS="-arch i386 ${LDFLAGS}"
+     ;;
+     *x86_64*|*amd64*)
+     CFLAGS="-arch x86_64 ${CFLAGS}"
+     CXXFLAGS="-arch x86_64 ${CXXFLAGS}"
+     LDFLAGS="-arch x86_64 ${LDFLAGS}"
+     ;;
+     *ppc*)
+     CFLAGS="-arch ppc ${CFLAGS}"
+     CXXFLAGS="-arch ppc ${CXXFLAGS}"
+     LDFLAGS="-arch ppc ${LDFLAGS}"
+     ;;
+  esac
+  ;;
+esac
+AC_SUBST([ASFLAGS])
 # Checks for programs.
 AC_PROG_CC
 AC_PROG_CXX

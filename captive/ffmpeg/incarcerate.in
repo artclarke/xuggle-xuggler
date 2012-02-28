@@ -67,22 +67,23 @@ FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-librtmp"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-openssl"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-zlib"
 
-case $HOST_OS in
-  *cygwin*)
-  CC="${CC} -mno-cygwin"
-  LDFLAGS="$LDFLAGS -mno-cygwin"
-  ;;
-  *darwin*)
-# Mac OS X Lion ships uses llvm to link and ffmpeg doesn't play nice
-# So we force clang as the compiler
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --cc=clang"
-  ;;
-  *)
-  ;;
-esac
-
 echo "Configuring FFMPEG with these options: $FFMPEG_OPTIONS"
 cd @abs_builddir@/csrc
+CC="@CC@" \
+CFLAGS="-I@abs_top_builddir@@includedir@ @CFLAGS@" \
+LD="@LD@" \
+LDFLAGS="-L@abs_top_builddir@@libdir@ @LDFLAGS@" \
+CPP="@CPP@" \
+CPPFLAGS="@CPPFLAGS@" \
+CXX="@CXX@" \
+CXXFLAGS="@CXXFLAGS@" \
+NM="@NM@" \
+AS="@AS@" \
+ASFLAGS="@ASFLAGS@" \
+STRIP="@STRIP@" \
+RANLIB="@RANLIB@" \
+AR="@AR@" \
+DLLTOOL="@DLLTOOL@" \
 PATH="$PATH:@abs_top_builddir@@bindir@@" sh @abs_srcdir@/csrc/configure \
   --prefix="${prefix}" $FFMPEG_OPTIONS || \
   (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)

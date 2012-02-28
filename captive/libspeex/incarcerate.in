@@ -26,11 +26,22 @@ case $HOST_OS in
   ;;
 esac
 
+CC="@CC@" \
+CFLAGS="-I@abs_top_builddir@@includedir@ @CFLAGS@" \
+LD="@LD@" \
+LDFLAGS="-L@abs_top_builddir@@libdir@ @LDFLAGS@" \
+CPP="@CPP@" \
+CPPFLAGS="@CPPFLAGS@" \
+CXX="@CXX@" \
+CXXFLAGS="@CXXFLAGS@" \
+NM="@NM@" \
+AS="@AS@" \
+ASFLAGS="@ASFLAGS@" \
+STRIP="@STRIP@" \
+RANLIB="@RANLIB@" \
+AR="@AR@" \
+DLLTOOL="@DLLTOOL@" \
 PATH="$PATH:@abs_top_builddir@@bindir@@" sh @abs_srcdir@/csrc/configure \
-  CPPFLAGS="$CPPFLAGS -I@abs_top_builddir@@includedir@" \
-  CFLAGS="$CFLAGS -I@abs_top_builddir@@includedir@" \
-  CXXFLAGS="$CXXFLAGS -I@abs_top_builddir@@includedir@" \
-  LDFLAGS="$LDFLAGS -L@abs_top_builddir@@libdir@" \
   --disable-dependency-tracking \
   --enable-sse \
   ${CROSS} \

@@ -640,10 +640,13 @@ VS_CROSS_COMPILE_FALSE
 VS_CROSS_COMPILE_TRUE
 VS_CROSS_COMPILE
 VS_CROSS_PREFIX
+CCASFLAGS
+CCAS
 CXXCPP
 ac_ct_CXX
 CXXFLAGS
 CXX
+ASFLAGS
 CPP
 OTOOL64
 OTOOL
@@ -684,6 +687,8 @@ DLLTOOL
 AS
 AM_BACKSLASH
 AM_DEFAULT_VERBOSITY
+AM_DEFAULT_V
+AM_V
 MAINT
 MAINTAINER_MODE_FALSE
 MAINTAINER_MODE_TRUE
@@ -776,6 +781,8 @@ CXX
 CXXFLAGS
 CCC
 CXXCPP
+CCAS
+CCASFLAGS
 YASM'
 
 
@@ -1432,6 +1439,8 @@ Some influential environment variables:
   CXX         C++ compiler command
   CXXFLAGS    C++ compiler flags
   CXXCPP      C++ preprocessor
+  CCAS        assembler compiler command (defaults to CC)
+  CCASFLAGS   assembler compiler flags (defaults to CFLAGS)
   YASM        Location of the 'yasm' program; if found, we will build with
               some cool assembly on x86/x86_64 systems.
 
@@ -2747,9 +2756,9 @@ MAKEINFO=${MAKEINFO-"${am_missing_run}makeinfo"}
 
 # We need awk for the "check" target.  The system "awk" is bad on
 # some platforms.
-# Always define AMTAR for backward compatibility.
-
-AMTAR=${AMTAR-"${am_missing_run}tar"}
+# Always define AMTAR for backward compatibility.  Yes, it's still used
+# in the wild :-(  We should find a proper way to deprecate it ...
+AMTAR='$${TAR-tar}'
 
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking how to create a pax tar archive" >&5
@@ -2871,6 +2880,33 @@ yes) AM_DEFAULT_VERBOSITY=0;;
 no)  AM_DEFAULT_VERBOSITY=1;;
 *)   AM_DEFAULT_VERBOSITY=0;;
 esac
+am_make=${MAKE-make}
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether $am_make supports nested variables" >&5
+$as_echo_n "checking whether $am_make supports nested variables... " >&6; }
+if ${am_cv_make_support_nested_variables+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if $as_echo 'TRUE=$(BAR$(V))
+BAR0=false
+BAR1=true
+V=1
+am__doit:
+	@$(TRUE)
+.PHONY: am__doit' | $am_make -f - >/dev/null 2>&1; then
+  am_cv_make_support_nested_variables=yes
+else
+  am_cv_make_support_nested_variables=no
+fi
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $am_cv_make_support_nested_variables" >&5
+$as_echo "$am_cv_make_support_nested_variables" >&6; }
+if test $am_cv_make_support_nested_variables = yes; then
+    AM_V='$(V)'
+  AM_DEFAULT_V='$(AM_DEFAULT_VERBOSITY)'
+else
+  AM_V=$AM_DEFAULT_VERBOSITY
+  AM_DEFAULT_V=$AM_DEFAULT_VERBOSITY
+fi
 AM_BACKSLASH='\'
 
 case `pwd` in
@@ -11502,6 +11538,33 @@ CC="$lt_save_CC"
 
 
 
+# I hate building on Mac even more than windows; really; it's hard to explain my loathing
+CFLAGS="${CFLAGS}"
+CXXFLAGS="${CXXFLAGS}"
+LDFLAGS="${LDFLAGS}"
+ASFLAGS="${ASFLAGS}"
+case $host_os in
+  *darwin*)
+  case $host_cpu in
+     *i?86*)
+     CFLAGS="-arch i386 ${CFLAGS}"
+     CXXFLAGS="-arch i386 ${CXXFLAGS}"
+     LDFLAGS="-arch i386 ${LDFLAGS}"
+     ;;
+     *x86_64*|*amd64*)
+     CFLAGS="-arch x86_64 ${CFLAGS}"
+     CXXFLAGS="-arch x86_64 ${CXXFLAGS}"
+     LDFLAGS="-arch x86_64 ${LDFLAGS}"
+     ;;
+     *ppc*)
+     CFLAGS="-arch ppc ${CFLAGS}"
+     CXXFLAGS="-arch ppc ${CXXFLAGS}"
+     LDFLAGS="-arch ppc ${LDFLAGS}"
+     ;;
+  esac
+  ;;
+esac
+
 # Checks for programs.
 ac_ext=cpp
 ac_cpp='$CXXCPP $CPPFLAGS'
@@ -15521,6 +15584,13 @@ ac_cpp='$CXXCPP $CPPFLAGS'
 ac_compile='$CXX -c $CXXFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CXX -o conftest$ac_exeext $CXXFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
+
+
+# By default we simply use the C compiler to build assembly code.
+
+test "${CCAS+set}" = set || CCAS=$CC
+test "${CCASFLAGS+set}" = set || CCASFLAGS=$CFLAGS
+
 
 
 

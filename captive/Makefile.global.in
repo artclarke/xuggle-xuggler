@@ -39,6 +39,22 @@ export PATH := ${vs_captive_prefix}@bindir@$(PATH_SEPARATOR)$(PATH)
 export LD_LIBRARY_PATH := ${vs_captive_prefix}@libdir@$(PATH_SEPARATOR)$(LD_LIBRARY_PATH)
 export DYLD_LIBRARY_PATH := ${vs_captive_prefix}@libdir@$(PATH_SEPARATOR)$(DYLD_LIBRARY_PATH)
 
+export CC=@CC@
+export CFLAGS=@CFLAGS@
+export LD=@LD@
+export LDFLAGS=@LDFLAGS@
+export CPP=@CPP@
+export CPPFLAGS=@CPPFLAGS@
+export CXX=@CXX@
+export CXXFLAGS=@CXXFLAGS@
+export NM=@NM@
+export AS=@AS@
+export ASFLAGS=@ASFLAGS@
+export STRIP=@STRIP@
+export RANLIB=@RANLIB@
+export AR=@AR@
+export DLLTOOL=@DLLTOOL@
+
 # This rule makes sure the captive Makefile is created,
 # and is regenerated if the captive configure script
 # changes
