@@ -23,7 +23,7 @@ all-local: incarcerate-package
 	@cd csrc && \
 	  ( $(MAKE) -q all || \
 	    (echo "Out of date files; re-running make" && $(MAKE) all && \
-	     DESTDIR="$(vs_captive_prefix)" $(MAKE) install_sw && \
+	     INSTALL_PREFIX="$(vs_captive_prefix)" $(MAKE) install_sw && \
 	     cd .. && if test -f install.sh; then \
 	       DESTDIR="$(vs_captive_prefix)" sh install.sh; \
 	     fi \
@@ -40,7 +40,7 @@ install-exec-hook: incarcerate-package
 
 install-data-hook: incarcerate-package
 	@echo "make install-data-hook; DESTDIR=$(DESTDIR)"
-	cd csrc && $(MAKE) install_sw
+	cd csrc && INSTALL_PREFIX="$(DESTDIR)" $(MAKE) install_sw
 	if test -f $(builddir)/install.sh; then \
 	  DESTDIR="$(DESTDIR)" sh $(builddir)/install.sh; \
 	fi
