@@ -41,25 +41,25 @@ fi
 :> "${DIR}/ant.out"
 case $HOST in
   *darwin*)
-(ant -Dbuild.configure.os=${VS_MAC32} stage-native | tee --append "${DIR}/ant.out") && \
-(ant -Dbuild.configure.os=${VS_MAC64} stage-native | tee --append "${DIR}/ant.out") && \
+(ant -Dbuild.configure.os=${VS_MAC32} stage-native | tee -a "${DIR}/ant.out") && \
+(ant -Dbuild.configure.os=${VS_MAC64} stage-native | tee -a "${DIR}/ant.out") && \
 true
   ;;
   *linux*)
-(ant -Dbuild.configure.os=${VS_LIN32} stage-native | tee --append "${DIR}/ant.out") && \
-(ant -Dbuild.configure.os=${VS_LIN64} stage-native | tee --append "${DIR}/ant.out") && \
-(ant -Dbuild.configure.os=${VS_WIN32} stage-native | tee --append "${DIR}/ant.out") && \
-(ant -Dbuild.configure.os=${VS_WIN64} stage-native | tee --append "${DIR}/ant.out") && \
+(ant -Dbuild.configure.os=${VS_LIN32} stage-native | tee -a "${DIR}/ant.out") && \
+(ant -Dbuild.configure.os=${VS_LIN64} stage-native | tee -a "${DIR}/ant.out") && \
+(ant -Dbuild.configure.os=${VS_WIN32} stage-native | tee -a "${DIR}/ant.out") && \
+(ant -Dbuild.configure.os=${VS_WIN64} stage-native | tee -a "${DIR}/ant.out") && \
 true
   ;;
   *mingw*)
     case $HOST in
       *x86_64*)
-(ant -Dbuild.configure.os=${VS_WIN64} stage-native | tee --append "${DIR}/ant.out") && \
+(ant -Dbuild.configure.os=${VS_WIN64} stage-native | tee -a "${DIR}/ant.out") && \
 true
       ;;
       *)
-(ant -Dbuild.configure.os=${VS_WIN32} stage-native | tee --append "${DIR}/ant.out") && \
+(ant -Dbuild.configure.os=${VS_WIN32} stage-native | tee -a "${DIR}/ant.out") && \
 true
       ;;
     esac
