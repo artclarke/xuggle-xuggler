@@ -409,6 +409,20 @@ include $(abs_top_builddir)/Makefile.global
 # This has the downside that every make does a captive install, but
 # them's the breaks.
 
+# openssl doesn't follow gnu configure standards and we
+# have to rely on the cross-compile prefix, in particular for windows
+# we still allow flags to be overriden though
+unexport CC
+unexport LD
+unexport CPP
+unexport CXX
+unexport NM
+unexport AS
+unexport STRIP
+unexport RANLIB
+unexport AR
+unexport DLLTOOL
+
 all-local: incarcerate-package
 	@echo "Incarcerating package $(srcdir) to fake DESTDIR=$(vs_captive_prefix)"
 	@cd csrc && \
