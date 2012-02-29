@@ -14,10 +14,8 @@ VS_DEBUG=@VS_DEBUG@
 
 CAPTIVE_ENABLE_FFMPEG_GPL=@VS_ENABLE_GPL@
 
-SVN_REVISION=`@abs_top_srcdir@/revision.sh @abs_top_srcdir@ @abs_top_srcdir@/LastRevisionBuilt.txt @abs_top_srcdir@/LastRevisionBuild.txt`
-
 FFMPEG_OPTIONS=
-FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-version=xuggle-@LIB_MAJOR_VERSION@.@LIB_MINOR_VERSION@.${SVN_REVISION}"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-version=xuggle-@LIB_MAJOR_VERSION@.@LIB_MINOR_VERSION@"
 
 # Tell FFMPEG about the captive libraries already built and fake
 # installed
@@ -36,11 +34,17 @@ if test "x$CAPTIVE_ENABLE_FFMPEG_GPL" = "xyes"; then
 fi
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-version3"
 
+case $HOST_OS in
+  *darwin*)
+    # GNU Configure sometimes adds darwin version numbers; this strips them
+    HOST_OS_C=darwin
+  ;;
+esac
 if [ "@VS_CROSS_COMPILE@" = "1" ]; then
   FFMPEG_OPTIONS="${FFMPEG_OPTIONS} --enable-cross-compile --cross-prefix=@VS_CROSS_PREFIX@ --arch=${HOST_CPU} --target-os=${HOST_OS_C}"
   # Override the cross setting for PKG-CONFIG since that is not usually set up to
   # be cross-compile friendly
-  if ! "${HOST_OS}-pkg-config" --version > /dev/null 2>&1; then
+  if ! "@VS_CROSS_PREFIX@pkg-config" --version > /dev/null 2>&1; then
     # default to pkg-config WITHOUT a prefix; we don't really care since
     # we're faking out pkg-config anyway
     FFMPEG_OPTIONS="$FFMPEG_OPTIONS --pkg-config=pkg-config"
