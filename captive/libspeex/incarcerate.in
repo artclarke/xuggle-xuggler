@@ -17,15 +17,6 @@ else
   CROSS=
 fi
 
-case $HOST_OS in
-  *cygwin*)
-  CC="${CC} -mno-cygwin"
-  LDFLAGS="$LDFLAGS -mno-cygwin"
-  ;;
-  *)
-  ;;
-esac
-
 CC="@CC@" \
 CFLAGS="-I@abs_top_builddir@@includedir@ @CFLAGS@" \
 LD="@LD@" \
