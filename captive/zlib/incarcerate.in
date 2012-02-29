@@ -19,7 +19,7 @@ chmod -R u+w "@abs_builddir@/csrc/"*
 # Check for 64 bit compiling
 FLAG64=
 case $HOST_OS in
-  *x86_64*)
+  *64*)
     FLAG64="--64"
   ;;
 esac
