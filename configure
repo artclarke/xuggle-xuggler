@@ -11980,17 +11980,22 @@ ASFLAGS="${ASFLAGS}"
 case $host_os in
   *darwin*)
   case $host_cpu in
-     *i?86*)
-     CFLAGS="-arch i386 ${CFLAGS}"
-     CXXFLAGS="-arch i386 ${CXXFLAGS}"
-     LDFLAGS="-arch i386 ${LDFLAGS}"
-     ;;
      *x86_64*|*amd64*)
      CFLAGS="-arch x86_64 ${CFLAGS}"
      CXXFLAGS="-arch x86_64 ${CXXFLAGS}"
      LDFLAGS="-arch x86_64 ${LDFLAGS}"
      ;;
-     *ppc*)
+     *i?86*)
+     CFLAGS="-arch i386 ${CFLAGS}"
+     CXXFLAGS="-arch i386 ${CXXFLAGS}"
+     LDFLAGS="-arch i386 ${LDFLAGS}"
+     ;;
+     *ppc64*|*powerpc64*)
+     CFLAGS="-arch ppc64 ${CFLAGS}"
+     CXXFLAGS="-arch ppc64 ${CXXFLAGS}"
+     LDFLAGS="-arch ppc64 ${LDFLAGS}"
+     ;;
+     *ppc*|*powerpc*)
      CFLAGS="-arch ppc ${CFLAGS}"
      CXXFLAGS="-arch ppc ${CXXFLAGS}"
      LDFLAGS="-arch ppc ${LDFLAGS}"
