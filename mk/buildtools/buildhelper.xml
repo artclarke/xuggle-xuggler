@@ -1548,7 +1548,7 @@
               failonerror="false"
               failifexecutionfails="false"
               >
-            <arg line="pwd -P"/>
+            <arg line="-c pwd -P"/>
           </exec>
         </then>
       </if>
