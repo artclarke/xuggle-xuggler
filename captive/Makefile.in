@@ -33,8 +33,7 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-@VS_CAPTIVE_ZLIB_TRUE@am__append_1 = zlib
-@VS_ENABLE_GPL_TRUE@am__append_2 = libx264
+@VS_ENABLE_GPL_TRUE@am__append_1 = libx264
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
 	$(srcdir)/Makefile.global.in $(srcdir)/Makefile.in \
@@ -262,9 +261,10 @@ EXTRA_DIST = COPYING
 #  ------------------------------------------------------------------
 #                                  |
 #                               ffmpeg
-SUBDIRS = $(am__append_1) openssl librtmp libvo-aacenc libopencore-amr \
-	libogg libspeex libvorbis libtheora libmp3lame $(am__append_2) \
-	ffmpeg
+#if VS_CAPTIVE_ZLIB
+#endif
+SUBDIRS = zlib openssl librtmp libvo-aacenc libopencore-amr libogg \
+	libspeex libvorbis libtheora libmp3lame $(am__append_1) ffmpeg
 all: all-recursive
 
 .SUFFIXES:

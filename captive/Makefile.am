@@ -15,9 +15,9 @@ EXTRA_DIST=COPYING
 #                                  |
 #                               ffmpeg
 SUBDIRS=
-if VS_CAPTIVE_ZLIB
+#if VS_CAPTIVE_ZLIB
 SUBDIRS+= zlib
-endif
+#endif
 SUBDIRS+= \
   openssl librtmp libvo-aacenc libopencore-amr \
   libogg libspeex libvorbis libtheora libmp3lame 
