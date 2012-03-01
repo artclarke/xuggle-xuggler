@@ -58,8 +58,6 @@ public class NativeLoggerTest extends TestCase
     assertTrue(retval);
     retval = mLog.log(3, "This is a debug msg");
     assertTrue(retval);
-    retval = mLog.log(4, "This is a trace msg");
-    assertTrue(!retval);
     assertTrue("all tests seemed to pass without crashes", true);
   }
 
