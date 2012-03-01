@@ -223,9 +223,6 @@ SendConnectResult(RTMP *r, double txn)
   *enc++ = 0;
   *enc++ = 0;
   *enc++ = AMF_OBJECT_END;
-  *enc++ = 0;
-  *enc++ = 0;
-  *enc++ = AMF_OBJECT_END;
 
   packet.m_nBodySize = enc - packet.m_body;
 
