@@ -13,6 +13,14 @@ eval do_$test=y
 
 ENC_OPTS="$ENC_OPTS -metadata title=lavftest"
 
+do_lavf_fate()
+{
+    file=${outfile}lavf.$1
+    input="${samples}/$2"
+    do_avconv $file $DEC_OPTS -i "$input" $ENC_OPTS -vcodec copy -acodec copy
+    do_avconv_crc $file $DEC_OPTS -i $target_path/$file $3
+}
+
 do_lavf()
 {
     file=${outfile}lavf.$1
@@ -102,6 +110,10 @@ if [ -n "$do_mov" ] ; then
 do_lavf_timecode mov "-acodec pcm_alaw -vcodec mpeg4"
 fi
 
+if [ -n "$do_ismv" ] ; then
+do_lavf_timecode ismv "-an -vcodec mpeg4"
+fi
+
 if [ -n "$do_dv_fmt" ] ; then
 do_lavf_timecode_nodrop dv "-ar 48000 -r 25 -s pal -ac 2"
 do_lavf_timecode_drop   dv "-ar 48000 -pix_fmt yuv411p -s ntsc -ac 2"
@@ -120,6 +132,12 @@ fi
 
 if [ -n "$do_mkv" ] ; then
 do_lavf mkv "-acodec mp2 -ab 64k -vcodec mpeg4"
+fi
+
+if [ -n "$do_ogg_vp3" ] ; then
+# -idct simple causes different results on different systems
+DEC_OPTS="$DEC_OPTS -idct auto"
+do_lavf_fate ogg "vp3/coeff_level64.mkv"
 fi
 
 if [ -n "$do_wtv" ] ; then

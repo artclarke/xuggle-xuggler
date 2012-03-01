@@ -230,6 +230,14 @@ Specify the preset for matching stream(s).
 @item -stats (@emph{global})
 Print encoding progress/statistics. On by default.
 
+@item -debug_ts (@emph{global})
+Print timestamp information. It is off by default. This option is
+mostly useful for testing and debugging purposes, and the output
+format may change from one version to another, so it should not be
+employed by portable scripts.
+
+See also the option @code{-fdebug ts}.
+
 @item -attach @var{filename} (@emph{output})
 Add an attachment to the output file. This is supported by a few formats
 like Matroska for e.g. fonts used in rendering subtitles. Attachments
@@ -271,7 +279,8 @@ attachments.
 @item -vframes @var{number} (@emph{output})
 Set the number of video frames to record. This is an alias for @code{-frames:v}.
 @item -r[:@var{stream_specifier}] @var{fps} (@emph{input/output,per-stream})
-Set frame rate (Hz value, fraction or abbreviation), (default = 25).
+Set frame rate (Hz value, fraction or abbreviation), (default = 25). For output
+streams implies @code{-vsync cfr}.
 @item -s[:@var{stream_specifier}] @var{size} (@emph{input/output,per-stream})
 Set frame size. The format is @samp{wxh} (default - same as source).
 The following abbreviations are recognized:
@@ -1011,10 +1020,10 @@ Set bitstream filters for matching streams. @var{bistream_filters} is
 a comma-separated list of bitstream filters. Use the @code{-bsfs} option
 to get the list of bitstream filters.
 @example
-ffmpeg -i h264.mp4 -c:v copy -vbsf h264_mp4toannexb -an out.h264
+ffmpeg -i h264.mp4 -c:v copy -bsf:v h264_mp4toannexb -an out.h264
 @end example
 @example
-ffmpeg -i file.mov -an -vn -sbsf mov2textsub -c:s copy -f rawvideo sub.txt
+ffmpeg -i file.mov -an -vn -bsf:s mov2textsub -c:s copy -f rawvideo sub.txt
 @end example
 
 @item -tag[:@var{stream_specifier}] @var{codec_tag} (@emph{per-stream})

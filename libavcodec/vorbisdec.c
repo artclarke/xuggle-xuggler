@@ -207,7 +207,7 @@ static void vorbis_free(vorbis_context *vc)
 
     for (i = 0; i < vc->codebook_count; ++i) {
         av_free(vc->codebooks[i].codevectors);
-        free_vlc(&vc->codebooks[i].vlc);
+        ff_free_vlc(&vc->codebooks[i].vlc);
     }
     av_freep(&vc->codebooks);
 
@@ -990,7 +990,7 @@ static av_cold int vorbis_decode_init(AVCodecContext *avccontext)
     int hdr_type, ret;
 
     vc->avccontext = avccontext;
-    dsputil_init(&vc->dsp, avccontext);
+    ff_dsputil_init(&vc->dsp, avccontext);
     ff_fmt_convert_init(&vc->fmt_conv, avccontext);
 
     if (avccontext->request_sample_fmt == AV_SAMPLE_FMT_FLT) {
@@ -1459,7 +1459,7 @@ static inline int vorbis_residue_decode(vorbis_context *vc, vorbis_residue *vr,
     }
 }
 
-void vorbis_inverse_coupling(float *mag, float *ang, int blocksize)
+void ff_vorbis_inverse_coupling(float *mag, float *ang, int blocksize)
 {
     int i;
     for (i = 0;  i < blocksize;  i++) {
@@ -1710,6 +1710,17 @@ static av_cold int vorbis_decode_close(AVCodecContext *avccontext)
     return 0;
 }
 
+static av_cold void vorbis_decode_flush(AVCodecContext *avccontext)
+{
+    vorbis_context *vc = avccontext->priv_data;
+
+    if (vc->saved) {
+        memset(vc->saved, 0, (vc->blocksize[1] / 4) * vc->audio_channels *
+                             sizeof(*vc->saved));
+    }
+    vc->previous_window = 0;
+}
+
 AVCodec ff_vorbis_decoder = {
     .name           = "vorbis",
     .type           = AVMEDIA_TYPE_AUDIO,
@@ -1718,6 +1729,7 @@ AVCodec ff_vorbis_decoder = {
     .init           = vorbis_decode_init,
     .close          = vorbis_decode_close,
     .decode         = vorbis_decode_frame,
+    .flush          = vorbis_decode_flush,
     .capabilities   = CODEC_CAP_DR1,
     .long_name = NULL_IF_CONFIG_SMALL("Vorbis"),
     .channel_layouts = ff_vorbis_channel_layouts,

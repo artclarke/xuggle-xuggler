@@ -270,12 +270,12 @@ static int aiff_read_header(AVFormatContext *s)
         }
     }
 
+got_sound:
     if (!st->codec->block_align) {
-        av_log(s, AV_LOG_ERROR, "could not find COMM tag\n");
+        av_log(s, AV_LOG_ERROR, "could not find COMM tag or invalid block_align value\n");
         return -1;
     }
 
-got_sound:
     /* Now positioned, get the sound data start and end */
     avpriv_set_pts_info(st, 64, 1, st->codec->sample_rate);
     st->start_time = 0;
@@ -325,6 +325,6 @@ AVInputFormat ff_aiff_demuxer = {
     .read_probe     = aiff_probe,
     .read_header    = aiff_read_header,
     .read_packet    = aiff_read_packet,
-    .read_seek      = pcm_read_seek,
+    .read_seek      = ff_pcm_read_seek,
     .codec_tag= (const AVCodecTag* const []){ff_codec_aiff_tags, 0},
 };

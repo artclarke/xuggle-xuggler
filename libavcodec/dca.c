@@ -717,15 +717,19 @@ static int dca_subframe_header(DCAContext *s, int base_channel, int block_index)
 
     for (j = base_channel; j < s->prim_channels; j++) {
         const uint32_t *scale_table;
+        unsigned int scale_max;
         int scale_sum;
 
         memset(s->scale_factor[j], 0,
                s->subband_activity[j] * sizeof(s->scale_factor[0][0][0]) * 2);
 
-        if (s->scalefactor_huffman[j] == 6)
+        if (s->scalefactor_huffman[j] == 6) {
             scale_table = scale_factor_quant7;
-        else
+            scale_max   = 127;
+        } else {
             scale_table = scale_factor_quant6;
+            scale_max   = 63;
+        }
 
         /* When huffman coded, only the difference is encoded */
         scale_sum = 0;
@@ -733,12 +737,20 @@ static int dca_subframe_header(DCAContext *s, int base_channel, int block_index)
         for (k = 0; k < s->subband_activity[j]; k++) {
             if (k >= s->vq_start_subband[j] || s->bitalloc[j][k] > 0) {
                 scale_sum = get_scale(&s->gb, s->scalefactor_huffman[j], scale_sum);
+                if (scale_sum > scale_max) {
+                    av_log(s->avctx, AV_LOG_ERROR, "scale_sum out of range\n");
+                    return AVERROR_INVALIDDATA;
+                }
                 s->scale_factor[j][k][0] = scale_table[scale_sum];
             }
 
             if (k < s->vq_start_subband[j] && s->transition_mode[j][k]) {
                 /* Get second scale factor */
                 scale_sum = get_scale(&s->gb, s->scalefactor_huffman[j], scale_sum);
+                if (scale_sum > scale_max) {
+                    av_log(s->avctx, AV_LOG_ERROR, "scale_sum out of range\n");
+                    return AVERROR_INVALIDDATA;
+                }
                 s->scale_factor[j][k][1] = scale_table[scale_sum];
             }
         }
@@ -789,9 +801,13 @@ static int dca_subframe_header(DCAContext *s, int base_channel, int block_index)
             }
         } else {
             int am = s->amode & DCA_CHANNEL_MASK;
+            if (am < 16) {
             for (j = base_channel; j < s->prim_channels; j++) {
                 s->downmix_coef[j][0] = dca_default_coeffs[am][j][0];
                 s->downmix_coef[j][1] = dca_default_coeffs[am][j][1];
+            }
+            } else {
+                av_log(s->avctx, AV_LOG_WARNING, "amode > 15 default downmix_coef unsupported\n");
             }
         }
     }
@@ -817,6 +833,7 @@ static int dca_subframe_header(DCAContext *s, int base_channel, int block_index)
 
     /* Low frequency effect data */
     if (!base_channel && s->lfe) {
+        int quant7;
         /* LFE samples */
         int lfe_samples = 2 * s->lfe * (4 + block_index);
         int lfe_end_sample = 2 * s->lfe * (4 + block_index + s->subsubframes[s->current_subframe]);
@@ -828,7 +845,12 @@ static int dca_subframe_header(DCAContext *s, int base_channel, int block_index)
         }
 
         /* Scale factor index */
-        s->lfe_scale_factor = scale_factor_quant7[get_bits(&s->gb, 8)];
+        quant7 = get_bits(&s->gb, 8);
+        if (quant7 > 127) {
+            av_log_ask_for_sample(s->avctx, "LFEScaleIndex larger than 127\n");
+            return AVERROR_INVALIDDATA;
+        }
+        s->lfe_scale_factor = scale_factor_quant7[quant7];
 
         /* Quantization step size * scale factor */
         lfe_scale = 0.035 * s->lfe_scale_factor;
@@ -1926,7 +1948,7 @@ static av_cold int dca_decode_init(AVCodecContext *avctx)
     s->avctx = avctx;
     dca_init_vlcs();
 
-    dsputil_init(&s->dsp, avctx);
+    ff_dsputil_init(&s->dsp, avctx);
     ff_mdct_init(&s->imdct, 6, 1, 1.0);
     ff_synth_filter_init(&s->synth);
     ff_dcadsp_init(&s->dcadsp);

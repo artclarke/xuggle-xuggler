@@ -26,12 +26,12 @@
  * external API header
  */
 
-/**
+/*
  * @mainpage
  *
  * @section libav_intro Introduction
  *
- * This document describe the usage of the different libraries
+ * This document describes the usage of the different libraries
  * provided by FFmpeg.
  *
  * @li @ref libavc "libavcodec" encoding/decoding library
@@ -41,7 +41,6 @@
  * @li @ref lavu "libavutil" common utility library
  * @li @subpage libpostproc post processing library
  * @li @subpage libswscale  color conversion and scaling library
- *
  */
 
 /**
@@ -154,7 +153,7 @@
  */
 
 #define LIBAVUTIL_VERSION_MAJOR 51
-#define LIBAVUTIL_VERSION_MINOR 38
+#define LIBAVUTIL_VERSION_MINOR 41
 #define LIBAVUTIL_VERSION_MICRO 100
 
 #define LIBAVUTIL_VERSION_INT   AV_VERSION_INT(LIBAVUTIL_VERSION_MAJOR, \

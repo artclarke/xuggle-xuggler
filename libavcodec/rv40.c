@@ -80,18 +80,18 @@ static av_cold void rv40_init_tables(void)
     for(i = 0; i < NUM_PTYPE_VLCS; i++){
         ptype_vlc[i].table = &ptype_table[i << PTYPE_VLC_BITS];
         ptype_vlc[i].table_allocated = 1 << PTYPE_VLC_BITS;
-        init_vlc_sparse(&ptype_vlc[i], PTYPE_VLC_BITS, PTYPE_VLC_SIZE,
-                         ptype_vlc_bits[i],  1, 1,
-                         ptype_vlc_codes[i], 1, 1,
-                         ptype_vlc_syms,     1, 1, INIT_VLC_USE_NEW_STATIC);
+        ff_init_vlc_sparse(&ptype_vlc[i], PTYPE_VLC_BITS, PTYPE_VLC_SIZE,
+                            ptype_vlc_bits[i],  1, 1,
+                            ptype_vlc_codes[i], 1, 1,
+                            ptype_vlc_syms,     1, 1, INIT_VLC_USE_NEW_STATIC);
     }
     for(i = 0; i < NUM_BTYPE_VLCS; i++){
         btype_vlc[i].table = &btype_table[i << BTYPE_VLC_BITS];
         btype_vlc[i].table_allocated = 1 << BTYPE_VLC_BITS;
-        init_vlc_sparse(&btype_vlc[i], BTYPE_VLC_BITS, BTYPE_VLC_SIZE,
-                         btype_vlc_bits[i],  1, 1,
-                         btype_vlc_codes[i], 1, 1,
-                         btype_vlc_syms,     1, 1, INIT_VLC_USE_NEW_STATIC);
+        ff_init_vlc_sparse(&btype_vlc[i], BTYPE_VLC_BITS, BTYPE_VLC_SIZE,
+                            btype_vlc_bits[i],  1, 1,
+                            btype_vlc_codes[i], 1, 1,
+                            btype_vlc_syms,     1, 1, INIT_VLC_USE_NEW_STATIC);
     }
 }
 
@@ -360,7 +360,7 @@ static void rv40_loop_filter(RV34DecContext *r, int row)
      * in addition to the coded ones because because they lie at the edge of
      * 8x8 block with different enough motion vectors
      */
-    int mvmasks[4];
+    unsigned mvmasks[4];
 
     mb_pos = row * s->mb_stride;
     for(mb_x = 0; mb_x < s->mb_width; mb_x++, mb_pos++){
@@ -376,7 +376,8 @@ static void rv40_loop_filter(RV34DecContext *r, int row)
         int c_v_deblock[2], c_h_deblock[2];
         int clip_left;
         int avail[4];
-        int y_to_deblock, c_to_deblock[2];
+        unsigned y_to_deblock;
+        int c_to_deblock[2];
 
         q = s->current_picture_ptr->f.qscale_table[mb_pos];
         alpha = rv40_alpha_tab[q];

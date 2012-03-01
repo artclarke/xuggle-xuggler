@@ -419,7 +419,7 @@ cglobal deblock_h_luma_10_%1, 5,7,15
 
 INIT_XMM
 DEBLOCK_LUMA_64 sse2
-%ifdef HAVE_AVX
+%if HAVE_AVX
 INIT_AVX
 DEBLOCK_LUMA_64 avx
 %endif
@@ -716,7 +716,7 @@ cglobal deblock_h_luma_intra_10_%1, 4,7,16
 
 INIT_XMM
 DEBLOCK_LUMA_INTRA_64 sse2
-%ifdef HAVE_AVX
+%if HAVE_AVX
 INIT_AVX
 DEBLOCK_LUMA_INTRA_64 avx
 %endif
@@ -803,7 +803,7 @@ DEBLOCK_LUMA_INTRA mmxext
 INIT_XMM
 DEBLOCK_LUMA sse2
 DEBLOCK_LUMA_INTRA sse2
-%ifdef HAVE_AVX
+%if HAVE_AVX
 INIT_AVX
 DEBLOCK_LUMA avx
 DEBLOCK_LUMA_INTRA avx
@@ -876,7 +876,7 @@ cglobal deblock_v_chroma_10_%1, 5,7-(mmsize/16),8*(mmsize/16)
 %if mmsize < 16
     add         r0, mmsize
     add         r5, mmsize
-    add         r4, mmsize/8
+    add         r4, mmsize/4
     dec         r6
     jg .loop
     REP_RET
@@ -919,7 +919,7 @@ DEBLOCK_CHROMA mmxext
 %endif
 INIT_XMM
 DEBLOCK_CHROMA sse2
-%ifdef HAVE_AVX
+%if HAVE_AVX
 INIT_AVX
 DEBLOCK_CHROMA avx
 %endif

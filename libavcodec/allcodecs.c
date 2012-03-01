@@ -90,6 +90,7 @@ void avcodec_register_all(void)
     REGISTER_DECODER (C93, c93);
     REGISTER_DECODER (CAVS, cavs);
     REGISTER_DECODER (CDGRAPHICS, cdgraphics);
+    REGISTER_DECODER (CDXL, cdxl);
     REGISTER_DECODER (CINEPAK, cinepak);
     REGISTER_ENCDEC  (CLJR, cljr);
     REGISTER_DECODER (CSCD, cscd);
@@ -180,6 +181,8 @@ void avcodec_register_all(void)
     REGISTER_ENCDEC  (PNG, png);
     REGISTER_ENCDEC  (PPM, ppm);
     REGISTER_ENCDEC  (PRORES, prores);
+    REGISTER_ENCODER (PRORES_ANATOLIY, prores_anatoliy);
+    REGISTER_ENCODER (PRORES_KOSTYA, prores_kostya);
     REGISTER_DECODER (PRORES_LGPL, prores_lgpl);
     REGISTER_DECODER (PTX, ptx);
     REGISTER_DECODER (QDRAW, qdraw);
@@ -201,7 +204,7 @@ void avcodec_register_all(void)
     REGISTER_DECODER (SMC, smc);
     REGISTER_ENCDEC  (SNOW, snow);
     REGISTER_DECODER (SP5X, sp5x);
-    REGISTER_DECODER (SUNRAST, sunrast);
+    REGISTER_ENCDEC  (SUNRAST, sunrast);
     REGISTER_ENCDEC  (SVQ1, svq1);
     REGISTER_DECODER (SVQ3, svq3);
     REGISTER_ENCDEC  (TARGA, targa);
@@ -397,7 +400,7 @@ void avcodec_register_all(void)
     /* external libraries */
     REGISTER_ENCODER (LIBAACPLUS, libaacplus);
     REGISTER_DECODER (LIBCELT, libcelt);
-    REGISTER_ENCDEC  (LIBDIRAC, libdirac);
+    REGISTER_DECODER (LIBDIRAC, libdirac);
     REGISTER_ENCODER (LIBFAAC, libfaac);
     REGISTER_ENCDEC  (LIBGSM, libgsm);
     REGISTER_ENCDEC  (LIBGSM_MS, libgsm_ms);

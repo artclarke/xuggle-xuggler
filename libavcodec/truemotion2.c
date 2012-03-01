@@ -135,7 +135,7 @@ static int tm2_build_huff_table(TM2Context *ctx, TM2Codes *code)
                huff.val_bits, huff.max_bits);
         return -1;
     }
-    if((huff.nodes < 0) || (huff.nodes > 0x10000)) {
+    if((huff.nodes <= 0) || (huff.nodes > 0x10000)) {
         av_log(ctx->avctx, AV_LOG_ERROR, "Incorrect number of Huffman tree nodes: %i\n", huff.nodes);
         return -1;
     }
@@ -190,7 +190,7 @@ static void tm2_free_codes(TM2Codes *code)
 {
     av_free(code->recode);
     if(code->vlc.table)
-        free_vlc(&code->vlc);
+        ff_free_vlc(&code->vlc);
 }
 
 static inline int tm2_get_token(GetBitContext *gb, TM2Codes *code)
@@ -823,7 +823,7 @@ static av_cold int decode_init(AVCodecContext *avctx){
     avctx->pix_fmt = PIX_FMT_BGR24;
     avcodec_get_frame_defaults(&l->pic);
 
-    dsputil_init(&l->dsp, avctx);
+    ff_dsputil_init(&l->dsp, avctx);
 
     l->last = av_malloc(4 * sizeof(int) * (avctx->width >> 2));
     l->clast = av_malloc(4 * sizeof(int) * (avctx->width >> 2));

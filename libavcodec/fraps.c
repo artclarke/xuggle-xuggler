@@ -67,7 +67,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
     s->avctx = avctx;
     s->tmpbuf = NULL;
 
-    dsputil_init(&s->dsp, avctx);
+    ff_dsputil_init(&s->dsp, avctx);
 
     return 0;
 }
@@ -114,13 +114,13 @@ static int fraps2_decode_plane(FrapsContext *s, uint8_t *dst, int stride, int w,
             if(j) dst[i] += dst[i - stride];
             else if(Uoff) dst[i] += 0x80;
             if (get_bits_left(&gb) < 0) {
-                free_vlc(&vlc);
+                ff_free_vlc(&vlc);
                 return AVERROR_INVALIDDATA;
             }
         }
         dst += stride;
     }
-    free_vlc(&vlc);
+    ff_free_vlc(&vlc);
     return 0;
 }
 
@@ -142,7 +142,7 @@ static int decode_frame(AVCodecContext *avctx,
     int i, j, is_chroma;
     const int planes = 3;
     uint8_t *out;
-
+    enum PixelFormat pix_fmt;
 
     header = AV_RL32(buf);
     version = header & 0xff;
@@ -156,8 +156,6 @@ static int decode_frame(AVCodecContext *avctx,
     }
 
     buf += header_size;
-
-    avctx->pix_fmt = version & 1 ? PIX_FMT_BGR24 : PIX_FMT_YUVJ420P;
 
     if (version < 2) {
         unsigned needed_size = avctx->width*avctx->height*3;
@@ -205,6 +203,13 @@ static int decode_frame(AVCodecContext *avctx,
     f->key_frame = 1;
     f->reference = 0;
     f->buffer_hints = FF_BUFFER_HINTS_VALID;
+
+    pix_fmt = version & 1 ? PIX_FMT_BGR24 : PIX_FMT_YUVJ420P;
+    if (avctx->pix_fmt != pix_fmt && f->data[0]) {
+        avctx->release_buffer(avctx, f);
+    }
+    avctx->pix_fmt = pix_fmt;
+
     if (ff_thread_get_buffer(avctx, f)) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return -1;

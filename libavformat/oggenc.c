@@ -131,6 +131,11 @@ static int ogg_write_page(AVFormatContext *s, OGGPage *page, int extra_flags)
     return 0;
 }
 
+static int ogg_key_granule(OGGStreamContext *oggstream, int64_t granule)
+{
+    return oggstream->kfgshift && !(granule & ((1<<oggstream->kfgshift)-1));
+}
+
 static int64_t ogg_granule_to_timestamp(OGGStreamContext *oggstream, int64_t granule)
 {
     if (oggstream->kfgshift)
@@ -190,7 +195,8 @@ static int ogg_buffer_page(AVFormatContext *s, OGGStreamContext *oggstream)
 }
 
 static int ogg_buffer_data(AVFormatContext *s, AVStream *st,
-                           uint8_t *data, unsigned size, int64_t granule)
+                           uint8_t *data, unsigned size, int64_t granule,
+                           int header)
 {
     OGGStreamContext *oggstream = st->priv_data;
     OGGContext *ogg = s->priv_data;
@@ -199,9 +205,15 @@ static int ogg_buffer_data(AVFormatContext *s, AVStream *st,
     int i, segments, len, flush = 0;
 
     // Handles VFR by flushing page because this frame needs to have a timestamp
+    // For theora, keyframes also need to have a timestamp to correctly mark
+    // them as such, otherwise seeking will not work correctly at the very
+    // least with old libogg versions.
+    // Do not try to flush header packets though, that will create broken files.
     if (st->codec->codec_id == CODEC_ID_THEORA &&
-        ogg_granule_to_timestamp(oggstream, granule) >
-        ogg_granule_to_timestamp(oggstream, oggstream->last_granule) + 1) {
+        !header &&
+        (ogg_granule_to_timestamp(oggstream, granule) >
+         ogg_granule_to_timestamp(oggstream, oggstream->last_granule) + 1 ||
+         ogg_key_granule(oggstream, granule))) {
         if (oggstream->page.granule != -1)
             ogg_buffer_page(s, oggstream);
         flush = 1;
@@ -408,10 +420,10 @@ static int ogg_write_header(AVFormatContext *s)
             p = ogg_write_vorbiscomment(7, st->codec->flags & CODEC_FLAG_BITEXACT,
                                         &oggstream->header_len[1], &s->metadata,
                                         framing_bit);
+            oggstream->header[1] = p;
             if (!p)
                 return AVERROR(ENOMEM);
 
-            oggstream->header[1] = p;
             bytestream_put_byte(&p, header_type);
             bytestream_put_buffer(&p, cstr, 6);
 
@@ -429,7 +441,7 @@ static int ogg_write_header(AVFormatContext *s)
     for (j = 0; j < s->nb_streams; j++) {
         OGGStreamContext *oggstream = s->streams[j]->priv_data;
         ogg_buffer_data(s, s->streams[j], oggstream->header[0],
-                        oggstream->header_len[0], 0);
+                        oggstream->header_len[0], 0, 1);
         oggstream->page.flags |= 2; // bos
         ogg_buffer_page(s, oggstream);
     }
@@ -439,7 +451,7 @@ static int ogg_write_header(AVFormatContext *s)
         for (i = 1; i < 3; i++) {
             if (oggstream && oggstream->header_len[i])
                 ogg_buffer_data(s, st, oggstream->header[i],
-                                oggstream->header_len[i], 0);
+                                oggstream->header_len[i], 0, 1);
         }
         ogg_buffer_page(s, oggstream);
     }
@@ -490,7 +502,7 @@ static int ogg_write_packet(AVFormatContext *s, AVPacket *pkt)
     } else
         granule = pkt->pts + pkt->duration;
 
-    ret = ogg_buffer_data(s, st, pkt->data, pkt->size, granule);
+    ret = ogg_buffer_data(s, st, pkt->data, pkt->size, granule, 0);
     if (ret < 0)
         return ret;
 
@@ -517,10 +529,8 @@ static int ogg_write_trailer(AVFormatContext *s)
         if (st->codec->codec_id == CODEC_ID_FLAC ||
             st->codec->codec_id == CODEC_ID_SPEEX) {
             av_freep(&oggstream->header[0]);
-            av_freep(&oggstream->header[1]);
         }
-        else
-            av_freep(&oggstream->header[1]);
+        av_freep(&oggstream->header[1]);
         av_freep(&st->priv_data);
     }
     return 0;

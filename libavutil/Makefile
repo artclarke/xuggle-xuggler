@@ -38,6 +38,7 @@ HEADERS = adler32.h                                                     \
           samplefmt.h                                                   \
           sha.h                                                         \
           timecode.h                                                    \
+          timestamp.h                                                   \
 
 BUILT_HEADERS = avconfig.h
 
@@ -82,12 +83,12 @@ OBJS-$(ARCH_X86) += x86/cpu.o
 
 
 TESTPROGS = adler32 aes avstring base64 cpu crc des eval file fifo lfg lls \
-            md5 opt pca parseutils rational sha tree
+            md5 opt pca parseutils random_seed rational sha tree
 TESTPROGS-$(HAVE_LZO1X_999_COMPRESS) += lzo
 
 TOOLS = ffeval
 
-DIRS = arm bfin sh4 x86
+DIRS = arm avr32 bfin mips ppc sh4 tomi x86
 
 ARCH_HEADERS = bswap.h intmath.h intreadwrite.h timer.h
 

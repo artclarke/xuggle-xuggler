@@ -167,7 +167,7 @@ static av_cold int ac3_decode_init(AVCodecContext *avctx)
     ff_mdct_init(&s->imdct_256, 8, 1, 1.0);
     ff_mdct_init(&s->imdct_512, 9, 1, 1.0);
     ff_kbd_window_init(s->window, 5.0, 256);
-    dsputil_init(&s->dsp, avctx);
+    ff_dsputil_init(&s->dsp, avctx);
     ff_ac3dsp_init(&s->ac3dsp, avctx->flags & CODEC_FLAG_BITEXACT);
     ff_fmt_convert_init(&s->fmt_conv, avctx);
     av_lfg_init(&s->dith_state, 0);
@@ -1378,7 +1378,7 @@ static int ac3_decode_frame(AVCodecContext * avctx, void *data,
                 avctx->request_channels < s->channels) {
             s->out_channels = avctx->request_channels;
             s->output_mode  = avctx->request_channels == 1 ? AC3_CHMODE_MONO : AC3_CHMODE_STEREO;
-            s->channel_layout = ff_ac3_channel_layout_tab[s->output_mode];
+            s->channel_layout = avpriv_ac3_channel_layout_tab[s->output_mode];
         }
         avctx->channels       = s->out_channels;
         avctx->channel_layout = s->channel_layout;

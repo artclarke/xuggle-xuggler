@@ -695,6 +695,10 @@ static int read_var_block_data(ALSDecContext *ctx, ALSBlockData *bd)
                     int rice_param = parcor_rice_table[sconf->coef_table][k][1];
                     int offset     = parcor_rice_table[sconf->coef_table][k][0];
                     quant_cof[k] = decode_rice(gb, rice_param) + offset;
+                    if (quant_cof[k] < -64 || quant_cof[k] > 63) {
+                        av_log(avctx, AV_LOG_ERROR, "quant_cof %d is out of range\n", quant_cof[k]);
+                        return AVERROR_INVALIDDATA;
+                    }
                 }
 
                 // read coefficients 20 to 126
@@ -1724,7 +1728,7 @@ static av_cold int decode_init(AVCodecContext *avctx)
         }
     }
 
-    dsputil_init(&ctx->dsp, avctx);
+    ff_dsputil_init(&ctx->dsp, avctx);
 
     avcodec_get_frame_defaults(&ctx->frame);
     avctx->coded_frame = &ctx->frame;

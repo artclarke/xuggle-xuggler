@@ -66,6 +66,7 @@ void av_register_rtp_dynamic_payload_handlers(void)
     ff_register_dynamic_payload_handler(&ff_amr_wb_dynamic_handler);
     ff_register_dynamic_payload_handler(&ff_h263_1998_dynamic_handler);
     ff_register_dynamic_payload_handler(&ff_h263_2000_dynamic_handler);
+    ff_register_dynamic_payload_handler(&ff_h263_rfc2190_dynamic_handler);
     ff_register_dynamic_payload_handler(&ff_h264_dynamic_handler);
     ff_register_dynamic_payload_handler(&ff_vorbis_dynamic_handler);
     ff_register_dynamic_payload_handler(&ff_theora_dynamic_handler);
@@ -694,7 +695,7 @@ static int rtp_parse_one_packet(RTPDemuxContext *s, AVPacket *pkt,
 
     if ((buf[0] & 0xc0) != (RTP_VERSION << 6))
         return -1;
-    if (buf[1] >= RTCP_SR && buf[1] <= RTCP_APP) {
+    if (RTP_PT_IS_RTCP(buf[1])) {
         return rtcp_parse_packet(s, buf, len);
     }
 
