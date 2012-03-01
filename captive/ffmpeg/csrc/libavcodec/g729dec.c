@@ -378,7 +378,7 @@ static av_cold int decoder_init(AVCodecContext * avctx)
     for(i=0; i<4; i++)
         ctx->quant_energy[i] = -14336; // -14 in (5.10)
 
-    dsputil_init(&ctx->dsp, avctx);
+    ff_dsputil_init(&ctx->dsp, avctx);
     ctx->dsp.scalarproduct_int16 = scalarproduct_int16_c;
 
     avcodec_get_frame_defaults(&ctx->frame);
@@ -420,7 +420,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *got_frame_ptr,
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return ret;
     }
-    out_frame= ctx->frame.data[0];
+    out_frame = (int16_t*) ctx->frame.data[0];
 
     if (buf_size == 10) {
         packet_type = FORMAT_G729_8K;

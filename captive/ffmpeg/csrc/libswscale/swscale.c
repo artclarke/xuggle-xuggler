@@ -334,7 +334,6 @@ static int swScale(SwsContext *c, const uint8_t* src[],
     int16_t *hChrFilter= c->hChrFilter;
     int32_t *lumMmxFilter= c->lumMmxFilter;
     int32_t *chrMmxFilter= c->chrMmxFilter;
-    int32_t av_unused *alpMmxFilter= c->alpMmxFilter;
     const int vLumFilterSize= c->vLumFilterSize;
     const int vChrFilterSize= c->vChrFilterSize;
     const int hLumFilterSize= c->hLumFilterSize;
@@ -434,12 +433,14 @@ static int swScale(SwsContext *c, const uint8_t* src[],
         };
         int use_mmx_vfilter= c->use_mmx_vfilter;
 
-        const int firstLumSrcY= vLumFilterPos[dstY]; //First line needed as input
-        const int firstLumSrcY2= vLumFilterPos[FFMIN(dstY | ((1<<c->chrDstVSubSample) - 1), dstH-1)];
-        const int firstChrSrcY= vChrFilterPos[chrDstY]; //First line needed as input
-        int lastLumSrcY= firstLumSrcY + vLumFilterSize -1; // Last line needed as input
-        int lastLumSrcY2=firstLumSrcY2+ vLumFilterSize -1; // Last line needed as input
-        int lastChrSrcY= firstChrSrcY + vChrFilterSize -1; // Last line needed as input
+        const int firstLumSrcY= FFMAX(1 - vLumFilterSize, vLumFilterPos[dstY]); //First line needed as input
+        const int firstLumSrcY2= FFMAX(1 - vLumFilterSize, vLumFilterPos[FFMIN(dstY | ((1<<c->chrDstVSubSample) - 1), dstH-1)]);
+        const int firstChrSrcY= FFMAX(1 - vChrFilterSize, vChrFilterPos[chrDstY]); //First line needed as input
+
+        // Last line needed as input
+        int lastLumSrcY  = FFMIN(c->srcH,    firstLumSrcY  + vLumFilterSize) - 1;
+        int lastLumSrcY2 = FFMIN(c->srcH,    firstLumSrcY2 + vLumFilterSize) - 1;
+        int lastChrSrcY  = FFMIN(c->chrSrcH, firstChrSrcY  + vChrFilterSize) - 1;
         int enough_lines;
 
         //handle holes (FAST_BILINEAR & weird filters)
@@ -539,7 +540,7 @@ static int swScale(SwsContext *c, const uint8_t* src[],
             int16_t *vLumFilter= c->vLumFilter;
             int16_t *vChrFilter= c->vChrFilter;
 
-            if (isPlanarYUV(dstFormat) || dstFormat==PIX_FMT_GRAY8) { //YV12 like
+            if (isPlanarYUV(dstFormat) || (isGray(dstFormat) && !isALPHA(dstFormat))) { //YV12 like
                 const int chrSkipMask= (1<<c->chrDstVSubSample)-1;
 
                 vLumFilter +=    dstY * vLumFilterSize;
@@ -594,8 +595,8 @@ static int swScale(SwsContext *c, const uint8_t* src[],
             } else {
                 assert(lumSrcPtr  + vLumFilterSize - 1 < lumPixBuf  + vLumBufSize*2);
                 assert(chrUSrcPtr + vChrFilterSize - 1 < chrUPixBuf + vChrBufSize*2);
-                if (c->yuv2packed1 && vLumFilterSize == 1 && vChrFilterSize == 2) { //unscaled RGB
-                    int chrAlpha = vChrFilter[2 * dstY + 1];
+                if (c->yuv2packed1 && vLumFilterSize == 1 && vChrFilterSize <= 2) { //unscaled RGB
+                    int chrAlpha = vChrFilterSize == 1 ? 0 : vChrFilter[2 * dstY + 1];
                     yuv2packed1(c, *lumSrcPtr, chrUSrcPtr, chrVSrcPtr,
                                 alpPixBuf ? *alpSrcPtr : NULL,
                                 dest[0], dstW, chrAlpha, dstY);

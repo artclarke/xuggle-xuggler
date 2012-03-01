@@ -30,7 +30,7 @@
 #include "libavutil/samplefmt.h"
 
 #define LIBSWRESAMPLE_VERSION_MAJOR 0
-#define LIBSWRESAMPLE_VERSION_MINOR 6
+#define LIBSWRESAMPLE_VERSION_MINOR 7
 #define LIBSWRESAMPLE_VERSION_MICRO 100
 
 #define LIBSWRESAMPLE_VERSION_INT  AV_VERSION_INT(LIBSWRESAMPLE_VERSION_MAJOR, \
@@ -106,7 +106,7 @@ void swr_free(struct SwrContext **s);
  * @param in        input buffers, only the first one need to be set in case of packed audio
  * @param in_count  number of input samples available in one channel
  *
- * @return number of samples output per channel
+ * @return number of samples output per channel, negative value on error
  */
 int swr_convert(struct SwrContext *s, uint8_t *out[SWR_CH_MAX], int out_count,
                                 const uint8_t *in [SWR_CH_MAX], int in_count);
@@ -125,6 +125,17 @@ int swr_set_compensation(struct SwrContext *s, int sample_delta, int compensatio
  * @return AVERROR error code in case of failure.
  */
 int swr_set_channel_mapping(struct SwrContext *s, const int *channel_map);
+
+/**
+ * Set a customized remix matrix.
+ *
+ * @param s       allocated Swr context, not yet initialized
+ * @param matrix  remix coefficients; matrix[i + stride * o] is
+ *                the weight of input channel i in output channel o
+ * @param stride  offset between lines of the matrix
+ * @return  AVERROR error code in case of failure.
+ */
+int swr_set_matrix(struct SwrContext *s, const double *matrix, int stride);
 
 /**
  * Return the LIBSWRESAMPLE_VERSION_INT constant.

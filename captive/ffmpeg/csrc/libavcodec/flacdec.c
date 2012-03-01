@@ -33,6 +33,7 @@
 
 #include <limits.h>
 
+#include "libavutil/audioconvert.h"
 #include "libavutil/crc.h"
 #include "avcodec.h"
 #include "internal.h"
@@ -61,6 +62,15 @@ typedef struct FLACContext {
 
     int32_t *decoded[FLAC_MAX_CHANNELS];    ///< decoded samples
 } FLACContext;
+
+static const int64_t flac_channel_layouts[6] = {
+    AV_CH_LAYOUT_MONO,
+    AV_CH_LAYOUT_STEREO,
+    AV_CH_LAYOUT_SURROUND,
+    AV_CH_LAYOUT_QUAD,
+    AV_CH_LAYOUT_5POINT0,
+    AV_CH_LAYOUT_5POINT1
+};
 
 static void allocate_buffers(FLACContext *s);
 
@@ -119,6 +129,9 @@ static av_cold int flac_decode_init(AVCodecContext *avctx)
 
     avcodec_get_frame_defaults(&s->frame);
     avctx->coded_frame = &s->frame;
+
+    if (avctx->channels <= FF_ARRAY_ELEMS(flac_channel_layouts))
+        avctx->channel_layout = flac_channel_layouts[avctx->channels - 1];
 
     return 0;
 }
@@ -288,7 +301,7 @@ static int decode_subframe_fixed(FLACContext *s, int channel, int pred_order)
 {
     const int blocksize = s->blocksize;
     int32_t *decoded = s->decoded[channel];
-    int av_uninit(a), av_uninit(b), av_uninit(c), av_uninit(d), i;
+    int a, b, c, d, i;
 
     /* warm up samples */
     for (i = 0; i < pred_order; i++) {
@@ -422,7 +435,16 @@ static inline int decode_subframe(FLACContext *s, int channel)
     type = get_bits(&s->gb, 6);
 
     if (get_bits1(&s->gb)) {
+        int left = get_bits_left(&s->gb);
         wasted = 1;
+        if ( left < 0 ||
+            (left < s->curr_bps && !show_bits_long(&s->gb, left)) ||
+                                   !show_bits_long(&s->gb, s->curr_bps)) {
+            av_log(s->avctx, AV_LOG_ERROR,
+                   "Invalid number of wasted bits > available bits (%d) - left=%d\n",
+                   s->curr_bps, left);
+            return AVERROR_INVALIDDATA;
+        }
         while (!get_bits1(&s->gb))
             wasted++;
         s->curr_bps -= wasted;

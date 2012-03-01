@@ -74,7 +74,7 @@ static av_cold int mpc7_decode_init(AVCodecContext * avctx)
     }
     memset(c->oldDSCF, 0, sizeof(c->oldDSCF));
     av_lfg_init(&c->rnd, 0xDEADBEEF);
-    dsputil_init(&c->dsp, avctx);
+    ff_dsputil_init(&c->dsp, avctx);
     ff_mpadsp_init(&c->mpadsp);
     c->dsp.bswap_buf((uint32_t*)buf, (const uint32_t*)avctx->extradata, 4);
     ff_mpc_init();
@@ -298,7 +298,7 @@ static int mpc7_decode_frame(AVCodecContext * avctx, void *data,
     bits_used = get_bits_count(&gb);
     bits_avail = buf_size * 8;
     if (!last_frame && ((bits_avail < bits_used) || (bits_used + 32 <= bits_avail))) {
-        av_log(NULL,0, "Error decoding frame: used %i of %i bits\n", bits_used, bits_avail);
+        av_log(avctx, AV_LOG_ERROR, "Error decoding frame: used %i of %i bits\n", bits_used, bits_avail);
         return -1;
     }
     if(c->frames_to_skip){

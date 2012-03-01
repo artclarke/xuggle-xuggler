@@ -20,37 +20,24 @@
  */
 
 #include "avcodec.h"
+#include "internal.h"
 #include "pnm.h"
 
 
-static int pam_encode_frame(AVCodecContext *avctx, unsigned char *outbuf,
-                            int buf_size, void *data)
+static int pam_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
+                            const AVFrame *pict, int *got_packet)
 {
     PNMContext *s     = avctx->priv_data;
-    AVFrame *pict     = data;
     AVFrame * const p = (AVFrame*)&s->picture;
-    int i, h, w, n, linesize, depth, maxval;
+    int i, h, w, n, linesize, depth, maxval, ret;
     const char *tuple_type;
     uint8_t *ptr;
-
-    if (buf_size < avpicture_get_size(avctx->pix_fmt, avctx->width, avctx->height) + 200) {
-        av_log(avctx, AV_LOG_ERROR, "encoded frame too large\n");
-        return -1;
-    }
-
-    *p           = *pict;
-    p->pict_type = AV_PICTURE_TYPE_I;
-    p->key_frame = 1;
-
-    s->bytestream_start =
-    s->bytestream       = outbuf;
-    s->bytestream_end   = outbuf+buf_size;
 
     h = avctx->height;
     w = avctx->width;
     switch (avctx->pix_fmt) {
     case PIX_FMT_MONOBLACK:
-        n          = (w + 7) >> 3;
+        n          = w;
         depth      = 1;
         maxval     = 1;
         tuple_type = "BLACKANDWHITE";
@@ -100,6 +87,20 @@ static int pam_encode_frame(AVCodecContext *avctx, unsigned char *outbuf,
     default:
         return -1;
     }
+
+    if ((ret = ff_alloc_packet(pkt, n*h + 200)) < 0) {
+        av_log(avctx, AV_LOG_ERROR, "encoded frame too large\n");
+        return ret;
+    }
+
+    *p           = *pict;
+    p->pict_type = AV_PICTURE_TYPE_I;
+    p->key_frame = 1;
+
+    s->bytestream_start =
+    s->bytestream       = pkt->data;
+    s->bytestream_end   = pkt->data + pkt->size;
+
     snprintf(s->bytestream, s->bytestream_end - s->bytestream,
              "P7\nWIDTH %d\nHEIGHT %d\nDEPTH %d\nMAXVAL %d\nTUPLTYPE %s\nENDHDR\n",
              w, h, depth, maxval, tuple_type);
@@ -122,7 +123,11 @@ static int pam_encode_frame(AVCodecContext *avctx, unsigned char *outbuf,
             ptr           += linesize;
         }
     }
-    return s->bytestream - s->bytestream_start;
+
+    pkt->size   = s->bytestream - s->bytestream_start;
+    pkt->flags |= AV_PKT_FLAG_KEY;
+    *got_packet = 1;
+    return 0;
 }
 
 
@@ -132,7 +137,7 @@ AVCodec ff_pam_encoder = {
     .id             = CODEC_ID_PAM,
     .priv_data_size = sizeof(PNMContext),
     .init           = ff_pnm_init,
-    .encode         = pam_encode_frame,
+    .encode2        = pam_encode_frame,
     .pix_fmts  = (const enum PixelFormat[]){PIX_FMT_RGB24, PIX_FMT_RGBA, PIX_FMT_RGB48BE, PIX_FMT_RGBA64BE, PIX_FMT_GRAY8, PIX_FMT_GRAY8A, PIX_FMT_GRAY16BE, PIX_FMT_MONOBLACK, PIX_FMT_NONE},
     .long_name = NULL_IF_CONFIG_SMALL("PAM (Portable AnyMap) image"),
 };

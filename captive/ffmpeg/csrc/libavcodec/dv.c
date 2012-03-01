@@ -42,9 +42,11 @@
 #include "avcodec.h"
 #include "dsputil.h"
 #include "get_bits.h"
+#include "internal.h"
 #include "put_bits.h"
 #include "simple_idct.h"
 #include "dvdata.h"
+#include "dvquant.h"
 #include "dv_tablegen.h"
 
 //#undef NDEBUG
@@ -312,13 +314,13 @@ static av_cold int dvvideo_init(AVCodecContext *avctx)
             dv_rl_vlc[i].level = level;
             dv_rl_vlc[i].run   = run;
         }
-        free_vlc(&dv_vlc);
+        ff_free_vlc(&dv_vlc);
 
         dv_vlc_map_tableinit();
     }
 
     /* Generic DSP setup */
-    dsputil_init(&dsp, avctx);
+    ff_dsputil_init(&dsp, avctx);
     ff_set_cmp(&dsp, dsp.ildct_cmp, avctx->ildct_cmp);
     s->get_pixels = dsp.get_pixels;
     s->ildct_cmp = dsp.ildct_cmp[5];
@@ -1190,6 +1192,41 @@ static inline int dv_write_pack(enum dv_pack_type pack_id, DVVideoContext *c,
 }
 
 #if CONFIG_DVVIDEO_ENCODER
+static inline int dv_write_dif_id(enum dv_section_type t, uint8_t chan_num,
+                                  uint8_t seq_num, uint8_t dif_num,
+                                  uint8_t* buf)
+{
+    buf[0] = (uint8_t)t;       /* Section type */
+    buf[1] = (seq_num  << 4) | /* DIF seq number 0-9 for 525/60; 0-11 for 625/50 */
+             (chan_num << 3) | /* FSC: for 50Mb/s 0 - first channel; 1 - second */
+             7;                /* reserved -- always 1 */
+    buf[2] = dif_num;          /* DIF block number Video: 0-134, Audio: 0-8 */
+    return 3;
+}
+
+
+static inline int dv_write_ssyb_id(uint8_t syb_num, uint8_t fr, uint8_t* buf)
+{
+    if (syb_num == 0 || syb_num == 6) {
+        buf[0] = (fr << 7) | /* FR ID 1 - first half of each channel; 0 - second */
+                 (0  << 4) | /* AP3 (Subcode application ID) */
+                 0x0f;       /* reserved -- always 1 */
+    }
+    else if (syb_num == 11) {
+        buf[0] = (fr << 7) | /* FR ID 1 - first half of each channel; 0 - second */
+                 0x7f;       /* reserved -- always 1 */
+    }
+    else {
+        buf[0] = (fr << 7) | /* FR ID 1 - first half of each channel; 0 - second */
+                 (0  << 4) | /* APT (Track application ID) */
+                 0x0f;       /* reserved -- always 1 */
+    }
+    buf[1] = 0xf0 |            /* reserved -- always 1 */
+             (syb_num & 0x0f); /* SSYB number 0 - 11   */
+    buf[2] = 0xff;             /* reserved -- always 1 */
+    return 3;
+}
+
 static void dv_format_frame(DVVideoContext* c, uint8_t* buf)
 {
     int chan, i, j, k;
@@ -1240,29 +1277,37 @@ static void dv_format_frame(DVVideoContext* c, uint8_t* buf)
 }
 
 
-static int dvvideo_encode_frame(AVCodecContext *c, uint8_t *buf, int buf_size,
-                                void *data)
+static int dvvideo_encode_frame(AVCodecContext *c, AVPacket *pkt,
+                                const AVFrame *frame, int *got_packet)
 {
     DVVideoContext *s = c->priv_data;
+    int ret;
 
     s->sys = avpriv_dv_codec_profile(c);
-    if (!s->sys || buf_size < s->sys->frame_size || dv_init_dynamic_tables(s->sys))
+    if (!s->sys || dv_init_dynamic_tables(s->sys))
         return -1;
+    if ((ret = ff_alloc_packet(pkt, s->sys->frame_size)) < 0) {
+        av_log(c, AV_LOG_ERROR, "Error getting output packet.\n");
+        return ret;
+    }
 
     c->pix_fmt           = s->sys->pix_fmt;
-    s->picture           = *((AVFrame *)data);
+    s->picture           = *frame;
     s->picture.key_frame = 1;
     s->picture.pict_type = AV_PICTURE_TYPE_I;
 
-    s->buf = buf;
+    s->buf = pkt->data;
     c->execute(c, dv_encode_video_segment, s->sys->work_chunks, NULL,
                dv_work_pool_size(s->sys), sizeof(DVwork_chunk));
 
     emms_c();
 
-    dv_format_frame(s, buf);
+    dv_format_frame(s, pkt->data);
 
-    return s->sys->frame_size;
+    pkt->flags |= AV_PKT_FLAG_KEY;
+    *got_packet = 1;
+
+    return 0;
 }
 #endif
 
@@ -1284,7 +1329,7 @@ AVCodec ff_dvvideo_encoder = {
     .id             = CODEC_ID_DVVIDEO,
     .priv_data_size = sizeof(DVVideoContext),
     .init           = dvvideo_init_encoder,
-    .encode         = dvvideo_encode_frame,
+    .encode2        = dvvideo_encode_frame,
     .capabilities = CODEC_CAP_SLICE_THREADS,
     .pix_fmts  = (const enum PixelFormat[]) {PIX_FMT_YUV411P, PIX_FMT_YUV422P, PIX_FMT_YUV420P, PIX_FMT_NONE},
     .long_name = NULL_IF_CONFIG_SMALL("DV (Digital Video)"),

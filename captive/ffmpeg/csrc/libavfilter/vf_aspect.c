@@ -35,6 +35,7 @@ static av_cold int init(AVFilterContext *ctx, const char *args, void *opaque)
 {
     AspectContext *aspect = ctx->priv;
     int ret;
+    aspect->ratio = (AVRational) {0, 1};
 
     if (args) {
         if ((ret = av_parse_ratio(&aspect->ratio, args, 100, 0, ctx)) < 0 ||
@@ -43,9 +44,9 @@ static av_cold int init(AVFilterContext *ctx, const char *args, void *opaque)
                    "Invalid string '%s' for aspect ratio.\n", args);
             return ret;
         }
-
-        av_log(ctx, AV_LOG_INFO, "a:%d/%d\n", aspect->ratio.num, aspect->ratio.den);
     }
+
+    av_log(ctx, AV_LOG_INFO, "a:%d/%d\n", aspect->ratio.num, aspect->ratio.den);
     return 0;
 }
 
@@ -58,7 +59,6 @@ static void start_frame(AVFilterLink *link, AVFilterBufferRef *picref)
 }
 
 #if CONFIG_SETDAR_FILTER
-/* for setdar filter, convert from frame aspect ratio to pixel aspect ratio */
 static int setdar_config_props(AVFilterLink *inlink)
 {
     AspectContext *aspect = inlink->dst->priv;
@@ -99,7 +99,6 @@ AVFilter avfilter_vf_setdar = {
 #endif /* CONFIG_SETDAR_FILTER */
 
 #if CONFIG_SETSAR_FILTER
-/* for setdar filter, convert from frame aspect ratio to pixel aspect ratio */
 static int setsar_config_props(AVFilterLink *inlink)
 {
     AspectContext *aspect = inlink->dst->priv;

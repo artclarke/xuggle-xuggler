@@ -386,7 +386,7 @@ cglobal deblock_h_luma_8_%1, 5,7
 
 INIT_XMM
 DEBLOCK_LUMA sse2
-%ifdef HAVE_AVX
+%if HAVE_AVX
 INIT_AVX
 DEBLOCK_LUMA avx
 %endif
@@ -507,7 +507,7 @@ INIT_MMX
 DEBLOCK_LUMA mmxext, v8, 8
 INIT_XMM
 DEBLOCK_LUMA sse2, v, 16
-%ifdef HAVE_AVX
+%if HAVE_AVX
 INIT_AVX
 DEBLOCK_LUMA avx, v, 16
 %endif
@@ -781,7 +781,7 @@ cglobal deblock_h_luma_intra_8_%1, 2,4
 
 INIT_XMM
 DEBLOCK_LUMA_INTRA sse2, v
-%ifdef HAVE_AVX
+%if HAVE_AVX
 INIT_AVX
 DEBLOCK_LUMA_INTRA avx , v
 %endif
@@ -830,9 +830,13 @@ cglobal deblock_v_chroma_8_mmxext, 5,6
 ; void ff_deblock_h_chroma( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
 cglobal deblock_h_chroma_8_mmxext, 5,7
-%if ARCH_X86_64
+%if UNIX64
     %define buf0 [rsp-24]
     %define buf1 [rsp-16]
+%elif WIN64
+    sub   rsp, 16
+    %define buf0 [rsp]
+    %define buf1 [rsp+8]
 %else
     %define buf0 r0m
     %define buf1 r2m
@@ -841,10 +845,17 @@ cglobal deblock_h_chroma_8_mmxext, 5,7
     TRANSPOSE4x8_LOAD  bw, wd, dq, PASS8ROWS(t5, r0, r1, t6)
     movq  buf0, m0
     movq  buf1, m3
-    call ff_chroma_inter_body_mmxext
+    LOAD_MASK  r2d, r3d
+    movd       m6, [r4] ; tc0
+    punpcklbw  m6, m6
+    pand       m7, m6
+    DEBLOCK_P0_Q0
     movq  m0, buf0
     movq  m3, buf1
     TRANSPOSE8x4B_STORE PASS8ROWS(t5, r0, r1, t6)
+%if WIN64
+    add   rsp, 16
+%endif
     RET
 
 ALIGN 16

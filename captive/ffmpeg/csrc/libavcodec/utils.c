@@ -115,7 +115,7 @@ static void avcodec_init(void)
         return;
     initialized = 1;
 
-    dsputil_static_init();
+    ff_dsputil_static_init();
 }
 
 static av_always_inline int codec_is_encoder(AVCodec *codec)
@@ -178,6 +178,7 @@ void avcodec_align_dimensions2(AVCodecContext *s, int *width, int *height,
     case PIX_FMT_YUVJ440P:
     case PIX_FMT_YUVJ444P:
     case PIX_FMT_YUVA420P:
+    case PIX_FMT_YUVA444P:
     case PIX_FMT_YUV420P9LE:
     case PIX_FMT_YUV420P9BE:
     case PIX_FMT_YUV420P10LE:
@@ -244,18 +245,6 @@ void avcodec_align_dimensions2(AVCodecContext *s, int *width, int *height,
 
     for (i = 0; i < 4; i++)
         linesize_align[i] = STRIDE_ALIGN;
-//STRIDE_ALIGN is 8 for SSE* but this does not work for SVQ1 chroma planes
-//we could change STRIDE_ALIGN to 16 for x86/sse but it would increase the
-//picture size unneccessarily in some cases. The solution here is not
-//pretty and better ideas are welcome!
-#if HAVE_MMX
-    if(s->codec_id == CODEC_ID_SVQ1 || s->codec_id == CODEC_ID_VP5 ||
-       s->codec_id == CODEC_ID_VP6 || s->codec_id == CODEC_ID_VP6F ||
-       s->codec_id == CODEC_ID_VP6A || s->codec_id == CODEC_ID_DIRAC) {
-        for (i = 0; i < 4; i++)
-            linesize_align[i] = 16;
-    }
-#endif
 }
 
 void avcodec_align_dimensions(AVCodecContext *s, int *width, int *height){
@@ -425,7 +414,7 @@ static int video_get_buffer(AVCodecContext *s, AVFrame *pic)
         return -1;
     }
 
-    if(av_image_check_size(w, h, 0, s))
+    if(av_image_check_size(w, h, 0, s) || s->pix_fmt<0)
         return -1;
 
     if (!avci->buffer) {
@@ -614,6 +603,8 @@ int avcodec_default_reget_buffer(AVCodecContext *s, AVFrame *pic){
         return s->get_buffer(s, pic);
     }
 
+    assert(s->pix_fmt == pic->format);
+
     /* If internal buffer type return the same buffer */
     if(pic->type == FF_BUFFER_TYPE_INTERNAL) {
         return 0;
@@ -686,6 +677,29 @@ static void avcodec_get_subtitle_defaults(AVSubtitle *sub)
 {
     memset(sub, 0, sizeof(*sub));
     sub->pts = AV_NOPTS_VALUE;
+}
+
+static int get_bit_rate(AVCodecContext *ctx)
+{
+    int bit_rate;
+    int bits_per_sample;
+
+    switch(ctx->codec_type) {
+    case AVMEDIA_TYPE_VIDEO:
+    case AVMEDIA_TYPE_DATA:
+    case AVMEDIA_TYPE_SUBTITLE:
+    case AVMEDIA_TYPE_ATTACHMENT:
+        bit_rate = ctx->bit_rate;
+        break;
+    case AVMEDIA_TYPE_AUDIO:
+        bits_per_sample = av_get_bits_per_sample(ctx->codec_id);
+        bit_rate = bits_per_sample ? ctx->sample_rate * ctx->channels * bits_per_sample : ctx->bit_rate;
+        break;
+    default:
+        bit_rate = 0;
+        break;
+    }
+    return bit_rate;
 }
 
 #if FF_API_AVCODEC_OPEN
@@ -843,6 +857,16 @@ int attribute_align_arg avcodec_open2(AVCodecContext *avctx, AVCodec *codec, AVD
                 goto free_and_end;
             }
         }
+        if (avctx->codec->pix_fmts) {
+            for (i = 0; avctx->codec->pix_fmts[i] != PIX_FMT_NONE; i++)
+                if (avctx->pix_fmt == avctx->codec->pix_fmts[i])
+                    break;
+            if (avctx->codec->pix_fmts[i] == PIX_FMT_NONE) {
+                av_log(avctx, AV_LOG_ERROR, "Specified pix_fmt is not supported\n");
+                ret = AVERROR(EINVAL);
+                goto free_and_end;
+            }
+        }
         if (avctx->codec->supported_samplerates) {
             for (i = 0; avctx->codec->supported_samplerates[i] != 0; i++)
                 if (avctx->sample_rate == avctx->codec->supported_samplerates[i])
@@ -889,6 +913,9 @@ int attribute_align_arg avcodec_open2(AVCodecContext *avctx, AVCodec *codec, AVD
             goto free_and_end;
         }
     }
+
+    if (codec_is_decoder(avctx->codec) && !avctx->bit_rate)
+        avctx->bit_rate = get_bit_rate(avctx);
 
     ret=0;
 end:
@@ -942,6 +969,8 @@ int attribute_align_arg avcodec_encode_audio2(AVCodecContext *avctx,
     int user_packet = !!avpkt->data;
     int nb_samples;
 
+    *got_packet_ptr = 0;
+
     if (!(avctx->codec->capabilities & CODEC_CAP_DELAY) && !frame) {
         av_init_packet(avpkt);
         avpkt->size = 0;
@@ -963,14 +992,18 @@ int attribute_align_arg avcodec_encode_audio2(AVCodecContext *avctx,
     }
 
     if (avctx->codec->encode2) {
-        *got_packet_ptr = 0;
         ret = avctx->codec->encode2(avctx, avpkt, frame, got_packet_ptr);
-        if (!ret && *got_packet_ptr &&
-            !(avctx->codec->capabilities & CODEC_CAP_DELAY)) {
-            avpkt->pts = frame->pts;
-            avpkt->duration = av_rescale_q(frame->nb_samples,
-                                           (AVRational){ 1, avctx->sample_rate },
-                                           avctx->time_base);
+        if (!ret && *got_packet_ptr) {
+            if (!(avctx->codec->capabilities & CODEC_CAP_DELAY)) {
+                if (avpkt->pts == AV_NOPTS_VALUE)
+                    avpkt->pts = frame->pts;
+                if (!avpkt->duration)
+                    avpkt->duration = ff_samples_to_time_base(avctx,
+                                                              frame->nb_samples);
+            }
+            avpkt->dts = avpkt->pts;
+        } else {
+            avpkt->size = 0;
         }
     } else {
         /* for compatibility with encoders not supporting encode2(), we need to
@@ -1019,14 +1052,13 @@ int attribute_align_arg avcodec_encode_audio2(AVCodecContext *avctx,
                     av_freep(&avpkt->data);
             } else {
                 if (avctx->coded_frame)
-                    avpkt->pts = avctx->coded_frame->pts;
+                    avpkt->pts = avpkt->dts = avctx->coded_frame->pts;
                 /* Set duration for final small packet. This can be removed
                    once all encoders supporting CODEC_CAP_SMALL_LAST_FRAME use
                    encode2() */
                 if (fs_tmp) {
-                    avpkt->duration = av_rescale_q(avctx->frame_size,
-                                                   (AVRational){ 1, avctx->sample_rate },
-                                                   avctx->time_base);
+                    avpkt->duration = ff_samples_to_time_base(avctx,
+                                                              avctx->frame_size);
                 }
             }
             avpkt->size = ret;
@@ -1099,9 +1131,8 @@ int attribute_align_arg avcodec_encode_audio(AVCodecContext *avctx,
            this is needed because the avcodec_encode_audio() API does not have
            a way for the user to provide pts */
         if(avctx->sample_rate && avctx->time_base.num)
-            frame->pts = av_rescale_q(avctx->internal->sample_count,
-                                  (AVRational){ 1, avctx->sample_rate },
-                                  avctx->time_base);
+            frame->pts = ff_samples_to_time_base(avctx,
+                                                avctx->internal->sample_count);
         else
             frame->pts = AV_NOPTS_VALUE;
         avctx->internal->sample_count += frame->nb_samples;
@@ -1125,23 +1156,81 @@ int attribute_align_arg avcodec_encode_audio(AVCodecContext *avctx,
 }
 #endif
 
+#if FF_API_OLD_ENCODE_VIDEO
 int attribute_align_arg avcodec_encode_video(AVCodecContext *avctx, uint8_t *buf, int buf_size,
                          const AVFrame *pict)
 {
+    AVPacket pkt;
+    int ret, got_packet = 0;
+
     if(buf_size < FF_MIN_BUFFER_SIZE){
         av_log(avctx, AV_LOG_ERROR, "buffer smaller than minimum size\n");
         return -1;
     }
-    if(av_image_check_size(avctx->width, avctx->height, 0, avctx))
-        return -1;
-    if((avctx->codec->capabilities & CODEC_CAP_DELAY) || pict){
-        int ret = avctx->codec->encode(avctx, buf, buf_size, pict);
-        avctx->frame_number++;
-        emms_c(); //needed to avoid an emms_c() call before every return;
 
-        return ret;
-    }else
+    av_init_packet(&pkt);
+    pkt.data = buf;
+    pkt.size = buf_size;
+
+    ret = avcodec_encode_video2(avctx, &pkt, pict, &got_packet);
+    if (!ret && got_packet && avctx->coded_frame) {
+        avctx->coded_frame->pts       = pkt.pts;
+        avctx->coded_frame->key_frame = !!(pkt.flags & AV_PKT_FLAG_KEY);
+    }
+
+    /* free any side data since we cannot return it */
+    if (pkt.side_data_elems > 0) {
+        int i;
+        for (i = 0; i < pkt.side_data_elems; i++)
+            av_free(pkt.side_data[i].data);
+        av_freep(&pkt.side_data);
+        pkt.side_data_elems = 0;
+    }
+
+    return ret ? ret : pkt.size;
+}
+#endif
+
+int attribute_align_arg avcodec_encode_video2(AVCodecContext *avctx,
+                                              AVPacket *avpkt,
+                                              const AVFrame *frame,
+                                              int *got_packet_ptr)
+{
+    int ret;
+    int user_packet = !!avpkt->data;
+    void *new_data;
+
+    *got_packet_ptr = 0;
+
+    if (!(avctx->codec->capabilities & CODEC_CAP_DELAY) && !frame) {
+        av_init_packet(avpkt);
+        avpkt->size     = 0;
         return 0;
+    }
+
+    if (av_image_check_size(avctx->width, avctx->height, 0, avctx))
+        return AVERROR(EINVAL);
+
+    av_assert0(avctx->codec->encode2);
+
+    ret = avctx->codec->encode2(avctx, avpkt, frame, got_packet_ptr);
+    if (!ret) {
+        if (!*got_packet_ptr)
+            avpkt->size = 0;
+        else if (!(avctx->codec->capabilities & CODEC_CAP_DELAY))
+            avpkt->pts = avpkt->dts = frame->pts;
+        if (avpkt->data && avpkt->destruct == av_destruct_packet) {
+            new_data = av_realloc(avpkt->data,
+                                  avpkt->size + FF_INPUT_BUFFER_PADDING_SIZE);
+            if (new_data)
+                avpkt->data = new_data;
+        }
+
+        avctx->frame_number++;
+    }
+
+    emms_c();
+    return ret;
 }
 
 int avcodec_encode_subtitle(AVCodecContext *avctx, uint8_t *buf, int buf_size,
@@ -1515,29 +1604,6 @@ AVCodec *avcodec_find_decoder_by_name(const char *name)
     return NULL;
 }
 
-static int get_bit_rate(AVCodecContext *ctx)
-{
-    int bit_rate;
-    int bits_per_sample;
-
-    switch(ctx->codec_type) {
-    case AVMEDIA_TYPE_VIDEO:
-    case AVMEDIA_TYPE_DATA:
-    case AVMEDIA_TYPE_SUBTITLE:
-    case AVMEDIA_TYPE_ATTACHMENT:
-        bit_rate = ctx->bit_rate;
-        break;
-    case AVMEDIA_TYPE_AUDIO:
-        bits_per_sample = av_get_bits_per_sample(ctx->codec_id);
-        bit_rate = bits_per_sample ? ctx->sample_rate * ctx->channels * bits_per_sample : ctx->bit_rate;
-        break;
-    default:
-        bit_rate = 0;
-        break;
-    }
-    return bit_rate;
-}
-
 const char *avcodec_get_name(enum CodecID id)
 {
     AVCodec *codec;
@@ -1811,6 +1877,27 @@ int av_get_bits_per_sample(enum CodecID codec_id){
     default:
         return 0;
     }
+}
+
+enum CodecID av_get_pcm_codec(enum AVSampleFormat fmt, int be)
+{
+    static const enum CodecID map[AV_SAMPLE_FMT_NB][2] = {
+        [AV_SAMPLE_FMT_U8  ] = { CODEC_ID_PCM_U8,    CODEC_ID_PCM_U8    },
+        [AV_SAMPLE_FMT_S16 ] = { CODEC_ID_PCM_S16LE, CODEC_ID_PCM_S16BE },
+        [AV_SAMPLE_FMT_S32 ] = { CODEC_ID_PCM_S32LE, CODEC_ID_PCM_S32BE },
+        [AV_SAMPLE_FMT_FLT ] = { CODEC_ID_PCM_F32LE, CODEC_ID_PCM_F32BE },
+        [AV_SAMPLE_FMT_DBL ] = { CODEC_ID_PCM_F64LE, CODEC_ID_PCM_F64BE },
+        [AV_SAMPLE_FMT_U8P ] = { CODEC_ID_PCM_U8,    CODEC_ID_PCM_U8    },
+        [AV_SAMPLE_FMT_S16P] = { CODEC_ID_PCM_S16LE, CODEC_ID_PCM_S16BE },
+        [AV_SAMPLE_FMT_S32P] = { CODEC_ID_PCM_S32LE, CODEC_ID_PCM_S32BE },
+        [AV_SAMPLE_FMT_FLTP] = { CODEC_ID_PCM_F32LE, CODEC_ID_PCM_F32BE },
+        [AV_SAMPLE_FMT_DBLP] = { CODEC_ID_PCM_F64LE, CODEC_ID_PCM_F64BE },
+    };
+    if (fmt < 0 || fmt >= AV_SAMPLE_FMT_NB)
+        return CODEC_ID_NONE;
+    if (be < 0 || be > 1)
+        be = AV_NE(1, 0);
+    return map[fmt][be];
 }
 
 #if !HAVE_THREADS

@@ -386,14 +386,14 @@ static attribute_align_arg void *frame_worker_thread(void *arg)
 
         if (p->state == STATE_SETTING_UP) ff_thread_finish_setup(avctx);
 
-        p->state = STATE_INPUT_READY;
-
         pthread_mutex_lock(&p->progress_mutex);
         for (i = 0; i < MAX_BUFFERS; i++)
-            if (p->progress_used[i]) {
+            if (p->progress_used[i] && (p->got_frame || p->result<0 || avctx->codec_id != CODEC_ID_H264)) {
                 p->progress[i][0] = INT_MAX;
                 p->progress[i][1] = INT_MAX;
             }
+        p->state = STATE_INPUT_READY;
+
         pthread_cond_broadcast(&p->progress_cond);
         pthread_cond_signal(&p->output_cond);
         pthread_mutex_unlock(&p->progress_mutex);
@@ -480,7 +480,7 @@ static int update_context_from_user(AVCodecContext *dst, AVCodecContext *src)
     dst->slice_flags = src->slice_flags;
     dst->flags2      = src->flags2;
 
-    copy_fields(skip_loop_filter, bidir_refine);
+    copy_fields(skip_loop_filter, subtitle_header);
 
     dst->frame_number     = src->frame_number;
     dst->reordered_opaque = src->reordered_opaque;

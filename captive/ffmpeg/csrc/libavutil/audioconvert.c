@@ -48,6 +48,10 @@ static const char * const channel_names[] = {
     [17] = "TBR",       /* top back right */
     [29] = "DL",        /* downmix left */
     [30] = "DR",        /* downmix right */
+    [31] = "WL",        /* wide left */
+    [32] = "WR",        /* wide right */
+    [33] = "SDL",       /* surround direct left */
+    [34] = "SDR",       /* surround direct right */
 };
 
 static const char *get_channel_name(int channel_id)
@@ -65,16 +69,32 @@ static const struct {
     { "mono",        1,  AV_CH_LAYOUT_MONO },
     { "stereo",      2,  AV_CH_LAYOUT_STEREO },
     { "2.1",         3,  AV_CH_LAYOUT_2POINT1 },
+    { "3.0",         3,  AV_CH_LAYOUT_SURROUND },
+    { "3.0(back)",   3,  AV_CH_LAYOUT_2_1 },
     { "4.0",         4,  AV_CH_LAYOUT_4POINT0 },
     { "quad",        4,  AV_CH_LAYOUT_QUAD },
+    { "quad(side)",  4,  AV_CH_LAYOUT_2_2 },
+    { "3.1",         4,  AV_CH_LAYOUT_3POINT1 },
     { "5.0",         5,  AV_CH_LAYOUT_5POINT0_BACK },
     { "5.0(side)",   5,  AV_CH_LAYOUT_5POINT0 },
+    { "4.1",         5,  AV_CH_LAYOUT_4POINT1 },
     { "5.1",         6,  AV_CH_LAYOUT_5POINT1_BACK },
     { "5.1(side)",   6,  AV_CH_LAYOUT_5POINT1 },
+//     { "5.1+downmix", 8,  AV_CH_LAYOUT_5POINT1|AV_CH_LAYOUT_STEREO_DOWNMIX, },
+    { "6.0",         6,  AV_CH_LAYOUT_6POINT0 },
+    { "6.0(front)",  6,  AV_CH_LAYOUT_6POINT0_FRONT },
+    { "hexagonal",   6,  AV_CH_LAYOUT_HEXAGONAL },
+    { "6.1",         7,  AV_CH_LAYOUT_6POINT1 },
+    { "6.1",         7,  AV_CH_LAYOUT_6POINT1_BACK },
+    { "6.1(front)",  7,  AV_CH_LAYOUT_6POINT1_FRONT },
+//     { "6.1+downmix", 9,  AV_CH_LAYOUT_6POINT1|AV_CH_LAYOUT_STEREO_DOWNMIX, },
+    { "7.0",         7,  AV_CH_LAYOUT_7POINT0 },
+    { "7.0(front)",  7,  AV_CH_LAYOUT_7POINT0_FRONT },
     { "7.1",         8,  AV_CH_LAYOUT_7POINT1 },
     { "7.1(wide)",   8,  AV_CH_LAYOUT_7POINT1_WIDE },
+//     { "7.1+downmix", 10, AV_CH_LAYOUT_7POINT1|AV_CH_LAYOUT_STEREO_DOWNMIX, },
+    { "octagonal",   8,  AV_CH_LAYOUT_OCTAGONAL },
     { "downmix",     2,  AV_CH_LAYOUT_STEREO_DOWNMIX, },
-    { 0 }
 };
 
 static uint64_t get_channel_layout_single(const char *name, int name_len)
@@ -83,7 +103,7 @@ static uint64_t get_channel_layout_single(const char *name, int name_len)
     char *end;
     int64_t layout;
 
-    for (i = 0; i < FF_ARRAY_ELEMS(channel_layout_map) - 1; i++) {
+    for (i = 0; i < FF_ARRAY_ELEMS(channel_layout_map); i++) {
         if (strlen(channel_layout_map[i].name) == name_len &&
             !memcmp(channel_layout_map[i].name, name, name_len))
             return channel_layout_map[i].layout;
@@ -127,7 +147,7 @@ void av_get_channel_layout_string(char *buf, int buf_size,
     if (nb_channels <= 0)
         nb_channels = av_get_channel_layout_nb_channels(channel_layout);
 
-    for (i = 0; channel_layout_map[i].name; i++)
+    for (i = 0; i < FF_ARRAY_ELEMS(channel_layout_map); i++)
         if (nb_channels    == channel_layout_map[i].nb_channels &&
             channel_layout == channel_layout_map[i].layout) {
             av_strlcpy(buf, channel_layout_map[i].name, buf_size);
@@ -164,7 +184,7 @@ int av_get_channel_layout_nb_channels(uint64_t channel_layout)
 
 int64_t av_get_default_channel_layout(int nb_channels) {
     int i;
-    for (i = 0; channel_layout_map[i].name; i++)
+    for (i = 0; i < FF_ARRAY_ELEMS(channel_layout_map); i++)
         if (nb_channels == channel_layout_map[i].nb_channels)
             return channel_layout_map[i].layout;
     return 0;

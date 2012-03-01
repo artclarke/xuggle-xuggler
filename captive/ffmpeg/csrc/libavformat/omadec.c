@@ -234,7 +234,7 @@ static int decrypt_init(AVFormatContext *s, ID3v2ExtraMeta *em, uint8_t *header)
         rprobe(s, gdata, oc->r_val) < 0 &&
         nprobe(s, gdata, geob->datasize, oc->n_val) < 0) {
         int i;
-        for (i = 0; i < sizeof(leaf_table); i += 2) {
+        for (i = 0; i < FF_ARRAY_ELEMS(leaf_table); i += 2) {
             uint8_t buf[16];
             AV_WL64(buf, leaf_table[i]);
             AV_WL64(&buf[8], leaf_table[i+1]);
@@ -242,7 +242,7 @@ static int decrypt_init(AVFormatContext *s, ID3v2ExtraMeta *em, uint8_t *header)
             if (!rprobe(s, gdata, oc->r_val) || !nprobe(s, gdata, geob->datasize, oc->n_val))
                 break;
         }
-        if (i >= sizeof(leaf_table)) {
+        if (i >= FF_ARRAY_ELEMS(leaf_table)) {
             av_log(s, AV_LOG_ERROR, "Invalid key\n");
             return -1;
         }
@@ -415,7 +415,7 @@ static int oma_read_seek(struct AVFormatContext *s, int stream_index, int64_t ti
 {
     OMAContext *oc = s->priv_data;
 
-    pcm_read_seek(s, stream_index, timestamp, flags);
+    ff_pcm_read_seek(s, stream_index, timestamp, flags);
 
     if (oc->encrypted) {
         /* readjust IV for CBC */
