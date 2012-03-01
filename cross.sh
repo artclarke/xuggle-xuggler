@@ -33,34 +33,49 @@ VS_LIN64=x86_64-pc-linux-gnu
 VS_MAC32=i386-apple-darwin
 VS_MAC64=x86_64-apple-darwin
 
+XUGGLE_HOME="${XUGGLE_HOME:-/usr/local}"
 DIR=$( dirname $0 )
 if [ -f "${DIR}/config.guess" ]; then
   HOST=$( "${DIR}/config.guess" )
 fi
 
-:> "${DIR}/ant.out"
+darwin_lipo()
+{
+  STAGE_DIR="/tmp/xuggle-${RANDOM}"
+  echo "LIPO to ${STAGE_DIR}"
+  (cd "${DIR}/build/native/${VS_MAC32}" && make DESTDIR="${STAGE_DIR}/stage32" install)
+  (cd "${DIR}/build/native/${VS_MAC64}" && make DESTDIR="${STAGE_DIR}/stage64" install)
+
+  "${DIR}/mk/buildtools/darwin-universal.sh" \
+     "${DIR}/dist/stage${XUGGLE_HOME}" \
+     "${STAGE_DIR}/stage32${XUGGLE_HOME}" \
+     "${STAGE_DIR}/stage64${XUGGLE_HOME}" \
+  rm -rf "${STAGE_DIR}"
+}
+
 case $HOST in
   *darwin*)
-(ant -Dbuild.configure.os=${VS_MAC32} stage-native | tee -a "${DIR}/ant.out") && \
-(ant -Dbuild.configure.os=${VS_MAC64} stage-native | tee -a "${DIR}/ant.out") && \
-true
+    ant -Dbuild.configure.os=${VS_MAC32} stage-native && \
+    ant -Dbuild.configure.os=${VS_MAC64} stage-native && \
+    darwin_lipo && \
+    true
   ;;
   *linux*)
-(ant -Dbuild.configure.os=${VS_LIN32} stage-native | tee -a "${DIR}/ant.out") && \
-(ant -Dbuild.configure.os=${VS_LIN64} stage-native | tee -a "${DIR}/ant.out") && \
-(ant -Dbuild.configure.os=${VS_WIN32} stage-native | tee -a "${DIR}/ant.out") && \
-(ant -Dbuild.configure.os=${VS_WIN64} stage-native | tee -a "${DIR}/ant.out") && \
-true
+    ant -Dbuild.configure.os=${VS_LIN32} stage-native && \
+    ant -Dbuild.configure.os=${VS_LIN64} stage-native && \
+    ant -Dbuild.configure.os=${VS_WIN32} stage-native && \
+    ant -Dbuild.configure.os=${VS_WIN64} stage-native && \
+    true
   ;;
   *mingw*)
     case $HOST in
       *x86_64*)
-(ant -Dbuild.configure.os=${VS_WIN64} stage-native | tee -a "${DIR}/ant.out") && \
-true
+        ant -Dbuild.configure.os=${VS_WIN64} stage-native && \
+        true
       ;;
       *)
-(ant -Dbuild.configure.os=${VS_WIN32} stage-native | tee -a "${DIR}/ant.out") && \
-true
+        ant -Dbuild.configure.os=${VS_WIN32} stage-native && \
+        true
       ;;
     esac
   ;;
