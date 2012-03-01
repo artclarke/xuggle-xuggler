@@ -51,12 +51,11 @@ darwin_lipo()
      "${STAGE_DIR}/stage32${XUGGLE_HOME}" \
      "${STAGE_DIR}/stage64${XUGGLE_HOME}" \
   rm -rf "${STAGE_DIR}"
+  echo "Complete: darwin_lipo"
 }
 
 case $HOST in
   *darwin*)
-    ant -Dbuild.configure.os=${VS_MAC32} stage-native && \
-    ant -Dbuild.configure.os=${VS_MAC64} stage-native && \
     darwin_lipo && \
     true
   ;;
