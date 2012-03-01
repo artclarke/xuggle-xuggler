@@ -754,6 +754,7 @@ public class ICodec extends RefCounted {
     CODEC_ID_DXTORY,
     CODEC_ID_V410,
     CODEC_ID_XWD,
+    CODEC_ID_CDXL,
     CODEC_ID_Y41P(XugglerJNI.ICodec_CODEC_ID_Y41P_get()),
     CODEC_ID_ESCAPE130(XugglerJNI.ICodec_CODEC_ID_ESCAPE130_get()),
     CODEC_ID_AVRP(XugglerJNI.ICodec_CODEC_ID_AVRP_get()),
