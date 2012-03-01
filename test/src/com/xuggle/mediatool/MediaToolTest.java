@@ -75,7 +75,7 @@ public class MediaToolTest
   public static final int    WRITER_PACKET_WRITE_COUNT =  
     WRITER_VIDEO_FRAME_COUNT + WRITER_AUDIO_FRAME_COUNT + 2;
 
-  public static final int    OUTPUT_FILE_SIZE          = 3985885;
+  public static final int    OUTPUT_FILE_SIZE          = 3746394;
 
 //  public static final String INPUT_FILENAME  = 
 //    "fixtures/ucl_h264_aac.mp4";
