@@ -30,8 +30,8 @@ VS_WIN32=i686-w64-mingw32
 VS_WIN64=x86_64-w64-mingw32
 VS_LIN32=i686-pc-linux-gnu
 VS_LIN64=x86_64-pc-linux-gnu
-VS_MAC32=i386-apple-darwin
-VS_MAC64=x86_64-apple-darwin
+VS_MAC32=i386-xuggle-darwin
+VS_MAC64=x86_64-xuggle-darwin
 
 XUGGLE_HOME="${XUGGLE_HOME:-/usr/local}"
 DIR=$( dirname $0 )
