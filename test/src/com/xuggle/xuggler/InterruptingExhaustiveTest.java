@@ -23,6 +23,7 @@ import static org.junit.Assert.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,22 +41,77 @@ import com.xuggle.xuggler.io.IURLProtocolHandler;
 public class InterruptingExhaustiveTest
 {
   private final Logger log = LoggerFactory.getLogger(this.getClass());
+  
+  @Before
+  public void setUp()
+  {
+    // always clear the global interrupt handler so we don't interfere across
+    // tests.
+    JNIThreadProxy.setGlobalInterruptable(null);
+  }
  
   // needs a long time out because if running in an exhaustive
   // test on a slow machine (oh like our build server) it can
   // sometime fail.
-  @Test(timeout=120*1000)
+  @Test(timeout=30*1000)
   public void testXugglerSupportInterruptions() throws InterruptedException
   {
     final AtomicBoolean testStarted = new AtomicBoolean(false);
     final AtomicBoolean testPassed = new AtomicBoolean(false);
     final AtomicReference<Thread> threadInterrupted = new AtomicReference<Thread>();
     final Object lock = new Object();
-    Thread thread = new Thread(
+    final IURLProtocolHandler handler = new IURLProtocolHandler(){
+      public int close()
+      {
+        return 0;
+      }
+
+      public boolean isStreamed(String url, int flags)
+      {
+        return true;
+      }
+
+      public int open(String url, int flags)
+      {
+        return 0;
+      }
+
+      public int read(byte[] buf, int size)
+      {
+        if (Thread.interrupted()) {
+          log.debug("interrupted!");
+          return -1;
+        } else {
+          log.debug("not interrupted: {}", size);
+          try
+          {
+            Thread.sleep(500);
+          }
+          catch (InterruptedException e)
+          {
+            log.debug("doh");
+          }
+          // keep returning one byte of data
+          return 1;
+        }
+      }
+
+      public long seek(long offset, int whence)
+      {
+        return -1;
+      }
+
+      public int write(byte[] buf, int size)
+      {
+        return size;
+      }
+    };
+    
+    final Thread thread = new Thread(
         new Runnable(){
           public void run()
           {
-            IContainer container = IContainer.make();
+            final IContainer container = IContainer.make();
 
             synchronized(lock) {
               testStarted.set(true);
@@ -65,13 +121,14 @@ public class InterruptingExhaustiveTest
 
             container.open(
 //                "fixtures/testfile.flv",
-               "udp://127.0.0.1:12345/notvalid.flv?localport=28302",
+//               "udp://127.0.0.1:12345/notvalid.flv?localport=28302",
+                handler,
                 IContainer.Type.READ,
                 null, true, false);
             log.info("ffmpeg method returned: {}", Thread.currentThread());
             // we should return from this method in an
             // interrupted state.
-            Thread thread = threadInterrupted.get();
+            final Thread thread = threadInterrupted.get();
             if (thread != null) {
               log.info("thread was interrupted: {}", thread);
               testPassed.set(true);
@@ -83,50 +140,53 @@ public class InterruptingExhaustiveTest
     
     // First, let's set up a global interrupt handler because UDP handling
     // in FFmpeg starts its own threads
-    JNIThreadProxy.setGlobalInterruptable(new Interruptable()
+    final Interruptable interruptHandler = new Interruptable()
     {
-      
       public boolean preInterruptCheck()
       {
         log.debug("forcing an interrupt");
-        // we're going to interrupt the checkign thread
+        // we're going to interrupt the checking thread
         Thread.currentThread().interrupt();
         // and tell the global handler to keep going
         return true;
       }
-      
       public boolean postInterruptCheck(boolean interruptStatus)
       {
+        log.debug("checking that thread is interrupted");
         // because we interrupted the thread, this should be true
         assertTrue(Thread.interrupted());
         assertTrue(interruptStatus);
         threadInterrupted.set(Thread.currentThread());
-        // and remove myself
-        Interruptable oldHandler = JNIThreadProxy.setGlobalInterruptable(null);
-        assertEquals(this, oldHandler);
         return interruptStatus;
       }
-    });
-    
-    synchronized(lock) {
-      thread.start();
-      while(!testStarted.get()) {
-        log.info("waiting for start");
-        lock.wait();
+    };
+    try {
+      JNIThreadProxy.setGlobalInterruptable(interruptHandler);
+
+      synchronized(lock) {
+        thread.start();
+        while(!testStarted.get()) {
+          log.info("waiting for start");
+          lock.wait();
+        }
       }
+      // give the thread about a half a second to get into ffmpeg land
+      log.info("joining interrupted ffmpeg-calling thread: {}", thread);
+      thread.join();
+      assertTrue("test did not pass", testPassed.get());
+    } finally {
+      // and remove myself
+      Interruptable oldHandler = JNIThreadProxy.setGlobalInterruptable(null);
+      assertEquals(interruptHandler, oldHandler);
     }
-    // give the thread about a half a second to get into ffmpeg land
-    log.info("joining interrupted ffmpeg-calling thread: {}", thread);
-    thread.join();
-    assertTrue("test did not pass", testPassed.get());
   }
 
   @Test
   public void testInteruptStatusPreservedAcrossJNICalls()
   {
-    IContainer container = IContainer.make();
+    final IContainer container = IContainer.make();
     
-    IURLProtocolHandler handler = new IURLProtocolHandler(){
+    final IURLProtocolHandler handler = new IURLProtocolHandler(){
       public int close()
       {
         return 0;
