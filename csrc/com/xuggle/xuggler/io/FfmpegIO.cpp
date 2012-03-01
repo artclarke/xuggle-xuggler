@@ -19,12 +19,23 @@
 
 #include <stdexcept>
 
+// For EINTR
+#include <errno.h>
+
 #include <com/xuggle/ferry/JNIHelper.h>
 #include <com/xuggle/xuggler/io/FfmpegIO.h>
 #include <com/xuggle/xuggler/io/JavaURLProtocolManager.h>
 
 using namespace com::xuggle::ferry;
 using namespace com::xuggle::xuggler::io;
+
+#define XUGGLER_CHECK_INTERRUPT(retval, __COND__) do { \
+    if (__COND__) { \
+      JNIHelper* helper = JNIHelper::getHelper(); \
+      if (helper && helper->isInterrupted()) \
+        (retval) = EINTR > 0 ? -EINTR : EINTR; \
+        } \
+} while(0)
 
 VS_API_XUGGLER_IO jint VS_API_CALL
 JNI_OnLoad(JavaVM *, void *)
@@ -103,6 +114,7 @@ VS_API_XUGGLER_IO jint VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1u
       if (!handleVal)
         throw std::runtime_error("could not find protocol manager for url");
       retval = handleVal->url_open(nativeURL, flags);
+      XUGGLER_CHECK_INTERRUPT(retval, 1);
     }
     catch(std::exception & e)
     {
@@ -152,6 +164,7 @@ VS_API_XUGGLER_IO jint VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1u
   {
     if (handleVal)
       retval = handleVal->url_read((uint8_t*)byteArray, buflen);
+    XUGGLER_CHECK_INTERRUPT(retval, retval < 0 || retval < buflen);
   }
   catch(std::exception & e)
   {
@@ -191,6 +204,7 @@ VS_API_XUGGLER_IO jint VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1u
   {
     if (handleVal)
       retval = handleVal->url_write((uint8_t*)byteArray, buflen);
+    XUGGLER_CHECK_INTERRUPT(retval, retval < 0 || retval != buflen);
   }
   catch(std::exception & e)
   {
@@ -228,6 +242,7 @@ VS_API_XUGGLER_IO jlong VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1
   {
     if (handleVal)
       retval = handleVal->url_seek(position, whence);
+    XUGGLER_CHECK_INTERRUPT(retval, 1);
   }
   catch(std::exception & e)
   {
@@ -264,6 +279,7 @@ VS_API_XUGGLER_IO jint VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1u
   {
     if (handleVal)
       retval = handleVal->url_close();
+    XUGGLER_CHECK_INTERRUPT(retval, 1);
   }
   catch(std::exception & e)
   {

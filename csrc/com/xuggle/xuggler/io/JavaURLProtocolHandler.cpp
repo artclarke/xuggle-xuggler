@@ -18,6 +18,8 @@
  *******************************************************************************/
 
 #include <stdexcept>
+// For EINTR
+#include <errno.h>
 
 #include <com/xuggle/ferry/JNIHelper.h>
 #include <com/xuggle/ferry/Logger.h>
@@ -28,6 +30,14 @@
 using namespace com::xuggle::ferry;
 
 VS_LOG_SETUP(VS_CPP_PACKAGE);
+
+#define XUGGLER_CHECK_INTERRUPT(retval, __COND__) do { \
+    if (__COND__) { \
+      JNIHelper* helper = JNIHelper::getHelper(); \
+      if (helper && helper->isInterrupted()) \
+        (retval) = EINTR > 0 ? -EINTR : EINTR; \
+        } \
+} while(0)
 
 static void
 JavaURLProtocolHandler_CheckException(JNIEnv *env)
@@ -138,6 +148,7 @@ JavaURLProtocolHandler :: url_open(const char *url, int flags)
   if (jUrl)
     env->DeleteLocalRef(jUrl);
 
+  XUGGLER_CHECK_INTERRUPT(retval, 1);
   return retval;
 }
 
@@ -165,6 +176,8 @@ JavaURLProtocolHandler :: url_close()
     VS_LOG_DEBUG("Got unknown exception");
     retval = -1;
   }
+  XUGGLER_CHECK_INTERRUPT(retval, 1);
+
   return retval;
 }
 
@@ -195,6 +208,7 @@ JavaURLProtocolHandler :: url_seek(int64_t position,
     VS_LOG_DEBUG("Got unknown exception");
     retval = -1;
   }
+  XUGGLER_CHECK_INTERRUPT(retval, 1);
   return retval;
 }
 
@@ -241,6 +255,7 @@ JavaURLProtocolHandler :: url_read(unsigned char* buf, int size)
   // is not returning to Java soon.
   if (byteArray)
     env->DeleteLocalRef(byteArray);
+  XUGGLER_CHECK_INTERRUPT(retval, retval < 0 || retval != size);
   return retval;
 }
 
@@ -287,6 +302,8 @@ JavaURLProtocolHandler :: url_write(const unsigned char* buf, int size)
   // is not returning to Java soon.
   if (byteArray)
     env->DeleteLocalRef(byteArray);
+  XUGGLER_CHECK_INTERRUPT(retval, retval < 0 || retval != size);
+
   return retval;
 }
 
