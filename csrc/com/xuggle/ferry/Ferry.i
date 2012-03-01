@@ -23,7 +23,7 @@
 #include <com/xuggle/ferry/JNIHelper.h>
 
 extern "C" {
-  JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *);
+  SWIGEXPORT jint JNICALL JNI_OnLoad(JavaVM *jvm, void *);
 };
 
 /*
@@ -32,7 +32,7 @@ extern "C" {
  * C/C++ linkage on another library, they
  * must call sSetVM().
  */
-JNIEXPORT jint JNICALL
+SWIGEXPORT jint JNICALL
 JNI_OnLoad(JavaVM *, void *)
 {
   /* Because of static initialize in Mac OS, the only safe thing
@@ -60,7 +60,7 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_ferry_FerryJNI_RefCounted_1getCurrentRef
 }
 
 
-JNIEXPORT void JNICALL
+SWIGEXPORT void JNICALL
 Java_com_xuggle_ferry_Ferry_init(JNIEnv *env, jclass)
 {
   JavaVM* vm=0;

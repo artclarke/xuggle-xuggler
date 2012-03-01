@@ -22,10 +22,12 @@
 
 #include <stdint.h>
 
+#include <com/xuggle/xuggler/io/IO.h>
+
 namespace com { namespace xuggle { namespace xuggler { namespace io
 {
   class URLProtocolManager;
-  class URLProtocolHandler
+  class VS_API_XUGGLER_IO URLProtocolHandler
   {
   public:
     typedef enum SeekFlags {

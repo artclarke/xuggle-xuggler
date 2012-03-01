@@ -33,7 +33,7 @@ namespace com { namespace xuggle { namespace xuggler { namespace io
    * This class only works with file sizes < 2GB.  It is intended primarily
    * for test purposes.
    */
-  class StdioURLProtocolHandler : public URLProtocolHandler
+  class VS_API_XUGGLER_IO StdioURLProtocolHandler : public URLProtocolHandler
   {
   public:
     StdioURLProtocolHandler(StdioURLProtocolManager* mgr);

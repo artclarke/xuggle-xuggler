@@ -20,7 +20,6 @@
 #ifndef MUTEX_H_
 #define MUTEX_H_
 
-#include <jni.h>
 #include <com/xuggle/ferry/RefCounted.h>
 
 namespace com { namespace xuggle { namespace ferry {

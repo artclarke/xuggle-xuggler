@@ -52,7 +52,7 @@ namespace io
 #define VS_API_XUGGLER_IO VS_API_IMPORT
 #endif // VS_API_COMPILING_xuggler_xuggler_io
 #else
-#define VS_API_XUGGLER
+#define VS_API_XUGGLER_IO
 #endif
 
 #endif /* IO_H_ */

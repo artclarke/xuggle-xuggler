@@ -26,7 +26,7 @@
 using namespace com::xuggle::ferry;
 using namespace com::xuggle::xuggler::io;
 
-JNIEXPORT jint JNICALL
+VS_API_XUGGLER_IO jint VS_API_CALL
 JNI_OnLoad(JavaVM *, void *)
 {
     /* Because of static initialization in Mac OS, the only safe thing
@@ -35,7 +35,7 @@ JNI_OnLoad(JavaVM *, void *)
 }
 
 
-JNIEXPORT void JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_init(JNIEnv *env, jclass)
+VS_API_XUGGLER_IO void VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_init(JNIEnv *env, jclass)
 {
   JavaVM* vm=0;
   if (!com::xuggle::ferry::JNIHelper::sGetVM()) {
@@ -44,7 +44,7 @@ JNIEXPORT void JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_init(JNIEnv *env, jcl
   }
 }
 
-JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1registerProtocolHandler(
+VS_API_XUGGLER_IO jint VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1registerProtocolHandler(
     JNIEnv *jenv, jclass, jstring aProtoName, jobject aProtoMgr)
 {
   int retval = -1;
@@ -87,7 +87,7 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1registerProto
   return retval;
 }
 
-JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1open(
+VS_API_XUGGLER_IO jint VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1open(
     JNIEnv * jenv, jclass, jobject handle, jstring url, jint flags)
 {
   URLProtocolHandler*handleVal= NULL;
@@ -138,7 +138,7 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1open(
   return retval;
 }
 
-JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1read(
+VS_API_XUGGLER_IO jint VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1read(
     JNIEnv *jenv, jclass, jobject handle, jbyteArray javaBuf, jint buflen)
 {
   URLProtocolHandler* handleVal= NULL;
@@ -177,7 +177,7 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1read(
   return retval;
 }
 
-JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1write(
+VS_API_XUGGLER_IO jint VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1write(
     JNIEnv *jenv, jclass, jobject handle, jbyteArray javaBuf, jint buflen)
 {
   URLProtocolHandler* handleVal= NULL;
@@ -216,7 +216,7 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1write(
   return retval;
 }
 
-JNIEXPORT jlong JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1seek(
+VS_API_XUGGLER_IO jlong VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1seek(
     JNIEnv *jenv, jclass, jobject handle, jlong position, jint whence)
 {
   URLProtocolHandler* handleVal= NULL;
@@ -252,7 +252,7 @@ JNIEXPORT jlong JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1seek(
   return retval;
 }
 
-JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1close(
+VS_API_XUGGLER_IO jint VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1close(
     JNIEnv *jenv, jclass, jobject handle)
 {
   URLProtocolHandler* handleVal= NULL;

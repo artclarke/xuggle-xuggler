@@ -34,8 +34,6 @@
 #include <cstring>
 #include <climits>
 
-#include <jni.h>
-
 //#define VSJNI_MEMMANAGER_DEBUG 1
 #ifdef VSJNI_MEMMANAGER_DEBUG
 #include <cstdio>
@@ -734,7 +732,7 @@ operator delete (void *mem)
  */
 extern "C"
 {
-JNIEXPORT void JNICALL
+VS_API_EXPORT void JNICALL
 Java_com_xuggle_ferry_JNIMemoryAllocator_setAllocator(JNIEnv *, jclass,
     jlong aNativeObj, jobject aMemMgr)
 {
@@ -744,7 +742,7 @@ Java_com_xuggle_ferry_JNIMemoryAllocator_setAllocator(JNIEnv *, jclass,
   obj->setJavaAllocator(aMemMgr);
 }
 
-JNIEXPORT jobject JNICALL
+VS_API_EXPORT jobject JNICALL
 Java_com_xuggle_ferry_JNIMemoryAllocator_getAllocator(JNIEnv *env, jclass,
     jlong aNativeObj)
 {
@@ -757,13 +755,13 @@ Java_com_xuggle_ferry_JNIMemoryAllocator_getAllocator(JNIEnv *env, jclass,
   return result;
 }
 
-JNIEXPORT jint JNICALL
+VS_API_EXPORT jint JNICALL
 Java_com_xuggle_ferry_FerryJNI_getMemoryModel(JNIEnv *, jclass)
 {
   return (jint) sVSJNI_IsMirroringNativeMemoryInJVM;
 }
 
-JNIEXPORT void JNICALL
+VS_API_EXPORT void JNICALL
 Java_com_xuggle_ferry_FerryJNI_setMemoryModel(JNIEnv *, jclass, jint value)
 {
 #ifdef VSJNI_USE_JVM_FOR_MEMMANAGEMENT

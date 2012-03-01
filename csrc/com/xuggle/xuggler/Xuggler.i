@@ -65,7 +65,7 @@ extern "C" {
  * C/C++ linkage on another library, they
  * must call sSetVM().
  */
-JNIEXPORT jint JNICALL
+SWIGEXPORT jint JNICALL
 JNI_OnLoad(JavaVM *, void *)
 {
   /* Because of static initialize in Mac OS, the only safe thing
@@ -73,7 +73,7 @@ JNI_OnLoad(JavaVM *, void *)
   return com::xuggle::ferry::JNIHelper::sGetJNIVersion();
 }
 
-JNIEXPORT void JNICALL
+SWIGEXPORT void JNICALL
 Java_com_xuggle_xuggler_Xuggler_init(JNIEnv *env, jclass)
 {
   JavaVM* vm=0;

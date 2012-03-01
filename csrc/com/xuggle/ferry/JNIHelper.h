@@ -20,7 +20,6 @@
 #ifndef JNIHELPER_H_
 #define JNIHELPER_H_
 
-#include <jni.h>
 #include <list>
 
 #include <com/xuggle/ferry/Ferry.h>

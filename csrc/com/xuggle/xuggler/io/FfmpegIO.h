@@ -18,6 +18,8 @@
  *******************************************************************************/
 
 #include <jni.h>
+#include <com/xuggle/xuggler/io/IO.h>
+
 /* Header for class com_xuggle_xuggler_io_FfmpegIO */
 
 #ifndef _FFMPEG_IO_H
@@ -26,14 +28,14 @@
 extern "C" {
 #endif
 
-JNIEXPORT void JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_init(JNIEnv *env, jclass);
+VS_API_XUGGLER_IO void VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_init(JNIEnv *env, jclass);
 
 /*
  * Class:     com_xuggle_xuggler_io_FfmpegIO
  * Method:    native_registerProtocolHandler
  * Signature: (Ljava/lang/String;Lnet/xuggle/xuggler/io/URLProtocolManager;)I
  */
-JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1registerProtocolHandler
+VS_API_XUGGLER_IO jint VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1registerProtocolHandler
   (JNIEnv *, jclass, jstring, jobject);
 
 /*
@@ -41,7 +43,7 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1registerProto
  * Method:    native_url_open
  * Signature: (Lnet/xuggle/xuggler/io/FfmpegIOHandle;Ljava/lang/String;I)I
  */
-JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1open
+VS_API_XUGGLER_IO jint VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1open
   (JNIEnv *, jclass, jobject, jstring, jint);
 
 /*
@@ -49,7 +51,7 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1open
  * Method:    native_url_read
  * Signature: (Lnet/xuggle/xuggler/io/FfmpegIOHandle;[BI)I
  */
-JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1read
+VS_API_XUGGLER_IO jint VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1read
   (JNIEnv *, jclass, jobject, jbyteArray, jint);
 
 /*
@@ -57,7 +59,7 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1read
  * Method:    native_url_write
  * Signature: (Lnet/xuggle/xuggler/io/FfmpegIOHandle;[BI)I
  */
-JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1write
+VS_API_XUGGLER_IO jint VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1write
   (JNIEnv *, jclass, jobject, jbyteArray, jint);
 
 /*
@@ -65,7 +67,7 @@ JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1write
  * Method:    native_url_seek
  * Signature: (Lnet/xuggle/xuggler/io/FfmpegIOHandle;JI)J
  */
-JNIEXPORT jlong JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1seek
+VS_API_XUGGLER_IO jlong VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1seek
   (JNIEnv *, jclass, jobject, jlong, jint);
 
 /*
@@ -73,7 +75,7 @@ JNIEXPORT jlong JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1seek
  * Method:    native_url_close
  * Signature: (Lnet/xuggle/xuggler/io/FfmpegIOHandle;)I
  */
-JNIEXPORT jint JNICALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1close
+VS_API_XUGGLER_IO jint VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_native_1url_1close
   (JNIEnv *, jclass, jobject);
 
 #ifdef __cplusplus

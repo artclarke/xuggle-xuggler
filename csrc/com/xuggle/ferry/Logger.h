@@ -20,7 +20,6 @@
 #ifndef LOGGER_H_
 #define LOGGER_H_
 
-#include <jni.h>
 #include <cstdarg>
 
 #ifdef VS_DEBUG

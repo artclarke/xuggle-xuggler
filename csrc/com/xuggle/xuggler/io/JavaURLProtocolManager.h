@@ -20,7 +20,6 @@
 #ifndef JAVAURLPROTOCOLMANAGER_H_
 #define JAVAURLPROTOCOLMANAGER_H_
 
-#include <jni.h>
 #include <com/xuggle/xuggler/io/URLProtocolManager.h>
 #include <com/xuggle/xuggler/io/JavaURLProtocolHandler.h>
 
@@ -29,7 +28,7 @@ namespace com { namespace xuggle { namespace xuggler { namespace io
   /**
    * A class for managing custom io protocols.
    */
-  class JavaURLProtocolManager : public URLProtocolManager
+  class VS_API_XUGGLER_IO JavaURLProtocolManager : public URLProtocolManager
   {
   public:
     /**

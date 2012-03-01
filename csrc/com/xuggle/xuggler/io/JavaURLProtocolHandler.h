@@ -26,7 +26,7 @@
 namespace com { namespace xuggle { namespace xuggler { namespace io
   {
   class JavaURLProtocolManager;
-  class JavaURLProtocolHandler : public URLProtocolHandler
+  class VS_API_XUGGLER_IO JavaURLProtocolHandler : public URLProtocolHandler
   {
   public:
     JavaURLProtocolHandler(

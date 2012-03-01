@@ -20,6 +20,7 @@
 #ifndef __FERRY_H__
 #define __FERRY_H__
 
+#include <jni.h>
 #include <com/xuggle/Xuggle.h>
 
 namespace com
