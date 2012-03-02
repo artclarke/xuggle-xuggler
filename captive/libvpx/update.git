@@ -1,4 +1,4 @@
 #!/bin/sh
 
 # This script is here to update the branch to the latest version
-git subtree pull --prefix=captive/libvpx/csrc --squash http://git.chromium.org/webm/libvpx.git 2b0aee4b5def280d4e27c11d1b95ecd8545eed34 # v1.0.0
+git subtree pull --prefix=captive/libvpx/csrc --squash http://git.chromium.org/webm/libvpx.git 2b0aee4b5def280d4e27c11d1b95ecd8545eed34 master
