@@ -68,13 +68,8 @@ fi
 # Tell VPX about the captive libraries already built and fake
 # installed
 
-case $HOST_OS in
-  *mingw*|*cygwin*)
-  ;;
-  *)
-    VPX_OPTIONS="$VPX_OPTIONS --enable-shared"
-  ;;
-esac
+# shared support on vpx is limited at best
+VPX_OPTIONS="$VPX_OPTIONS --disable-shared"
 VPX_OPTIONS="$VPX_OPTIONS --enable-runtime-cpu-detect"
 
 if test ! "x$VS_DEBUG" = "x"; then
