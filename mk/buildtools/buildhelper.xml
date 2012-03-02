@@ -432,6 +432,10 @@
   <target name="init" depends="os-init, java6.check, ivy-init, revision" >
     <!-- Create the time stamp -->
     <tstamp/>
+    <!-- determine if we have a native components -->
+    <available property="native.configure.exists"
+        file="${top.dir}/configure"/>
+    <echo message="${top.dir}/configure exists=${native.configure.exists}"/>
 
     <mkdir dir="${dist.dir}"/>
     <mkdir dir="${dist.dir}/lib"/>
@@ -574,7 +578,7 @@
       </manifest>
     </jar>
     <if>
-      <isset property="native.makefile.exists"/>
+      <isset property="native.configure.exists"/>
       <then>
         <!-- for convenience we will make a native only jar and a no-arch jar -->
         <jar jarfile="${dist.dir}/lib/${app.name}-${xuggle.os}.jar"
@@ -626,7 +630,7 @@
           tofile="${dist.dir}/lib/${app.name}.jar"
           />
           <if>
-            <isset property="native.makefile.exists"/>
+            <isset property="native.configure.exists"/>
             <then>
              <!-- there is no need to obsfucate the native only jar -->
               <proguard 
@@ -677,11 +681,11 @@
       description="Publishes the jar files to XUGGLE_HOME">
   </target>
   <target name="install-native"
-      depends="setup-native, install-native-do"
+      depends="init install-native-do"
       description="Publishes the native files to XUGGLE_HOME">
   </target>
   <target name="install-native-do"
-      if="native.makefile.exists">
+      if="native.configure.exists">
     <if>
       <not>
         <available file="${dist.dir}/stage/${xuggle.os}"/>
@@ -1092,9 +1096,6 @@
 
   <target name="uptodate-native"
       depends="init">
-    <available property="native.configure.exists"
-        file="${top.dir}/configure"/>
-    <echo message="${top.dir}/configure exists=${native.configure.exists}"/>
     <available property="native.makefile.exists"
         file="${build-native.dir}/Makefile"/>
     <echo message="${build-native.dir}/Makefile exists=${native.makefile.exists}"/>
