@@ -669,10 +669,10 @@
       if="native.makefile.exists">
     <if>
       <not>
-        <available file="${dist.dir}/stage"/>
+        <available file="${dist.dir}/stage/${xuggle.os}"/>
       </not>
       <then>
-        <fail message="Could not find staged installation in ${dist.dir}/stage; Run &quot;ant stage&quot; first."/>
+        <fail message="Could not find staged installation in ${dist.dir}/stage/${xuggle.os}; Run &quot;ant stage&quot; first."/>
       </then>
     </if>
     <!-- This assumes we staged stuff first; if not, bad things can happen -->
@@ -684,7 +684,7 @@
       <!-- Copies the stage directory contents to the root directory.
         This is not as stupid as it sounds (I hope).  -->
       <arg value="${xuggle-buildhelper.basedir}/install-build.sh"/>
-      <arg value="${dist.dir}${file.separator}stage"/>
+      <arg value="${dist.dir}${file.separator}stage/${xuggle.os}"/>
       <arg value="/" />
     </exec>
   </target>
