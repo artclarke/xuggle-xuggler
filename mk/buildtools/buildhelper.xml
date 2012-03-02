@@ -1173,20 +1173,6 @@
       <then>
         <!-- create the right tar files -->
         <unix-installer
-            input="${dist.dir}/stage-core/${xuggle.dir}"
-            output="${dist.dir}/bin/${app.name}-core.${library.version}-${xuggle.os}.sh"
-            productname="${app.name}-core"
-            license="${license.file}"
-            key="${license.key}"
-            version="${library.version}"/>
-        <unix-installer
-            input="${dist.dir}/stage-captive/${xuggle.dir}"
-            output="${dist.dir}/bin/${captive.name}.${library.version}-${xuggle.os}.sh"
-            productname="${captive.name}"
-            license="${license.file}"
-            key="${license.key}"
-            version="${library.version}"/>
-        <unix-installer
             input="${dist.dir}/stage/${xuggle.dir}"
             output="${dist.dir}/bin/${app.name}.${library.version}-${xuggle.os}.sh"
             productname="${app.name}"
@@ -1211,14 +1197,6 @@
         <windows-installer
             input="${dist.dir}${file.separator}stage${xuggle.dir}"
             productname="${app.name}"
-          />
-        <windows-installer
-            input="${dist.dir}${file.separator}stage-core${xuggle.dir}"
-            productname="${app.name}-core"
-          />
-        <windows-installer
-            input="${dist.dir}${file.separator}stage-captive${xuggle.dir}"
-            productname="${captive.name}"
           />
       </else>
     </if>
@@ -1248,8 +1226,6 @@
   </target>
   <target name="stage-native-do"
       if="native.makefile.exists">
-    <!-- now, restage both to a combined target; we have to do a make
-      instead of an ant copy, since ant copy will drop file attributes -->
     <if>
       <isset property="build.configure.debug"/>
       <then>
@@ -1262,45 +1238,50 @@
     <exec executable="${build.native.make}"
         dir="${build-native.dir}"
         failonerror="true">
-      <env key="DESTDIR" value="${dist.unix.dir}/stage"/>
+      <env key="DESTDIR" value="${dist.unix.dir}/stage/${xuggle.os}"/>
       <arg line="${build.install.target}"/>
     </exec>
-    <echo message="Staging Java Jars to right location"/>
-    <mkdir dir="${dist.dir}/stage/${xuggle.dir}/share/java/jars"/>
-    <copy todir="${dist.dir}/stage/${xuggle.dir}/share/java/jars">
-      <fileset dir="${dist.dir}/lib">
-        <include name="**/*.jar"/>
-      </fileset>
-    </copy>
-    <!-- stage the captive binaries if any -->
+    <!-- And create a jar file that has just the unversioned dynamic libraries; it relies on the convention
+         that versioned shared libaries will have two periods. -->
     <if>
-      <available file="${build-native.dir}/captive" type="dir"/>
+      <not>
+        <isset property="os.windows"/>
+      </not>
       <then>
-        <exec executable="${build.native.make}"
-            dir="${build-native.dir}/captive"
-            failonerror="true">
-          <env key="DESTDIR" value="${dist.unix.dir}/stage-captive"/>
-          <arg line="${build.install.target}"/>
-        </exec>
-        <!-- stage the core binaries -->
-        <exec executable="${build.native.make}"
-            dir="${build-native.dir}/csrc"
-            failonerror="true">
-          <env key="DESTDIR" value="${dist.unix.dir}/stage-core"/>
-          <arg line="${build.install.target}"/>
-        </exec>
-        <mkdir dir="${dist.dir}/stage-core/${xuggle.dir}/share/java/jars"/>
-        <copy todir="${dist.dir}/stage-core/${xuggle.dir}/share/java/jars">
-          <fileset dir="${dist.dir}/lib">
-            <include name="**/*.jar"/>
-          </fileset>
-        </copy>
-      </then>
-    </if>
+        <echo message='basedir="${dist.unix.dir}/stage/${xuggle.os}${xuggle.dir}/lib"'/>
+        <jar jarfile="${dist.unix.dir}/stage/${app.name}-${xuggle.os}.jar"
+	  index="no"
+	  basedir="${dist.unix.dir}/stage/${xuggle.os}${xuggle.dir}/lib"
+	  includes="*.so, *.dylib"
+	  excludes="*.*.so *.*.dylib"
+	  >
+	  <manifest>
+	  <attribute name="Implementation-Vendor" value="www.xuggle.com"/>
+	  <attribute name="Implementation-Title" value="${app.name}-${xuggle.os}"/>
+	  <attribute name="Implementation-Version" value="${library.version}"/>
+	  </manifest>
+	 </jar>
+       </then>
+       <else>
+        <echo message='basedir="${dist.unix.dir}/stage/${xuggle.os}${xuggle.dir}/bin"'/>
+        <jar jarfile="${dist.unix.dir}/stage/${app.name}-${xuggle.os}.jar"
+	  index="no"
+	  basedir="${dist.unix.dir}/stage/${xuggle.os}${xuggle.dir}/bin"
+	  includes="*.dll"
+	  excludes="*.*.dll"
+	  >
+	  <manifest>
+	  <attribute name="Implementation-Vendor" value="www.xuggle.com"/>
+	  <attribute name="Implementation-Title" value="${app.name}-${xuggle.os}"/>
+	  <attribute name="Implementation-Version" value="${library.version}"/>
+	  </manifest>
+	 </jar>
+       </else>
+      </if>
   </target>
   <target name="stage-native"
       depends="setup-native, compile-native, stage-native-do"
-      description="Stages the native libraries to ${dist.dir}/stage/${xuggle.dir}">
+      description="Stages the native libraries to ${dist.dir}/stage/${xuggle.us}/${xuggle.dir}">
   </target>
   <target name="run-tests-native-do"
       if="native.makefile.exists">
