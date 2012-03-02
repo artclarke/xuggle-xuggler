@@ -70,6 +70,7 @@ FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libopencore-amrnb --enable-libopencore-
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-librtmp"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-openssl"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-zlib"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libvpx"
 
 echo "Configuring FFMPEG with these options: $FFMPEG_OPTIONS"
 cd @abs_builddir@/csrc

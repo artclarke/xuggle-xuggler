@@ -179,6 +179,10 @@ AC_CONFIG_FILES([Makefile
                  openssl/incarcerate
                  openssl/install.sh
                  openssl/uninstall.sh
+                 libvpx/Makefile
+                 libvpx/incarcerate
+                 libvpx/install.sh
+                 libvpx/uninstall.sh
                  librtmp/Makefile
                  librtmp/incarcerate
                  librtmp/install.sh

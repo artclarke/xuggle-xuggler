@@ -3,11 +3,6 @@
 # This script is meant to be run after you clone IF you want to be
 # a developer and integrate from upstream projects.  It's purpose
 # is to add all remote origins; each captive library will
-# have its own clone.git script which will be used to clone the
+# have its own pull.git script which will be used to pull the
 # branch that the current version is tied to.
-
-WD="$( dirname $0 )"
-for clone in "${WD}"/*/clone.git; do
-  echo $clone
-  $clone
-done
+git subtree add --prefix=captive/libvpx/csrc --squash http://git.chromium.org/webm/libvpx.git v1.0.0

@@ -75,8 +75,9 @@ AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
 	distdir dist dist-all distcheck
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = zlib openssl librtmp libvo-aacenc libopencore-amr \
-	libogg libspeex libvorbis libtheora libmp3lame libx264 ffmpeg
+DIST_SUBDIRS = zlib libvpx openssl librtmp libvo-aacenc \
+	libopencore-amr libogg libspeex libvorbis libtheora libmp3lame \
+	libx264 ffmpeg
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -256,15 +257,16 @@ EXTRA_DIST = COPYING
 #    |                                                        |
 #  -----                                                -------------
 #  |   |                                                |     |     |
-#  | rtmp vo-aacenc opencore-amr speex mp3lame x264 vorbis theora   |
-#  |   |      |          |         |      |      |      |     |     |
-#  ------------------------------------------------------------------
+#  | rtmp vo-aacenc opencore-amr speex mp3lame x264 vorbis theora   | vpx
+#  |   |      |          |         |      |      |      |     |     |  |
+#  ---------------------------------------------------------------------
 #                                  |
 #                               ffmpeg
 #if VS_CAPTIVE_ZLIB
 #endif
-SUBDIRS = zlib openssl librtmp libvo-aacenc libopencore-amr libogg \
-	libspeex libvorbis libtheora libmp3lame $(am__append_1) ffmpeg
+SUBDIRS = zlib libvpx openssl librtmp libvo-aacenc libopencore-amr \
+	libogg libspeex libvorbis libtheora libmp3lame $(am__append_1) \
+	ffmpeg
 all: all-recursive
 
 .SUFFIXES:

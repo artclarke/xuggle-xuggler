@@ -9,9 +9,9 @@ EXTRA_DIST=COPYING
 #    |                                                        |
 #  -----                                                -------------
 #  |   |                                                |     |     |
-#  | rtmp vo-aacenc opencore-amr speex mp3lame x264 vorbis theora   |
-#  |   |      |          |         |      |      |      |     |     |
-#  ------------------------------------------------------------------
+#  | rtmp vo-aacenc opencore-amr speex mp3lame x264 vorbis theora   | vpx
+#  |   |      |          |         |      |      |      |     |     |  |
+#  ---------------------------------------------------------------------
 #                                  |
 #                               ffmpeg
 SUBDIRS=
@@ -19,7 +19,7 @@ SUBDIRS=
 SUBDIRS+= zlib
 #endif
 SUBDIRS+= \
-  openssl librtmp libvo-aacenc libopencore-amr \
+  libvpx openssl librtmp libvo-aacenc libopencore-amr \
   libogg libspeex libvorbis libtheora libmp3lame 
 if VS_ENABLE_GPL
 SUBDIRS+=libx264
