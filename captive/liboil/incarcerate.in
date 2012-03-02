@@ -11,39 +11,9 @@ CXXFLAGS="@CXXFLAGS@"
 HOST_TYPE=@HOST_TYPE@
 HOST_OS=@HOST_OS@
 
-VS_ENABLE_64BIT=@VS_ENABLE_64BIT@
-case $HOST_TYPE in
-  Windows)
-  CC="${CC} -mno-cygwin"
-  LDFLAGS="$LDFLAGS -mno-cygwin"
-  ;;
-  *)
-  ;;
-esac
-BUILD_FLAG=
-if test "x$VS_ENABLE_64BIT" = "xyes"; then
-  case $HOST_TYPE in
-    Mac)
-    BUILD_FLAG=--build=x86_64-apple-darwin9.7.0
-    # liboil in liboilcpu-x86.c for apple looks up a SSE property
-    # to figure out if the CPU supports MMX, but it turns out that
-    # method on later Mac OSes fails the GCC stack-protector check,
-    # so we turn it off for all of Macs.  The other way around this
-    # is to disable the offending call and assume no SSE support on mac.
-    CFLAGS="$CFLAGS -arch x86_64 -fno-stack-protector"
-    CXXFLAGS="$CXXFLAGS -arch x86_64"
-    LDFLAGS="$LDFLAGS -arch x86_64"
-    ;;
-    *)
-    ;;
-  esac
-fi
-  
 PATH="$PATH:@abs_top_builddir@@bindir@@" sh @abs_srcdir@/csrc/configure \
-  CPPFLAGS="$CPPFLAGS -I@abs_top_builddir@@includedir@" \
-  CFLAGS="$CFLAGS -I@abs_top_builddir@@includedir@ -O2" \
-  CXXFLAGS="$CXXFLAGS -I@abs_top_builddir@@includedir@" \
-  LDFLAGS="$LDFLAGS -L@abs_top_builddir@@libdir@" \
+  CFLAGS="$CFLAGS -I@abs_top_builddir@/stage@includedir@ -O2" \
+  LDFLAGS="$LDFLAGS -L@abs_top_builddir@/stage@libdir@" \
   --disable-dependency-tracking \
   --disable-glib \
   ${BUILD_FLAG} \

@@ -70,8 +70,6 @@
   <!-- This can be overriden in containing build.xml or build.properties -->
   <property name="app.name" value="${ant.project.name}"/>
   <property name="app.mainclass" value=""/>
-  <property name="app.red5.mainclass" value=""/>
-  <property name="app.red5.mainmethod" value=""/>
   <property name="documentation.title" value="${ant.project.name}"/>
   <property name="organization.name" value="xuggle"/>
   <property name="captive.name" value="xuggle-ffmpeg"/>
@@ -89,7 +87,6 @@
   <property name="dist.dir" location="dist"/>
   <property name="license.key" value="See License File"/>
   <property name="license.file" value="${top.dir}/COPYING"/>
-  <available property="share.exists" file="share/build.xml"/>
 
   <condition property="os.windows">
     <os family="windows"/>
@@ -111,7 +108,7 @@
   <property name="ivy.retrieve.pattern" value="${ivy.lib.dir}/[conf]/[artifact].[ext]" />
   <property name="ivy.distrib.dir" value="${dist.dir}"/>
   <!-- You can set the variable XUGGLE_REPO in which case ivy will publish
-    all jars to that location; otherwise it'll publishm them under
+    all jars to that location; otherwise it'll publish them under
     dist/ivys/share/java -->
   <condition property="xugglerepo.dir" value="${env.XUGGLE_REPO}">
     <isset property="env.XUGGLE_REPO"/>
@@ -254,36 +251,6 @@
       <mapping conf="default" scope="runtime"/>
       <mapping conf="test" scope="test"/>
     </ivy:makepom>
-  </target>
-
-  <target name="clean-share"
-      if="share.exists"
-      description="Clean all share objects">
-    <ant dir="share" target="clean" inheritAll="false" />
-  </target>
-
-  <target name="clobber-share"
-      if="share.exists"
-      description="Clobber all share objects">
-    <ant dir="share" target="clobber" inheritAll="false" />
-  </target>
-
-  <target name="stage-share"
-      if="share.exists"
-      description="Stage all share libraries">
-    <ant dir="share" target="stage" inheritAll="false" />
-  </target>
-
-  <target name="install-share"
-      if="share.exists"
-      description="Install all share libraries">
-    <ant dir="share" target="install" inheritAll="false" />
-  </target>
-
-  <target name="uninstall-share"
-      if="share.exists"
-      description="Install all share libraries">
-    <ant dir="share" target="uninstall" inheritAll="false" />
   </target>
 
   <target name="windows-init"
@@ -470,6 +437,7 @@
     <mkdir dir="${dist.dir}/lib"/>
     <mkdir dir="${dist.dir}/src"/>
     <mkdir dir="${dist.dir}/war"/>
+    <mkdir dir="${classes.dir}"/>
     <mkdir dir="${test.classes.dir}"/>
     <mkdir dir="${test.reports.dir}"/>
     <mkdir dir="${test.fixtures.dir}"/>
@@ -510,7 +478,6 @@
     <antcall target="ivy-retrieve" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="compile"/>
     </antcall>
-    <mkdir dir="${classes.dir}"/>
     <mkdir dir="${generated.src.dir}"/>
     <!-- Update any Java template files-->
     <echo message="Generating Java source from templates"/>
@@ -554,8 +521,7 @@
 
   <target name="stage-java"
       depends="compile-java, fixtures-java"
-      description="Stages the final install directory structure under ${dist.dir}/stage">
-    <!-- Create the distribution directory -->
+      description="Stages the final install directory structure to prepare for dist">
     <antcall target="ivy-retrieve" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="default"/>
     </antcall>
@@ -605,10 +571,39 @@
         <attribute name="Implementation-Version" value="${library.version}"/>
         <attribute name="Class-Path" value="${manifest.classpath}"/>
         <attribute name="Main-Class" value="${app.mainclass}"/>
-        <attribute name="Red5-Plugin-Main-Class" value="${app.red5.mainclass}"/>
-        <attribute name="Red5-Plugin-Main-Method" value="${app.red5.mainmethod}"/>
       </manifest>
     </jar>
+    <if>
+      <isset property="native.makefile.exists"/>
+      <then>
+        <!-- for convenience we will make a native only jar and a no-arch jar -->
+        <jar jarfile="${dist.dir}/lib/${app.name}-${xuggle.os}.jar"
+            index="no"
+            basedir="${classes.dir}/com/xuggle/native/${xuggle.os}">
+          <include name="**/*"/>
+          <manifest>
+            <attribute name="Implementation-Vendor" value="www.xuggle.com"/>
+            <attribute name="Implementation-Title" value="${app.name}"/>
+            <attribute name="Implementation-Version" value="${library.version}"/>
+            <attribute name="Class-Path" value="${manifest.classpath}"/>
+            <attribute name="Main-Class" value="${app.mainclass}"/>
+          </manifest>
+        </jar>
+        <jar jarfile="${dist.dir}/lib/${app.name}-noarch.jar"
+            index="no"
+            basedir="${classes.dir}">
+          <include name="**/*"/>
+          <exclude name="com/xuggle/native/**/*" />
+          <manifest>
+            <attribute name="Implementation-Vendor" value="www.xuggle.com"/>
+            <attribute name="Implementation-Title" value="${app.name}"/>
+            <attribute name="Implementation-Version" value="${library.version}"/>
+            <attribute name="Class-Path" value="${manifest.classpath}"/>
+            <attribute name="Main-Class" value="${app.mainclass}"/>
+          </manifest>
+        </jar>
+      </then>
+    </if>
     <if>
       <!-- Check if a Proguard obsfucation instruction set exists -->
       <and>
@@ -630,7 +625,27 @@
           file="${dist.dir}/lib/${app.name}-pro.jar"
           tofile="${dist.dir}/lib/${app.name}.jar"
           />
-      </then>
+          <if>
+            <isset property="native.makefile.exists"/>
+            <then>
+             <!-- there is no need to obsfucate the native only jar -->
+              <proguard 
+                printmapping="${build.dir}/${app.name}-noarch.promap"
+                configuration="${top.dir}/mk/${app.name}.pro">
+                <injar location="${dist.dir}/lib/${app.name}-noarch.jar" />
+                <outjar location="${dist.dir}/lib/${app.name}-noarch-pro.jar" />
+                <libraryjar refid="compile.classpath"/>
+                <libraryjar location="${runtime.rt.jar}" />
+              </proguard>
+              <!-- Copy obsfucated jar over original jar -->
+              <move
+                overwrite="true"
+                file="${dist.dir}/lib/${app.name}-noarch-pro.jar"
+                tofile="${dist.dir}/lib/${app.name}-noarch.jar"
+                />
+            </then>
+          </if>
+       </then>
     </if>
     <antcall target="webapp" inheritAll="true" inheritRefs="true">
       <param name="ivy.settings.name" value="default"/>
@@ -692,14 +707,9 @@
   <target name="uninstall-java"
       depends="init"
       description="uninstalls any installed jar files from XUGGLE_HOME">
-    <delete
-        failonerror="false"
-        includeemptydirs="true"
-        verbose="true"
-        dir="${xuggle.dir.native}/share/xuggle/java/${app.name}"/>
   </target>
 
-  <target name="clobber-java" depends="init, clobber-share, clean-java"
+  <target name="clobber-java" depends="init, clean-java"
       description="Cleans everything; make sure you can regenerate if needed">
     <delete
         includeemptydirs="yes"
@@ -724,7 +734,7 @@
     </delete>
   </target>
 
-  <target name="clean-java" depends="clean-share"
+  <target name="clean-java"
       description="clean up" >
     <delete
         includeemptydirs="yes"
@@ -997,10 +1007,8 @@
     <link href="http://logback.qos.ch/apidocs/"/>
     <link href="http://jetm.void.fm/api/"/>
     <link href="http://www.cs.umd.edu/projects/PL/multithreadedtc/docs/"/>
-    <link href="http://build.xuggle.com/view/Stable/job/red5_jdk6_stable/javadoc/"/>
     <link href="http://build.xuggle.com/job/xuggle_java_utils_jdk5_i386_ubuntu/javadoc/java/api/"/>
     <link href="http://build.xuggle.com/view/Stable/job/xuggler_jdk5_stable/javadoc/java/api/"/>
-    <link href="http://build.xuggle.com/job/xuggle_java_xuggler_red5_jdk6_i386_ubuntu/javadoc/java/api/"/>
 
   </javadoc>
   <!-- copy over any images we keep for documentation to
@@ -1068,10 +1076,8 @@
   <link href="http://logback.qos.ch/apidocs/"/>
   <link href="http://jetm.void.fm/api/"/>
   <link href="http://www.cs.umd.edu/projects/PL/multithreadedtc/docs/"/>
-  <link href="http://build.xuggle.com/job/red5_java_server_trunk_jdk6_i386_ubuntu/javadoc/"/>
   <link href="http://build.xuggle.com/job/xuggle_java_utils_jdk5_i386_ubuntu/javadoc/java/api/"/>
   <link href="http://build.xuggle.com/view/Stable/job/xuggler_jdk5_stable/javadoc/java/api/"/>
-  <link href="http://build.xuggle.com/job/xuggle_java_xuggler_red5_jdk6_i386_ubuntu/javadoc/java/api/"/>
 
 </javadoc>
 <!-- copy over any images we keep for documentation to
@@ -1173,7 +1179,7 @@
       <then>
         <!-- create the right tar files -->
         <unix-installer
-            input="${dist.dir}/stage/${xuggle.dir}"
+            input="${dist.dir}/stage/${xuggle.os}${xuggle.dir}"
             output="${dist.dir}/bin/${app.name}.${library.version}-${xuggle.os}.sh"
             productname="${app.name}"
             license="${license.file}"
@@ -1195,7 +1201,7 @@
           <globmapper from="*.in" to="*"/>
         </copy>
         <windows-installer
-            input="${dist.dir}${file.separator}stage${xuggle.dir}"
+            input="${dist.dir}${file.separator}stage${xuggle.os}${xuggle.dir}"
             productname="${app.name}"
           />
       </else>
@@ -1235,49 +1241,33 @@
         <property name="build.install.target" value="install-strip"/>
       </else>
     </if>
+    <!-- first copy the already built captive directories -->
+    <copy todir="${dist.unix.dir}/stage/${xuggle.os}">
+      <fileset dir="${build-native.dir}/captive/stage" />
+    </copy>
+    <!-- now, just install the non-captive code to the same location -->
     <exec executable="${build.native.make}"
-        dir="${build-native.dir}"
+        dir="${build-native.dir}/csrc"
         failonerror="true">
       <env key="DESTDIR" value="${dist.unix.dir}/stage/${xuggle.os}"/>
       <arg line="${build.install.target}"/>
     </exec>
-    <!-- And create a jar file that has just the unversioned dynamic libraries; it relies on the convention
-         that versioned shared libaries will have two periods. -->
-    <if>
-      <not>
-        <isset property="os.windows"/>
-      </not>
-      <then>
-        <echo message='basedir="${dist.unix.dir}/stage/${xuggle.os}${xuggle.dir}/lib"'/>
-        <jar jarfile="${dist.unix.dir}/stage/${app.name}-${xuggle.os}.jar"
-	  index="no"
-	  basedir="${dist.unix.dir}/stage/${xuggle.os}${xuggle.dir}/lib"
-	  includes="*.so, *.dylib"
-	  excludes="*.*.so *.*.dylib"
-	  >
-	  <manifest>
-	  <attribute name="Implementation-Vendor" value="www.xuggle.com"/>
-	  <attribute name="Implementation-Title" value="${app.name}-${xuggle.os}"/>
-	  <attribute name="Implementation-Version" value="${library.version}"/>
-	  </manifest>
-	 </jar>
-       </then>
-       <else>
-        <echo message='basedir="${dist.unix.dir}/stage/${xuggle.os}${xuggle.dir}/bin"'/>
-        <jar jarfile="${dist.unix.dir}/stage/${app.name}-${xuggle.os}.jar"
-	  index="no"
-	  basedir="${dist.unix.dir}/stage/${xuggle.os}${xuggle.dir}/bin"
-	  includes="*.dll"
-	  excludes="*.*.dll"
-	  >
-	  <manifest>
-	  <attribute name="Implementation-Vendor" value="www.xuggle.com"/>
-	  <attribute name="Implementation-Title" value="${app.name}-${xuggle.os}"/>
-	  <attribute name="Implementation-Version" value="${library.version}"/>
-	  </manifest>
-	 </jar>
-       </else>
-      </if>
+    <!-- copy all dynamic libraries to the class path to get bundled into the java jar file made with stage-java -->
+    <mkdir dir="${classes.dir}/com/xuggle/native/${xuggle.os}" />
+    <copy todir="${classes.dir}/com/xuggle/native/${xuggle.os}" verbose="true">
+       <fileset dir="${dist.unix.dir}/stage/${xuggle.os}${xuggle.dir}/lib">
+          <include name="*.so" />
+          <exclude name="*.*.*" />
+       </fileset>
+       <fileset dir="${dist.unix.dir}/stage/${xuggle.os}${xuggle.dir}/lib">
+          <include name="*.dylib" />
+          <exclude name="*.*.*" />
+       </fileset>
+       <fileset dir="${dist.unix.dir}/stage/${xuggle.os}${xuggle.dir}/bin">
+          <include name="*.dll"/>
+          <exclude name="*.*.*" />
+       </fileset>
+    </copy>
   </target>
   <target name="stage-native"
       depends="setup-native, compile-native, stage-native-do"
@@ -1385,22 +1375,17 @@
   <target name="dist"
       depends="stage, dist-native, dist-java"
       description="dist everything, including native code if available"/>
-  <!-- stage stages java first, so that the native stage
-    can copy any jars -->
   <target name="stage"
-      depends="compile-native, stage-java, stage-native"
+      depends="compile-native, stage-native, stage-java"
       description="stage everything for a final installation, but use ${dist.dir}/stage as the root directory">
-    <antcall target="stage-share" inheritAll="true" inheritRefs="true"/>
   </target>
   <target name="install"
       depends="install-native, install-java"
       description="install everything, including native code if available">
-    <antcall target="install-share" inheritAll="true" inheritRefs="true"/>
   </target>
   <target name="uninstall"
       depends="uninstall-native, uninstall-java"
       description="uninstall everything, including native code if available">
-    <antcall target="uninstall-share"/>
   </target>
   <target name="clobber"
       depends="clobber-java, clobber-native"
@@ -1472,7 +1457,7 @@
   <!--
     Macros go here.
   -->
-  <!-- Creates a tomcat or red5 war -->
+  <!-- Creates a tomcat war -->
   <macrodef name="webapp">
     <attribute name="name"/>
     <sequential>
@@ -1481,29 +1466,6 @@
         <fileset dir="web/@{name}"/>
         <lib dir="${dist.dir}/lib"/>
       </war>
-    </sequential>
-  </macrodef>
-  <!-- Two handy macros that can be used inside a in an "install" target -->
-  <macrodef name="uninstall-red5webapp">
-    <attribute name="name"/>
-    <sequential>
-      <delete dir="${env.RED5_HOME}/webapps/@{name}" failonerror="false"/>
-      <delete file="${env.RED5_HOME}/webapps/@{name}.war" failonerror="false"/>
-    </sequential>
-  </macrodef>
-  <macrodef name="install-red5webapp">
-    <attribute name="name"/>
-    <sequential>
-      <if>
-        <available file="${env.RED5_HOME}/webapps"/>
-        <then>
-          <uninstall-red5webapp name="@{name}"/>
-          <mkdir dir="${env.RED5_HOME}/webapps/@{name}"/>
-          <!-- auto deploy into red5 -->
-          <unzip src="${dist.dir}/war/@{name}.war"
-              dest="${env.RED5_HOME}/webapps/@{name}"/>
-        </then>
-      </if>
     </sequential>
   </macrodef>
   <!--

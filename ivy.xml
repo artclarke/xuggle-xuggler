@@ -7,6 +7,7 @@
   </configurations>
   <publications>
     <artifact name="xuggle-xuggler" type="jar" conf="default" ext="jar"/>
+    <artifact name="xuggle-xuggler-noarch" type="jar" conf="default" ext="jar"/>
   </publications>
   <dependencies defaultconfmapping="*->*">
     <!-- Logging --> 

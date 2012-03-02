@@ -31,10 +31,10 @@
 # configure have been set corectly as $(MAKE) variables.
 
 # NOTE: The captive directories MUST appear before any other includes
-AM_CPPFLAGS=-I@abs_top_builddir@/captive@includedir@
+AM_CPPFLAGS=-I@abs_top_builddir@/captive/stage@includedir@
 AM_CFLAGS=
 AM_CXXFLAGS=
-AM_LDFLAGS=-L@abs_top_builddir@/captive@libdir@
+AM_LDFLAGS=-L@abs_top_builddir@/captive/stage@libdir@
 
 # Note we may include includedir twice; most compilers will ignore that if
 # $(DESTDIR) is actually empty

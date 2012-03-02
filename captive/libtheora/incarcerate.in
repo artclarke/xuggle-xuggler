@@ -19,10 +19,6 @@ fi
 
 DISABLE_ASM=
 case $HOST_OS in
-  *cygwin*)
-  CC="${CC} -mno-cygwin"
-  LDFLAGS="$LDFLAGS -mno-cygwin"
-  ;;
   *darwin*)
   DISABLE_ASM="--disable-asm"
   ;;
@@ -31,9 +27,9 @@ case $HOST_OS in
 esac
 
 CC="@CC@" \
-CFLAGS="-I@abs_top_builddir@@includedir@ @CFLAGS@" \
+CFLAGS="-I@abs_top_builddir@/stage@includedir@ @CFLAGS@" \
 LD="@LD@" \
-LDFLAGS="-L@abs_top_builddir@@libdir@ @LDFLAGS@" \
+LDFLAGS="-L@abs_top_builddir@/stage@libdir@ @LDFLAGS@" \
 CPP="@CPP@" \
 CPPFLAGS="@CPPFLAGS@" \
 CXX="@CXX@" \

@@ -19,10 +19,10 @@ FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-version=xuggle-@LIB_MAJOR_VERSION@.@LIB_
 
 # Tell FFMPEG about the captive libraries already built and fake
 # installed
-FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=-I@abs_top_builddir@@includedir@"
-FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=-L@abs_top_builddir@@libdir@"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-cflags=-I@abs_top_builddir@/stage@includedir@"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=-L@abs_top_builddir@/stage@libdir@"
 # Set up a place where pkg-config looks for installed packages
-export PKG_CONFIG_PATH="@abs_top_builddir@@libdir@/pkgconfig"
+export PKG_CONFIG_PATH="@abs_top_builddir@/stage@libdir@/pkgconfig"
 
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-shared"
 #FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-runtime-cpudetect"

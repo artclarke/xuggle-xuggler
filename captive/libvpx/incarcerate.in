@@ -69,7 +69,6 @@ fi
 # installed
 
 # shared support on vpx is limited at best
-VPX_OPTIONS="$VPX_OPTIONS --disable-shared"
 VPX_OPTIONS="$VPX_OPTIONS --enable-runtime-cpu-detect"
 
 if test ! "x$VS_DEBUG" = "x"; then
@@ -82,10 +81,9 @@ fi
 
 echo "Configuring VPX with these options: $VPX_OPTIONS"
 CROSS="@VS_CROSS_PREFIX@" \
-CFLAGS="-I@abs_top_builddir@@includedir@ @CFLAGS@" \
-LDFLAGS="-L@abs_top_builddir@@libdir@ @LDFLAGS@" \
+LDFLAGS="-L@abs_top_builddir@/stage@libdir@ @LDFLAGS@" \
 ASFLAGS="@ASFLAGS@" \
 PATH="$PATH:@abs_top_builddir@@bindir@@" bash @abs_srcdir@/csrc/configure \
-  --extra-cflags="$CFLAGS -I'@abs_top_builddir@@includedir@'" \
+  --extra-cflags="$CFLAGS -I'@abs_top_builddir@/stage@includedir@'" \
   --prefix="${prefix}" $VPX_OPTIONS || \
   (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)

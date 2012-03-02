@@ -4,7 +4,6 @@
 # the configure of the captive package you're configuring
 prefix="@prefix@"
 exec_prefix="@exec_prefix@"
-install_prefix="@abs_top_builddir@"
 HOST_OS="@HOST_OS@"
 CROSS_COMPILE="@VS_CROSS_PREFIX@"
 
@@ -65,8 +64,8 @@ fi
 
 # We use the cross-compile setting for openssl but still pass through our
 # flags
-CFLAGS="-I@abs_top_builddir@@includedir@ @CFLAGS@" \
-LDFLAGS="-L@abs_top_builddir@@libdir@ @LDFLAGS@" \
+CFLAGS="-I@abs_top_builddir@/stage@includedir@ @CFLAGS@" \
+LDFLAGS="-L@abs_top_builddir@/stage@libdir@ @LDFLAGS@" \
 CPPFLAGS="@CPPFLAGS@" \
 CXXFLAGS="@CXXFLAGS@" \
 ASFLAGS="@ASFLAGS@" \
@@ -74,8 +73,7 @@ PATH="$PATH:@abs_top_builddir@@bindir@@" sh "@abs_builddir@/csrc/Configure" \
   ${OPENSSL_CONFIG} shared zlib \
   --cross-compile-prefix="${CROSS_COMPILE}" \
   --openssldir=${prefix} \
-  --install_prefix="${install_prefix}" \
-  --with-zlib-include="@abs_top_builddir@@includedir@" \
-  --with-zlib-lib="@abs_top_builddir@@libdir@" \
+  --with-zlib-include="@abs_top_builddir@/stage@includedir@" \
+  --with-zlib-lib="@abs_top_builddir@/stage@libdir@" \
   --prefix="${prefix}" || \
   (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)
