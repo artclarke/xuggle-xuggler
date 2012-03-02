@@ -33,7 +33,7 @@
        revisions in that library's "configure.ac" file, and
        regenerate the build scripts -->
   <property name="library.version.major" value="5"/>
-  <property name="library.version.minor" value="0"/>
+  <property name="library.version.minor" value="1"/>
   <property name="license.key" value="LGPL License"/>
   <property name="app.mainclass" value="com.xuggle.xuggler.Converter"/>
   <property name="app.red5.mainclass" value="com.xuggle.xuggler.Global"/>
@@ -41,47 +41,5 @@
 
   <!-- And bring in the standard build rules -->
   <import file="mk/buildtools/buildhelper.xml"/>
-
-  <target name="install-java"
-    depends="xuggle-buildhelper.install-java, install-red5">
-  </target>
-
-  <target
-    name="install-red5"
-    depends="uninstall-red5"
-    description="Installed Red5 applications to $RED5_HOME">
-    <echo message="Installing ${app.name}.jar with native dependencies to: ${env.RED5_HOME}"/>
-    <if>
-      <available file="${env.RED5_HOME}"/>
-      <then>
-        <mkdir dir="${env.RED5_HOME}/plugins"/>
-        <copy todir="${env.RED5_HOME}/plugins">
-          <fileset dir="${dist.dir}/lib">
-            <include name="${app.name}.jar"/>
-          </fileset>
-        </copy>
-      </then>
-    </if>
-  </target>
-  <target name="uninstall-java"
-    depends="uninstall-red5, xuggle-buildhelper.uninstall-java"
-    >
-  </target>
-  <target
-    name="uninstall-red5"
-    description="Installed Red5 applications to $RED5_HOME">
-    <if>
-      <available file="${env.RED5_HOME}/plugins"/>
-      <then>
-        <echo message="Uninstalling ${app.name}.jar with native dependencies from: ${env.RED5_HOME}"/>
-        <delete>
-          <fileset dir="${env.RED5_HOME}/plugins"
-            includes="${app.name}.jar"
-            />
-        </delete>
-      </then>
-    </if>
-  </target>
-
 </project>
 
