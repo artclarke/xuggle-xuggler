@@ -36,8 +36,7 @@
   <property name="library.version.minor" value="1"/>
   <property name="license.key" value="LGPL License"/>
   <property name="app.mainclass" value="com.xuggle.xuggler.Converter"/>
-  <property name="app.red5.mainclass" value="com.xuggle.xuggler.Global"/>
-  <property name="app.red5.mainmethod" value="init"/>
+  <property name="app.nativeclasspath" value="com/xuggle/native"/>
 
   <!-- And bring in the standard build rules -->
   <import file="mk/buildtools/buildhelper.xml"/>
