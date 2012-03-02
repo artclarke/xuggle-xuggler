@@ -630,8 +630,6 @@ VS_WARN_ISERROR_FALSE
 VS_WARN_ISERROR_TRUE
 LIBOBJS
 VS_JNI_INCLUDE
-JAVAC
-JAVA
 HAVE_PERL_FALSE
 HAVE_PERL_TRUE
 PERL
@@ -16514,91 +16512,6 @@ fi
 # Look for java
 #----------------------------------------------------------------
 
-for ac_prog in
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_JAVA+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$JAVA"; then
-  ac_cv_prog_JAVA="$JAVA" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_prog_JAVA="$ac_prog"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-JAVA=$ac_cv_prog_JAVA
-if test -n "$JAVA"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $JAVA" >&5
-$as_echo "$JAVA" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$JAVA" && break
-done
-
-for ac_prog in javac
-do
-  # Extract the first word of "$ac_prog", so it can be a program name with args.
-set dummy $ac_prog; ac_word=$2
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
-$as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_JAVAC+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  if test -n "$JAVAC"; then
-  ac_cv_prog_JAVAC="$JAVAC" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
-for as_dir in $PATH
-do
-  IFS=$as_save_IFS
-  test -z "$as_dir" && as_dir=.
-    for ac_exec_ext in '' $ac_executable_extensions; do
-  if { test -f "$as_dir/$ac_word$ac_exec_ext" && $as_test_x "$as_dir/$ac_word$ac_exec_ext"; }; then
-    ac_cv_prog_JAVAC="$ac_prog"
-    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
-    break 2
-  fi
-done
-  done
-IFS=$as_save_IFS
-
-fi
-fi
-JAVAC=$ac_cv_prog_JAVAC
-if test -n "$JAVAC"; then
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $JAVAC" >&5
-$as_echo "$JAVAC" >&6; }
-else
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
-$as_echo "no" >&6; }
-fi
-
-
-  test -n "$JAVAC" && break
-done
-
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for java include file jni.h" >&5
 $as_echo_n "checking for java include file jni.h... " >&6; }
 
@@ -16610,22 +16523,34 @@ else
 fi
 
 
-if test -z "$JAVAINCDIR" ; then
-  JAVAINCDIR="/usr/j2sdk*/include /usr/local/j2sdk*/include /usr/jdk*/include /usr/local/jdk*/include /opt/j2sdk*/include /opt/jdk*/include /usr/java/include /usr/java/j2sdk*/include /usr/java/jdk*/include /usr/local/java/include /opt/java/include /usr/include/java /usr/local/include/java /usr/lib/java/include /usr/lib/jvm/java*/include /usr/include/kaffe /usr/local/include/kaffe /usr/include"
-
-  # Add in default installation directory on Windows for Cygwin
-  case $host in
-  *-*-cygwin* | *-*-mingw*) JAVAINCDIR="c:/Program*Files/Java/jdk*/include d:/Program*Files/Java/jdk*/include c:/j2sdk*/include d:/j2sdk*/include c:/jdk*/include d:/jdk*/include $JAVAINCDIR";;
-  *-*-darwin*) JAVAINCDIR="/System/Library/Frameworks/JavaVM.framework/Headers $JAVAINCDIR";;
-  *);;
-  esac
-fi
-
 if test -z "$JAVA_HOME" ; then
   JAVA_HOME=":" # Something completely invalid
 fi
+if test -z "$JAVAINCDIR" ; then
+  # Cross compiling; use the captive JNI
+  # And annoyingly at this stage the relative srcdir autoconf variable is
+  # set, but not the absolute path.  so we fake it.
+  VS_ABS_PATH=$( cd "${srcdir}" && pwd )
+  case $host in
+    *cygwin*|*mingw*)
+      JAVAINCDIR="${VS_ABS_PATH}/captive/jni/mingw32/"
+    ;;
+    *darwin*)
+      JAVAINCDIR="${VS_ABS_PATH}/captive/jni/darwin/"
+    ;;
+    *linux*)
+      JAVAINCDIR="${VS_ABS_PATH}/captive/jni/linux/"
+    ;;
+    *)
+    # And here we add several common locations on Unix like systems to try
+    # to get them to build
+    JAVAINCDIR="${JAVAINCDIR} ${JAVA_HOME}/include /usr/j2sdk*/include /usr/local/j2sdk*/include /usr/jdk*/include /usr/local/jdk*/include /opt/j2sdk*/include /opt/jdk*/include /usr/java/include /usr/java/j2sdk*/include /usr/java/jdk*/include /usr/local/java/include /opt/java/include /usr/include/java /usr/local/include/java /usr/lib/java/include /usr/lib/jvm/java*/include /usr/include/kaffe /usr/local/include/kaffe /usr/include"
+     ;;
+  esac
+fi
+
 VS_JNI_INCLUDE=""
-for d in "$JAVA_HOME/include" $JAVAINCDIR ; do
+for d in $JAVAINCDIR ; do
   if test -r "$d/jni.h" ; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: $d" >&5
 $as_echo "$d" >&6; }
@@ -16641,7 +16566,7 @@ $as_echo "not found" >&6; }
   { { $as_echo "$as_me:${as_lineno-$LINENO}: error: in \`$ac_pwd':" >&5
 $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "Could not find required Java header file jni.h.
-                  Try defining JAVA_HOME to point to where you've
+                  Try defining JAVA_HOME to point to where you've #'
                   installed the JAVA JDK
 See \`config.log' for more details" "$LINENO" 5; }
 else
