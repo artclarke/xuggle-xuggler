@@ -222,28 +222,37 @@ AM_CONDITIONAL(HAVE_PERL, [ test "x$PERL" != "x" ])
 # Look for java
 #----------------------------------------------------------------
 
-AC_CHECK_PROGS(JAVA)
-AC_CHECK_PROGS(JAVAC, javac)
-
 AC_MSG_CHECKING(for java include file jni.h)
 AC_ARG_WITH(javaincl, [  --with-javaincl=path    Set location of Java include directory], [JAVAINCDIR="$withval"], [JAVAINCDIR=])
-
-if test -z "$JAVAINCDIR" ; then
-  JAVAINCDIR="/usr/j2sdk*/include /usr/local/j2sdk*/include /usr/jdk*/include /usr/local/jdk*/include /opt/j2sdk*/include /opt/jdk*/include /usr/java/include /usr/java/j2sdk*/include /usr/java/jdk*/include /usr/local/java/include /opt/java/include /usr/include/java /usr/local/include/java /usr/lib/java/include /usr/lib/jvm/java*/include /usr/include/kaffe /usr/local/include/kaffe /usr/include"
-
-  # Add in default installation directory on Windows for Cygwin
-  case $host in
-  *-*-cygwin* | *-*-mingw*) JAVAINCDIR="c:/Program*Files/Java/jdk*/include d:/Program*Files/Java/jdk*/include c:/j2sdk*/include d:/j2sdk*/include c:/jdk*/include d:/jdk*/include $JAVAINCDIR";;
-  *-*-darwin*) JAVAINCDIR="/System/Library/Frameworks/JavaVM.framework/Headers $JAVAINCDIR";;
-  *);;
-  esac
-fi
 
 if test -z "$JAVA_HOME" ; then
   JAVA_HOME=":" # Something completely invalid
 fi
+if test -z "$JAVAINCDIR" ; then
+  # Cross compiling; use the captive JNI
+  # And annoyingly at this stage the relative srcdir autoconf variable is
+  # set, but not the absolute path.  so we fake it.
+  VS_ABS_PATH=$( cd "${srcdir}" && pwd )
+  case $host in
+    *cygwin*|*mingw*)
+      JAVAINCDIR="${VS_ABS_PATH}/captive/jni/mingw32/"
+    ;;
+    *darwin*)
+      JAVAINCDIR="${VS_ABS_PATH}/captive/jni/darwin/"
+    ;;
+    *linux*)
+      JAVAINCDIR="${VS_ABS_PATH}/captive/jni/linux/"
+    ;;
+    *)
+    # And here we add several common locations on Unix like systems to try
+    # to get them to build
+    JAVAINCDIR="${JAVAINCDIR} ${JAVA_HOME}/include /usr/j2sdk*/include /usr/local/j2sdk*/include /usr/jdk*/include /usr/local/jdk*/include /opt/j2sdk*/include /opt/jdk*/include /usr/java/include /usr/java/j2sdk*/include /usr/java/jdk*/include /usr/local/java/include /opt/java/include /usr/include/java /usr/local/include/java /usr/lib/java/include /usr/lib/jvm/java*/include /usr/include/kaffe /usr/local/include/kaffe /usr/include"
+     ;;
+  esac
+fi
+
 VS_JNI_INCLUDE=""
-for d in "$JAVA_HOME/include" $JAVAINCDIR ; do
+for d in $JAVAINCDIR ; do
   if test -r "$d/jni.h" ; then
     AC_MSG_RESULT($d)
     JAVAINCDIR=$d
@@ -255,7 +264,7 @@ done
 if test "$VS_JNI_INCLUDE" = "" ; then
   AC_MSG_RESULT(not found)
   AC_MSG_FAILURE([Could not find required Java header file jni.h. 
-                  Try defining JAVA_HOME to point to where you've
+                  Try defining JAVA_HOME to point to where you've #'
                   installed the JAVA JDK])
 else
   # now look for <arch>/jni_md.h
