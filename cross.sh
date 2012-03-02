@@ -54,9 +54,12 @@ darwin_lipo()
   echo "Complete: darwin_lipo"
 }
 
+# Stage each individual OS, then stage the java code.
 case $HOST in
   *darwin*)
-    darwin_lipo && \
+    ant -Dbuild.configure.os=${VS_MAC32} stage-native && \
+    ant -Dbuild.configure.os=${VS_MAC64} stage-native && \
+    ant -Dbuild.configure.os=${VS_MAC64} stage-java && \
     true
   ;;
   *linux*)
@@ -64,16 +67,19 @@ case $HOST in
     ant -Dbuild.configure.os=${VS_LIN64} stage-native && \
     ant -Dbuild.configure.os=${VS_WIN32} stage-native && \
     ant -Dbuild.configure.os=${VS_WIN64} stage-native && \
+    ant -Dbuild.configure.os=${VS_WIN64} stage-java && \
     true
   ;;
   *mingw*)
     case $HOST in
       *x86_64*)
         ant -Dbuild.configure.os=${VS_WIN64} stage-native && \
+        ant -Dbuild.configure.os=${VS_WIN64} stage-java && \
         true
       ;;
       *)
         ant -Dbuild.configure.os=${VS_WIN32} stage-native && \
+        ant -Dbuild.configure.os=${VS_WIN32} stage-java && \
         true
       ;;
     esac
