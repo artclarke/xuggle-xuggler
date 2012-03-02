@@ -681,7 +681,7 @@
       description="Publishes the jar files to XUGGLE_HOME">
   </target>
   <target name="install-native"
-      depends="init install-native-do"
+      depends="init, install-native-do"
       description="Publishes the native files to XUGGLE_HOME">
   </target>
   <target name="install-native-do"
