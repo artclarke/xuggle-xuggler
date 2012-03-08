@@ -12,9 +12,6 @@
 /* Define to 1 if you have the atanf() function. */
 #undef HAVE_ATANF
 
-/* Define to 1 if you have the <audiofile.h> header file. */
-#undef HAVE_AUDIOFILE_H
-
 /* Define to 1 if you have the ceilf() function. */
 #undef HAVE_CEILF
 
@@ -27,11 +24,17 @@
 /* Define to 1 if you don't have `vprintf' but do have `_doprnt.' */
 #undef HAVE_DOPRNT
 
+/* Define to 1 if you have the `drand48' function. */
+#undef HAVE_DRAND48
+
 /* Define to 1 if you have the expf() function. */
 #undef HAVE_EXPF
 
 /* Define to 1 if you have the <fcntl.h> header file. */
 #undef HAVE_FCNTL_H
+
+/* Define to 1 if you have the <fenv.h> header file. */
+#undef HAVE_FENV_H
 
 /* Define to 1 if you have the <fftw3.h> header file. */
 #undef HAVE_FFTW3_H
@@ -130,6 +133,9 @@
 /* Define to 1 if you have the `memset' function. */
 #undef HAVE_MEMSET
 
+/* Define to 1 if you have the <pcap.h> header file. */
+#undef HAVE_PCAP_H
+
 /* Define to 1 if you have the powf() function. */
 #undef HAVE_POWF
 
@@ -145,6 +151,9 @@
 
 /* Define to 1 if you have the sinf() function. */
 #undef HAVE_SINF
+
+/* Define to 1 if you have the <sndfile.h> header file. */
+#undef HAVE_SNDFILE_H
 
 /* Define to 1 if you have the <socket.h> header file. */
 #undef HAVE_SOCKET_H
@@ -221,10 +230,6 @@
 /* Define to 1 if you have the <X11/X.h> header file. */
 #undef HAVE_X11_X_H
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
-#undef LT_OBJDIR
-
 /* Name of package */
 #undef PACKAGE
 
@@ -239,9 +244,6 @@
 
 /* Define to the one symbol short name of this package. */
 #undef PACKAGE_TARNAME
-
-/* Define to the home page for this package. */
-#undef PACKAGE_URL
 
 /* Define to the version of this package. */
 #undef PACKAGE_VERSION
@@ -290,6 +292,9 @@
 
 /* Use the SSE5 instruction set (i386 and x86_64 only). */
 #undef SPANDSP_USE_SSE5
+
+/* Use the SSSE3 instruction set (i386 and x86_64 only). */
+#undef SPANDSP_USE_SSSE3
 
 /* Define to 1 if you have the ANSI C header files. */
 #undef STDC_HEADERS

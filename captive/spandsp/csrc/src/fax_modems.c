@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: fax_modems.c,v 1.5 2009/04/12 03:29:58 steveu Exp $
  */
 
 /*! \file */
@@ -88,7 +86,7 @@
 
 #define HDLC_FRAMING_OK_THRESHOLD               5
 
-SPAN_DECLARE(int) fax_modems_v17_v21_rx(void *user_data, const int16_t amp[], int len)
+SPAN_DECLARE_NONSTD(int) fax_modems_v17_v21_rx(void *user_data, const int16_t amp[], int len)
 {
     fax_modems_state_t *s;
 
@@ -101,13 +99,14 @@ SPAN_DECLARE(int) fax_modems_v17_v21_rx(void *user_data, const int16_t amp[], in
            be receiving valid V.21 */
         span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.17 + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&s->v21_rx));
         s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+        s->rx_fillin_handler = (span_rx_fillin_handler_t *) &fsk_rx_fillin;
         s->rx_user_data = &s->v21_rx;
     }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) fax_modems_v17_v21_rx_fillin(void *user_data, int len)
+SPAN_DECLARE_NONSTD(int) fax_modems_v17_v21_rx_fillin(void *user_data, int len)
 {
     fax_modems_state_t *s;
 
@@ -118,7 +117,7 @@ SPAN_DECLARE(int) fax_modems_v17_v21_rx_fillin(void *user_data, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) fax_modems_v27ter_v21_rx(void *user_data, const int16_t amp[], int len)
+SPAN_DECLARE_NONSTD(int) fax_modems_v27ter_v21_rx(void *user_data, const int16_t amp[], int len)
 {
     fax_modems_state_t *s;
 
@@ -131,13 +130,14 @@ SPAN_DECLARE(int) fax_modems_v27ter_v21_rx(void *user_data, const int16_t amp[],
            be receiving valid V.21 */
         span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.27ter + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&s->v21_rx));
         s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+        s->rx_fillin_handler = (span_rx_fillin_handler_t *) &fsk_rx_fillin;
         s->rx_user_data = &s->v21_rx;
     }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) fax_modems_v27ter_v21_rx_fillin(void *user_data, int len)
+SPAN_DECLARE_NONSTD(int) fax_modems_v27ter_v21_rx_fillin(void *user_data, int len)
 {
     fax_modems_state_t *s;
 
@@ -148,7 +148,7 @@ SPAN_DECLARE(int) fax_modems_v27ter_v21_rx_fillin(void *user_data, int len)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) fax_modems_v29_v21_rx(void *user_data, const int16_t amp[], int len)
+SPAN_DECLARE_NONSTD(int) fax_modems_v29_v21_rx(void *user_data, const int16_t amp[], int len)
 {
     fax_modems_state_t *s;
 
@@ -161,13 +161,14 @@ SPAN_DECLARE(int) fax_modems_v29_v21_rx(void *user_data, const int16_t amp[], in
            be receiving valid V.21 */
         span_log(&s->logging, SPAN_LOG_FLOW, "Switching from V.29 + V.21 to V.21 (%.2fdBm0)\n", fsk_rx_signal_power(&s->v21_rx));
         s->rx_handler = (span_rx_handler_t *) &fsk_rx;
+        s->rx_fillin_handler = (span_rx_fillin_handler_t *) &fsk_rx_fillin;
         s->rx_user_data = &s->v21_rx;
     }
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) fax_modems_v29_v21_rx_fillin(void *user_data, int len)
+SPAN_DECLARE_NONSTD(int) fax_modems_v29_v21_rx_fillin(void *user_data, int len)
 {
     fax_modems_state_t *s;
 
@@ -196,6 +197,7 @@ static void v17_rx_status_handler(void *user_data, int status)
     case SIG_STATUS_TRAINING_SUCCEEDED:
         span_log(&s->logging, SPAN_LOG_FLOW, "Switching to V.17 (%.2fdBm0)\n", v17_rx_signal_power(&s->v17_rx));
         s->rx_handler = (span_rx_handler_t *) &v17_rx;
+        s->rx_fillin_handler = (span_rx_fillin_handler_t *) &v17_rx_fillin;
         s->rx_user_data = &s->v17_rx;
         break;
     }
@@ -212,6 +214,7 @@ static void v27ter_rx_status_handler(void *user_data, int status)
     case SIG_STATUS_TRAINING_SUCCEEDED:
         span_log(&s->logging, SPAN_LOG_FLOW, "Switching to V.27ter (%.2fdBm0)\n", v27ter_rx_signal_power(&s->v27ter_rx));
         s->rx_handler = (span_rx_handler_t *) &v27ter_rx;
+        s->rx_fillin_handler = (span_rx_fillin_handler_t *) &v27ter_rx_fillin;
         s->rx_user_data = &s->v27ter_rx;
         break;
     }
@@ -228,6 +231,7 @@ static void v29_rx_status_handler(void *user_data, int status)
     case SIG_STATUS_TRAINING_SUCCEEDED:
         span_log(&s->logging, SPAN_LOG_FLOW, "Switching to V.29 (%.2fdBm0)\n", v29_rx_signal_power(&s->v29_rx));
         s->rx_handler = (span_rx_handler_t *) &v29_rx;
+        s->rx_fillin_handler = (span_rx_fillin_handler_t *) &v29_rx_fillin;
         s->rx_user_data = &s->v29_rx;
         break;
     }
@@ -258,6 +262,12 @@ SPAN_DECLARE(void) fax_modems_set_tep_mode(fax_modems_state_t *s, int use_tep)
 }
 /*- End of function --------------------------------------------------------*/
 
+SPAN_DECLARE(int) fax_modems_restart(fax_modems_state_t *s)
+{
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
 SPAN_DECLARE(fax_modems_state_t *) fax_modems_init(fax_modems_state_t *s,
                                                    int use_tep,
                                                    hdlc_frame_handler_t hdlc_accept,
@@ -277,7 +287,7 @@ SPAN_DECLARE(fax_modems_state_t *) fax_modems_init(fax_modems_state_t *s,
 
     hdlc_rx_init(&s->hdlc_rx, FALSE, FALSE, HDLC_FRAMING_OK_THRESHOLD, hdlc_accept, user_data);
     hdlc_tx_init(&s->hdlc_tx, FALSE, 2, FALSE, hdlc_tx_underflow, user_data);
-    fsk_rx_init(&s->v21_rx, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, &s->hdlc_rx);
+    fsk_rx_init(&s->v21_rx, &preset_fsk_specs[FSK_V21CH2], FSK_FRAME_MODE_SYNC, (put_bit_func_t) hdlc_rx_put_bit, &s->hdlc_rx);
     fsk_rx_signal_cutoff(&s->v21_rx, -39.09f);
     fsk_tx_init(&s->v21_tx, &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &s->hdlc_tx);
     v17_rx_init(&s->v17_rx, 14400, non_ecm_put_bit, user_data);
@@ -300,6 +310,7 @@ SPAN_DECLARE(fax_modems_state_t *) fax_modems_init(fax_modems_state_t *s,
 
     s->rx_signal_present = FALSE;
     s->rx_handler = (span_rx_handler_t *) &span_dummy_rx;
+    s->rx_fillin_handler = (span_rx_fillin_handler_t *) &span_dummy_rx;
     s->rx_user_data = NULL;
     s->tx_handler = (span_tx_handler_t *) &silence_gen;
     s->tx_user_data = &s->silence_gen;

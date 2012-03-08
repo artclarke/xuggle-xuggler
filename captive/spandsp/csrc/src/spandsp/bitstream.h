@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: bitstream.h,v 1.14 2009/02/10 13:06:47 steveu Exp $
  */
 
 /*! \file */
@@ -39,7 +37,6 @@
 /*! Bitstream handler state */
 typedef struct bitstream_state_s bitstream_state_t;
 
-
 #if defined(__cplusplus)
 extern "C"
 {
@@ -52,8 +49,6 @@ extern "C"
     \param bits The number of bits of value to be pushed. 1 to 25 bits is valid. */
 SPAN_DECLARE(void) bitstream_put(bitstream_state_t *s, uint8_t **c, uint32_t value, int bits);
 
-SPAN_DECLARE(void) bitstream_put2(bitstream_state_t *s, uint8_t **c, uint32_t value, int bits);
-
 /*! \brief Get a chunk of bits from the input buffer.
     \param s A pointer to the bitstream context.
     \param c A pointer to the bitstream input buffer.
@@ -61,19 +56,24 @@ SPAN_DECLARE(void) bitstream_put2(bitstream_state_t *s, uint8_t **c, uint32_t va
     \return The value retrieved from the input buffer. */
 SPAN_DECLARE(uint32_t) bitstream_get(bitstream_state_t *s, const uint8_t **c, int bits);
 
-SPAN_DECLARE(uint32_t) bitstream_get2(bitstream_state_t *s, const uint8_t **c, int bits);
+/*! \brief Emit any residual bits to the output buffer, without actually flushing them.
+           This is useful for getting the buffer fully up to date, ready for things
+           like CRC calculations, while allowing bitstream_put() to be used to continue
+           the message later.
+    \param s A pointer to the bitstream context.
+    \param c A pointer to the bitstream output buffer. */
+SPAN_DECLARE(void) bitstream_emit(bitstream_state_t *s, uint8_t **c);
 
-/*! \brief Flush any residual bit to the output buffer.
+/*! \brief Flush any residual bits to the output buffer.
     \param s A pointer to the bitstream context.
     \param c A pointer to the bitstream output buffer. */
 SPAN_DECLARE(void) bitstream_flush(bitstream_state_t *s, uint8_t **c);
 
-SPAN_DECLARE(void) bitstream_flush2(bitstream_state_t *s, uint8_t **c);
-
 /*! \brief Initialise a bitstream context.
     \param s A pointer to the bitstream context.
+    \param lsb_first TRUE if the bit stream is LSB first, else its MSB first.
     \return A pointer to the bitstream context. */
-SPAN_DECLARE(bitstream_state_t *) bitstream_init(bitstream_state_t *s);
+SPAN_DECLARE(bitstream_state_t *) bitstream_init(bitstream_state_t *s, int direction);
 
 SPAN_DECLARE(int) bitstream_release(bitstream_state_t *s);
 

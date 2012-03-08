@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: spandsp.h.in,v 1.18 2009/04/02 13:43:49 steveu Exp $
  */
 
 /*! \file */
@@ -69,6 +67,7 @@
 #include <spandsp/complex_filters.h>
 #include <spandsp/dc_restore.h>
 #include <spandsp/dds.h>
+#include <spandsp/swept_tone.h>
 #include <spandsp/echo.h>
 #include <spandsp/modem_echo.h>
 #include <spandsp/crc.h>
@@ -87,18 +86,26 @@
 #include <spandsp/fsk.h>
 #include <spandsp/modem_connect_tones.h>
 #include <spandsp/silence_gen.h>
+#include <spandsp/v8.h>
+#include <spandsp/v42.h>
+#include <spandsp/v42bis.h>
 #include <spandsp/v29rx.h>
 #include <spandsp/v29tx.h>
 #include <spandsp/v17rx.h>
 #include <spandsp/v17tx.h>
+/*#include <spandsp/v32bis.h>*/
 #include <spandsp/v22bis.h>
 #include <spandsp/v27ter_rx.h>
 #include <spandsp/v27ter_tx.h>
-#include <spandsp/v8.h>
+/*#include <spandsp/v34.h>*/
 #include <spandsp/v18.h>
-#include <spandsp/v42.h>
-#include <spandsp/v42bis.h>
-#include <spandsp/t4.h>
+#include <spandsp/t4_rx.h>
+#include <spandsp/t4_tx.h>
+#include <spandsp/image_translate.h>
+#include <spandsp/t4_t6_decode.h>
+#include <spandsp/t4_t6_encode.h>
+/*#include <spandsp/t81_t82_arith_coding.h>*/
+/*#include <spandsp/t85.h>*/
 #include <spandsp/t30.h>
 #include <spandsp/t30_api.h>
 #include <spandsp/t30_fcf.h>
@@ -121,6 +128,7 @@
 #include <spandsp/gsm0610.h>
 #include <spandsp/plc.h>
 #include <spandsp/playout.h>
+#include <spandsp/timezone.h>
 
 #endif
 

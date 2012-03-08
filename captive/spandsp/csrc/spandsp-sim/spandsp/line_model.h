@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: line_model.h,v 1.5 2009/01/31 08:48:10 steveu Exp $
  */
 
 /*! \file */
@@ -70,7 +68,7 @@ typedef struct
     codec_munge_state_t *munge;
 
     /*! The coefficients for the near end analogue section simulation filter */
-    float *near_filter;
+    const float *near_filter;
     /*! The number of coefficients for the near end analogue section simulation filter */
     int near_filter_len;
     /*! Last transmitted samples (ring buffer, used by the line filter) */
@@ -88,7 +86,7 @@ typedef struct
     int16_t bulk_delay_buf[8000];
 
     /*! The coefficients for the far end analogue section simulation filter */
-    float *far_filter;
+    const float *far_filter;
     /*! The number of coefficients for the far end analogue section simulation filter */
     int far_filter_len;
     /*! Last transmitted samples (ring buffer, used by the line filter) */
@@ -132,6 +130,8 @@ extern "C"
 {
 #endif
 
+SPAN_DECLARE_DATA extern const float *line_models[];
+
 SPAN_DECLARE(void) both_ways_line_model(both_ways_line_model_state_t *s, 
                                         int16_t output1[],
                                         const int16_t input1[],
@@ -143,12 +143,16 @@ SPAN_DECLARE(void) both_ways_line_model_set_dc(both_ways_line_model_state_t *s, 
 
 SPAN_DECLARE(void) both_ways_line_model_set_mains_pickup(both_ways_line_model_state_t *s, int f, float level1, float level2);
     
-SPAN_DECLARE(both_ways_line_model_state_t) *both_ways_line_model_init(int model1,
-                                                                      float noise1,
-                                                                      int model2,
-                                                                      float noise2,
-                                                                      int codec,
-                                                                      int rbs_pattern);
+SPAN_DECLARE(both_ways_line_model_state_t *) both_ways_line_model_init(int model1,
+                                                                       float noise1,
+                                                                       float echo_level_cpe1,
+                                                                       float echo_level_co1,
+                                                                       int model2,
+                                                                       float noise2,
+                                                                       float echo_level_cpe2,
+                                                                       float echo_level_co2,
+                                                                       int codec,
+                                                                       int rbs_pattern);
 
 SPAN_DECLARE(int) both_ways_line_model_release(both_ways_line_model_state_t *s);
 
@@ -161,7 +165,7 @@ SPAN_DECLARE(void) one_way_line_model_set_dc(one_way_line_model_state_t *s, floa
 
 SPAN_DECLARE(void) one_way_line_model_set_mains_pickup(one_way_line_model_state_t *s, int f, float level);
 
-SPAN_DECLARE(one_way_line_model_state_t) *one_way_line_model_init(int model, float noise, int codec, int rbs_pattern);
+SPAN_DECLARE(one_way_line_model_state_t *) one_way_line_model_init(int model, float noise, int codec, int rbs_pattern);
 
 SPAN_DECLARE(int) one_way_line_model_release(one_way_line_model_state_t *s);
 

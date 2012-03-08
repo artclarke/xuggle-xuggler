@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: modem_connect_tones_tests.c,v 1.29 2008/11/30 10:17:31 steveu Exp $
  */
 
 /*! \page modem_connect_tones_tests_page Modem connect tones tests
@@ -42,7 +40,7 @@ These tests...
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
-#include <audiofile.h>
+#include <sndfile.h>
 
 //#if defined(WITH_SPANDSP_INTERNALS)
 #define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
@@ -61,10 +59,20 @@ These tests...
 #define FALSE 0
 #define TRUE (!FALSE)
 
-#define LEVEL_MAX                   0
+#define LEVEL_MAX                   -5
 #define LEVEL_MIN                   -48
 #define LEVEL_MIN_ACCEPT            -43
 #define LEVEL_MIN_REJECT            -44
+
+/* The 1100Hz tone is supposed to be within 38Hz, according to T.30. Allow another 8Hz for FDM, even though
+   you rarely see that used today. */
+#define CED_FREQ_TOLERANCE          (38 + 8)
+#define CED_FREQ_BLACKOUT           (80)
+/* The 2100Hz tone is supposed to be within 15Hz, according to T.30. Allow another 8Hz for FDM, even though
+   you rarely see that used today. */
+#define CNG_FREQ_TOLERANCE          (15 + 8)
+#define CNG_FREQ_BLACKOUT           (80)
+#define AM_FREQ_TOLERANCE           (1)
 
 const char *bellcore_files[] =
 {
@@ -88,13 +96,21 @@ enum
     PERFORM_TEST_2A = (1 << 6),
     PERFORM_TEST_2B = (1 << 7),
     PERFORM_TEST_2C = (1 << 8),
-    PERFORM_TEST_3A = (1 << 9),
-    PERFORM_TEST_3B = (1 << 10),
-    PERFORM_TEST_3C = (1 << 11),
-    PERFORM_TEST_4 = (1 << 12),
-    PERFORM_TEST_5A = (1 << 13),
-    PERFORM_TEST_5B = (1 << 14),
-    PERFORM_TEST_6 = (1 << 15)
+    PERFORM_TEST_2D = (1 << 9),
+    PERFORM_TEST_2E = (1 << 10),
+    PERFORM_TEST_3A = (1 << 11),
+    PERFORM_TEST_3B = (1 << 12),
+    PERFORM_TEST_3C = (1 << 13),
+    PERFORM_TEST_3D = (1 << 14),
+    PERFORM_TEST_3E = (1 << 15),
+    PERFORM_TEST_4 = (1 << 16),
+    PERFORM_TEST_5A = (1 << 17),
+    PERFORM_TEST_5B = (1 << 18),
+    PERFORM_TEST_6A = (1 << 19),
+    PERFORM_TEST_6B = (1 << 20),
+    PERFORM_TEST_7A = (1 << 21),
+    PERFORM_TEST_7B = (1 << 22),
+    PERFORM_TEST_8 = (1 << 23)
 };
 
 int preamble_count = 0;
@@ -129,10 +145,18 @@ static int preamble_get_bit(void *user_data)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void preamble_detected(void *user_data, int on, int level, int delay)
+static void cng_detected(void *user_data, int tone, int level, int delay)
 {
-    printf("%s (%d) declared at bit %d (%ddBm0)\n", modem_connect_tone_to_str(on), on, preamble_count, level);
-    if (on)
+    printf("%s (%d) declared at %fs, delay %d (%ddBm0)\n", modem_connect_tone_to_str(tone), tone, (float) when/SAMPLE_RATE, delay, level);
+    if (tone == MODEM_CONNECT_TONES_FAX_CNG)
+        hits++;
+}
+/*- End of function --------------------------------------------------------*/
+
+static void preamble_detected(void *user_data, int tone, int level, int delay)
+{
+    printf("%s (%d) declared at bit %d (%ddBm0)\n", modem_connect_tone_to_str(tone), tone, preamble_count, level);
+    if (tone == MODEM_CONNECT_TONES_FAX_PREAMBLE)
         preamble_on_at = preamble_count;
     else
         preamble_off_at = preamble_count;
@@ -140,34 +164,22 @@ static void preamble_detected(void *user_data, int on, int level, int delay)
 }
 /*- End of function --------------------------------------------------------*/
 
-static void ced_detected(void *user_data, int on, int level, int delay)
+static void ced_detected(void *user_data, int tone, int level, int delay)
 {
-    printf("%s (%d) declared at %fs, delay %d (%ddBm0)\n", modem_connect_tone_to_str(on), on, (float) when/SAMPLE_RATE, delay, level);
-    if (on)
+    printf("%s (%d) declared at %fs, delay %d (%ddBm0)\n", modem_connect_tone_to_str(tone), tone, (float) when/SAMPLE_RATE, delay, level);
+    if (tone == MODEM_CONNECT_TONES_FAX_PREAMBLE
+        ||
+        tone == MODEM_CONNECT_TONES_ANS)
+    {
         hits++;
+    }
 }
 /*- End of function --------------------------------------------------------*/
 
-static void ans_pr_detected(void *user_data, int on, int level, int delay)
+static void ans_pr_detected(void *user_data, int tone, int level, int delay)
 {
-    printf("%s (%d) declared at %fs, delay %d (%ddBm0)\n", modem_connect_tone_to_str(on), on, (float) when/SAMPLE_RATE, delay, level);
-    if (on == MODEM_CONNECT_TONES_ANS_PR)
-        hits++;
-}
-/*- End of function --------------------------------------------------------*/
-
-static void cng_detected(void *user_data, int on, int level, int delay)
-{
-    printf("%s (%d) declared at %fs, delay %d (%ddBm0)\n", modem_connect_tone_to_str(on), on, (float) when/SAMPLE_RATE, delay, level);
-    if (on)
-        hits++;
-}
-/*- End of function --------------------------------------------------------*/
-
-static void ec_dis_detected(void *user_data, int on, int level, int delay)
-{
-    printf("%s (%d) declared at %fs, delay %d (%ddBm0)\n", modem_connect_tone_to_str(on), on, (float) when/SAMPLE_RATE, delay, level);
-    if (on)
+    printf("%s (%d) declared at %fs, delay %d (%ddBm0)\n", modem_connect_tone_to_str(tone), tone, (float) when/SAMPLE_RATE, delay, level);
+    if (tone == MODEM_CONNECT_TONES_ANS_PR)
         hits++;
 }
 /*- End of function --------------------------------------------------------*/
@@ -177,6 +189,7 @@ int main(int argc, char *argv[])
     int i;
     int j;
     int pitch;
+    int depth;
     int level;
     int interval;
     int cycle;
@@ -186,21 +199,20 @@ int main(int argc, char *argv[])
     modem_connect_tones_rx_state_t ans_pr_rx;
     modem_connect_tones_tx_state_t modem_tone_tx;
     awgn_state_t chan_noise_source;
-    AFfilehandle inhandle;
-    AFfilehandle outhandle;
+    SNDFILE *inhandle;
+    SNDFILE *outhandle;
     int outframes;
     int frames;
     int samples;
     int hit;
     int false_hit;
     int false_miss;
-    tone_gen_descriptor_t tone_desc;
-    tone_gen_state_t tone_tx;
     power_meter_t power_state;
     int power;
     int max_power;
     int level2;
     int max_level2;
+    int tone_type;
     int test_list;
     int opt;
     char *decode_test_file;
@@ -241,20 +253,36 @@ int main(int argc, char *argv[])
             test_list |= PERFORM_TEST_2B;
         else if (strcasecmp(argv[i], "2c") == 0)
             test_list |= PERFORM_TEST_2C;
+        else if (strcasecmp(argv[i], "2d") == 0)
+            test_list |= PERFORM_TEST_2D;
+        else if (strcasecmp(argv[i], "2e") == 0)
+            test_list |= PERFORM_TEST_2E;
         else if (strcasecmp(argv[i], "3a") == 0)
             test_list |= PERFORM_TEST_3A;
         else if (strcasecmp(argv[i], "3b") == 0)
             test_list |= PERFORM_TEST_3B;
         else if (strcasecmp(argv[i], "3c") == 0)
             test_list |= PERFORM_TEST_3C;
+        else if (strcasecmp(argv[i], "3d") == 0)
+            test_list |= PERFORM_TEST_3D;
+        else if (strcasecmp(argv[i], "3e") == 0)
+            test_list |= PERFORM_TEST_3E;
         else if (strcasecmp(argv[i], "4") == 0)
             test_list |= PERFORM_TEST_4;
         else if (strcasecmp(argv[i], "5a") == 0)
             test_list |= PERFORM_TEST_5A;
         else if (strcasecmp(argv[i], "5b") == 0)
             test_list |= PERFORM_TEST_5B;
-        else if (strcasecmp(argv[i], "6") == 0)
-            test_list |= PERFORM_TEST_6;
+        else if (strcasecmp(argv[i], "6a") == 0)
+            test_list |= PERFORM_TEST_6A;
+        else if (strcasecmp(argv[i], "6b") == 0)
+            test_list |= PERFORM_TEST_6B;
+        else if (strcasecmp(argv[i], "7a") == 0)
+            test_list |= PERFORM_TEST_7A;
+        else if (strcasecmp(argv[i], "7b") == 0)
+            test_list |= PERFORM_TEST_7B;
+        else if (strcasecmp(argv[i], "8") == 0)
+            test_list |= PERFORM_TEST_8;
         else
         {
             fprintf(stderr, "Unknown test '%s' specified\n", argv[i]);
@@ -264,9 +292,9 @@ int main(int argc, char *argv[])
     if (decode_test_file == NULL  &&  test_list == 0)
         test_list = 0xFFFFFFFF;
 
-    if ((outhandle = afOpenFile_telephony_write(OUTPUT_FILE_NAME, 1)) == AF_NULL_FILEHANDLE)
+    if ((outhandle = sf_open_telephony_write(OUTPUT_FILE_NAME, 1)) == NULL)
     {
-        fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME);
+        fprintf(stderr, "    Cannot create audio file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
     }
 
@@ -277,13 +305,10 @@ int main(int argc, char *argv[])
         for (i = 0;  i < 20*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
         {
             samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
-            outframes = afWriteFrames(outhandle,
-                                      AF_DEFAULT_TRACK,
-                                      amp,
-                                      samples);
+            outframes = sf_writef_short(outhandle, amp, samples);
             if (outframes != samples)
             {
-                fprintf(stderr, "    Error writing wave file\n");
+                fprintf(stderr, "    Error writing audio file\n");
                 exit(2);
             }
             /*endif*/
@@ -299,13 +324,10 @@ int main(int argc, char *argv[])
         for (i = 0;  i < 20*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
         {
             samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
-            outframes = afWriteFrames(outhandle,
-                                      AF_DEFAULT_TRACK,
-                                      amp,
-                                      samples);
+            outframes = sf_writef_short(outhandle, amp, samples);
             if (outframes != samples)
             {
-                fprintf(stderr, "    Error writing wave file\n");
+                fprintf(stderr, "    Error writing audio file\n");
                 exit(2);
             }
             /*endif*/
@@ -316,19 +338,16 @@ int main(int argc, char *argv[])
 
     if ((test_list & PERFORM_TEST_1C))
     {
-        printf("Test 1c: ANSAM (Modulated ANS) generation to a file\n");
+        printf("Test 1c: ANSam (Modulated ANS) generation to a file\n");
         /* Some with modulation */
         modem_connect_tones_tx_init(&modem_tone_tx, MODEM_CONNECT_TONES_ANSAM);
         for (i = 0;  i < 20*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
         {
             samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
-            outframes = afWriteFrames(outhandle,
-                                      AF_DEFAULT_TRACK,
-                                      amp,
-                                      samples);
+            outframes = sf_writef_short(outhandle, amp, samples);
             if (outframes != samples)
             {
-                fprintf(stderr, "    Error writing wave file\n");
+                fprintf(stderr, "    Error writing audio file\n");
                 exit(2);
             }
             /*endif*/
@@ -339,19 +358,16 @@ int main(int argc, char *argv[])
 
     if ((test_list & PERFORM_TEST_1D))
     {
-        printf("Test 1d: ANS PR (EC-disable) generation to a file\n");
-        /* Some without modulation */
+        printf("Test 1d: ANS/ (EC-disable) generation to a file\n");
+        /* Some without modulation, but with phase reversals */
         modem_connect_tones_tx_init(&modem_tone_tx, MODEM_CONNECT_TONES_ANS_PR);
         for (i = 0;  i < 20*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
         {
             samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
-            outframes = afWriteFrames(outhandle,
-                                      AF_DEFAULT_TRACK,
-                                      amp,
-                                      samples);
+            outframes = sf_writef_short(outhandle, amp, samples);
             if (outframes != samples)
             {
-                fprintf(stderr, "    Error writing wave file\n");
+                fprintf(stderr, "    Error writing audio file\n");
                 exit(2);
             }
             /*endif*/
@@ -362,19 +378,16 @@ int main(int argc, char *argv[])
     
     if ((test_list & PERFORM_TEST_1E))
     {
-        printf("Test 1e: ANSAM PR (Modulated EC-disable) generation to a file\n");
-        /* Some with modulation */
+        printf("Test 1e: ANSam/ (Modulated EC-disable) generation to a file\n");
+        /* Some with modulation and phase reversals */
         modem_connect_tones_tx_init(&modem_tone_tx, MODEM_CONNECT_TONES_ANSAM_PR);
         for (i = 0;  i < 20*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
         {
             samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
-            outframes = afWriteFrames(outhandle,
-                                      AF_DEFAULT_TRACK,
-                                      amp,
-                                      samples);
+            outframes = sf_writef_short(outhandle, amp, samples);
             if (outframes != samples)
             {
-                fprintf(stderr, "    Error writing wave file\n");
+                fprintf(stderr, "    Error writing audio file\n");
                 exit(2);
             }
             /*endif*/
@@ -383,9 +396,9 @@ int main(int argc, char *argv[])
     }
     /*endif*/
 
-    if (afCloseFile(outhandle) != 0)
+    if (sf_close(outhandle) != 0)
     {
-        printf("    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
+        printf("    Cannot close audio file '%s'\n", OUTPUT_FILE_NAME);
         exit(2);
     }
     /*endif*/
@@ -393,24 +406,17 @@ int main(int argc, char *argv[])
     if ((test_list & PERFORM_TEST_2A))
     {
         printf("Test 2a: CNG detection with frequency\n");
+        tone_type = MODEM_CONNECT_TONES_FAX_CNG;
         awgn_init_dbm0(&chan_noise_source, 7162534, -50.0f);
         false_hit = FALSE;
         false_miss = FALSE;
-        for (pitch = 600;  pitch < 1600;  pitch++)
+        for (pitch = 600;  pitch <= 1600;  pitch++)
         {
-            make_tone_gen_descriptor(&tone_desc,
-                                     pitch,
-                                     -11,
-                                     0,
-                                     0,
-                                     425,
-                                     3000,
-                                     0,
-                                     0,
-                                     TRUE);
-            tone_gen_init(&tone_tx, &tone_desc);
-
-            modem_connect_tones_rx_init(&cng_rx, MODEM_CONNECT_TONES_FAX_CNG, NULL, NULL);
+            /* Use the transmitter to test the receiver */
+            modem_connect_tones_tx_init(&modem_tone_tx, tone_type);
+            /* Fudge things for the test */
+            modem_tone_tx.tone_phase_rate = dds_phase_rate(pitch);
+            modem_connect_tones_rx_init(&cng_rx, tone_type, NULL, NULL);
             power_meter_init(&power_state, 5);
             power = 0;
             max_power = 0;
@@ -418,7 +424,7 @@ int main(int argc, char *argv[])
             max_level2 = 0;
             for (i = 0;  i < 10*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
             {
-                samples = tone_gen(&tone_tx, amp, SAMPLES_PER_CHUNK);
+                samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
                 for (j = 0;  j < samples;  j++)
                 {
                     amp[j] += awgn(&chan_noise_source);
@@ -435,21 +441,21 @@ int main(int argc, char *argv[])
             }
             /*endfor*/
             hit = modem_connect_tones_rx_get(&cng_rx);
-            if (pitch < (1100 - 70)  ||  pitch > (1100 + 70))
+            if (pitch < (1100 - CED_FREQ_BLACKOUT)  ||  pitch > (1100 + CED_FREQ_BLACKOUT))
             {
-                if (hit == MODEM_CONNECT_TONES_FAX_CNG)
+                if (hit != MODEM_CONNECT_TONES_NONE)
                     false_hit = TRUE;
                 /*endif*/
             }
-            else if (pitch > (1100 - 50)  &&  pitch < (1100 + 50))
+            else if (pitch > (1100 - CED_FREQ_TOLERANCE)  &&  pitch < (1100 + CED_FREQ_TOLERANCE))
             {
-                if (hit != MODEM_CONNECT_TONES_FAX_CNG)
+                if (hit != tone_type)
                     false_miss = TRUE;
                 /*endif*/
             }
             /*endif*/
-            if (hit)
-                printf("Detected at %5dHz %12d %12d %d\n", pitch, cng_rx.channel_level, cng_rx.notch_level, hit);
+            if (hit != MODEM_CONNECT_TONES_NONE)
+                printf("Detected at %5dHz %12" PRId32 " %12" PRId32 " %d\n", pitch, cng_rx.channel_level, cng_rx.notch_level, hit);
             /*endif*/
         }
         /*endfor*/
@@ -462,7 +468,7 @@ int main(int argc, char *argv[])
         printf("Test passed.\n");
     }
     /*endif*/
-    
+
     if ((test_list & PERFORM_TEST_2B))
     {
         printf("Test 2b: CED/ANS detection with frequency\n");
@@ -471,22 +477,14 @@ int main(int argc, char *argv[])
         false_miss = FALSE;
         for (pitch = 1600;  pitch < 2600;  pitch++)
         {
-            make_tone_gen_descriptor(&tone_desc,
-                                     pitch,
-                                     -11,
-                                     0,
-                                     0,
-                                     2600,
-                                     0,
-                                     0,
-                                     0,
-                                     FALSE);
-            tone_gen_init(&tone_tx, &tone_desc);
-
+            /* Use the transmitter to test the receiver */
+            modem_connect_tones_tx_init(&modem_tone_tx, MODEM_CONNECT_TONES_ANS);
+            /* Fudge things for the test */
+            modem_tone_tx.tone_phase_rate = dds_phase_rate(pitch);
             modem_connect_tones_rx_init(&ced_rx, MODEM_CONNECT_TONES_FAX_CED_OR_PREAMBLE, NULL, NULL);
             for (i = 0;  i < 10*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
             {
-                samples = tone_gen(&tone_tx, amp, SAMPLES_PER_CHUNK);
+                samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
                 for (j = 0;  j < samples;  j++)
                     amp[j] += awgn(&chan_noise_source);
                 /*endfor*/
@@ -494,19 +492,21 @@ int main(int argc, char *argv[])
             }
             /*endfor*/
             hit = modem_connect_tones_rx_get(&ced_rx);
-            if (pitch < (2100 - 70)  ||  pitch > (2100 + 70))
+            if (pitch < (2100 - CNG_FREQ_BLACKOUT)  ||  pitch > (2100 + CNG_FREQ_BLACKOUT))
             {
-                if (hit == MODEM_CONNECT_TONES_FAX_CED)
+                if (hit != MODEM_CONNECT_TONES_NONE)
                     false_hit = TRUE;
+                /*endif*/
             }
-            else if (pitch > (2100 - 50)  &&  pitch < (2100 + 50))
+            else if (pitch > (2100 - CNG_FREQ_TOLERANCE)  &&  pitch < (2100 + CNG_FREQ_TOLERANCE))
             {
                 if (hit != MODEM_CONNECT_TONES_FAX_CED)
                     false_miss = TRUE;
+                /*endif*/
             }
             /*endif*/
-            if (hit)
-                printf("Detected at %5dHz %12d %12d %d\n", pitch, ced_rx.channel_level, ced_rx.notch_level, hit);
+            if (hit != MODEM_CONNECT_TONES_NONE)
+                printf("Detected at %5dHz %12" PRId32 " %12" PRId32 " %d\n", pitch, ced_rx.channel_level, ced_rx.notch_level, hit);
             /*endif*/
         }
         if (false_hit  ||  false_miss)
@@ -521,18 +521,18 @@ int main(int argc, char *argv[])
 
     if ((test_list & PERFORM_TEST_2C))
     {
-        printf("Test 2c: EC disable detection with frequency\n");
+        printf("Test 2c: ANSam detection with frequency\n");
+        tone_type = MODEM_CONNECT_TONES_ANSAM;
         awgn_init_dbm0(&chan_noise_source, 7162534, -50.0f);
         false_hit = FALSE;
         false_miss = FALSE;
-        for (pitch = 2000;  pitch < 2200;  pitch++)
+        for (pitch = 2000;  pitch <= 2200;  pitch++)
         {
             /* Use the transmitter to test the receiver */
-            modem_connect_tones_tx_init(&modem_tone_tx, MODEM_CONNECT_TONES_ANS_PR);
+            modem_connect_tones_tx_init(&modem_tone_tx, tone_type);
             /* Fudge things for the test */
             modem_tone_tx.tone_phase_rate = dds_phase_rate(pitch);
-            modem_tone_tx.level = dds_scaling_dbm0(-25);
-            modem_connect_tones_rx_init(&ans_pr_rx, MODEM_CONNECT_TONES_ANS_PR, NULL, NULL);
+            modem_connect_tones_rx_init(&ans_pr_rx, tone_type, NULL, NULL);
             for (i = 0;  i < 10*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
             {
                 samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
@@ -543,21 +543,125 @@ int main(int argc, char *argv[])
             }
             /*endfor*/
             hit = modem_connect_tones_rx_get(&ans_pr_rx);
-            if (pitch < (2100 - 70)  ||  pitch > (2100 + 70))
+            if (pitch < (2100 - CNG_FREQ_BLACKOUT)  ||  pitch > (2100 + CNG_FREQ_BLACKOUT))
             {
-                if (hit == MODEM_CONNECT_TONES_ANS_PR)
+                if (hit != MODEM_CONNECT_TONES_NONE)
                     false_hit = TRUE;
                 /*endif*/
             }
-            else if (pitch > (2100 - 50)  &&  pitch < (2100 + 50))
+            else if (pitch > (2100 - CNG_FREQ_TOLERANCE)  &&  pitch < (2100 + CNG_FREQ_TOLERANCE))
             {
-                if (hit != MODEM_CONNECT_TONES_ANS_PR)
+                if (hit != tone_type)
                     false_miss = TRUE;
                 /*endif*/
             }
             /*endif*/
-            if (hit)
-                printf("Detected at %5dHz %12d %12d %d\n", pitch, ans_pr_rx.channel_level, ans_pr_rx.notch_level, hit);
+            if (hit != MODEM_CONNECT_TONES_NONE)
+                printf("Detected at %5dHz %12" PRId32 " %12" PRId32 " %d\n", pitch, ans_pr_rx.channel_level, ans_pr_rx.notch_level, hit);
+            /*endif*/
+        }
+        /*endfor*/
+        if (false_hit  ||  false_miss)
+        {
+            printf("Test failed.\n");
+            exit(2);
+        }
+        /*endif*/
+        printf("Test passed.\n");
+    }
+    /*endif*/
+
+    if ((test_list & PERFORM_TEST_2D))
+    {
+        printf("Test 2d: ANS/ (EC-disable) detection with frequency\n");
+        tone_type = MODEM_CONNECT_TONES_ANS_PR;
+        awgn_init_dbm0(&chan_noise_source, 7162534, -50.0f);
+        false_hit = FALSE;
+        false_miss = FALSE;
+        for (pitch = 2000;  pitch <= 2200;  pitch++)
+        {
+            /* Use the transmitter to test the receiver */
+            modem_connect_tones_tx_init(&modem_tone_tx, tone_type);
+            /* Fudge things for the test */
+            modem_tone_tx.tone_phase_rate = dds_phase_rate(pitch);
+            modem_connect_tones_rx_init(&ans_pr_rx, tone_type, NULL, NULL);
+            for (i = 0;  i < 10*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
+            {
+                samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
+                for (j = 0;  j < samples;  j++)
+                    amp[j] += awgn(&chan_noise_source);
+                /*endfor*/
+                modem_connect_tones_rx(&ans_pr_rx, amp, samples);
+            }
+            /*endfor*/
+            hit = modem_connect_tones_rx_get(&ans_pr_rx);
+            if (pitch < (2100 - CNG_FREQ_BLACKOUT)  ||  pitch > (2100 + CNG_FREQ_BLACKOUT))
+            {
+                if (hit != MODEM_CONNECT_TONES_NONE)
+                    false_hit = TRUE;
+                /*endif*/
+            }
+            else if (pitch > (2100 - CNG_FREQ_TOLERANCE)  &&  pitch < (2100 + CNG_FREQ_TOLERANCE))
+            {
+                if (hit != tone_type)
+                    false_miss = TRUE;
+                /*endif*/
+            }
+            /*endif*/
+            if (hit != MODEM_CONNECT_TONES_NONE)
+                printf("Detected at %5dHz %12" PRId32 " %12" PRId32 " %d\n", pitch, ans_pr_rx.channel_level, ans_pr_rx.notch_level, hit);
+            /*endif*/
+        }
+        /*endfor*/
+        if (false_hit  ||  false_miss)
+        {
+            printf("Test failed.\n");
+            exit(2);
+        }
+        /*endif*/
+        printf("Test passed.\n");
+    }
+    /*endif*/
+
+    if ((test_list & PERFORM_TEST_2E))
+    {
+        printf("Test 2e: ANSam/ (Modulated EC-disable) detection with frequency\n");
+        tone_type = MODEM_CONNECT_TONES_ANSAM_PR;
+        awgn_init_dbm0(&chan_noise_source, 7162534, -50.0f);
+        false_hit = FALSE;
+        false_miss = FALSE;
+        for (pitch = 2000;  pitch <= 2200;  pitch++)
+        {
+            /* Use the transmitter to test the receiver */
+            modem_connect_tones_tx_init(&modem_tone_tx, tone_type);
+            /* Fudge things for the test */
+            modem_tone_tx.tone_phase_rate = dds_phase_rate(pitch);
+            modem_connect_tones_rx_init(&ans_pr_rx, tone_type, NULL, NULL);
+            for (i = 0;  i < 10*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
+            {
+                samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
+                for (j = 0;  j < samples;  j++)
+                    amp[j] += awgn(&chan_noise_source);
+                /*endfor*/
+                modem_connect_tones_rx(&ans_pr_rx, amp, samples);
+            }
+            /*endfor*/
+            hit = modem_connect_tones_rx_get(&ans_pr_rx);
+            if (pitch < (2100 - CNG_FREQ_BLACKOUT)  ||  pitch > (2100 + CNG_FREQ_BLACKOUT))
+            {
+                if (hit != MODEM_CONNECT_TONES_NONE)
+                    false_hit = TRUE;
+                /*endif*/
+            }
+            else if (pitch > (2100 - CNG_FREQ_TOLERANCE)  &&  pitch < (2100 + CNG_FREQ_TOLERANCE))
+            {
+                if (hit != tone_type)
+                    false_miss = TRUE;
+                /*endif*/
+            }
+            /*endif*/
+            if (hit != MODEM_CONNECT_TONES_NONE)
+                printf("Detected at %5dHz %12" PRId32 " %12" PRId32 " %d\n", pitch, ans_pr_rx.channel_level, ans_pr_rx.notch_level, hit);
             /*endif*/
         }
         /*endfor*/
@@ -574,29 +678,23 @@ int main(int argc, char *argv[])
     if ((test_list & PERFORM_TEST_3A))
     {
         printf("Test 3a: CNG detection with level\n");
+        tone_type = MODEM_CONNECT_TONES_FAX_CNG;
         awgn_init_dbm0(&chan_noise_source, 7162534, -60.0f);
         false_hit = FALSE;
         false_miss = FALSE;
-        for (pitch = 1062;  pitch <= 1138;  pitch += 2*38)
+        for (pitch = 1100 - CED_FREQ_TOLERANCE;  pitch <= 1100 + CED_FREQ_TOLERANCE;  pitch += 2*CED_FREQ_TOLERANCE)
         {
             for (level = LEVEL_MAX;  level >= LEVEL_MIN;  level--)
             {
-                make_tone_gen_descriptor(&tone_desc,
-                                         pitch,
-                                         level,
-                                         0,
-                                         0,
-                                         500,
-                                         3000,
-                                         0,
-                                         0,
-                                         TRUE);
-                tone_gen_init(&tone_tx, &tone_desc);
-
-                modem_connect_tones_rx_init(&cng_rx, MODEM_CONNECT_TONES_FAX_CNG, NULL, NULL);
+                /* Use the transmitter to test the receiver */
+                modem_connect_tones_tx_init(&modem_tone_tx, tone_type);
+                /* Fudge things for the test */
+                modem_tone_tx.tone_phase_rate = dds_phase_rate(pitch);
+                modem_tone_tx.level = dds_scaling_dbm0(level);
+                modem_connect_tones_rx_init(&cng_rx, tone_type, NULL, NULL);
                 for (i = 0;  i < 10*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
                 {
-                    samples = tone_gen(&tone_tx, amp, SAMPLES_PER_CHUNK);
+                    samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
                     for (j = 0;  j < samples;  j++)
                         amp[j] += awgn(&chan_noise_source);
                     /*endfor*/
@@ -606,25 +704,19 @@ int main(int argc, char *argv[])
                 hit = modem_connect_tones_rx_get(&cng_rx);
                 if (level < LEVEL_MIN_REJECT)
                 {
-                    if (hit == MODEM_CONNECT_TONES_FAX_CNG)
-                    {
-                        printf("False hit %d at %ddB\n", hit, level);
+                    if (hit != MODEM_CONNECT_TONES_NONE)
                         false_hit = TRUE;
-                    }
                     /*endif*/
                 }
                 else if (level > LEVEL_MIN_ACCEPT)
                 {
-                    if (hit != MODEM_CONNECT_TONES_FAX_CNG)
-                    {
-                        printf("False miss %d at %ddB\n", hit, level);
+                    if (hit != tone_type)
                         false_miss = TRUE;
-                    }
                     /*endif*/
                 }
                 /*endif*/
-                if (hit)
-                    printf("Detected at %5dHz %4ddB %12d %12d %d\n", pitch, level, cng_rx.channel_level, cng_rx.notch_level, hit);
+                if (hit != MODEM_CONNECT_TONES_NONE)
+                    printf("Detected at %5dHz %4ddB %12" PRId32 " %12" PRId32 " %d\n", pitch, level, cng_rx.channel_level, cng_rx.notch_level, hit);
                 /*endif*/
             }
             /*endfor*/
@@ -643,28 +735,23 @@ int main(int argc, char *argv[])
     if ((test_list & PERFORM_TEST_3B))
     {
         printf("Test 3b: CED/ANS detection with level\n");
+        tone_type = MODEM_CONNECT_TONES_ANS;
         awgn_init_dbm0(&chan_noise_source, 7162534, -60.0f);
         false_hit = FALSE;
         false_miss = FALSE;
-        for (pitch = 2062;  pitch <= 2138;  pitch += 2*38)
+        for (pitch = 2100 - CNG_FREQ_TOLERANCE;  pitch <= 2100 + CNG_FREQ_TOLERANCE;  pitch += 2*CNG_FREQ_TOLERANCE)
         {
             for (level = LEVEL_MAX;  level >= LEVEL_MIN;  level--)
             {
-                make_tone_gen_descriptor(&tone_desc,
-                                         pitch,
-                                         level,
-                                         0,
-                                         0,
-                                         2600,
-                                         0,
-                                         0,
-                                         0,
-                                         FALSE);
-                tone_gen_init(&tone_tx, &tone_desc);
+                /* Use the transmitter to test the receiver */
+                modem_connect_tones_tx_init(&modem_tone_tx, tone_type);
+                /* Fudge things for the test */
+                modem_tone_tx.tone_phase_rate = dds_phase_rate(pitch);
+                modem_tone_tx.level = dds_scaling_dbm0(level);
                 modem_connect_tones_rx_init(&ced_rx, MODEM_CONNECT_TONES_FAX_CED_OR_PREAMBLE, NULL, NULL);
                 for (i = 0;  i < 10*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
                 {
-                    samples = tone_gen(&tone_tx, amp, SAMPLES_PER_CHUNK);
+                    samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
                     for (j = 0;  j < samples;  j++)
                         amp[j] += awgn(&chan_noise_source);
                     /*endfor*/
@@ -674,19 +761,19 @@ int main(int argc, char *argv[])
                 hit = modem_connect_tones_rx_get(&ced_rx);
                 if (level < LEVEL_MIN_REJECT)
                 {
-                    if (hit == MODEM_CONNECT_TONES_FAX_CED)
+                    if (hit != MODEM_CONNECT_TONES_NONE)
                         false_hit = TRUE;
                     /*endif*/
                 }
                 else if (level > LEVEL_MIN_ACCEPT)
                 {
-                    if (hit != MODEM_CONNECT_TONES_FAX_CED)
+                    if (hit != tone_type)
                         false_miss = TRUE;
                     /*endif*/
                 }
                 /*endif*/
-                if (hit)
-                    printf("Detected at %5dHz %4ddB %12d %12d %d\n", pitch, level, ced_rx.channel_level, ced_rx.notch_level, hit);
+                if (hit != MODEM_CONNECT_TONES_NONE)
+                    printf("Detected at %5dHz %4ddB %12" PRId32 " %12" PRId32 " %d\n", pitch, level, ced_rx.channel_level, ced_rx.notch_level, hit);
                 /*endif*/
             }
             /*endfor*/
@@ -704,20 +791,23 @@ int main(int argc, char *argv[])
 
     if ((test_list & PERFORM_TEST_3C))
     {
-        printf("Test 3c: EC disable detection with level\n");
+        printf("Test 3c: ANSam detection with level\n");
+        tone_type = MODEM_CONNECT_TONES_ANSAM;
         awgn_init_dbm0(&chan_noise_source, 7162534, -60.0f);
         false_hit = FALSE;
         false_miss = FALSE;
-        for (pitch = 2062;  pitch <= 2138;  pitch += 2*38)
+        for (pitch = 2100 - CNG_FREQ_TOLERANCE;  pitch <= 2100 + CNG_FREQ_TOLERANCE;  pitch += 2*CNG_FREQ_TOLERANCE)
         {
-            for (level = LEVEL_MAX;  level >= LEVEL_MIN;  level--)
+            //for (level = LEVEL_MAX;  level >= LEVEL_MIN;  level--)
+            for (level = -26;  level >= -26;  level--)
             {
                 /* Use the transmitter to test the receiver */
-                modem_connect_tones_tx_init(&modem_tone_tx, MODEM_CONNECT_TONES_ANS_PR);
+                modem_connect_tones_tx_init(&modem_tone_tx, tone_type);
                 /* Fudge things for the test */
                 modem_tone_tx.tone_phase_rate = dds_phase_rate(pitch);
                 modem_tone_tx.level = dds_scaling_dbm0(level);
-                modem_connect_tones_rx_init(&ans_pr_rx, MODEM_CONNECT_TONES_ANS_PR, NULL, NULL);
+                modem_tone_tx.mod_level = modem_tone_tx.level*20/100;
+                modem_connect_tones_rx_init(&ans_pr_rx, tone_type, NULL, NULL);
                 for (i = 0;  i < 10*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
                 {
                     samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
@@ -730,19 +820,134 @@ int main(int argc, char *argv[])
                 hit = modem_connect_tones_rx_get(&ans_pr_rx);
                 if (level < LEVEL_MIN_REJECT)
                 {
-                    if (hit == MODEM_CONNECT_TONES_ANS_PR)
+                    if (hit != MODEM_CONNECT_TONES_NONE)
                         false_hit = TRUE;
                     /*endif*/
                 }
                 else if (level > LEVEL_MIN_ACCEPT)
                 {
-                    if (hit != MODEM_CONNECT_TONES_ANS_PR)
+                    if (hit != tone_type)
                         false_miss = TRUE;
                     /*endif*/
                 }
                 /*endif*/
-                if (hit)
-                    printf("Detected at %5dHz %4ddB %12d %12d %d\n", pitch, level, ans_pr_rx.channel_level, ans_pr_rx.notch_level, hit);
+                //if (hit != MODEM_CONNECT_TONES_NONE)
+                    printf("Detected at %5dHz %4ddB %12" PRId32 " %12" PRId32 " %d\n", pitch, level, ans_pr_rx.channel_level, ans_pr_rx.notch_level, hit);
+                /*endif*/
+            }
+            /*endfor*/
+        }
+        /*endfor*/
+        if (false_hit  ||  false_miss)
+        {
+            printf("Test failed.\n");
+            exit(2);
+        }
+        /*endif*/
+        printf("Test passed.\n");
+    }
+    /*endif*/
+
+    if ((test_list & PERFORM_TEST_3D))
+    {
+        printf("Test 3d: ANS/ (EC-disable) detection with level\n");
+        tone_type = MODEM_CONNECT_TONES_ANS_PR;
+        awgn_init_dbm0(&chan_noise_source, 7162534, -60.0f);
+        false_hit = FALSE;
+        false_miss = FALSE;
+        for (pitch = 2100 - CNG_FREQ_TOLERANCE;  pitch <= 2100 + CNG_FREQ_TOLERANCE;  pitch += 2*CNG_FREQ_TOLERANCE)
+        {
+            for (level = LEVEL_MAX;  level >= LEVEL_MIN;  level--)
+            {
+                /* Use the transmitter to test the receiver */
+                modem_connect_tones_tx_init(&modem_tone_tx, tone_type);
+                /* Fudge things for the test */
+                modem_tone_tx.tone_phase_rate = dds_phase_rate(pitch);
+                modem_tone_tx.level = dds_scaling_dbm0(level);
+                modem_connect_tones_rx_init(&ans_pr_rx, tone_type, NULL, NULL);
+                for (i = 0;  i < 10*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
+                {
+                    samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
+                    for (j = 0;  j < samples;  j++)
+                        amp[j] += awgn(&chan_noise_source);
+                    /*endfor*/
+                    modem_connect_tones_rx(&ans_pr_rx, amp, samples);
+                }
+                /*endfor*/
+                hit = modem_connect_tones_rx_get(&ans_pr_rx);
+                if (level < LEVEL_MIN_REJECT)
+                {
+                    if (hit != MODEM_CONNECT_TONES_NONE)
+                        false_hit = TRUE;
+                    /*endif*/
+                }
+                else if (level > LEVEL_MIN_ACCEPT)
+                {
+                    if (hit != tone_type)
+                        false_miss = TRUE;
+                    /*endif*/
+                }
+                /*endif*/
+                if (hit != MODEM_CONNECT_TONES_NONE)
+                    printf("Detected at %5dHz %4ddB %12" PRId32 " %12" PRId32 " %d\n", pitch, level, ans_pr_rx.channel_level, ans_pr_rx.notch_level, hit);
+                /*endif*/
+            }
+            /*endfor*/
+        }
+        /*endfor*/
+        if (false_hit  ||  false_miss)
+        {
+            printf("Test failed.\n");
+            exit(2);
+        }
+        /*endif*/
+        printf("Test passed.\n");
+    }
+    /*endif*/
+
+    if ((test_list & PERFORM_TEST_3E))
+    {
+        printf("Test 3e: ANSam/ (Modulated EC-disable) detection with level\n");
+        tone_type = MODEM_CONNECT_TONES_ANSAM_PR;
+        awgn_init_dbm0(&chan_noise_source, 7162534, -60.0f);
+        false_hit = FALSE;
+        false_miss = FALSE;
+        for (pitch = 2100 - CNG_FREQ_TOLERANCE;  pitch <= 2100 + CNG_FREQ_TOLERANCE;  pitch += 2*CNG_FREQ_TOLERANCE)
+        {
+            for (level = LEVEL_MAX;  level >= LEVEL_MIN;  level--)
+            {
+                /* Use the transmitter to test the receiver */
+                modem_connect_tones_tx_init(&modem_tone_tx, tone_type);
+                /* Fudge things for the test */
+                modem_tone_tx.tone_phase_rate = dds_phase_rate(pitch);
+                modem_tone_tx.level = dds_scaling_dbm0(level);
+                modem_tone_tx.mod_level = modem_tone_tx.level*20/100;
+                modem_connect_tones_rx_init(&ans_pr_rx, tone_type, NULL, NULL);
+                for (i = 0;  i < 10*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
+                {
+                    samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
+                    for (j = 0;  j < samples;  j++)
+                        amp[j] += awgn(&chan_noise_source);
+                    /*endfor*/
+                    modem_connect_tones_rx(&ans_pr_rx, amp, samples);
+                }
+                /*endfor*/
+                hit = modem_connect_tones_rx_get(&ans_pr_rx);
+                if (level < LEVEL_MIN_REJECT)
+                {
+                    if (hit != MODEM_CONNECT_TONES_NONE)
+                        false_hit = TRUE;
+                    /*endif*/
+                }
+                else if (level > LEVEL_MIN_ACCEPT)
+                {
+                    if (hit != tone_type)
+                        false_miss = TRUE;
+                    /*endif*/
+                }
+                /*endif*/
+                if (hit != MODEM_CONNECT_TONES_NONE)
+                    printf("Detected at %5dHz %4ddB %12" PRId32 " %12" PRId32 " %d\n", pitch, level, ans_pr_rx.channel_level, ans_pr_rx.notch_level, hit);
                 /*endif*/
             }
             /*endfor*/
@@ -794,21 +999,17 @@ int main(int argc, char *argv[])
 
     if ((test_list & PERFORM_TEST_5A))
     {
-        printf("Test 5A: ANS/ANS PR detection with reversal interval\n");
+        printf("Test 5A: ANS and ANS/ detection with reversal interval\n");
+        tone_type = MODEM_CONNECT_TONES_ANS_PR;
         awgn_init_dbm0(&chan_noise_source, 7162534, -60.0f);
         false_hit = FALSE;
         false_miss = FALSE;
-        pitch = 2100;
-        level = -15;
         for (interval = 400;  interval < 800;  interval++)
         {
             printf("Reversal interval = %d\n", interval);
             /* Use the transmitter to test the receiver */
-            modem_connect_tones_tx_init(&modem_tone_tx, MODEM_CONNECT_TONES_ANS_PR);
-            /* Fudge things for the test */
-            modem_tone_tx.tone_phase_rate = dds_phase_rate(pitch);
-            modem_tone_tx.level = dds_scaling_dbm0(level);
-            modem_connect_tones_rx_init(&ans_pr_rx, MODEM_CONNECT_TONES_ANS_PR, ans_pr_detected, NULL);
+            modem_connect_tones_tx_init(&modem_tone_tx, tone_type);
+            modem_connect_tones_rx_init(&ans_pr_rx, tone_type, ans_pr_detected, NULL);
             hits = 0;
             for (i = 0;  i < 10*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
             {
@@ -844,7 +1045,7 @@ int main(int argc, char *argv[])
             }
             /*endif*/
             if (hits)
-                printf("Detected at %5dHz %4ddB %dms %12d %12d %d\n", pitch, level, interval, ans_pr_rx.channel_level, ans_pr_rx.notch_level, hits);
+                printf("Detected at %5dHz %4ddB %dms %12" PRId32 " %12" PRId32 " %d\n", 2100, -11, interval, ans_pr_rx.channel_level, ans_pr_rx.notch_level, hits);
             /*endif*/
         }
         /*endfor*/
@@ -860,22 +1061,18 @@ int main(int argc, char *argv[])
 
     if ((test_list & PERFORM_TEST_5B))
     {
-        printf("Test 5B: ANS/ANS PR detection with mixed reversal intervals\n");
+        printf("Test 5B: ANS and ANS/ detection with mixed reversal intervals\n");
         awgn_init_dbm0(&chan_noise_source, 7162534, -60.0f);
+        tone_type = MODEM_CONNECT_TONES_ANS_PR;
         false_hit = FALSE;
         false_miss = FALSE;
-        pitch = 2100;
-        level = -15;
         interval = 450;
         printf("Reversal interval = %d\n", interval);
         /* Use the transmitter to test the receiver */
-        modem_connect_tones_tx_init(&modem_tone_tx, MODEM_CONNECT_TONES_ANS_PR);
-        /* Fudge things for the test */
-        modem_tone_tx.tone_phase_rate = dds_phase_rate(pitch);
-        modem_tone_tx.level = dds_scaling_dbm0(level);
-        modem_connect_tones_rx_init(&ans_pr_rx, MODEM_CONNECT_TONES_ANS_PR, ans_pr_detected, NULL);
-        hits = 0;
+        modem_connect_tones_tx_init(&modem_tone_tx, tone_type);
+        modem_connect_tones_rx_init(&ans_pr_rx, tone_type, ans_pr_detected, NULL);
         cycle = 0;
+        hits = 0;
         for (i = 0;  i < 60*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
         {
             when = i;
@@ -898,6 +1095,7 @@ int main(int argc, char *argv[])
                 amp[j] += awgn(&chan_noise_source);
             /*endfor*/
             modem_connect_tones_rx(&ans_pr_rx, amp, samples);
+            /* TODO: Add test result detection logic. */
         }
         /*endfor*/
         if (false_hit  ||  false_miss)
@@ -910,7 +1108,217 @@ int main(int argc, char *argv[])
     }
     /*endif*/
 
-    if ((test_list & PERFORM_TEST_6))
+    if ((test_list & PERFORM_TEST_6A))
+    {
+        printf("Test 6a: ANSam detection with AM pitch\n");
+        tone_type = MODEM_CONNECT_TONES_ANSAM;
+        awgn_init_dbm0(&chan_noise_source, 7162534, -50.0f);
+        false_hit = FALSE;
+        false_miss = FALSE;
+        for (pitch = 5;  pitch < 25;  pitch++)
+        {
+            /* Use the transmitter to test the receiver */
+            modem_connect_tones_tx_init(&modem_tone_tx, tone_type);
+            /* Fudge things for the test */
+            modem_tone_tx.mod_phase_rate = dds_phase_rate(pitch);
+            modem_connect_tones_rx_init(&ans_pr_rx, tone_type, NULL, NULL);
+            for (i = 0;  i < 10*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
+            {
+                samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
+                for (j = 0;  j < samples;  j++)
+                    amp[j] += awgn(&chan_noise_source);
+                /*endfor*/
+                modem_connect_tones_rx(&ans_pr_rx, amp, samples);
+            }
+            /*endfor*/
+            hit = modem_connect_tones_rx_get(&ans_pr_rx);
+            if (pitch < (15 - 10)  ||  pitch > (15 + 10))
+            {
+                if (hit == tone_type)
+                    false_hit = TRUE;
+                /*endif*/
+            }
+            else if (pitch > (15 - AM_FREQ_TOLERANCE)  &&  pitch < (15 + AM_FREQ_TOLERANCE))
+            {
+                if (hit != tone_type)
+                    false_miss = TRUE;
+                /*endif*/
+            }
+            /*endif*/
+            if (hit != MODEM_CONNECT_TONES_NONE)
+                printf("Detected at %5dHz %12" PRId32 " %12" PRId32 " %d\n", pitch, ans_pr_rx.channel_level, ans_pr_rx.notch_level, hit);
+            /*endif*/
+        }
+        /*endfor*/
+        if (false_hit  ||  false_miss)
+        {
+            printf("Test failed.\n");
+            exit(2);
+        }
+        /*endif*/
+        printf("Test passed.\n");
+    }
+    /*endif*/
+
+    if ((test_list & PERFORM_TEST_6B))
+    {
+        printf("Test 6b: ANSam/ (Modulated EC-disable) detection with AM pitch\n");
+        tone_type = MODEM_CONNECT_TONES_ANSAM_PR;
+        awgn_init_dbm0(&chan_noise_source, 7162534, -50.0f);
+        false_hit = FALSE;
+        false_miss = FALSE;
+        for (pitch = 5;  pitch < 25;  pitch++)
+        {
+            /* Use the transmitter to test the receiver */
+            modem_connect_tones_tx_init(&modem_tone_tx, tone_type);
+            /* Fudge things for the test */
+            modem_tone_tx.mod_phase_rate = dds_phase_rate(pitch);
+            modem_connect_tones_rx_init(&ans_pr_rx, tone_type, NULL, NULL);
+            for (i = 0;  i < 10*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
+            {
+                samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
+                for (j = 0;  j < samples;  j++)
+                    amp[j] += awgn(&chan_noise_source);
+                /*endfor*/
+                modem_connect_tones_rx(&ans_pr_rx, amp, samples);
+            }
+            /*endfor*/
+            hit = modem_connect_tones_rx_get(&ans_pr_rx);
+            if (pitch < (15 - 10)  ||  pitch > (15 + 10))
+            {
+                if (hit == tone_type)
+                    false_hit = TRUE;
+                /*endif*/
+            }
+            else if (pitch > (15 - AM_FREQ_TOLERANCE)  &&  pitch < (15 + AM_FREQ_TOLERANCE))
+            {
+                if (hit != tone_type)
+                    false_miss = TRUE;
+                /*endif*/
+            }
+            /*endif*/
+            if (hit != MODEM_CONNECT_TONES_NONE)
+                printf("Detected at %5dHz %12" PRId32 " %12" PRId32 " %d\n", pitch, ans_pr_rx.channel_level, ans_pr_rx.notch_level, hit);
+            /*endif*/
+        }
+        /*endfor*/
+        if (false_hit  ||  false_miss)
+        {
+            printf("Test failed.\n");
+            exit(2);
+        }
+        /*endif*/
+        printf("Test passed.\n");
+    }
+    /*endif*/
+
+    if ((test_list & PERFORM_TEST_7A))
+    {
+        printf("Test 7a: ANSam detection with AM depth\n");
+        tone_type = MODEM_CONNECT_TONES_ANSAM;
+        pitch = 2100;
+        awgn_init_dbm0(&chan_noise_source, 7162534, -50.0f);
+        false_hit = FALSE;
+        false_miss = FALSE;
+        for (depth = 0;  depth < 40;  depth++)
+        {
+            /* Use the transmitter to test the receiver */
+            modem_connect_tones_tx_init(&modem_tone_tx, tone_type);
+            /* Fudge things for the test */
+            modem_tone_tx.mod_level = modem_tone_tx.level*depth/100;
+            modem_connect_tones_rx_init(&ans_pr_rx, tone_type, NULL, NULL);
+            for (i = 0;  i < 10*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
+            {
+                samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
+                for (j = 0;  j < samples;  j++)
+                    amp[j] += awgn(&chan_noise_source);
+                /*endfor*/
+                modem_connect_tones_rx(&ans_pr_rx, amp, samples);
+            }
+            /*endfor*/
+            hit = modem_connect_tones_rx_get(&ans_pr_rx);
+            if (depth < 10)
+            {
+                if (hit == tone_type)
+                    false_hit = TRUE;
+                /*endif*/
+            }
+            else if (depth > 15)
+            {
+                if (hit != tone_type)
+                    false_miss = TRUE;
+                /*endif*/
+            }
+            /*endif*/
+            if (hit != MODEM_CONNECT_TONES_NONE)
+                printf("Detected at %5dHz %12" PRId32 " %12" PRId32 " %d\n", pitch, ans_pr_rx.channel_level, ans_pr_rx.notch_level, hit);
+            /*endif*/
+        }
+        /*endfor*/
+        if (false_hit  ||  false_miss)
+        {
+            printf("Test failed.\n");
+            exit(2);
+        }
+        /*endif*/
+        printf("Test passed.\n");
+    }
+    /*endif*/
+
+    if ((test_list & PERFORM_TEST_7B))
+    {
+        printf("Test 7b: ANSam/ (Modulated EC-disable) detection with AM depth\n");
+        tone_type = MODEM_CONNECT_TONES_ANSAM_PR;
+        pitch = 2100;
+        awgn_init_dbm0(&chan_noise_source, 7162534, -50.0f);
+        false_hit = FALSE;
+        false_miss = FALSE;
+        for (depth = 0;  depth < 40;  depth++)
+        {
+            /* Use the transmitter to test the receiver */
+            modem_connect_tones_tx_init(&modem_tone_tx, tone_type);
+            /* Fudge things for the test */
+            modem_tone_tx.mod_level = modem_tone_tx.level*depth/100;
+            modem_connect_tones_rx_init(&ans_pr_rx, tone_type, NULL, NULL);
+            for (i = 0;  i < 10*SAMPLE_RATE;  i += SAMPLES_PER_CHUNK)
+            {
+                samples = modem_connect_tones_tx(&modem_tone_tx, amp, SAMPLES_PER_CHUNK);
+                for (j = 0;  j < samples;  j++)
+                    amp[j] += awgn(&chan_noise_source);
+                /*endfor*/
+                modem_connect_tones_rx(&ans_pr_rx, amp, samples);
+            }
+            /*endfor*/
+            hit = modem_connect_tones_rx_get(&ans_pr_rx);
+            if (depth < 10)
+            {
+                if (hit == tone_type)
+                    false_hit = TRUE;
+                /*endif*/
+            }
+            else if (depth > 15)
+            {
+                if (hit != tone_type)
+                    false_miss = TRUE;
+                /*endif*/
+            }
+            /*endif*/
+            if (hit != MODEM_CONNECT_TONES_NONE)
+                printf("Detected at %5dHz %12" PRId32 " %12" PRId32 " %d\n", pitch, ans_pr_rx.channel_level, ans_pr_rx.notch_level, hit);
+            /*endif*/
+        }
+        /*endfor*/
+        if (false_hit  ||  false_miss)
+        {
+            printf("Test failed.\n");
+            exit(2);
+        }
+        /*endif*/
+        printf("Test passed.\n");
+    }
+    /*endif*/
+
+    if ((test_list & PERFORM_TEST_8))
     {
         /* Talk-off test */
         /* Here we use the BellCore and Mitel talk off test tapes, intended for DTMF
@@ -919,14 +1327,13 @@ int main(int argc, char *argv[])
            might go easy on detectors looking for different pitches. However, the
            Mitel DTMF test tape is known (the hard way) to exercise 2280Hz tone
            detectors quite well. */
-        printf("Test 6: Talk-off test\n");
+        printf("Test 8: Talk-off test\n");
         modem_connect_tones_rx_init(&cng_rx, MODEM_CONNECT_TONES_FAX_CNG, NULL, NULL);
         modem_connect_tones_rx_init(&ced_rx, MODEM_CONNECT_TONES_FAX_CED_OR_PREAMBLE, NULL, NULL);
         modem_connect_tones_rx_init(&ans_pr_rx, MODEM_CONNECT_TONES_ANS_PR, NULL, NULL);
-        hits = 0;
         for (j = 0;  bellcore_files[j][0];  j++)
         {
-            if ((inhandle = afOpenFile_telephony_read(bellcore_files[j], 1)) == AF_NULL_FILEHANDLE)
+            if ((inhandle = sf_open_telephony_read(bellcore_files[j], 1)) == NULL)
             {
                 fprintf(stderr, "    Cannot open speech file '%s'\n", bellcore_files[j]);
                 exit (2);
@@ -935,7 +1342,7 @@ int main(int argc, char *argv[])
 
             when = 0;
             hits = 0;
-            while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, 8000)))
+            while ((frames = sf_readf_short(inhandle, amp, 8000)))
             {
                 when++;
                 modem_connect_tones_rx(&cng_rx, amp, frames);
@@ -967,7 +1374,7 @@ int main(int argc, char *argv[])
                 /*endif*/
             }
             /*endwhile*/
-            if (afCloseFile(inhandle) != 0)
+            if (sf_close(inhandle) != 0)
             {
                 fprintf(stderr, "    Cannot close speech file '%s'\n", bellcore_files[j]);
                 exit(2);
@@ -991,9 +1398,9 @@ int main(int argc, char *argv[])
         printf("Decode file '%s'\n", decode_test_file);
         modem_connect_tones_rx_init(&cng_rx, MODEM_CONNECT_TONES_FAX_CNG, cng_detected, NULL);
         modem_connect_tones_rx_init(&ced_rx, MODEM_CONNECT_TONES_FAX_CED_OR_PREAMBLE, ced_detected, NULL);
-        modem_connect_tones_rx_init(&ans_pr_rx, MODEM_CONNECT_TONES_ANS_PR, ec_dis_detected, NULL);
+        modem_connect_tones_rx_init(&ans_pr_rx, MODEM_CONNECT_TONES_ANS_PR, ans_pr_detected, NULL);
         hits = 0;
-        if ((inhandle = afOpenFile_telephony_read(decode_test_file, 1)) == AF_NULL_FILEHANDLE)
+        if ((inhandle = sf_open_telephony_read(decode_test_file, 1)) == NULL)
         {
             fprintf(stderr, "    Cannot open speech file '%s'\n", decode_test_file);
             exit (2);
@@ -1002,7 +1409,7 @@ int main(int argc, char *argv[])
 
         when = 0;
         hits = 0;
-        while ((frames = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, 8000)))
+        while ((frames = sf_readf_short(inhandle, amp, 8000)))
         {
             when++;
             modem_connect_tones_rx(&cng_rx, amp, frames);
@@ -1010,7 +1417,7 @@ int main(int argc, char *argv[])
             modem_connect_tones_rx(&ans_pr_rx, amp, frames);
         }
         /*endwhile*/
-        if (afCloseFile(inhandle) != 0)
+        if (sf_close(inhandle) != 0)
         {
             fprintf(stderr, "    Cannot close speech file '%s'\n", decode_test_file);
             exit(2);

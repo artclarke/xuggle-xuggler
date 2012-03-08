@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: vector_int.c,v 1.25 2009/02/21 04:27:46 steveu Exp $
  */
 
 /*! \file */
@@ -41,33 +39,10 @@
 #if defined(HAVE_MATH_H)
 #include <math.h>
 #endif
-#include "floating_fudge.h"
 #include <assert.h>
 
-#if defined(SPANDSP_USE_MMX)
-#include <mmintrin.h>
-#endif
-#if defined(SPANDSP_USE_SSE)
-#include <xmmintrin.h>
-#endif
-#if defined(SPANDSP_USE_SSE2)
-#include <emmintrin.h>
-#endif
-#if defined(SPANDSP_USE_SSE3)
-#include <pmmintrin.h>
-#endif
-#if defined(SPANDSP_USE_SSE4_1)
-#include <smmintrin.h>
-#endif
-#if defined(SPANDSP_USE_SSE4_2)
-#include <nmmintrin.h>
-#endif
-#if defined(SPANDSP_USE_SSE4A)
-#include <ammintrin.h>
-#endif
-#if defined(SPANDSP_USE_SSE5)
-#include <bmmintrin.h>
-#endif
+#include "floating_fudge.h"
+#include "mmx_sse_decs.h"
 
 #include "spandsp/telephony.h"
 #include "spandsp/vector_int.h"
@@ -76,8 +51,7 @@ SPAN_DECLARE(int32_t) vec_dot_prodi16(const int16_t x[], const int16_t y[], int 
 {
     int32_t z;
 
-#if defined(__GNUC__)  &&  defined(SPANDSP_USE_MMX)
-#if defined(__x86_64__)
+#if defined(__GNUC__)  &&  defined(SPANDSP_USE_MMX)  &&  defined(__x86_64__)
     __asm__ __volatile__(
         " emms;\n"
         " pxor %%mm0,%%mm0;\n"
@@ -175,7 +149,7 @@ SPAN_DECLARE(int32_t) vec_dot_prodi16(const int16_t x[], const int16_t y[], int 
         : "S" (x), "D" (y), "a" (n)
         : "cc"
     );
-#else
+#elif defined(__GNUC__)  &&  defined(SPANDSP_USE_MMX)  &&  defined(__i386__)
     __asm__ __volatile__(
         " emms;\n"
         " pxor %%mm0,%%mm0;\n"
@@ -273,7 +247,6 @@ SPAN_DECLARE(int32_t) vec_dot_prodi16(const int16_t x[], const int16_t y[], int 
         : "S" (x), "D" (y), "a" (n)
         : "cc"
     );
-#endif
 #else
     int i;
 
@@ -313,12 +286,11 @@ SPAN_DECLARE(void) vec_circular_lmsi16(const int16_t x[], int16_t y[], int n, in
 
 SPAN_DECLARE(int32_t) vec_min_maxi16(const int16_t x[], int n, int16_t out[])
 {
-#if defined(__GNUC__)  &&  defined(SPANDSP_USE_MMX)
+#if defined(__GNUC__)  &&  defined(SPANDSP_USE_MMX)  &&  defined(__x86_64__)
     static const int32_t lower_bound = 0x80008000;
     static const int32_t upper_bound = 0x7FFF7FFF;
     int32_t max;
 
-#if defined(__x86_64__)
     __asm__ __volatile__(
         " emms;\n"
         " pushq %%rdx;\n"
@@ -466,7 +438,11 @@ SPAN_DECLARE(int32_t) vec_min_maxi16(const int16_t x[], int n, int16_t out[])
         : "S" (x), "a" (n), "d" (out), [lower] "m" (lower_bound), [upper] "m" (upper_bound)
         : "ecx"
     );
-#else
+#elif defined(__GNUC__)  &&  defined(SPANDSP_USE_MMX)  &&  defined(__i386__)
+    static const int32_t lower_bound = 0x80008000;
+    static const int32_t upper_bound = 0x7FFF7FFF;
+    int32_t max;
+
     __asm__ __volatile__(
         " emms;\n"
         " pushl %%edx;\n"
@@ -615,8 +591,6 @@ SPAN_DECLARE(int32_t) vec_min_maxi16(const int16_t x[], int n, int16_t out[])
         : "S" (x), "a" (n), "d" (out), [lower] "m" (lower_bound), [upper] "m" (upper_bound)
         : "ecx"
     );
-#endif
-    return max;
 #else
     int i;
     int16_t min;
@@ -645,8 +619,8 @@ SPAN_DECLARE(int32_t) vec_min_maxi16(const int16_t x[], int n, int16_t out[])
     z = abs(min);
     if (z > max)
         return z;
-    return max;
 #endif
+    return max;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

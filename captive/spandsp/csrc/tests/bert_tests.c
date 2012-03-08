@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: bert_tests.c,v 1.27 2009/04/14 16:04:54 steveu Exp $
  */
 
 /*! \file */
@@ -40,7 +38,7 @@ These tests exercise each of the BERT standards supported by the BERT module.
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include <audiofile.h>
+#include <sndfile.h>
 
 //#if defined(WITH_SPANDSP_INTERNALS)
 #define SPANDSP_EXPOSE_INTERNAL_STRUCTURES

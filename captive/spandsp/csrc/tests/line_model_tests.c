@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: line_model_tests.c,v 1.26 2009/01/12 17:20:59 steveu Exp $
  */
 
 /*! \page line_model_tests_page Telephony line model tests
@@ -43,7 +41,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
-#include <audiofile.h>
+#include <sndfile.h>
 
 //#if defined(WITH_SPANDSP_INTERNALS)
 #define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
@@ -62,7 +60,7 @@
 #define IN_FILE_NAME1       "line_model_test_in1.wav"
 #define IN_FILE_NAME2       "line_model_test_in2.wav"
 #define OUT_FILE_NAME1      "line_model_one_way_test_out.wav"
-#define OUT_FILE_NAME       "line_model_test_out.wav"
+#define OUT_FILE_NAME2      "line_model_two_way_test_out.wav"
 
 int channel_codec;
 int rbs_pattern;
@@ -73,25 +71,14 @@ static void complexify_tests(void)
     complexf_t cc;
     int16_t amp;
     int i;
-    AFfilehandle outhandle;
-    AFfilesetup filesetup;
+    SNDFILE *outhandle;
     int outframes;
     int16_t out[40000];
     awgn_state_t noise1;
-    
-    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
-    {
-        fprintf(stderr, "    Failed to create file setup\n");
-        exit(2);
-    }
-    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-    afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-    afInitFileFormat(filesetup, AF_FILE_WAVE);
-    afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
 
-    if ((outhandle = afOpenFile(OUT_FILE_COMPLEXIFY, "w", filesetup)) == AF_NULL_FILEHANDLE)
+    if ((outhandle = sf_open_telephony_write(OUT_FILE_COMPLEXIFY, 2)) == NULL)
     {
-        fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_COMPLEXIFY);
+        fprintf(stderr, "    Cannot create audio file '%s'\n", OUT_FILE_COMPLEXIFY);
         exit(2);
     }
     awgn_init_dbm0(&noise1, 1234567, -10.0f);
@@ -103,21 +90,17 @@ static void complexify_tests(void)
         out[2*i] = cc.re;
         out[2*i + 1] = cc.im;
     }
-    outframes = afWriteFrames(outhandle,
-                              AF_DEFAULT_TRACK,
-                              out,
-                              20000);
+    outframes = sf_writef_short(outhandle, out, 20000);
     if (outframes != 20000)
     {
-        fprintf(stderr, "    Error writing wave file\n");
+        fprintf(stderr, "    Error writing audio file\n");
         exit(2);
     }
-    if (afCloseFile(outhandle))
+    if (sf_close(outhandle))
     {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_COMPLEXIFY);
+        fprintf(stderr, "    Cannot close audio file '%s'\n", OUT_FILE_COMPLEXIFY);
         exit(2);
     }
-    afFreeFileSetup(filesetup);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -127,9 +110,8 @@ static void test_one_way_model(int line_model_no, int speech_test)
     int16_t input1[BLOCK_LEN];
     int16_t output1[BLOCK_LEN];
     int16_t amp[2*BLOCK_LEN];
-    AFfilehandle inhandle1;
-    AFfilehandle outhandle;
-    AFfilesetup filesetup;
+    SNDFILE *inhandle1;
+    SNDFILE *outhandle;
     int outframes;
     int samples;
     int i;
@@ -144,34 +126,28 @@ static void test_one_way_model(int line_model_no, int speech_test)
     
     awgn_init_dbm0(&noise1, 1234567, -10.0f);
 
-    if ((filesetup = afNewFileSetup()) == AF_NULL_FILESETUP)
+    if (speech_test)
     {
-        fprintf(stderr, "    Failed to create file setup\n");
-        exit(2);
+        if ((inhandle1 = sf_open_telephony_read(IN_FILE_NAME1, 1)) == NULL)
+        {
+            fprintf(stderr, "    Cannot open audio file '%s'\n", IN_FILE_NAME1);
+            exit(2);
+        }
     }
-    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-    afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-    afInitFileFormat(filesetup, AF_FILE_WAVE);
-    afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
-
-    if ((inhandle1 = afOpenFile(IN_FILE_NAME1, "r", NULL)) == AF_NULL_FILEHANDLE)
+    else
     {
-        fprintf(stderr, "    Cannot open wave file '%s'\n", IN_FILE_NAME1);
-        exit(2);
+        inhandle1 = NULL;
     }
-    if ((outhandle = afOpenFile(OUT_FILE_NAME1, "w", filesetup)) == AF_NULL_FILEHANDLE)
+    if ((outhandle = sf_open_telephony_write(OUT_FILE_NAME1, 1)) == NULL)
     {
-        fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME1);
+        fprintf(stderr, "    Cannot create audio file '%s'\n", OUT_FILE_NAME1);
         exit(2);
     }
     for (i = 0;  i < 10000;  i++)
     {
         if (speech_test)
         {
-            samples = afReadFrames(inhandle1,
-                                   AF_DEFAULT_TRACK,
-                                   input1,
-                                   BLOCK_LEN);
+            samples = sf_readf_short(inhandle1, input1, BLOCK_LEN);
             if (samples == 0)
                 break;
         }
@@ -189,27 +165,26 @@ static void test_one_way_model(int line_model_no, int speech_test)
                                1);
             amp[j] = output1[j];
         }
-        outframes = afWriteFrames(outhandle,
-                                  AF_DEFAULT_TRACK,
-                                  amp,
-                                  samples);
+        outframes = sf_writef_short(outhandle, amp, samples);
         if (outframes != samples)
         {
-            fprintf(stderr, "    Error writing wave file\n");
+            fprintf(stderr, "    Error writing audio file\n");
             exit(2);
         }
     }
-    if (afCloseFile(inhandle1))
+    if (speech_test)
     {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", IN_FILE_NAME1);
+        if (sf_close(inhandle1))
+        {
+            fprintf(stderr, "    Cannot close audio file '%s'\n", IN_FILE_NAME1);
+            exit(2);
+        }
+    }
+    if (sf_close(outhandle))
+    {
+        fprintf(stderr, "    Cannot close audio file '%s'\n", OUT_FILE_NAME1);
         exit(2);
     }
-    if (afCloseFile(outhandle))
-    {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME1);
-        exit(2);
-    }
-    afFreeFileSetup(filesetup);
     one_way_line_model_release(model);
 }
 /*- End of function --------------------------------------------------------*/
@@ -222,10 +197,9 @@ static void test_both_ways_model(int line_model_no, int speech_test)
     int16_t output1[BLOCK_LEN];
     int16_t output2[BLOCK_LEN];
     int16_t amp[2*BLOCK_LEN];
-    AFfilehandle inhandle1;
-    AFfilehandle inhandle2;
-    AFfilehandle outhandle;
-    AFfilesetup filesetup;
+    SNDFILE *inhandle1;
+    SNDFILE *inhandle2;
+    SNDFILE *outhandle;
     int outframes;
     int samples;
     int i;
@@ -233,7 +207,16 @@ static void test_both_ways_model(int line_model_no, int speech_test)
     awgn_state_t noise1;
     awgn_state_t noise2;
     
-    if ((model = both_ways_line_model_init(line_model_no, -50, line_model_no + 1, -35, channel_codec, rbs_pattern)) == NULL)
+    if ((model = both_ways_line_model_init(line_model_no,
+                                           -50,
+                                           -15.0f,
+                                           -15.0f,
+                                           line_model_no + 1,
+                                           -35,
+                                           -15.0f,
+                                           -15.0f,
+                                           channel_codec,
+                                           rbs_pattern)) == NULL)
     {
         fprintf(stderr, "    Failed to create line model\n");
         exit(2);
@@ -242,49 +225,37 @@ static void test_both_ways_model(int line_model_no, int speech_test)
     awgn_init_dbm0(&noise1, 1234567, -10.0f);
     awgn_init_dbm0(&noise2, 1234567, -10.0f);
 
-    filesetup = afNewFileSetup();
-    if (filesetup == AF_NULL_FILESETUP)
+    if (speech_test)
     {
-        fprintf(stderr, "    Failed to create file setup\n");
-        exit(2);
+        if ((inhandle1 = sf_open_telephony_read(IN_FILE_NAME1, 1)) == NULL)
+        {
+            fprintf(stderr, "    Cannot open audio file '%s'\n", IN_FILE_NAME1);
+            exit(2);
+        }
+        if ((inhandle2 = sf_open_telephony_read(IN_FILE_NAME2, 1)) == NULL)
+        {
+            fprintf(stderr, "    Cannot open audio file '%s'\n", IN_FILE_NAME2);
+            exit(2);
+        }
     }
-    afInitSampleFormat(filesetup, AF_DEFAULT_TRACK, AF_SAMPFMT_TWOSCOMP, 16);
-    afInitRate(filesetup, AF_DEFAULT_TRACK, (float) SAMPLE_RATE);
-    afInitFileFormat(filesetup, AF_FILE_WAVE);
-    afInitChannels(filesetup, AF_DEFAULT_TRACK, 2);
-
-    inhandle1 = afOpenFile(IN_FILE_NAME1, "r", NULL);
-    if (inhandle1 == AF_NULL_FILEHANDLE)
+    else
     {
-        fprintf(stderr, "    Cannot open wave file '%s'\n", IN_FILE_NAME1);
-        exit(2);
+        inhandle1 =
+        inhandle2 = NULL;
     }
-    inhandle2 = afOpenFile(IN_FILE_NAME2, "r", NULL);
-    if (inhandle2 == AF_NULL_FILEHANDLE)
+    if ((outhandle = sf_open_telephony_write(OUT_FILE_NAME2, 2)) == NULL)
     {
-        fprintf(stderr, "    Cannot open wave file '%s'\n", IN_FILE_NAME2);
-        exit(2);
-    }
-    outhandle = afOpenFile(OUT_FILE_NAME, "w", filesetup);
-    if (outhandle == AF_NULL_FILEHANDLE)
-    {
-        fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
+        fprintf(stderr, "    Cannot create audio file '%s'\n", OUT_FILE_NAME2);
         exit(2);
     }
     for (i = 0;  i < 10000;  i++)
     {
         if (speech_test)
         {
-            samples = afReadFrames(inhandle1,
-                                   AF_DEFAULT_TRACK,
-                                   input1,
-                                   BLOCK_LEN);
+            samples = sf_readf_short(inhandle1, input1, BLOCK_LEN);
             if (samples == 0)
                 break;
-            samples = afReadFrames(inhandle2,
-                                   AF_DEFAULT_TRACK,
-                                   input2,
-                                   samples);
+            samples = sf_readf_short(inhandle2, input2, samples);
             if (samples == 0)
                 break;
         }
@@ -308,33 +279,84 @@ static void test_both_ways_model(int line_model_no, int speech_test)
             amp[2*j] = output1[j];
             amp[2*j + 1] = output2[j];
         }
-        outframes = afWriteFrames(outhandle,
-                                  AF_DEFAULT_TRACK,
-                                  amp,
-                                  samples);
+        outframes = sf_writef_short(outhandle, amp, samples);
         if (outframes != samples)
         {
-            fprintf(stderr, "    Error writing wave file\n");
+            fprintf(stderr, "    Error writing audio file\n");
             exit(2);
         }
     }
-    if (afCloseFile(inhandle1))
+    if (speech_test)
     {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", IN_FILE_NAME1);
+        if (sf_close(inhandle1))
+        {
+            fprintf(stderr, "    Cannot close audio file '%s'\n", IN_FILE_NAME1);
+            exit(2);
+        }
+        if (sf_close(inhandle2))
+        {
+            fprintf(stderr, "    Cannot close audio file '%s'\n", IN_FILE_NAME2);
+            exit(2);
+        }
+    }
+    if (sf_close(outhandle))
+    {
+        fprintf(stderr, "    Cannot close audio file '%s'\n", OUT_FILE_NAME2);
         exit(2);
     }
-    if (afCloseFile(inhandle2))
-    {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", IN_FILE_NAME2);
-        exit(2);
-    }
-    if (afCloseFile(outhandle))
-    {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
-        exit(2);
-    }
-    afFreeFileSetup(filesetup);
     both_ways_line_model_release(model);
+}
+/*- End of function --------------------------------------------------------*/
+
+static void test_line_filter(int line_model_no)
+{
+    float out;
+    double sumin;
+    double sumout;
+    int i;
+    int j;
+    int p;
+    int ptr;
+    int len;
+    swept_tone_state_t *s;
+    float filter[129];
+    int16_t buf[BLOCK_LEN];
+
+    s = swept_tone_init(NULL, 200.0f, 3900.0f, -10.0f, 120*SAMPLE_RATE, 0);
+    for (j = 0;  j < 129;  j++)
+        filter[j] = 0.0f;
+    ptr = 0;
+    for (;;)
+    {
+        if ((len = swept_tone(s, buf, BLOCK_LEN)) <= 0)
+            break;
+        sumin = 0.0;
+        sumout = 0.0;
+        for (i = 0;  i < len;  i++)
+        {
+            /* Add the sample in the filter buffer */
+            p = ptr;
+            filter[p] = buf[i];
+            if (++p == 129)
+                p = 0;
+            ptr = p;
+    
+            /* Apply the filter */
+            out = 0.0f;
+            for (j = 0;  j < 129;  j++)
+            {
+                out += line_models[line_model_no][128 - j]*filter[p];
+                if (++p >= 129)
+                    p = 0;
+            }
+            sumin += buf[i]*buf[i];
+            sumout += out*out;
+        }
+        /*endfor*/
+        printf("%7.1f %f\n", swept_tone_current_frequency(s), 10.0*log10(sumout/sumin));
+    }
+    /*endfor*/
+    swept_tone_free(s);
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -377,6 +399,7 @@ int main(int argc, char *argv[])
     complexify_tests();
     test_one_way_model(line_model_no, speech_test);
     test_both_ways_model(line_model_no, speech_test);
+    test_line_filter(line_model_no);
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: t38_core.c,v 1.52 2009/02/10 13:06:46 steveu Exp $
  */
 
 /*! \file */
@@ -30,9 +28,6 @@
 #if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
-
-#if !defined(HAVE_TIFF_H)
-#else
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -179,7 +174,7 @@ SPAN_DECLARE(const char *) t38_data_type_to_str(int data_type)
     case T38_DATA_V34_CC_1200:
         return "v34-CC-1200";
     case T38_DATA_V34_PRI_CH:
-        return "v34-pri-vh";
+        return "v34-pri-ch";
     case T38_DATA_V33_12000:
         return "v33-12000";
     case T38_DATA_V33_14400:
@@ -227,17 +222,17 @@ SPAN_DECLARE(const char *) t38_cm_profile_to_str(int profile)
     switch (profile)
     {
     case '1':
-        return "G3 Facsimile Terminal: (Sending Facsimile)";
+        return "G3 FAX sending terminal";
     case '2':
-        return "G3 Facsimile Terminal: (Receiving Facsimile)";
+        return "G3 FAX receiving terminal";
     case '3':
-        return "V.34 HDX and G3 Facsimile Terminal: (Sending Facsimile)";
+        return "V.34 HDX and G3 FAX sending terminal";
     case '4':
-        return "V.34 HDX and G3 Facsimile Terminal: (Receiving Facsimile)";
+        return "V.34 HDX and G3 FAX receiving terminal";
     case '5':
-        return "V.34 HDX-only Facsimile Terminal: (Sending Facsimile)";
+        return "V.34 HDX-only FAX sending terminal";
     case '6':
-        return "V.34 HDX-only Facsimile Terminal: (Receiving Facsimile)";
+        return "V.34 HDX-only FAX receiving terminal";
     }
     return "???";
 }
@@ -263,10 +258,10 @@ SPAN_DECLARE(const char *) t38_jm_to_str(const uint8_t *data, int len)
             return "NACK: No compatible mode available";
         case '1':
             /* Response for profiles 1 and 2 */
-            return "NACK: No V.34 fax, use G3 fax";
+            return "NACK: No V.34 FAX, use G3 FAX";
         case '2':
             /* Response for profiles 5 and 6 */
-            return "NACK: V.34 fax only.";
+            return "NACK: V.34 only FAX.";
         }
         break;
     }
@@ -780,19 +775,23 @@ static int t38_encode_data(t38_core_state_t *s, uint8_t buf[], int data_type, co
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) t38_core_send_indicator(t38_core_state_t *s, int indicator, int count)
+SPAN_DECLARE(int) t38_core_send_indicator(t38_core_state_t *s, int indicator)
 {
     uint8_t buf[100];
     int len;
     int delay;
+    int transmissions;
 
     delay = 0;
     /* Only send an indicator if it represents a change of state. */
+    /* If the 0x100 bit is set in indicator it will bypass this test, and force transmission */
     if (s->current_tx_indicator != indicator)
     {
         /* Zero is a valid count, to suppress the transmission of indicators when the
            transport means they are not needed - e.g. TPKT/TCP. */
-        if (count)
+        transmissions = (indicator & 0x100)  ?  1  :  s->category_control[T38_PACKET_CATEGORY_INDICATOR];
+        indicator &= 0xFF;
+        if (s->category_control[T38_PACKET_CATEGORY_INDICATOR])
         {
             if ((len = t38_encode_indicator(s, buf, indicator)) < 0)
             {
@@ -800,7 +799,7 @@ SPAN_DECLARE(int) t38_core_send_indicator(t38_core_state_t *s, int indicator, in
                 return len;
             }
             span_log(&s->logging, SPAN_LOG_FLOW, "Tx %5d: indicator %s\n", s->tx_seq_no, t38_indicator_to_str(indicator));
-            s->tx_packet_handler(s, s->tx_packet_user_data, buf, len, count);
+            s->tx_packet_handler(s, s->tx_packet_user_data, buf, len, transmissions);
             s->tx_seq_no = (s->tx_seq_no + 1) & 0xFFFF;
             delay = modem_startup_time[indicator].training;
             if (s->allow_for_tep)
@@ -818,7 +817,13 @@ SPAN_DECLARE(int) t38_core_send_flags_delay(t38_core_state_t *s, int indicator)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) t38_core_send_data(t38_core_state_t *s, int data_type, int field_type, const uint8_t field[], int field_len, int count)
+SPAN_DECLARE(int) t38_core_send_training_delay(t38_core_state_t *s, int indicator)
+{
+    return modem_startup_time[indicator].training;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(int) t38_core_send_data(t38_core_state_t *s, int data_type, int field_type, const uint8_t field[], int field_len, int category)
 {
     t38_data_field_t field0;
     uint8_t buf[1000];
@@ -832,13 +837,13 @@ SPAN_DECLARE(int) t38_core_send_data(t38_core_state_t *s, int data_type, int fie
         span_log(&s->logging, SPAN_LOG_FLOW, "T.38 data len is %d\n", len);
         return len;
     }
-    s->tx_packet_handler(s, s->tx_packet_user_data, buf, len, count);
+    s->tx_packet_handler(s, s->tx_packet_user_data, buf, len, s->category_control[category]);
     s->tx_seq_no = (s->tx_seq_no + 1) & 0xFFFF;
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) t38_core_send_data_multi_field(t38_core_state_t *s, int data_type, const t38_data_field_t field[], int fields, int count)
+SPAN_DECLARE(int) t38_core_send_data_multi_field(t38_core_state_t *s, int data_type, const t38_data_field_t field[], int fields, int category)
 {
     uint8_t buf[1000];
     int len;
@@ -848,7 +853,7 @@ SPAN_DECLARE(int) t38_core_send_data_multi_field(t38_core_state_t *s, int data_t
         span_log(&s->logging, SPAN_LOG_FLOW, "T.38 data len is %d\n", len);
         return len;
     }
-    s->tx_packet_handler(s, s->tx_packet_user_data, buf, len, count);
+    s->tx_packet_handler(s, s->tx_packet_user_data, buf, len, s->category_control[category]);
     s->tx_seq_no = (s->tx_seq_no + 1) & 0xFFFF;
     return 0;
 }
@@ -914,6 +919,18 @@ SPAN_DECLARE(void) t38_set_tep_handling(t38_core_state_t *s, int allow_for_tep)
 }
 /*- End of function --------------------------------------------------------*/
 
+SPAN_DECLARE(void) t38_set_redundancy_control(t38_core_state_t *s, int category, int setting)
+{
+    s->category_control[category] = setting;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(void) t38_set_fastest_image_data_rate(t38_core_state_t *s, int max_rate)
+{
+    s->fastest_image_data_rate = max_rate;
+}
+/*- End of function --------------------------------------------------------*/
+
 SPAN_DECLARE(int) t38_get_fastest_image_data_rate(t38_core_state_t *s)
 {
     return s->fastest_image_data_rate;
@@ -923,6 +940,26 @@ SPAN_DECLARE(int) t38_get_fastest_image_data_rate(t38_core_state_t *s)
 SPAN_DECLARE(logging_state_t *) t38_core_get_logging_state(t38_core_state_t *s)
 {
     return &s->logging;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(int) t38_core_restart(t38_core_state_t *s)
+{
+    /* Set the initial current receive states to something invalid, so the
+       first data received is seen as a change of state. */
+    s->current_rx_indicator = -1;
+    s->current_rx_data_type = -1;
+    s->current_rx_field_type = -1;
+
+    /* Set the initial current indicator state to something invalid, so the
+       first attempt to send an indicator will work. */
+    s->current_tx_indicator = -1;
+
+    /* We have no initial expectation of the received packet sequence number.
+       They most often start at 0 or 1 for a UDPTL transport, but random
+       starting numbers are possible. */
+    s->rx_expected_seq_no = -1;
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 
@@ -955,15 +992,12 @@ SPAN_DECLARE(t38_core_state_t *) t38_core_init(t38_core_state_t *s,
     s->t38_version = 0;
     s->check_sequence_numbers = TRUE;
 
-    /* Set the initial current receive states to something invalid, so the
-       first data received is seen as a change of state. */
-    s->current_rx_indicator = -1;
-    s->current_rx_data_type = -1;
-    s->current_rx_field_type = -1;
-
-    /* Set the initial current indicator state to something invalid, so the
-       first attempt to send an indicator will work. */
-    s->current_tx_indicator = -1;
+    /* Set some defaults */
+    s->category_control[T38_PACKET_CATEGORY_INDICATOR] = 1;
+    s->category_control[T38_PACKET_CATEGORY_CONTROL_DATA] = 1;
+    s->category_control[T38_PACKET_CATEGORY_CONTROL_DATA_END] = 1;
+    s->category_control[T38_PACKET_CATEGORY_IMAGE_DATA] = 1;
+    s->category_control[T38_PACKET_CATEGORY_IMAGE_DATA_END] = 1;
 
     s->rx_indicator_handler = rx_indicator_handler;
     s->rx_data_handler = rx_data_handler;
@@ -972,10 +1006,7 @@ SPAN_DECLARE(t38_core_state_t *) t38_core_init(t38_core_state_t *s,
     s->tx_packet_handler = tx_packet_handler;
     s->tx_packet_user_data = tx_packet_user_data;
 
-    /* We have no initial expectation of the received packet sequence number.
-       They most often start at 0 or 1 for a UDPTL transport, but random
-       starting numbers are possible. */
-    s->rx_expected_seq_no = -1;
+    t38_core_restart(s);
     return s;
 }
 /*- End of function --------------------------------------------------------*/
@@ -993,6 +1024,4 @@ SPAN_DECLARE(int) t38_core_free(t38_core_state_t *s)
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
-
-#endif // HAVE_TIFF_H
 /*- End of file ------------------------------------------------------------*/

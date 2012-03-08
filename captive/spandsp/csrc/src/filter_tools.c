@@ -24,8 +24,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: filter_tools.c,v 1.10 2009/02/10 17:16:57 steveu Exp $
  */
  
 #if defined(HAVE_CONFIG_H)
@@ -34,7 +32,6 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
-#include <unistd.h>
 #if defined(HAVE_TGMATH_H)
 #include <tgmath.h>
 #endif

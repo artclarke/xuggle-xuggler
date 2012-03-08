@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v22bis.h,v 1.42 2009/04/29 12:37:45 steveu Exp $
  */
 
 /*! \file */
@@ -57,17 +55,6 @@ enum
     V22BIS_GUARD_TONE_1800HZ
 };
 
-/*! The number of steps to the left and to the right of the target position in the equalizer buffer. */
-#define V22BIS_EQUALIZER_LEN    7
-/*! One less than a power of 2 >= (2*V22BIS_EQUALIZER_LEN + 1) */
-#define V22BIS_EQUALIZER_MASK   15
-
-/*! The number of taps in the transmit pulse shaping filter */
-#define V22BIS_TX_FILTER_STEPS  9
-
-/*! The number of taps in the receive pulse shaping/bandpass filter */
-#define V22BIS_RX_FILTER_STEPS  37
-
 /*!
     V.22bis modem descriptor. This defines the working state for a single instance
     of a V.22bis modem.
@@ -87,7 +74,7 @@ extern "C"
     \param amp The audio sample buffer.
     \param len The number of samples in the buffer.
     \return The number of samples unprocessed. */
-SPAN_DECLARE(int) v22bis_rx(v22bis_state_t *s, const int16_t amp[], int len);
+SPAN_DECLARE_NONSTD(int) v22bis_rx(v22bis_state_t *s, const int16_t amp[], int len);
 
 /*! Fake processing of a missing block of received V.22bis modem audio samples.
     (e.g due to packet loss).
@@ -95,7 +82,7 @@ SPAN_DECLARE(int) v22bis_rx(v22bis_state_t *s, const int16_t amp[], int len);
     \param s The modem context.
     \param len The number of samples to fake.
     \return The number of samples unprocessed. */
-SPAN_DECLARE(int) v22bis_rx_fillin(v22bis_state_t *s, int len);
+SPAN_DECLARE_NONSTD(int) v22bis_rx_fillin(v22bis_state_t *s, int len);
 
 /*! Get a snapshot of the current equalizer coefficients.
     \brief Get a snapshot of the current equalizer coefficients.
@@ -135,7 +122,7 @@ SPAN_DECLARE(void) v22bis_rx_set_qam_report_handler(v22bis_state_t *s, qam_repor
     \param amp The audio sample buffer.
     \param len The number of samples to be generated.
     \return The number of samples actually generated. */
-SPAN_DECLARE(int) v22bis_tx(v22bis_state_t *s, int16_t amp[], int len);
+SPAN_DECLARE_NONSTD(int) v22bis_tx(v22bis_state_t *s, int16_t amp[], int len);
 
 /*! Adjust a V.22bis modem transmit context's power output.
     \brief Adjust a V.22bis modem transmit context's output power.
@@ -167,7 +154,7 @@ SPAN_DECLARE(int) v22bis_remote_loopback(v22bis_state_t *s, int enable);
 /*! Report the current operating bit rate of a V.22bis modem context.
     \brief Report the current operating bit rate of a V.22bis modem context
     \param s The modem context. */
-SPAN_DECLARE(int) v22bis_current_bit_rate(v22bis_state_t *s);
+SPAN_DECLARE(int) v22bis_get_current_bit_rate(v22bis_state_t *s);
 
 /*! Initialise a V.22bis modem context. This must be called before the first
     use of the context, to initialise its contents.
@@ -175,7 +162,7 @@ SPAN_DECLARE(int) v22bis_current_bit_rate(v22bis_state_t *s);
     \param s The modem context.
     \param bit_rate The bit rate of the modem. Valid values are 1200 and 2400.
     \param guard The guard tone option. 0 = none, 1 = 550Hz, 2 = 1800Hz.
-    \param caller TRUE if this is the calling modem.
+    \param calling_party TRUE if this is the calling modem.
     \param get_bit The callback routine used to get the data to be transmitted.
     \param put_bit The callback routine used to get the data to be transmitted.
     \param user_data An opaque pointer, passed in calls to the get and put routines.
@@ -183,7 +170,7 @@ SPAN_DECLARE(int) v22bis_current_bit_rate(v22bis_state_t *s);
 SPAN_DECLARE(v22bis_state_t *) v22bis_init(v22bis_state_t *s,
                                            int bit_rate,
                                            int guard,
-                                           int caller,
+                                           int calling_party,
                                            get_bit_func_t get_bit,
                                            void *get_bit_user_data,
                                            put_bit_func_t put_bit,

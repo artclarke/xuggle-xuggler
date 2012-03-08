@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: bell_r2_mf.c,v 1.39 2009/04/11 18:11:19 steveu Exp $
  */
 
 /*! \file */
@@ -64,8 +62,6 @@
 /* C99 systems may not define M_PI */
 #define M_PI 3.14159265358979323846264338327
 #endif
-
-#define ms_to_samples(t)            (((t)*SAMPLE_RATE)/1000)
 
 /*!
     MF tone descriptor.
@@ -264,7 +260,7 @@ static void bell_mf_gen_init(void)
     while (tones->on_time)
     {
         /* Note: The duration of KP is longer than the other signals. */
-        make_tone_gen_descriptor(&bell_mf_digit_tones[i++],
+        tone_gen_descriptor_init(&bell_mf_digit_tones[i++],
                                  tones->f1,
                                  tones->level1,
                                  tones->f2,
@@ -411,7 +407,7 @@ SPAN_DECLARE(r2_mf_tx_state_t *) r2_mf_tx_init(r2_mf_tx_state_t *s, int fwd)
         tones = r2_mf_fwd_tones;
         while (tones->on_time)
         {
-            make_tone_gen_descriptor(&r2_mf_fwd_digit_tones[i++],
+            tone_gen_descriptor_init(&r2_mf_fwd_digit_tones[i++],
                                      tones->f1,
                                      tones->level1,
                                      tones->f2,
@@ -427,7 +423,7 @@ SPAN_DECLARE(r2_mf_tx_state_t *) r2_mf_tx_init(r2_mf_tx_state_t *s, int fwd)
         tones = r2_mf_back_tones;
         while (tones->on_time)
         {
-            make_tone_gen_descriptor(&r2_mf_back_digit_tones[i++],
+            tone_gen_descriptor_init(&r2_mf_back_digit_tones[i++],
                                      tones->f1,
                                      tones->level1,
                                      tones->f2,

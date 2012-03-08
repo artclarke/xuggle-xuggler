@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: fax_decode.c,v 1.55 2009/04/29 12:37:45 steveu Exp $
  */
 
 /*! \page fax_decode_page FAX decoder
@@ -41,7 +39,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-#include <audiofile.h>
+#include <sndfile.h>
 
 //#if defined(WITH_SPANDSP_INTERNALS)
 #define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
@@ -109,6 +107,32 @@ int octets_per_ecm_frame = 256;
 int error_correcting_mode = FALSE;
 int current_fallback = 0;
 
+static void decode_20digit_msg(const uint8_t *pkt, int len)
+{
+    int p;
+    int k;
+    char msg[T30_MAX_IDENT_LEN + 1];
+
+    if (len > T30_MAX_IDENT_LEN + 3)
+    {
+        fprintf(stderr, "XXX %d %d\n", len, T30_MAX_IDENT_LEN + 1);
+        msg[0] = '\0';
+        return;
+    }
+    pkt += 2;
+    p = len - 2;
+    /* Strip trailing spaces */
+    while (p > 1  &&  pkt[p - 1] == ' ')
+        p--;
+    /* The string is actually backwards in the message */
+    k = 0;
+    while (p > 1)
+        msg[k++] = pkt[--p];
+    msg[k] = '\0';
+    fprintf(stderr, "%s is: \"%s\"\n", t30_frametype(pkt[0]), msg);
+}
+/*- End of function --------------------------------------------------------*/
+
 static void print_frame(const char *io, const uint8_t *fr, int frlen)
 {
     int i;
@@ -124,7 +148,9 @@ static void print_frame(const char *io, const uint8_t *fr, int frlen)
     type = fr[2] & 0xFE;
     if (type == T30_DIS  ||  type == T30_DTC  ||  type == T30_DCS)
         t30_decode_dis_dtc_dcs(&t30_dummy, fr, frlen);
-    if (type == T30_NSF)
+    if (type == T30_CSI  ||  type == T30_TSI  ||  type == T30_PWD  ||  type == T30_SEP  ||  type == T30_SUB  ||  type == T30_SID)
+        decode_20digit_msg(fr, frlen);
+    if (type == T30_NSF  ||  type == T30_NSS  ||  type == T30_NSC)
     {
         if (t35_decode(&fr[3], frlen - 3, &country, &vendor, &model))
         {
@@ -282,8 +308,6 @@ static void t4_end(void)
 {
     t4_stats_t stats;
     int i;
-    int j;
-    int k;
 
     if (!t4_up)
         return;
@@ -291,17 +315,14 @@ static void t4_end(void)
     {
         for (i = 0;  i < 256;  i++)
         {
-            for (j = 0;  j < ecm_len[i];  j++)
-            {
-                for (k = 0;  k < 8;  k++)
-                    t4_rx_put_bit(&t4_state, (ecm_data[i][j] >> k) & 1);
-            }
-            fprintf(stderr, "%d", (ecm_len[i] < 0)  ?  0  :  1);
+            if (ecm_len[i] > 0)
+                t4_rx_put_chunk(&t4_state, ecm_data[i], ecm_len[i]);
+            fprintf(stderr, "%d", (ecm_len[i] <= 0)  ?  0  :  1);
         }
         fprintf(stderr, "\n");
     }
     t4_rx_end_page(&t4_state);
-    t4_get_transfer_statistics(&t4_state, &stats);
+    t4_rx_get_transfer_statistics(&t4_state, &stats);
     fprintf(stderr, "Pages = %d\n", stats.pages_transferred);
     fprintf(stderr, "Image size = %dx%d\n", stats.width, stats.length);
     fprintf(stderr, "Image resolution = %dx%d\n", stats.x_resolution, stats.y_resolution);
@@ -446,10 +467,10 @@ int main(int argc, char *argv[])
     v29_rx_state_t *v29;
     v27ter_rx_state_t *v27ter;
     int16_t amp[SAMPLES_PER_CHUNK];
-    AFfilehandle inhandle;
+    SNDFILE *inhandle;
+    SF_INFO info;
     int len;
     const char *filename;
-    float x;
     logging_state_t *logging;
 
     filename = "fax_samp.wav";
@@ -457,32 +478,29 @@ int main(int argc, char *argv[])
     if (argc > 1)
         filename = argv[1];
 
-    if ((inhandle = afOpenFile(filename, "r", NULL)) == AF_NULL_FILEHANDLE)
+    memset(&info, 0, sizeof(info));
+    if ((inhandle = sf_open(filename, SFM_READ, &info)) == NULL)
     {
-        fprintf(stderr, "    Cannot open wave file '%s'\n", filename);
+        fprintf(stderr, "    Cannot open audio file '%s' for reading\n", filename);
         exit(2);
     }
-    if ((x = afGetFrameSize(inhandle, AF_DEFAULT_TRACK, 1)) != 2.0)
+    if (info.samplerate != SAMPLE_RATE)
     {
-        printf("    Unexpected frame size in speech file '%s' (%f)\n", filename, x);
+        fprintf(stderr, "    Unexpected sample rate in audio file '%s'\n", filename);
         exit(2);
     }
-    if ((x = afGetRate(inhandle, AF_DEFAULT_TRACK)) != (float) SAMPLE_RATE)
+    if (info.channels != 1)
     {
-        printf("    Unexpected sample rate in speech file '%s' (%f)\n", filename, x);
+        fprintf(stderr, "    Unexpected number of channels in audio file '%s'\n", filename);
         exit(2);
     }
-    if ((x = afGetChannels(inhandle, AF_DEFAULT_TRACK)) != 1.0)
-    {
-        printf("    Unexpected number of channels in speech file '%s' (%f)\n", filename, x);
-        exit(2);
-    }
+
     memset(&t30_dummy, 0, sizeof(t30_dummy));
     span_log_init(&t30_dummy.logging, SPAN_LOG_FLOW, NULL);
     span_log_set_protocol(&t30_dummy.logging, "T.30");
 
     hdlc_rx_init(&hdlcrx, FALSE, TRUE, 5, hdlc_accept, NULL);
-    fsk = fsk_rx_init(NULL, &preset_fsk_specs[FSK_V21CH2], TRUE, v21_put_bit, NULL);
+    fsk = fsk_rx_init(NULL, &preset_fsk_specs[FSK_V21CH2], FSK_FRAME_MODE_SYNC, v21_put_bit, NULL);
     v17 = v17_rx_init(NULL, 14400, v17_put_bit, NULL);
     v29 = v29_rx_init(NULL, 9600, v29_put_bit, NULL);
     //v29 = v29_rx_init(NULL, 7200, v29_put_bit, NULL);
@@ -517,7 +535,7 @@ int main(int argc, char *argv[])
         
     for (;;)
     {
-        len = afReadFrames(inhandle, AF_DEFAULT_TRACK, amp, SAMPLES_PER_CHUNK);
+        len = sf_readf_short(inhandle, amp, SAMPLES_PER_CHUNK);
         if (len < SAMPLES_PER_CHUNK)
             break;
         fsk_rx(fsk, amp, len);
@@ -527,9 +545,9 @@ int main(int argc, char *argv[])
     }
     t4_rx_release(&t4_state);
 
-    if (afCloseFile(inhandle) != 0)
+    if (sf_close(inhandle) != 0)
     {
-        fprintf(stderr, "    Cannot close wave file '%s'\n", filename);
+        fprintf(stderr, "    Cannot close audio file '%s'\n", filename);
         exit(2);
     }
     return  0;

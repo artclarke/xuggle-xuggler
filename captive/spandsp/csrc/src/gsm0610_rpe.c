@@ -24,8 +24,6 @@
  *
  * This code is based on the widely used GSM 06.10 code available from
  * http://kbs.cs.tu-berlin.de/~jutta/toast.html
- *
- * $Id: gsm0610_rpe.c,v 1.25 2009/02/03 16:28:39 steveu Exp $
  */
 
 /*! \file */
@@ -45,6 +43,8 @@
 #include "floating_fudge.h"
 #include <stdlib.h>
 
+#include "mmx_sse_decs.h"
+
 #include "spandsp/telephony.h"
 #include "spandsp/fast_convert.h"
 #include "spandsp/bitstream.h"
@@ -56,16 +56,71 @@
 /* 4.2.13 .. 4.2.17  RPE ENCODING SECTION */
 
 /* 4.2.13 */
-static void weighting_filter(const int16_t *e,     // signal [-5..0.39.44] IN
-                             int16_t x[40])
+static void weighting_filter(int16_t x[40],
+                             const int16_t *e)      // signal [-5..0.39.44] IN)
 {
-#if defined(__GNUC__)  &&  defined(__i386__)
+#if defined(__GNUC__)  &&  defined(SPANDSP_USE_MMX)  &&  defined(__x86_64__)
     /* Table 4.4   Coefficients of the weighting filter */
     /* This must be padded to a multiple of 4 for MMX to work */
     static const union
     {
         int16_t gsm_H[12];
-        uint64_t x[3];
+        __m64 x[3];
+    } gsm_H =
+    {
+        {
+            -134, -374, 0, 2054, 5741, 8192, 5741, 2054, 0, -374, -134, 0
+        }
+
+    };
+
+    __asm__ __volatile__(
+        " emms;\n"
+        " addq $-10,%%rcx;\n"
+        " leaq %[gsm_H],%%rax;\n"
+        " movq (%%rax),%%mm1;\n"
+        " movq 8(%%rax),%%mm2;\n"
+        " movq 16(%%rax),%%mm3;\n"
+        " movq $0x1000,%%rax;\n"
+        " movq %%rax,%%mm5;\n"              /* For rounding */
+        " xorq %%rsi,%%rsi;\n"
+        " .p2align 2;\n"
+        "1:\n"
+        " movq (%%rcx,%%rsi,2),%%mm0;\n"
+        " pmaddwd %%mm1,%%mm0;\n"
+ 
+        " movq 8(%%rcx,%%rsi,2),%%mm4;\n"
+        " pmaddwd %%mm2,%%mm4;\n"
+        " paddd %%mm4,%%mm0;\n"
+
+        " movq 16(%%rcx,%%rsi,2),%%mm4;\n"
+        " pmaddwd %%mm3,%%mm4;\n"
+        " paddd %%mm4,%%mm0;\n"
+
+        " movq %%mm0,%%mm4;\n"
+        " punpckhdq %%mm0,%%mm4;\n"         /* mm4 has high int32 of mm0 dup'd */
+        " paddd %%mm4,%%mm0;\n"
+
+        " paddd %%mm5,%%mm0;\n"             /* Add for roundoff */
+        " psrad $13,%%mm0;\n"
+        " packssdw %%mm0,%%mm0;\n"        
+        " movd %%mm0,%%eax;\n"              /* eax has result */
+        " movw %%ax,(%%rdi,%%rsi,2);\n"
+        " incq %%rsi;\n"
+        " cmpq $39,%%rsi;\n"
+        " jle 1b;\n"
+        " emms;\n"
+        :
+        : "c" (e), "D" (x), [gsm_H] "X" (gsm_H)
+        : "rax", "rdx", "rsi", "memory"
+    );
+#elif defined(__GNUC__)  &&  defined(SPANDSP_USE_MMX)  &&  defined(__i386__)
+    /* Table 4.4   Coefficients of the weighting filter */
+    /* This must be padded to a multiple of 4 for MMX to work */
+    static const union
+    {
+        int16_t gsm_H[12];
+        __m64 x[3];
     } gsm_H =
     {
         {
@@ -77,14 +132,15 @@ static void weighting_filter(const int16_t *e,     // signal [-5..0.39.44] IN
     __asm__ __volatile__(
         " emms;\n"
         " addl $-10,%%ecx;\n"
+        " leal %[gsm_H],%%eax;\n"
+        " movq (%%eax),%%mm1;\n"
+        " movq 8(%%eax),%%mm2;\n"
+        " movq 16(%%eax),%%mm3;\n"
         " movl $0x1000,%%eax;\n"
-        " movd %%eax,%%mm5;\n"              /* for rounding */
-        " movq %[gsm_H],%%mm1;\n"
-        " movq %[gsm_H8],%%mm2;\n"
-        " movq %[gsm_H16],%%mm3;\n"
+        " movd %%eax,%%mm5;\n"              /* For rounding */
         " xorl %%esi,%%esi;\n"
         " .p2align 2;\n"
-        "1:;\n"
+        "1:\n"
         " movq (%%ecx,%%esi,2),%%mm0;\n"
         " pmaddwd %%mm1,%%mm0;\n"
  
@@ -110,11 +166,11 @@ static void weighting_filter(const int16_t *e,     // signal [-5..0.39.44] IN
         " jle 1b;\n"
         " emms;\n"
         :
-        : "c" (e), "D" (x), [gsm_H] "X" (gsm_H.x[0]), [gsm_H8] "X" (gsm_H.x[1]), [gsm_H16] "X" (gsm_H.x[2])
-        : "eax", "edx", "esi"
+        : "c" (e), "D" (x), [gsm_H] "X" (gsm_H)
+        : "eax", "edx", "esi", "memory"
     );
 #else
-    int32_t L_result;
+    int32_t result;
     int k;
 
     /* The coefficients of the weighting filter are stored in a table
@@ -136,12 +192,12 @@ static void weighting_filter(const int16_t *e,     // signal [-5..0.39.44] IN
     /* Compute the signal x[0..39] */
     for (k = 0;  k < 40;  k++)
     {
-        L_result = 8192 >> 1;
+        result = 8192 >> 1;
 
         /* for (i = 0; i <= 10; i++)
          * {
-         *      L_temp   = saturated_mul_16_32(wt[k + i], gsm_H[i]);
-         *      L_result = saturated_add32(L_result, L_temp);
+         *      temp   = saturated_mul16_32(wt[k + i], gsm_H[i]);
+         *      result = saturated_add32(result, temp);
          * }
          */
 
@@ -152,22 +208,22 @@ static void weighting_filter(const int16_t *e,     // signal [-5..0.39.44] IN
            but I don't see an elegant way to optimize this. 
            Do you?
         */
-        L_result += STEP( 0,  -134);
-        L_result += STEP( 1,  -374);
-              // += STEP( 2,  0   );
-        L_result += STEP( 3,  2054);
-        L_result += STEP( 4,  5741);
-        L_result += STEP( 5,  8192);
-        L_result += STEP( 6,  5741);
-        L_result += STEP( 7,  2054);
-              // += STEP( 8,  0   );
-        L_result += STEP( 9,  -374);
-        L_result += STEP(10,  -134);
+        result += STEP( 0,  -134);
+        result += STEP( 1,  -374);
+            /* += STEP( 2,  0   ); */
+        result += STEP( 3,  2054);
+        result += STEP( 4,  5741);
+        result += STEP( 5,  8192);
+        result += STEP( 6,  5741);
+        result += STEP( 7,  2054);
+            /* += STEP( 8,  0   ); */
+        result += STEP( 9,  -374);
+        result += STEP(10,  -134);
 
         /* 2 adds vs. >> 16 => 14, minus one shift to compensate for
            those we lost when replacing L_MULT by '*'. */
-        L_result >>= 13;
-        x[k] = saturate(L_result);
+        result >>= 13;
+        x[k] = saturate(result);
     }
     /*endfor*/
 #endif
@@ -514,7 +570,7 @@ void gsm0610_rpe_encoding(gsm0610_state_t *s,
     int16_t mant;
     int16_t exp;
 
-    weighting_filter(e, x);
+    weighting_filter(x, e);
     rpe_grid_selection(x, xM, Mc);
 
     apcm_quantization(xM, xMc, &mant, &exp, xmaxc);

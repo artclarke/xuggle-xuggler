@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: silence_gen.h,v 1.17 2009/04/12 03:29:58 steveu Exp $
  */
 
 #if !defined(_SPANDSP_SILENCE_GEN_H_)
@@ -43,7 +41,7 @@ extern "C"
     \return The number of samples actually generated. This will be zero when
             there is nothing to send.
 */
-SPAN_DECLARE(int) silence_gen(silence_gen_state_t *s, int16_t *amp, int max_len);
+SPAN_DECLARE_NONSTD(int) silence_gen(silence_gen_state_t *s, int16_t *amp, int max_len);
 
 /*! Set a silence generator context to output continuous silence.
     \brief Set a silence generator context to output continuous silence.
@@ -124,6 +122,16 @@ SPAN_DECLARE_NONSTD(int) span_dummy_rx(void *user_data, const int16_t amp[], int
     \return 0.
 */
 SPAN_DECLARE(int) span_dummy_mod(void *user_data, int16_t amp[], int len);
+
+/*! A dummy routine to use as a receive fillin callback, when we aren't really
+    trying to process what is received. It just absorbs and ignores the
+    request.
+    \brief Dummy receive fillin callback.
+    \param user_data The context.
+    \param len The length of the signal buffer
+    \return 0.
+*/
+SPAN_DECLARE_NONSTD(int) span_dummy_rx_fillin(void *user_data, int len);
 
 #if defined(__cplusplus)
 }

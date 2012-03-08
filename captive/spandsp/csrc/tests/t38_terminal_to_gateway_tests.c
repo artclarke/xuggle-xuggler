@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: t38_terminal_to_gateway_tests.c,v 1.64 2009/04/25 14:27:19 steveu Exp $
  */
 
 /*! \file */
@@ -51,7 +49,7 @@ These tests exercise the path
 #include <string.h>
 #include <assert.h>
 #include <errno.h>
-#include <audiofile.h>
+#include <sndfile.h>
 #if !defined(_WIN32)
 #include <unistd.h>
 #endif
@@ -94,7 +92,7 @@ static int phase_b_handler(t30_state_t *s, void *user_data, int result)
     char tag[20];
 
     i = (int) (intptr_t) user_data;
-    snprintf(tag, sizeof(tag), "%c: Phase B:", i);
+    snprintf(tag, sizeof(tag), "%c: Phase B", i);
     printf("%c: Phase B handler on channel %c - (0x%X) %s\n", i, i, result, t30_frametype(result));
     log_rx_parameters(s, tag);
     return T30_ERR_OK;
@@ -107,7 +105,7 @@ static int phase_d_handler(t30_state_t *s, void *user_data, int result)
     char tag[20];
 
     i = (int) (intptr_t) user_data;
-    snprintf(tag, sizeof(tag), "%c: Phase D:", i);
+    snprintf(tag, sizeof(tag), "%c: Phase D", i);
     printf("%c: Phase D handler on channel %c - (0x%X) %s\n", i, i, result, t30_frametype(result));
     log_transfer_statistics(s, tag);
     log_tx_parameters(s, tag);
@@ -123,7 +121,7 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
     char tag[20];
     
     i = (int) (intptr_t) user_data;
-    snprintf(tag, sizeof(tag), "%c: Phase E:", i);
+    snprintf(tag, sizeof(tag), "%c: Phase E", i);
     printf("%c: Phase E handler on channel %c - (%d) %s\n", i, i, result, t30_completion_code_to_str(result));
     log_transfer_statistics(s, tag);
     log_tx_parameters(s, tag);
@@ -203,7 +201,7 @@ int main(int argc, char *argv[])
     uint8_t msg[1024];
     int log_audio;
     int outframes;
-    AFfilehandle wave_handle;
+    SNDFILE *wave_handle;
     int t38_version;
     int use_ecm;
     int use_tep;
@@ -212,8 +210,8 @@ int main(int argc, char *argv[])
     const char *input_file_name;
     int i;
     int seq_no;
-    int model_no;
-    int speed_pattern_no;
+    int g1050_model_no;
+    int g1050_speed_pattern_no;
     double tx_when;
     double rx_when;
     int use_gui;
@@ -228,8 +226,8 @@ int main(int argc, char *argv[])
     use_ecm = FALSE;
     input_file_name = INPUT_FILE_NAME;
     simulate_incrementing_repeats = FALSE;
-    model_no = 0;
-    speed_pattern_no = 1;
+    g1050_model_no = 0;
+    g1050_speed_pattern_no = 1;
     use_gui = FALSE;
     use_tep = FALSE;
     feedback_audio = FALSE;
@@ -266,10 +264,10 @@ int main(int argc, char *argv[])
             supported_modems = atoi(optarg);
             break;
         case 'M':
-            model_no = optarg[0] - 'A' + 1;
+            g1050_model_no = optarg[0] - 'A' + 1;
             break;
         case 's':
-            speed_pattern_no = atoi(optarg);
+            g1050_speed_pattern_no = atoi(optarg);
             break;
         case 't':
             use_tep = TRUE;
@@ -288,23 +286,23 @@ int main(int argc, char *argv[])
     if (use_ecm)
         printf("Using ECM\n");
 
-    wave_handle = AF_NULL_FILEHANDLE;
+    wave_handle = NULL;
     if (log_audio)
     {
-        if ((wave_handle = afOpenFile_telephony_write(OUTPUT_FILE_NAME_WAVE, 2)) == AF_NULL_FILEHANDLE)
+        if ((wave_handle = sf_open_telephony_write(OUTPUT_FILE_NAME_WAVE, 2)) == NULL)
         {
-            fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME_WAVE);
+            fprintf(stderr, "    Cannot create audio file '%s'\n", OUTPUT_FILE_NAME_WAVE);
             exit(2);
         }
     }
 
     srand48(0x1234567);
-    if ((path_a_to_b = g1050_init(model_no, speed_pattern_no, 100, 33)) == NULL)
+    if ((path_a_to_b = g1050_init(g1050_model_no, g1050_speed_pattern_no, 100, 33)) == NULL)
     {
         fprintf(stderr, "Failed to start IP network path model\n");
         exit(2);
     }
-    if ((path_b_to_a = g1050_init(model_no, speed_pattern_no, 100, 33)) == NULL)
+    if ((path_b_to_a = g1050_init(g1050_model_no, g1050_speed_pattern_no, 100, 33)) == NULL)
     {
         fprintf(stderr, "Failed to start IP network path model\n");
         exit(2);
@@ -482,7 +480,7 @@ int main(int argc, char *argv[])
         }
         if (log_audio)
         {
-            outframes = afWriteFrames(wave_handle, AF_DEFAULT_TRACK, out_amp, SAMPLES_PER_CHUNK);
+            outframes = sf_writef_short(wave_handle, out_amp, SAMPLES_PER_CHUNK);
             if (outframes != SAMPLES_PER_CHUNK)
                 break;
         }
@@ -498,9 +496,9 @@ int main(int argc, char *argv[])
     fax_release(fax_state_b);
     if (log_audio)
     {
-        if (afCloseFile(wave_handle) != 0)
+        if (sf_close(wave_handle) != 0)
         {
-            fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME_WAVE);
+            fprintf(stderr, "    Cannot close audio file '%s'\n", OUTPUT_FILE_NAME_WAVE);
             exit(2);
         }
     }

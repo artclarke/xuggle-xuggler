@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v29tx.h,v 1.39 2009/04/12 09:12:11 steveu Exp $
  */
 
 /*! \file */
@@ -93,9 +91,6 @@ gives
     s(n) = I(n)*cos(2*pi*f*n) - Q(n)*sin(2*pi*f*n)
 
 */
-
-/*! The number of taps in the pulse shaping/bandpass filter */
-#define V29_TX_FILTER_STEPS     9
 
 /*!
     V.29 modem transmit side descriptor. This defines the working state for a
@@ -172,7 +167,7 @@ SPAN_DECLARE(void) v29_tx_set_modem_status_handler(v29_tx_state_t *s, modem_tx_s
     \param len The number of samples to be generated.
     \return The number of samples actually generated.
 */
-SPAN_DECLARE(int) v29_tx(v29_tx_state_t *s, int16_t amp[], int len);
+SPAN_DECLARE_NONSTD(int) v29_tx(v29_tx_state_t *s, int16_t amp[], int len);
 
 #if defined(__cplusplus)
 }

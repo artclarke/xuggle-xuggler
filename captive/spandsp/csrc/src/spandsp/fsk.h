@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: fsk.h,v 1.39 2009/04/01 13:22:40 steveu Exp $
  */
 
 /*! \file */
@@ -115,6 +113,15 @@ enum
     FSK_WEITBRECHT50    /* 50 baud version, used for TDD (Telecom Device for the Deaf) */
 };
 
+enum
+{
+    FSK_FRAME_MODE_ASYNC = 0,
+    FSK_FRAME_MODE_SYNC = 1,
+    FSK_FRAME_MODE_5N1_FRAMES = 7,      /* 5 bits of data + start bit + stop bit */
+    FSK_FRAME_MODE_7N1_FRAMES = 9,      /* 7 bits of data + start bit + stop bit */
+    FSK_FRAME_MODE_8N1_FRAMES = 10      /* 8 bits of data + start bit + stop bit */
+};
+
 SPAN_DECLARE_DATA extern const fsk_spec_t preset_fsk_specs[];
 
 /*!
@@ -149,6 +156,8 @@ SPAN_DECLARE(fsk_tx_state_t *) fsk_tx_init(fsk_tx_state_t *s,
                                            get_bit_func_t get_bit,
                                            void *user_data);
 
+SPAN_DECLARE(int) fsk_tx_restart(fsk_tx_state_t *s, const fsk_spec_t *spec);
+    
 SPAN_DECLARE(int) fsk_tx_release(fsk_tx_state_t *s);
 
 SPAN_DECLARE(int) fsk_tx_free(fsk_tx_state_t *s);
@@ -175,7 +184,7 @@ SPAN_DECLARE(void) fsk_tx_set_modem_status_handler(fsk_tx_state_t *s, modem_tx_s
     \param len The number of samples to be generated.
     \return The number of samples actually generated.
 */
-SPAN_DECLARE(int) fsk_tx(fsk_tx_state_t *s, int16_t amp[], int len);
+SPAN_DECLARE_NONSTD(int) fsk_tx(fsk_tx_state_t *s, int16_t amp[], int len);
 
 /*! Get the current received signal power.
     \param s The modem context.
@@ -203,6 +212,8 @@ SPAN_DECLARE(fsk_rx_state_t *) fsk_rx_init(fsk_rx_state_t *s,
                                            put_bit_func_t put_bit,
                                            void *user_data);
 
+SPAN_DECLARE(int) fsk_rx_restart(fsk_rx_state_t *s, const fsk_spec_t *spec, int framing_mode);
+
 SPAN_DECLARE(int) fsk_rx_release(fsk_rx_state_t *s);
 
 SPAN_DECLARE(int) fsk_rx_free(fsk_rx_state_t *s);
@@ -214,7 +225,7 @@ SPAN_DECLARE(int) fsk_rx_free(fsk_rx_state_t *s);
     \param len The number of samples in the buffer.
     \return The number of samples unprocessed.
 */
-SPAN_DECLARE(int) fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len);
+SPAN_DECLARE_NONSTD(int) fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len);
 
 /*! Fake processing of a missing block of received FSK modem audio samples
     (e.g due to packet loss).
@@ -223,7 +234,7 @@ SPAN_DECLARE(int) fsk_rx(fsk_rx_state_t *s, const int16_t *amp, int len);
     \param len The number of samples to fake.
     \return The number of samples unprocessed.
 */
-SPAN_DECLARE(int) fsk_rx_fillin(fsk_rx_state_t *s, int len);
+SPAN_DECLARE_NONSTD(int) fsk_rx_fillin(fsk_rx_state_t *s, int len);
 
 SPAN_DECLARE(void) fsk_rx_set_put_bit(fsk_rx_state_t *s, put_bit_func_t put_bit, void *user_data);
 

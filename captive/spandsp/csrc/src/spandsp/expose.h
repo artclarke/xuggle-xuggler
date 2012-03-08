@@ -22,8 +22,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: expose.h,v 1.12 2009/04/12 03:29:58 steveu Exp $
  */
 
 /*! \file */
@@ -56,19 +54,31 @@
 #include <spandsp/private/super_tone_tx.h>
 #include <spandsp/private/super_tone_rx.h>
 #include <spandsp/private/silence_gen.h>
+#include <spandsp/private/swept_tone.h>
+#include <spandsp/private/echo.h>
+#include <spandsp/private/modem_echo.h>
 #include <spandsp/private/async.h>
 #include <spandsp/private/fsk.h>
-#include <spandsp/private/v29rx.h>
-#include <spandsp/private/v29tx.h>
+#include <spandsp/private/modem_connect_tones.h>
+#include <spandsp/private/v8.h>
 #include <spandsp/private/v17rx.h>
 #include <spandsp/private/v17tx.h>
 #include <spandsp/private/v22bis.h>
 #include <spandsp/private/v27ter_rx.h>
 #include <spandsp/private/v27ter_tx.h>
-#include <spandsp/private/modem_connect_tones.h>
+#include <spandsp/private/v29rx.h>
+#include <spandsp/private/v29tx.h>
+/*#include <spandsp/private/v32bis.h>*/
+/*#include <spandsp/private/v34.h>*/
 #include <spandsp/private/at_interpreter.h>
 #include <spandsp/private/fax_modems.h>
-#include <spandsp/private/t4.h>
+#include <spandsp/private/image_translate.h>
+#include <spandsp/private/t4_t6_decode.h>
+#include <spandsp/private/t4_t6_encode.h>
+/*#include <spandsp/private/t81_t82_arith_coding.h>*/
+/*#include <spandsp/private/t85.h>*/
+#include <spandsp/private/t4_rx.h>
+#include <spandsp/private/t4_tx.h>
 #include <spandsp/private/t30.h>
 #include <spandsp/private/fax.h>
 #include <spandsp/private/t38_core.h>
@@ -76,7 +86,8 @@
 #include <spandsp/private/t38_gateway.h>
 #include <spandsp/private/t38_terminal.h>
 #include <spandsp/private/t31.h>
-#include <spandsp/private/v8.h>
+#include <spandsp/private/timezone.h>
+#include <spandsp/private/v18.h>
 #include <spandsp/private/v42.h>
 #include <spandsp/private/v42bis.h>
 #include <spandsp/private/adsi.h>

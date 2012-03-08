@@ -22,8 +22,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: adsi.c,v 1.76 2009/04/12 09:12:10 steveu Exp $
  */
 
 /*! \file */
@@ -431,12 +429,12 @@ SPAN_DECLARE(adsi_rx_state_t *) adsi_rx_init(adsi_rx_state_t *s,
     switch (standard)
     {
     case ADSI_STANDARD_CLASS:
-        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_BELL202], FALSE, adsi_rx_put_bit, s);
+        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_BELL202], FSK_FRAME_MODE_ASYNC, adsi_rx_put_bit, s);
         break;
     case ADSI_STANDARD_CLIP:
     case ADSI_STANDARD_ACLIP:
     case ADSI_STANDARD_JCLIP:
-        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_V23CH1], FALSE, adsi_rx_put_bit, s);
+        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_V23CH1], FSK_FRAME_MODE_ASYNC, adsi_rx_put_bit, s);
         break;
     case ADSI_STANDARD_CLIP_DTMF:
         dtmf_rx_init(&(s->dtmfrx), adsi_rx_dtmf, s);
@@ -444,7 +442,7 @@ SPAN_DECLARE(adsi_rx_state_t *) adsi_rx_init(adsi_rx_state_t *s,
     case ADSI_STANDARD_TDD:
         /* TDD uses 5 bit data, no parity and 1.5 stop bits. We scan for the first stop bit, and
            ride over the fraction. */
-        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_WEITBRECHT], 7, adsi_tdd_put_async_byte, s);
+        fsk_rx_init(&(s->fskrx), &preset_fsk_specs[FSK_WEITBRECHT], FSK_FRAME_MODE_5N1_FRAMES, adsi_tdd_put_async_byte, s);
         break;
     }
     s->standard = standard;
@@ -650,7 +648,7 @@ SPAN_DECLARE(adsi_tx_state_t *) adsi_tx_init(adsi_tx_state_t *s, int standard)
             return NULL;
     }
     memset(s, 0, sizeof(*s));
-    make_tone_gen_descriptor(&(s->alert_tone_desc),
+    tone_gen_descriptor_init(&(s->alert_tone_desc),
                              2130,
                              -13,
                              2750,

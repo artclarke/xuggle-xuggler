@@ -11,19 +11,17 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License version 2.1,
- * as published by the Free Software Foundation.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: make_at_dictionary.c,v 1.4 2009/04/24 22:35:25 steveu Exp $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -32,7 +30,6 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
@@ -232,6 +229,7 @@ const char *wordlist[] =
     "+ESR",     /* V.250 6.5.3 - Selective repeat */ 
     "+ETBM",    /* V.250 6.5.6 - Call termination buffer management */ 
     "+EWIND",   /* V.250 6.5.7 - Window size */ 
+    "+F34",     /* T.31 B.6.1 - Initial V.34 rate controls for FAX */
     "+FAA",     /* T.32 8.5.2.5 - Adaptive Answer parameter */
     "+FAP",     /* T.32 8.5.1.12 - Addressing and polling capabilities parameter */
     "+FAR",     /* T.31 8.5.1 - Adaptive reception control */ 

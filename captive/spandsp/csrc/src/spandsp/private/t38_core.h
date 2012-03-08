@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: t38_core.h,v 1.3 2009/04/12 14:18:02 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_T38_CORE_H_)
@@ -97,19 +95,11 @@ struct t38_core_state_s
     /*! \brief The fastest data rate supported by the T.38 channel. */
     int fastest_image_data_rate;
 
-    /*! \brief The number of times an indicator packet will be sent. Numbers greater than one
-               will increase reliability for UDP transmission. Zero is valid, to suppress all
-               indicator packets for TCP transmission. */
-    int indicator_tx_count;
-
-    /*! \brief The number of times a data packet which does not end transmission will be sent.
-               Numbers greater than one will increase reliability for UDP transmission. Zero
-               is not valid. */
-    int data_tx_count;
-
-    /*! \brief The number of times a data packet which ends transmission will be sent. Numbers
-               greater than one will increase reliability for UDP transmission. Zero is not valid. */
-    int data_end_tx_count;
+    /*! \brief The number of times each packet type will be sent (low byte). The 
+               depth of redundancy (2nd byte). Higher numbers may increase reliability
+               for UDP transmission. Zero is valid for the indicator packet category,
+               to suppress all indicator packets (typicaly for TCP transmission). */
+    int category_control[5];
 
     /*! \brief TRUE if IFP packet sequence numbers are relevant. For some transports, like TPKT
                over TCP they are not relevent. */

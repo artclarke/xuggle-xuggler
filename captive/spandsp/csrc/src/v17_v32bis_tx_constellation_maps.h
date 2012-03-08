@@ -1,8 +1,9 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * v17tx_constellation_maps.h - ITU V.17 modem transmit part.
- *                              Constellation mapping.
+ * v17_v32bis_tx_constellation_maps.h - ITU V.17 and V.32bis modems
+ *                                      transmit part.
+ *                                      Constellation mapping.
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -22,26 +23,12 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v17tx_constellation_maps.h,v 1.1 2008/05/02 14:44:08 steveu Exp $
  */
 
 #if defined(SPANDSP_USE_FIXED_POINTx)
-static const complexi16_t v17_abcd_constellation[4] =
+static const complexi16_t v17_v32bis_14400_constellation[128] =
 #else
-static const complexf_t v17_abcd_constellation[4] =
-#endif
-{
-    {-6, -2},
-    { 2, -6},
-    { 6,  2},
-    {-2,  6}
-};
-
-#if defined(SPANDSP_USE_FIXED_POINTx)
-static const complexi16_t v17_14400_constellation[128] =
-#else
-static const complexf_t v17_14400_constellation[128] =
+static const complexf_t v17_v32bis_14400_constellation[128] =
 #endif
 {
     {-8, -3},       /* 0x00 */
@@ -175,9 +162,9 @@ static const complexf_t v17_14400_constellation[128] =
 };
 
 #if defined(SPANDSP_USE_FIXED_POINTx)
-static const complexi16_t v17_12000_constellation[64] =
+static const complexi16_t v17_v32bis_12000_constellation[64] =
 #else
-static const complexf_t v17_12000_constellation[64] =
+static const complexf_t v17_v32bis_12000_constellation[64] =
 #endif
 {
     { 7,  1},       /* 0x00 */
@@ -247,9 +234,9 @@ static const complexf_t v17_12000_constellation[64] =
 };
 
 #if defined(SPANDSP_USE_FIXED_POINTx)
-static const complexi16_t v17_9600_constellation[32] =
+static const complexi16_t v17_v32bis_9600_constellation[32] =
 #else
-static const complexf_t v17_9600_constellation[32] =
+static const complexf_t v17_v32bis_9600_constellation[32] =
 #endif
 {
     {-8,  2},       /* 0x00 */
@@ -287,9 +274,9 @@ static const complexf_t v17_9600_constellation[32] =
 };
 
 #if defined(SPANDSP_USE_FIXED_POINTx)
-static const complexi16_t v17_7200_constellation[16] =
+static const complexi16_t v17_v32bis_7200_constellation[16] =
 #else
-static const complexf_t v17_7200_constellation[16] =
+static const complexf_t v17_v32bis_7200_constellation[16] =
 #endif
 {
     { 6, -6},       /* 0x00 */
@@ -308,6 +295,32 @@ static const complexf_t v17_7200_constellation[16] =
     {-6,  2},       /* 0x0D */
     { 2,  6},       /* 0x0E */
     {-2, -2}        /* 0x0F */
+};
+
+/* This one does not exist in V.17 as a data constellation. It is only
+   the equaliser training constellation. In V.32/V.32bis it is a data mode. */
+#if defined(SPANDSP_USE_FIXED_POINTx)
+static const complexi16_t v17_v32bis_4800_constellation[4] =
+#else
+static const complexf_t v17_v32bis_4800_constellation[4] =
+#endif
+{
+    {-6, -2},       /* 0x00 */
+    {-2,  6},       /* 0x01 */
+    { 2, -6},       /* 0x02 */
+    { 6,  2}        /* 0x03 */
+};
+
+#if defined(SPANDSP_USE_FIXED_POINTx)
+static const complexi16_t v17_v32bis_abcd_constellation[4] =
+#else
+static const complexf_t v17_v32bis_abcd_constellation[4] =
+#endif
+{
+    {-6, -2},       /* A */
+    { 2, -6},       /* B */
+    { 6,  2},       /* C */
+    {-2,  6}        /* D */
 };
 
 /*- End of file ------------------------------------------------------------*/

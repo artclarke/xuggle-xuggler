@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * fcf.h - ITU T.30 fax control field definitions
+ * t30_fcf.h - ITU T.30 fax control field definitions
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: t30_fcf.h,v 1.17 2008/08/03 03:44:00 steveu Exp $
  */
 
 /*! \file */

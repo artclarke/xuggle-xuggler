@@ -22,8 +22,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: r2_mf_rx_tests.c,v 1.13 2009/04/11 18:11:19 steveu Exp $
  */
 
 /*! \file */
@@ -51,7 +49,7 @@ a fair test of performance in a real PSTN channel.
 #include <fcntl.h>
 #include <string.h>
 #include <time.h>
-#include <audiofile.h>
+#include <sndfile.h>
 
 //#if defined(WITH_SPANDSP_INTERNALS)
 #define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
@@ -163,7 +161,7 @@ static void my_mf_gen_init(float low_fudge,
             tone = &r2_mf_fwd_tones[i];
         else
             tone = &r2_mf_back_tones[i];
-        make_tone_gen_descriptor(&my_mf_digit_tones[i],
+        tone_gen_descriptor_init(&my_mf_digit_tones[i],
                                  tone->f1*(1.0 + low_fudge),
                                  low_level,
                                  tone->f2*(1.0 + high_fudge),
