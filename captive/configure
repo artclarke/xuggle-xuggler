@@ -15788,7 +15788,7 @@ fi
 
 
 
-ac_config_files="$ac_config_files Makefile Makefile.global zlib/Makefile zlib/incarcerate zlib/install.sh zlib/uninstall.sh openssl/Makefile openssl/incarcerate openssl/install.sh openssl/uninstall.sh libvpx/Makefile libvpx/incarcerate libvpx/install.sh libvpx/uninstall.sh librtmp/Makefile librtmp/incarcerate librtmp/install.sh librtmp/uninstall.sh libvo-aacenc/Makefile libvo-aacenc/incarcerate libopencore-amr/Makefile libopencore-amr/incarcerate libogg/Makefile libogg/incarcerate libvorbis/Makefile libvorbis/incarcerate libtheora/Makefile libtheora/incarcerate libspeex/Makefile libspeex/incarcerate libx264/Makefile libx264/incarcerate libmp3lame/Makefile libmp3lame/incarcerate ffmpeg/Makefile ffmpeg/incarcerate ffmpeg/install.sh ffmpeg/uninstall.sh"
+ac_config_files="$ac_config_files Makefile Makefile.global zlib/Makefile zlib/incarcerate zlib/install.sh zlib/uninstall.sh openssl/Makefile openssl/incarcerate openssl/install.sh openssl/uninstall.sh libvpx/Makefile libvpx/incarcerate libvpx/install.sh libvpx/uninstall.sh librtmp/Makefile librtmp/incarcerate librtmp/install.sh librtmp/uninstall.sh libvo-aacenc/Makefile libvo-aacenc/incarcerate libopencore-amr/Makefile libopencore-amr/incarcerate libogg/Makefile libogg/incarcerate libvorbis/Makefile libvorbis/incarcerate libtheora/Makefile libtheora/incarcerate libspeex/Makefile libspeex/incarcerate libx264/Makefile libx264/incarcerate libmp3lame/Makefile libmp3lame/incarcerate libtiff/Makefile libtiff/incarcerate spandsp/Makefile spandsp/incarcerate liboil/Makefile liboil/incarcerate ffmpeg/Makefile ffmpeg/incarcerate ffmpeg/install.sh ffmpeg/uninstall.sh"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -16964,6 +16964,12 @@ do
     "libx264/incarcerate") CONFIG_FILES="$CONFIG_FILES libx264/incarcerate" ;;
     "libmp3lame/Makefile") CONFIG_FILES="$CONFIG_FILES libmp3lame/Makefile" ;;
     "libmp3lame/incarcerate") CONFIG_FILES="$CONFIG_FILES libmp3lame/incarcerate" ;;
+    "libtiff/Makefile") CONFIG_FILES="$CONFIG_FILES libtiff/Makefile" ;;
+    "libtiff/incarcerate") CONFIG_FILES="$CONFIG_FILES libtiff/incarcerate" ;;
+    "spandsp/Makefile") CONFIG_FILES="$CONFIG_FILES spandsp/Makefile" ;;
+    "spandsp/incarcerate") CONFIG_FILES="$CONFIG_FILES spandsp/incarcerate" ;;
+    "liboil/Makefile") CONFIG_FILES="$CONFIG_FILES liboil/Makefile" ;;
+    "liboil/incarcerate") CONFIG_FILES="$CONFIG_FILES liboil/incarcerate" ;;
     "ffmpeg/Makefile") CONFIG_FILES="$CONFIG_FILES ffmpeg/Makefile" ;;
     "ffmpeg/incarcerate") CONFIG_FILES="$CONFIG_FILES ffmpeg/incarcerate" ;;
     "ffmpeg/install.sh") CONFIG_FILES="$CONFIG_FILES ffmpeg/install.sh" ;;

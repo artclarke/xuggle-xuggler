@@ -203,6 +203,12 @@ AC_CONFIG_FILES([Makefile
                  libx264/incarcerate
                  libmp3lame/Makefile
                  libmp3lame/incarcerate
+                 libtiff/Makefile
+                 libtiff/incarcerate
+                 spandsp/Makefile
+                 spandsp/incarcerate
+                 liboil/Makefile
+                 liboil/incarcerate
                  ffmpeg/Makefile
                  ffmpeg/incarcerate
                  ffmpeg/install.sh
