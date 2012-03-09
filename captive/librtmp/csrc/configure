@@ -733,9 +733,9 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 enable_silent_rules
-enable_static
 enable_fast_install
 enable_shared
+enable_static
 with_pic
 with_gnu_ld
 with_sysroot
@@ -1376,10 +1376,10 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-silent-rules          less verbose build output (undo: `make V=1')
   --disable-silent-rules         verbose build output (undo: `make V=0')
-  --enable-static[=PKGS]  build static libraries [default=no]
   --enable-fast-install[=PKGS]
                           optimize for fast installation [default=no]
   --enable-shared[=PKGS]  build shared libraries [default=yes]
+  --enable-static[=PKGS]  build static libraries [default=yes]
   --disable-libtool-lock  avoid locking (might break parallel builds)
 
 Optional Packages:
@@ -7808,35 +7808,6 @@ func_stripname_cnf ()
 
 
 # Set options
-# Check whether --enable-static was given.
-if test "${enable_static+set}" = set; then :
-  enableval=$enable_static; p=${PACKAGE-default}
-    case $enableval in
-    yes) enable_static=yes ;;
-    no) enable_static=no ;;
-    *)
-     enable_static=no
-      # Look at the argument we got.  We use all the common list separators.
-      lt_save_ifs="$IFS"; IFS="${IFS}$PATH_SEPARATOR,"
-      for pkg in $enableval; do
-	IFS="$lt_save_ifs"
-	if test "X$pkg" = "X$p"; then
-	  enable_static=yes
-	fi
-      done
-      IFS="$lt_save_ifs"
-      ;;
-    esac
-else
-  enable_static=no
-fi
-
-
-
-
-
-
-
 # Check whether --enable-fast-install was given.
 if test "${enable_fast_install+set}" = set; then :
   enableval=$enable_fast_install; p=${PACKAGE-default}
@@ -8195,6 +8166,36 @@ else
   enable_shared=yes
 fi
 
+
+
+
+
+
+
+
+
+  # Check whether --enable-static was given.
+if test "${enable_static+set}" = set; then :
+  enableval=$enable_static; p=${PACKAGE-default}
+    case $enableval in
+    yes) enable_static=yes ;;
+    no) enable_static=no ;;
+    *)
+     enable_static=no
+      # Look at the argument we got.  We use all the common list separators.
+      lt_save_ifs="$IFS"; IFS="${IFS}$PATH_SEPARATOR,"
+      for pkg in $enableval; do
+	IFS="$lt_save_ifs"
+	if test "X$pkg" = "X$p"; then
+	  enable_static=yes
+	fi
+      done
+      IFS="$lt_save_ifs"
+      ;;
+    esac
+else
+  enable_static=yes
+fi
 
 
 
@@ -17512,12 +17513,12 @@ double_quote_subst='$double_quote_subst'
 delay_variable_subst='$delay_variable_subst'
 macro_version='`$ECHO "$macro_version" | $SED "$delay_single_quote_subst"`'
 macro_revision='`$ECHO "$macro_revision" | $SED "$delay_single_quote_subst"`'
-enable_static='`$ECHO "$enable_static" | $SED "$delay_single_quote_subst"`'
 enable_fast_install='`$ECHO "$enable_fast_install" | $SED "$delay_single_quote_subst"`'
 AS='`$ECHO "$AS" | $SED "$delay_single_quote_subst"`'
 DLLTOOL='`$ECHO "$DLLTOOL" | $SED "$delay_single_quote_subst"`'
 OBJDUMP='`$ECHO "$OBJDUMP" | $SED "$delay_single_quote_subst"`'
 enable_shared='`$ECHO "$enable_shared" | $SED "$delay_single_quote_subst"`'
+enable_static='`$ECHO "$enable_static" | $SED "$delay_single_quote_subst"`'
 pic_mode='`$ECHO "$pic_mode" | $SED "$delay_single_quote_subst"`'
 SHELL='`$ECHO "$SHELL" | $SED "$delay_single_quote_subst"`'
 ECHO='`$ECHO "$ECHO" | $SED "$delay_single_quote_subst"`'
@@ -18546,9 +18547,6 @@ available_tags="CXX "
 macro_version=$macro_version
 macro_revision=$macro_revision
 
-# Whether or not to build static libraries.
-build_old_libs=$enable_static
-
 # Whether or not to optimize for fast installation.
 fast_install=$enable_fast_install
 
@@ -18563,6 +18561,9 @@ OBJDUMP=$lt_OBJDUMP
 
 # Whether or not to build shared libraries.
 build_libtool_libs=$enable_shared
+
+# Whether or not to build static libraries.
+build_old_libs=$enable_static
 
 # What type of objects to build.
 pic_mode=$pic_mode

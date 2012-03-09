@@ -44,7 +44,7 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 
 LT_PREREQ([2.2.7b])
-LT_INIT([disable-static disable-fast-install win32-dll])
+LT_INIT([disable-fast-install win32-dll])
 
 # Checks for libraries.
 AC_CHECK_LIB([crypto], [main])
