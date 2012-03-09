@@ -17,6 +17,8 @@ include $(abs_top_builddir)/Makefile.global
 all-local: incarcerate-package
 	@echo "Incarcerating package $(srcdir) to fake DESTDIR=$(vs_captive_prefix)"
 	@cd csrc && \
+          export ac_cv_func_malloc_0_nonnull=yes && \
+          export ac_cv_func_realloc_0_nonnull=yes && \
 	  ( $(MAKE) -q all || \
 	    (echo "Out of date files; re-running make" && $(MAKE) all && \
 	     DESTDIR="$(vs_captive_prefix)" $(MAKE) install) \
