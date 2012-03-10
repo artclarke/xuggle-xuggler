@@ -27,35 +27,11 @@
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the `crypto' library (-lcrypto). */
-#undef HAVE_LIBCRYPTO
-
-/* Define to 1 if you have the `gcrypt' library (-lgcrypt). */
-#undef HAVE_LIBGCRYPT
-
-/* Define to 1 if you have the `gdi32' library (-lgdi32). */
-#undef HAVE_LIBGDI32
-
-/* Define to 1 if you have the `gnutls' library (-lgnutls). */
-#undef HAVE_LIBGNUTLS
-
-/* Define to 1 if you have the `polarssl' library (-lpolarssl). */
-#undef HAVE_LIBPOLARSSL
-
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
 
-/* Define to 1 if you have the `ssl' library (-lssl). */
-#undef HAVE_LIBSSL
-
 /* Define to 1 if you have the `winmm' library (-lwinmm). */
 #undef HAVE_LIBWINMM
-
-/* Define to 1 if you have the `ws2_32' library (-lws2_32). */
-#undef HAVE_LIBWS2_32
-
-/* Define to 1 if you have the `z' library (-lz). */
-#undef HAVE_LIBZ
 
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H

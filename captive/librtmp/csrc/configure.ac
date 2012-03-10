@@ -11,15 +11,6 @@ AM_SILENT_RULES([yes])
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
 
-case $host in
-  *cygwin*|*mingw*)
-    VS_WINDOWS=1
-  ;;
-  *)
-  ;;
-esac
-AM_CONDITIONAL(VS_WINDOWS, [ test "x$VS_WINDOWS" != "x" ])
-
 AC_CONFIG_SRCDIR([src/librtmp/rtmp.h])
 AC_CONFIG_HEADERS([config.h])
 
@@ -47,16 +38,9 @@ LT_PREREQ([2.2.7b])
 LT_INIT([disable-fast-install win32-dll])
 
 # Checks for libraries.
-AC_CHECK_LIB([crypto], [main])
-AC_CHECK_LIB([gcrypt], [main])
-AC_CHECK_LIB([gdi32], [main])
-AC_CHECK_LIB([gnutls], [main])
-AC_CHECK_LIB([polarssl], [main])
-AC_CHECK_LIB([pthread], [main])
-AC_CHECK_LIB([ssl], [main])
-AC_CHECK_LIB([winmm], [main])
-AC_CHECK_LIB([ws2_32], [main])
-AC_CHECK_LIB([z], [main])
+PKG_CHECK_MODULES([OPENSSL], [openssl >= 1 ])
+AC_CHECK_LIB([winmm], [timeGetTime])
+AC_CHECK_LIB([pthread], [pthread_create])
 
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h limits.h netdb.h netinet/in.h stddef.h stdint.h stdlib.h string.h sys/param.h sys/socket.h unistd.h])
