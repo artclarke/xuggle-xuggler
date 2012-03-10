@@ -65,6 +65,9 @@ AC_FUNC_REALLOC
 AC_FUNC_STRTOD
 AC_CHECK_FUNCS([gethostbyname inet_ntoa memchr memset select socket strcasecmp strchr strdup strerror strncasecmp strrchr strstr strtol])
 
+PRIVATE_LIBS="${LIBS}"
+AC_SUBST([PRIVATE_LIBS])
+
 AC_CONFIG_FILES([Makefile
 librtmp.pc:src/librtmp/librtmp.pc.in])
 

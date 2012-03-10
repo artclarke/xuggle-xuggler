@@ -71,7 +71,7 @@ fi
 # installed
 
 # shared support on vpx is limited at best
-VPX_OPTIONS="$VPX_OPTIONS --enable-runtime-cpu-detect"
+VPX_OPTIONS="$VPX_OPTIONS --disable-shared --enable-runtime-cpu-detect"
 
 if test ! "x$VS_DEBUG" = "x"; then
   echo "Creating debug version of libvpx: $VS_DEBUG"

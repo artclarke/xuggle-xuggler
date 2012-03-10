@@ -34,6 +34,7 @@ AR="@AR@" \
 DLLTOOL="@DLLTOOL@" \
 PATH="$PATH:@abs_top_builddir@@bindir@@" sh @abs_srcdir@/csrc/configure \
   --disable-dependency-tracking \
+  --disable-shared \
   --enable-sse \
   ${CROSS} \
   --prefix="${prefix}" || \

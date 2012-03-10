@@ -617,6 +617,7 @@ ac_func_list=
 ac_subst_vars='am__EXEEXT_FALSE
 am__EXEEXT_TRUE
 LTLIBOBJS
+PRIVATE_LIBS
 POW_LIB
 LIBOBJS
 OPENSSL_LIBS
@@ -16694,6 +16695,9 @@ _ACEOF
 
 fi
 done
+
+
+PRIVATE_LIBS="${LIBS}"
 
 
 ac_config_files="$ac_config_files Makefile librtmp.pc:src/librtmp/librtmp.pc.in"

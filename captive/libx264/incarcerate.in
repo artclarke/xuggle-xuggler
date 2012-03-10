@@ -19,7 +19,7 @@ fi
 # Tell X264 about the captive libraries already built and fake
 # installed
 
-X264_OPTIONS="$X264_OPTIONS --enable-shared"
+X264_OPTIONS="$X264_OPTIONS --enable-static"
 if test ! "x$VS_DEBUG" = "x"; then
   echo "Creating debug version of libx264: $VS_DEBUG"
   X264_OPTIONS="$X264_OPTIONS --disable-asm"
