@@ -7,15 +7,15 @@ EXTRA_DIST=COPYING
 #  |                                                                       |
 # openssl                                                    ogg         tiff
 #    |                                                        |            |
-#  -----                                                -------------   spandsp
-#  |   |                                                |     |     |      |
-#  | rtmp vo-aacenc opencore-amr speex mp3lame x264 vorbis theora   | vpx  |
-#  |   |      |          |         |      |      |      |     |     |  |   |
+#  -----                                             -------------------  spandsp
+#  |   |                                            |      |     |      |  |
+#  | rtmp vo-aacenc opencore-amr mp3lame x264 vpx speex vorbis theora   |  |
+#  |   |      |          |          |     |    |    |      |     |      |  |
 #  ---------------------------------------------------------------------   |
-#                                  |                                       |
-#                               ffmpeg liboil                              |
-#                                  |      |                                |
-#                                  -----------------------------------------
+#                                   |                                      |
+#                               ffmpeg     liboil                          |
+#                                   |         |                            |
+#                                   ---------------------------------------
 #                                                        |
 #                                                      xuggle
 SUBDIRS=
