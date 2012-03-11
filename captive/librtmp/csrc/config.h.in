@@ -30,9 +30,6 @@
 /* Define to 1 if you have the `pthread' library (-lpthread). */
 #undef HAVE_LIBPTHREAD
 
-/* Define to 1 if you have the `winmm' library (-lwinmm). */
-#undef HAVE_LIBWINMM
-
 /* Define to 1 if you have the <limits.h> header file. */
 #undef HAVE_LIMITS_H
 
@@ -48,6 +45,9 @@
 
 /* Define to 1 if you have the `memset' function. */
 #undef HAVE_MEMSET
+
+/* Define to 1 if you have the <mmsystem.h> header file. */
+#undef HAVE_MMSYSTEM_H
 
 /* Define to 1 if you have the <netdb.h> header file. */
 #undef HAVE_NETDB_H
@@ -130,6 +130,9 @@
 
 /* Define to 1 if you have the <vfork.h> header file. */
 #undef HAVE_VFORK_H
+
+/* Define to 1 if you have the <windows.h> header file. */
+#undef HAVE_WINDOWS_H
 
 /* Define to 1 if `fork' works. */
 #undef HAVE_WORKING_FORK
