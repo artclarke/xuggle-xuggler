@@ -250,7 +250,7 @@ VideoPictureTest :: testDecodingAndEncodingIntoFrame()
             offset);
         VS_TUT_ENSURE("could not decode any video", retval>0);
         num = hr->coders[videoStream]->getTimeBase();
-        VS_TUT_ENSURE_EQUALS("time base changed", num->getDouble(), hr->expected_time_base);
+        VS_TUT_ENSURE_DISTANCE("time base changed", num->getDouble(), hr->expected_time_base, 0.0001);
         offset += retval;
         if (frame->isComplete())
         {
@@ -401,7 +401,7 @@ VideoPictureTest :: testDecodingAndEncodingIntoFrameByCopyingData()
             offset);
         VS_TUT_ENSURE("could not decode any video", retval>0);
         num = hr->coders[videoStream]->getTimeBase();
-        VS_TUT_ENSURE_EQUALS("time base changed", num->getDouble(), hr->expected_time_base);
+        VS_TUT_ENSURE_DISTANCE("time base changed", num->getDouble(), hr->expected_time_base, 0.0001);
         offset += retval;
         if (frame->isComplete())
         {
@@ -572,7 +572,7 @@ VideoPictureTest :: testDecodingAndEncodingIntoAFrameByCopyingDataInPlace()
             offset);
         VS_TUT_ENSURE("could not decode any video", retval>0);
         num = hr->coders[videoStream]->getTimeBase();
-        VS_TUT_ENSURE_EQUALS("time base changed", num->getDouble(), hr->expected_time_base);
+        VS_TUT_ENSURE_DISTANCE("time base changed", num->getDouble(), hr->expected_time_base, 0.0001);
         offset += retval;
         if (frame->isComplete())
         {

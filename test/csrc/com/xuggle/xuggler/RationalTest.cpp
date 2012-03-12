@@ -88,7 +88,7 @@ RationalTest :: testGetDouble()
   num = IRational::make();
 
   retval = num->getDouble();
-  VS_TUT_ENSURE_EQUALS("", retval, 0);
+  VS_TUT_ENSURE_DISTANCE("", retval, 0, 0.0001);
 
   // now let make sure we can create infinity (and beyond...)
   num = IRational::make();
@@ -106,7 +106,7 @@ RationalTest :: testMultiplication()
   a = IRational::make(12);
   b = IRational::make(3);
   num = IRational::sMultiply(a.value(), b.value());
-  VS_TUT_ENSURE_EQUALS("", num->getDouble(), 36);      
+  VS_TUT_ENSURE_DISTANCE("", num->getDouble(), 36, 0.0001);
 }
 
 void
@@ -118,7 +118,7 @@ RationalTest :: testAddition()
   a = IRational::make(12);
   b = IRational::make(3);
   num = IRational::sAdd(a.value(), b.value());
-  VS_TUT_ENSURE_EQUALS("", num->getDouble(), 15);      
+  VS_TUT_ENSURE_DISTANCE("", num->getDouble(), 15, 0.0001);
 }
 
 void
@@ -130,7 +130,7 @@ RationalTest :: testSubtraction()
   a = IRational::make(12);
   b = IRational::make(3);
   num = IRational::sSubtract(a.value(), b.value());
-  VS_TUT_ENSURE_EQUALS("", num->getDouble(), 9);      
+  VS_TUT_ENSURE_DISTANCE("", num->getDouble(), 9, 0.0001);
 }
 
 void
@@ -142,7 +142,7 @@ RationalTest :: testDivision()
   a = IRational::make(12);
   b = IRational::make(3);
   num = IRational::sDivide(a.value(), b.value());
-  VS_TUT_ENSURE_EQUALS("", num->getDouble(), 4);      
+  VS_TUT_ENSURE_DISTANCE("", num->getDouble(), 4, 0.0001);
 
   a = IRational::make(1);
   b = IRational::make(0.0);
@@ -159,9 +159,9 @@ void
 RationalTest :: testConstructionFromNumeratorAndDenominatorPair()
 {
   num = IRational::make(1, 10);
-  VS_TUT_ENSURE_EQUALS("", num->getDouble(), 0.1);
+  VS_TUT_ENSURE_DISTANCE("", num->getDouble(), 0.1, 0.0001);
   num = IRational::make(2, 10);
-  VS_TUT_ENSURE_EQUALS("", num->getDouble(), 0.2);
+  VS_TUT_ENSURE_DISTANCE("", num->getDouble(), 0.2, 0.0001);
   VS_TUT_ENSURE_EQUALS("", num->getNumerator(), 1);
   VS_TUT_ENSURE_EQUALS("", num->getDenominator(), 5);
 }
@@ -172,9 +172,9 @@ RationalTest :: testRescaling()
   RefPointer<IRational> a;
   RefPointer<IRational> b;
   a = IRational::make(1, 100);
-  VS_TUT_ENSURE_EQUALS("", a->getDouble(), 0.01);
+  VS_TUT_ENSURE_DISTANCE("", a->getDouble(), 0.01, 0.0001);
   b = IRational::make(1,5);
-  VS_TUT_ENSURE_EQUALS("", b->getDouble(), 0.2);
+  VS_TUT_ENSURE_DISTANCE("", b->getDouble(), 0.2, 0.0001);
 
   VS_TUT_ENSURE_EQUALS("", a->rescale(1, b.value()), 20);
   VS_TUT_ENSURE_EQUALS("", b->rescale(1, a.value()), 0);
