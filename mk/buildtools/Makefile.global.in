@@ -69,10 +69,10 @@ ifndef VS_TEST
     VS_LIBRARY_VERSION=@LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@:0
   else
     ifeq ($(HOST_TYPE),Windows)
-      AM_LDFLAGS+=-Wl,-Bsymbolic -Wl,--warn-common -Wl,--as-needed
+      AM_LDFLAGS+=-Wl,-Bsymbolic -Wl,--warn-common # -Wl,--as-needed
     endif
   endif
-  AM_LDFLAGS+=-version-number $(VS_LIBRARY_VERSION) -no-undefined
+  AM_LDFLAGS+=-version-number $(VS_LIBRARY_VERSION) -Wl,--no-undefined -Wl,--no-as-needed
 endif
 
 ifdef VS_DEBUG

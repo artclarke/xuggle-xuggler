@@ -20,6 +20,7 @@ fi
 # installed
 
 X264_OPTIONS="$X264_OPTIONS --enable-static"
+X264_OPTIONS="$X264_OPTIONS --enable-pic"
 if test ! "x$VS_DEBUG" = "x"; then
   echo "Creating debug version of libx264: $VS_DEBUG"
   X264_OPTIONS="$X264_OPTIONS --disable-asm"

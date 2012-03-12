@@ -1,0 +1,3 @@
+# Necessary to be in a file that is NOT processed by automake
+VS_PKG_LIBRARIES=$(shell PKG_CONFIG_PATH="@abs_top_builddir@/captive/stage@libdir@/pkgconfig" pkg-config --libs spandsp libavdevice libswscale libavfilter libavformat libavcodec libavutil)
+

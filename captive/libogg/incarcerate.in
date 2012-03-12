@@ -35,6 +35,7 @@ DLLTOOL="@DLLTOOL@" \
 PATH="$PATH:@abs_top_builddir@@bindir@@" sh @abs_srcdir@/csrc/configure \
   ${CROSS} \
   --disable-dependency-tracking \
+  --with-pic \
   --disable-shared \
   --prefix="${prefix}" || \
   (echo "Could not configure library: \"@abs_srcdir@\"; you may want to try disabling it or installing your own version" && exit 1)

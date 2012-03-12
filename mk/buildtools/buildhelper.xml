@@ -1300,7 +1300,7 @@
   <target name="run-tests-native-do"
       if="native.makefile.exists">
     <exec executable="${build.native.make}"
-        dir="${build-native.dir}"
+        dir="${build-native.dir}/test/csrc"
         failonerror="true">
       <arg line="check"/>
     </exec>
@@ -1309,8 +1309,16 @@
       depends="setup-native, compile-native, compile-tests-native, run-tests-native-do"
       description="Runs the native test suite">
   </target>
+  <target name="run-tests-native-all-do"
+      if="native.makefile.exists">
+    <exec executable="${build.native.make}"
+        dir="${build-native.dir}"
+        failonerror="true">
+      <arg line="check"/>
+    </exec>
+  </target>
   <target name="run-tests-native-all"
-      depends="run-tests-native"
+      depends="run-tests-native-all-do"
       description="Runs the native test suite, including any exhaustive tests">
   </target>
   <target name="run-memcheck-native-do"

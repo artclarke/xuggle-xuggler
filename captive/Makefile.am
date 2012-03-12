@@ -23,7 +23,11 @@ SUBDIRS=
 SUBDIRS+= zlib
 #endif
 
-# SUBDIRS+= libtiff spandsp liboil
+# For futures; include in static builds for now so users
+# don't complain later when they increase the size of the jars
+SUBDIRS+= libtiff spandsp
+
+#SUBDIRS+= liboil
 
 SUBDIRS+= \
   libvpx openssl librtmp libvo-aacenc libopencore-amr \
@@ -34,3 +38,6 @@ SUBDIRS+=libx264
 endif
 SUBDIRS+=ffmpeg
 
+# We delete the libtool generated .la files because they cause link errors for xuggle
+all-local:
+	@-find "$(vs_captive_prefix)" -name '*.la' | xargs rm 

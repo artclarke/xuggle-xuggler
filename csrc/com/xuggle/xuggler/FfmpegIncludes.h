@@ -43,6 +43,7 @@ extern "C"
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
 #include <libavdevice/avdevice.h>
+#include <libavfilter/avfilter.h>
 #include <libavutil/opt.h>
 #include <libavutil/parseutils.h>
 // FFmpeg changes these form enums to #defines.  change them back.

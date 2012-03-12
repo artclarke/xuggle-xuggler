@@ -370,6 +370,7 @@ AC_CONFIG_FILES([Makefile
                  csrc/com/xuggle/Makefile
                  csrc/com/xuggle/ferry/Makefile
                  csrc/com/xuggle/xuggler/Makefile
+                 csrc/com/xuggle/xuggler/Makefile.dependencies:csrc/com/xuggle/xuggler/Makefile.dependencies.in
                  csrc/com/xuggle/xuggler/io/Makefile
                  test/csrc/Makefile
                  test/csrc/com/Makefile

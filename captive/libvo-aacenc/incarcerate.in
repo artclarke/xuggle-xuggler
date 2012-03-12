@@ -44,6 +44,7 @@ PATH="$PATH:@abs_top_builddir@@bindir@@" \
    sh @abs_builddir@/csrc/configure \
    --enable-silent-rules \
    --disable-dependency-tracking \
+   --with-pic \
    --disable-shared \
    ${CROSS} \
   --prefix="${prefix}" $LIBRARY_OPTIONS || \
