@@ -42,7 +42,8 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
 	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/ax_compiler_vendor.m4 \
+	$(top_srcdir)/m4/xuggle.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -59,8 +60,7 @@ xugglerioTestStdioURLProtocolHandler_OBJECTS =  \
 	$(am_xugglerioTestStdioURLProtocolHandler_OBJECTS) \
 	$(nodist_xugglerioTestStdioURLProtocolHandler_OBJECTS)
 xugglerioTestStdioURLProtocolHandler_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler-io.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
 am__v_lt_0 = --silent
@@ -184,6 +184,8 @@ VS_DEBUG = @VS_DEBUG@
 VS_ENABLE_GPL = @VS_ENABLE_GPL@
 VS_JNI_INCLUDE = @VS_JNI_INCLUDE@
 VS_LDFLAGS = @VS_LDFLAGS@
+VS_LIBGCC = @VS_LIBGCC@
+VS_LIBSTDCXX = @VS_LIBSTDCXX@
 VS_OS_WINDOWS = @VS_OS_WINDOWS@
 VS_SWIG = @VS_SWIG@
 VS_WARN_ISERROR = @VS_WARN_ISERROR@
@@ -244,7 +246,6 @@ VS_CPP_PATH = com/xuggle/xuggler/io
 VS_CPP_PACKAGE = com.xuggle.xuggler.io
 VS_CPP_NAMESPACE = com::xuggle::xuggler::io
 VS_TEST = 1
-EXTRA_LIBS = $(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la
 inst_check = $(check_PROGRAMS)
 inst_checkdir = $(bindir)
 
@@ -259,7 +260,7 @@ nodist_xugglerioTestStdioURLProtocolHandler_SOURCES = \
   StdioURLProtocolHandlerTest_CXXRunner.cpp
 
 xugglerioTestStdioURLProtocolHandler_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler-io.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la
 
 BUILT_SOURCES = \
   StdioURLProtocolHandlerTest_CXXRunner.cpp

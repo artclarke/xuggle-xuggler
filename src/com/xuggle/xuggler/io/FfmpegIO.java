@@ -55,9 +55,8 @@ public class FfmpegIO
 
   static
   {
-    com.xuggle.ferry.JNILibraryLoader.loadLibrary(
-        "xuggle-xuggler-io",
-        new Long(Version.MAJOR_VERSION));
+    // this will load the one shared library
+    com.xuggle.ferry.Ferry.init();
     FfmpegIO.init();
     // And force the URLProtocolManager global
     // object to be created.

@@ -3,28 +3,13 @@ VS_CPP_PATH=com/xuggle/xuggler
 VS_CPP_PACKAGE=com.xuggle.xuggler
 VS_CPP_NAMESPACE=com::xuggle::xuggler
 include @top_builddir@/mk/Makefile.global
-# We include a file here that automake won't really touch, that let's us
-# run pkg-config at make time.  This works around the fact that when
-# configuring xuggler we don't yet have a captive ffmpeg .pc file
-# that we can link against
-include @builddir@/Makefile.dependencies
 
 SUBDIRS=io
 SUFFIXES=.i
 
-bin_PROGRAMS=xuggle-xuggler-main
-lib_LTLIBRARIES = libxuggle-xuggler.la
+noinst_LTLIBRARIES = libxuggle-xuggler.la
 
-xuggle_xuggler_main_SOURCES= \
-  Main.cpp
-xuggle_xuggler_main_LDADD= libxuggle-xuggler.la
-
-libxuggle_xuggler_la_LIBADD=
-libxuggle_xuggler_la_LDFLAGS= -shared -static
-
-libxuggle_xuggler_la_LIBADD+= $(VS_PKG_LIBRARIES)
-libxuggle_xuggler_la_LIBADD+= $(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la 
-libxuggle_xuggler_la_LIBADD+= $(top_builddir)/csrc/com/xuggle/xuggler/io/libxuggle-xuggler-io.la 
+libxuggle_xuggler_la_LIBADD= $(VS_PKG_LIBRARIES)
 
 libxuggle_xuggler_la_SOURCES= \
   AudioResampler.cpp \

@@ -5,8 +5,6 @@ VS_CPP_NAMESPACE=com::xuggle::xuggler::io
 VS_TEST=1
 include @top_builddir@/mk/Makefile.global
 
-EXTRA_LIBS= $(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la
-
 check_PROGRAMS=\
   xugglerioTestStdioURLProtocolHandler
 
@@ -25,7 +23,7 @@ nodist_xugglerioTestStdioURLProtocolHandler_SOURCES= \
   StdioURLProtocolHandlerTest_CXXRunner.cpp
 
 xugglerioTestStdioURLProtocolHandler_LDADD= \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler-io.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la
 
 BUILT_SOURCES= \
   StdioURLProtocolHandlerTest_CXXRunner.cpp

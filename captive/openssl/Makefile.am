@@ -63,7 +63,7 @@ uninstall-local: incarcerate-package
 	if test -f $(builddir)/uninstall.sh; then \
 	  DESTDIR="$(DESTDIR)" sh $(builddir)/uninstall.sh; \
 	fi
-	cd csrc && $(MAKE) INSTALL_PREFIX="$(DESTDIR)" uninstall
+#	cd csrc && $(MAKE) INSTALL_PREFIX="$(DESTDIR)" uninstall
 
 check: incarcerate-package
 	@echo "make check; DESTDIR=$(DESTDIR)"

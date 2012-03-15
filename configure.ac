@@ -8,9 +8,9 @@ m4_define([VSM4_LIB_MAJOR_VERSION], [5])
 m4_define([VSM4_LIB_MINOR_VERSION], [1])
 
 AC_INIT([xuggler],[VSM4_LIB_MAJOR_VERSION.VSM4_LIB_MINOR_VERSION],[info@xuggle.com])
-AC_PREREQ([2.63])
+AC_PREREQ([2.68])
 AC_PREFIX_DEFAULT([${XUGGLE_HOME:-/usr/local}])
-AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.10.2 ])
+AM_INIT_AUTOMAKE([-Wall -Werror no-dependencies nostdinc tar-pax 1.11.1 ])
 AM_MAINTAINER_MODE
 AM_SILENT_RULES([yes])
 LT_INIT([disable-static disable-fast-install win32-dll])
@@ -99,6 +99,13 @@ AM_CONDITIONAL(CAPTIVES_ENABLED,
 AC_SUBST([CAPTIVES_ENABLED])
 
 AC_CONFIG_MACRO_DIR([m4])
+
+m4_include([m4/ax_compiler_vendor.m4])
+m4_include([m4/xuggle.m4])
+
+AX_COMPILER_VENDOR
+AM_CONDITIONAL([VS_IS_GCC], [ test "$ax_cv_c_compiler_vendor" = gnu ])
+
 if test "x$enable_captives" = "xyes"; then
   AC_CONFIG_SUBDIRS([captive])
 fi
@@ -148,10 +155,7 @@ AC_MSG_RESULT([no])
 
 HOST_OS=$host
 case $host in
-  *cygwin*)
-  HOST_TYPE=Windows
-  ;;
-  *mingw*)
+  *mingw*|*cygwin*)
   HOST_TYPE=Windows
   ;;
   *darwin*)
@@ -164,8 +168,6 @@ esac
 enable_warningerrors=yes
 case $HOST_TYPE in
   Windows)
-  # Don't ask.
-  VS_LDFLAGS+=" -Wl,--add-stdcall-alias -Wl,--enable-runtime-pseudo-reloc -Wl,--enable-auto-image-base"
   HOST_SO_LIBPATH=[PATH]
   VS_OS_WINDOWS=1
   AC_SUBST([VS_OS_WINDOWS])
@@ -182,6 +184,7 @@ case $HOST_TYPE in
   HOST_SO_LIBPATH=[LD_LIBRARY_PATH]
   ;;
 esac
+AM_CONDITIONAL([VS_OS_WINDOWS], [ test "${HOST_TYPE}" = "Windows" ])
 
 AC_SUBST([HOST_TYPE])
 AC_SUBST([HOST_OS])
@@ -338,13 +341,13 @@ if test "x$enable_warningerrors" = xyes; then
   AC_SUBST([VS_WARN_ISERROR])
 fi
 
-AC_DEFINE(VSJNI_USE_JVM_FOR_MEMMANAGEMENT, 1, AC_PACKAGE_NAME [ will use Java to allocate large memory blogs if running inside a Java Virtual Machine])
+AC_DEFINE(VSJNI_USE_JVM_FOR_MEMMANAGEMENT, 1, AC_PACKAGE_NAME [ will use Java to allocate large memory blobs if running inside a Java Virtual Machine])
+
 AC_MSG_CHECKING([if you smiled])
 AC_MSG_RESULT([let us know: info@xuggle.com])
 
 enable_gpl=yes
 VS_ENABLE_GPL=$enable_gpl
-AC_MSG_RESULT([$enable_gpl])
 AC_DEFINE(VS_ENABLE_GPL, 1, AC_PACKAGE_NAME [ will enable any code that depends on GPL code ])
 AC_SUBST(VS_ENABLE_GPL)
 AM_CONDITIONAL(VS_ENABLE_GPL,
@@ -352,11 +355,25 @@ AM_CONDITIONAL(VS_ENABLE_GPL,
 
 dnl substitute our values for compiling; we don't reset the
 dnl CFLAGS values because then they'll be propagated to captives
-AC_SUBST([VS_CFLAGS])
-AC_SUBST([VS_CXXFLAGS])
-AC_SUBST([VS_CPPFLAGS])
-AC_SUBST([VS_LDFLAGS])
+AC_SUBST([VS_CFLAGS])dnl
+AC_SUBST([VS_CXXFLAGS])dnl
+AC_SUBST([VS_CPPFLAGS])dnl
+AC_SUBST([VS_LDFLAGS])dnl
 
+VS_FIND_STATIC_LIB([stdc++],
+[VS_LIBSTDCXX="-XCClinker ${VS_LIB}"], [VS_LIBSTDCXX="-XCClinker -lstdc++"])
+VS_FIND_STATIC_LIB([gcc],
+[VS_LIBGCC="-XCClinker ${VS_LIB}"], [])
+
+case $host in
+  *mingw*|*cygwin*)
+  # on windows use the shared library; it'll be there. trust me.
+  VS_LIBSTDCXX="-lstdc++"
+  ;;
+esac
+
+AC_SUBST([VS_LIBSTDCXX])
+AC_SUBST([VS_LIBGCC])
 
 dnl Now, output everything
 AC_CONFIG_SRCDIR([csrc/com/xuggle/Xuggle.h])
@@ -370,7 +387,7 @@ AC_CONFIG_FILES([Makefile
                  csrc/com/xuggle/Makefile
                  csrc/com/xuggle/ferry/Makefile
                  csrc/com/xuggle/xuggler/Makefile
-                 csrc/com/xuggle/xuggler/Makefile.dependencies:csrc/com/xuggle/xuggler/Makefile.dependencies.in
+                 csrc/com/xuggle/Makefile.dependencies:csrc/com/xuggle/Makefile.dependencies.in
                  csrc/com/xuggle/xuggler/io/Makefile
                  test/csrc/Makefile
                  test/csrc/com/Makefile

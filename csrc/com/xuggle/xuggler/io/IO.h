@@ -45,14 +45,8 @@ namespace io
 }
 }}}
 
-#ifdef VS_OS_WINDOWS
-#ifdef VS_API_COMPILING_xuggle_xuggler_io
+#ifndef VS_API_XUGGLER_IO
 #define VS_API_XUGGLER_IO VS_API_EXPORT
-#else
-#define VS_API_XUGGLER_IO VS_API_IMPORT
-#endif // VS_API_COMPILING_xuggler_xuggler_io
-#else
-#define VS_API_XUGGLER_IO
-#endif
+#endif // ! VS_API_XUGGLER_IO VS_API_EXPORT
 
 #endif /* IO_H_ */

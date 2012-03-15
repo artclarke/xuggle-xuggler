@@ -62,7 +62,8 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
 	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/ax_compiler_vendor.m4 \
+	$(top_srcdir)/m4/xuggle.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -80,8 +81,7 @@ xugglerTestAudioResampler_OBJECTS =  \
 	$(am_xugglerTestAudioResampler_OBJECTS) \
 	$(nodist_xugglerTestAudioResampler_OBJECTS)
 xugglerTestAudioResampler_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
 am__v_lt_0 = --silent
@@ -93,16 +93,14 @@ xugglerTestAudioSamples_OBJECTS =  \
 	$(am_xugglerTestAudioSamples_OBJECTS) \
 	$(nodist_xugglerTestAudioSamples_OBJECTS)
 xugglerTestAudioSamples_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestCodec_OBJECTS = CodecTest.$(OBJEXT) Main.$(OBJEXT) \
 	Helper.$(OBJEXT)
 nodist_xugglerTestCodec_OBJECTS = CodecTest_CXXRunner.$(OBJEXT)
 xugglerTestCodec_OBJECTS = $(am_xugglerTestCodec_OBJECTS) \
 	$(nodist_xugglerTestCodec_OBJECTS)
 xugglerTestCodec_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestContainer_OBJECTS = ContainerTest.$(OBJEXT) \
 	Main.$(OBJEXT) Helper.$(OBJEXT)
 nodist_xugglerTestContainer_OBJECTS =  \
@@ -110,8 +108,7 @@ nodist_xugglerTestContainer_OBJECTS =  \
 xugglerTestContainer_OBJECTS = $(am_xugglerTestContainer_OBJECTS) \
 	$(nodist_xugglerTestContainer_OBJECTS)
 xugglerTestContainer_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestContainerCustomIO_OBJECTS =  \
 	ContainerCustomIOTest.$(OBJEXT) Main.$(OBJEXT) \
 	Helper.$(OBJEXT)
@@ -121,8 +118,7 @@ xugglerTestContainerCustomIO_OBJECTS =  \
 	$(am_xugglerTestContainerCustomIO_OBJECTS) \
 	$(nodist_xugglerTestContainerCustomIO_OBJECTS)
 xugglerTestContainerCustomIO_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestContainerFormat_OBJECTS = ContainerFormatTest.$(OBJEXT) \
 	Main.$(OBJEXT) Helper.$(OBJEXT)
 nodist_xugglerTestContainerFormat_OBJECTS =  \
@@ -131,24 +127,21 @@ xugglerTestContainerFormat_OBJECTS =  \
 	$(am_xugglerTestContainerFormat_OBJECTS) \
 	$(nodist_xugglerTestContainerFormat_OBJECTS)
 xugglerTestContainerFormat_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestError_OBJECTS = ErrorTest.$(OBJEXT) Main.$(OBJEXT) \
 	Helper.$(OBJEXT)
 nodist_xugglerTestError_OBJECTS = ErrorTest_CXXRunner.$(OBJEXT)
 xugglerTestError_OBJECTS = $(am_xugglerTestError_OBJECTS) \
 	$(nodist_xugglerTestError_OBJECTS)
 xugglerTestError_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestHelper_OBJECTS = HelperTest.$(OBJEXT) Main.$(OBJEXT) \
 	Helper.$(OBJEXT)
 nodist_xugglerTestHelper_OBJECTS = HelperTest_CXXRunner.$(OBJEXT)
 xugglerTestHelper_OBJECTS = $(am_xugglerTestHelper_OBJECTS) \
 	$(nodist_xugglerTestHelper_OBJECTS)
 xugglerTestHelper_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestIndexEntry_OBJECTS = IndexEntryTest.$(OBJEXT) \
 	Main.$(OBJEXT) Helper.$(OBJEXT)
 nodist_xugglerTestIndexEntry_OBJECTS =  \
@@ -156,8 +149,7 @@ nodist_xugglerTestIndexEntry_OBJECTS =  \
 xugglerTestIndexEntry_OBJECTS = $(am_xugglerTestIndexEntry_OBJECTS) \
 	$(nodist_xugglerTestIndexEntry_OBJECTS)
 xugglerTestIndexEntry_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestMediaDataWrapper_OBJECTS =  \
 	MediaDataWrapperTest.$(OBJEXT) Main.$(OBJEXT) Helper.$(OBJEXT)
 nodist_xugglerTestMediaDataWrapper_OBJECTS =  \
@@ -166,8 +158,7 @@ xugglerTestMediaDataWrapper_OBJECTS =  \
 	$(am_xugglerTestMediaDataWrapper_OBJECTS) \
 	$(nodist_xugglerTestMediaDataWrapper_OBJECTS)
 xugglerTestMediaDataWrapper_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestMemoryAllocation_OBJECTS =  \
 	MemoryAllocationTest.$(OBJEXT) Main.$(OBJEXT) Helper.$(OBJEXT)
 nodist_xugglerTestMemoryAllocation_OBJECTS =  \
@@ -176,24 +167,21 @@ xugglerTestMemoryAllocation_OBJECTS =  \
 	$(am_xugglerTestMemoryAllocation_OBJECTS) \
 	$(nodist_xugglerTestMemoryAllocation_OBJECTS)
 xugglerTestMemoryAllocation_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestMetaData_OBJECTS = MetaDataTest.$(OBJEXT) Main.$(OBJEXT) \
 	Helper.$(OBJEXT)
 nodist_xugglerTestMetaData_OBJECTS = MetaDataTest_CXXRunner.$(OBJEXT)
 xugglerTestMetaData_OBJECTS = $(am_xugglerTestMetaData_OBJECTS) \
 	$(nodist_xugglerTestMetaData_OBJECTS)
 xugglerTestMetaData_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestPacket_OBJECTS = PacketTest.$(OBJEXT) Main.$(OBJEXT) \
 	Helper.$(OBJEXT)
 nodist_xugglerTestPacket_OBJECTS = PacketTest_CXXRunner.$(OBJEXT)
 xugglerTestPacket_OBJECTS = $(am_xugglerTestPacket_OBJECTS) \
 	$(nodist_xugglerTestPacket_OBJECTS)
 xugglerTestPacket_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestPixelFormat_OBJECTS = PixelFormatTest.$(OBJEXT) \
 	Main.$(OBJEXT) Helper.$(OBJEXT)
 nodist_xugglerTestPixelFormat_OBJECTS =  \
@@ -201,32 +189,28 @@ nodist_xugglerTestPixelFormat_OBJECTS =  \
 xugglerTestPixelFormat_OBJECTS = $(am_xugglerTestPixelFormat_OBJECTS) \
 	$(nodist_xugglerTestPixelFormat_OBJECTS)
 xugglerTestPixelFormat_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestProperty_OBJECTS = PropertyTest.$(OBJEXT) Main.$(OBJEXT) \
 	Helper.$(OBJEXT)
 nodist_xugglerTestProperty_OBJECTS = PropertyTest_CXXRunner.$(OBJEXT)
 xugglerTestProperty_OBJECTS = $(am_xugglerTestProperty_OBJECTS) \
 	$(nodist_xugglerTestProperty_OBJECTS)
 xugglerTestProperty_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestRational_OBJECTS = RationalTest.$(OBJEXT) Main.$(OBJEXT) \
 	Helper.$(OBJEXT)
 nodist_xugglerTestRational_OBJECTS = RationalTest_CXXRunner.$(OBJEXT)
 xugglerTestRational_OBJECTS = $(am_xugglerTestRational_OBJECTS) \
 	$(nodist_xugglerTestRational_OBJECTS)
 xugglerTestRational_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestStream_OBJECTS = StreamTest.$(OBJEXT) Main.$(OBJEXT) \
 	Helper.$(OBJEXT)
 nodist_xugglerTestStream_OBJECTS = StreamTest_CXXRunner.$(OBJEXT)
 xugglerTestStream_OBJECTS = $(am_xugglerTestStream_OBJECTS) \
 	$(nodist_xugglerTestStream_OBJECTS)
 xugglerTestStream_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestStreamCoder_OBJECTS = StreamCoderTest.$(OBJEXT) \
 	Main.$(OBJEXT) Helper.$(OBJEXT)
 nodist_xugglerTestStreamCoder_OBJECTS =  \
@@ -234,8 +218,7 @@ nodist_xugglerTestStreamCoder_OBJECTS =  \
 xugglerTestStreamCoder_OBJECTS = $(am_xugglerTestStreamCoder_OBJECTS) \
 	$(nodist_xugglerTestStreamCoder_OBJECTS)
 xugglerTestStreamCoder_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestStreamCoderProperty_OBJECTS =  \
 	StreamCoderPropertyTest.$(OBJEXT) Main.$(OBJEXT) \
 	Helper.$(OBJEXT)
@@ -245,8 +228,7 @@ xugglerTestStreamCoderProperty_OBJECTS =  \
 	$(am_xugglerTestStreamCoderProperty_OBJECTS) \
 	$(nodist_xugglerTestStreamCoderProperty_OBJECTS)
 xugglerTestStreamCoderProperty_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestStreamCoderSpeex_OBJECTS =  \
 	StreamCoderSpeexTest.$(OBJEXT) Main.$(OBJEXT) Helper.$(OBJEXT)
 nodist_xugglerTestStreamCoderSpeex_OBJECTS =  \
@@ -255,8 +237,7 @@ xugglerTestStreamCoderSpeex_OBJECTS =  \
 	$(am_xugglerTestStreamCoderSpeex_OBJECTS) \
 	$(nodist_xugglerTestStreamCoderSpeex_OBJECTS)
 xugglerTestStreamCoderSpeex_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestStreamCoderX264_OBJECTS = StreamCoderX264Test.$(OBJEXT) \
 	Main.$(OBJEXT) Helper.$(OBJEXT)
 nodist_xugglerTestStreamCoderX264_OBJECTS =  \
@@ -265,8 +246,7 @@ xugglerTestStreamCoderX264_OBJECTS =  \
 	$(am_xugglerTestStreamCoderX264_OBJECTS) \
 	$(nodist_xugglerTestStreamCoderX264_OBJECTS)
 xugglerTestStreamCoderX264_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestTimeValue_OBJECTS = TimeValueTest.$(OBJEXT) \
 	Main.$(OBJEXT) Helper.$(OBJEXT)
 nodist_xugglerTestTimeValue_OBJECTS =  \
@@ -274,8 +254,7 @@ nodist_xugglerTestTimeValue_OBJECTS =  \
 xugglerTestTimeValue_OBJECTS = $(am_xugglerTestTimeValue_OBJECTS) \
 	$(nodist_xugglerTestTimeValue_OBJECTS)
 xugglerTestTimeValue_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestVideoPicture_OBJECTS = VideoPictureTest.$(OBJEXT) \
 	Main.$(OBJEXT) Helper.$(OBJEXT)
 nodist_xugglerTestVideoPicture_OBJECTS =  \
@@ -284,8 +263,7 @@ xugglerTestVideoPicture_OBJECTS =  \
 	$(am_xugglerTestVideoPicture_OBJECTS) \
 	$(nodist_xugglerTestVideoPicture_OBJECTS)
 xugglerTestVideoPicture_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_xugglerTestVideoResampler_OBJECTS = VideoResamplerTest.$(OBJEXT) \
 	Main.$(OBJEXT) Helper.$(OBJEXT)
 nodist_xugglerTestVideoResampler_OBJECTS =  \
@@ -294,8 +272,7 @@ xugglerTestVideoResampler_OBJECTS =  \
 	$(am_xugglerTestVideoResampler_OBJECTS) \
 	$(nodist_xugglerTestVideoResampler_OBJECTS)
 xugglerTestVideoResampler_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la \
-	$(EXTRA_LIBS)
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 DEFAULT_INCLUDES = 
 depcomp =
 am__depfiles_maybe =
@@ -516,6 +493,8 @@ VS_DEBUG = @VS_DEBUG@
 VS_ENABLE_GPL = @VS_ENABLE_GPL@
 VS_JNI_INCLUDE = @VS_JNI_INCLUDE@
 VS_LDFLAGS = @VS_LDFLAGS@
+VS_LIBGCC = @VS_LIBGCC@
+VS_LIBSTDCXX = @VS_LIBSTDCXX@
 VS_OS_WINDOWS = @VS_OS_WINDOWS@
 VS_SWIG = @VS_SWIG@
 VS_WARN_ISERROR = @VS_WARN_ISERROR@
@@ -577,9 +556,6 @@ VS_CPP_PACKAGE = com.xuggle.xuggler
 VS_CPP_NAMESPACE = com::xuggle::xuggler
 VS_TEST = 1
 SUBDIRS = io
-EXTRA_LIBS = $(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la \
-  $(top_builddir)/csrc/com/xuggle/xuggler/io/libxuggle-xuggler-io.la
-
 inst_check = $(check_PROGRAMS)
 inst_checkdir = $(bindir)
 
@@ -595,7 +571,7 @@ nodist_xugglerTestIndexEntry_SOURCES = \
   IndexEntryTest_CXXRunner.cpp
 
 xugglerTestIndexEntry_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestMetaData_SOURCES = \
   MetaDataTest.cpp \
@@ -606,7 +582,7 @@ nodist_xugglerTestMetaData_SOURCES = \
   MetaDataTest_CXXRunner.cpp
 
 xugglerTestMetaData_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestProperty_SOURCES = \
   PropertyTest.cpp \
@@ -617,7 +593,7 @@ nodist_xugglerTestProperty_SOURCES = \
   PropertyTest_CXXRunner.cpp
 
 xugglerTestProperty_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestAudioSamples_SOURCES = \
   AudioSamplesTest.cpp \
@@ -628,7 +604,7 @@ nodist_xugglerTestAudioSamples_SOURCES = \
   AudioSamplesTest_CXXRunner.cpp
 
 xugglerTestAudioSamples_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestAudioResampler_SOURCES = \
   AudioResamplerTest.cpp \
@@ -639,7 +615,7 @@ nodist_xugglerTestAudioResampler_SOURCES = \
   AudioResamplerTest_CXXRunner.cpp
 
 xugglerTestAudioResampler_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestCodec_SOURCES = \
   CodecTest.cpp \
@@ -650,7 +626,7 @@ nodist_xugglerTestCodec_SOURCES = \
   CodecTest_CXXRunner.cpp
 
 xugglerTestCodec_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestContainerFormat_SOURCES = \
   ContainerFormatTest.cpp \
@@ -661,7 +637,7 @@ nodist_xugglerTestContainerFormat_SOURCES = \
   ContainerFormatTest_CXXRunner.cpp
 
 xugglerTestContainerFormat_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestContainer_SOURCES = \
   ContainerTest.cpp \
@@ -672,7 +648,7 @@ nodist_xugglerTestContainer_SOURCES = \
   ContainerTest_CXXRunner.cpp
 
 xugglerTestContainer_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestContainerCustomIO_SOURCES = \
   ContainerCustomIOTest.cpp \
@@ -683,7 +659,7 @@ nodist_xugglerTestContainerCustomIO_SOURCES = \
   ContainerCustomIOTest_CXXRunner.cpp
 
 xugglerTestContainerCustomIO_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestVideoPicture_SOURCES = \
   VideoPictureTest.cpp \
@@ -694,7 +670,7 @@ nodist_xugglerTestVideoPicture_SOURCES = \
   VideoPictureTest_CXXRunner.cpp
 
 xugglerTestVideoPicture_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestHelper_SOURCES = \
   HelperTest.cpp \
@@ -705,7 +681,7 @@ nodist_xugglerTestHelper_SOURCES = \
   HelperTest_CXXRunner.cpp
 
 xugglerTestHelper_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestMediaDataWrapper_SOURCES = \
   MediaDataWrapperTest.cpp \
@@ -716,7 +692,7 @@ nodist_xugglerTestMediaDataWrapper_SOURCES = \
   MediaDataWrapperTest_CXXRunner.cpp
 
 xugglerTestMediaDataWrapper_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestMemoryAllocation_SOURCES = \
   MemoryAllocationTest.cpp \
@@ -727,7 +703,7 @@ nodist_xugglerTestMemoryAllocation_SOURCES = \
   MemoryAllocationTest_CXXRunner.cpp
 
 xugglerTestMemoryAllocation_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestPacket_SOURCES = \
   PacketTest.cpp \
@@ -738,7 +714,7 @@ nodist_xugglerTestPacket_SOURCES = \
   PacketTest_CXXRunner.cpp
 
 xugglerTestPacket_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestPixelFormat_SOURCES = \
   PixelFormatTest.cpp \
@@ -749,7 +725,7 @@ nodist_xugglerTestPixelFormat_SOURCES = \
   PixelFormatTest_CXXRunner.cpp
 
 xugglerTestPixelFormat_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestRational_SOURCES = \
   RationalTest.cpp \
@@ -760,7 +736,7 @@ nodist_xugglerTestRational_SOURCES = \
   RationalTest_CXXRunner.cpp 
 
 xugglerTestRational_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestStreamCoder_SOURCES = \
   StreamCoderTest.cpp \
@@ -771,7 +747,7 @@ nodist_xugglerTestStreamCoder_SOURCES = \
   StreamCoderTest_CXXRunner.cpp
 
 xugglerTestStreamCoder_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestStreamCoderX264_SOURCES = \
   StreamCoderX264Test.cpp \
@@ -782,7 +758,7 @@ nodist_xugglerTestStreamCoderX264_SOURCES = \
   StreamCoderX264Test_CXXRunner.cpp
 
 xugglerTestStreamCoderX264_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestStreamCoderSpeex_SOURCES = \
   StreamCoderSpeexTest.cpp \
@@ -793,7 +769,7 @@ nodist_xugglerTestStreamCoderSpeex_SOURCES = \
   StreamCoderSpeexTest_CXXRunner.cpp
 
 xugglerTestStreamCoderSpeex_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestStreamCoderProperty_SOURCES = \
   StreamCoderPropertyTest.cpp \
@@ -804,7 +780,7 @@ nodist_xugglerTestStreamCoderProperty_SOURCES = \
   StreamCoderPropertyTest_CXXRunner.cpp
 
 xugglerTestStreamCoderProperty_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestStream_SOURCES = \
   StreamTest.cpp \
@@ -815,7 +791,7 @@ nodist_xugglerTestStream_SOURCES = \
   StreamTest_CXXRunner.cpp
 
 xugglerTestStream_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestTimeValue_SOURCES = \
   TimeValueTest.cpp \
@@ -826,7 +802,7 @@ nodist_xugglerTestTimeValue_SOURCES = \
   TimeValueTest_CXXRunner.cpp
 
 xugglerTestTimeValue_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestError_SOURCES = \
   ErrorTest.cpp \
@@ -837,7 +813,7 @@ nodist_xugglerTestError_SOURCES = \
   ErrorTest_CXXRunner.cpp
 
 xugglerTestError_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 xugglerTestVideoResampler_SOURCES = \
   VideoResamplerTest.cpp \
@@ -848,7 +824,7 @@ nodist_xugglerTestVideoResampler_SOURCES = \
   VideoResamplerTest_CXXRunner.cpp
 
 xugglerTestVideoResampler_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-xuggler.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la 
 
 BUILT_SOURCES = \
   IndexEntryTest_CXXRunner.cpp \

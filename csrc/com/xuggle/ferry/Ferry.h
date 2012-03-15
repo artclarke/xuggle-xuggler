@@ -39,13 +39,7 @@ namespace ferry
 }
 }
 }
-#ifdef VS_OS_WINDOWS
-#ifdef VS_API_COMPILING_xuggle_ferry
+#ifndef VS_API_FERRY
 #define VS_API_FERRY VS_API_EXPORT
-#else
-#define VS_API_FERRY VS_API_IMPORT
-#endif // VS_API_COMPILING_xuggle_ferry
-#else
-#define VS_API_FERRY
-#endif
+#endif // ! VS_API_FERRY
 #endif // ! __FERRY_H__

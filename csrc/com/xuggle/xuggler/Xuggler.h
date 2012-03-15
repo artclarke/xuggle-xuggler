@@ -35,13 +35,7 @@ namespace xuggler {
 }
 }
 }
-#ifdef VS_OS_WINDOWS
-#ifdef VS_API_COMPILING_xuggle_xuggler
+#ifndef VS_API_XUGGLER
 #define VS_API_XUGGLER VS_API_EXPORT
-#else
-#define VS_API_XUGGLER VS_API_IMPORT
-#endif // VS_API_COMPILING_xuggle_xuggler
-#else
-#define VS_API_XUGGLER
-#endif
+#endif // ! VS_API_XUGGLER
 #endif // ! __XUGGLER_H__

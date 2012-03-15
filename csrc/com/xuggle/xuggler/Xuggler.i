@@ -59,19 +59,6 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1seekKeyFr
 
 
 extern "C" {
-/*
- * This will be called if an when we're loaded
- * directly by Java.  If we're linked to via
- * C/C++ linkage on another library, they
- * must call sSetVM().
- */
-SWIGEXPORT jint JNICALL
-JNI_OnLoad(JavaVM *, void *)
-{
-  /* Because of static initialize in Mac OS, the only safe thing
-   * to do here is return the version */
-  return com::xuggle::ferry::JNIHelper::sGetJNIVersion();
-}
 
 SWIGEXPORT void JNICALL
 Java_com_xuggle_xuggler_Xuggler_init(JNIEnv *env, jclass)
@@ -132,8 +119,7 @@ import com.xuggle.ferry.*;
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>
 
   static {
-    com.xuggle.ferry.JNILibraryLoader.loadLibrary("xuggle-xuggler",
-      new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
+    com.xuggle.ferry.Ferry.init();
     com.xuggle.xuggler.Xuggler.init();
     com.xuggle.xuggler.Global.init();
   }

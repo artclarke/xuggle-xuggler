@@ -16,7 +16,6 @@
 @SET_MAKE@
 
 
-
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -36,53 +35,27 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-bin_PROGRAMS = xuggle-xuggler-main$(EXEEXT)
 @VS_ENABLE_GPL_TRUE@am__append_1 = \
 @VS_ENABLE_GPL_TRUE@  VideoResampler.cpp 
 
 subdir = csrc/com/xuggle/xuggler
 DIST_COMMON = $(libxuggle_xuggler_la_HEADERS) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.dependencies.in $(srcdir)/Makefile.in \
-	$(top_srcdir)/config.h.in
+	$(srcdir)/Makefile.in $(top_srcdir)/config.h.in
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
 	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/ax_compiler_vendor.m4 \
+	$(top_srcdir)/m4/xuggle.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/csrc/com/xuggle/ferry/config.h \
 	config.h $(top_builddir)/csrc/com/xuggle/xuggler/io/config.h
-CONFIG_CLEAN_FILES = Makefile.dependencies
+CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
-am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
-am__vpath_adj = case $$p in \
-    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
-    *) f=$$p;; \
-  esac;
-am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
-am__install_max = 40
-am__nobase_strip_setup = \
-  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
-am__nobase_strip = \
-  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
-am__nobase_list = $(am__nobase_strip_setup); \
-  for p in $$list; do echo "$$p $$p"; done | \
-  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
-  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
-    if (++n[$$2] == $(am__install_max)) \
-      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
-    END { for (dir in files) print dir, files[dir] }'
-am__base_list = \
-  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
-  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" \
-	"$(DESTDIR)$(libxuggle_xuggler_ladir)"
-LTLIBRARIES = $(lib_LTLIBRARIES)
-libxuggle_xuggler_la_DEPENDENCIES =  \
-	$(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la \
-	$(top_builddir)/csrc/com/xuggle/xuggler/io/libxuggle-xuggler-io.la
+LTLIBRARIES = $(noinst_LTLIBRARIES)
+libxuggle_xuggler_la_DEPENDENCIES =
 am__libxuggle_xuggler_la_SOURCES_DIST = AudioResampler.cpp \
 	AudioSamples.cpp Codec.cpp Container.cpp ContainerFormat.cpp \
 	Error.cpp VideoPicture.cpp Global.cpp IAudioResampler.cpp \
@@ -112,14 +85,6 @@ libxuggle_xuggler_la_OBJECTS = $(am_libxuggle_xuggler_la_OBJECTS) \
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
 am__v_lt_0 = --silent
-libxuggle_xuggler_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
-	$(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=link $(CXXLD) \
-	$(AM_CXXFLAGS) $(CXXFLAGS) $(libxuggle_xuggler_la_LDFLAGS) \
-	$(LDFLAGS) -o $@
-PROGRAMS = $(bin_PROGRAMS)
-am_xuggle_xuggler_main_OBJECTS = Main.$(OBJEXT)
-xuggle_xuggler_main_OBJECTS = $(am_xuggle_xuggler_main_OBJECTS)
-xuggle_xuggler_main_DEPENDENCIES = libxuggle-xuggler.la
 DEFAULT_INCLUDES = 
 depcomp =
 am__depfiles_maybe =
@@ -146,10 +111,8 @@ AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(libxuggle_xuggler_la_SOURCES) \
-	$(nodist_libxuggle_xuggler_la_SOURCES) \
-	$(xuggle_xuggler_main_SOURCES)
-DIST_SOURCES = $(am__libxuggle_xuggler_la_SOURCES_DIST) \
-	$(xuggle_xuggler_main_SOURCES)
+	$(nodist_libxuggle_xuggler_la_SOURCES)
+DIST_SOURCES = $(am__libxuggle_xuggler_la_SOURCES_DIST)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -157,6 +120,28 @@ RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	install-pdf-recursive install-ps-recursive install-recursive \
 	installcheck-recursive installdirs-recursive pdf-recursive \
 	ps-recursive uninstall-recursive
+am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
+am__vpath_adj = case $$p in \
+    $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
+    *) f=$$p;; \
+  esac;
+am__strip_dir = f=`echo $$p | sed -e 's|^.*/||'`;
+am__install_max = 40
+am__nobase_strip_setup = \
+  srcdirstrip=`echo "$(srcdir)" | sed 's/[].[^$$\\*|]/\\\\&/g'`
+am__nobase_strip = \
+  for p in $$list; do echo "$$p"; done | sed -e "s|$$srcdirstrip/||"
+am__nobase_list = $(am__nobase_strip_setup); \
+  for p in $$list; do echo "$$p $$p"; done | \
+  sed "s| $$srcdirstrip/| |;"' / .*\//!s/ .*/ ./; s,\( .*\)/[^/]*$$,\1,' | \
+  $(AWK) 'BEGIN { files["."] = "" } { files[$$2] = files[$$2] " " $$1; \
+    if (++n[$$2] == $(am__install_max)) \
+      { print $$2, files[$$2]; n[$$2] = 0; files[$$2] = "" } } \
+    END { for (dir in files) print dir, files[dir] }'
+am__base_list = \
+  sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
+  sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
+am__installdirs = "$(DESTDIR)$(libxuggle_xuggler_ladir)"
 HEADERS = $(libxuggle_xuggler_la_HEADERS)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
@@ -278,6 +263,8 @@ VS_DEBUG = @VS_DEBUG@
 VS_ENABLE_GPL = @VS_ENABLE_GPL@
 VS_JNI_INCLUDE = @VS_JNI_INCLUDE@
 VS_LDFLAGS = @VS_LDFLAGS@
+VS_LIBGCC = @VS_LIBGCC@
+VS_LIBSTDCXX = @VS_LIBSTDCXX@
 VS_OS_WINDOWS = @VS_OS_WINDOWS@
 VS_SWIG = @VS_SWIG@
 VS_WARN_ISERROR = @VS_WARN_ISERROR@
@@ -339,15 +326,8 @@ VS_CPP_PACKAGE = com.xuggle.xuggler
 VS_CPP_NAMESPACE = com::xuggle::xuggler
 SUBDIRS = io
 SUFFIXES = .i
-lib_LTLIBRARIES = libxuggle-xuggler.la
-xuggle_xuggler_main_SOURCES = \
-  Main.cpp
-
-xuggle_xuggler_main_LDADD = libxuggle-xuggler.la
-libxuggle_xuggler_la_LIBADD = $(VS_PKG_LIBRARIES) \
-	$(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la \
-	$(top_builddir)/csrc/com/xuggle/xuggler/io/libxuggle-xuggler-io.la
-libxuggle_xuggler_la_LDFLAGS = -shared -static
+noinst_LTLIBRARIES = libxuggle-xuggler.la
+libxuggle_xuggler_la_LIBADD = $(VS_PKG_LIBRARIES)
 libxuggle_xuggler_la_SOURCES = AudioResampler.cpp AudioSamples.cpp \
 	Codec.cpp Container.cpp ContainerFormat.cpp Error.cpp \
 	VideoPicture.cpp Global.cpp IAudioResampler.cpp \
@@ -479,87 +459,17 @@ $(top_srcdir)/config.h.in: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 
 distclean-hdr:
 	-rm -f config.h stamp-h2
-Makefile.dependencies: $(top_builddir)/config.status $(srcdir)/Makefile.dependencies.in
-	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
-install-libLTLIBRARIES: $(lib_LTLIBRARIES)
-	@$(NORMAL_INSTALL)
-	test -z "$(libdir)" || $(MKDIR_P) "$(DESTDIR)$(libdir)"
-	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
-	list2=; for p in $$list; do \
-	  if test -f $$p; then \
-	    list2="$$list2 $$p"; \
-	  else :; fi; \
-	done; \
-	test -z "$$list2" || { \
-	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 '$(DESTDIR)$(libdir)'"; \
-	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 "$(DESTDIR)$(libdir)"; \
-	}
 
-uninstall-libLTLIBRARIES:
-	@$(NORMAL_UNINSTALL)
-	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
-	for p in $$list; do \
-	  $(am__strip_dir) \
-	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f '$(DESTDIR)$(libdir)/$$f'"; \
-	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(libdir)/$$f"; \
-	done
-
-clean-libLTLIBRARIES:
-	-test -z "$(lib_LTLIBRARIES)" || rm -f $(lib_LTLIBRARIES)
-	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
+clean-noinstLTLIBRARIES:
+	-test -z "$(noinst_LTLIBRARIES)" || rm -f $(noinst_LTLIBRARIES)
+	@list='$(noinst_LTLIBRARIES)'; for p in $$list; do \
 	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; \
 	  test "$$dir" != "$$p" || dir=.; \
 	  echo "rm -f \"$${dir}/so_locations\""; \
 	  rm -f "$${dir}/so_locations"; \
 	done
 libxuggle-xuggler.la: $(libxuggle_xuggler_la_OBJECTS) $(libxuggle_xuggler_la_DEPENDENCIES) 
-	$(AM_V_CXXLD)$(libxuggle_xuggler_la_LINK) -rpath $(libdir) $(libxuggle_xuggler_la_OBJECTS) $(libxuggle_xuggler_la_LIBADD) $(LIBS)
-install-binPROGRAMS: $(bin_PROGRAMS)
-	@$(NORMAL_INSTALL)
-	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
-	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
-	for p in $$list; do echo "$$p $$p"; done | \
-	sed 's/$(EXEEXT)$$//' | \
-	while read p p1; do if test -f $$p || test -f $$p1; \
-	  then echo "$$p"; echo "$$p"; else :; fi; \
-	done | \
-	sed -e 'p;s,.*/,,;n;h' -e 's|.*|.|' \
-	    -e 'p;x;s,.*/,,;s/$(EXEEXT)$$//;$(transform);s/$$/$(EXEEXT)/' | \
-	sed 'N;N;N;s,\n, ,g' | \
-	$(AWK) 'BEGIN { files["."] = ""; dirs["."] = 1 } \
-	  { d=$$3; if (dirs[d] != 1) { print "d", d; dirs[d] = 1 } \
-	    if ($$2 == $$4) files[d] = files[d] " " $$1; \
-	    else { print "f", $$3 "/" $$4, $$1; } } \
-	  END { for (d in files) print "f", d, files[d] }' | \
-	while read type dir files; do \
-	    if test "$$dir" = .; then dir=; else dir=/$$dir; fi; \
-	    test -z "$$files" || { \
-	    echo " $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files '$(DESTDIR)$(bindir)$$dir'"; \
-	    $(INSTALL_PROGRAM_ENV) $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL_PROGRAM) $$files "$(DESTDIR)$(bindir)$$dir" || exit $$?; \
-	    } \
-	; done
-
-uninstall-binPROGRAMS:
-	@$(NORMAL_UNINSTALL)
-	@list='$(bin_PROGRAMS)'; test -n "$(bindir)" || list=; \
-	files=`for p in $$list; do echo "$$p"; done | \
-	  sed -e 'h;s,^.*/,,;s/$(EXEEXT)$$//;$(transform)' \
-	      -e 's/$$/$(EXEEXT)/' `; \
-	test -n "$$list" || exit 0; \
-	echo " ( cd '$(DESTDIR)$(bindir)' && rm -f" $$files ")"; \
-	cd "$(DESTDIR)$(bindir)" && rm -f $$files
-
-clean-binPROGRAMS:
-	@list='$(bin_PROGRAMS)'; test -n "$$list" || exit 0; \
-	echo " rm -f" $$list; \
-	rm -f $$list || exit $$?; \
-	test -n "$(EXEEXT)" || exit 0; \
-	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
-	echo " rm -f" $$list; \
-	rm -f $$list
-xuggle-xuggler-main$(EXEEXT): $(xuggle_xuggler_main_OBJECTS) $(xuggle_xuggler_main_DEPENDENCIES) 
-	@rm -f xuggle-xuggler-main$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(xuggle_xuggler_main_OBJECTS) $(xuggle_xuggler_main_LDADD) $(LIBS)
+	$(AM_V_CXXLD)$(CXXLINK)  $(libxuggle_xuggler_la_OBJECTS) $(libxuggle_xuggler_la_LIBADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -801,12 +711,10 @@ distdir: $(DISTFILES)
 check-am: all-am
 check: $(BUILT_SOURCES)
 	$(MAKE) $(AM_MAKEFLAGS) check-recursive
-all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(HEADERS) config.h
-install-binPROGRAMS: install-libLTLIBRARIES
-
+all-am: Makefile $(LTLIBRARIES) $(HEADERS) config.h
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(bindir)" "$(DESTDIR)$(libxuggle_xuggler_ladir)"; do \
+	for dir in "$(DESTDIR)$(libxuggle_xuggler_ladir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: $(BUILT_SOURCES)
@@ -838,8 +746,8 @@ maintainer-clean-generic:
 	-test -z "$(BUILT_SOURCES)" || rm -f $(BUILT_SOURCES)
 clean: clean-recursive
 
-clean-am: clean-binPROGRAMS clean-generic clean-libLTLIBRARIES \
-	clean-libtool clean-local mostlyclean-am
+clean-am: clean-generic clean-libtool clean-local \
+	clean-noinstLTLIBRARIES mostlyclean-am
 
 distclean: distclean-recursive
 	-rm -f Makefile
@@ -864,7 +772,7 @@ install-dvi: install-dvi-recursive
 
 install-dvi-am:
 
-install-exec-am: install-binPROGRAMS install-libLTLIBRARIES
+install-exec-am:
 
 install-html: install-html-recursive
 
@@ -904,39 +812,30 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-binPROGRAMS uninstall-libLTLIBRARIES \
-	uninstall-libxuggle_xuggler_laHEADERS
+uninstall-am: uninstall-libxuggle_xuggler_laHEADERS
 
 .MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) all check \
 	ctags-recursive install install-am install-strip \
 	tags-recursive
 
 .PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
-	all all-am check check-am clean clean-binPROGRAMS \
-	clean-generic clean-libLTLIBRARIES clean-libtool clean-local \
-	ctags ctags-recursive distclean distclean-compile \
-	distclean-generic distclean-hdr distclean-libtool \
-	distclean-tags distdir dvi dvi-am html html-am info info-am \
-	install install-am install-binPROGRAMS install-data \
+	all all-am check check-am clean clean-generic clean-libtool \
+	clean-local clean-noinstLTLIBRARIES ctags ctags-recursive \
+	distclean distclean-compile distclean-generic distclean-hdr \
+	distclean-libtool distclean-tags distdir dvi dvi-am html \
+	html-am info info-am install install-am install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
-	install-info-am install-libLTLIBRARIES \
-	install-libxuggle_xuggler_laHEADERS install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-strip \
-	installcheck installcheck-am installdirs installdirs-am \
-	maintainer-clean maintainer-clean-generic \
-	maintainer-clean-local mostlyclean mostlyclean-compile \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-recursive uninstall uninstall-am \
-	uninstall-binPROGRAMS uninstall-libLTLIBRARIES \
+	install-info-am install-libxuggle_xuggler_laHEADERS \
+	install-man install-pdf install-pdf-am install-ps \
+	install-ps-am install-strip installcheck installcheck-am \
+	installdirs installdirs-am maintainer-clean \
+	maintainer-clean-generic maintainer-clean-local mostlyclean \
+	mostlyclean-compile mostlyclean-generic mostlyclean-libtool \
+	pdf pdf-am ps ps-am tags tags-recursive uninstall uninstall-am \
 	uninstall-libxuggle_xuggler_laHEADERS
 
 include @top_builddir@/mk/Makefile.global
-# We include a file here that automake won't really touch, that let's us
-# run pkg-config at make time.  This works around the fact that when
-# configuring xuggler we don't yet have a captive ffmpeg .pc file
-# that we can link against
-include @builddir@/Makefile.dependencies
 
 Xuggler.cpp : $(libxuggle_xuggler_la_HEADERS)
 

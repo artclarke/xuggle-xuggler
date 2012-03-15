@@ -37,15 +37,6 @@ using namespace com::xuggle::xuggler::io;
         } \
 } while(0)
 
-VS_API_XUGGLER_IO jint VS_API_CALL
-JNI_OnLoad(JavaVM *, void *)
-{
-    /* Because of static initialization in Mac OS, the only safe thing
-     * to do here is return the version */
-    return com::xuggle::ferry::JNIHelper::sGetJNIVersion();
-}
-
-
 VS_API_XUGGLER_IO void VS_API_CALL Java_com_xuggle_xuggler_io_FfmpegIO_init(JNIEnv *env, jclass)
 {
   JavaVM* vm=0;

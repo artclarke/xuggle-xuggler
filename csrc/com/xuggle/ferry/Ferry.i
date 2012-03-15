@@ -75,7 +75,7 @@ Java_com_xuggle_ferry_Ferry_init(JNIEnv *env, jclass)
 %pragma(java) jniclasscode=%{
   static {
     JNILibraryLoader.loadLibrary(
-      "xuggle-ferry",
+      "xuggle",
       new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
     com.xuggle.ferry.Ferry.init();
     // This seems nuts, but it works around a Java 1.6 bug where
