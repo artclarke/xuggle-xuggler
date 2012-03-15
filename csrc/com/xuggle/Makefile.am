@@ -62,12 +62,11 @@ libxuggle_la_LDFLAGS = \
 	-no-undefined -shared \
 	-version-number @LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@:0 \
 	$(VS_LDFLAGS) \
-	$(VS_PKG_LIBRARIES)
-#	@VS_LIBSTDCXX@ \
+	$(VS_PKG_LIBRARIES) \
+	@VS_LIBSTDCXX@ 
 #	@VS_LIBGCC@ 
 
 if VS_OS_WINDOWS
-libxuggle_la_SOURCES+= XuggleWindows.cpp
 libxuggle_la_LDFLAGS+= \
 	-Wl,--add-stdcall-alias \
 	-Wl,--enable-runtime-pseudo-reloc \
