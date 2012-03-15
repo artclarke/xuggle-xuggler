@@ -48,7 +48,7 @@ nodist_ferryTestBuffer_SOURCES=\
   BufferTest_CXXRunner.cpp
 
 ferryTestBuffer_LDADD=\
-  $(top_builddir)/csrc/com/xuggle/libxuggle.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la
 
 
 BUILT_SOURCES= \
