@@ -37,10 +37,8 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = xuggle-xuggler-main$(EXEEXT)
-#	@VS_LIBSTDCXX@ \
 #	@VS_LIBGCC@ 
-@VS_OS_WINDOWS_TRUE@am__append_1 = XuggleWindows.cpp
-@VS_OS_WINDOWS_TRUE@am__append_2 = \
+@VS_OS_WINDOWS_TRUE@am__append_1 = \
 @VS_OS_WINDOWS_TRUE@	-Wl,--add-stdcall-alias \
 @VS_OS_WINDOWS_TRUE@	-Wl,--enable-runtime-pseudo-reloc \
 @VS_OS_WINDOWS_TRUE@	-Wl,--enable-auto-image-base \
@@ -57,7 +55,7 @@ bin_PROGRAMS = xuggle-xuggler-main$(EXEEXT)
 @VS_OS_WINDOWS_TRUE@	-XCClinker -luser32 \
 @VS_OS_WINDOWS_TRUE@	-XCClinker -lkernel32
 
-@VS_OS_WINDOWS_FALSE@am__append_3 = \
+@VS_OS_WINDOWS_FALSE@am__append_2 = \
 @VS_OS_WINDOWS_FALSE@	-nostdlib -static-libtool-libs -XCClinker -static-libgcc
 
 subdir = csrc/com/xuggle
@@ -104,16 +102,14 @@ LTLIBRARIES = $(lib_LTLIBRARIES)
 libxuggle_la_DEPENDENCIES = $(builddir)/xuggler/libxuggle-xuggler.la \
 	$(builddir)/xuggler/io/libxuggle-xuggler-io.la \
 	$(builddir)/ferry/libxuggle-ferry.la
-am__libxuggle_la_SOURCES_DIST = Xuggle.c XuggleWindows.cpp
-@VS_OS_WINDOWS_TRUE@am__objects_1 = XuggleWindows.lo
-am_libxuggle_la_OBJECTS = Xuggle.lo $(am__objects_1)
+am_libxuggle_la_OBJECTS = Xuggle.lo
 libxuggle_la_OBJECTS = $(am_libxuggle_la_OBJECTS)
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
 am__v_lt_0 = --silent
-libxuggle_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
-	$(CXXFLAGS) $(libxuggle_la_LDFLAGS) $(LDFLAGS) -o $@
+libxuggle_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(libxuggle_la_LDFLAGS) $(LDFLAGS) -o $@
 PROGRAMS = $(bin_PROGRAMS)
 am_xuggle_xuggler_main_OBJECTS = Main.$(OBJEXT)
 xuggle_xuggler_main_OBJECTS = $(am_xuggle_xuggler_main_OBJECTS)
@@ -160,8 +156,7 @@ AM_V_GEN = $(am__v_GEN_$(V))
 am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
 am__v_GEN_0 = @echo "  GEN   " $@;
 SOURCES = $(libxuggle_la_SOURCES) $(xuggle_xuggler_main_SOURCES)
-DIST_SOURCES = $(am__libxuggle_la_SOURCES_DIST) \
-	$(xuggle_xuggler_main_SOURCES)
+DIST_SOURCES = $(libxuggle_la_SOURCES) $(xuggle_xuggler_main_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -392,14 +387,15 @@ lib_LTLIBRARIES = libxuggle.la
 xuggle_xuggler_main_SOURCES = Main.cpp
 xuggle_xuggler_main_LDADD = libxuggle.la
 # MUST be a C file; we force C linkage
-libxuggle_la_SOURCES = Xuggle.c $(am__append_1)
+libxuggle_la_SOURCES = Xuggle.c
 libxuggle_la_LIBADD = $(builddir)/xuggler/libxuggle-xuggler.la \
 	$(builddir)/xuggler/io/libxuggle-xuggler-io.la \
 	$(builddir)/ferry/libxuggle-ferry.la
 
 libxuggle_la_LDFLAGS = -no-undefined -shared -version-number \
 	@LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@:0 $(VS_LDFLAGS) \
-	$(VS_PKG_LIBRARIES) $(am__append_2) $(am__append_3)
+	$(VS_PKG_LIBRARIES) @VS_LIBSTDCXX@ $(am__append_1) \
+	$(am__append_2)
 all: all-recursive
 
 .SUFFIXES:
@@ -468,7 +464,7 @@ clean-libLTLIBRARIES:
 	  rm -f "$${dir}/so_locations"; \
 	done
 libxuggle.la: $(libxuggle_la_OBJECTS) $(libxuggle_la_DEPENDENCIES) 
-	$(AM_V_CXXLD)$(libxuggle_la_LINK) -rpath $(libdir) $(libxuggle_la_OBJECTS) $(libxuggle_la_LIBADD) $(LIBS)
+	$(AM_V_CCLD)$(libxuggle_la_LINK) -rpath $(libdir) $(libxuggle_la_OBJECTS) $(libxuggle_la_LIBADD) $(LIBS)
 install-binPROGRAMS: $(bin_PROGRAMS)
 	@$(NORMAL_INSTALL)
 	test -z "$(bindir)" || $(MKDIR_P) "$(DESTDIR)$(bindir)"
