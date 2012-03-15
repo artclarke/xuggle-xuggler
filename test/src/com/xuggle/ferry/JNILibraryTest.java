@@ -9,8 +9,7 @@ public class JNILibraryTest
   @Test
   public void testLoadFerry()
   {
-    // let's do Ferry itself!
-    final JNILibrary library = new JNILibrary("xuggle-ferry",
+    final JNILibrary library = new JNILibrary("xuggle",
         new Long(com.xuggle.xuggler.Version.MAJOR_VERSION), null);
     JNILibrary.load("xuggle-xuggler", library);
   }
