@@ -57,7 +57,7 @@ nodist_testutilsTestTrue_OBJECTS = TrueTest_CXXRunner.$(OBJEXT)
 testutilsTestTrue_OBJECTS = $(am_testutilsTestTrue_OBJECTS) \
 	$(nodist_testutilsTestTrue_OBJECTS)
 testutilsTestTrue_DEPENDENCIES =  \
-	$(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
 am__v_lt_0 = --silent
@@ -252,7 +252,7 @@ nodist_testutilsTestTrue_SOURCES = \
   TrueTest_CXXRunner.cpp 
 
 testutilsTestTrue_LDADD = \
-  $(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la
 
 BUILT_SOURCES = \
   TrueTest_CXXRunner.cpp
