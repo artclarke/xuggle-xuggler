@@ -30,8 +30,9 @@ VS_WIN32=i686-w64-mingw32
 VS_WIN64=x86_64-w64-mingw32
 VS_LIN32=i686-pc-linux-gnu
 VS_LIN64=x86_64-pc-linux-gnu
-VS_MAC32=i386-xuggle-darwin
-VS_MAC64=x86_64-xuggle-darwin
+VS_MAC32=i386-xuggle-darwin11
+VS_MAC64=x86_64-xuggle-darwin11
+VS_MACU=universal-xuggle-darwin11
 
 XUGGLE_HOME="${XUGGLE_HOME:-/usr/local}"
 DIR=$( dirname $0 )
@@ -41,14 +42,16 @@ fi
 
 darwin_lipo()
 {
-  rm -rf "${DIR}/dist/stage/universal-xuggle-darwin${XUGGLE_HOME}/lib/libxuggle.dylib"
+  rm -f "${DIR}/build/native/${VS_MACU}${XUGGLE_HOME}/lib/libxuggle.dylib"
   "${DIR}/mk/buildtools/darwin-universal.sh" \
-     "${DIR}/dist/stage/universal-xuggle-darwin${XUGGLE_HOME}" \
+     "${DIR}/build/native/${VS_MACU}${XUGGLE_HOME}" \
      "${DIR}/dist/stage/${VS_MAC64}${XUGGLE_HOME}" \
      "${DIR}/dist/stage/${VS_MAC32}${XUGGLE_HOME}"
 
-   if [ -f "${DIR}/dist/stage/universal-xuggle-darwin${XUGGLE_HOME}/lib/libxuggle.dylib" ]; then
-     echo "Success"
+   if [ -f "${DIR}/build/native/${VS_MACU}${XUGGLE_HOME}/lib/libxuggle.dylib" ]; then
+     mkdir -p "${DIR}/build/classes/com/xuggle/arch/${VS_MACU}"
+     cp -f "${DIR}/build/native/${VS_MACU}${XUGGLE_HOME}/lib/libxuggle.dylib" \
+       "${DIR}/build/classes/com/xuggle/arch/${VS_MACU}"
    fi
 }
 
