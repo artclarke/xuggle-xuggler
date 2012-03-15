@@ -41,17 +41,15 @@ fi
 
 darwin_lipo()
 {
-  STAGE_DIR="/tmp/xuggle-${RANDOM}"
-  echo "LIPO to ${STAGE_DIR}"
-  (cd "${DIR}/build/native/${VS_MAC32}" && make DESTDIR="${STAGE_DIR}/stage32" install)
-  (cd "${DIR}/build/native/${VS_MAC64}" && make DESTDIR="${STAGE_DIR}/stage64" install)
-
+  rm -rf "${DIR}/dist/stage/universal-xuggle-darwin${XUGGLE_HOME}/lib/libxuggle.dylib"
   "${DIR}/mk/buildtools/darwin-universal.sh" \
-     "${DIR}/dist/stage${XUGGLE_HOME}" \
-     "${STAGE_DIR}/stage32${XUGGLE_HOME}" \
-     "${STAGE_DIR}/stage64${XUGGLE_HOME}" \
-  rm -rf "${STAGE_DIR}"
-  echo "Complete: darwin_lipo"
+     "${DIR}/dist/stage/universal-xuggle-darwin${XUGGLE_HOME}" \
+     "${DIR}/dist/stage/${VS_MAC64}${XUGGLE_HOME}" \
+     "${DIR}/dist/stage/${VS_MAC32}${XUGGLE_HOME}"
+
+   if [ -f "${DIR}/dist/stage/universal-xuggle-darwin${XUGGLE_HOME}/lib/libxuggle.dylib" ]; then
+     echo "Success"
+   fi
 }
 
 # Stage each individual OS, then stage the java code.
@@ -59,6 +57,7 @@ case $HOST in
   *darwin*)
     ant -Dbuild.configure.os=${VS_MAC32} stage-native && \
     ant -Dbuild.configure.os=${VS_MAC64} stage-native && \
+    darwin_lipo && \
     ant -Dbuild.configure.os=${VS_MAC64} stage-java && \
     true
   ;;
