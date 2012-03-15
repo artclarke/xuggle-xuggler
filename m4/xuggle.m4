@@ -54,10 +54,11 @@ AC_DEFUN([VS_FIND_STATIC_LIB], [
   AC_MSG_CHECKING([for static PIC version of ${VS_LIB_CANDIDATE} ])
   vs_cv_find_static_lib=no
 
+  vs_LDFLAGS="$LDFLAGS -Wl,--no-undefined -Wl,--no-allow-shlib-undefined -shared -static-libgcc -lgcc_eh -lgcc -lc"
   VS_LIB_FILE=`${CC} --print-file-name="lib${VS_LIB_CANDIDATE}.a"`
   AS_IF([ test -f "${VS_LIB_FILE}" ], [
     VS_LIB="${VS_LIB_FILE}"
-    LDFLAGS="$LDFLAGS -nodefaultlibs -static-libgcc ${VS_LIB} -lc"
+    LDFLAGS="-Wl,--whole-archive ${VS_LIB} -Wl,--no-whole-archive ${vs_LDFLAGS}"
     AC_LINK_IFELSE([AC_LANG_PROGRAM(
         [],
         [ int i = 1; ]
@@ -69,7 +70,7 @@ AC_DEFUN([VS_FIND_STATIC_LIB], [
     VS_LIB_FILE=`${CC} --print-file-name="lib${VS_LIB_CANDIDATE}_pic.a"`
     AS_IF([ test -f "${VS_LIB_FILE}" ], [
       VS_LIB="${VS_LIB_FILE}"
-      LDFLAGS="$LDFLAGS -nodefaultlibs -static-libgcc ${VS_LIB} -lc"
+      LDFLAGS="-Wl,--whole-archive ${VS_LIB} -Wl,--no-whole-archive ${vs_LDFLAGS}"
       AC_LINK_IFELSE([AC_LANG_PROGRAM(
           [],
           [ int i = 1; ]
