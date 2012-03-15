@@ -11,9 +11,11 @@ package com.xuggle.ferry;
 class FerryJNI {
 
   static {
-    JNILibraryLoader.loadLibrary(
-      "xuggle-ferry",
-      new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
+    
+    final JNILibrary library = new JNILibrary("xuggle-ferry",
+        new Long(com.xuggle.xuggler.Version.MAJOR_VERSION),
+        null);
+    JNILibrary.load("xuggle-xuggler", library);
     com.xuggle.ferry.Ferry.init();
     // This seems nuts, but it works around a Java 1.6 bug where
     // a race condition exists when JNI_NewDirectByteBuffer is called
@@ -27,6 +29,7 @@ class FerryJNI {
     reference.delete();
     buffer.delete();
   }
+
   static void noop()
   {
   }

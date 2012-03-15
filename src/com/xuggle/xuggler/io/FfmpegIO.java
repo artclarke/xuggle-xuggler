@@ -55,15 +55,24 @@ public class FfmpegIO
 
   static
   {
-    com.xuggle.ferry.JNILibraryLoader.loadLibrary(
-        "xuggle-xuggler-io",
-        new Long(Version.MAJOR_VERSION));
+    // we want to force ferry to load before us.
+    com.xuggle.ferry.Ferry.load();
+    
+    // we don't declare ferry as a dependency because
+    // the call to laod above will bring it into this JVM.
+    final com.xuggle.ferry.JNILibrary library = new com.xuggle.ferry.JNILibrary("xuggle-xuggler-io",
+        new Long(Version.MAJOR_VERSION),
+        null);
+    com.xuggle.ferry.JNILibrary.load("xuggle-xuggler", library);
     FfmpegIO.init();
     // And force the URLProtocolManager global
     // object to be created.
     URLProtocolManager.init();
   }
 
+  /** Force a load of all native libraries; not normally needed */
+  public static void load() {}
+  
   /**
    * Internal Only.  Do not use.
    */

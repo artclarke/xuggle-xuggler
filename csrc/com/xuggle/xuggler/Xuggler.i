@@ -110,6 +110,10 @@ import com.xuggle.ferry.*;
   }
 
   /**
+   * Method to force loading of all native methods in the library.
+   */
+  public static void load() {}
+  /**
    * 
    * A simple test of xuggler, this program takes an input
    * file, and outputs it as an output file.
@@ -132,10 +136,95 @@ import com.xuggle.ferry.*;
 // >>>>>>>>>>>>>>>>>>>>>>>>>>>
 
   static {
-    com.xuggle.ferry.JNILibraryLoader.loadLibrary("xuggle-xuggler",
-      new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
-    com.xuggle.xuggler.Xuggler.init();
-    com.xuggle.xuggler.Global.init();
+  
+    // let the madness begin.  Xuggler has MANY dependencies.
+    
+    // for a load of Ferry and the IO library
+    Ferry.load();
+    com.xuggle.xuggler.io.FfmpegIO.load();
+    
+
+    final JNILibrary LIB_Z =
+        new JNILibrary("z", null, null);
+
+    final JNILibrary LIB_CRYPTO =
+        new JNILibrary("crypto", null, new JNILibrary[] {
+            LIB_Z, 
+        });
+
+    final JNILibrary LIB_SSL =
+        new JNILibrary("crypto", null, new JNILibrary[] {
+            LIB_Z, LIB_CRYPTO,
+        });
+
+    final JNILibrary LIB_OGG =
+        new JNILibrary("ogg", null, new JNILibrary[] {
+
+        });
+
+    final JNILibrary LIB_RTMP =
+        new JNILibrary("rtmp", null, new JNILibrary[] {
+            LIB_SSL,
+        });
+
+    final JNILibrary LIB_VO_AACENC =
+        new JNILibrary("vo-aacenc", null, new JNILibrary[] {
+
+        });
+    final JNILibrary LIB_OPENCORE_AMR =
+        new JNILibrary("opencore-amr", null, new JNILibrary[] {
+
+        });
+    final JNILibrary LIB_SPEEX =
+        new JNILibrary("speex", null, new JNILibrary[] {
+
+        });
+    final JNILibrary LIB_MP3LAME =
+        new JNILibrary("mp3lame", null, new JNILibrary[] {
+
+        });
+    final JNILibrary LIB_X264 =
+        new JNILibrary("x264", null, new JNILibrary[] {
+
+        });
+    final JNILibrary LIB_VORBIS =
+        new JNILibrary("vorbis", null, new JNILibrary[] {
+            LIB_OGG,
+        });
+    final JNILibrary LIB_THEORA =
+        new JNILibrary("theora", null, new JNILibrary[] {
+            LIB_OGG,
+        });
+    // cheating here; we're going to make EVERYTHING dependent
+    // upon libavutil
+    final JNILibrary LIB_AVUTIL =
+        new JNILibrary("avutil", null, new JNILibrary[] {
+            LIB_Z, LIB_CRYPTO, LIB_SSL, LIB_OGG,
+            LIB_RTMP, LIB_VO_AACENC, LIB_OPENCORE_AMR,
+            LIB_SPEEX, LIB_MP3LAME, LIB_X264,
+            LIB_VORBIS, LIB_THEORA,
+        });
+    final JNILibrary LIB_AVCODEC =
+        new JNILibrary("avcodec", null, new JNILibrary[] {
+            LIB_AVUTIL,
+        });
+    final JNILibrary LIB_AVFORMAT =
+        new JNILibrary("avformat", null, new JNILibrary[] {
+            LIB_AVUTIL, LIB_AVCODEC,
+        });
+
+
+    final JNILibrary XUGGLER =
+        new JNILibrary("xuggle-xuggler",
+            new Long(Version.MAJOR_VERSION),
+            new JNILibrary[] {
+          LIB_AVUTIL, LIB_AVCODEC, LIB_AVFORMAT,
+        });
+        
+    JNILibrary.load("xuggle-xuggler", XUGGLER);
+    
+    Xuggler.init();
+    Global.init();
   }
   public static void noop() {
     // Here only to force JNI library to load

@@ -74,9 +74,11 @@ Java_com_xuggle_ferry_Ferry_init(JNIEnv *env, jclass)
 %}
 %pragma(java) jniclasscode=%{
   static {
-    JNILibraryLoader.loadLibrary(
-      "xuggle-ferry",
-      new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
+    
+    final JNILibrary library = new JNILibrary("xuggle-ferry",
+        new Long(com.xuggle.xuggler.Version.MAJOR_VERSION),
+        null);
+    JNILibrary.load("xuggle-xuggler", library);
     com.xuggle.ferry.Ferry.init();
     // This seems nuts, but it works around a Java 1.6 bug where
     // a race condition exists when JNI_NewDirectByteBuffer is called
@@ -90,6 +92,7 @@ Java_com_xuggle_ferry_Ferry_init(JNIEnv *env, jclass)
     reference.delete();
     buffer.delete();
   }
+
   static void noop()
   {
   }
@@ -120,6 +123,14 @@ Java_com_xuggle_ferry_Ferry_init(JNIEnv *env, jclass)
     FerryJNI.noop();
   }
   
+  /** call this to force a load of all native components.
+   * This is NOT normally required but can be useful in
+   * some circulstances.
+   */
+  public static void load()
+  {
+    
+  }
   /**
    * Internal Only.  Do not use.
    */
