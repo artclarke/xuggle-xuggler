@@ -11,9 +11,9 @@ package com.xuggle.ferry;
 class FerryJNI {
 
   static {
-    JNILibraryLoader.loadLibrary(
-      "xuggle",
-      new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
+    JNILibrary lib = new JNILibrary("xuggle",
+        new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
+    JNILibrary.load("xuggle-xuggler", lib);
     com.xuggle.ferry.Ferry.init();
     // This seems nuts, but it works around a Java 1.6 bug where
     // a race condition exists when JNI_NewDirectByteBuffer is called
