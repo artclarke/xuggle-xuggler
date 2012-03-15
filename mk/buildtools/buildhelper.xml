@@ -416,10 +416,10 @@
       </else>
     </if>
     <property name="runtime.so.path.value"
-        value="${dist.dir}${file.separator}stage${xuggle.dir}${file.separator}${runtime.so.path.directory}${path.separator}${xuggle.dir.native}${file.separator}${runtime.so.path.directory}"
+        value="${dist.dir}${file.separator}stage${file.separator}${xuggle.os}${xuggle.dir}${file.separator}${runtime.so.path.directory}${path.separator}${xuggle.dir.native}${file.separator}${runtime.so.path.directory}"
       />
     <property name="runtime.java.library.path"
-        value="${dist.dir}${file.separator}stage${xuggle.dir}${file.separator}${runtime.so.path.directory}${path.separator}${xuggle.dir.native}${file.separator}${runtime.so.path.directory}"
+        value="${dist.dir}${file.separator}stage${file.separator}${xuggle.os}${xuggle.dir}${file.separator}${runtime.so.path.directory}${path.separator}${xuggle.dir.native}${file.separator}${runtime.so.path.directory}"
       />
 
     <echo message="Building Library Version: ${library.version}"/>
