@@ -27,6 +27,7 @@ class FerryJNI {
     reference.delete();
     buffer.delete();
   }
+
   static void noop()
   {
   }

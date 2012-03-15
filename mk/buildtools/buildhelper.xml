@@ -70,7 +70,7 @@
   <!-- This can be overriden in containing build.xml or build.properties -->
   <property name="app.name" value="${ant.project.name}"/>
   <property name="app.mainclass" value=""/>
-  <property name="app.nativeclasspath" value="com/xuggle/native"/>
+  <property name="app.nativeclasspath" value="com/xuggle/arch"/>
   <property name="documentation.title" value="${ant.project.name}"/>
   <property name="organization.name" value="xuggle"/>
   <property name="documentation.includes" value="**"/>
@@ -483,6 +483,26 @@
       <param name="ivy.settings.name" value="compile"/>
     </antcall>
     <mkdir dir="${generated.src.dir}"/>
+    <if>
+      <isset property="native.configure.exists"/>
+      <then>
+        <!-- let's compute how many native jars we may want to make -->
+	<mkdir dir="${classes.dir}/${app.nativeclasspath}" />
+        <echo>Checking for native jar paths: ${classes.dir}/${app.nativeclasspath}</echo>
+        <dirset id="native.jars.set" dir="${classes.dir}/${app.nativeclasspath}" includes="*"/>
+        <property name="native.jars" refid="native.jars.set"/>
+        <!-- create the property file detailing the native paths that are in this jar -->
+        <echo>Generating properties file: ${native.jars}</echo>
+	<mkdir dir="${generated.src.dir}/com/xuggle/ferry"/>
+        <propertyfile file="${generated.src.dir}/com/xuggle/ferry/native-contents.properties"
+           comment="inventory of native libraries that are in this classpath">
+          <entry key="Xuggle-Native-App"     value="${app.name}" />
+          <entry key="Xuggle-Native-Root"    value="${app.nativeclasspath}"/>
+          <entry key="Xuggle-Native-Paths"   value="${native.jars}"/>
+          <entry key="Xuggle-Native-Bundles" value="${native.jars}" />
+        </propertyfile>
+      </then>
+    </if>
     <!-- Update any Java template files-->
     <echo message="Generating Java source from templates"/>
     <copy overwrite="true" todir="${generated.src.dir}">
@@ -496,6 +516,7 @@
       </filterset>
       <globmapper from="*.java.in" to="*.java"/>
     </copy>
+
     <!-- Compile the java code from ${src.dir} into ${build.dir} -->
     <javac
         includeantruntime="false"
@@ -519,6 +540,11 @@
     <copy overwrite="true" todir="${classes.dir}">
       <fileset dir="${src.dir}">
         <include name="**/*.xml"/>
+        <include name="**/*.properties"/>
+      </fileset>
+      <fileset dir="${generated.src.dir}">
+        <include name="**/*.xml"/>
+        <include name="**/*.properties"/>
       </fileset>
     </copy>
   </target>
@@ -570,12 +596,6 @@
     <if>
       <isset property="native.configure.exists"/>
       <then>
-        <!-- let's compute how many native jars we may want to make -->
-        <echo>Checking for native jar paths: ${classes.dir}/${app.nativeclasspath}</echo>
-        <dirset id="native.jars.set" dir="${classes.dir}/${app.nativeclasspath}" includes="*"/>
-        <property name="native.jars" refid="native.jars.set"/>
-        <echo>Generating native jars for: ${native.jars}</echo>
-
         <jar jarfile="${dist.dir}/lib/${app.name}-noarch.jar"
             index="no"
             basedir="${classes.dir}">
@@ -589,7 +609,8 @@
             <attribute name="Main-Class" value="${app.mainclass}"/>
           </manifest>
         </jar>
-	<!-- for convenience we will make a native only jar and a no-arch jar -->
+	<!-- for convenience we will make a native only jar and a noarch jar -->
+        <echo>Generating native jars for: ${native.jars}</echo>
         <for list="${native.jars}" param="native.os" delimiter=";">
         <sequential>
         <jar jarfile="${dist.dir}/lib/${app.name}-arch-@{native.os}.jar"
@@ -601,8 +622,8 @@
             <attribute name="Implementation-Title" value="${app.name}-arch-@{native.os}"/>
             <attribute name="Implementation-Version" value="${library.version}"/>
             <attribute name="Xuggle-Native-App" value="${app.name}" />
-            <attribute name="Xuggle-Native-Root" value="" />
-            <attribute name="Xuggle-Native-Paths" value="" />
+            <attribute name="Xuggle-Native-Root" value="." />
+            <attribute name="Xuggle-Native-Paths" value="." />
             <attribute name="Xuggle-Native-Bundles" value="@{native.os}" />
           </manifest>
         </jar>

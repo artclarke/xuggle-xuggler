@@ -90,6 +90,7 @@ Java_com_xuggle_ferry_Ferry_init(JNIEnv *env, jclass)
     reference.delete();
     buffer.delete();
   }
+
   static void noop()
   {
   }
@@ -120,6 +121,14 @@ Java_com_xuggle_ferry_Ferry_init(JNIEnv *env, jclass)
     FerryJNI.noop();
   }
   
+  /** call this to force a load of all native components.
+   * This is NOT normally required but can be useful in
+   * some circulstances.
+   */
+  public static void load()
+  {
+    
+  }
   /**
    * Internal Only.  Do not use.
    */

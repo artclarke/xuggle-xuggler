@@ -63,6 +63,9 @@ public class FfmpegIO
     URLProtocolManager.init();
   }
 
+  /** Force a load of all native libraries; not normally needed */
+  public static void load() {}
+  
   /**
    * Internal Only.  Do not use.
    */

@@ -97,6 +97,10 @@ import com.xuggle.ferry.*;
   }
 
   /**
+   * Method to force loading of all native methods in the library.
+   */
+  public static void load() {}
+  /**
    * 
    * A simple test of xuggler, this program takes an input
    * file, and outputs it as an output file.
