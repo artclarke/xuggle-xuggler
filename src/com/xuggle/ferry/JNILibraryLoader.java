@@ -165,6 +165,7 @@ public final class JNILibraryLoader
    *           If we cannot find the library after searching in all the
    *           aforementioned locations.
    */
+  @Deprecated
   public static void loadLibrary(String aLibraryName, Long aMajorVersion)
   {
     getInstance().loadLibrary0(aLibraryName, aMajorVersion);

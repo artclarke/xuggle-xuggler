@@ -1,23 +1,29 @@
 package com.xuggle.ferry;
 
-import org.junit.Test;
+import static org.junit.Assert.fail;
 
-import com.xuggle.xuggler.Xuggler;
+import org.junit.Test;
 
 public class JNILibraryTest
 {
   @Test
-  public void testLoadFerry()
+  public void testLoadSuccess()
   {
     final JNILibrary library = new JNILibrary("xuggle",
-        new Long(com.xuggle.xuggler.Version.MAJOR_VERSION), null);
+        new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
     JNILibrary.load("xuggle-xuggler", library);
   }
-  
   @Test
-  public void testWithDependencies()
+  public void testLoadFail()
   {
-    // this takes advantage of the fact that Xuggler is a bitch of dependencies.
-    Xuggler.load();
+    final JNILibrary library = new JNILibrary("xuggle-notavalidlibrary",
+        new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
+    try {
+      JNILibrary.load("xuggle-xuggler", library);
+      fail("library should not load");
+    } catch (UnsatisfiedLinkError e) {
+      // this is success; any other exception should bubble out and fail
+    }
   }
+  
 }

@@ -91,6 +91,36 @@ class JNIManifest {
   {
     return mVendor;
   }
+  
+  @Override
+  public String toString()
+  {
+    final StringBuilder builder = new StringBuilder();
+    builder.append(super.toString());
+    builder.append("[");
+    builder.append("name=");
+    builder.append(mName);
+    builder.append("; ");
+
+    builder.append("path=");
+    builder.append(mPath);
+    builder.append("; ");
+
+    builder.append("cpu=");
+    builder.append(mCPU);
+    builder.append("; ");
+    
+    builder.append("os=");
+    builder.append(mOS);
+    builder.append("; ");
+    
+    builder.append("vendor=");
+    builder.append(mVendor);
+    builder.append("; ");
+    
+    builder.append("]");
+    return builder.toString();
+  }
   public static JNIManifest create(URL url, String appName, Properties props)
   {
     final String name = props.getProperty(XUGGLE_APP);
@@ -185,7 +215,9 @@ class JNIManifest {
           }
         }
         
-        return new JNIManifest(appName, nativePath.toString(), nativeCpu, nativeVendor, nativeOs);
+        final JNIManifest retval = new JNIManifest(appName, nativePath.toString(), nativeCpu, nativeOs, nativeVendor);
+        log.trace("found matching manifest: {}", retval);
+        return retval;
       }
     }
     return null;

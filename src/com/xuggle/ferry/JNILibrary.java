@@ -1,3 +1,21 @@
+/*******************************************************************************
+ * Copyright (c) 2012, Art Clarke.  All rights reserved.
+ *  
+ * This file is part of Xuggle-Xuggler-Main.
+ *
+ * Xuggle-Xuggler-Main is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * Xuggle-Xuggler-Main is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with Xuggle-Xuggler-Main.  If not, see <http://www.gnu.org/licenses/>.
+ *******************************************************************************/
 package com.xuggle.ferry;
 
 import java.io.File;
@@ -52,8 +70,10 @@ public class JNILibrary implements Comparable<JNILibrary>
           final Properties props = new Properties();
           props.load(stream);
           final JNIManifest manifest = JNIManifest.create(url, appName, props);
-          if (manifest != null)
+          if (manifest != null) {
+            log.trace("found manifest: {}; url: {}", manifest, url);
             retval.add(manifest);
+          }
           stream.close();
         }
       }
@@ -66,14 +86,16 @@ public class JNILibrary implements Comparable<JNILibrary>
       final Enumeration<URL> manifests = loader.getResources("META-INF/MANIFEST.MF");
       while (manifests.hasMoreElements()) {
         final URL url = manifests.nextElement();
-        log.error("Examining manifest: {}", url);
+        log.trace("Examining manifest: {}", url);
         final InputStream stream = url.openStream();
         if (stream != null) {
           final Manifest jarManifest = new Manifest(stream);
           if (jarManifest != null) {
             final JNIManifest manifest = JNIManifest.create(url, appName, jarManifest);
-            if (manifest != null)
+            if (manifest != null) {
+              log.trace("found manifest: {}; url: {}", manifest, url);
               retval.add(manifest); 
+            }
           }
         }
       }
@@ -87,7 +109,6 @@ public class JNILibrary implements Comparable<JNILibrary>
   }
 
   private final String mName;
-  private final JNILibrary[] mDependencies;
   private final Long mVersion;
 
   private boolean mLoadAttempted;
@@ -98,12 +119,11 @@ public class JNILibrary implements Comparable<JNILibrary>
     deleteTemporaryFiles();
   }
   
-  public JNILibrary(String name, Long version, JNILibrary[] dependencies)
+  public JNILibrary(String name, Long version)
   {
     if (name == null || name.length() <= 0)
       throw new IllegalArgumentException("need a valid name");
     mName = name;
-    mDependencies = dependencies;
     mVersion = version;
     mLoadAttempted = false;
     mLoadSuccessful = false;
@@ -151,18 +171,6 @@ public class JNILibrary implements Comparable<JNILibrary>
       else
         throw new UnsatisfiedLinkError("already attempted and failed to load library: " + getName());
     }
-    // load will always allow sub-libraries to load, 
-    if (mDependencies != null)
-      for(JNILibrary dependency: mDependencies)
-      {
-        try {
-          dependency.load(appName);
-        } catch (UnsatisfiedLinkError e) {
-          log.debug("Dependency: could not link {}; error: {}", dependency.getName(), e);
-        } catch (SecurityException e) {
-          log.debug("Dependency: could not link {}; error: {}", dependency.getName(), e);    
-        }
-      }
     mLoadAttempted = true;
     // finally attempt to load ourselves   
     loadFromClasspath(appName);
@@ -337,7 +345,7 @@ public class JNILibrary implements Comparable<JNILibrary>
         marker.delete();
     }
   }
-  public List<String> generateCandidateLibraryURLs(String appName,
+  private List<String> generateCandidateLibraryURLs(String appName,
       String libname)
   {
     final List<String> retval = new LinkedList<String>();    
@@ -360,7 +368,7 @@ public class JNILibrary implements Comparable<JNILibrary>
   void setOSFamily(JNIEnv.OSFamily os) { mOSFamily = os; }
   JNIEnv.OSFamily getOSFamily() { return mOSFamily; }
   
-  public void generateLibnames(List<String> list,
+  private void generateLibnames(List<String> list,
       String path,
       String libname)
   {
