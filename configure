@@ -17771,7 +17771,7 @@ ac_compiler_gnu=$ac_cv_cxx_compiler_gnu
 case $host in
   *mingw*|*cygwin*)
   # on windows use the shared library; it'll be there. trust me.
-  VS_LIBSTDCXX="-lstdc++"
+  VS_LIBSTDCXX="-XCClinker -lstdc++"
   ;;
 esac
 

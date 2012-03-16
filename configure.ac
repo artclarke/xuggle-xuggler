@@ -368,7 +368,7 @@ VS_FIND_STATIC_LIB([gcc],
 case $host in
   *mingw*|*cygwin*)
   # on windows use the shared library; it'll be there. trust me.
-  VS_LIBSTDCXX="-lstdc++"
+  VS_LIBSTDCXX="-XCClinker -lstdc++"
   ;;
 esac
 
