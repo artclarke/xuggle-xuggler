@@ -157,7 +157,7 @@ public class MediaToolTest
     assertEquals(1                        , writerCounter.getCount(TRAILER));
 
     assert(outputFile.exists());
-    assertEquals(OUTPUT_FILE_SIZE, outputFile.length(), 200);
+    assertEquals(OUTPUT_FILE_SIZE, outputFile.length(), 2000);
 
     log.debug("reader " + readerCounter);
     log.debug("writer " + writerCounter);
