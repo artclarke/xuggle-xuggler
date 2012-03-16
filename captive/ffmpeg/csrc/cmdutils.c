@@ -340,11 +340,8 @@ void parse_options(void *optctx, int argc, char **argv, const OptionDef *options
     }
 }
 
-/*
- * Return index of option opt in argv or 0 if not found.
- */
-static int locate_option(int argc, char **argv, const OptionDef *options,
-                         const char *optname)
+int locate_option(int argc, char **argv, const OptionDef *options,
+                  const char *optname)
 {
     const OptionDef *po;
     int i;
@@ -537,13 +534,40 @@ int opt_max_alloc(const char *opt, const char *arg)
 
 int opt_cpuflags(const char *opt, const char *arg)
 {
-    char *tail;
-    long flags = strtol(arg, &tail, 10);
+    static const AVOption cpuflags_opts[] = {
+        { "flags"   , NULL, 0, AV_OPT_TYPE_FLAGS, { 0 }, INT64_MIN, INT64_MAX, .unit = "flags" },
+        { "altivec" , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_ALTIVEC  },    .unit = "flags" },
+        { "mmx"     , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_MMX      },    .unit = "flags" },
+        { "mmx2"    , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_MMX2     },    .unit = "flags" },
+        { "sse"     , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_SSE      },    .unit = "flags" },
+        { "sse2"    , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_SSE2     },    .unit = "flags" },
+        { "sse2slow", NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_SSE2SLOW },    .unit = "flags" },
+        { "sse3"    , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_SSE3     },    .unit = "flags" },
+        { "sse3slow", NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_SSE3SLOW },    .unit = "flags" },
+        { "ssse3"   , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_SSSE3    },    .unit = "flags" },
+        { "atom"    , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_ATOM     },    .unit = "flags" },
+        { "sse4.1"  , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_SSE4     },    .unit = "flags" },
+        { "sse4.2"  , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_SSE42    },    .unit = "flags" },
+        { "avx"     , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_AVX      },    .unit = "flags" },
+        { "xop"     , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_XOP      },    .unit = "flags" },
+        { "fma4"    , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_FMA4     },    .unit = "flags" },
+        { "3dnow"   , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_3DNOW    },    .unit = "flags" },
+        { "3dnowext", NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_3DNOWEXT },    .unit = "flags" },
+        { NULL },
+    };
+    static const AVClass class = {
+        .class_name = "cpuflags",
+        .item_name  = av_default_item_name,
+        .option     = cpuflags_opts,
+        .version    = LIBAVUTIL_VERSION_INT,
+    };
+    int flags = av_get_cpu_flags();
+    int ret;
+    const AVClass *pclass = &class;
 
-    if (*tail) {
-        av_log(NULL, AV_LOG_FATAL, "Invalid cpuflags \"%s\".\n", arg);
-        exit_program(1);
-    }
+    if ((ret = av_opt_eval_flags(&pclass, &cpuflags_opts[0], arg, &flags)) < 0)
+        return ret;
+
     av_force_cpu_flags(flags);
     return 0;
 }
@@ -815,9 +839,9 @@ int opt_codecs(const char *opt, const char *arg)
                 decode = encode = cap = 0;
             }
             if (p2 && strcmp(p->name, p2->name) == 0) {
-                if (p->decode)
+                if (av_codec_is_decoder(p))
                     decode = 1;
-                if (p->encode || p->encode2)
+                if (av_codec_is_encoder(p))
                     encode = 1;
                 cap |= p->capabilities;
             }

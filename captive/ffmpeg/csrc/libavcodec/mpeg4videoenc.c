@@ -89,7 +89,7 @@ static inline int get_block_rate(MpegEncContext * s, DCTELEM block[64], int bloc
  * @param[in,out] block MB coefficients, these will be restored
  * @param[in] dir ac prediction direction for each 8x8 block
  * @param[out] st scantable for each 8x8 block
- * @param[in] zigzag_last_index index refering to the last non zero coefficient in zigzag order
+ * @param[in] zigzag_last_index index referring to the last non zero coefficient in zigzag order
  */
 static inline void restore_ac_coeffs(MpegEncContext * s, DCTELEM block[6][64], const int dir[6], uint8_t *st[6], const int zigzag_last_index[6])
 {
@@ -120,7 +120,7 @@ static inline void restore_ac_coeffs(MpegEncContext * s, DCTELEM block[6][64], c
  * @param[in,out] block MB coefficients, these will be updated if 1 is returned
  * @param[in] dir ac prediction direction for each 8x8 block
  * @param[out] st scantable for each 8x8 block
- * @param[out] zigzag_last_index index refering to the last non zero coefficient in zigzag order
+ * @param[out] zigzag_last_index index referring to the last non zero coefficient in zigzag order
  */
 static inline int decide_ac_pred(MpegEncContext * s, DCTELEM block[6][64], const int dir[6], uint8_t *st[6], int zigzag_last_index[6])
 {
@@ -430,7 +430,7 @@ static inline int get_b_cbp(MpegEncContext * s, DCTELEM block[6][64],
 {
     int cbp = 0, i;
 
-    if (s->flags & CODEC_FLAG_CBP_RD) {
+    if (s->mpv_flags & FF_MPV_FLAG_CBP_RD) {
         int score = 0;
         const int lambda = s->lambda2 >> (FF_LAMBDA_SHIFT - 6);
 
@@ -1330,6 +1330,7 @@ void ff_mpeg4_encode_video_packet_header(MpegEncContext *s)
 static const AVOption options[] = {
     { "data_partitioning",       "Use data partitioning.",      OFFSET(data_partitioning), AV_OPT_TYPE_INT, { 0 }, 0, 1, VE },
     { "alternate_scan",          "Enable alternate scantable.", OFFSET(alternate_scan),    AV_OPT_TYPE_INT, { 0 }, 0, 1, VE },
+    FF_MPV_COMMON_OPTS
     { NULL },
 };
 

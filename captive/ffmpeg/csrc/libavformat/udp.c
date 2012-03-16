@@ -59,6 +59,7 @@ typedef struct {
     int is_multicast;
     int local_port;
     int reuse_socket;
+    int overrun_nonfatal;
     struct sockaddr_storage dest_addr;
     int dest_addr_len;
     int is_connected;
@@ -260,6 +261,7 @@ static int udp_port(struct sockaddr_storage *addr, int addr_len)
  *         'localport=n' : set the local port
  *         'pkt_size=n'  : set max packet size
  *         'reuse=1'     : enable reusing the socket
+ *         'overrun_nonfatal=1': survive in case of circular buffer overrun
  *
  * @param h media file context
  * @param uri of the remote server
@@ -358,13 +360,6 @@ static void *circular_buffer_task( void *_URLContext)
         /* Whats the minimum we can read so that we dont comletely fill the buffer */
         left = av_fifo_space(s->fifo);
 
-        /* No Space left, error, what do we do now */
-        if(left < UDP_MAX_PKT_SIZE + 4) {
-            av_log(h, AV_LOG_ERROR, "circular_buffer: OVERRUN\n");
-            s->circular_buffer_error = AVERROR(EIO);
-            goto end;
-        }
-        left = FFMIN(left, s->fifo->end - s->fifo->wptr);
         len = recv(s->udp_fd, s->tmp+4, sizeof(s->tmp)-4, 0);
         if (len < 0) {
             if (ff_neterrno() != AVERROR(EAGAIN) && ff_neterrno() != AVERROR(EINTR)) {
@@ -374,6 +369,20 @@ static void *circular_buffer_task( void *_URLContext)
             continue;
         }
         AV_WL32(s->tmp, len);
+        if(left < len + 4) {
+            /* No Space left */
+            if (s->overrun_nonfatal) {
+                av_log(h, AV_LOG_WARNING, "Circular buffer overrun. "
+                        "Surviving due to overrun_nonfatal option\n");
+                continue;
+            } else {
+                av_log(h, AV_LOG_ERROR, "Circular buffer overrun. "
+                        "To avoid, increase fifo_size URL option. "
+                        "To survive in such case, use overrun_nonfatal option\n");
+                s->circular_buffer_error = AVERROR(EIO);
+                goto end;
+            }
+        }
         pthread_mutex_lock(&s->mutex);
         av_fifo_generic_write(s->fifo, s->tmp, len+4, NULL);
         pthread_cond_signal(&s->cond);
@@ -421,6 +430,13 @@ static int udp_open(URLContext *h, const char *uri, int flags)
             if (buf == endptr)
                 s->reuse_socket = 1;
             reuse_specified = 1;
+        }
+        if (av_find_info_tag(buf, sizeof(buf), "overrun_nonfatal", p)) {
+            char *endptr = NULL;
+            s->overrun_nonfatal = strtol(buf, &endptr, 10);
+            /* assume if no digits were found it is a request to enable it */
+            if (buf == endptr)
+                s->overrun_nonfatal = 1;
         }
         if (av_find_info_tag(buf, sizeof(buf), "ttl", p)) {
             s->ttl = strtol(buf, NULL, 10);
@@ -473,26 +489,32 @@ static int udp_open(URLContext *h, const char *uri, int flags)
             goto fail;
     }
 
-    /* the bind is needed to give a port to the socket now */
-    /* if multicast, try the multicast address bind first */
-    if (s->is_multicast && (h->flags & AVIO_FLAG_READ)) {
+    /* If multicast, try binding the multicast address first, to avoid
+     * receiving UDP packets from other sources aimed at the same UDP
+     * port. This fails on windows. This makes sending to the same address
+     * using sendto() fail, so only do it if we're opened in read-only mode. */
+    if (s->is_multicast && !(h->flags & AVIO_FLAG_WRITE)) {
         bind_ret = bind(udp_fd,(struct sockaddr *)&s->dest_addr, len);
     }
     /* bind to the local address if not multicast or if the multicast
      * bind failed */
-    if (bind_ret < 0 && bind(udp_fd,(struct sockaddr *)&my_addr, len) < 0)
+    /* the bind is needed to give a port to the socket now */
+    if (bind_ret < 0 && bind(udp_fd,(struct sockaddr *)&my_addr, len) < 0) {
+        av_log(h, AV_LOG_ERROR, "bind failed: %s\n", strerror(errno));
         goto fail;
+    }
 
     len = sizeof(my_addr);
     getsockname(udp_fd, (struct sockaddr *)&my_addr, &len);
     s->local_port = udp_port(&my_addr, len);
 
     if (s->is_multicast) {
-        if (!(h->flags & AVIO_FLAG_READ)) {
+        if (h->flags & AVIO_FLAG_WRITE) {
             /* output */
             if (udp_set_multicast_ttl(udp_fd, s->ttl, (struct sockaddr *)&s->dest_addr) < 0)
                 goto fail;
-        } else {
+        }
+        if (h->flags & AVIO_FLAG_READ) {
             /* input */
             if (udp_join_multicast_group(udp_fd, (struct sockaddr *)&s->dest_addr) < 0)
                 goto fail;

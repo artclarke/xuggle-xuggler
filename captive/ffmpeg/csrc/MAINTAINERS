@@ -4,7 +4,7 @@ FFmpeg maintainers
 Below is a list of the people maintaining different parts of the
 FFmpeg code.
 
-Please try to keep entries where you are the maintainer upto date!
+Please try to keep entries where you are the maintainer up to date!
 
 Names in () mean that the maintainer currently has no time to maintain the code.
 A CC after the name means that the maintainer prefers to be CC-ed on patches
@@ -171,6 +171,7 @@ Codecs:
   libschroedinger*                      David Conrad
   libspeexdec.c                         Justin Ruggles
   libtheoraenc.c                        David Conrad
+  libutvideo*                           Derek Buitenhuis
   libvorbis.c                           David Conrad
   libxavs.c                             Stefan Gehrer
   libx264.c                             Mans Rullgard, Jason Garrett-Glaser
@@ -370,6 +371,7 @@ Muxers/Demuxers:
   wv.c                                  Kostya Shishkov
 
 Protocols:
+  bluray.c                              Petri Hintukainen
   http.c                                Ronald S. Bultje
   mms*.c                                Ronald S. Bultje
   udp.c                                 Luca Abeni
@@ -395,6 +397,7 @@ x86                                     Michael Niedermayer
 Releases
 ========
 
+0.10                                    Michael Niedermayer
 0.9                                     Michael Niedermayer
 
 
