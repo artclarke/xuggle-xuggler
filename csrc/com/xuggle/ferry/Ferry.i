@@ -74,9 +74,9 @@ Java_com_xuggle_ferry_Ferry_init(JNIEnv *env, jclass)
 %}
 %pragma(java) jniclasscode=%{
   static {
-    JNILibraryLoader.loadLibrary(
-      "xuggle",
+    JNILibrary library = new JNILibrary("xuggle",
       new Long(com.xuggle.xuggler.Version.MAJOR_VERSION));
+    JNILibrary.load("xuggle-xuggler", library);
     com.xuggle.ferry.Ferry.init();
     // This seems nuts, but it works around a Java 1.6 bug where
     // a race condition exists when JNI_NewDirectByteBuffer is called
