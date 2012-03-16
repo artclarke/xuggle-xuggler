@@ -16389,6 +16389,10 @@ case $host in
   *darwin*)
   HOST_TYPE=Mac
   ;;
+  *linux*)
+  HOST_TYPE=Linux
+  VS_LDFLAGS+="-Wl,-Bsymbolic"
+  ;;
   *)
   HOST_TYPE=Linux
   ;;
