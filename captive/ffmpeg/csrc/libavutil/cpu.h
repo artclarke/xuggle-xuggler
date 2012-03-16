@@ -21,6 +21,8 @@
 #ifndef AVUTIL_CPU_H
 #define AVUTIL_CPU_H
 
+#include "attributes.h"
+
 #define AV_CPU_FLAG_FORCE    0x80000000 /* force usage of selected flags (OR) */
 
     /* lower 16 bits - CPU features */
@@ -41,7 +43,6 @@
 #define AV_CPU_FLAG_CMOV      0x1000000 ///< supports cmov instruction
 #define AV_CPU_FLAG_XOP          0x0400 ///< Bulldozer XOP functions
 #define AV_CPU_FLAG_FMA4         0x0800 ///< Bulldozer FMA4 functions
-#define AV_CPU_FLAG_IWMMXT       0x0100 ///< XScale IWMMXT
 #define AV_CPU_FLAG_ALTIVEC      0x0001 ///< standard
 
 /**
@@ -49,15 +50,22 @@
  */
 int av_get_cpu_flags(void);
 
-
 /**
  * Disables cpu detection and forces the specified flags.
+ * -1 is a special case that disables forcing of specific flags.
  */
 void av_force_cpu_flags(int flags);
 
+/**
+ * Set a mask on flags returned by av_get_cpu_flags().
+ * This function is mainly useful for testing.
+ * Please use av_force_cpu_flags() and av_get_cpu_flags() instead which are more flexible
+ *
+ * @warning this function is not thread safe.
+ */
+attribute_deprecated void av_set_cpu_flags_mask(int mask);
 
 /* The following CPU-specific functions shall not be called directly. */
-int ff_get_cpu_flags_arm(void);
 int ff_get_cpu_flags_ppc(void);
 int ff_get_cpu_flags_x86(void);
 

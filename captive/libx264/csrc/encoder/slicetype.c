@@ -457,6 +457,8 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
     x264_me_t m[2];
     int i_bcost = COST_MAX;
     int list_used = 0;
+    /* A small, arbitrary bias to avoid VBV problems caused by zero-residual lookahead blocks. */
+    int lowres_penalty = 4;
 
     h->mb.pic.p_fenc[0] = h->mb.pic.fenc_buf;
     h->mc.copy[PIXEL_8x8]( h->mb.pic.p_fenc[0], FENC_STRIDE, &fenc->lowres[0][i_pel_offset], i_stride, 8 );
@@ -505,7 +507,7 @@ static void x264_slicetype_mb_cost( x264_t *h, x264_mb_analysis_t *a,
         } \
         else \
         { \
-            int stride1 = 16, stride2 = 16; \
+            intptr_t stride1 = 16, stride2 = 16; \
             pixel *src1, *src2; \
             src1 = h->mc.get_ref( pix1, &stride1, m[0].p_fref, m[0].i_stride[0], \
                                   (mv0)[0], (mv0)[1], 8, 8, w ); \
@@ -653,7 +655,7 @@ lowres_intra_mb:
             }
         }
 
-        i_icost += intra_penalty;
+        i_icost += intra_penalty + lowres_penalty;
         fenc->i_intra_cost[i_mb_xy] = i_icost;
         int i_icost_aq = i_icost;
         if( h->param.rc.i_aq_mode )
@@ -665,6 +667,7 @@ lowres_intra_mb:
             fenc->i_cost_est_aq[0][0] += i_icost_aq;
         }
     }
+    i_bcost += lowres_penalty;
 
     /* forbid intra-mbs in B-frames, because it's rare and not worth checking */
     /* FIXME: Should we still forbid them now that we cache intra scores? */

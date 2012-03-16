@@ -37,22 +37,22 @@
     void func##_sse2 args;\
     void func##_ssse3 args;
 
-DECL_SUF( x264_pixel_avg_16x16, ( pixel *, int, pixel *, int, pixel *, int, int ))
-DECL_SUF( x264_pixel_avg_16x8,  ( pixel *, int, pixel *, int, pixel *, int, int ))
-DECL_SUF( x264_pixel_avg_8x16,  ( pixel *, int, pixel *, int, pixel *, int, int ))
-DECL_SUF( x264_pixel_avg_8x8,   ( pixel *, int, pixel *, int, pixel *, int, int ))
-DECL_SUF( x264_pixel_avg_8x4,   ( pixel *, int, pixel *, int, pixel *, int, int ))
-DECL_SUF( x264_pixel_avg_4x16,  ( pixel *, int, pixel *, int, pixel *, int, int ))
-DECL_SUF( x264_pixel_avg_4x8,   ( pixel *, int, pixel *, int, pixel *, int, int ))
-DECL_SUF( x264_pixel_avg_4x4,   ( pixel *, int, pixel *, int, pixel *, int, int ))
-DECL_SUF( x264_pixel_avg_4x2,   ( pixel *, int, pixel *, int, pixel *, int, int ))
+DECL_SUF( x264_pixel_avg_16x16, ( pixel *, intptr_t, pixel *, intptr_t, pixel *, intptr_t, int ))
+DECL_SUF( x264_pixel_avg_16x8,  ( pixel *, intptr_t, pixel *, intptr_t, pixel *, intptr_t, int ))
+DECL_SUF( x264_pixel_avg_8x16,  ( pixel *, intptr_t, pixel *, intptr_t, pixel *, intptr_t, int ))
+DECL_SUF( x264_pixel_avg_8x8,   ( pixel *, intptr_t, pixel *, intptr_t, pixel *, intptr_t, int ))
+DECL_SUF( x264_pixel_avg_8x4,   ( pixel *, intptr_t, pixel *, intptr_t, pixel *, intptr_t, int ))
+DECL_SUF( x264_pixel_avg_4x16,  ( pixel *, intptr_t, pixel *, intptr_t, pixel *, intptr_t, int ))
+DECL_SUF( x264_pixel_avg_4x8,   ( pixel *, intptr_t, pixel *, intptr_t, pixel *, intptr_t, int ))
+DECL_SUF( x264_pixel_avg_4x4,   ( pixel *, intptr_t, pixel *, intptr_t, pixel *, intptr_t, int ))
+DECL_SUF( x264_pixel_avg_4x2,   ( pixel *, intptr_t, pixel *, intptr_t, pixel *, intptr_t, int ))
 
 #define MC_WEIGHT(w,type) \
-    void x264_mc_weight_w##w##_##type( pixel *,int, pixel *,int, const x264_weight_t *,int );
+    void x264_mc_weight_w##w##_##type( pixel *, intptr_t, pixel *, intptr_t, const x264_weight_t *, int );
 
 #define MC_WEIGHT_OFFSET(w,type) \
-    void x264_mc_offsetadd_w##w##_##type( pixel *,int, pixel *,int, const x264_weight_t *,int ); \
-    void x264_mc_offsetsub_w##w##_##type( pixel *,int, pixel *,int, const x264_weight_t *,int ); \
+    void x264_mc_offsetadd_w##w##_##type( pixel *, intptr_t, pixel *, intptr_t, const x264_weight_t *, int ); \
+    void x264_mc_offsetsub_w##w##_##type( pixel *, intptr_t, pixel *, intptr_t, const x264_weight_t *, int ); \
     MC_WEIGHT(w,type)
 
 MC_WEIGHT_OFFSET( 4, mmx2 )
@@ -75,74 +75,73 @@ MC_WEIGHT( 20, ssse3 )
 #undef MC_OFFSET
 #undef MC_WEIGHT
 
-void x264_mc_copy_w4_mmx( pixel *, int, pixel *, int, int );
-void x264_mc_copy_w8_mmx( pixel *, int, pixel *, int, int );
-void x264_mc_copy_w8_sse2( pixel *, int, pixel *, int, int );
-void x264_mc_copy_w16_mmx( pixel *, int, pixel *, int, int );
-void x264_mc_copy_w16_sse2( pixel *, int, pixel *, int, int );
-void x264_mc_copy_w16_aligned_sse2( pixel *, int, pixel *, int, int );
-void x264_prefetch_fenc_420_mmx2( pixel *, int, pixel *, int, int );
-void x264_prefetch_fenc_422_mmx2( pixel *, int, pixel *, int, int );
-void x264_prefetch_ref_mmx2( pixel *, int, int );
-void x264_plane_copy_core_mmx2( pixel *, int, pixel *, int, int w, int h);
-void x264_plane_copy_c( pixel *, int, pixel *, int, int w, int h );
-void x264_plane_copy_interleave_core_mmx2( pixel *dst, int i_dst,
-                                             pixel *srcu, int i_srcu,
-                                             pixel *srcv, int i_srcv, int w, int h );
-void x264_plane_copy_interleave_core_sse2( pixel *dst, int i_dst,
-                                           pixel *srcu, int i_srcu,
-                                           pixel *srcv, int i_srcv, int w, int h );
-void x264_plane_copy_interleave_core_avx( pixel *dst, int i_dst,
-                                           pixel *srcu, int i_srcu,
-                                           pixel *srcv, int i_srcv, int w, int h );
-void x264_plane_copy_interleave_c( pixel *dst, int i_dst,
-                                   pixel *srcu, int i_srcu,
-                                   pixel *srcv, int i_srcv, int w, int h );
-void x264_plane_copy_deinterleave_mmx( pixel *dstu, int i_dstu,
-                                       pixel *dstv, int i_dstv,
-                                       pixel *src, int i_src, int w, int h );
-void x264_plane_copy_deinterleave_sse2( pixel *dstu, int i_dstu,
-                                        pixel *dstv, int i_dstv,
-                                        pixel *src, int i_src, int w, int h );
-void x264_plane_copy_deinterleave_ssse3( uint8_t *dstu, int i_dstu,
-                                         uint8_t *dstv, int i_dstv,
-                                         uint8_t *src, int i_src, int w, int h );
-void x264_plane_copy_deinterleave_avx( uint16_t *dstu, int i_dstu,
-                                         uint16_t *dstv, int i_dstv,
-                                         uint16_t *src, int i_src, int w, int h );
-void x264_store_interleave_chroma_mmx2( pixel *dst, int i_dst, pixel *srcu, pixel *srcv, int height );
-void x264_store_interleave_chroma_sse2( pixel *dst, int i_dst, pixel *srcu, pixel *srcv, int height );
-void x264_store_interleave_chroma_avx( pixel *dst, int i_dst, pixel *srcu, pixel *srcv, int height );
-void x264_load_deinterleave_chroma_fenc_mmx( pixel *dst, pixel *src, int i_src, int height );
-void x264_load_deinterleave_chroma_fenc_sse2( pixel *dst, pixel *src, int i_src, int height );
-void x264_load_deinterleave_chroma_fenc_ssse3( uint8_t *dst, uint8_t *src, int i_src, int height );
-void x264_load_deinterleave_chroma_fenc_avx( uint16_t *dst, uint16_t *src, int i_src, int height );
-void x264_load_deinterleave_chroma_fdec_mmx( pixel *dst, pixel *src, int i_src, int height );
-void x264_load_deinterleave_chroma_fdec_sse2( pixel *dst, pixel *src, int i_src, int height );
-void x264_load_deinterleave_chroma_fdec_ssse3( uint8_t *dst, uint8_t *src, int i_src, int height );
-void x264_load_deinterleave_chroma_fdec_avx( uint16_t *dst, uint16_t *src, int i_src, int height );
-void *x264_memcpy_aligned_mmx( void * dst, const void * src, size_t n );
-void *x264_memcpy_aligned_sse2( void * dst, const void * src, size_t n );
-void x264_memzero_aligned_mmx( void * dst, int n );
-void x264_memzero_aligned_sse2( void * dst, int n );
-void x264_integral_init4h_sse4( uint16_t *sum, uint8_t *pix, int stride );
-void x264_integral_init8h_sse4( uint16_t *sum, uint8_t *pix, int stride );
-void x264_integral_init8h_avx ( uint16_t *sum, uint8_t *pix, int stride );
-void x264_integral_init4v_mmx( uint16_t *sum8, uint16_t *sum4, int stride );
-void x264_integral_init4v_sse2( uint16_t *sum8, uint16_t *sum4, int stride );
-void x264_integral_init8v_mmx( uint16_t *sum8, int stride );
-void x264_integral_init8v_sse2( uint16_t *sum8, int stride );
-void x264_integral_init4v_ssse3( uint16_t *sum8, uint16_t *sum4, int stride );
+void x264_mc_copy_w4_mmx  ( pixel *, intptr_t, pixel *, intptr_t, int );
+void x264_mc_copy_w8_mmx  ( pixel *, intptr_t, pixel *, intptr_t, int );
+void x264_mc_copy_w8_sse2 ( pixel *, intptr_t, pixel *, intptr_t, int );
+void x264_mc_copy_w16_mmx ( pixel *, intptr_t, pixel *, intptr_t, int );
+void x264_mc_copy_w16_sse2( pixel *, intptr_t, pixel *, intptr_t, int );
+void x264_mc_copy_w16_aligned_sse2( pixel *, intptr_t, pixel *, intptr_t, int );
+void x264_prefetch_fenc_420_mmx2( pixel *, intptr_t, pixel *, intptr_t, int );
+void x264_prefetch_fenc_422_mmx2( pixel *, intptr_t, pixel *, intptr_t, int );
+void x264_prefetch_ref_mmx2( pixel *, intptr_t, int );
+void x264_plane_copy_core_mmx2( pixel *, intptr_t, pixel *, intptr_t, int w, int h );
+void x264_plane_copy_c( pixel *, intptr_t, pixel *, intptr_t, int w, int h );
+void x264_plane_copy_interleave_core_mmx2( pixel *dst,  intptr_t i_dst,
+                                           pixel *srcu, intptr_t i_srcu,
+                                           pixel *srcv, intptr_t i_srcv, int w, int h );
+void x264_plane_copy_interleave_core_sse2( pixel *dst,  intptr_t i_dst,
+                                           pixel *srcu, intptr_t i_srcu,
+                                           pixel *srcv, intptr_t i_srcv, int w, int h );
+void x264_plane_copy_interleave_core_avx( pixel *dst,  intptr_t i_dst,
+                                          pixel *srcu, intptr_t i_srcu,
+                                          pixel *srcv, intptr_t i_srcv, int w, int h );
+void x264_plane_copy_interleave_c( pixel *dst,  intptr_t i_dst,
+                                   pixel *srcu, intptr_t i_srcu,
+                                   pixel *srcv, intptr_t i_srcv, int w, int h );
+void x264_plane_copy_deinterleave_mmx( pixel *dstu, intptr_t i_dstu,
+                                       pixel *dstv, intptr_t i_dstv,
+                                       pixel *src,  intptr_t i_src, int w, int h );
+void x264_plane_copy_deinterleave_sse2( pixel *dstu, intptr_t i_dstu,
+                                        pixel *dstv, intptr_t i_dstv,
+                                        pixel *src,  intptr_t i_src, int w, int h );
+void x264_plane_copy_deinterleave_ssse3( uint8_t *dstu, intptr_t i_dstu,
+                                         uint8_t *dstv, intptr_t i_dstv,
+                                         uint8_t *src,  intptr_t i_src, int w, int h );
+void x264_plane_copy_deinterleave_avx( uint16_t *dstu, intptr_t i_dstu,
+                                       uint16_t *dstv, intptr_t i_dstv,
+                                       uint16_t *src,  intptr_t i_src, int w, int h );
+void x264_store_interleave_chroma_mmx2( pixel *dst, intptr_t i_dst, pixel *srcu, pixel *srcv, int height );
+void x264_store_interleave_chroma_sse2( pixel *dst, intptr_t i_dst, pixel *srcu, pixel *srcv, int height );
+void x264_store_interleave_chroma_avx ( pixel *dst, intptr_t i_dst, pixel *srcu, pixel *srcv, int height );
+void x264_load_deinterleave_chroma_fenc_mmx ( pixel *dst, pixel *src, intptr_t i_src, int height );
+void x264_load_deinterleave_chroma_fenc_sse2( pixel *dst, pixel *src, intptr_t i_src, int height );
+void x264_load_deinterleave_chroma_fenc_ssse3( uint8_t *dst, uint8_t *src, intptr_t i_src, int height );
+void x264_load_deinterleave_chroma_fenc_avx( uint16_t *dst, uint16_t *src, intptr_t i_src, int height );
+void x264_load_deinterleave_chroma_fdec_mmx ( pixel *dst, pixel *src, intptr_t i_src, int height );
+void x264_load_deinterleave_chroma_fdec_sse2( pixel *dst, pixel *src, intptr_t i_src, int height );
+void x264_load_deinterleave_chroma_fdec_ssse3( uint8_t *dst, uint8_t *src, intptr_t i_src, int height );
+void x264_load_deinterleave_chroma_fdec_avx( uint16_t *dst, uint16_t *src, intptr_t i_src, int height );
+void *x264_memcpy_aligned_mmx ( void *dst, const void *src, size_t n );
+void *x264_memcpy_aligned_sse2( void *dst, const void *src, size_t n );
+void x264_memzero_aligned_mmx ( void *dst, size_t n );
+void x264_memzero_aligned_sse2( void *dst, size_t n );
+void x264_integral_init4h_sse4( uint16_t *sum, uint8_t *pix, intptr_t stride );
+void x264_integral_init8h_sse4( uint16_t *sum, uint8_t *pix, intptr_t stride );
+void x264_integral_init8h_avx ( uint16_t *sum, uint8_t *pix, intptr_t stride );
+void x264_integral_init4v_mmx  ( uint16_t *sum8, uint16_t *sum4, intptr_t stride );
+void x264_integral_init4v_sse2 ( uint16_t *sum8, uint16_t *sum4, intptr_t stride );
+void x264_integral_init4v_ssse3( uint16_t *sum8, uint16_t *sum4, intptr_t stride );
+void x264_integral_init8v_mmx ( uint16_t *sum8, intptr_t stride );
+void x264_integral_init8v_sse2( uint16_t *sum8, intptr_t stride );
 void x264_mbtree_propagate_cost_sse2( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
                                       uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
-void x264_mbtree_propagate_cost_avx( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
-                                     uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
+void x264_mbtree_propagate_cost_avx ( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
+                                      uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
 void x264_mbtree_propagate_cost_fma4( int *dst, uint16_t *propagate_in, uint16_t *intra_costs,
                                       uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
 
 #define MC_CHROMA(cpu)\
-void x264_mc_chroma_##cpu( pixel *dstu, pixel *dstv, int i_dst,\
-                           pixel *src, int i_src,\
+void x264_mc_chroma_##cpu( pixel *dstu, pixel *dstv, intptr_t i_dst, pixel *src, intptr_t i_src,\
                            int dx, int dy, int i_width, int i_height );
 MC_CHROMA(mmx2)
 MC_CHROMA(sse2)
@@ -154,7 +153,7 @@ MC_CHROMA(avx_cache64)
 
 #define LOWRES(cpu)\
 void x264_frame_init_lowres_core_##cpu( pixel *src0, pixel *dst0, pixel *dsth, pixel *dstv, pixel *dstc,\
-                                        int src_stride, int dst_stride, int width, int height );
+                                        intptr_t src_stride, intptr_t dst_stride, int width, int height );
 LOWRES(mmx2)
 LOWRES(cache32_mmx2)
 LOWRES(sse2)
@@ -163,7 +162,7 @@ LOWRES(avx)
 LOWRES(xop)
 
 #define PIXEL_AVG_W(width,cpu)\
-void x264_pixel_avg2_w##width##_##cpu( pixel *, int, pixel *, int, pixel *, int );
+void x264_pixel_avg2_w##width##_##cpu( pixel *, intptr_t, pixel *, intptr_t, pixel *, intptr_t );
 /* This declares some functions that don't exist, but that isn't a problem. */
 #define PIXEL_AVG_WALL(cpu)\
 PIXEL_AVG_W(4,cpu); PIXEL_AVG_W(8,cpu); PIXEL_AVG_W(10,cpu); PIXEL_AVG_W(12,cpu); PIXEL_AVG_W(16,cpu); PIXEL_AVG_W(18,cpu); PIXEL_AVG_W(20,cpu);
@@ -177,7 +176,7 @@ PIXEL_AVG_WALL(sse2_misalign)
 PIXEL_AVG_WALL(cache64_ssse3)
 
 #define PIXEL_AVG_WTAB(instr, name1, name2, name3, name4, name5)\
-static void (* const x264_pixel_avg_wtab_##instr[6])( pixel *, int, pixel *, int, pixel *, int ) =\
+static void (* const x264_pixel_avg_wtab_##instr[6])( pixel *, intptr_t, pixel *, intptr_t, pixel *, intptr_t ) =\
 {\
     NULL,\
     x264_pixel_avg2_w4_##name1,\
@@ -216,7 +215,7 @@ PIXEL_AVG_WTAB(cache64_ssse3, mmx2, cache64_mmx2, cache64_ssse3, cache64_ssse3, 
 #endif // HIGH_BIT_DEPTH
 
 #define MC_COPY_WTAB(instr, name1, name2, name3)\
-static void (* const x264_mc_copy_wtab_##instr[5])( pixel *, int, pixel *, int, int ) =\
+static void (* const x264_mc_copy_wtab_##instr[5])( pixel *, intptr_t, pixel *, intptr_t, int ) =\
 {\
     NULL,\
     x264_mc_copy_w4_##name1,\
@@ -233,7 +232,7 @@ MC_COPY_WTAB(sse2,mmx,mmx,sse2)
 #endif
 
 #define MC_WEIGHT_WTAB(function, instr, name1, name2, w12version)\
-    static void (* x264_mc_##function##_wtab_##instr[6])( pixel *, int, pixel *, int, const x264_weight_t *, int ) =\
+    static void (* x264_mc_##function##_wtab_##instr[6])( pixel *, intptr_t, pixel *, intptr_t, const x264_weight_t *, int ) =\
 {\
     x264_mc_##function##_w4_##name1,\
     x264_mc_##function##_w4_##name1,\
@@ -332,10 +331,10 @@ static const uint8_t hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
 static const uint8_t hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
 
 #define MC_LUMA(name,instr1,instr2)\
-static void mc_luma_##name( pixel *dst,    int i_dst_stride,\
-                  pixel *src[4], int i_src_stride,\
-                  int mvx, int mvy,\
-                  int i_width, int i_height, const x264_weight_t *weight )\
+static void mc_luma_##name( pixel *dst,    intptr_t i_dst_stride,\
+                            pixel *src[4], intptr_t i_src_stride,\
+                            int mvx, int mvy,\
+                            int i_width, int i_height, const x264_weight_t *weight )\
 {\
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);\
     int offset = (mvy>>2)*i_src_stride + (mvx>>2);\
@@ -367,10 +366,10 @@ MC_LUMA(cache64_ssse3,cache64_ssse3,sse2)
 #endif // !HIGH_BIT_DEPTH
 
 #define GET_REF(name)\
-static pixel *get_ref_##name( pixel *dst,   int *i_dst_stride,\
-                         pixel *src[4], int i_src_stride,\
-                         int mvx, int mvy,\
-                         int i_width, int i_height, const x264_weight_t *weight )\
+static pixel *get_ref_##name( pixel *dst,   intptr_t *i_dst_stride,\
+                              pixel *src[4], intptr_t i_src_stride,\
+                              int mvx, int mvy,\
+                              int i_width, int i_height, const x264_weight_t *weight )\
 {\
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);\
     int offset = (mvy>>2)*i_src_stride + (mvx>>2);\
@@ -410,13 +409,13 @@ GET_REF(cache64_ssse3)
 #endif // !HIGH_BIT_DEPTH
 
 #define HPEL(align, cpu, cpuv, cpuc, cpuh)\
-void x264_hpel_filter_v_##cpuv( pixel *dst, pixel *src, int16_t *buf, int stride, int width);\
-void x264_hpel_filter_c_##cpuc( pixel *dst, int16_t *buf, int width );\
-void x264_hpel_filter_h_##cpuh( pixel *dst, pixel *src, int width );\
+void x264_hpel_filter_v_##cpuv( pixel *dst, pixel *src, int16_t *buf, intptr_t stride, intptr_t width);\
+void x264_hpel_filter_c_##cpuc( pixel *dst, int16_t *buf, intptr_t width );\
+void x264_hpel_filter_h_##cpuh( pixel *dst, pixel *src, intptr_t width );\
 static void x264_hpel_filter_##cpu( pixel *dsth, pixel *dstv, pixel *dstc, pixel *src,\
-                             int stride, int width, int height, int16_t *buf )\
+                                    intptr_t stride, int width, int height, int16_t *buf )\
 {\
-    int realign = (intptr_t)src & (align-1);\
+    intptr_t realign = (intptr_t)src & (align-1);\
     src -= realign;\
     dstv -= realign;\
     dstc -= realign;\
@@ -441,9 +440,9 @@ HPEL(16, sse2, sse2, sse2, sse2)
 #else // !HIGH_BIT_DEPTH
 HPEL(16, sse2_amd, mmx2, mmx2, sse2)
 #if ARCH_X86_64
-void x264_hpel_filter_sse2( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height, int16_t *buf );
-void x264_hpel_filter_ssse3( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height, int16_t *buf );
-void x264_hpel_filter_avx( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, int stride, int width, int height, int16_t *buf );
+void x264_hpel_filter_sse2 ( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, intptr_t stride, int width, int height, int16_t *buf );
+void x264_hpel_filter_ssse3( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, intptr_t stride, int width, int height, int16_t *buf );
+void x264_hpel_filter_avx  ( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src, intptr_t stride, int width, int height, int16_t *buf );
 #else
 HPEL(16, sse2, sse2, sse2, sse2)
 HPEL(16, ssse3, ssse3, ssse3, ssse3)
@@ -452,7 +451,7 @@ HPEL(16, avx, avx, avx, avx)
 HPEL(16, sse2_misalign, sse2, sse2_misalign, sse2)
 #endif // HIGH_BIT_DEPTH
 
-static void x264_plane_copy_mmx2( pixel *dst, int i_dst, pixel *src, int i_src, int w, int h )
+static void x264_plane_copy_mmx2( pixel *dst, intptr_t i_dst, pixel *src, intptr_t i_src, int w, int h )
 {
     int c_w = 16/sizeof(pixel) - 1;
     if( w < 256 ) { // tiny resolutions don't want non-temporal hints. dunno the exact threshold.
@@ -470,9 +469,9 @@ static void x264_plane_copy_mmx2( pixel *dst, int i_dst, pixel *src, int i_src, 
 }
 
 #define PLANE_INTERLEAVE(cpu) \
-static void x264_plane_copy_interleave_##cpu( pixel *dst, int i_dst,\
-                                              pixel *srcu, int i_srcu,\
-                                              pixel *srcv, int i_srcv, int w, int h )\
+static void x264_plane_copy_interleave_##cpu( pixel *dst,  intptr_t i_dst,\
+                                              pixel *srcu, intptr_t i_srcu,\
+                                              pixel *srcv, intptr_t i_srcv, int w, int h )\
 {\
     if( !(w&15) ) {\
         x264_plane_copy_interleave_core_##cpu( dst, i_dst, srcu, i_srcu, srcv, i_srcv, w, h );\

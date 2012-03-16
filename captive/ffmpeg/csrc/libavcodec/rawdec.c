@@ -140,8 +140,8 @@ static int raw_decode(AVCodecContext *avctx,
     int linesize_align = 4;
     RawVideoContext *context = avctx->priv_data;
 
-    AVFrame * frame = (AVFrame *) data;
-    AVPicture * picture = (AVPicture *) data;
+    AVFrame   *frame   = data;
+    AVPicture *picture = data;
 
     frame->pict_type        = avctx->coded_frame->pict_type;
     frame->interlaced_frame = avctx->coded_frame->interlaced_frame;
@@ -155,19 +155,22 @@ static int raw_decode(AVCodecContext *avctx,
         frame->top_field_first  = context->tff;
     }
 
+    if(buf_size < context->length - (avctx->pix_fmt==PIX_FMT_PAL8 ? 256*4 : 0))
+        return -1;
+
     //2bpp and 4bpp raw in avi and mov (yes this is ugly ...)
     if (context->buffer) {
         int i;
         uint8_t *dst = context->buffer;
         buf_size = context->length - 256*4;
         if (avctx->bits_per_coded_sample == 4){
-            for(i=0; 2*i+1 < buf_size; i++){
+            for(i=0; 2*i+1 < buf_size && i<avpkt->size; i++){
                 dst[2*i+0]= buf[i]>>4;
                 dst[2*i+1]= buf[i]&15;
             }
             linesize_align = 8;
         } else {
-            for(i=0; 4*i+3 < buf_size; i++){
+            for(i=0; 4*i+3 < buf_size && i<avpkt->size; i++){
                 dst[4*i+0]= buf[i]>>6;
                 dst[4*i+1]= buf[i]>>4&3;
                 dst[4*i+2]= buf[i]>>2&3;
@@ -181,9 +184,6 @@ static int raw_decode(AVCodecContext *avctx,
     if(avctx->codec_tag == MKTAG('A', 'V', '1', 'x') ||
        avctx->codec_tag == MKTAG('A', 'V', 'u', 'p'))
         buf += buf_size - context->length;
-
-    if(buf_size < context->length - (avctx->pix_fmt==PIX_FMT_PAL8 ? 256*4 : 0))
-        return -1;
 
     avpicture_fill(picture, buf, avctx->pix_fmt, avctx->width, avctx->height);
     if((avctx->pix_fmt==PIX_FMT_PAL8 && buf_size < context->length) ||

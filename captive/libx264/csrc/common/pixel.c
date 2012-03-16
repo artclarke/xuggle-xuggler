@@ -46,8 +46,8 @@
  * pixel_sad_WxH
  ****************************************************************************/
 #define PIXEL_SAD_C( name, lx, ly ) \
-static int name( pixel *pix1, int i_stride_pix1,  \
-                 pixel *pix2, int i_stride_pix2 ) \
+static int name( pixel *pix1, intptr_t i_stride_pix1,  \
+                 pixel *pix2, intptr_t i_stride_pix2 ) \
 {                                                   \
     int i_sum = 0;                                  \
     for( int y = 0; y < ly; y++ )                   \
@@ -76,8 +76,8 @@ PIXEL_SAD_C( x264_pixel_sad_4x4,    4,  4 )
  * pixel_ssd_WxH
  ****************************************************************************/
 #define PIXEL_SSD_C( name, lx, ly ) \
-static int name( pixel *pix1, int i_stride_pix1,  \
-                 pixel *pix2, int i_stride_pix2 ) \
+static int name( pixel *pix1, intptr_t i_stride_pix1,  \
+                 pixel *pix2, intptr_t i_stride_pix2 ) \
 {                                                   \
     int i_sum = 0;                                  \
     for( int y = 0; y < ly; y++ )                   \
@@ -102,7 +102,8 @@ PIXEL_SSD_C( x264_pixel_ssd_4x16,   4, 16 )
 PIXEL_SSD_C( x264_pixel_ssd_4x8,    4,  8 )
 PIXEL_SSD_C( x264_pixel_ssd_4x4,    4,  4 )
 
-uint64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height )
+uint64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, pixel *pix1, intptr_t i_pix1,
+                             pixel *pix2, intptr_t i_pix2, int i_width, int i_height )
 {
     uint64_t i_ssd = 0;
     int y;
@@ -142,7 +143,8 @@ uint64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, pixel *pix1, int i_pix1,
     return i_ssd;
 }
 
-static void pixel_ssd_nv12_core( pixel *pixuv1, int stride1, pixel *pixuv2, int stride2, int width, int height, uint64_t *ssd_u, uint64_t *ssd_v )
+static void pixel_ssd_nv12_core( pixel *pixuv1, intptr_t stride1, pixel *pixuv2, intptr_t stride2,
+                                 int width, int height, uint64_t *ssd_u, uint64_t *ssd_v )
 {
     *ssd_u = 0, *ssd_v = 0;
     for( int y = 0; y < height; y++, pixuv1+=stride1, pixuv2+=stride2 )
@@ -155,7 +157,8 @@ static void pixel_ssd_nv12_core( pixel *pixuv1, int stride1, pixel *pixuv2, int 
         }
 }
 
-void x264_pixel_ssd_nv12( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height, uint64_t *ssd_u, uint64_t *ssd_v )
+void x264_pixel_ssd_nv12( x264_pixel_function_t *pf, pixel *pix1, intptr_t i_pix1, pixel *pix2, intptr_t i_pix2,
+                          int i_width, int i_height, uint64_t *ssd_u, uint64_t *ssd_v )
 {
     pf->ssd_nv12_core( pix1, i_pix1, pix2, i_pix2, i_width&~7, i_height, ssd_u, ssd_v );
     if( i_width&7 )
@@ -171,7 +174,7 @@ void x264_pixel_ssd_nv12( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pi
  * pixel_var_wxh
  ****************************************************************************/
 #define PIXEL_VAR_C( name, w, h ) \
-static uint64_t name( pixel *pix, int i_stride ) \
+static uint64_t name( pixel *pix, intptr_t i_stride ) \
 {                                             \
     uint32_t sum = 0, sqr = 0;                \
     for( int y = 0; y < h; y++ )              \
@@ -194,7 +197,7 @@ PIXEL_VAR_C( x264_pixel_var_8x8,    8,  8 )
  * pixel_var2_wxh
  ****************************************************************************/
 #define PIXEL_VAR2_C( name, w, h, shift ) \
-static int name( pixel *pix1, int i_stride1, pixel *pix2, int i_stride2, int *ssd ) \
+static int name( pixel *pix1, intptr_t i_stride1, pixel *pix2, intptr_t i_stride2, int *ssd ) \
 { \
     uint32_t var = 0, sum = 0, sqr = 0; \
     for( int y = 0; y < h; y++ ) \
@@ -249,7 +252,7 @@ static ALWAYS_INLINE sum2_t abs2( sum2_t a )
  * pixel_satd_WxH: sum of 4x4 Hadamard transformed differences
  ****************************************************************************/
 
-static NOINLINE int x264_pixel_satd_4x4( pixel *pix1, int i_pix1, pixel *pix2, int i_pix2 )
+static NOINLINE int x264_pixel_satd_4x4( pixel *pix1, intptr_t i_pix1, pixel *pix2, intptr_t i_pix2 )
 {
     sum2_t tmp[4][2];
     sum2_t a0, a1, a2, a3, b0, b1;
@@ -274,7 +277,7 @@ static NOINLINE int x264_pixel_satd_4x4( pixel *pix1, int i_pix1, pixel *pix2, i
     return sum >> 1;
 }
 
-static NOINLINE int x264_pixel_satd_8x4( pixel *pix1, int i_pix1, pixel *pix2, int i_pix2 )
+static NOINLINE int x264_pixel_satd_8x4( pixel *pix1, intptr_t i_pix1, pixel *pix2, intptr_t i_pix2 )
 {
     sum2_t tmp[4][4];
     sum2_t a0, a1, a2, a3;
@@ -296,7 +299,7 @@ static NOINLINE int x264_pixel_satd_8x4( pixel *pix1, int i_pix1, pixel *pix2, i
 }
 
 #define PIXEL_SATD_C( w, h, sub )\
-static int x264_pixel_satd_##w##x##h( pixel *pix1, int i_pix1, pixel *pix2, int i_pix2 )\
+static int x264_pixel_satd_##w##x##h( pixel *pix1, intptr_t i_pix1, pixel *pix2, intptr_t i_pix2 )\
 {\
     int sum = sub( pix1, i_pix1, pix2, i_pix2 )\
             + sub( pix1+4*i_pix1, i_pix1, pix2+4*i_pix2, i_pix2 );\
@@ -318,7 +321,7 @@ PIXEL_SATD_C( 8,  8,  x264_pixel_satd_8x4 )
 PIXEL_SATD_C( 4,  16, x264_pixel_satd_4x4 )
 PIXEL_SATD_C( 4,  8,  x264_pixel_satd_4x4 )
 
-static NOINLINE int sa8d_8x8( pixel *pix1, int i_pix1, pixel *pix2, int i_pix2 )
+static NOINLINE int sa8d_8x8( pixel *pix1, intptr_t i_pix1, pixel *pix2, intptr_t i_pix2 )
 {
     sum2_t tmp[8][4];
     sum2_t a0, a1, a2, a3, a4, a5, a6, a7, b0, b1, b2, b3;
@@ -352,13 +355,13 @@ static NOINLINE int sa8d_8x8( pixel *pix1, int i_pix1, pixel *pix2, int i_pix2 )
     return sum;
 }
 
-static int x264_pixel_sa8d_8x8( pixel *pix1, int i_pix1, pixel *pix2, int i_pix2 )
+static int x264_pixel_sa8d_8x8( pixel *pix1, intptr_t i_pix1, pixel *pix2, intptr_t i_pix2 )
 {
     int sum = sa8d_8x8( pix1, i_pix1, pix2, i_pix2 );
     return (sum+2)>>2;
 }
 
-static int x264_pixel_sa8d_16x16( pixel *pix1, int i_pix1, pixel *pix2, int i_pix2 )
+static int x264_pixel_sa8d_16x16( pixel *pix1, intptr_t i_pix1, pixel *pix2, intptr_t i_pix2 )
 {
     int sum = sa8d_8x8( pix1, i_pix1, pix2, i_pix2 )
             + sa8d_8x8( pix1+8, i_pix1, pix2+8, i_pix2 )
@@ -368,7 +371,7 @@ static int x264_pixel_sa8d_16x16( pixel *pix1, int i_pix1, pixel *pix2, int i_pi
 }
 
 
-static NOINLINE uint64_t pixel_hadamard_ac( pixel *pix, int stride )
+static NOINLINE uint64_t pixel_hadamard_ac( pixel *pix, intptr_t stride )
 {
     sum2_t tmp[32];
     sum2_t a0, a1, a2, a3, dc;
@@ -406,7 +409,7 @@ static NOINLINE uint64_t pixel_hadamard_ac( pixel *pix, int stride )
 }
 
 #define HADAMARD_AC(w,h) \
-static uint64_t x264_pixel_hadamard_ac_##w##x##h( pixel *pix, int stride )\
+static uint64_t x264_pixel_hadamard_ac_##w##x##h( pixel *pix, intptr_t stride )\
 {\
     uint64_t sum = pixel_hadamard_ac( pix, stride );\
     if( w==16 )\
@@ -427,13 +430,15 @@ HADAMARD_AC( 8, 8 )
  * pixel_sad_x4
  ****************************************************************************/
 #define SAD_X( size ) \
-static void x264_pixel_sad_x3_##size( pixel *fenc, pixel *pix0, pixel *pix1, pixel *pix2, int i_stride, int scores[3] )\
+static void x264_pixel_sad_x3_##size( pixel *fenc, pixel *pix0, pixel *pix1, pixel *pix2,\
+                                      intptr_t i_stride, int scores[3] )\
 {\
     scores[0] = x264_pixel_sad_##size( fenc, FENC_STRIDE, pix0, i_stride );\
     scores[1] = x264_pixel_sad_##size( fenc, FENC_STRIDE, pix1, i_stride );\
     scores[2] = x264_pixel_sad_##size( fenc, FENC_STRIDE, pix2, i_stride );\
 }\
-static void x264_pixel_sad_x4_##size( pixel *fenc, pixel *pix0, pixel *pix1, pixel *pix2, pixel *pix3, int i_stride, int scores[4] )\
+static void x264_pixel_sad_x4_##size( pixel *fenc, pixel *pix0, pixel *pix1,pixel *pix2, pixel *pix3,\
+                                      intptr_t i_stride, int scores[4] )\
 {\
     scores[0] = x264_pixel_sad_##size( fenc, FENC_STRIDE, pix0, i_stride );\
     scores[1] = x264_pixel_sad_##size( fenc, FENC_STRIDE, pix1, i_stride );\
@@ -464,13 +469,15 @@ SAD_X( 8x8_vis )
  ****************************************************************************/
 
 #define SATD_X( size, cpu ) \
-static void x264_pixel_satd_x3_##size##cpu( pixel *fenc, pixel *pix0, pixel *pix1, pixel *pix2, int i_stride, int scores[3] )\
+static void x264_pixel_satd_x3_##size##cpu( pixel *fenc, pixel *pix0, pixel *pix1, pixel *pix2,\
+                                            intptr_t i_stride, int scores[3] )\
 {\
     scores[0] = x264_pixel_satd_##size##cpu( fenc, FENC_STRIDE, pix0, i_stride );\
     scores[1] = x264_pixel_satd_##size##cpu( fenc, FENC_STRIDE, pix1, i_stride );\
     scores[2] = x264_pixel_satd_##size##cpu( fenc, FENC_STRIDE, pix2, i_stride );\
 }\
-static void x264_pixel_satd_x4_##size##cpu( pixel *fenc, pixel *pix0, pixel *pix1, pixel *pix2, pixel *pix3, int i_stride, int scores[4] )\
+static void x264_pixel_satd_x4_##size##cpu( pixel *fenc, pixel *pix0, pixel *pix1, pixel *pix2, pixel *pix3,\
+                                            intptr_t i_stride, int scores[4] )\
 {\
     scores[0] = x264_pixel_satd_##size##cpu( fenc, FENC_STRIDE, pix0, i_stride );\
     scores[1] = x264_pixel_satd_##size##cpu( fenc, FENC_STRIDE, pix1, i_stride );\
@@ -576,9 +583,9 @@ INTRA_MBCMP(satd,  8x16, dc, h,  v, c, _xop, _mmx2 )
 /****************************************************************************
  * structural similarity metric
  ****************************************************************************/
-static void ssim_4x4x2_core( const pixel *pix1, int stride1,
-                             const pixel *pix2, int stride2,
-                             int sums[2][4])
+static void ssim_4x4x2_core( const pixel *pix1, intptr_t stride1,
+                             const pixel *pix2, intptr_t stride2,
+                             int sums[2][4] )
 {
     for( int z = 0; z < 2; z++ )
     {
@@ -640,8 +647,8 @@ static float ssim_end4( int sum0[5][4], int sum1[5][4], int width )
 }
 
 float x264_pixel_ssim_wxh( x264_pixel_function_t *pf,
-                           pixel *pix1, int stride1,
-                           pixel *pix2, int stride2,
+                           pixel *pix1, intptr_t stride1,
+                           pixel *pix2, intptr_t stride2,
                            int width, int height, void *buf, int *cnt )
 {
     int z = 0;
@@ -665,7 +672,7 @@ float x264_pixel_ssim_wxh( x264_pixel_function_t *pf,
     return ssim;
 }
 
-static int pixel_vsad( pixel *src, int stride, int height )
+static int pixel_vsad( pixel *src, intptr_t stride, int height )
 {
     int score = 0;
     for( int i = 1; i < height; i++, src += stride )

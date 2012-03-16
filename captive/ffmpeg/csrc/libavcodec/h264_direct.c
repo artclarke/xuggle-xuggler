@@ -154,7 +154,8 @@ static void await_reference_mb_row(H264Context * const h, Picture *ref, int mb_y
     //FIXME it can be safe to access mb stuff
     //even if pixels aren't deblocked yet
 
-    ff_thread_await_progress((AVFrame*)ref, FFMIN(16*mb_y >> ref_field_picture, ref_height-1),
+    ff_thread_await_progress(&ref->f,
+                             FFMIN(16 * mb_y >> ref_field_picture, ref_height - 1),
                              ref_field_picture && ref_field);
 }
 
@@ -253,7 +254,7 @@ static void pred_spatial_direct_motion(H264Context * const h, int *mb_type){
             mb_type_col[1] = h->ref_list[1][0].f.mb_type[mb_xy + s->mb_stride];
             b8_stride = 2+4*s->mb_stride;
             b4_stride *= 6;
-            if(IS_INTERLACED(mb_type_col[0]) != IS_INTERLACED(mb_type_col[1])){
+            if (IS_INTERLACED(mb_type_col[0]) != IS_INTERLACED(mb_type_col[1])) {
                 mb_type_col[0] &= ~MB_TYPE_INTERLACED;
                 mb_type_col[1] &= ~MB_TYPE_INTERLACED;
             }
@@ -443,6 +444,10 @@ static void pred_temp_direct_motion(H264Context * const h, int *mb_type){
             mb_type_col[1] = h->ref_list[1][0].f.mb_type[mb_xy + s->mb_stride];
             b8_stride = 2+4*s->mb_stride;
             b4_stride *= 6;
+            if (IS_INTERLACED(mb_type_col[0]) != IS_INTERLACED(mb_type_col[1])) {
+                mb_type_col[0] &= ~MB_TYPE_INTERLACED;
+                mb_type_col[1] &= ~MB_TYPE_INTERLACED;
+            }
 
             sub_mb_type = MB_TYPE_16x16|MB_TYPE_P0L0|MB_TYPE_P0L1|MB_TYPE_DIRECT2; /* B_SUB_8x8 */
 

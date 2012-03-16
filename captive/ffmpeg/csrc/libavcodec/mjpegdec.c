@@ -251,6 +251,12 @@ int ff_mjpeg_decode_sof(MJpegDecodeContext *s)
     if (nb_components <= 0 ||
         nb_components > MAX_COMPONENTS)
         return -1;
+    if (s->interlaced && (s->bottom_field == !s->interlace_polarity)) {
+        if (nb_components != s->nb_components) {
+            av_log(s->avctx, AV_LOG_ERROR, "nb_components changing in interlaced picture\n");
+            return AVERROR_INVALIDDATA;
+        }
+    }
     if (s->ls && !(s->bits <= 8 || nb_components == 1)) {
         av_log(s->avctx, AV_LOG_ERROR,
                "only <= 8 bits/component or 16-bit gray accepted for JPEG-LS\n");
@@ -312,8 +318,13 @@ int ff_mjpeg_decode_sof(MJpegDecodeContext *s)
         s->first_picture = 0;
     }
 
-    if (s->interlaced && (s->bottom_field == !s->interlace_polarity))
+    if (s->interlaced && (s->bottom_field == !s->interlace_polarity)) {
+        if (s->progressive) {
+            av_log_ask_for_sample(s->avctx, "progressively coded interlaced pictures not supported\n");
+            return AVERROR_INVALIDDATA;
+        }
         return 0;
+    }
 
     /* XXX: not complete test ! */
     pix_fmt_id = (s->h_count[0] << 28) | (s->v_count[0] << 24) |
@@ -980,9 +991,9 @@ static int mjpeg_decode_scan(MJpegDecodeContext *s, int nb_components, int Ah,
             if (s->restart_interval && !s->restart_count)
                 s->restart_count = s->restart_interval;
 
-            if (get_bits_count(&s->gb)>s->gb.size_in_bits) {
+            if (get_bits_left(&s->gb) < 0) {
                 av_log(s->avctx, AV_LOG_ERROR, "overread %d\n",
-                       get_bits_count(&s->gb) - s->gb.size_in_bits);
+                       -get_bits_left(&s->gb));
                 return -1;
             }
             for (i = 0; i < nb_components; i++) {
@@ -1265,7 +1276,7 @@ static int mjpeg_decode_app(MJpegDecodeContext *s)
     len = get_bits(&s->gb, 16);
     if (len < 5)
         return -1;
-    if (8 * len + get_bits_count(&s->gb) > s->gb.size_in_bits)
+    if (8 * len > get_bits_left(&s->gb))
         return -1;
 
     id   = get_bits_long(&s->gb, 32);
@@ -1403,8 +1414,7 @@ out:
 static int mjpeg_decode_com(MJpegDecodeContext *s)
 {
     int len = get_bits(&s->gb, 16);
-    if (len >= 2 &&
-        8 * len - 16 + get_bits_count(&s->gb) <= s->gb.size_in_bits) {
+    if (len >= 2 && 8 * len - 16 <= get_bits_left(&s->gb)) {
         char *cbuf = av_malloc(len - 1);
         if (cbuf) {
             int i;
@@ -1572,7 +1582,7 @@ int ff_mjpeg_decode_frame(AVCodecContext *avctx, void *data, int *data_size,
             goto the_end;
         } else if (unescaped_buf_size > (1U<<29)) {
             av_log(avctx, AV_LOG_ERROR, "MJPEG packet 0x%x too big (0x%x/0x%x), corrupt data?\n",
-                   start_code, unescaped_buf_ptr, buf_size);
+                   start_code, unescaped_buf_size, buf_size);
             return AVERROR_INVALIDDATA;
         } else {
             av_log(avctx, AV_LOG_DEBUG, "marker=%x avail_size_in_buf=%td\n",

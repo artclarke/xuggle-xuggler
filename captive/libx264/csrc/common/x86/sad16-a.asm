@@ -87,7 +87,7 @@ cextern pw_8
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; int pixel_sad_NxM( uint16_t *, int, uint16_t *, int )
+; int pixel_sad_NxM( uint16_t *, intptr_t, uint16_t *, intptr_t )
 ;-----------------------------------------------------------------------------
 %macro SAD_MMX 3
 cglobal pixel_sad_%1x%2, 4,4
@@ -152,7 +152,7 @@ SAD_MMX  4,  4, 2
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; int pixel_sad_NxM( uint16_t *, int, uint16_t *, int )
+; int pixel_sad_NxM( uint16_t *, intptr_t, uint16_t *, intptr_t )
 ;-----------------------------------------------------------------------------
 %macro SAD_XMM 2
 cglobal pixel_sad_%1x%2, 4,4,8
@@ -402,15 +402,12 @@ PIXEL_VSAD
 
 ;-----------------------------------------------------------------------------
 ; void pixel_sad_xK_MxN( uint16_t *fenc, uint16_t *pix0, uint16_t *pix1,
-;                        uint16_t *pix2, int i_stride, int scores[3] )
+;                        uint16_t *pix2, intptr_t i_stride, int scores[3] )
 ;-----------------------------------------------------------------------------
 %macro SAD_X 3
 cglobal pixel_sad_x%1_%2x%3, 6,7,XMM_REGS
     %assign regnum %1+1
     %xdefine STRIDE r %+ regnum
-%if WIN64
-    movsxd STRIDE, STRIDE %+ d
-%endif
     mov     r6, %3/2-1
     SAD_X%1_ONE_START
     SAD_X%1_ONE 2*FENC_STRIDE, 2*STRIDE

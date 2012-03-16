@@ -41,6 +41,8 @@
 %if ARCH_X86_64
     %ifidn __OUTPUT_FORMAT__,win32
         %define WIN64  1
+    %elifidn __OUTPUT_FORMAT__,win64
+        %define WIN64  1
     %else
         %define UNIX64 1
     %endif
@@ -51,11 +53,6 @@
 %else
     %define mangle(x) x
 %endif
-
-; FIXME: All of the 64bit asm functions that take a stride as an argument
-; via register, assume that the high dword of that register is filled with 0.
-; This is true in practice (since we never do any 64bit arithmetic on strides,
-; and x264's strides are all positive), but is not guaranteed by the ABI.
 
 ; Name of the .rodata section.
 ; Kludge: Something on OS X fails to align .rodata even given an align attribute,
@@ -95,7 +92,7 @@
 %endif
 
 ; Always use long nops (reduces 0x90 spam in disassembly on x86_32)
-CPU intelnop
+CPU amdnop
 
 ; Macros to eliminate most code duplication between x86_32 and x86_64:
 ; Currently this works only for leaf functions which load all their arguments
@@ -1101,3 +1098,7 @@ AVX_INSTR pfmul, 1, 0, 1
 FMA_INSTR  pmacsdd,  pmulld, paddd
 FMA_INSTR  pmacsww,  pmullw, paddw
 FMA_INSTR pmadcswd, pmaddwd, paddd
+
+; tzcnt is equivalent to "rep bsf" and is backwards-compatible with bsf.
+; This lets us use tzcnt without bumping the yasm version requirement yet.
+%define tzcnt rep bsf

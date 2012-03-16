@@ -124,7 +124,7 @@ typedef struct WMACodecContext {
     /* output buffer for one frame and the last for IMDCT windowing */
     DECLARE_ALIGNED(32, float, frame_out)[MAX_CHANNELS][BLOCK_MAX_SIZE * 2];
     /* last frame info */
-    uint8_t last_superframe[MAX_CODED_SUPERFRAME_SIZE + 4]; /* padding added */
+    uint8_t last_superframe[MAX_CODED_SUPERFRAME_SIZE + FF_INPUT_BUFFER_PADDING_SIZE]; /* padding added */
     int last_bitoffset;
     int last_superframe_len;
     float noise_table[NOISE_TAB_SIZE];
@@ -150,8 +150,6 @@ extern const float ff_wma_lsp_codebook[NB_LSP_COEFS][16];
 extern const uint32_t ff_aac_scalefactor_code[121];
 extern const uint8_t  ff_aac_scalefactor_bits[121];
 
-int av_cold ff_wma_get_frame_len_bits(int sample_rate, int version,
-                                      unsigned int decode_flags);
 int ff_wma_init(AVCodecContext * avctx, int flags2);
 int ff_wma_total_gain_to_bits(int total_gain);
 int ff_wma_end(AVCodecContext *avctx);

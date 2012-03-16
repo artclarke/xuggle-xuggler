@@ -26,33 +26,33 @@
 #include "common/common.h"
 #include "mc.h"
 
-void x264_prefetch_ref_arm( uint8_t *, int, int );
-void x264_prefetch_fenc_arm( uint8_t *, int, uint8_t *, int, int );
+void x264_prefetch_ref_arm( uint8_t *, intptr_t, int );
+void x264_prefetch_fenc_arm( uint8_t *, intptr_t, uint8_t *, intptr_t, int );
 
-void *x264_memcpy_aligned_neon( void * dst, const void * src, size_t n );
-void x264_memzero_aligned_neon( void *dst, int n );
+void *x264_memcpy_aligned_neon( void *dst, const void *src, size_t n );
+void x264_memzero_aligned_neon( void *dst, size_t n );
 
-void x264_pixel_avg_16x16_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int, int );
-void x264_pixel_avg_16x8_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int, int );
-void x264_pixel_avg_8x16_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int, int );
-void x264_pixel_avg_8x8_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int, int );
-void x264_pixel_avg_8x4_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int, int );
-void x264_pixel_avg_4x8_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int, int );
-void x264_pixel_avg_4x4_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int, int );
-void x264_pixel_avg_4x2_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int, int );
+void x264_pixel_avg_16x16_neon( uint8_t *, intptr_t, uint8_t *, intptr_t, uint8_t *, intptr_t, int );
+void x264_pixel_avg_16x8_neon ( uint8_t *, intptr_t, uint8_t *, intptr_t, uint8_t *, intptr_t, int );
+void x264_pixel_avg_8x16_neon ( uint8_t *, intptr_t, uint8_t *, intptr_t, uint8_t *, intptr_t, int );
+void x264_pixel_avg_8x8_neon  ( uint8_t *, intptr_t, uint8_t *, intptr_t, uint8_t *, intptr_t, int );
+void x264_pixel_avg_8x4_neon  ( uint8_t *, intptr_t, uint8_t *, intptr_t, uint8_t *, intptr_t, int );
+void x264_pixel_avg_4x8_neon  ( uint8_t *, intptr_t, uint8_t *, intptr_t, uint8_t *, intptr_t, int );
+void x264_pixel_avg_4x4_neon  ( uint8_t *, intptr_t, uint8_t *, intptr_t, uint8_t *, intptr_t, int );
+void x264_pixel_avg_4x2_neon  ( uint8_t *, intptr_t, uint8_t *, intptr_t, uint8_t *, intptr_t, int );
 
-void x264_pixel_avg2_w4_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int );
-void x264_pixel_avg2_w8_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int );
-void x264_pixel_avg2_w16_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int );
-void x264_pixel_avg2_w20_neon( uint8_t *, int, uint8_t *, int, uint8_t *, int );
+void x264_pixel_avg2_w4_neon ( uint8_t *, intptr_t, uint8_t *, intptr_t, uint8_t *, int );
+void x264_pixel_avg2_w8_neon ( uint8_t *, intptr_t, uint8_t *, intptr_t, uint8_t *, int );
+void x264_pixel_avg2_w16_neon( uint8_t *, intptr_t, uint8_t *, intptr_t, uint8_t *, int );
+void x264_pixel_avg2_w20_neon( uint8_t *, intptr_t, uint8_t *, intptr_t, uint8_t *, int );
 
 #define MC_WEIGHT(func)\
-void x264_mc_weight_w20##func##_neon( uint8_t *, int, uint8_t *, int, const x264_weight_t *, int );\
-void x264_mc_weight_w16##func##_neon( uint8_t *, int, uint8_t *, int, const x264_weight_t *, int );\
-void x264_mc_weight_w8##func##_neon( uint8_t *, int, uint8_t *, int, const x264_weight_t *, int );\
-void x264_mc_weight_w4##func##_neon( uint8_t *, int, uint8_t *, int, const x264_weight_t *, int );\
+void x264_mc_weight_w20##func##_neon( uint8_t *, intptr_t, uint8_t *, intptr_t, const x264_weight_t *, int );\
+void x264_mc_weight_w16##func##_neon( uint8_t *, intptr_t, uint8_t *, intptr_t, const x264_weight_t *, int );\
+void x264_mc_weight_w8##func##_neon ( uint8_t *, intptr_t, uint8_t *, intptr_t, const x264_weight_t *, int );\
+void x264_mc_weight_w4##func##_neon ( uint8_t *, intptr_t, uint8_t *, intptr_t, const x264_weight_t *, int );\
 \
-static void (* const x264_mc##func##_wtab_neon[6])( uint8_t *, int, uint8_t *, int, const x264_weight_t *, int ) =\
+static void (* const x264_mc##func##_wtab_neon[6])( uint8_t *, intptr_t, uint8_t *, intptr_t, const x264_weight_t *, int ) =\
 {\
     x264_mc_weight_w4##func##_neon,\
     x264_mc_weight_w4##func##_neon,\
@@ -67,15 +67,15 @@ MC_WEIGHT(_nodenom)
 MC_WEIGHT(_offsetadd)
 MC_WEIGHT(_offsetsub)
 
-void x264_mc_copy_w4_neon( uint8_t *, int, uint8_t *, int, int );
-void x264_mc_copy_w8_neon( uint8_t *, int, uint8_t *, int, int );
-void x264_mc_copy_w16_neon( uint8_t *, int, uint8_t *, int, int );
-void x264_mc_copy_w16_aligned_neon( uint8_t *, int, uint8_t *, int, int );
+void x264_mc_copy_w4_neon ( uint8_t *, intptr_t, uint8_t *, intptr_t, int );
+void x264_mc_copy_w8_neon ( uint8_t *, intptr_t, uint8_t *, intptr_t, int );
+void x264_mc_copy_w16_neon( uint8_t *, intptr_t, uint8_t *, intptr_t, int );
+void x264_mc_copy_w16_aligned_neon( uint8_t *, intptr_t, uint8_t *, intptr_t, int );
 
-void x264_mc_chroma_neon( uint8_t *, int, uint8_t *, int, int, int, int, int );
-void x264_frame_init_lowres_core_neon( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, int, int, int, int);
+void x264_mc_chroma_neon( uint8_t *, intptr_t, uint8_t *, intptr_t, int, int, int, int );
+void x264_frame_init_lowres_core_neon( uint8_t *, uint8_t *, uint8_t *, uint8_t *, uint8_t *, intptr_t, intptr_t, int, int );
 
-void x264_hpel_filter_v_neon( uint8_t *, uint8_t *, int16_t *, int, int );
+void x264_hpel_filter_v_neon( uint8_t *, uint8_t *, int16_t *, intptr_t, int );
 void x264_hpel_filter_c_neon( uint8_t *, int16_t *, int );
 void x264_hpel_filter_h_neon( uint8_t *, uint8_t *, int );
 
@@ -101,7 +101,7 @@ static void x264_weight_cache_neon( x264_t *h, x264_weight_t *w )
         w->weightfn = x264_mc_wtab_neon;
 }
 
-static void (* const x264_pixel_avg_wtab_neon[6])( uint8_t *, int, uint8_t *, int, uint8_t *, int ) =
+static void (* const x264_pixel_avg_wtab_neon[6])( uint8_t *, intptr_t, uint8_t *, intptr_t, uint8_t *, int ) =
 {
     NULL,
     x264_pixel_avg2_w4_neon,
@@ -111,7 +111,7 @@ static void (* const x264_pixel_avg_wtab_neon[6])( uint8_t *, int, uint8_t *, in
     x264_pixel_avg2_w20_neon,
 };
 
-static void (* const x264_mc_copy_wtab_neon[5])( uint8_t *, int, uint8_t *, int, int ) =
+static void (* const x264_mc_copy_wtab_neon[5])( uint8_t *, intptr_t, uint8_t *, intptr_t, int ) =
 {
     NULL,
     x264_mc_copy_w4_neon,
@@ -123,13 +123,13 @@ static void (* const x264_mc_copy_wtab_neon[5])( uint8_t *, int, uint8_t *, int,
 static const uint8_t hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
 static const uint8_t hpel_ref1[16] = {0,0,0,0,2,2,3,2,2,2,3,2,2,2,3,2};
 
-static void mc_luma_neon( uint8_t *dst,    int i_dst_stride,
-                          uint8_t *src[4], int i_src_stride,
+static void mc_luma_neon( uint8_t *dst,    intptr_t i_dst_stride,
+                          uint8_t *src[4], intptr_t i_src_stride,
                           int mvx, int mvy,
                           int i_width, int i_height, const x264_weight_t *weight )
 {
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
-    int offset = (mvy>>2)*i_src_stride + (mvx>>2);
+    intptr_t offset = (mvy>>2)*i_src_stride + (mvx>>2);
     uint8_t *src1 = src[hpel_ref0[qpel_idx]] + offset;
     if ( (mvy&3) == 3 )             // explict if() to force conditional add
         src1 += i_src_stride;
@@ -149,13 +149,13 @@ static void mc_luma_neon( uint8_t *dst,    int i_dst_stride,
         x264_mc_copy_wtab_neon[i_width>>2]( dst, i_dst_stride, src1, i_src_stride, i_height );
 }
 
-static uint8_t *get_ref_neon( uint8_t *dst,   int *i_dst_stride,
-                              uint8_t *src[4], int i_src_stride,
+static uint8_t *get_ref_neon( uint8_t *dst,   intptr_t *i_dst_stride,
+                              uint8_t *src[4], intptr_t i_src_stride,
                               int mvx, int mvy,
                               int i_width, int i_height, const x264_weight_t *weight )
 {
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
-    int offset = (mvy>>2)*i_src_stride + (mvx>>2);
+    intptr_t offset = (mvy>>2)*i_src_stride + (mvx>>2);
     uint8_t *src1 = src[hpel_ref0[qpel_idx]] + offset;
     if ( (mvy&3) == 3 )             // explict if() to force conditional add
         src1 += i_src_stride;
@@ -183,9 +183,9 @@ static uint8_t *get_ref_neon( uint8_t *dst,   int *i_dst_stride,
 }
 
 static void hpel_filter_neon( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
-                              int stride, int width, int height, int16_t *buf )
+                              intptr_t stride, int width, int height, int16_t *buf )
 {
-    int realign = (intptr_t)src & 15;
+    intptr_t realign = (intptr_t)src & 15;
     src -= realign;
     dstv -= realign;
     dstc -= realign;

@@ -42,11 +42,11 @@ static void fill_picture_parameters(AVCodecContext *avctx,
     memset(pp, 0, sizeof(*pp));
     pp->wDecodedPictureIndex    =
     pp->wDeblockedPictureIndex  = ff_dxva2_get_surface_index(ctx, current_picture);
-    if (s->pict_type != AV_PICTURE_TYPE_I)
+    if (s->pict_type != AV_PICTURE_TYPE_I && !v->bi_type)
         pp->wForwardRefPictureIndex = ff_dxva2_get_surface_index(ctx, &s->last_picture);
     else
         pp->wForwardRefPictureIndex = 0xffff;
-    if (s->pict_type == AV_PICTURE_TYPE_B)
+    if (s->pict_type == AV_PICTURE_TYPE_B && !v->bi_type)
         pp->wBackwardRefPictureIndex = ff_dxva2_get_surface_index(ctx, &s->next_picture);
     else
         pp->wBackwardRefPictureIndex = 0xffff;
@@ -69,8 +69,8 @@ static void fill_picture_parameters(AVCodecContext *avctx,
     if (s->picture_structure & PICT_BOTTOM_FIELD)
         pp->bPicStructure      |= 0x02;
     pp->bSecondField            = v->interlace && v->fcm != ILACE_FIELD && !s->first_field;
-    pp->bPicIntra               = s->pict_type == AV_PICTURE_TYPE_I;
-    pp->bPicBackwardPrediction  = s->pict_type == AV_PICTURE_TYPE_B;
+    pp->bPicIntra               = s->pict_type == AV_PICTURE_TYPE_I || v->bi_type;
+    pp->bPicBackwardPrediction  = s->pict_type == AV_PICTURE_TYPE_B && !v->bi_type;
     pp->bBidirectionalAveragingMode = (1                                           << 7) |
                                       ((ctx->cfg->ConfigIntraResidUnsigned != 0)   << 6) |
                                       ((ctx->cfg->ConfigResidDiffAccelerator != 0) << 5) |
@@ -101,7 +101,8 @@ static void fill_picture_parameters(AVCodecContext *avctx,
                                   (v->rangered       << 3) |
                                   (s->max_b_frames       );
     pp->bPicExtrapolation       = (!v->interlace || v->fcm == PROGRESSIVE) ? 1 : 2;
-    pp->bPicDeblocked           = ((v->profile != PROFILE_ADVANCED && v->rangeredfrm) << 5) |
+    pp->bPicDeblocked           = ((!pp->bPicBackwardPrediction && v->overlap)        << 6) |
+                                  ((v->profile != PROFILE_ADVANCED && v->rangeredfrm) << 5) |
                                   (s->loop_filter                                     << 1);
     pp->bPicDeblockConfined     = (v->postprocflag             << 7) |
                                   (v->broadcast                << 6) |

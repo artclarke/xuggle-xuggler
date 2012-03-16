@@ -235,6 +235,7 @@ typedef struct {
     uint64_t time_scale;
     double   duration;
     char    *title;
+    EbmlBin date_utc;
     EbmlList tracks;
     EbmlList attachments;
     EbmlList chapters;
@@ -294,7 +295,7 @@ static EbmlSyntax matroska_info[] = {
     { MATROSKA_ID_TITLE,              EBML_UTF8,  0, offsetof(MatroskaDemuxContext,title) },
     { MATROSKA_ID_WRITINGAPP,         EBML_NONE },
     { MATROSKA_ID_MUXINGAPP,          EBML_NONE },
-    { MATROSKA_ID_DATEUTC,            EBML_NONE },
+    { MATROSKA_ID_DATEUTC,            EBML_BIN,  0, offsetof(MatroskaDemuxContext,date_utc) },
     { MATROSKA_ID_SEGMENTUID,         EBML_NONE },
     { 0 }
 };
@@ -1346,6 +1347,17 @@ static int matroska_aac_sri(int samplerate)
     return sri;
 }
 
+static void matroska_metadata_creation_time(AVDictionary **metadata, int64_t date_utc)
+{
+    char buffer[32];
+    /* Convert to seconds and adjust by number of seconds between 2001-01-01 and Epoch */
+    time_t creation_time = date_utc / 1000000000 + 978307200;
+    struct tm *ptm = gmtime(&creation_time);
+    if (!ptm) return;
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", ptm);
+    av_dict_set(metadata, "creation_time", buffer, 0);
+}
+
 static int matroska_read_header(AVFormatContext *s)
 {
     MatroskaDemuxContext *matroska = s->priv_data;
@@ -1365,7 +1377,7 @@ static int matroska_read_header(AVFormatContext *s)
     /* First read the EBML header. */
     if (ebml_parse(matroska, ebml_syntax, &ebml)
         || ebml.version > EBML_VERSION       || ebml.max_size > sizeof(uint64_t)
-        || ebml.id_length > sizeof(uint32_t) || ebml.doctype_version > 3) {
+        || ebml.id_length > sizeof(uint32_t) || ebml.doctype_version > 3 || !ebml.doctype) {
         av_log(matroska->ctx, AV_LOG_ERROR,
                "EBML header using unsupported features\n"
                "(EBML version %"PRIu64", doctype %s, doc version %"PRIu64")\n",
@@ -1405,6 +1417,9 @@ static int matroska_read_header(AVFormatContext *s)
         matroska->ctx->duration = matroska->duration * matroska->time_scale
                                   * 1000 / AV_TIME_BASE;
     av_dict_set(&s->metadata, "title", matroska->title, 0);
+
+    if (matroska->date_utc.size == 8)
+        matroska_metadata_creation_time(&s->metadata, AV_RB64(matroska->date_utc.data));
 
     tracks = matroska->tracks.elem;
     for (i=0; i < matroska->tracks.nb_elem; i++) {
@@ -1921,15 +1936,31 @@ static int matroska_parse_block(MatroskaDemuxContext *matroska, uint8_t *data,
                 if (!track->audio.pkt_cnt) {
                     if (track->audio.sub_packet_cnt == 0)
                         track->audio.buf_timecode = timecode;
-                    if (st->codec->codec_id == CODEC_ID_RA_288)
+                    if (st->codec->codec_id == CODEC_ID_RA_288) {
+                        if (size < cfs * h / 2) {
+                            av_log(matroska->ctx, AV_LOG_ERROR,
+                                   "Corrupt int4 RM-style audio packet size\n");
+                            return AVERROR_INVALIDDATA;
+                        }
                         for (x=0; x<h/2; x++)
                             memcpy(track->audio.buf+x*2*w+y*cfs,
                                    data+x*cfs, cfs);
-                    else if (st->codec->codec_id == CODEC_ID_SIPR)
+                    } else if (st->codec->codec_id == CODEC_ID_SIPR) {
+                        if (size < w) {
+                            av_log(matroska->ctx, AV_LOG_ERROR,
+                                   "Corrupt sipr RM-style audio packet size\n");
+                            return AVERROR_INVALIDDATA;
+                        }
                         memcpy(track->audio.buf + y*w, data, w);
-                    else
+                    } else {
+                        if (size < sps * w / sps) {
+                            av_log(matroska->ctx, AV_LOG_ERROR,
+                                   "Corrupt generic RM-style audio packet size\n");
+                            return AVERROR_INVALIDDATA;
+                        }
                         for (x=0; x<w/sps; x++)
                             memcpy(track->audio.buf+sps*(h*x+((h+1)/2)*(y&1)+(y>>1)), data+x*sps, sps);
+                    }
 
                     if (++track->audio.sub_packet_cnt >= h) {
                         if (st->codec->codec_id == CODEC_ID_SIPR)

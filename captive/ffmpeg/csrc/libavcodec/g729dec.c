@@ -333,12 +333,12 @@ static int16_t g729d_voice_decision(int onset, int prev_voice_decision, const in
     return voice_decision;
 }
 
-static int32_t scalarproduct_int16_c(const int16_t * v1, const int16_t * v2, int order, int shift)
+static int32_t scalarproduct_int16_c(const int16_t * v1, const int16_t * v2, int order)
 {
     int res = 0;
 
     while (order--)
-        res += (*v1++ * *v2++) >> shift;
+        res += *v1++ * *v2++;
 
     return res;
 }
@@ -622,7 +622,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *got_frame_ptr,
             1,
             0,
             0x800))
-            /* Overflow occured, downscale excitation signal... */
+            /* Overflow occurred, downscale excitation signal... */
             for (j = 0; j < 2 * SUBFRAME_SIZE + PITCH_DELAY_MAX + INTERPOL_LEN; j++)
                 ctx->exc_base[j] >>= 2;
 

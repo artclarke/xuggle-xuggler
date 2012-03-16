@@ -80,7 +80,7 @@ cextern sw_64
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; int pixel_sad_16x16( uint8_t *, int, uint8_t *, int )
+; int pixel_sad_16x16( uint8_t *, intptr_t, uint8_t *, intptr_t )
 ;-----------------------------------------------------------------------------
 %macro SAD 2
 cglobal pixel_sad_%1x%2_mmx2, 4,4
@@ -116,7 +116,7 @@ SAD  4,  4
 
 %macro SAD_W16 0
 ;-----------------------------------------------------------------------------
-; int pixel_sad_16x16( uint8_t *, int, uint8_t *, int )
+; int pixel_sad_16x16( uint8_t *, intptr_t, uint8_t *, intptr_t )
 ;-----------------------------------------------------------------------------
 cglobal pixel_sad_16x16, 4,4,8
     movu    m0, [r2]
@@ -183,7 +183,7 @@ cglobal pixel_sad_16x16, 4,4,8
     SAD_END_SSE2
 
 ;-----------------------------------------------------------------------------
-; int pixel_sad_16x8( uint8_t *, int, uint8_t *, int )
+; int pixel_sad_16x8( uint8_t *, intptr_t, uint8_t *, intptr_t )
 ;-----------------------------------------------------------------------------
 cglobal pixel_sad_16x8, 4,4
     movu    m0, [r2]
@@ -257,7 +257,7 @@ cglobal pixel_sad_8x16_sse2, 4,4
     RET
 
 ;-----------------------------------------------------------------------------
-; void pixel_vsad( pixel *src, int stride );
+; void pixel_vsad( pixel *src, intptr_t stride );
 ;-----------------------------------------------------------------------------
 
 %if ARCH_X86_64 == 0
@@ -867,14 +867,10 @@ INTRA_SAD16
 
 ;-----------------------------------------------------------------------------
 ; void pixel_sad_x3_16x16( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1,
-;                          uint8_t *pix2, int i_stride, int scores[3] )
+;                          uint8_t *pix2, intptr_t i_stride, int scores[3] )
 ;-----------------------------------------------------------------------------
 %macro SAD_X 3
 cglobal pixel_sad_x%1_%2x%3_mmx2, %1+2, %1+2
-%if WIN64
-    %assign i %1+1
-    movsxd r %+ i, r %+ i %+ d
-%endif
     SAD_X%1_2x%2P 1
 %rep %3/2-1
     SAD_X%1_2x%2P 0
@@ -1190,14 +1186,10 @@ SAD_X 4,  4,  4
 
 ;-----------------------------------------------------------------------------
 ; void pixel_sad_x3_16x16( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1,
-;                          uint8_t *pix2, int i_stride, int scores[3] )
+;                          uint8_t *pix2, intptr_t i_stride, int scores[3] )
 ;-----------------------------------------------------------------------------
 %macro SAD_X_SSE2 3
 cglobal pixel_sad_x%1_%2x%3, 2+%1,2+%1,9
-%if WIN64
-    %assign i %1+1
-    movsxd r %+ i, r %+ i %+ d
-%endif
     SAD_X%1_2x%2P_SSE2 1
 %rep %3/2-1
     SAD_X%1_2x%2P_SSE2 0
@@ -1485,9 +1477,6 @@ cglobal pixel_sad_x4_%1x%2_cache%3_%6
 %if ARCH_X86_64
     PROLOGUE 6,9
     mov  r8,  r6mp
-%if WIN64
-    movsxd r5, r5d
-%endif
     push r4
     push r3
     push r2
