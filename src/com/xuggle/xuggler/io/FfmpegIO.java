@@ -23,7 +23,6 @@ package com.xuggle.xuggler.io;
 import com.xuggle.xuggler.io.FfmpegIOHandle;
 import com.xuggle.xuggler.io.IURLProtocolHandlerFactory;
 import com.xuggle.xuggler.io.URLProtocolManager;
-import com.xuggle.xuggler.Version;
 
 /**
  * For Internal Use Only.
