@@ -77,20 +77,21 @@ static int MDH_compute_key(uint8_t *secret, size_t len, MP_t pub, MDH *dh)
 }
 
 #elif defined(USE_GNUTLS)
-#include <gcrypt.h>
-typedef gcry_mpi_t MP_t;
-#define MP_new(m)	m = gcry_mpi_new(1)
-#define MP_set_w(mpi, w)	gcry_mpi_set_ui(mpi, w)
-#define MP_cmp(u, v)	gcry_mpi_cmp(u, v)
-#define MP_set(u, v)	gcry_mpi_set(u, v)
-#define MP_sub_w(mpi, w)	gcry_mpi_sub_ui(mpi, mpi, w)
-#define MP_cmp_1(mpi)	gcry_mpi_cmp_ui(mpi, 1)
-#define MP_modexp(r, y, q, p)	gcry_mpi_powm(r, y, q, p)
-#define MP_free(mpi)	gcry_mpi_release(mpi)
-#define MP_gethex(u, hex, res)	res = (gcry_mpi_scan(&u, GCRYMPI_FMT_HEX, hex, 0, 0) == 0)
-#define MP_bytes(u)	(gcry_mpi_get_nbits(u) + 7) / 8
-#define MP_setbin(u,buf,len)	gcry_mpi_print(GCRYMPI_FMT_USG,buf,len,NULL,u)
-#define MP_getbin(u,buf,len)	gcry_mpi_scan(&u,GCRYMPI_FMT_USG,buf,len,NULL)
+#include <gmp.h>
+#include <nettle/bignum.h>
+typedef mpz_ptr MP_t;
+#define MP_new(m)	m = malloc(sizeof(*m)); mpz_init2(m, 1)
+#define MP_set_w(mpi, w)	mpz_set_ui(mpi, w)
+#define MP_cmp(u, v)	mpz_cmp(u, v)
+#define MP_set(u, v)	mpz_set(u, v)
+#define MP_sub_w(mpi, w)	mpz_sub_ui(mpi, mpi, w)
+#define MP_cmp_1(mpi)	mpz_cmp_ui(mpi, 1)
+#define MP_modexp(r, y, q, p)	mpz_powm(r, y, q, p)
+#define MP_free(mpi)	mpz_clear(mpi); free(mpi)
+#define MP_gethex(u, hex, res)	u = malloc(sizeof(*u)); mpz_init2(u, 1); res = (mpz_set_str(u, hex, 16) == 0)
+#define MP_bytes(u)	(mpz_sizeinbase(u, 2) + 7) / 8
+#define MP_setbin(u,buf,len)	nettle_mpz_get_str_256(len,buf,u)
+#define MP_getbin(u,buf,len)	u = malloc(sizeof(*u)); mpz_init2(u, 1); nettle_mpz_set_str_256_u(u,len,buf)
 
 typedef struct MDH {
   MP_t p;
