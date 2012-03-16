@@ -13,7 +13,8 @@ xuggledir=$(includedir)/$(VS_CPP_PATH)
 xuggle_HEADERS= \
   Xuggle.h
 
-bin_PROGRAMS= xuggle-xuggler-main
+noinst_PROGRAMS=xuggle-xuggler-main
+
 lib_LTLIBRARIES = 
 
 xuggle_xuggler_main_SOURCES = Main.cpp

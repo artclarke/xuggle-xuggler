@@ -7,7 +7,7 @@ SUFFIXES=.i
 
 # This is a convenience library
 noinst_LTLIBRARIES = libxuggle-ferry.la
-bin_PROGRAMS=xuggle-ferry-main
+noinst_PROGRAMS=xuggle-ferry-main
 
 xuggle_ferry_main_SOURCES= \
   Main.cpp
