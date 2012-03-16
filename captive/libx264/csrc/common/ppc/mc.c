@@ -37,8 +37,8 @@
 #include "ppccommon.h"
 
 #if !HIGH_BIT_DEPTH
-typedef void (*pf_mc_t)( uint8_t *src, int i_src,
-                         uint8_t *dst, int i_dst, int i_height );
+typedef void (*pf_mc_t)( uint8_t *src, intptr_t i_src,
+                         uint8_t *dst, intptr_t i_dst, int i_height );
 
 
 static const uint8_t hpel_ref0[16] = {0,1,1,1,0,1,1,1,2,3,3,3,0,1,1,1};
@@ -58,8 +58,8 @@ static inline int x264_tapfilter1( uint8_t *pix )
 }
 
 
-static inline void x264_pixel_avg2_w4_altivec( uint8_t *dst,  int i_dst,
-                                               uint8_t *src1, int i_src1,
+static inline void x264_pixel_avg2_w4_altivec( uint8_t *dst,  intptr_t i_dst,
+                                               uint8_t *src1, intptr_t i_src1,
                                                uint8_t *src2, int i_height )
 {
     for( int y = 0; y < i_height; y++ )
@@ -72,8 +72,8 @@ static inline void x264_pixel_avg2_w4_altivec( uint8_t *dst,  int i_dst,
     }
 }
 
-static inline void x264_pixel_avg2_w8_altivec( uint8_t *dst,  int i_dst,
-                                               uint8_t *src1, int i_src1,
+static inline void x264_pixel_avg2_w8_altivec( uint8_t *dst,  intptr_t i_dst,
+                                               uint8_t *src1, intptr_t i_src1,
                                                uint8_t *src2, int i_height )
 {
     vec_u8_t src1v, src2v;
@@ -95,8 +95,8 @@ static inline void x264_pixel_avg2_w8_altivec( uint8_t *dst,  int i_dst,
     }
 }
 
-static inline void x264_pixel_avg2_w16_altivec( uint8_t *dst,  int i_dst,
-                                                uint8_t *src1, int i_src1,
+static inline void x264_pixel_avg2_w16_altivec( uint8_t *dst,  intptr_t i_dst,
+                                                uint8_t *src1, intptr_t i_src1,
                                                 uint8_t *src2, int i_height )
 {
     vec_u8_t src1v, src2v;
@@ -117,8 +117,8 @@ static inline void x264_pixel_avg2_w16_altivec( uint8_t *dst,  int i_dst,
     }
 }
 
-static inline void x264_pixel_avg2_w20_altivec( uint8_t *dst,  int i_dst,
-                                                uint8_t *src1, int i_src1,
+static inline void x264_pixel_avg2_w20_altivec( uint8_t *dst,  intptr_t i_dst,
+                                                uint8_t *src1, intptr_t i_src1,
                                                 uint8_t *src2, int i_height )
 {
     x264_pixel_avg2_w16_altivec(dst, i_dst, src1, i_src1, src2, i_height);
@@ -128,8 +128,8 @@ static inline void x264_pixel_avg2_w20_altivec( uint8_t *dst,  int i_dst,
 /* mc_copy: plain c */
 
 #define MC_COPY( name, a )                                \
-static void name( uint8_t *dst, int i_dst,                \
-                  uint8_t *src, int i_src, int i_height ) \
+static void name( uint8_t *dst, intptr_t i_dst,           \
+                  uint8_t *src, intptr_t i_src, int i_height ) \
 {                                                         \
     int y;                                                \
     for( y = 0; y < i_height; y++ )                       \
@@ -142,14 +142,14 @@ static void name( uint8_t *dst, int i_dst,                \
 MC_COPY( x264_mc_copy_w4_altivec,  4  )
 MC_COPY( x264_mc_copy_w8_altivec,  8  )
 
-static void x264_mc_copy_w16_altivec( uint8_t *dst, int i_dst,
-                                      uint8_t *src, int i_src, int i_height )
+static void x264_mc_copy_w16_altivec( uint8_t *dst, intptr_t i_dst,
+                                      uint8_t *src, intptr_t i_src, int i_height )
 {
     vec_u8_t cpyV;
     PREP_LOAD;
     PREP_LOAD_SRC( src );
 
-    for( int y = 0; y < i_height; y++)
+    for( int y = 0; y < i_height; y++ )
     {
         VEC_LOAD( src, cpyV, 16, vec_u8_t, src );
         vec_st(cpyV, 0, dst);
@@ -160,12 +160,12 @@ static void x264_mc_copy_w16_altivec( uint8_t *dst, int i_dst,
 }
 
 
-static void x264_mc_copy_w16_aligned_altivec( uint8_t *dst, int i_dst,
-                                              uint8_t *src, int i_src, int i_height )
+static void x264_mc_copy_w16_aligned_altivec( uint8_t *dst, intptr_t i_dst,
+                                              uint8_t *src, intptr_t i_src, int i_height )
 {
-    for( int y = 0; y < i_height; ++y)
+    for( int y = 0; y < i_height; ++y )
     {
-        vec_u8_t cpyV = vec_ld( 0, src);
+        vec_u8_t cpyV = vec_ld( 0, src );
         vec_st(cpyV, 0, dst);
 
         src += i_src;
@@ -174,13 +174,13 @@ static void x264_mc_copy_w16_aligned_altivec( uint8_t *dst, int i_dst,
 }
 
 
-static void mc_luma_altivec( uint8_t *dst,    int i_dst_stride,
-                             uint8_t *src[4], int i_src_stride,
+static void mc_luma_altivec( uint8_t *dst,    intptr_t i_dst_stride,
+                             uint8_t *src[4], intptr_t i_src_stride,
                              int mvx, int mvy,
                              int i_width, int i_height, const x264_weight_t *weight )
 {
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
-    int offset = (mvy>>2)*i_src_stride + (mvx>>2);
+    intptr_t offset = (mvy>>2)*i_src_stride + (mvx>>2);
     uint8_t *src1 = src[hpel_ref0[qpel_idx]] + offset + ((mvy&3) == 3) * i_src_stride;
     if( qpel_idx & 5 ) /* qpel interpolation needed */
     {
@@ -222,13 +222,13 @@ static void mc_luma_altivec( uint8_t *dst,    int i_dst_stride,
 
 
 
-static uint8_t *get_ref_altivec( uint8_t *dst,   int *i_dst_stride,
-                                 uint8_t *src[4], int i_src_stride,
+static uint8_t *get_ref_altivec( uint8_t *dst,   intptr_t *i_dst_stride,
+                                 uint8_t *src[4], intptr_t i_src_stride,
                                  int mvx, int mvy,
                                  int i_width, int i_height, const x264_weight_t *weight )
 {
     int qpel_idx = ((mvy&3)<<2) + (mvx&3);
-    int offset = (mvy>>2)*i_src_stride + (mvx>>2);
+    intptr_t offset = (mvy>>2)*i_src_stride + (mvx>>2);
     uint8_t *src1 = src[hpel_ref0[qpel_idx]] + offset + ((mvy&3) == 3) * i_src_stride;
     if( qpel_idx & 5 ) /* qpel interpolation needed */
     {
@@ -266,10 +266,9 @@ static uint8_t *get_ref_altivec( uint8_t *dst,   int *i_dst_stride,
     }
 }
 
-static void mc_chroma_2xh( uint8_t *dstu, uint8_t *dstv, int i_dst_stride,
-                           uint8_t *src, int i_src_stride,
-                           int mvx, int mvy,
-                           int i_height )
+static void mc_chroma_2xh( uint8_t *dstu, uint8_t *dstv, intptr_t i_dst_stride,
+                           uint8_t *src, intptr_t i_src_stride,
+                           int mvx, int mvy, int i_height )
 {
     uint8_t *srcp;
     int d8x = mvx&0x07;
@@ -297,10 +296,9 @@ static void mc_chroma_2xh( uint8_t *dstu, uint8_t *dstv, int i_dst_stride,
     }
  }
 
-static void mc_chroma_altivec_4xh( uint8_t *dstu, uint8_t *dstv, int i_dst_stride,
-                                   uint8_t *src, int i_src_stride,
-                                   int mvx, int mvy,
-                                   int i_height )
+static void mc_chroma_altivec_4xh( uint8_t *dstu, uint8_t *dstv, intptr_t i_dst_stride,
+                                   uint8_t *src, intptr_t i_src_stride,
+                                   int mvx, int mvy, int i_height )
 {
     uint8_t *srcp;
     int d8x = mvx & 0x07;
@@ -386,10 +384,9 @@ static void mc_chroma_altivec_4xh( uint8_t *dstu, uint8_t *dstv, int i_dst_strid
     }
 }
 
-static void mc_chroma_altivec_8xh( uint8_t *dstu, uint8_t *dstv, int i_dst_stride,
-                                   uint8_t *src, int i_src_stride,
-                                   int mvx, int mvy,
-                                   int i_height )
+static void mc_chroma_altivec_8xh( uint8_t *dstu, uint8_t *dstv, intptr_t i_dst_stride,
+                                   uint8_t *src, intptr_t i_src_stride,
+                                   int mvx, int mvy, int i_height )
 {
     uint8_t *srcp;
     int d8x = mvx & 0x07;
@@ -510,10 +507,9 @@ static void mc_chroma_altivec_8xh( uint8_t *dstu, uint8_t *dstv, int i_dst_strid
     }
 }
 
-static void mc_chroma_altivec( uint8_t *dstu, uint8_t *dstv, int i_dst_stride,
-                               uint8_t *src, int i_src_stride,
-                               int mvx, int mvy,
-                               int i_width, int i_height )
+static void mc_chroma_altivec( uint8_t *dstu, uint8_t *dstv, intptr_t i_dst_stride,
+                               uint8_t *src, intptr_t i_src_stride,
+                               int mvx, int mvy, int i_width, int i_height )
 {
     if( i_width == 8 )
         mc_chroma_altivec_8xh( dstu, dstv, i_dst_stride, src, i_src_stride,
@@ -670,7 +666,7 @@ static void mc_chroma_altivec( uint8_t *dstu, uint8_t *dstv, int i_dst_stride,
 }
 
 void x264_hpel_filter_altivec( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint8_t *src,
-                               int i_stride, int i_width, int i_height, int16_t *buf )
+                               intptr_t i_stride, int i_width, int i_height, int16_t *buf )
 {
     vec_u8_t destv;
     vec_u8_t src1v, src2v, src3v, src4v, src5v, src6v;
@@ -765,7 +761,7 @@ void x264_hpel_filter_altivec( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc, uint
 }
 
 static void frame_init_lowres_core_altivec( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
-                                           int src_stride, int dst_stride, int width, int height )
+                                            intptr_t src_stride, intptr_t dst_stride, int width, int height )
 {
     int w = width >> 4;
     int end = (width & 15);
@@ -857,7 +853,7 @@ static void frame_init_lowres_core_altivec( uint8_t *src0, uint8_t *dst0, uint8_
     }
 }
 
-static void mc_weight_w2_altivec( uint8_t *dst, int i_dst, uint8_t *src, int i_src,
+static void mc_weight_w2_altivec( uint8_t *dst, intptr_t i_dst, uint8_t *src, intptr_t i_src,
                                   const x264_weight_t *weight, int i_height )
 {
     LOAD_ZERO;
@@ -911,7 +907,7 @@ static void mc_weight_w2_altivec( uint8_t *dst, int i_dst, uint8_t *src, int i_s
         }
     }
 }
-static void mc_weight_w4_altivec( uint8_t *dst, int i_dst, uint8_t *src, int i_src,
+static void mc_weight_w4_altivec( uint8_t *dst, intptr_t i_dst, uint8_t *src, intptr_t i_src,
                                   const x264_weight_t *weight, int i_height )
 {
     LOAD_ZERO;
@@ -965,7 +961,7 @@ static void mc_weight_w4_altivec( uint8_t *dst, int i_dst, uint8_t *src, int i_s
         }
     }
 }
-static void mc_weight_w8_altivec( uint8_t *dst, int i_dst, uint8_t *src, int i_src,
+static void mc_weight_w8_altivec( uint8_t *dst, intptr_t i_dst, uint8_t *src, intptr_t i_src,
                                   const x264_weight_t *weight, int i_height )
 {
     LOAD_ZERO;
@@ -1020,7 +1016,7 @@ static void mc_weight_w8_altivec( uint8_t *dst, int i_dst, uint8_t *src, int i_s
         }
     }
 }
-static void mc_weight_w16_altivec( uint8_t *dst, int i_dst, uint8_t *src, int i_src,
+static void mc_weight_w16_altivec( uint8_t *dst, intptr_t i_dst, uint8_t *src, intptr_t i_src,
                                    const x264_weight_t *weight, int i_height )
 {
     LOAD_ZERO;
@@ -1080,7 +1076,7 @@ static void mc_weight_w16_altivec( uint8_t *dst, int i_dst, uint8_t *src, int i_
         }
     }
 }
-static void mc_weight_w20_altivec( uint8_t *dst, int i_dst, uint8_t *src, int i_src,
+static void mc_weight_w20_altivec( uint8_t *dst, intptr_t i_dst, uint8_t *src, intptr_t i_src,
                                    const x264_weight_t *weight, int i_height )
 {
     LOAD_ZERO;

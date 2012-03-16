@@ -34,8 +34,8 @@
  **********************************************************************/
 
 #define PIXEL_SAD_ALTIVEC( name, lx, ly, a, b )        \
-static int name( uint8_t *pix1, int i_pix1,            \
-                 uint8_t *pix2, int i_pix2 )           \
+static int name( uint8_t *pix1, intptr_t i_pix1,       \
+                 uint8_t *pix2, intptr_t i_pix2 )      \
 {                                                      \
     ALIGNED_16( int sum );                             \
                                                        \
@@ -119,8 +119,8 @@ PIXEL_SAD_ALTIVEC( pixel_sad_8x8_altivec,   8,  8,  2s, 1 )
 /***********************************************************************
  * SATD 4x4
  **********************************************************************/
-static int pixel_satd_4x4_altivec( uint8_t *pix1, int i_pix1,
-                                   uint8_t *pix2, int i_pix2 )
+static int pixel_satd_4x4_altivec( uint8_t *pix1, intptr_t i_pix1,
+                                   uint8_t *pix2, intptr_t i_pix2 )
 {
     ALIGNED_16( int i_satd );
 
@@ -164,8 +164,8 @@ static int pixel_satd_4x4_altivec( uint8_t *pix1, int i_pix1,
 /***********************************************************************
  * SATD 4x8
  **********************************************************************/
-static int pixel_satd_4x8_altivec( uint8_t *pix1, int i_pix1,
-                                   uint8_t *pix2, int i_pix2 )
+static int pixel_satd_4x8_altivec( uint8_t *pix1, intptr_t i_pix1,
+                                   uint8_t *pix2, intptr_t i_pix2 )
 {
     ALIGNED_16( int i_satd );
 
@@ -218,8 +218,8 @@ static int pixel_satd_4x8_altivec( uint8_t *pix1, int i_pix1,
 /***********************************************************************
  * SATD 8x4
  **********************************************************************/
-static int pixel_satd_8x4_altivec( uint8_t *pix1, int i_pix1,
-                                   uint8_t *pix2, int i_pix2 )
+static int pixel_satd_8x4_altivec( uint8_t *pix1, intptr_t i_pix1,
+                                   uint8_t *pix2, intptr_t i_pix2 )
 {
     ALIGNED_16( int i_satd );
 
@@ -272,8 +272,8 @@ static int pixel_satd_8x4_altivec( uint8_t *pix1, int i_pix1,
 /***********************************************************************
  * SATD 8x8
  **********************************************************************/
-static int pixel_satd_8x8_altivec( uint8_t *pix1, int i_pix1,
-                                   uint8_t *pix2, int i_pix2 )
+static int pixel_satd_8x8_altivec( uint8_t *pix1, intptr_t i_pix1,
+                                   uint8_t *pix2, intptr_t i_pix2 )
 {
     ALIGNED_16( int i_satd );
 
@@ -332,8 +332,8 @@ static int pixel_satd_8x8_altivec( uint8_t *pix1, int i_pix1,
 /***********************************************************************
  * SATD 8x16
  **********************************************************************/
-static int pixel_satd_8x16_altivec( uint8_t *pix1, int i_pix1,
-                                    uint8_t *pix2, int i_pix2 )
+static int pixel_satd_8x16_altivec( uint8_t *pix1, intptr_t i_pix1,
+                                    uint8_t *pix2, intptr_t i_pix2 )
 {
     ALIGNED_16( int i_satd );
 
@@ -416,8 +416,8 @@ static int pixel_satd_8x16_altivec( uint8_t *pix1, int i_pix1,
 /***********************************************************************
  * SATD 16x8
  **********************************************************************/
-static int pixel_satd_16x8_altivec( uint8_t *pix1, int i_pix1,
-                                    uint8_t *pix2, int i_pix2 )
+static int pixel_satd_16x8_altivec( uint8_t *pix1, intptr_t i_pix1,
+                                    uint8_t *pix2, intptr_t i_pix2 )
 {
     ALIGNED_16( int i_satd );
 
@@ -500,8 +500,8 @@ static int pixel_satd_16x8_altivec( uint8_t *pix1, int i_pix1,
 /***********************************************************************
  * SATD 16x16
  **********************************************************************/
-static int pixel_satd_16x16_altivec( uint8_t *pix1, int i_pix1,
-                                     uint8_t *pix2, int i_pix2 )
+static int pixel_satd_16x16_altivec( uint8_t *pix1, intptr_t i_pix1,
+                                     uint8_t *pix2, intptr_t i_pix2 )
 {
     ALIGNED_16( int i_satd );
 
@@ -632,7 +632,7 @@ static int pixel_satd_16x16_altivec( uint8_t *pix1, int i_pix1,
 static void pixel_sad_x4_16x16_altivec( uint8_t *fenc,
                                         uint8_t *pix0, uint8_t *pix1,
                                         uint8_t *pix2, uint8_t *pix3,
-                                        int i_stride, int scores[4] )
+                                        intptr_t i_stride, int scores[4] )
 {
     ALIGNED_16( int sum0 );
     ALIGNED_16( int sum1 );
@@ -744,7 +744,7 @@ static void pixel_sad_x4_16x16_altivec( uint8_t *fenc,
 
 static void pixel_sad_x3_16x16_altivec( uint8_t *fenc, uint8_t *pix0,
                                         uint8_t *pix1, uint8_t *pix2,
-                                        int i_stride, int scores[3] )
+                                        intptr_t i_stride, int scores[3] )
 {
     ALIGNED_16( int sum0 );
     ALIGNED_16( int sum1 );
@@ -834,7 +834,8 @@ static void pixel_sad_x3_16x16_altivec( uint8_t *fenc, uint8_t *pix0,
     scores[2] = sum2;
 }
 
-static void pixel_sad_x4_16x8_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1, uint8_t *pix2, uint8_t *pix3, int i_stride, int scores[4] )
+static void pixel_sad_x4_16x8_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1, uint8_t *pix2,
+                                       uint8_t *pix3, intptr_t i_stride, int scores[4] )
 {
     ALIGNED_16( int sum0 );
     ALIGNED_16( int sum1 );
@@ -945,7 +946,7 @@ static void pixel_sad_x4_16x8_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *pi
 
 static void pixel_sad_x3_16x8_altivec( uint8_t *fenc, uint8_t *pix0,
                                        uint8_t *pix1, uint8_t *pix2,
-                                       int i_stride, int scores[3] )
+                                       intptr_t i_stride, int scores[3] )
 {
     ALIGNED_16( int sum0 );
     ALIGNED_16( int sum1 );
@@ -1038,7 +1039,7 @@ static void pixel_sad_x3_16x8_altivec( uint8_t *fenc, uint8_t *pix0,
 static void pixel_sad_x4_8x16_altivec( uint8_t *fenc,
                                        uint8_t *pix0, uint8_t *pix1,
                                        uint8_t *pix2, uint8_t *pix3,
-                                       int i_stride, int scores[4] )
+                                       intptr_t i_stride, int scores[4] )
 {
     ALIGNED_16( int sum0 );
     ALIGNED_16( int sum1 );
@@ -1152,7 +1153,7 @@ static void pixel_sad_x4_8x16_altivec( uint8_t *fenc,
 
 static void pixel_sad_x3_8x16_altivec( uint8_t *fenc, uint8_t *pix0,
                                        uint8_t *pix1, uint8_t *pix2,
-                                       int i_stride, int scores[3] )
+                                       intptr_t i_stride, int scores[3] )
 {
     ALIGNED_16( int sum0 );
     ALIGNED_16( int sum1 );
@@ -1247,7 +1248,7 @@ static void pixel_sad_x3_8x16_altivec( uint8_t *fenc, uint8_t *pix0,
 static void pixel_sad_x4_8x8_altivec( uint8_t *fenc,
                                       uint8_t *pix0, uint8_t *pix1,
                                       uint8_t *pix2, uint8_t *pix3,
-                                      int i_stride, int scores[4] )
+                                      intptr_t i_stride, int scores[4] )
 {
     ALIGNED_16( int sum0 );
     ALIGNED_16( int sum1 );
@@ -1361,7 +1362,7 @@ static void pixel_sad_x4_8x8_altivec( uint8_t *fenc,
 
 static void pixel_sad_x3_8x8_altivec( uint8_t *fenc, uint8_t *pix0,
                                       uint8_t *pix1, uint8_t *pix2,
-                                      int i_stride, int scores[3] )
+                                      intptr_t i_stride, int scores[3] )
 {
     ALIGNED_16( int sum0 );
     ALIGNED_16( int sum1 );
@@ -1457,8 +1458,8 @@ static void pixel_sad_x3_8x8_altivec( uint8_t *fenc, uint8_t *pix0,
 * SSD routines
 **********************************************************************/
 
-static int pixel_ssd_16x16_altivec ( uint8_t *pix1, int i_stride_pix1,
-                                     uint8_t *pix2, int i_stride_pix2)
+static int pixel_ssd_16x16_altivec ( uint8_t *pix1, intptr_t i_stride_pix1,
+                                     uint8_t *pix2, intptr_t i_stride_pix2 )
 {
     ALIGNED_16( int sum );
 
@@ -1536,8 +1537,8 @@ static int pixel_ssd_16x16_altivec ( uint8_t *pix1, int i_stride_pix1,
     return sum;
 }
 
-static int pixel_ssd_8x8_altivec ( uint8_t *pix1, int i_stride_pix1,
-                                   uint8_t *pix2, int i_stride_pix2)
+static int pixel_ssd_8x8_altivec ( uint8_t *pix1, intptr_t i_stride_pix1,
+                                   uint8_t *pix2, intptr_t i_stride_pix2 )
 {
     ALIGNED_16( int sum );
 
@@ -1588,7 +1589,7 @@ static int pixel_ssd_8x8_altivec ( uint8_t *pix1, int i_stride_pix1,
 /****************************************************************************
  * variance
  ****************************************************************************/
-static uint64_t x264_pixel_var_16x16_altivec( uint8_t *pix, int i_stride )
+static uint64_t x264_pixel_var_16x16_altivec( uint8_t *pix, intptr_t i_stride )
 {
     ALIGNED_16(uint32_t sum_tab[4]);
     ALIGNED_16(uint32_t sqr_tab[4]);
@@ -1615,7 +1616,7 @@ static uint64_t x264_pixel_var_16x16_altivec( uint8_t *pix, int i_stride )
     return sum + ((uint64_t)sqr<<32);
 }
 
-static uint64_t x264_pixel_var_8x8_altivec( uint8_t *pix, int i_stride )
+static uint64_t x264_pixel_var_8x8_altivec( uint8_t *pix, intptr_t i_stride )
 {
     ALIGNED_16(uint32_t sum_tab[4]);
     ALIGNED_16(uint32_t sqr_tab[4]);
@@ -1713,8 +1714,8 @@ static uint64_t x264_pixel_var_8x8_altivec( uint8_t *pix, int i_stride )
     sa8d7v = vec_sub(b6v, b7v);                           \
 }
 
-static int pixel_sa8d_8x8_core_altivec( uint8_t *pix1, int i_pix1,
-                                        uint8_t *pix2, int i_pix2 )
+static int pixel_sa8d_8x8_core_altivec( uint8_t *pix1, intptr_t i_pix1,
+                                        uint8_t *pix2, intptr_t i_pix2 )
 {
     int32_t i_satd=0;
 
@@ -1781,21 +1782,21 @@ static int pixel_sa8d_8x8_core_altivec( uint8_t *pix1, int i_pix1,
     return i_satd;
 }
 
-static int pixel_sa8d_8x8_altivec( uint8_t *pix1, int i_pix1,
-                                   uint8_t *pix2, int i_pix2 )
+static int pixel_sa8d_8x8_altivec( uint8_t *pix1, intptr_t i_pix1,
+                                   uint8_t *pix2, intptr_t i_pix2 )
 {
     int32_t i_satd;
     i_satd = (pixel_sa8d_8x8_core_altivec( pix1, i_pix1, pix2, i_pix2 )+2)>>2;
     return i_satd;
 }
 
-static int pixel_sa8d_16x16_altivec( uint8_t *pix1, int i_pix1,
-                                     uint8_t *pix2, int i_pix2 )
+static int pixel_sa8d_16x16_altivec( uint8_t *pix1, intptr_t i_pix1,
+                                     uint8_t *pix2, intptr_t i_pix2 )
 {
     int32_t i_satd;
 
-    i_satd = (pixel_sa8d_8x8_core_altivec( &pix1[0],     i_pix1, &pix2[0],     i_pix2 )
-            + pixel_sa8d_8x8_core_altivec( &pix1[8],     i_pix1, &pix2[8],     i_pix2 )
+    i_satd = (pixel_sa8d_8x8_core_altivec( &pix1[0],          i_pix1, &pix2[0],          i_pix2 )
+            + pixel_sa8d_8x8_core_altivec( &pix1[8],          i_pix1, &pix2[8],          i_pix2 )
             + pixel_sa8d_8x8_core_altivec( &pix1[8*i_pix1],   i_pix1, &pix2[8*i_pix2],   i_pix2 )
             + pixel_sa8d_8x8_core_altivec( &pix1[8*i_pix1+8], i_pix1, &pix2[8*i_pix2+8], i_pix2 ) +2)>>2;
     return i_satd;
@@ -1817,7 +1818,7 @@ static int pixel_sa8d_16x16_altivec( uint8_t *pix1, int i_pix1,
     vec_s16_t pix16_s##num = (vec_s16_t)vec_perm(pix8_##num, zero_u8v, perm); \
     vec_s16_t pix16_d##num;
 
-static uint64_t pixel_hadamard_ac_altivec( uint8_t *pix, int stride, const vec_u8_t perm )
+static uint64_t pixel_hadamard_ac_altivec( uint8_t *pix, intptr_t stride, const vec_u8_t perm )
 {
     ALIGNED_16( int32_t sum4_tab[4] );
     ALIGNED_16( int32_t sum8_tab[4] );
@@ -1903,7 +1904,7 @@ static const vec_u8_t hadamard_permtab[] =
        0x1C,0x0C,0x1D,0x0D, 0x1E,0x0E,0x1F,0x0F )
  };
 
-static uint64_t x264_pixel_hadamard_ac_16x16_altivec( uint8_t *pix, int stride )
+static uint64_t x264_pixel_hadamard_ac_16x16_altivec( uint8_t *pix, intptr_t stride )
 {
     int idx =  ((uintptr_t)pix & 8) >> 3;
     vec_u8_t permh = hadamard_permtab[idx];
@@ -1915,7 +1916,7 @@ static uint64_t x264_pixel_hadamard_ac_16x16_altivec( uint8_t *pix, int stride )
     return ((sum>>34)<<32) + ((uint32_t)sum>>1);
 }
 
-static uint64_t x264_pixel_hadamard_ac_16x8_altivec( uint8_t *pix, int stride )
+static uint64_t x264_pixel_hadamard_ac_16x8_altivec( uint8_t *pix, intptr_t stride )
 {
     int idx =  ((uintptr_t)pix & 8) >> 3;
     vec_u8_t permh = hadamard_permtab[idx];
@@ -1925,7 +1926,7 @@ static uint64_t x264_pixel_hadamard_ac_16x8_altivec( uint8_t *pix, int stride )
     return ((sum>>34)<<32) + ((uint32_t)sum>>1);
 }
 
-static uint64_t x264_pixel_hadamard_ac_8x16_altivec( uint8_t *pix, int stride )
+static uint64_t x264_pixel_hadamard_ac_8x16_altivec( uint8_t *pix, intptr_t stride )
 {
     vec_u8_t perm = hadamard_permtab[ (((uintptr_t)pix & 8) >> 3) ];
     uint64_t sum = pixel_hadamard_ac_altivec( pix, stride, perm );
@@ -1933,7 +1934,7 @@ static uint64_t x264_pixel_hadamard_ac_8x16_altivec( uint8_t *pix, int stride )
     return ((sum>>34)<<32) + ((uint32_t)sum>>1);
 }
 
-static uint64_t x264_pixel_hadamard_ac_8x8_altivec( uint8_t *pix, int stride )
+static uint64_t x264_pixel_hadamard_ac_8x8_altivec( uint8_t *pix, intptr_t stride )
 {
     vec_u8_t perm = hadamard_permtab[ (((uintptr_t)pix & 8) >> 3) ];
     uint64_t sum = pixel_hadamard_ac_altivec( pix, stride, perm );
@@ -1944,8 +1945,8 @@ static uint64_t x264_pixel_hadamard_ac_8x8_altivec( uint8_t *pix, int stride )
 /****************************************************************************
  * structural similarity metric
  ****************************************************************************/
-static void ssim_4x4x2_core_altivec( const uint8_t *pix1, int stride1,
-                                     const uint8_t *pix2, int stride2,
+static void ssim_4x4x2_core_altivec( const uint8_t *pix1, intptr_t stride1,
+                                     const uint8_t *pix2, intptr_t stride2,
                                      int sums[2][4] )
 {
     ALIGNED_16( int temp[4] );
@@ -1986,13 +1987,15 @@ static void ssim_4x4x2_core_altivec( const uint8_t *pix1, int stride1,
 }
 
 #define SATD_X( size ) \
-static void pixel_satd_x3_##size##_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1, uint8_t *pix2, int i_stride, int scores[3] )\
+static void pixel_satd_x3_##size##_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1, uint8_t *pix2,\
+                                            intptr_t i_stride, int scores[3] )\
 {\
     scores[0] = pixel_satd_##size##_altivec( fenc, FENC_STRIDE, pix0, i_stride );\
     scores[1] = pixel_satd_##size##_altivec( fenc, FENC_STRIDE, pix1, i_stride );\
     scores[2] = pixel_satd_##size##_altivec( fenc, FENC_STRIDE, pix2, i_stride );\
 }\
-static void pixel_satd_x4_##size##_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1, uint8_t *pix2, uint8_t *pix3, int i_stride, int scores[4] )\
+static void pixel_satd_x4_##size##_altivec( uint8_t *fenc, uint8_t *pix0, uint8_t *pix1, uint8_t *pix2,\
+                                            uint8_t *pix3, intptr_t i_stride, int scores[4] )\
 {\
     scores[0] = pixel_satd_##size##_altivec( fenc, FENC_STRIDE, pix0, i_stride );\
     scores[1] = pixel_satd_##size##_altivec( fenc, FENC_STRIDE, pix1, i_stride );\

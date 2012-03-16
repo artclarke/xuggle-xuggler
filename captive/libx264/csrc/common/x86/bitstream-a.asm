@@ -91,7 +91,7 @@ ALIGN 16
 .escape:
     ; Skip bytes that are known to be valid
     and      r4d, r3d
-    bsf      r3d, r4d
+    tzcnt    r3d, r4d
     add       r1, r3
 .escape_loop:
     inc       r1
