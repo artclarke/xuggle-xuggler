@@ -827,7 +827,7 @@ static int get_4block_rd(SnowContext *s, int mb_x, int mb_y, int plane_index){
     return distortion + rate*penalty_factor;
 }
 
-static int encode_subband_c0run(SnowContext *s, SubBand *b, IDWTELEM *src, IDWTELEM *parent, int stride, int orientation){
+static int encode_subband_c0run(SnowContext *s, SubBand *b, const IDWTELEM *src, const IDWTELEM *parent, int stride, int orientation){
     const int w= b->width;
     const int h= b->height;
     int x, y;
@@ -947,7 +947,7 @@ static int encode_subband_c0run(SnowContext *s, SubBand *b, IDWTELEM *src, IDWTE
     return 0;
 }
 
-static int encode_subband(SnowContext *s, SubBand *b, IDWTELEM *src, IDWTELEM *parent, int stride, int orientation){
+static int encode_subband(SnowContext *s, SubBand *b, const IDWTELEM *src, const IDWTELEM *parent, int stride, int orientation){
 //    encode_subband_qtree(s, b, src, parent, stride, orientation);
 //    encode_subband_z0run(s, b, src, parent, stride, orientation);
     return encode_subband_c0run(s, b, src, parent, stride, orientation);
@@ -1800,6 +1800,7 @@ redo_frame:
                         quantize(s, b, b->ibuf, b->buf, b->stride, s->qbias);
                     if(orientation==0)
                         decorrelate(s, b, b->ibuf, b->stride, pic->pict_type == AV_PICTURE_TYPE_P, 0);
+                    if (!s->no_bitstream)
                     encode_subband(s, b, b->ibuf, b->parent ? b->parent->ibuf : NULL, b->stride, orientation);
                     assert(b->parent==NULL || b->parent->stride == b->stride*2);
                     if(orientation==0)
@@ -1904,6 +1905,7 @@ static av_cold int encode_end(AVCodecContext *avctx)
 #define VE AV_OPT_FLAG_VIDEO_PARAM | AV_OPT_FLAG_ENCODING_PARAM
 static const AVOption options[] = {
     { "memc_only",      "Only do ME/MC (I frames -> ref, P frame -> ME+MC).",   OFFSET(memc_only), AV_OPT_TYPE_INT, { 0 }, 0, 1, VE },
+    { "no_bitstream",   "Skip final bitstream writeout.",                    OFFSET(no_bitstream), AV_OPT_TYPE_INT, { 0 }, 0, 1, VE },
     { NULL },
 };
 

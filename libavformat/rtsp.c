@@ -1005,7 +1005,7 @@ start:
             av_freep(content_ptr);
         /* If method is set, this is called from ff_rtsp_send_cmd,
          * where a reply to exactly this request is awaited. For
-         * callers from within packet reciving, we just want to
+         * callers from within packet receiving, we just want to
          * return to the caller and go back to receiving packets. */
         if (method)
             goto start;
@@ -1122,7 +1122,7 @@ int ff_rtsp_send_cmd_with_content(AVFormatContext *s,
 {
     RTSPState *rt = s->priv_data;
     HTTPAuthType cur_auth_type;
-    int ret;
+    int ret, attempts = 0;
 
 retry:
     cur_auth_type = rt->auth_state.auth_type;
@@ -1133,9 +1133,11 @@ retry:
 
     if ((ret = ff_rtsp_read_reply(s, reply, content_ptr, 0, method) ) < 0)
         return ret;
+    attempts++;
 
-    if (reply->status_code == 401 && cur_auth_type == HTTP_AUTH_NONE &&
-        rt->auth_state.auth_type != HTTP_AUTH_NONE)
+    if (reply->status_code == 401 &&
+        (cur_auth_type == HTTP_AUTH_NONE || rt->auth_state.stale) &&
+        rt->auth_state.auth_type != HTTP_AUTH_NONE && attempts < 2)
         goto retry;
 
     if (reply->status_code > 400){
@@ -1345,7 +1347,7 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
             break;
         }
         case RTSP_LOWER_TRANSPORT_UDP_MULTICAST: {
-            char url[1024], namebuf[50];
+            char url[1024], namebuf[50], optbuf[20] = "";
             struct sockaddr_storage addr;
             int port, ttl;
 
@@ -1358,10 +1360,12 @@ int ff_rtsp_make_setup_request(AVFormatContext *s, const char *host, int port,
                 port      = rtsp_st->sdp_port;
                 ttl       = rtsp_st->sdp_ttl;
             }
+            if (ttl > 0)
+                snprintf(optbuf, sizeof(optbuf), "?ttl=%d", ttl);
             getnameinfo((struct sockaddr*) &addr, sizeof(addr),
                         namebuf, sizeof(namebuf), NULL, 0, NI_NUMERICHOST);
             ff_url_join(url, sizeof(url), "rtp", NULL, namebuf,
-                        port, "?ttl=%d", ttl);
+                        port, "%s", optbuf);
             if (ffurl_open(&rtsp_st->rtp_handle, url, AVIO_FLAG_READ_WRITE,
                            &s->interrupt_callback, NULL) < 0) {
                 err = AVERROR_INVALIDDATA;

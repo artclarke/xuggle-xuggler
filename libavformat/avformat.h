@@ -541,6 +541,13 @@ typedef struct AVIndexEntry {
 #define AV_DISPOSITION_HEARING_IMPAIRED  0x0080  /**< stream for hearing impaired audiences */
 #define AV_DISPOSITION_VISUAL_IMPAIRED   0x0100  /**< stream for visual impaired audiences */
 #define AV_DISPOSITION_CLEAN_EFFECTS     0x0200  /**< stream without voice */
+/**
+ * The stream is stored in the file as an attached picture/"cover art" (e.g.
+ * APIC frame in ID3v2). The single packet associated with it will be returned
+ * among the first few packets read from the file unless seeking takes place.
+ * It can also be accessed at any time in AVStream.attached_pic.
+ */
+#define AV_DISPOSITION_ATTACHED_PIC      0x0400
 
 /**
  * Stream structure.
@@ -615,6 +622,15 @@ typedef struct AVStream {
      */
     AVRational avg_frame_rate;
 
+    /**
+     * For streams with AV_DISPOSITION_ATTACHED_PIC disposition, this packet
+     * will contain the attached picture.
+     *
+     * decoding: set by libavformat, must not be modified by the caller.
+     * encoding: unused
+     */
+    AVPacket attached_pic;
+
     /*****************************************************************
      * All fields below this line are not part of the public API. They
      * may not be used outside of libavformat and can be changed and
@@ -634,11 +650,8 @@ typedef struct AVStream {
         double duration_error[2][2][MAX_STD_TIMEBASES];
         int64_t codec_info_duration;
         int nb_decoded_frames;
+        int found_decoder;
     } *info;
-
-    AVPacket cur_pkt;
-    const uint8_t *cur_ptr;
-    int cur_len;
 
     int pts_wrap_bits; /**< number of bits in pts (used for wrapping control) */
 
@@ -829,7 +842,7 @@ typedef struct AVFormatContext {
 #define AVFMT_FLAG_MP4A_LATM    0x8000 ///< Enable RTP MP4A-LATM payload
 #define AVFMT_FLAG_SORT_DTS    0x10000 ///< try to interleave outputted packets by dts (using this flag can slow demuxing down)
 #define AVFMT_FLAG_PRIV_OPT    0x20000 ///< Enable use of private options by delaying codec open (this could be made default once all code is converted)
-#define AVFMT_FLAG_KEEP_SIDE_DATA 0x40000 ///< Dont merge side data but keep it seperate.
+#define AVFMT_FLAG_KEEP_SIDE_DATA 0x40000 ///< Dont merge side data but keep it separate.
 
     /**
      * decoding: size of data to probe; encoding: unused.
@@ -974,9 +987,6 @@ typedef struct AVFormatContext {
     struct AVPacketList *packet_buffer;
     struct AVPacketList *packet_buffer_end;
 
-    /* av_read_frame() support */
-    AVStream *cur_st;
-
     /* av_seek_frame() support */
     int64_t data_offset; /**< offset of the first packet */
 
@@ -988,6 +998,11 @@ typedef struct AVFormatContext {
      */
     struct AVPacketList *raw_packet_buffer;
     struct AVPacketList *raw_packet_buffer_end;
+    /**
+     * Packets split by the parser get queued here.
+     */
+    struct AVPacketList *parse_queue;
+    struct AVPacketList *parse_queue_end;
     /**
      * Remaining size available for raw_packet_buffer, in bytes.
      */

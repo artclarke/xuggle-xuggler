@@ -29,6 +29,7 @@
 #include "libavutil/common.h"
 #include "libavutil/intmath.h"
 #include "libavutil/intreadwrite.h"
+#include "libavutil/mathematics.h"
 #include "libavutil/audioconvert.h"
 #include "avcodec.h"
 #include "dsputil.h"
@@ -38,6 +39,7 @@
 #include "dcadata.h"
 #include "dcahuff.h"
 #include "dca.h"
+#include "dca_parser.h"
 #include "synth_filter.h"
 #include "dcadsp.h"
 #include "fmtconvert.h"
@@ -638,13 +640,20 @@ static int dca_parse_frame_header(DCAContext *s)
 }
 
 
-static inline int get_scale(GetBitContext *gb, int level, int value)
+static inline int get_scale(GetBitContext *gb, int level, int value, int log2range)
 {
     if (level < 5) {
         /* huffman encoded */
         value += get_bitalloc(gb, &dca_scalefactor, level);
-    } else if (level < 8)
-        value = get_bits(gb, level + 1);
+        value = av_clip(value, 0, (1 << log2range) - 1);
+    } else if (level < 8) {
+        if (level + 1 > log2range) {
+            skip_bits(gb, level + 1 - log2range);
+            value = get_bits(gb, log2range);
+        } else {
+            value = get_bits(gb, level + 1);
+        }
+    }
     return value;
 }
 
@@ -717,18 +726,17 @@ static int dca_subframe_header(DCAContext *s, int base_channel, int block_index)
 
     for (j = base_channel; j < s->prim_channels; j++) {
         const uint32_t *scale_table;
-        unsigned int scale_max;
-        int scale_sum;
+        int scale_sum, log_size;
 
         memset(s->scale_factor[j], 0,
                s->subband_activity[j] * sizeof(s->scale_factor[0][0][0]) * 2);
 
         if (s->scalefactor_huffman[j] == 6) {
             scale_table = scale_factor_quant7;
-            scale_max   = 127;
+            log_size = 7;
         } else {
             scale_table = scale_factor_quant6;
-            scale_max   = 63;
+            log_size = 6;
         }
 
         /* When huffman coded, only the difference is encoded */
@@ -736,21 +744,13 @@ static int dca_subframe_header(DCAContext *s, int base_channel, int block_index)
 
         for (k = 0; k < s->subband_activity[j]; k++) {
             if (k >= s->vq_start_subband[j] || s->bitalloc[j][k] > 0) {
-                scale_sum = get_scale(&s->gb, s->scalefactor_huffman[j], scale_sum);
-                if (scale_sum > scale_max) {
-                    av_log(s->avctx, AV_LOG_ERROR, "scale_sum out of range\n");
-                    return AVERROR_INVALIDDATA;
-                }
+                scale_sum = get_scale(&s->gb, s->scalefactor_huffman[j], scale_sum, log_size);
                 s->scale_factor[j][k][0] = scale_table[scale_sum];
             }
 
             if (k < s->vq_start_subband[j] && s->transition_mode[j][k]) {
                 /* Get second scale factor */
-                scale_sum = get_scale(&s->gb, s->scalefactor_huffman[j], scale_sum);
-                if (scale_sum > scale_max) {
-                    av_log(s->avctx, AV_LOG_ERROR, "scale_sum out of range\n");
-                    return AVERROR_INVALIDDATA;
-                }
+                scale_sum = get_scale(&s->gb, s->scalefactor_huffman[j], scale_sum, log_size);
                 s->scale_factor[j][k][1] = scale_table[scale_sum];
             }
         }
@@ -779,8 +779,7 @@ static int dca_subframe_header(DCAContext *s, int base_channel, int block_index)
              * (is this valid as well for joint scales ???) */
 
             for (k = s->subband_activity[j]; k < s->subband_activity[source_channel]; k++) {
-                scale = get_scale(&s->gb, s->joint_huff[j], 0);
-                scale += 64;    /* bias */
+                scale = get_scale(&s->gb, s->joint_huff[j], 64 /* bias */, 7);
                 s->joint_scale_factor[j][k] = scale;    /*joint_scale_table[scale]; */
             }
 
@@ -801,13 +800,14 @@ static int dca_subframe_header(DCAContext *s, int base_channel, int block_index)
             }
         } else {
             int am = s->amode & DCA_CHANNEL_MASK;
-            if (am < 16) {
+            if (am >= FF_ARRAY_ELEMS(dca_default_coeffs)) {
+                av_log(s->avctx, AV_LOG_ERROR,
+                       "Invalid channel mode %d\n", am);
+                return AVERROR_INVALIDDATA;
+            }
             for (j = base_channel; j < s->prim_channels; j++) {
                 s->downmix_coef[j][0] = dca_default_coeffs[am][j][0];
                 s->downmix_coef[j][1] = dca_default_coeffs[am][j][1];
-            }
-            } else {
-                av_log(s->avctx, AV_LOG_WARNING, "amode > 15 default downmix_coef unsupported\n");
             }
         }
     }
@@ -1382,47 +1382,6 @@ static int dca_decode_block(DCAContext *s, int base_channel, int block_index)
 }
 
 /**
- * Convert bitstream to one representation based on sync marker
- */
-static int dca_convert_bitstream(const uint8_t *src, int src_size, uint8_t *dst,
-                                 int max_size)
-{
-    uint32_t mrk;
-    int i, tmp;
-    const uint16_t *ssrc = (const uint16_t *) src;
-    uint16_t *sdst = (uint16_t *) dst;
-    PutBitContext pb;
-
-    if ((unsigned) src_size > (unsigned) max_size) {
-//        av_log(NULL, AV_LOG_ERROR, "Input frame size larger than DCA_MAX_FRAME_SIZE!\n");
-//        return -1;
-        src_size = max_size;
-    }
-
-    mrk = AV_RB32(src);
-    switch (mrk) {
-    case DCA_MARKER_RAW_BE:
-        memcpy(dst, src, src_size);
-        return src_size;
-    case DCA_MARKER_RAW_LE:
-        for (i = 0; i < (src_size + 1) >> 1; i++)
-            *sdst++ = av_bswap16(*ssrc++);
-        return src_size;
-    case DCA_MARKER_14B_BE:
-    case DCA_MARKER_14B_LE:
-        init_put_bits(&pb, dst, max_size);
-        for (i = 0; i < (src_size + 1) >> 1; i++, src += 2) {
-            tmp = ((mrk == DCA_MARKER_14B_BE) ? AV_RB16(src) : AV_RL16(src)) & 0x3FFF;
-            put_bits(&pb, 14, tmp);
-        }
-        flush_put_bits(&pb);
-        return (put_bits_count(&pb) + 7) >> 3;
-    default:
-        return AVERROR_INVALIDDATA;
-    }
-}
-
-/**
  * Return the number of channels in an ExSS speaker mask (HD)
  */
 static int dca_exss_mask2count(int mask)
@@ -1709,8 +1668,8 @@ static int dca_decode_frame(AVCodecContext *avctx, void *data,
 
     s->xch_present = 0;
 
-    s->dca_buffer_size = dca_convert_bitstream(buf, buf_size, s->dca_buffer,
-                                               DCA_MAX_FRAME_SIZE + DCA_MAX_EXSS_HEADER_SIZE);
+    s->dca_buffer_size = ff_dca_convert_bitstream(buf, buf_size, s->dca_buffer,
+                                                  DCA_MAX_FRAME_SIZE + DCA_MAX_EXSS_HEADER_SIZE);
     if (s->dca_buffer_size == AVERROR_INVALIDDATA) {
         av_log(avctx, AV_LOG_ERROR, "Not a valid DCA frame\n");
         return AVERROR_INVALIDDATA;
@@ -1724,7 +1683,6 @@ static int dca_decode_frame(AVCodecContext *avctx, void *data,
     //set AVCodec values with parsed data
     avctx->sample_rate = s->sample_rate;
     avctx->bit_rate    = s->bit_rate;
-    avctx->frame_size  = s->sample_blocks * 32;
 
     s->profile = FF_PROFILE_DTS;
 
