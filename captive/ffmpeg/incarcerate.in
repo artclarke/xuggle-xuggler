@@ -39,6 +39,11 @@ case $HOST_OS in
   *darwin*)
     # GNU Configure sometimes adds darwin version numbers; this strips them
     HOST_OS_C=darwin
+    # Sigh; but on Xcode 4.2 there is a compiler bug with register allocation.  
+    # Rather than expensively detect the compiler version, I'm going to hard-code
+    # darwin builds for now to debug (no assembly) and wait for a compiler or ffmpeg
+    # fix
+    VS_DEBUG=1
   ;;
 esac
 if [ "@VS_CROSS_COMPILE@" = "1" ]; then
