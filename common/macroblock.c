@@ -121,7 +121,7 @@ static NOINLINE void x264_mb_mc_01xywh( x264_t *h, int x, int y, int width, int 
     int mvy0   = x264_clip3( h->mb.cache.mv[0][i8][1], h->mb.mv_min[1], h->mb.mv_max[1] ) + 4*4*y;
     int mvy1   = x264_clip3( h->mb.cache.mv[1][i8][1], h->mb.mv_min[1], h->mb.mv_max[1] ) + 4*4*y;
     int i_mode = x264_size2pixel[height][width];
-    int i_stride0 = 16, i_stride1 = 16;
+    intptr_t i_stride0 = 16, i_stride1 = 16;
     ALIGNED_ARRAY_16( pixel, tmp0,[16*16] );
     ALIGNED_ARRAY_16( pixel, tmp1,[16*16] );
     pixel *src0, *src1;
@@ -360,17 +360,25 @@ int x264_macroblock_thread_allocate( x264_t *h, int b_lookahead )
 {
     if( !b_lookahead )
     {
-        for( int i = 0; i <= 4*PARAM_INTERLACED; i++ )
+        for( int i = 0; i < (PARAM_INTERLACED ? 5 : 2); i++ )
             for( int j = 0; j < (CHROMA444 ? 3 : 2); j++ )
             {
                 CHECKED_MALLOC( h->intra_border_backup[i][j], (h->sps->i_mb_width*16+32) * sizeof(pixel) );
                 h->intra_border_backup[i][j] += 16;
-                if( !PARAM_INTERLACED )
-                    h->intra_border_backup[1][j] = h->intra_border_backup[i][j];
             }
         for( int i = 0; i <= PARAM_INTERLACED; i++ )
         {
-            CHECKED_MALLOC( h->deblock_strength[i], sizeof(**h->deblock_strength) * h->mb.i_mb_width );
+            if( h->param.b_sliced_threads )
+            {
+                /* Only allocate the first one, and allocate it for the whole frame, because we
+                 * won't be deblocking until after the frame is fully encoded. */
+                if( h == h->thread[0] && !i )
+                    CHECKED_MALLOC( h->deblock_strength[0], sizeof(**h->deblock_strength) * h->mb.i_mb_count );
+                else
+                    h->deblock_strength[i] = h->thread[0]->deblock_strength[0];
+            }
+            else
+                CHECKED_MALLOC( h->deblock_strength[i], sizeof(**h->deblock_strength) * h->mb.i_mb_width );
             h->deblock_strength[1] = h->deblock_strength[i];
         }
     }
@@ -403,8 +411,9 @@ void x264_macroblock_thread_free( x264_t *h, int b_lookahead )
     if( !b_lookahead )
     {
         for( int i = 0; i <= PARAM_INTERLACED; i++ )
-            x264_free( h->deblock_strength[i] );
-        for( int i = 0; i <= 4*PARAM_INTERLACED; i++ )
+            if( !h->param.b_sliced_threads || (h == h->thread[0] && !i) )
+                x264_free( h->deblock_strength[i] );
+        for( int i = 0; i < (PARAM_INTERLACED ? 5 : 2); i++ )
             for( int j = 0; j < (CHROMA444 ? 3 : 2); j++ )
                 x264_free( h->intra_border_backup[i][j] - 16 );
     }
@@ -563,7 +572,7 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x
                      ? 16 * mb_x + height * (mb_y&~1) * i_stride + (mb_y&1) * i_stride
                      : 16 * mb_x + height * mb_y * i_stride;
     pixel *plane_fdec = &h->fdec->plane[i][i_pix_offset];
-    int fdec_idx = b_mbaff ? (mb_interlaced ? (3 + (mb_y&1)) : (mb_y&1) ? 2 : 4) : 0;
+    int fdec_idx = b_mbaff ? (mb_interlaced ? (3 + (mb_y&1)) : (mb_y&1) ? 2 : 4) : !(mb_y&1);
     pixel *intra_fdec = &h->intra_border_backup[fdec_idx][i][mb_x*16];
     int ref_pix_offset[2] = { i_pix_offset, i_pix_offset };
     /* ref_pix_offset[0] references the current field and [1] the opposite field. */
@@ -576,20 +585,16 @@ static void ALWAYS_INLINE x264_macroblock_load_pic_pointers( x264_t *h, int mb_x
         h->mc.load_deinterleave_chroma_fenc( h->mb.pic.p_fenc[1], h->mb.pic.p_fenc_plane[1], i_stride2, height );
         memcpy( h->mb.pic.p_fdec[1]-FDEC_STRIDE, intra_fdec, 8*sizeof(pixel) );
         memcpy( h->mb.pic.p_fdec[2]-FDEC_STRIDE, intra_fdec+8, 8*sizeof(pixel) );
-        if( b_mbaff )
-        {
-            h->mb.pic.p_fdec[1][-FDEC_STRIDE-1] = intra_fdec[-1-8];
-            h->mb.pic.p_fdec[2][-FDEC_STRIDE-1] = intra_fdec[-1];
-        }
+        h->mb.pic.p_fdec[1][-FDEC_STRIDE-1] = intra_fdec[-1-8];
+        h->mb.pic.p_fdec[2][-FDEC_STRIDE-1] = intra_fdec[-1];
     }
     else
     {
         h->mc.copy[PIXEL_16x16]( h->mb.pic.p_fenc[i], FENC_STRIDE, h->mb.pic.p_fenc_plane[i], i_stride2, 16 );
         memcpy( h->mb.pic.p_fdec[i]-FDEC_STRIDE, intra_fdec, 24*sizeof(pixel) );
-        if( b_mbaff )
-            h->mb.pic.p_fdec[i][-FDEC_STRIDE-1] = intra_fdec[-1];
+        h->mb.pic.p_fdec[i][-FDEC_STRIDE-1] = intra_fdec[-1];
     }
-    if( b_mbaff )
+    if( b_mbaff || h->mb.b_reencode_mb )
     {
         for( int j = 0; j < height; j++ )
             if( b_chroma )
@@ -863,6 +868,8 @@ static void ALWAYS_INLINE x264_macroblock_cache_load( x264_t *h, int mb_x, int m
     int16_t *cbp = h->mb.cbp;
 
     const x264_left_table_t *left_index_table = h->mb.left_index_table;
+
+    h->mb.cache.deblock_strength = h->deblock_strength[mb_y&1][h->param.b_sliced_threads?h->mb.i_mb_xy:mb_x];
 
     /* load cache */
     if( h->mb.i_neighbour & MB_TOP )
@@ -1438,7 +1445,7 @@ static void x264_macroblock_deblock_strength_mbaff( x264_t *h, uint8_t (*bs)[8][
 
 void x264_macroblock_deblock_strength( x264_t *h )
 {
-    uint8_t (*bs)[8][4] = h->deblock_strength[h->mb.i_mb_y&1][h->mb.i_mb_x];
+    uint8_t (*bs)[8][4] = h->mb.cache.deblock_strength;
     if( IS_INTRA( h->mb.i_type ) )
     {
         memset( bs[0][1], 3, 3*4*sizeof(uint8_t) );
@@ -1638,7 +1645,7 @@ static void ALWAYS_INLINE x264_macroblock_backup_intra( x264_t *h, int mb_x, int
      * For progressive mbs this is the bottom two rows, and for interlaced the
      * bottom row of each field. We also store samples needed for the next
      * mbpair in intra_border_backup[2]. */
-    int backup_dst = !b_mbaff ? 0 : (mb_y&1) ? 1 : MB_INTERLACED ? 0 : 2;
+    int backup_dst = !b_mbaff ? (mb_y&1) : (mb_y&1) ? 1 : MB_INTERLACED ? 0 : 2;
     memcpy( &h->intra_border_backup[backup_dst][0][mb_x*16  ], h->mb.pic.p_fdec[0]+FDEC_STRIDE*15, 16*sizeof(pixel) );
     if( CHROMA444 )
     {
@@ -1671,14 +1678,6 @@ static void ALWAYS_INLINE x264_macroblock_backup_intra( x264_t *h, int mb_x, int
                 memcpy( &h->intra_border_backup[backup_dst][1][mb_x*16+8], h->mb.pic.p_fdec[2]+backup_src,  8*sizeof(pixel) );
             }
         }
-    }
-    else
-    {
-        /* In progressive we update intra_border_backup in-place, so the topleft neighbor will
-         * no longer exist there when load_pic_pointers wants it. Move it within p_fdec instead. */
-        h->mb.pic.p_fdec[0][-FDEC_STRIDE-1] = h->mb.pic.p_fdec[0][-FDEC_STRIDE+15];
-        h->mb.pic.p_fdec[1][-FDEC_STRIDE-1] = h->mb.pic.p_fdec[1][-FDEC_STRIDE+(15>>CHROMA_H_SHIFT)];
-        h->mb.pic.p_fdec[2][-FDEC_STRIDE-1] = h->mb.pic.p_fdec[2][-FDEC_STRIDE+(15>>CHROMA_H_SHIFT)];
     }
 }
 

@@ -4,6 +4,7 @@
 ;* Copyright (C) 2008-2012 x264 project
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
+;*          Henrik Gramner <hengar-6@student.ltu.se>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -29,7 +30,7 @@ SECTION_RODATA
 
 error_message: db "failed to preserve register", 0
 
-%if WIN64
+%if ARCH_X86_64
 ; just random numbers to reduce the chance of incidental match
 ALIGN 16
 x6:  ddq 0x79445c159ce790641a1b2550a612b48c
@@ -60,64 +61,107 @@ cextern_naked puts
 ; (max_args % 4) must equal 3 for stack alignment
 %define max_args 15
 
+%if ARCH_X86_64
+
+;-----------------------------------------------------------------------------
+; void x264_checkasm_stack_clobber( uint64_t clobber, ... )
+;-----------------------------------------------------------------------------
+cglobal checkasm_stack_clobber, 1,2
+    ; Clobber the stack with junk below the stack pointer
+    %define size (max_args+6)*8
+    SUB  rsp, size
+    mov   r1, size-8
+.loop:
+    mov [rsp+r1], r0
+    sub   r1, 8
+    jge .loop
+    ADD  rsp, size
+    RET
+
 %if WIN64
+    %assign free_regs 7
+%else
+    %assign free_regs 9
+%endif
 
 ;-----------------------------------------------------------------------------
 ; intptr_t x264_checkasm_call( intptr_t (*func)(), int *ok, ... )
 ;-----------------------------------------------------------------------------
 INIT_XMM
-cglobal checkasm_call, 4,15,16
-    SUB  rsp, max_args*8
+cglobal checkasm_call, 2,15,16
+    SUB  rsp, max_args*8+16
     mov  r6, r0
-    mov  [rsp+stack_offset+16], r1
-    mov  r0, r2
-    mov  r1, r3
-    mov r2d, r4m ; FIXME truncates pointer
-    mov r3d, r5m ; FIXME truncates pointer
-%assign i 4
-%rep max_args-4
-    mov  r4, [rsp+stack_offset+8+(i+2)*8]
-    mov  [rsp+i*8], r4
-    %assign i i+1
-%endrep
-%assign i 6
-%rep 16-6
-    mova m %+ i, [x %+ i]
-    %assign i i+1
-%endrep
-%assign i 7
-%rep 15-7
+    mov  [rsp+max_args*8], r1
+
+    ; All arguments have been pushed on the stack instead of registers in order to
+    ; test for incorrect assumptions that 32-bit ints are zero-extended to 64-bit.
+    mov  r0, r6mp
+    mov  r1, r7mp
+    mov  r2, r8mp
+    mov  r3, r9mp
+%if UNIX64
+    mov  r4, r10mp
+    mov  r5, r11mp
+    %assign i 6
+    %rep max_args-6
+        mov  r9, [rsp+stack_offset+(i+1)*8]
+        mov  [rsp+(i-6)*8], r9
+        %assign i i+1
+    %endrep
+%else
+    %assign i 4
+    %rep max_args-4
+        mov  r9, [rsp+stack_offset+(i+7)*8]
+        mov  [rsp+i*8], r9
+        %assign i i+1
+    %endrep
+%endif
+
+%if WIN64
+    %assign i 6
+    %rep 16-6
+        mova m %+ i, [x %+ i]
+        %assign i i+1
+    %endrep
+%endif
+
+%assign i 14
+%rep 15-free_regs
     mov  r %+ i, [n %+ i]
-    %assign i i+1
+    %assign i i-1
 %endrep
     call r6
-%assign i 7
-%rep 15-7
+%assign i 14
+%rep 15-free_regs
     xor  r %+ i, [n %+ i]
-    or   r7, r %+ i
-    %assign i i+1
+    or  r14, r %+ i
+    %assign i i-1
 %endrep
-%assign i 6
-%rep 16-6
-    pxor m %+ i, [x %+ i]
-    por  m6, m %+ i
-    %assign i i+1
-%endrep
+
+%if WIN64
+    %assign i 6
+    %rep 16-6
+        pxor m %+ i, [x %+ i]
+        por  m6, m %+ i
+        %assign i i+1
+    %endrep
     packsswb m6, m6
     movq r5, m6
-    or   r7, r5
+    or  r14, r5
+%endif
+
     jz .ok
-    mov  r4, rax
+    mov  r9, rax
     lea  r0, [error_message]
     call puts
-    mov  r1, [rsp+stack_offset+16]
+    mov  r1, [rsp+max_args*8]
     mov  dword [r1], 0
-    mov  rax, r4
+    mov  rax, r9
 .ok:
-    ADD  rsp, max_args*8
+    ADD  rsp, max_args*8+16
     RET
 
-%elif ARCH_X86_64 == 0
+%else
 
 ; just random numbers to reduce the chance of incidental match
 %define n3 dword 0x6549315c

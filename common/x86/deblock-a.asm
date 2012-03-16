@@ -160,7 +160,7 @@ cextern pw_pixel_max
 
 %macro DEBLOCK_LUMA 0
 ;-----------------------------------------------------------------------------
-; void deblock_v_luma( uint16_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+; void deblock_v_luma( uint16_t *pix, intptr_t stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
 cglobal deblock_v_luma, 5,5,8
     %assign pad 5*mmsize+12-(stack_offset&15)
@@ -603,7 +603,7 @@ DEBLOCK_LUMA_64
 
 %if ARCH_X86_64
 ;-----------------------------------------------------------------------------
-; void deblock_v_luma_intra( uint16_t *pix, int stride, int alpha, int beta )
+; void deblock_v_luma_intra( uint16_t *pix, intptr_t stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
 %macro DEBLOCK_LUMA_INTRA_64 0
 cglobal deblock_v_luma_intra, 4,7,16
@@ -653,7 +653,7 @@ cglobal deblock_v_luma_intra, 4,7,16
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void deblock_h_luma_intra( uint16_t *pix, int stride, int alpha, int beta )
+; void deblock_h_luma_intra( uint16_t *pix, intptr_t stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
 cglobal deblock_h_luma_intra, 4,7,16
     %define t0 m15
@@ -722,7 +722,7 @@ DEBLOCK_LUMA_INTRA_64
 
 %macro DEBLOCK_LUMA_INTRA 0
 ;-----------------------------------------------------------------------------
-; void deblock_v_luma_intra( uint16_t *pix, int stride, int alpha, int beta )
+; void deblock_v_luma_intra( uint16_t *pix, intptr_t stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
 cglobal deblock_v_luma_intra, 4,7,8
     LUMA_INTRA_INIT 3
@@ -748,7 +748,7 @@ cglobal deblock_v_luma_intra, 4,7,8
     RET
 
 ;-----------------------------------------------------------------------------
-; void deblock_h_luma_intra( uint16_t *pix, int stride, int alpha, int beta )
+; void deblock_h_luma_intra( uint16_t *pix, intptr_t stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
 cglobal deblock_h_luma_intra, 4,7,8
     LUMA_INTRA_INIT 8
@@ -1090,7 +1090,7 @@ DEBLOCK_LUMA_INTRA
 
 %if ARCH_X86_64
 ;-----------------------------------------------------------------------------
-; void deblock_v_luma( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+; void deblock_v_luma( uint8_t *pix, intptr_t stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
 %macro DEBLOCK_LUMA 0
 cglobal deblock_v_luma, 5,5,10
@@ -1135,12 +1135,11 @@ cglobal deblock_v_luma, 5,5,10
     RET
 
 ;-----------------------------------------------------------------------------
-; void deblock_h_luma( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+; void deblock_h_luma( uint8_t *pix, intptr_t stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
 INIT_MMX cpuname
 cglobal deblock_h_luma, 5,9
-    movsxd r7, r1d
-    lea    r8, [r7*3]
+    lea    r8, [r1*3]
     lea    r6, [r0-4]
     lea    r5, [r0-4+r8]
 %if WIN64
@@ -1152,14 +1151,15 @@ cglobal deblock_h_luma, 5,9
 %endif
 
     ; transpose 6x16 -> tmp space
-    TRANSPOSE6x8_MEM  PASS8ROWS(r6, r5, r7, r8), pix_tmp
-    lea    r6, [r6+r7*8]
-    lea    r5, [r5+r7*8]
-    TRANSPOSE6x8_MEM  PASS8ROWS(r6, r5, r7, r8), pix_tmp+8
+    TRANSPOSE6x8_MEM  PASS8ROWS(r6, r5, r1, r8), pix_tmp
+    lea    r6, [r6+r1*8]
+    lea    r5, [r5+r1*8]
+    TRANSPOSE6x8_MEM  PASS8ROWS(r6, r5, r1, r8), pix_tmp+8
 
     ; vertical filter
     ; alpha, beta, tc0 are still in r2d, r3d, r4
     ; don't backup r6, r5, r7, r8 because deblock_v_luma_sse2 doesn't use them
+    mov    r7, r1
     lea    r0, [pix_tmp+0x30]
     mov    r1d, 0x10
 %if WIN64
@@ -1203,7 +1203,7 @@ DEBLOCK_LUMA
 
 %macro DEBLOCK_LUMA 2
 ;-----------------------------------------------------------------------------
-; void deblock_v8_luma( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+; void deblock_v8_luma( uint8_t *pix, intptr_t stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
 cglobal deblock_%1_luma, 5,5
     lea     r4, [r1*3]
@@ -1255,7 +1255,7 @@ cglobal deblock_%1_luma, 5,5
     RET
 
 ;-----------------------------------------------------------------------------
-; void deblock_h_luma( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+; void deblock_h_luma( uint8_t *pix, intptr_t stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
 INIT_MMX cpuname
 cglobal deblock_h_luma, 0,5
@@ -1452,7 +1452,7 @@ DEBLOCK_LUMA v, 16
 %endif
 
 ;-----------------------------------------------------------------------------
-; void deblock_v_luma_intra( uint8_t *pix, int stride, int alpha, int beta )
+; void deblock_v_luma_intra( uint8_t *pix, intptr_t stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
 cglobal deblock_%1_luma_intra, 4,6,16
 %if ARCH_X86_64 == 0
@@ -1514,24 +1514,24 @@ cglobal deblock_%1_luma_intra, 4,6,16
 INIT_MMX cpuname
 %if ARCH_X86_64
 ;-----------------------------------------------------------------------------
-; void deblock_h_luma_intra( uint8_t *pix, int stride, int alpha, int beta )
+; void deblock_h_luma_intra( uint8_t *pix, intptr_t stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
 cglobal deblock_h_luma_intra, 4,9
-    movsxd r7, r1d
-    lea    r8, [r7*3]
+    lea    r8, [r1*3]
     lea    r6, [r0-4]
     lea    r5, [r0-4+r8]
     sub   rsp, 0x88
     %define pix_tmp rsp
 
     ; transpose 8x16 -> tmp space
-    TRANSPOSE8x8_MEM  PASS8ROWS(r6, r5, r7, r8), PASS8ROWS(pix_tmp, pix_tmp+0x30, 0x10, 0x30)
-    lea    r6, [r6+r7*8]
-    lea    r5, [r5+r7*8]
-    TRANSPOSE8x8_MEM  PASS8ROWS(r6, r5, r7, r8), PASS8ROWS(pix_tmp+8, pix_tmp+0x38, 0x10, 0x30)
+    TRANSPOSE8x8_MEM  PASS8ROWS(r6, r5, r1, r8), PASS8ROWS(pix_tmp, pix_tmp+0x30, 0x10, 0x30)
+    lea    r6, [r6+r1*8]
+    lea    r5, [r5+r1*8]
+    TRANSPOSE8x8_MEM  PASS8ROWS(r6, r5, r1, r8), PASS8ROWS(pix_tmp+8, pix_tmp+0x38, 0x10, 0x30)
 
-    lea    r0,  [pix_tmp+0x40]
-    mov    r1,  0x10
+    mov    r7, r1
+    lea    r0, [pix_tmp+0x40]
+    mov    r1, 0x10
     call   deblock_v_luma_intra
 
     ; transpose 16x6 -> original space (but we can't write only 6 pixels, so really 16x8)
@@ -1685,9 +1685,9 @@ cglobal deblock_inter_body
     ret
 
 ;-----------------------------------------------------------------------------
-; void deblock_v_chroma( uint16_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+; void deblock_v_chroma( uint16_t *pix, intptr_t stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
-cglobal deblock_v_chroma, 7,7,8
+cglobal deblock_v_chroma, 5,7,8
     FIX_STRIDES r1
     mov         r5, r0
     sub         r0, r1
@@ -1705,7 +1705,7 @@ cglobal deblock_v_chroma, 7,7,8
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void deblock_h_chroma( uint16_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+; void deblock_h_chroma( uint16_t *pix, intptr_t stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
 cglobal deblock_h_chroma, 5,7,8
     add         r1, r1
@@ -1731,7 +1731,7 @@ cglobal deblock_intra_body
     ret
 
 ;-----------------------------------------------------------------------------
-; void deblock_v_chroma_intra( uint16_t *pix, int stride, int alpha, int beta )
+; void deblock_v_chroma_intra( uint16_t *pix, intptr_t stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
 cglobal deblock_v_chroma_intra, 4,6,8
     add         r1, r1
@@ -1752,7 +1752,7 @@ cglobal deblock_v_chroma_intra, 4,6,8
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void deblock_h_chroma_intra( uint16_t *pix, int stride, int alpha, int beta )
+; void deblock_h_chroma_intra( uint16_t *pix, intptr_t stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
 cglobal deblock_h_chroma_intra, 4,6,8
     add         r1, r1
@@ -1770,7 +1770,7 @@ cglobal deblock_h_chroma_intra, 4,6,8
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void deblock_h_chroma_intra_mbaff( uint16_t *pix, int stride, int alpha, int beta )
+; void deblock_h_chroma_intra_mbaff( uint16_t *pix, intptr_t stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
 cglobal deblock_h_chroma_intra_mbaff, 4,6,8
     add         r1, r1
@@ -1793,7 +1793,7 @@ cglobal deblock_h_chroma_intra_mbaff, 4,6,8
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void deblock_h_chroma_mbaff( uint16_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+; void deblock_h_chroma_mbaff( uint16_t *pix, intptr_t stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
 cglobal deblock_h_chroma_mbaff, 5,7,8
     add         r1, r1
@@ -1821,7 +1821,7 @@ cglobal deblock_h_chroma_mbaff, 5,7,8
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void deblock_h_chroma_422_intra( uint16_t *pix, int stride, int alpha, int beta )
+; void deblock_h_chroma_422_intra( uint16_t *pix, intptr_t stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
 cglobal deblock_h_chroma_422_intra, 4,6,8
     add         r1, r1
@@ -1839,7 +1839,7 @@ cglobal deblock_h_chroma_422_intra, 4,6,8
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void deblock_h_chroma_422( uint16_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+; void deblock_h_chroma_422( uint16_t *pix, intptr_t stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
 cglobal deblock_h_chroma_422, 5,7,8
     add         r1, r1
@@ -1940,7 +1940,7 @@ cglobal chroma_inter_body
     ret
 
 ;-----------------------------------------------------------------------------
-; void deblock_v_chroma( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+; void deblock_v_chroma( uint8_t *pix, intptr_t stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
 cglobal deblock_v_chroma, 5,6,8
     CHROMA_V_START
@@ -1955,7 +1955,7 @@ cglobal deblock_v_chroma, 5,6,8
     RET
 
 ;-----------------------------------------------------------------------------
-; void deblock_h_chroma( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+; void deblock_h_chroma( uint8_t *pix, intptr_t stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
 cglobal deblock_h_chroma, 5,7,8
     CHROMA_H_START
@@ -1980,7 +1980,7 @@ DEBLOCK_CHROMA
 %endif
 
 ;-----------------------------------------------------------------------------
-; void deblock_h_chroma_mbaff( uint8_t *pix, int stride, int alpha, int beta, int8_t *tc0 )
+; void deblock_h_chroma_mbaff( uint8_t *pix, intptr_t stride, int alpha, int beta, int8_t *tc0 )
 ;-----------------------------------------------------------------------------
 %macro DEBLOCK_H_CHROMA_420_MBAFF 0
 cglobal deblock_h_chroma_mbaff, 5,7,8
@@ -2076,7 +2076,7 @@ cglobal chroma_intra_body
 
 %macro DEBLOCK_CHROMA_INTRA 0
 ;-----------------------------------------------------------------------------
-; void deblock_v_chroma_intra( uint8_t *pix, int stride, int alpha, int beta )
+; void deblock_v_chroma_intra( uint8_t *pix, intptr_t stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
 cglobal deblock_v_chroma_intra, 4,5,8
     CHROMA_V_START
@@ -2091,7 +2091,7 @@ cglobal deblock_v_chroma_intra, 4,5,8
     RET
 
 ;-----------------------------------------------------------------------------
-; void deblock_h_chroma_intra( uint8_t *pix, int stride, int alpha, int beta )
+; void deblock_h_chroma_intra( uint8_t *pix, intptr_t stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
 cglobal deblock_h_chroma_intra, 4,6,8
     CHROMA_H_START
@@ -2132,7 +2132,7 @@ DEBLOCK_CHROMA_INTRA
 %endif
 
 ;-----------------------------------------------------------------------------
-; void deblock_h_chroma_intra_mbaff( uint8_t *pix, int stride, int alpha, int beta )
+; void deblock_h_chroma_intra_mbaff( uint8_t *pix, intptr_t stride, int alpha, int beta )
 ;-----------------------------------------------------------------------------
 INIT_MMX mmx2
 cglobal deblock_h_chroma_intra_mbaff, 4,6,8
@@ -2218,10 +2218,9 @@ cglobal deblock_h_chroma_intra_mbaff, 4,6,8
 %endmacro
 
 %macro LOAD_BYTES_XMM 1
-    movu      m0, [%1-4] ; FIXME could be aligned if we changed nnz's allocation
+    movu      m2, [%1-4] ; FIXME could be aligned if we changed nnz's allocation
     movu      m1, [%1+12]
-    mova      m2, m0
-    pslldq    m0, 1
+    pslldq    m0, m2, 1
     shufps    m2, m1, q3131 ; cur nnz, all rows
     pslldq    m1, 1
     shufps    m0, m1, q3131 ; left neighbors
@@ -2278,7 +2277,7 @@ cglobal deblock_strength, 6,6
     RET
 
 %macro DEBLOCK_STRENGTH_XMM 0
-cglobal deblock_strength, 6,6,8
+cglobal deblock_strength, 6,6,7
     ; Prepare mv comparison register
     shl      r4d, 8
     add      r4d, 3 - (1<<8)
@@ -2308,9 +2307,9 @@ cglobal deblock_strength, 6,6,8
     mova      m2, [mv+4*8*2]
     mova      m1, [mv+4*8*3]
     palignr   m3, m2, [mv+4*8*2-16], 12
-    palignr   m7, m1, [mv+4*8*3-16], 12
     psubw     m2, m3
-    psubw     m1, m7
+    palignr   m3, m1, [mv+4*8*3-16], 12
+    psubw     m1, m3
     packsswb  m2, m1
 %else
     movu      m0, [mv-4+4*8*0]

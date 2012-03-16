@@ -58,7 +58,6 @@ typedef struct
     int     last;
     int     mask;
     dctcoef level[16];
-    uint8_t run[16];
 } x264_run_level_t;
 
 extern const vlc_t x264_coeff0_token[6];

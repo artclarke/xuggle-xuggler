@@ -32,7 +32,7 @@
 // note: prefetch stuff assumes 64-byte cacheline, true for the Cortex-A8
 // They also use nothing above armv5te, but we don't care about pre-armv6
 
-// void prefetch_ref( uint8_t *pix, int stride, int parity )
+// void prefetch_ref( uint8_t *pix, intptr_t stride, int parity )
 function x264_prefetch_ref_arm
     sub         r2, r2, #1
     add         r0, r0, #64
@@ -51,8 +51,8 @@ function x264_prefetch_ref_arm
     bx          lr
 .endfunc
 
-// void prefetch_fenc( uint8_t *pix_y, int stride_y,
-//                     uint8_t *pix_uv, int stride_uv, int mb_x )
+// void prefetch_fenc( uint8_t *pix_y,  intptr_t stride_y,
+//                     uint8_t *pix_uv, intptr_t stride_uv, int mb_x )
 function x264_prefetch_fenc_arm
     ldr         ip, [sp]
     push        {lr}
@@ -78,7 +78,7 @@ function x264_prefetch_fenc_arm
 .endfunc
 
 
-// void *x264_memcpy_aligned( void * dst, const void * src, size_t n )
+// void *x264_memcpy_aligned( void *dst, const void *src, size_t n )
 function x264_memcpy_aligned_neon
     orr         r3,  r0,  r1,  lsr #1
     movrel      ip,  memcpy_table
@@ -158,9 +158,9 @@ memzero_loop:
 .endfunc
 
 
-// void pixel_avg( uint8_t *dst, int dst_stride,
-//                 uint8_t *src1, int src1_stride,
-//                 uint8_t *src2, int src2_stride, int weight );
+// void pixel_avg( uint8_t *dst,  intptr_t dst_stride,
+//                 uint8_t *src1, intptr_t src1_stride,
+//                 uint8_t *src2, intptr_t src2_stride, int weight );
 .macro AVGH w h
 function x264_pixel_avg_\w\()x\h\()_neon
     ldr         ip, [sp, #8]
@@ -455,7 +455,7 @@ avg2_w20_loop:
 .endif
 .endm
 
-// void mc_weight( uint8_t *src, int src_stride, uint8_t *dst, int dst_stride,
+// void mc_weight( uint8_t *src, intptr_t src_stride, uint8_t *dst, intptr_t dst_stride,
 //                 const x264_weight_t *weight, int height )
 function x264_mc_weight_w20_neon
     weight_prologue full
@@ -744,7 +744,7 @@ weight_simple offsetadd, vqadd.u8
 weight_simple offsetsub, vqsub.u8
 
 
-// void mc_copy( uint8_t *dst, int dst_stride, uint8_t *src, int src_stride, int height )
+// void mc_copy( uint8_t *dst, intptr_t dst_stride, uint8_t *src, intptr_t src_stride, int height )
 function x264_mc_copy_w4_neon
     ldr         ip,  [sp]
 copy_w4_loop:
@@ -810,8 +810,8 @@ copy_w16_aligned_loop:
 .endfunc
 
 
-// void x264_mc_chroma_neon( uint8_t *dst, int i_dst_stride,
-//                           uint8_t *src, int i_src_stride,
+// void x264_mc_chroma_neon( uint8_t *dst, intptr_t i_dst_stride,
+//                           uint8_t *src, intptr_t i_src_stride,
 //                           int dx, int dy, int i_width, int i_height );
 function x264_mc_chroma_neon
     push            {r4-r6, lr}
@@ -1052,7 +1052,7 @@ mc_chroma_w8:
 .endfunc
 
 
-// hpel_filter_v( uint8_t *dst, uint8_t *src, int16_t *buf, int stride, int width)
+// hpel_filter_v( uint8_t *dst, uint8_t *src, int16_t *buf, intptr_t stride, int width )
 function x264_hpel_filter_v_neon
     ldr             ip,  [sp]
     sub             r1,  r1,  r3,  lsl #1
@@ -1266,7 +1266,7 @@ filter_h_loop:
 
 
 // frame_init_lowres_core( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv,
-//                         uint8_t *dstc, int src_stride, int dst_stride, int width,
+//                         uint8_t *dstc, intptr_t src_stride, intptr_t dst_stride, int width,
 //                         int height )
 function x264_frame_init_lowres_core_neon
     push            {r4-r10,lr}

@@ -1987,7 +1987,7 @@ static void x264_mb_analyse_inter_b16x16( x264_t *h, x264_mb_analysis_t *a )
     ALIGNED_ARRAY_16( pixel, pix0,[16*16] );
     ALIGNED_ARRAY_16( pixel, pix1,[16*16] );
     pixel *src0, *src1;
-    int stride0 = 16, stride1 = 16;
+    intptr_t stride0 = 16, stride1 = 16;
     int i_ref, i_mvc;
     ALIGNED_4( int16_t mvc[9][2] );
     int try_skip = a->b_try_skip;
@@ -2304,7 +2304,7 @@ static void x264_mb_analyse_inter_b8x8_mixed_ref( x264_t *h, x264_mb_analysis_t 
         int y8 = i>>1;
         int i_part_cost;
         int i_part_cost_bi;
-        int stride[2] = {8,8};
+        intptr_t stride[2] = {8,8};
         pixel *src[2];
         x264_me_t m;
         m.i_pixel = PIXEL_8x8;
@@ -2393,7 +2393,7 @@ static void x264_mb_analyse_inter_b8x8( x264_t *h, x264_mb_analysis_t *a )
         int y8 = i>>1;
         int i_part_cost;
         int i_part_cost_bi = 0;
-        int stride[2] = {8,8};
+        intptr_t stride[2] = {8,8};
         pixel *src[2];
 
         for( int l = 0; l < 2; l++ )
@@ -2464,7 +2464,7 @@ static void x264_mb_analyse_inter_b16x8( x264_t *h, x264_mb_analysis_t *a, int i
     {
         int i_part_cost;
         int i_part_cost_bi = 0;
-        int stride[2] = {16,16};
+        intptr_t stride[2] = {16,16};
         pixel *src[2];
         x264_me_t m;
         m.i_pixel = PIXEL_16x8;
@@ -2558,7 +2558,7 @@ static void x264_mb_analyse_inter_b8x16( x264_t *h, x264_mb_analysis_t *a, int i
     {
         int i_part_cost;
         int i_part_cost_bi = 0;
-        int stride[2] = {8,8};
+        intptr_t stride[2] = {8,8};
         pixel *src[2];
         x264_me_t m;
         m.i_pixel = PIXEL_8x16;

@@ -67,7 +67,7 @@ INIT_MMX mmx2
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; int pixel_sa8d_8x8( uint8_t *, int, uint8_t *, int )
+; int pixel_sa8d_8x8( uint8_t *, intptr_t, uint8_t *, intptr_t )
 ;-----------------------------------------------------------------------------
 cglobal pixel_sa8d_8x8_internal
     push   r0
@@ -362,8 +362,8 @@ cglobal intra_sa8d_x3_8x8, 2,3
 
 
 ;-----------------------------------------------------------------------------
-; void pixel_ssim_4x4x2_core( const uint8_t *pix1, int stride1,
-;                             const uint8_t *pix2, int stride2, int sums[2][4] )
+; void pixel_ssim_4x4x2_core( const uint8_t *pix1, intptr_t stride1,
+;                             const uint8_t *pix2, intptr_t stride2, int sums[2][4] )
 ;-----------------------------------------------------------------------------
 cglobal pixel_ssim_4x4x2_core, 0,5
     mov       r1, r1m
