@@ -391,10 +391,10 @@ libxuggle_la_LIBADD = $(builddir)/xuggler/libxuggle-xuggler.la \
 	$(builddir)/xuggler/io/libxuggle-xuggler-io.la \
 	$(builddir)/ferry/libxuggle-ferry.la
 
-libxuggle_la_LDFLAGS = -no-undefined -shared -version-number \
-	@LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@:0 $(VS_LDFLAGS) \
-	$(VS_PKG_LIBRARIES) @VS_LIBSTDCXX@ $(am__append_1) \
-	$(am__append_2)
+libxuggle_la_LDFLAGS = -no-undefined -shared -Wl,-Bsymbolic \
+	-version-number @LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@:0 \
+	$(VS_LDFLAGS) $(VS_PKG_LIBRARIES) @VS_LIBSTDCXX@ \
+	$(am__append_1) $(am__append_2)
 all: all-recursive
 
 .SUFFIXES:

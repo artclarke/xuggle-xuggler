@@ -61,6 +61,7 @@ libxuggle_la_LIBADD = $(builddir)/xuggler/libxuggle-xuggler.la \
 
 libxuggle_la_LDFLAGS = \
 	-no-undefined -shared \
+	-Wl,-Bsymbolic \
 	-version-number @LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@:0 \
 	$(VS_LDFLAGS) \
 	$(VS_PKG_LIBRARIES) \
