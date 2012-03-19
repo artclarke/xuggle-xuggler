@@ -49,9 +49,9 @@ darwin_lipo()
      "${DIR}/dist/stage/${VS_MAC32}${XUGGLE_HOME}"
 
    if [ -f "${DIR}/build/native/${VS_MACU}${XUGGLE_HOME}/lib/libxuggle.dylib" ]; then
-     mkdir -p "${DIR}/build/classes/com/xuggle/arch/${VS_MACU}"
+     mkdir -p "${DIR}/build/classes/com/xuggle/ferry/${VS_MACU}"
      cp -f "${DIR}/build/native/${VS_MACU}${XUGGLE_HOME}/lib/libxuggle.dylib" \
-       "${DIR}/build/classes/com/xuggle/arch/${VS_MACU}"
+       "${DIR}/build/classes/com/xuggle/ferry/${VS_MACU}"
    fi
 }
 
