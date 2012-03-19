@@ -240,7 +240,7 @@ public class JNILibrary implements Comparable<JNILibrary>
   /** Looks for a URL in a classpath, and if found, unpacks it */
   private boolean unpackLibrary(String path)
   {
-    final URL url = JNILibrary.class.getClassLoader().getResource(path);
+    final URL url = JNILibrary.class.getResource(path);
     if (url == null)
       return false;
     
