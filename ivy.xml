@@ -1,27 +1,42 @@
-<ivy-module version="1.0">
-  <info organisation="xuggle" module="xuggle-xuggler" />
+<ivy-module version="1.0" xmlns:m="http://ant.apache.org/ivy/maven">
+
+  <info organisation="xuggle" module="xuggle-xuggler" revision="${ivy.revision}" />
+
   <configurations>
     <conf name="default"/>
+    <conf name="sources"/>
     <conf name="test" extends="default" description="Unit testing dependencies"/>
     <conf name="compile" extends="default" description="Compile time dependencies"/>
   </configurations>
+
   <publications>
-    <artifact name="xuggle-xuggler" type="jar" conf="default" ext="jar"/>
+    <artifact type="pom" ext="pom" conf="default"/>
+    <artifact type="jar" ext="jar" conf="default"/>
     <artifact name="xuggle-xuggler-noarch" type="jar" conf="default" ext="jar"/>
+
+    <!--
+      To publish sources to a maven repo, the
+      m:classifier="sources" is required.
+    -->
+    <artifact type="source" ext="jar" conf="sources" m:classifier="sources"/>
   </publications>
-  <dependencies defaultconfmapping="*->*">
+
+  <dependencies defaultconf="default">
+    <!-- compile dependencies -->
     <!-- Logging --> 
-    <dependency org="red5" name="slf4j-api" conf="*" rev="1.5.6" />
-    <dependency org="red5" name="logback-core" conf="*" rev="0.9.14" />
-    <dependency org="red5" name="logback-classic" conf="*" rev="0.9.14" />
-
+    <dependency org="org.slf4j" name="slf4j-api" conf="compile,default->master" rev="1.6.4" />
     <!-- Command line processing -->
-    <dependency org="apache" name="commons-cli" conf="*" rev="1.1" />
+    <dependency org="commons-cli" name="commons-cli" conf="compile,default->master" rev="1.1" />
 
+    <!-- runtime dependencies; although not really -->
+    <dependency org="ch.qos.logback" name="logback-core" conf="default->master" rev="1.0.0" />
+    <dependency org="ch.qos.logback" name="logback-classic" conf="default->master" rev="1.0.0" />
+
+    <!-- testing dependencies -->
     <!--  Include for JUnit Test framework -->
-    <dependency org="junit" name="junit" rev="4.5" conf="test" />
+    <dependency org="junit" name="junit" rev="4.5" conf="test->master" />
     <!-- Our internal libraries -->
-    <dependency org="xuggle" name="xuggle-utils" rev="latest.integration" conf="test" changing="true"/>
-
+    <dependency org="xuggle" name="xuggle-utils" rev="latest.integration" conf="test->master" changing="true"/>
   </dependencies>
+
 </ivy-module>

@@ -1,7 +1,8 @@
 <?xml version="1.0"?>
 
 <!--
-Copyright (c) 2009 by Xuggle Inc.
+Copyright (c) 2012, by Art Clarke
+Copyright (c) 2009, Xuggle Inc.
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -27,50 +28,58 @@ us know by sending e-mail to info\@xuggle.com telling us briefly how you're
 using the library and what you like or don't like about it.
 -->
 
+<!--
+Credit to http://draconianoverlord.com/2010/07/18/publishing-to-maven-repos-with-ivy.html
+for some of the concepts heree.
+
+-->
 <ivysettings>
   <properties environment="env"/>
   <property name="xugglerepo.dir" value="${ivy.project.dir}/dist/ivys" override="false"/>
-  <settings defaultResolver="remote" />
+
+  <settings defaultResolver="default"/>
+
+  <!-- Pulls in the "public" resolver for ibiblio-hosted jars. -->
+  <include url="${ivy.default.settings.dir}/ivysettings-public.xml"/>
+
   <resolvers>
-    <chain name="publish" returnFirst="true">     
-      <filesystem name="shared_dir">
-        <ivy pattern="${xugglerepo.dir}/[organization]/${app.name}/[revision]/ivy-[revision].xml"/>
-        <artifact pattern="${xugglerepo.dir}/[organization]/${app.name}/[revision]/[artifact](-[revision]).[type]" />
-        <artifact pattern="${xugglerepo.dir}/[organization]/${app.name}/[revision]/[artifact](-[revision]).[ext]" />
-      </filesystem>        
-    </chain>    
-    <chain name="remote" returnFirst="true">     
-      <filesystem name="share_libs" changingPattern="*" checkmodified="true">
-        <ivy pattern="${xugglerepo.dir}/[organization]/[artifact]/ivy-[revision].xml"/>
-        <artifact pattern="${xugglerepo.dir}/[organization]/[artifact]/[revision]/[artifact](-[revision]).[type]" />
-        <artifact pattern="${xugglerepo.dir}/[organization]/[artifact]/[revision]/[artifact](-[revision]).[ext]" />
-        <artifact pattern="${xugglerepo.dir}/[organization]/[artifact]/[artifact](-[revision]).[type]" />
-        <artifact pattern="${xugglerepo.dir}/[organization]/[artifact]/[artifact](-[revision]).[ext]" />
-      </filesystem>
-      <url m2compatible="true" name="xugglecode">
-        <ivy pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organization]/[artifact]/[revision]/ivy-[revision].xml"/>
-        <ivy pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organization]/[artifact]/ivy-[revision].xml"/>
-        <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organisation]/[artifact]/[revision]/[artifact](-[revision]).[ext]" />
-        <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organisation]/[artifact]/[artifact](-[revision]).[ext]" />
-        <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organisation]/[artifact](-[revision]).[ext]" />
-        <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[artifact](-[revision]).[ext]" />
-        <artifact pattern="http://build.xuggle.com/view/Stable/job/red5_jdk6_stable/lastSuccessfulBuild/artifact/workingcopy/dist/[artifact].[ext]" />
-      </url>   
-      <url name="googlecode">
-        <artifact pattern="http://red5.googlecode.com/svn/repository/[artifact](-[revision]).[ext]" />
-        <artifact pattern="http://red5.googlecode.com/svn/repository/[organisation]/[artifact](-[revision]).[ext]" />
-      </url>   
-      <url name="mavenrepo">
-        <artifact pattern="http://repo1.maven.org/maven2/[artifact]/[artifact]/[revision]/[artifact](-[revision]).[ext]" />
-        <artifact pattern="http://repo1.maven.org/maven/[artifact]/jars/[artifact](-[revision]).[ext]" />
-        <artifact pattern="http://repo1.maven.org/maven/[organisation]/[artifact]/jars/[artifact](-[revision]).[ext]" />
-      </url>   
-      <url m2compatible="true" name="atlassian">
-        <artifact pattern="https://maven.atlassian.com/repository/public/[organization]/[artifact]/[revision]/[artifact]-[revision].jar" />
-      </url>
+
+    <ibiblio
+      name="local-m2"
+      m2compatible="true"
+      root="file://${user.home}/.m2/repository"
+      changingPattern=".*SNAPSHOT" />
+
+    <filesystem name="local-m2-publish" m2compatible="true">
+      <artifact pattern="${user.home}/.m2/repository/[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"/>
+    </filesystem>
+    <filesystem name="share-m2" m2compatible="true">
+      <artifact pattern="${xugglerepo.dir}/[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"/>
+    </filesystem>
+
+    <filesystem name="share_libs" changingPattern="*" checkmodified="true">
+      <ivy pattern="${xugglerepo.dir}/[organization]/[artifact]/ivy-[revision].xml"/>
+      <artifact pattern="${xugglerepo.dir}/[organization]/[artifact]/[revision]/[artifact](-[revision]).[type]" />
+      <artifact pattern="${xugglerepo.dir}/[organization]/[artifact]/[revision]/[artifact](-[revision]).[ext]" />
+      <artifact pattern="${xugglerepo.dir}/[organization]/[artifact]/[artifact](-[revision]).[type]" />
+      <artifact pattern="${xugglerepo.dir}/[organization]/[artifact]/[artifact](-[revision]).[ext]" />
+    </filesystem>
+ 
+    <url m2compatible="true" name="xugglecode">
+       <ivy pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organization]/[artifact]/[revision]/ivy-[revision].xml"/>
+       <ivy pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organization]/[artifact]/ivy-[revision].xml"/>
+       <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organisation]/[artifact]/[revision]/[artifact](-[revision]).[ext]" />
+       <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organisation]/[artifact]/[artifact](-[revision]).[ext]" />
+       <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[organisation]/[artifact](-[revision]).[ext]" />
+       <artifact pattern="http://xuggle.googlecode.com/svn/trunk/repo/share/java/[artifact](-[revision]).[ext]" />
+       <artifact pattern="http://build.xuggle.com/view/Stable/job/red5_jdk6_stable/lastSuccessfulBuild/artifact/workingcopy/dist/[artifact].[ext]" />
+     </url>   
+ 
+    <chain name="default" changingPattern=".*SNAPSHOT">
+      <resolver ref="public"/>
+      <resolver ref="xugglecode"/>
+      <resolver ref="share_libs"/>
+      <resolver ref="local-m2"/>
     </chain>
   </resolvers>
-  <modules>
-    <module organisation=".*" name="*" resolver="remote"/>
-  </modules>    
 </ivysettings>

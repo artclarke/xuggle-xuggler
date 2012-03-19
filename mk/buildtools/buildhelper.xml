@@ -70,7 +70,7 @@
   <!-- This can be overriden in containing build.xml or build.properties -->
   <property name="app.name" value="${ant.project.name}"/>
   <property name="app.mainclass" value=""/>
-  <property name="app.nativeclasspath" value="com/xuggle/arch"/>
+  <property name="app.nativeclasspath" value="/com/xuggle/ferry"/>
   <property name="documentation.title" value="${ant.project.name}"/>
   <property name="organization.name" value="xuggle"/>
   <property name="documentation.includes" value="**"/>
@@ -173,6 +173,9 @@
     </fileset>
   </path>
 
+  <!-- Create the time stamp -->
+  <tstamp/>
+
   <target name="java6.check">
     <condition property="java6.installed" value="true">
       <and>
@@ -201,9 +204,9 @@
     <echo message="Initing ivy from ${xuggle-buildhelper.basedir}/lib/${ivy.version}.jar"/>
     <taskdef uri="antlib:org.apache.ivy.ant" resource="org/apache/ivy/ant/antlib.xml" classpath="${xuggle-buildhelper.basedir}/lib/${ivy.version}.jar"/>
     <property name="xuggle.ivy.initted" value="true"/>
-    <echo message="Ivy task loaded"/>
+    <echo message="Ivy task loaded: ${xuggle-buildhelper.basedir}/lib/${ivy.version}.jar"/>
     <ivy:settings file="${xuggle-buildhelper.basedir}/ivysettings.xml"/>
-    <echo message="Ivy settings file set"/>
+    <echo message="Ivy settings file set: ${xuggle-buildhelper.basedir}/ivysettings.xml"/>
   </target>
 
   <target name="ivy-deliver"
@@ -216,7 +219,7 @@
       </not>
     </condition>
     <echo message="ivy.settings.name: ${ivy.settings.name}"/>
-    <ivy:resolve file="ivy.xml" conf="${ivy.settings.name}"/>
+    <ivy:resolve keep="true" file="ivy.xml" conf="${ivy.settings.name}"/>
     <ivy:retrieve file="ivy.xml" conf="${ivy.settings.name}"/>
     <ivy:deliver conf="default" />
   </target>
@@ -231,8 +234,17 @@
       </not>
     </condition>
     <echo message="ivy.settings.name: ${ivy.settings.name}"/>
-    <ivy:resolve file="ivy.xml" conf="${ivy.settings.name}"/>
+    <ivy:resolve keep="true" file="ivy.xml" conf="${ivy.settings.name}"/>
     <ivy:retrieve file="ivy.xml" conf="${ivy.settings.name}"/>
+    <ivy:makepom
+      ivyfile="ivy.xml"
+      pomfile="${dist.dir}/lib/${app.name}.pom"
+      description="${app.name}"
+    >
+      <mapping conf="compile" scope="compile"/>
+      <mapping conf="default" scope="runtime"/>
+      <mapping conf="test" scope="test"/>
+    </ivy:makepom>
     <ivy:publish
         conf="default"
         update="true"
@@ -240,17 +252,22 @@
         forcedeliver="false"
         publishivy="true"
         overwrite="true"
-        resolver="publish">
+        pubrevision="${ivy.deliver.revision}"
+        resolver="local-m2-publish">
       <artifacts pattern="${dist.dir}/war/[artifact].war" />
       <artifacts pattern="${dist.dir}/lib/[artifact].[ext]" />
     </ivy:publish>
-    <ivy:makepom
-      ivyfile="${xugglerepo.dir}/${organization.name}/${app.name}/${library.version}.${DSTAMP}${TSTAMP}/ivy-${library.version}.${DSTAMP}${TSTAMP}.xml"
-      pomfile="${xugglerepo.dir}/${organization.name}/${app.name}/${library.version}.${DSTAMP}${TSTAMP}/${app.name}-${library.version}.${DSTAMP}${TSTAMP}.pom">
-      <mapping conf="compile" scope="compile"/>
-      <mapping conf="default" scope="runtime"/>
-      <mapping conf="test" scope="test"/>
-    </ivy:makepom>
+    <ivy:publish
+        conf="default"
+        update="true"
+        replacedynamicrev="true"
+        forcedeliver="false"
+        publishivy="true"
+        overwrite="true"
+        resolver="share-m2">
+      <artifacts pattern="${dist.dir}/war/[artifact].war" />
+      <artifacts pattern="${dist.dir}/lib/[artifact].[ext]" />
+    </ivy:publish>
   </target>
 
   <target name="windows-init"
@@ -334,19 +351,6 @@
       description="gets the latest SVN revision and writes it to build/Revision.properties">
     <!-- Create the build directory structure used by compile -->
     <mkdir dir="${build.dir}"/>
-    <!-- Get the SVN Revision if available -->
-    <exec executable="sh"
-        dir="${top.dir}"
-        failonerror="false"
-        failifexecutionfails="false">
-      <arg value="${xuggle-buildhelper.basedir}/revision.sh"/>
-      <arg value="${top.dir}"/>
-      <arg value="${top.dir}LastRevisionBuilt.txt"/>
-      <arg value="/dev/null"/>
-      <arg value="${build.dir}/Revision.properties"/>
-    </exec>
-    <!-- And read it -->
-    <property file="${build.dir}/Revision.properties"/>
     <condition property="library.revision" value="0">
       <not>
         <isset property="library.revision"/>
@@ -408,15 +412,19 @@
     </if>
 
     <echo message="Building Library Version: ${library.version}"/>
-    <condition property="ivy.deliver.revision" value="${library.version}.${DSTAMP}${TSTAMP}">
+    <condition property="ivy.revision" value="${library.version.major}.${library.version.minor}-SNAPSHOT">
+      <not>
+        <isset property="ivy.revision"/>
+      </not>
+    </condition>
+    <condition property="ivy.deliver.revision" value="${ivy.revision}">
       <not>
         <isset property="ivy.deliver.revision"/>
       </not>
     </condition>
+    <echo message="Ivy Library Version: ${ivy.deliver.revision}"/>
   </target>
-  <target name="init" depends="os-init, java6.check, ivy-init, revision" >
-    <!-- Create the time stamp -->
-    <tstamp/>
+  <target name="init" depends="os-init, java6.check, revision, ivy-init" >
     <!-- determine if we have a native components -->
     <available property="native.configure.exists"
         file="${top.dir}/configure"/>
@@ -449,7 +457,8 @@
     <mkdir dir="${build.dir}/lib/test"/>
     <mkdir dir="${build.dir}/lib/default"/>
     <echo message="ivy.settings.name: ${ivy.settings.name}"/>
-    <ivy:resolve file="ivy.xml" conf="${ivy.settings.name}"/>
+    <echo message="ivy.deliver.revision: ${ivy.deliver.revision}"/>
+    <ivy:resolve keep="true" file="ivy.xml" conf="${ivy.settings.name}"/>
     <ivy:retrieve file="ivy.xml" conf="${ivy.settings.name}"/>
   </target>
 
@@ -472,14 +481,14 @@
       <isset property="native.configure.exists"/>
       <then>
         <!-- let's compute how many native jars we may want to make -->
-	<mkdir dir="${classes.dir}/${app.nativeclasspath}" />
-        <echo>Checking for native jar paths: ${classes.dir}/${app.nativeclasspath}</echo>
-        <dirset id="native.jars.set" dir="${classes.dir}/${app.nativeclasspath}" includes="*"/>
+	<mkdir dir="${classes.dir}${app.nativeclasspath}" />
+        <echo>Checking for native jar paths: ${classes.dir}${app.nativeclasspath}</echo>
+        <dirset id="native.jars.set" dir="${classes.dir}${app.nativeclasspath}" includes="*"/>
         <property name="native.jars" refid="native.jars.set"/>
         <!-- create the property file detailing the native paths that are in this jar -->
         <echo>Generating properties file: ${native.jars}</echo>
-	<mkdir dir="${generated.src.dir}/com/xuggle/ferry"/>
-        <propertyfile file="${generated.src.dir}/com/xuggle/ferry/native-contents.properties"
+	<mkdir dir="${generated.src.dir}${app.nativeclasspath}"/>
+        <propertyfile file="${generated.src.dir}${app.nativeclasspath}/native-contents.properties"
            comment="inventory of native libraries that are in this classpath">
           <entry key="Xuggle-Native-App"     value="${app.name}" />
           <entry key="Xuggle-Native-Root"    value="${app.nativeclasspath}"/>
@@ -600,7 +609,7 @@
         <sequential>
         <jar jarfile="${dist.dir}/lib/${app.name}-arch-@{native.os}.jar"
             index="no"
-            basedir="${classes.dir}/${app.nativeclasspath}/@{native.os}">
+            basedir="${classes.dir}${app.nativeclasspath}/@{native.os}">
           <include name="**/*"/>
           <manifest>
             <attribute name="Implementation-Vendor" value="www.xuggle.com"/>
@@ -800,6 +809,7 @@
       <param name="ivy.settings.name" value="test"/>
     </antcall>
     <javac
+        includeantruntime="false"
         source="${java.source}"
         srcdir="${test.src.dir}"
         destdir="${test.classes.dir}"
@@ -1271,8 +1281,8 @@
       <arg line="${build.install.target}"/>
     </exec>
     <!-- copy all dynamic libraries to the class path to get bundled into the java jar file made with stage-java -->
-    <mkdir dir="${classes.dir}/${app.nativeclasspath}/${xuggle.os}" />
-    <copy todir="${classes.dir}/${app.nativeclasspath}/${xuggle.os}" verbose="true">
+    <mkdir dir="${classes.dir}${app.nativeclasspath}/${xuggle.os}" />
+    <copy todir="${classes.dir}${app.nativeclasspath}/${xuggle.os}" verbose="true">
        <fileset dir="${dist.unix.dir}/stage/${xuggle.os}${xuggle.dir}/lib">
           <include name="*.so" />
           <exclude name="*.*.*" />
