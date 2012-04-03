@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v22bis_tests.c,v 1.61 2009/04/25 16:30:52 steveu Exp $
  */
 
 /*! \page v22bis_tests_page V.22bis modem tests
@@ -50,7 +48,7 @@ display of modem status is maintained.
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
-#include <audiofile.h>
+#include <sndfile.h>
 
 #define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
 #include "spandsp.h"
@@ -94,17 +92,18 @@ static void reporter(void *user_data, int reason, bert_results_t *results)
     switch (reason)
     {
     case BERT_REPORT_REGULAR:
-        printf("V.22bis rx %p BERT report regular - %d bits, %d bad bits, %d resyncs\n",
-               user_data,
-               results->total_bits,
-               results->bad_bits,
-               results->resyncs);
+        fprintf(stderr, "V.22bis rx %p BERT report regular - %d bits, %d bad bits, %d resyncs\n",
+                user_data,
+                results->total_bits,
+                results->bad_bits,
+                results->resyncs);
         memcpy(&s->latest_results, results, sizeof(s->latest_results));
         break;
     default:
-        printf("V.22bis rx %p BERT report %s\n",
-               user_data,
-               bert_event_to_str(reason));
+        fprintf(stderr, 
+                "V.22bis rx %p BERT report %s\n",
+                user_data,
+                bert_event_to_str(reason));
         break;
     }
 }
@@ -126,7 +125,7 @@ static void v22bis_putbit(void *user_data, int bit)
         switch (bit)
         {
         case SIG_STATUS_TRAINING_SUCCEEDED:
-            bit_rate = v22bis_current_bit_rate(s->v22bis);
+            bit_rate = v22bis_get_current_bit_rate(s->v22bis);
             printf("Negotiated bit rate: %d\n", bit_rate);
             len = v22bis_rx_equalizer_state(s->v22bis, &coeffs);
             printf("Equalizer:\n");
@@ -210,8 +209,8 @@ int main(int argc, char *argv[])
     int16_t amp[2][BLOCK_LEN];
     int16_t model_amp[2][BLOCK_LEN];
     int16_t out_amp[2*BLOCK_LEN];
-    AFfilehandle inhandle;
-    AFfilehandle outhandle;
+    SNDFILE *inhandle;
+    SNDFILE *outhandle;
     int outframes;
     int samples;
     int samples2;
@@ -224,9 +223,11 @@ int main(int argc, char *argv[])
     int signal_level;
     int log_audio;
     int channel_codec;
+    int rbs_pattern;
     int opt;
     
     channel_codec = MUNGE_CODEC_NONE;
+    rbs_pattern = 0;
     test_bps = 2400;
     line_model_no = 0;
     decode_test_file = NULL;
@@ -234,7 +235,7 @@ int main(int argc, char *argv[])
     signal_level = -13;
     bits_per_test = 50000;
     log_audio = FALSE;
-    while ((opt = getopt(argc, argv, "b:B:c:d:glm:n:s:")) != -1)
+    while ((opt = getopt(argc, argv, "b:B:c:d:glm:n:r:s:")) != -1)
     {
         switch (opt)
         {
@@ -272,6 +273,9 @@ int main(int argc, char *argv[])
         case 'n':
             noise_level = atoi(optarg);
             break;
+        case 'r':
+            rbs_pattern = atoi(optarg);
+            break;
         case 's':
             signal_level = atoi(optarg);
             break;
@@ -281,23 +285,23 @@ int main(int argc, char *argv[])
             break;
         }
     }
-    inhandle = AF_NULL_FILEHANDLE;
+    inhandle = NULL;
     if (decode_test_file)
     {
-        /* We will decode the audio from a wave file. */
-        if ((inhandle = afOpenFile_telephony_read(decode_test_file, 1)) == AF_NULL_FILEHANDLE)
+        /* We will decode the audio from a file. */
+        if ((inhandle = sf_open_telephony_read(decode_test_file, 1)) == NULL)
         {
-            fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
+            fprintf(stderr, "    Cannot open audio file '%s'\n", decode_test_file);
             exit(2);
         }
     }
 
-    outhandle = AF_NULL_FILEHANDLE;
+    outhandle = NULL;
     if (log_audio)
     {
-        if ((outhandle = afOpenFile_telephony_write(OUT_FILE_NAME, 2)) == AF_NULL_FILEHANDLE)
+        if ((outhandle = sf_open_telephony_write(OUT_FILE_NAME, 2)) == NULL)
         {
-            fprintf(stderr, "    Cannot create wave file '%s'\n", OUT_FILE_NAME);
+            fprintf(stderr, "    Cannot create audio file '%s'\n", OUT_FILE_NAME);
             exit(2);
         }
     }
@@ -327,7 +331,16 @@ int main(int argc, char *argv[])
         endpoint[1].qam_monitor = qam_monitor_init(6.0f, "Answering modem");
     }
 #endif
-    if ((model = both_ways_line_model_init(line_model_no, (float) noise_level, line_model_no, (float) noise_level, channel_codec, 0)) == NULL)
+    if ((model = both_ways_line_model_init(line_model_no,
+                                           (float) noise_level,
+                                           -15.0f,
+                                           -15.0f,
+                                           line_model_no,
+                                           (float) noise_level,
+                                           -15.0f,
+                                           -15.0f,
+                                           channel_codec,
+                                           rbs_pattern)) == NULL)
     {
         fprintf(stderr, "    Failed to create line model\n");
         exit(2);
@@ -369,10 +382,7 @@ int main(int argc, char *argv[])
 #endif
         if (decode_test_file)
         {
-            samples2 = afReadFrames(inhandle,
-                                    AF_DEFAULT_TRACK,
-                                    model_amp[0],
-                                    samples);
+            samples2 = sf_readf_short(inhandle, model_amp[0], samples);
             if (samples2 != samples)
                 break;
         }
@@ -388,13 +398,10 @@ int main(int argc, char *argv[])
 
         if (log_audio)
         {
-            outframes = afWriteFrames(outhandle,
-                                      AF_DEFAULT_TRACK,
-                                      out_amp,
-                                      BLOCK_LEN);
+            outframes = sf_writef_short(outhandle, out_amp, BLOCK_LEN);
             if (outframes != BLOCK_LEN)
             {
-                fprintf(stderr, "    Error writing wave file\n");
+                fprintf(stderr, "    Error writing audio file\n");
                 exit(2);
             }
         }
@@ -405,17 +412,17 @@ int main(int argc, char *argv[])
 #endif
     if (decode_test_file)
     {
-        if (afCloseFile(inhandle))
+        if (sf_close(inhandle))
         {
-            fprintf(stderr, "    Cannot close wave file '%s'\n", decode_test_file);
+            fprintf(stderr, "    Cannot close audio file '%s'\n", decode_test_file);
             exit(2);
         }
     }
     if (log_audio)
     {
-        if (afCloseFile(outhandle) != 0)
+        if (sf_close(outhandle) != 0)
         {
-            fprintf(stderr, "    Cannot close wave file '%s'\n", OUT_FILE_NAME);
+            fprintf(stderr, "    Cannot close audio file '%s'\n", OUT_FILE_NAME);
             exit(2);
         }
     }

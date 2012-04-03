@@ -17,7 +17,7 @@ nodist_ferryTestLogger_SOURCES= \
   LoggerTest_CXXRunner.cpp
 
 ferryTestLogger_LDADD= \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-ferry.la
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la
 
 
 ferryTestRefPointer_SOURCES= \
@@ -28,7 +28,7 @@ nodist_ferryTestRefPointer_SOURCES= \
   RefPointerTest_CXXRunner.cpp
 
 ferryTestRefPointer_LDADD= \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-ferry.la
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la
 
 ferryTestMutex_SOURCES= \
   MutexTest.cpp \
@@ -38,7 +38,7 @@ nodist_ferryTestMutex_SOURCES= \
   MutexTest_CXXRunner.cpp
 
 ferryTestMutex_LDADD= \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-ferry.la
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la
 
 ferryTestBuffer_SOURCES=\
   BufferTest.cpp \
@@ -48,7 +48,7 @@ nodist_ferryTestBuffer_SOURCES=\
   BufferTest_CXXRunner.cpp
 
 ferryTestBuffer_LDADD=\
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-ferry.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la
 
 
 BUILT_SOURCES= \

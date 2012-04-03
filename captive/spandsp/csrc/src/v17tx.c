@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v17tx.c,v 1.73 2009/04/21 13:59:07 steveu Exp $
  */
 
 /*! \file */
@@ -49,6 +47,8 @@
 #include "spandsp/complex.h"
 #include "spandsp/vector_float.h"
 #include "spandsp/complex_vector_float.h"
+#include "spandsp/vector_int.h"
+#include "spandsp/complex_vector_int.h"
 #include "spandsp/async.h"
 #include "spandsp/dds.h"
 #include "spandsp/power_meter.h"
@@ -62,11 +62,11 @@
 #define SPANDSP_USE_FIXED_POINTx
 #endif
 
-#include "v17tx_constellation_maps.h"
+#include "v17_v32bis_tx_constellation_maps.h"
 #if defined(SPANDSP_USE_FIXED_POINT)
-#include "v17tx_fixed_rrc.h"
+#include "v17_v32bis_tx_fixed_rrc.h"
 #else
-#include "v17tx_floating_rrc.h"
+#include "v17_v32bis_tx_floating_rrc.h"
 #endif
 
 /*! The nominal frequency of the carrier, in Hertz */
@@ -100,7 +100,8 @@ static __inline__ int scramble(v17_tx_state_t *s, int in_bit)
 {
     int out_bit;
 
-    out_bit = (in_bit ^ (s->scramble_reg >> 17) ^ (s->scramble_reg >> 22)) & 1;
+    //out_bit = (in_bit ^ (s->scramble_reg >> s->scrambler_tap) ^ (s->scramble_reg >> (23 - 1))) & 1;
+    out_bit = (in_bit ^ (s->scramble_reg >> (18 - 1)) ^ (s->scramble_reg >> (23 - 1))) & 1;
     s->scramble_reg = (s->scramble_reg << 1) | out_bit;
     return out_bit;
 }
@@ -135,7 +136,7 @@ static __inline__ complexf_t training_get(v17_tx_state_t *s)
             if (s->training_step <= V17_TRAINING_SEG_TEP_B)
             {
                 /* Optional segment: Unmodulated carrier (talker echo protection) */
-                return v17_abcd_constellation[0];
+                return v17_v32bis_abcd_constellation[0];
             }
             if (s->training_step <= V17_TRAINING_SEG_1)
             {
@@ -143,7 +144,7 @@ static __inline__ complexf_t training_get(v17_tx_state_t *s)
                 return zero;
             }
             /* Segment 1: ABAB... */
-            return v17_abcd_constellation[(s->training_step & 1) ^ 1];
+            return v17_v32bis_abcd_constellation[(s->training_step & 1) ^ 1];
         }
         /* Segment 2: CDBA... */
         /* Apply the scrambler */
@@ -155,7 +156,7 @@ static __inline__ complexf_t training_get(v17_tx_state_t *s)
             /* Go straight to the ones test. */
             s->training_step = V17_TRAINING_SEG_4;
         }
-        return v17_abcd_constellation[s->constellation_state];
+        return v17_v32bis_abcd_constellation[s->constellation_state];
     }
     /* Segment 3: Bridge... */
     shift = ((s->training_step - V17_TRAINING_SEG_3 - 1) & 0x7) << 1;
@@ -163,30 +164,53 @@ static __inline__ complexf_t training_get(v17_tx_state_t *s)
     bits = scramble(s, V17_BRIDGE_WORD >> shift);
     bits = (bits << 1) | scramble(s, V17_BRIDGE_WORD >> (shift + 1));
     s->constellation_state = (s->constellation_state + dibit_to_step[bits]) & 3;
-    return v17_abcd_constellation[s->constellation_state];
+    return v17_v32bis_abcd_constellation[s->constellation_state];
 }
 /*- End of function --------------------------------------------------------*/
 
 static __inline__ int diff_and_convolutional_encode(v17_tx_state_t *s, int q)
 {
-    static const int diff_code[16] =
+    static const uint8_t v32bis_4800_differential_encoder[4][4] =
     {
-        0, 1, 2, 3, 1, 2, 3, 0, 2, 3, 0, 1, 3, 0, 1, 2
+        {2, 3, 0, 1},
+        {0, 2, 1, 3},
+        {3, 1, 2, 0},
+        {1, 0, 3, 2}
     };
-    int y1;
-    int y2;
-    int this1;
-    int this2;
+    static const uint8_t v17_differential_encoder[4][4] =
+    {
+        {0, 1, 2, 3},
+        {1, 2, 3, 0},
+        {2, 3, 0, 1},
+        {3, 0, 1, 2}
+    };
+    static const uint8_t v17_convolutional_coder[8][4] =
+    {
+        {0, 2, 3, 1},
+        {4, 7, 5, 6},
+        {1, 3, 2, 0},
+        {7, 4, 6, 5},
+        {2, 0, 1, 3},
+        {6, 5, 7, 4},
+        {3, 1, 0, 2},
+        {5, 6, 4, 7}
+    };
 
+    if (s->bits_per_symbol == 2)
+    {
+        /* 4800bps mode for V.32bis */
+        /* There is no trellis. We just differentially encode. */
+        s->diff = v32bis_4800_differential_encoder[s->diff][q & 0x03];
+        return s->diff;
+    }
     /* Differentially encode */
-    s->diff = diff_code[((q & 0x03) << 2) | s->diff];
+    s->diff = v17_differential_encoder[s->diff][q & 0x03];
 
     /* Convolutionally encode the redundant bit */
-    y2 = s->diff >> 1;
-    y1 = s->diff;
-    this2 = y2 ^ y1 ^ (s->convolution >> 2) ^ ((y2 ^ (s->convolution >> 1)) & s->convolution);
-    this1 = y2 ^ (s->convolution >> 1) ^ (y1 & s->convolution);
-    s->convolution = ((s->convolution & 1) << 2) | ((this2 & 1) << 1) | (this1 & 1);
+    s->convolution = v17_convolutional_coder[s->convolution][s->diff];
+
+    /* The final result is the combination of some uncoded bits, 2 differentially
+       encoded bits, and the convolutionally encoded redundant bit. */
     return ((q << 1) & 0x78) | (s->diff << 1) | ((s->convolution >> 2) & 1);
 }
 /*- End of function --------------------------------------------------------*/
@@ -260,7 +284,7 @@ static __inline__ complexf_t getbaud(v17_tx_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) v17_tx(v17_tx_state_t *s, int16_t amp[], int len)
+SPAN_DECLARE_NONSTD(int) v17_tx(v17_tx_state_t *s, int16_t amp[], int len)
 {
 #if defined(SPANDSP_USE_FIXED_POINT)
     complexi_t x;
@@ -359,28 +383,34 @@ SPAN_DECLARE(int) v17_tx_restart(v17_tx_state_t *s, int bit_rate, int tep, int s
     {
     case 14400:
         s->bits_per_symbol = 6;
-        s->constellation = v17_14400_constellation;
+        s->constellation = v17_v32bis_14400_constellation;
         break;
     case 12000:
         s->bits_per_symbol = 5;
-        s->constellation = v17_12000_constellation;
+        s->constellation = v17_v32bis_12000_constellation;
         break;
     case 9600:
         s->bits_per_symbol = 4;
-        s->constellation = v17_9600_constellation;
+        s->constellation = v17_v32bis_9600_constellation;
         break;
     case 7200:
         s->bits_per_symbol = 3;
-        s->constellation = v17_7200_constellation;
+        s->constellation = v17_v32bis_7200_constellation;
+        break;
+    case 4800:
+        /* This does not exist in the V.17 spec as a valid mode of operation.
+           However, it does exist in V.32bis, so it is here for completeness. */
+        s->bits_per_symbol = 2;
+        s->constellation = v17_v32bis_4800_constellation;
         break;
     default:
         return -1;
     }
+    s->bit_rate = bit_rate;
     /* NB: some modems seem to use 3 instead of 1 for long training */
     s->diff = (short_train)  ?  0  :  1;
-    s->bit_rate = bit_rate;
 #if defined(SPANDSP_USE_FIXED_POINT)
-    memset(s->rrc_filter, 0, sizeof(s->rrc_filter));
+    cvec_zeroi16(s->rrc_filter, sizeof(s->rrc_filter)/sizeof(s->rrc_filter[0]));
 #else
     cvec_zerof(s->rrc_filter, sizeof(s->rrc_filter)/sizeof(s->rrc_filter[0]));
 #endif
@@ -406,6 +436,8 @@ SPAN_DECLARE(v17_tx_state_t *) v17_tx_init(v17_tx_state_t *s, int bit_rate, int 
     case 12000:
     case 9600:
     case 7200:
+    case 4800:
+        /* 4800 is an extension of V.17, to provide full converage of the V.32bis modes */
         break;
     default:
         return NULL;
@@ -420,6 +452,7 @@ SPAN_DECLARE(v17_tx_state_t *) v17_tx_init(v17_tx_state_t *s, int bit_rate, int 
     span_log_set_protocol(&s->logging, "V.17 TX");
     s->get_bit = get_bit;
     s->get_bit_user_data = user_data;
+    //s->scrambler_tap = 18 - 1;
     s->carrier_phase_rate = dds_phase_ratef(CARRIER_NOMINAL_FREQ);
     v17_tx_power(s, -14.0f);
     v17_tx_restart(s, bit_rate, tep, FALSE);

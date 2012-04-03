@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: t30_api.c,v 1.13 2009/02/03 16:28:40 steveu Exp $
  */
 
 /*! \file */
@@ -30,8 +28,6 @@
 #if defined(HAVE_CONFIG_H)
 #include "config.h"
 #endif
-#if !defined(HAVE_TIFF_H)
-#else
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -62,7 +58,14 @@
 #include "spandsp/v29tx.h"
 #include "spandsp/v27ter_rx.h"
 #include "spandsp/v27ter_tx.h"
-#include "spandsp/t4.h"
+#include "spandsp/t4_rx.h"
+#include "spandsp/t4_tx.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/t81_t82_arith_coding.h"
+#include "spandsp/t85.h"
+#endif
+#include "spandsp/t4_t6_decode.h"
+#include "spandsp/t4_t6_encode.h"
 #include "spandsp/t30_fcf.h"
 #include "spandsp/t35.h"
 #include "spandsp/t30.h"
@@ -70,7 +73,14 @@
 #include "spandsp/t30_logging.h"
 
 #include "spandsp/private/logging.h"
-#include "spandsp/private/t4.h"
+#if defined(SPANDSP_SUPPORT_T85)
+#include "spandsp/private/t81_t82_arith_coding.h"
+#include "spandsp/private/t85.h"
+#endif
+#include "spandsp/private/t4_t6_decode.h"
+#include "spandsp/private/t4_t6_encode.h"
+#include "spandsp/private/t4_rx.h"
+#include "spandsp/private/t4_tx.h"
 #include "spandsp/private/t30.h"
 
 #include "t30_local.h"
@@ -85,7 +95,7 @@ SPAN_DECLARE(int) t30_set_tx_ident(t30_state_t *s, const char *id)
     if (strlen(id) > T30_MAX_IDENT_LEN)
         return -1;
     strcpy(s->tx_info.ident, id);
-    t4_tx_set_local_ident(&(s->t4), s->tx_info.ident);
+    t4_tx_set_local_ident(&s->t4.tx, s->tx_info.ident);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -536,6 +546,16 @@ SPAN_DECLARE(size_t) t30_get_rx_csa(t30_state_t *s, int *type, const char *addre
 }
 /*- End of function --------------------------------------------------------*/
 
+SPAN_DECLARE(int) t30_set_tx_page_header_overlays_image(t30_state_t *s, int header_overlays_image)
+{
+#if 0
+    s->header_overlays_image = header_overlays_image;
+    t4_tx_set_header_overlays_image(&s->t4.tx, s->header_overlays_image);
+#endif
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
 SPAN_DECLARE(int) t30_set_tx_page_header_info(t30_state_t *s, const char *info)
 {
     if (info == NULL)
@@ -546,7 +566,14 @@ SPAN_DECLARE(int) t30_set_tx_page_header_info(t30_state_t *s, const char *info)
     if (strlen(info) > T30_MAX_PAGE_HEADER_INFO)
         return -1;
     strcpy(s->header_info, info);
-    t4_tx_set_header_info(&(s->t4), s->header_info);
+    t4_tx_set_header_info(&s->t4.tx, s->header_info);
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(int) t30_set_tx_page_header_tz(t30_state_t *s, const char *tzstring)
+{
+    t4_tx_set_header_tz(&s->t4.tx, tzstring);
     return 0;
 }
 /*- End of function --------------------------------------------------------*/
@@ -653,7 +680,19 @@ SPAN_DECLARE(int) t30_set_supported_modems(t30_state_t *s, int supported_modems)
 
 SPAN_DECLARE(int) t30_set_supported_compressions(t30_state_t *s, int supported_compressions)
 {
-    s->supported_compressions = supported_compressions;
+    int mask;
+
+    /* Mask out the ones we actually support today. */
+    mask = T30_SUPPORT_T4_1D_COMPRESSION
+         | T30_SUPPORT_T4_2D_COMPRESSION
+         | T30_SUPPORT_T6_COMPRESSION
+#if defined(SPANDSP_SUPPORT_T85)
+         | T30_SUPPORT_T85_COMPRESSION
+         | T30_SUPPORT_T85_L0_COMPRESSION;
+#else
+         | 0;
+#endif
+    s->supported_compressions = supported_compressions & mask;
     t30_build_dis_or_dtc(s);
     return 0;
 }
@@ -736,6 +775,4 @@ SPAN_DECLARE(logging_state_t *) t30_get_logging_state(t30_state_t *s)
     return &s->logging;
 }
 /*- End of function --------------------------------------------------------*/
-
-#endif // HAVE_TIFF_H
 /*- End of file ------------------------------------------------------------*/

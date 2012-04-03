@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: t38_gateway.h,v 1.3 2009/04/12 14:18:02 steveu Exp $
  */
 
 /*! \file */
@@ -35,7 +33,7 @@
 */
 typedef struct
 {
-    /*! Core T.38 IFP support */
+    /*! \brief Core T.38 IFP support */
     t38_core_state_t t38;
 
     /*! \brief TRUE if the NSF, NSC, and NSS are to be suppressed by altering
@@ -61,9 +59,10 @@ typedef struct
 {
     /*! \brief The FAX modem set for the audio side fo the gateway. */
     fax_modems_state_t modems;
-    /*! \brief The current receive signal handler. Actual receiving hop between this
+    /*! \brief The current receive signal handler. Actual receiving hops between this
                and a dummy receive routine. */
     span_rx_handler_t *base_rx_handler;
+    span_rx_fillin_handler_t *base_rx_fillin_handler;
 } t38_gateway_audio_state_t;
 
 /*!
@@ -144,6 +143,8 @@ typedef struct
     int supported_modems;
     /*! \brief TRUE if ECM FAX mode is allowed through the gateway. */
     int ecm_allowed;
+    /*! \brief Required time between T.38 transmissions, in ms. */
+    int ms_per_tx_chunk;
 
     /*! \brief TRUE if in image data modem is to use short training. This usually
                follows image_data_mode, but in ECM mode T.30 defines recovery
@@ -163,16 +164,13 @@ typedef struct
     int ecm_mode;
     /*! \brief The current bit rate for the fast modem. */
     int fast_bit_rate;
-    /*! \brief The current fast modem type. */
-    int fast_modem;
+    /*! \brief The current fast receive modem type. */
+    int fast_rx_modem;
     /*! \brief The type of fast receive modem currently active, which may be T38_NONE */
     int fast_rx_active;
 
-    /*! \brief TRUE if between DCS and TCF, and we want the fast image modem to
-               start in the T.38 data at a predictable time from the end of the
-               V.21 signal. */
-    int tcf_mode_predictable_modem_start;
-
+    /*! \brief The current timed operation. */
+    int timed_mode;
     /*! \brief The number of samples until the next timeout event */
     int samples_to_timeout;
 

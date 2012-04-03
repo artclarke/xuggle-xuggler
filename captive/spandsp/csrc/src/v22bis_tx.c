@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v22bis_tx.c,v 1.62 2009/04/29 12:37:45 steveu Exp $
  */
 
 /*! \file */
@@ -52,6 +50,8 @@
 #include "spandsp/complex.h"
 #include "spandsp/vector_float.h"
 #include "spandsp/complex_vector_float.h"
+#include "spandsp/vector_int.h"
+#include "spandsp/complex_vector_int.h"
 #include "spandsp/async.h"
 #include "spandsp/dds.h"
 #include "spandsp/power_meter.h"
@@ -346,7 +346,7 @@ static complexf_t training_get(v22bis_state_t *s)
         if (++s->tx.training_count >= ms_to_symbols(100))
         {
             span_log(&s->logging, SPAN_LOG_FLOW, "+++ starting S11 after U0011\n");
-            if (s->caller)
+            if (s->calling_party)
             {
                 s->tx.training_count = 0;
                 s->tx.training = V22BIS_TX_TRAINING_STAGE_S11;
@@ -448,7 +448,7 @@ static complexf_t getbaud(v22bis_state_t *s)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) v22bis_tx(v22bis_state_t *s, int16_t amp[], int len)
+SPAN_DECLARE_NONSTD(int) v22bis_tx(v22bis_state_t *s, int16_t amp[], int len)
 {
     complexf_t x;
     complexf_t z;
@@ -478,7 +478,7 @@ SPAN_DECLARE(int) v22bis_tx(v22bis_state_t *s, int16_t amp[], int len)
         /* Now create and modulate the carrier */
         z = dds_complexf(&(s->tx.carrier_phase), s->tx.carrier_phase_rate);
         famp = (x.re*z.re - x.im*z.im)*s->tx.gain;
-        if (s->tx.guard_phase_rate  &&  (s->tx.rrc_filter[s->tx.rrc_filter_step].re != 0.0f  ||  s->tx.rrc_filter[i + s->tx.rrc_filter_step].im != 0.0f))
+        if (s->tx.guard_phase_rate  &&  (s->tx.rrc_filter[s->tx.rrc_filter_step].re != 0.0f  ||  s->tx.rrc_filter[s->tx.rrc_filter_step].im != 0.0f))
         {
             /* Add the guard tone */
             famp += dds_modf(&(s->tx.guard_phase), s->tx.guard_phase_rate, s->tx.guard_level, 0);
@@ -523,7 +523,7 @@ static int v22bis_tx_restart(v22bis_state_t *s)
     s->tx.rrc_filter_step = 0;
     s->tx.scramble_reg = 0;
     s->tx.scrambler_pattern_count = 0;
-    if (s->caller)
+    if (s->calling_party)
         s->tx.training = V22BIS_TX_TRAINING_STAGE_INITIAL_SILENCE;
     else
         s->tx.training = V22BIS_TX_TRAINING_STAGE_INITIAL_TIMED_SILENCE;
@@ -625,7 +625,7 @@ SPAN_DECLARE(int) v22bis_remote_loopback(v22bis_state_t *s, int enable)
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) v22bis_current_bit_rate(v22bis_state_t *s)
+SPAN_DECLARE(int) v22bis_get_current_bit_rate(v22bis_state_t *s)
 {
     return s->negotiated_bit_rate;
 }
@@ -634,7 +634,7 @@ SPAN_DECLARE(int) v22bis_current_bit_rate(v22bis_state_t *s)
 SPAN_DECLARE(v22bis_state_t *) v22bis_init(v22bis_state_t *s,
                                            int bit_rate,
                                            int guard,
-                                           int caller,
+                                           int calling_party,
                                            get_bit_func_t get_bit,
                                            void *get_bit_user_data,
                                            put_bit_func_t put_bit,
@@ -657,14 +657,14 @@ SPAN_DECLARE(v22bis_state_t *) v22bis_init(v22bis_state_t *s,
     span_log_init(&s->logging, SPAN_LOG_NONE, NULL);
     span_log_set_protocol(&s->logging, "V.22bis");
     s->bit_rate = bit_rate;
-    s->caller = caller;
+    s->calling_party = calling_party;
 
     s->get_bit = get_bit;
     s->get_bit_user_data = get_bit_user_data;
     s->put_bit = put_bit;
     s->put_bit_user_data = put_bit_user_data;
 
-    if (s->caller)
+    if (s->calling_party)
     {
         s->tx.carrier_phase_rate = dds_phase_ratef(1200.0f);
     }

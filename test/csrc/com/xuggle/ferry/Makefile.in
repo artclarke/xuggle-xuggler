@@ -43,7 +43,8 @@ ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
 	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/ax_compiler_vendor.m4 \
+	$(top_srcdir)/m4/xuggle.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
@@ -57,7 +58,7 @@ nodist_ferryTestBuffer_OBJECTS = BufferTest_CXXRunner.$(OBJEXT)
 ferryTestBuffer_OBJECTS = $(am_ferryTestBuffer_OBJECTS) \
 	$(nodist_ferryTestBuffer_OBJECTS)
 ferryTestBuffer_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-ferry.la
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
 am__v_lt_0 = --silent
@@ -66,13 +67,13 @@ nodist_ferryTestLogger_OBJECTS = LoggerTest_CXXRunner.$(OBJEXT)
 ferryTestLogger_OBJECTS = $(am_ferryTestLogger_OBJECTS) \
 	$(nodist_ferryTestLogger_OBJECTS)
 ferryTestLogger_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-ferry.la
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_ferryTestMutex_OBJECTS = MutexTest.$(OBJEXT) Main.$(OBJEXT)
 nodist_ferryTestMutex_OBJECTS = MutexTest_CXXRunner.$(OBJEXT)
 ferryTestMutex_OBJECTS = $(am_ferryTestMutex_OBJECTS) \
 	$(nodist_ferryTestMutex_OBJECTS)
 ferryTestMutex_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-ferry.la
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 am_ferryTestRefPointer_OBJECTS = RefPointerTest.$(OBJEXT) \
 	Main.$(OBJEXT)
 nodist_ferryTestRefPointer_OBJECTS =  \
@@ -80,7 +81,7 @@ nodist_ferryTestRefPointer_OBJECTS =  \
 ferryTestRefPointer_OBJECTS = $(am_ferryTestRefPointer_OBJECTS) \
 	$(nodist_ferryTestRefPointer_OBJECTS)
 ferryTestRefPointer_DEPENDENCIES =  \
-	$(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-ferry.la
+	$(top_builddir)/csrc/com/xuggle/libxuggle.la
 DEFAULT_INCLUDES = 
 depcomp =
 am__depfiles_maybe =
@@ -205,6 +206,8 @@ VS_DEBUG = @VS_DEBUG@
 VS_ENABLE_GPL = @VS_ENABLE_GPL@
 VS_JNI_INCLUDE = @VS_JNI_INCLUDE@
 VS_LDFLAGS = @VS_LDFLAGS@
+VS_LIBGCC = @VS_LIBGCC@
+VS_LIBSTDCXX = @VS_LIBSTDCXX@
 VS_OS_WINDOWS = @VS_OS_WINDOWS@
 VS_SWIG = @VS_SWIG@
 VS_WARN_ISERROR = @VS_WARN_ISERROR@
@@ -274,7 +277,7 @@ nodist_ferryTestLogger_SOURCES = \
   LoggerTest_CXXRunner.cpp
 
 ferryTestLogger_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-ferry.la
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la
 
 ferryTestRefPointer_SOURCES = \
   RefPointerTest.cpp \
@@ -284,7 +287,7 @@ nodist_ferryTestRefPointer_SOURCES = \
   RefPointerTest_CXXRunner.cpp
 
 ferryTestRefPointer_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-ferry.la
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la
 
 ferryTestMutex_SOURCES = \
   MutexTest.cpp \
@@ -294,7 +297,7 @@ nodist_ferryTestMutex_SOURCES = \
   MutexTest_CXXRunner.cpp
 
 ferryTestMutex_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-ferry.la
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la
 
 ferryTestBuffer_SOURCES = \
   BufferTest.cpp \
@@ -304,7 +307,7 @@ nodist_ferryTestBuffer_SOURCES = \
   BufferTest_CXXRunner.cpp
 
 ferryTestBuffer_LDADD = \
-  $(top_builddir)/csrc/$(VS_CPP_PATH)/libxuggle-ferry.la $(EXTRA_LIBS)
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la
 
 BUILT_SOURCES = \
   LoggerTest_CXXRunner.cpp \

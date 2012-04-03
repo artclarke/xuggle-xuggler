@@ -211,6 +211,10 @@ if [ -n "$do_jpg" ] ; then
 do_image_formats jpg "-pix_fmt yuvj420p" "-f image2"
 fi
 
+if [ -n "$do_pam" ] ; then
+do_image_formats pam
+fi
+
 if [ -n "$do_pcx" ] ; then
 do_image_formats pcx
 fi
@@ -221,6 +225,10 @@ fi
 
 if [ -n "$do_xwd" ] ; then
 do_image_formats xwd
+fi
+
+if [ -n "$do_sunrast" ] ; then
+do_image_formats sun
 fi
 
 # audio only

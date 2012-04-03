@@ -30,8 +30,9 @@ VS_WIN32=i686-w64-mingw32
 VS_WIN64=x86_64-w64-mingw32
 VS_LIN32=i686-pc-linux-gnu
 VS_LIN64=x86_64-pc-linux-gnu
-VS_MAC32=i386-xuggle-darwin
-VS_MAC64=x86_64-xuggle-darwin
+VS_MAC32=i386-xuggle-darwin11
+VS_MAC64=x86_64-xuggle-darwin11
+VS_MACU=universal-xuggle-darwin11
 
 XUGGLE_HOME="${XUGGLE_HOME:-/usr/local}"
 DIR=$( dirname $0 )
@@ -41,17 +42,17 @@ fi
 
 darwin_lipo()
 {
-  STAGE_DIR="/tmp/xuggle-${RANDOM}"
-  echo "LIPO to ${STAGE_DIR}"
-  (cd "${DIR}/build/native/${VS_MAC32}" && make DESTDIR="${STAGE_DIR}/stage32" install)
-  (cd "${DIR}/build/native/${VS_MAC64}" && make DESTDIR="${STAGE_DIR}/stage64" install)
-
+  rm -f "${DIR}/build/native/${VS_MACU}${XUGGLE_HOME}/lib/libxuggle.dylib"
   "${DIR}/mk/buildtools/darwin-universal.sh" \
-     "${DIR}/dist/stage${XUGGLE_HOME}" \
-     "${STAGE_DIR}/stage32${XUGGLE_HOME}" \
-     "${STAGE_DIR}/stage64${XUGGLE_HOME}" \
-  rm -rf "${STAGE_DIR}"
-  echo "Complete: darwin_lipo"
+     "${DIR}/build/native/${VS_MACU}${XUGGLE_HOME}" \
+     "${DIR}/dist/stage/${VS_MAC64}${XUGGLE_HOME}" \
+     "${DIR}/dist/stage/${VS_MAC32}${XUGGLE_HOME}"
+
+   if [ -f "${DIR}/build/native/${VS_MACU}${XUGGLE_HOME}/lib/libxuggle.dylib" ]; then
+     mkdir -p "${DIR}/build/classes/com/xuggle/ferry/${VS_MACU}"
+     cp -f "${DIR}/build/native/${VS_MACU}${XUGGLE_HOME}/lib/libxuggle.dylib" \
+       "${DIR}/build/classes/com/xuggle/ferry/${VS_MACU}"
+   fi
 }
 
 # Stage each individual OS, then stage the java code.
@@ -59,6 +60,7 @@ case $HOST in
   *darwin*)
     ant -Dbuild.configure.os=${VS_MAC32} stage-native && \
     ant -Dbuild.configure.os=${VS_MAC64} stage-native && \
+    darwin_lipo && \
     ant -Dbuild.configure.os=${VS_MAC64} stage-java && \
     true
   ;;

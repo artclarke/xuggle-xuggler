@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v27ter_rx.h,v 1.59 2009/04/12 09:12:11 steveu Exp $
  */
 
 /*! \file */
@@ -45,24 +43,6 @@ The other uses 4-PSK at 1200 baud, giving 2400bps. A training sequence is specif
 at the start of transmission, which makes the design of a V.27ter receiver relatively
 straightforward.
 */
-
-/* Target length for the equalizer is about 43 taps for 4800bps and 32 taps for 2400bps
-   to deal with the worst stuff in V.56bis. */
-/*! Samples before the target position in the equalizer buffer */
-#define V27TER_EQUALIZER_PRE_LEN        16  /* This much before the real event */
-/*! Samples after the target position in the equalizer buffer */
-#define V27TER_EQUALIZER_POST_LEN       14  /* This much after the real event (must be even) */
-
-/*! The number of taps in the 4800bps pulse shaping/bandpass filter */
-#define V27TER_RX_4800_FILTER_STEPS     27
-/*! The number of taps in the 2400bps pulse shaping/bandpass filter */
-#define V27TER_RX_2400_FILTER_STEPS     27
-
-#if V27TER_RX_4800_FILTER_STEPS > V27TER_RX_2400_FILTER_STEPS
-#define V27TER_RX_FILTER_STEPS V27TER_RX_4800_FILTER_STEPS
-#else
-#define V27TER_RX_FILTER_STEPS V27TER_RX_2400_FILTER_STEPS
-#endif
 
 /*!
     V.27ter modem receive side descriptor. This defines the working state for a
@@ -131,7 +111,7 @@ SPAN_DECLARE(void) v27ter_rx_set_modem_status_handler(v27ter_rx_state_t *s, mode
     \param len The number of samples in the buffer.
     \return The number of samples unprocessed.
 */
-SPAN_DECLARE(int) v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len);
+SPAN_DECLARE_NONSTD(int) v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len);
 
 /*! Fake processing of a missing block of received V.27ter modem audio samples.
     (e.g due to packet loss).
@@ -140,7 +120,7 @@ SPAN_DECLARE(int) v27ter_rx(v27ter_rx_state_t *s, const int16_t amp[], int len);
     \param len The number of samples to fake.
     \return The number of samples unprocessed.
 */
-SPAN_DECLARE(int) v27ter_rx_fillin(v27ter_rx_state_t *s, int len);
+SPAN_DECLARE_NONSTD(int) v27ter_rx_fillin(v27ter_rx_state_t *s, int len);
 
 /*! Get a snapshot of the current equalizer coefficients.
     \brief Get a snapshot of the current equalizer coefficients.

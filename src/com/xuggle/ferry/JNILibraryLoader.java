@@ -57,6 +57,8 @@ public final class JNILibraryLoader
   };
 
   /**
+   * @deprecated Use {@link JNILibrary} instead.
+   * 
    * Attempts to find and load the given library, with the given version of the
    * library if version is asked for.
    * <p>
@@ -163,6 +165,7 @@ public final class JNILibraryLoader
    *           If we cannot find the library after searching in all the
    *           aforementioned locations.
    */
+  @Deprecated
   public static void loadLibrary(String aLibraryName, Long aMajorVersion)
   {
     getInstance().loadLibrary0(aLibraryName, aMajorVersion);
@@ -401,13 +404,13 @@ public final class JNILibraryLoader
    */
   List<String> getLibraryCandidates(String aLibraryName, Long aMajorVersion)
   {
-    List<String> retval = new LinkedList<String>();
+    final List<String> retval = new LinkedList<String>();
     // Note: when done each of these variables must be set to a non-null, non
     // empty string array
-    String[] prefixes = null;
-    String[] suffixes = null;
-    String[] preSuffixVersions = null;
-    String[] postSuffixVersions = null;
+    final String[] prefixes;
+    final String[] suffixes;
+    final String[] preSuffixVersions;
+    final String[] postSuffixVersions;
 
     switch (getOS())
     {
@@ -474,6 +477,13 @@ public final class JNILibraryLoader
         {
           ""
         };
+        break;
+      default:
+        // really no cases should get here
+        prefixes = null;
+        suffixes = null;
+        preSuffixVersions = null;
+        postSuffixVersions = null;
         break;
     }
     initializeSearchPaths();
@@ -584,6 +594,7 @@ public final class JNILibraryLoader
     log.trace("Detected OS: {}", mOS);
     return retval;
   }
+
 
   /**
    * For internal use only. This method allows tests to override the guessed OS

@@ -357,7 +357,7 @@ uint64_t time= rdtsc();
     if (buf_size == 0) {
         /* special case for last picture */
         if (s->low_delay==0 && s->next_picture_ptr) {
-            *pict= *(AVFrame*)s->next_picture_ptr;
+            *pict = s->next_picture_ptr->f;
             s->next_picture_ptr= NULL;
 
             *data_size = sizeof(AVFrame);
@@ -664,7 +664,7 @@ retry:
     ret = decode_slice(s);
     while(s->mb_y<s->mb_height){
         if(s->msmpeg4_version){
-            if(s->slice_height==0 || s->mb_x!=0 || (s->mb_y%s->slice_height)!=0 || get_bits_count(&s->gb) > s->gb.size_in_bits)
+            if(s->slice_height==0 || s->mb_x!=0 || (s->mb_y%s->slice_height)!=0 || get_bits_left(&s->gb)<0)
                 break;
         }else{
             int prev_x=s->mb_x, prev_y=s->mb_y;
@@ -727,9 +727,9 @@ intrax8_decoded:
     assert(s->current_picture.f.pict_type == s->current_picture_ptr->f.pict_type);
     assert(s->current_picture.f.pict_type == s->pict_type);
     if (s->pict_type == AV_PICTURE_TYPE_B || s->low_delay) {
-        *pict= *(AVFrame*)s->current_picture_ptr;
+        *pict = s->current_picture_ptr->f;
     } else if (s->last_picture_ptr != NULL) {
-        *pict= *(AVFrame*)s->last_picture_ptr;
+        *pict = s->last_picture_ptr->f;
     }
 
     if(s->last_picture_ptr || s->low_delay){

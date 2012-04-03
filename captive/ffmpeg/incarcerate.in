@@ -24,7 +24,8 @@ FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-ldflags=-L@abs_top_builddir@/stage@libdi
 # Set up a place where pkg-config looks for installed packages
 export PKG_CONFIG_PATH="@abs_top_builddir@/stage@libdir@/pkgconfig"
 
-FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-shared"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-shared"
+FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-pic"
 #FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-runtime-cpudetect"
 
 if test "x$CAPTIVE_ENABLE_FFMPEG_GPL" = "xyes"; then
@@ -38,6 +39,11 @@ case $HOST_OS in
   *darwin*)
     # GNU Configure sometimes adds darwin version numbers; this strips them
     HOST_OS_C=darwin
+    # Sigh; but on Xcode 4.2 there is a compiler bug with register allocation.  
+    # Rather than expensively detect the compiler version, I'm going to hard-code
+    # darwin builds for now to debug (no assembly) and wait for a compiler or ffmpeg
+    # fix
+    VS_DEBUG=1
   ;;
 esac
 if [ "@VS_CROSS_COMPILE@" = "1" ]; then
@@ -52,14 +58,11 @@ if [ "@VS_CROSS_COMPILE@" = "1" ]; then
 fi
 
 if test ! "x$VS_DEBUG" = "x"; then
-  echo "Creating debug version of ffmpeg: $VS_DEBUG"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-stripping"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-asm"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-optimizations"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-mmx"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-mmx2"
-else
-  echo "Creating release version of ffmpeg: $VS_DEBUG"
 fi
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libmp3lame"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libvorbis"
@@ -68,6 +71,13 @@ FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libspeex"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libvo-aacenc"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libopencore-amrnb --enable-libopencore-amrwb"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-librtmp"
+case $HOST_OS in
+  *mingw*|*cygwin*)
+   # ffmpeg configure doesn't handle pkg-config files correctly when
+   # static linking, so we fix librtmp here.
+   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --extra-libs=-lwinmm"
+  ;;
+esac
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-openssl"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-zlib"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libvpx"
@@ -75,9 +85,7 @@ FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libvpx"
 echo "Configuring FFMPEG with these options: $FFMPEG_OPTIONS"
 cd @abs_builddir@/csrc
 CC="@CC@" \
-CFLAGS="-I@abs_top_builddir@@includedir@ @CFLAGS@" \
 LD="@LD@" \
-LDFLAGS="-L@abs_top_builddir@@libdir@ @LDFLAGS@" \
 CPP="@CPP@" \
 CPPFLAGS="@CPPFLAGS@" \
 CXX="@CXX@" \

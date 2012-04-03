@@ -155,14 +155,11 @@ cextern pd_ffff
 
 %if HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------
-; void hpel_filter_v( uint16_t *dst, uint16_t *src, int16_t *buf, int stride, int width );
+; void hpel_filter_v( uint16_t *dst, uint16_t *src, int16_t *buf, intptr_t stride, intptr_t width );
 ;-----------------------------------------------------------------------------
 %macro HPEL_FILTER 0
 cglobal hpel_filter_v, 5,6,11
-    FIX_STRIDES r3d, r4d
-%if WIN64
-    movsxd     r4, r4d
-%endif
+    FIX_STRIDES r3, r4
     lea        r5, [r1+r3]
     sub        r1, r3
     sub        r1, r3
@@ -179,7 +176,7 @@ cglobal hpel_filter_v, 5,6,11
     %define s30 [pad30]
 %endif
     add        r0, r4
-    lea        r2, [r2+r4]
+    add        r2, r4
     neg        r4
     mova       m7, [pw_pixel_max]
     pxor       m0, m0
@@ -216,12 +213,12 @@ cglobal hpel_filter_v, 5,6,11
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void hpel_filter_c( uint16_t *dst, int16_t *buf, int width );
+; void hpel_filter_c( uint16_t *dst, int16_t *buf, intptr_t width );
 ;-----------------------------------------------------------------------------
 cglobal hpel_filter_c, 3,3,10
     add        r2, r2
     add        r0, r2
-    lea        r1, [r1+r2]
+    add        r1, r2
     neg        r2
     mova       m0, [tap1]
     mova       m7, [tap3]
@@ -265,7 +262,7 @@ cglobal hpel_filter_c, 3,3,10
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void hpel_filter_h( uint16_t *dst, uint16_t *src, int width );
+; void hpel_filter_h( uint16_t *dst, uint16_t *src, intptr_t width );
 ;-----------------------------------------------------------------------------
 cglobal hpel_filter_h, 3,4,8
     %define src r1+r2
@@ -317,12 +314,9 @@ HPEL_FILTER
 %if HIGH_BIT_DEPTH == 0
 %macro HPEL_V 1
 ;-----------------------------------------------------------------------------
-; void hpel_filter_v( uint8_t *dst, uint8_t *src, int16_t *buf, int stride, int width );
+; void hpel_filter_v( uint8_t *dst, uint8_t *src, int16_t *buf, intptr_t stride, intptr_t width );
 ;-----------------------------------------------------------------------------
 cglobal hpel_filter_v, 5,6,%1
-%if WIN64
-    movsxd   r4, r4d
-%endif
     lea r5, [r1+r3]
     sub r1, r3
     sub r1, r3
@@ -375,7 +369,7 @@ cglobal hpel_filter_v, 5,6,%1
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void hpel_filter_c( uint8_t *dst, int16_t *buf, int width );
+; void hpel_filter_c( uint8_t *dst, int16_t *buf, intptr_t width );
 ;-----------------------------------------------------------------------------
 INIT_MMX
 cglobal hpel_filter_c_mmx2, 3,3
@@ -405,7 +399,7 @@ cglobal hpel_filter_c_mmx2, 3,3
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void hpel_filter_h( uint8_t *dst, uint8_t *src, int width );
+; void hpel_filter_h( uint8_t *dst, uint8_t *src, intptr_t width );
 ;-----------------------------------------------------------------------------
 cglobal hpel_filter_h_mmx2, 3,3
     add r0, r2
@@ -452,7 +446,7 @@ INIT_XMM
 
 %macro HPEL_C 0
 ;-----------------------------------------------------------------------------
-; void hpel_filter_c( uint8_t *dst, int16_t *buf, int width );
+; void hpel_filter_c( uint8_t *dst, int16_t *buf, intptr_t width );
 ;-----------------------------------------------------------------------------
 cglobal hpel_filter_c, 3,3,9
     add r0, r2
@@ -520,7 +514,7 @@ cglobal hpel_filter_c, 3,3,9
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void hpel_filter_h( uint8_t *dst, uint8_t *src, int width );
+; void hpel_filter_h( uint8_t *dst, uint8_t *src, intptr_t width );
 ;-----------------------------------------------------------------------------
 cglobal hpel_filter_h_sse2, 3,3,8
     add r0, r2
@@ -568,7 +562,7 @@ cglobal hpel_filter_h_sse2, 3,3,8
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void hpel_filter_h( uint8_t *dst, uint8_t *src, int width );
+; void hpel_filter_h( uint8_t *dst, uint8_t *src, intptr_t width );
 ;-----------------------------------------------------------------------------
 %macro HPEL_H 0
 cglobal hpel_filter_h, 3,3
@@ -739,15 +733,11 @@ HPEL_H
 %macro HPEL 0
 ;-----------------------------------------------------------------------------
 ; void hpel_filter( uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
-;                   uint8_t *src, int stride, int width, int height)
+;                   uint8_t *src, intptr_t stride, int width, int height )
 ;-----------------------------------------------------------------------------
 cglobal hpel_filter, 7,9,16
-%if WIN64
-    movsxd   r4, r4d
-    movsxd   r5, r5d
-%endif
     mov       r7, r3
-    sub       r5, 16
+    sub      r5d, 16
     mov       r8, r1
     and       r7, 15
     sub       r3, r7
@@ -815,21 +805,20 @@ HPEL
 %endif ; !HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
-; void plane_copy_core( pixel *dst, int i_dst,
-;                       pixel *src, int i_src, int w, int h)
+; void plane_copy_core( pixel *dst, intptr_t i_dst,
+;                       pixel *src, intptr_t i_src, int w, int h )
 ;-----------------------------------------------------------------------------
 ; assumes i_dst and w are multiples of 16, and i_dst>w
 INIT_MMX
 cglobal plane_copy_core_mmx2, 6,7
-    FIX_STRIDES r1d, r3d, r4d
-    movsxdifnidn r1, r1d
-    movsxdifnidn r3, r3d
+    FIX_STRIDES r1, r3, r4d
+%if HIGH_BIT_DEPTH == 0
     movsxdifnidn r4, r4d
+%endif
     sub    r1,  r4
     sub    r3,  r4
 .loopy:
-    mov    r6d, r4d
-    sub    r6d, 63
+    lea   r6d, [r4-63]
 .loopx:
     prefetchnta [r2+256]
     movq   m0, [r2   ]
@@ -958,22 +947,19 @@ cglobal plane_copy_core_mmx2, 6,7
 
 %macro PLANE_INTERLEAVE 0
 ;-----------------------------------------------------------------------------
-; void plane_copy_interleave_core( uint8_t *dst, int i_dst,
-;                                  uint8_t *srcu, int i_srcu,
-;                                  uint8_t *srcv, int i_srcv, int w, int h )
+; void plane_copy_interleave_core( uint8_t *dst,  intptr_t i_dst,
+;                                  uint8_t *srcu, intptr_t i_srcu,
+;                                  uint8_t *srcv, intptr_t i_srcv, int w, int h )
 ;-----------------------------------------------------------------------------
 ; assumes i_dst and w are multiples of 16, and i_dst>2*w
-cglobal plane_copy_interleave_core, 7,9
-    FIX_STRIDES r1d, r3d, r5d, r6d
+cglobal plane_copy_interleave_core, 6,9
+    mov   r6d, r6m
 %if HIGH_BIT_DEPTH
-    mov   r1m, r1d
-    mov   r3m, r3d
-    mov   r6m, r6d
+    FIX_STRIDES r1, r3, r5, r6d
+    movifnidn r1mp, r1
+    movifnidn r3mp, r3
+    mov  r6m, r6d
 %endif
-    movsxdifnidn r1, r1d
-    movsxdifnidn r3, r3d
-    movsxdifnidn r5, r5d
-    movsxdifnidn r6, r6d
     lea    r0, [r0+r6*2]
     add    r2,  r6
     add    r4,  r6
@@ -1028,10 +1014,10 @@ cglobal plane_copy_interleave_core, 7,9
     RET
 
 ;-----------------------------------------------------------------------------
-; void store_interleave_chroma( uint8_t *dst, int i_dst, uint8_t *srcu, uint8_t *srcv, int height )
+; void store_interleave_chroma( uint8_t *dst, intptr_t i_dst, uint8_t *srcu, uint8_t *srcv, int height )
 ;-----------------------------------------------------------------------------
 cglobal store_interleave_chroma, 5,5
-    FIX_STRIDES r1d
+    FIX_STRIDES r1
 .loop:
     INTERLEAVE r0+ 0, r2+           0, r3+           0, a
     INTERLEAVE r0+r1, r2+FDEC_STRIDEB, r3+FDEC_STRIDEB, a
@@ -1055,20 +1041,17 @@ cglobal store_interleave_chroma, 5,5
 
 %macro PLANE_DEINTERLEAVE 0
 ;-----------------------------------------------------------------------------
-; void plane_copy_deinterleave( pixel *dstu, int i_dstu,
-;                               pixel *dstv, int i_dstv,
-;                               pixel *src, int i_src, int w, int h )
+; void plane_copy_deinterleave( pixel *dstu, intptr_t i_dstu,
+;                               pixel *dstv, intptr_t i_dstv,
+;                               pixel *src,  intptr_t i_src, int w, int h )
 ;-----------------------------------------------------------------------------
 cglobal plane_copy_deinterleave, 6,7
     DEINTERLEAVE_START
     mov    r6d, r6m
-    FIX_STRIDES r1d, r3d, r5d, r6d
+    FIX_STRIDES r1, r3, r5, r6d
 %if HIGH_BIT_DEPTH
     mov    r6m, r6d
 %endif
-    movsxdifnidn r1, r1d
-    movsxdifnidn r3, r3d
-    movsxdifnidn r5, r5d
     add    r0,  r6
     add    r2,  r6
     lea    r4, [r4+r6*2]
@@ -1088,11 +1071,11 @@ cglobal plane_copy_deinterleave, 6,7
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void load_deinterleave_chroma_fenc( pixel *dst, pixel *src, int i_src, int height )
+; void load_deinterleave_chroma_fenc( pixel *dst, pixel *src, intptr_t i_src, int height )
 ;-----------------------------------------------------------------------------
 cglobal load_deinterleave_chroma_fenc, 4,4
     DEINTERLEAVE_START
-    FIX_STRIDES r2d
+    FIX_STRIDES r2
 .loop:
     DEINTERLEAVE r0+           0, r0+FENC_STRIDEB*1/2, r1+ 0, 1, m4, a
     DEINTERLEAVE r0+FENC_STRIDEB, r0+FENC_STRIDEB*3/2, r1+r2, 1, m4, a
@@ -1103,11 +1086,11 @@ cglobal load_deinterleave_chroma_fenc, 4,4
     REP_RET
 
 ;-----------------------------------------------------------------------------
-; void load_deinterleave_chroma_fdec( pixel *dst, pixel *src, int i_src, int height )
+; void load_deinterleave_chroma_fdec( pixel *dst, pixel *src, intptr_t i_src, int height )
 ;-----------------------------------------------------------------------------
 cglobal load_deinterleave_chroma_fdec, 4,4
     DEINTERLEAVE_START
-    FIX_STRIDES r2d
+    FIX_STRIDES r2
 .loop:
     DEINTERLEAVE r0+           0, r0+FDEC_STRIDEB*1/2, r1+ 0, 0, m4, a
     DEINTERLEAVE r0+FDEC_STRIDEB, r0+FDEC_STRIDEB*3/2, r1+r2, 0, m4, a
@@ -1236,7 +1219,7 @@ MEMZERO
 
 %if HIGH_BIT_DEPTH == 0
 ;-----------------------------------------------------------------------------
-; void integral_init4h( uint16_t *sum, uint8_t *pix, int stride )
+; void integral_init4h( uint16_t *sum, uint8_t *pix, intptr_t stride )
 ;-----------------------------------------------------------------------------
 INIT_XMM
 cglobal integral_init4h_sse4, 3,4
@@ -1291,7 +1274,7 @@ INTEGRAL_INIT8H
 
 %macro INTEGRAL_INIT_8V 0
 ;-----------------------------------------------------------------------------
-; void integral_init8v( uint16_t *sum8, int stride )
+; void integral_init8v( uint16_t *sum8, intptr_t stride )
 ;-----------------------------------------------------------------------------
 cglobal integral_init8v, 3,3
     shl   r1, 1
@@ -1316,7 +1299,7 @@ INIT_XMM sse2
 INTEGRAL_INIT_8V
 
 ;-----------------------------------------------------------------------------
-; void integral_init4v( uint16_t *sum8, uint16_t *sum4, int stride )
+; void integral_init4v( uint16_t *sum8, uint16_t *sum4, intptr_t stride )
 ;-----------------------------------------------------------------------------
 INIT_MMX
 cglobal integral_init4v_mmx, 3,5
@@ -1505,17 +1488,14 @@ cglobal integral_init4v_ssse3, 3,5
 
 ;-----------------------------------------------------------------------------
 ; void frame_init_lowres_core( uint8_t *src0, uint8_t *dst0, uint8_t *dsth, uint8_t *dstv, uint8_t *dstc,
-;                              int src_stride, int dst_stride, int width, int height )
+;                              intptr_t src_stride, intptr_t dst_stride, int width, int height )
 ;-----------------------------------------------------------------------------
 %macro FRAME_INIT_LOWRES 0
 cglobal frame_init_lowres_core, 6,7,(12-4*(BIT_DEPTH/9)) ; 8 for HIGH_BIT_DEPTH, 12 otherwise
 %if HIGH_BIT_DEPTH
     shl   dword r6m, 1
-    FIX_STRIDES r5d
+    FIX_STRIDES r5
     shl   dword r7m, 1
-%endif
-%if WIN64
-    movsxd    r5, r5d
 %endif
     ; src += 2*(height-1)*stride + 2*width
     mov      r6d, r8m

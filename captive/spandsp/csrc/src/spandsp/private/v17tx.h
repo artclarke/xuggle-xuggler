@@ -21,14 +21,15 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v17tx.h,v 1.1 2008/10/13 13:14:01 steveu Exp $
  */
 
 /*! \file */
 
 #if !defined(_SPANDSP_PRIVATE_V17TX_H_)
 #define _SPANDSP_PRIVATE_V17TX_H_
+
+/*! The number of taps in the pulse shaping/bandpass filter */
+#define V17_TX_FILTER_STEPS     9
 
 /*!
     V.17 modem transmit side descriptor. This defines the working state for a
@@ -68,9 +69,13 @@ struct v17_tx_state_s
     int diff;
     /*! \brief The current state of the convolutional encoder. */
     int convolution;
+    /*! \brief The code number for the current position in the constellation. */
+    int constellation_state;
 
     /*! \brief The register for the data scrambler. */
-    unsigned int scramble_reg;
+    uint32_t scramble_reg;
+    /*! \brief Scrambler tap */
+    //int scrambler_tap;
     /*! \brief TRUE if transmitting the training sequence. FALSE if transmitting user data. */
     int in_training;
     /*! \brief TRUE if the short training sequence is to be used. */
@@ -84,8 +89,6 @@ struct v17_tx_state_s
     int32_t carrier_phase_rate;
     /*! \brief The current fractional phase of the baud timing. */
     int baud_phase;
-    /*! \brief The code number for the current position in the constellation. */
-    int constellation_state;
     
     /*! \brief A pointer to the constellation currently in use. */
 #if defined(SPANDSP_USE_FIXED_POINT)

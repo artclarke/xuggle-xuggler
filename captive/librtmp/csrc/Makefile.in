@@ -39,7 +39,6 @@ build_triplet = @build@
 host_triplet = @host@
 bin_PROGRAMS = rtmpdump$(EXEEXT) rtmpgw$(EXEEXT) rtmpsrv$(EXEEXT) \
 	rtmpsuck$(EXEEXT)
-@VS_WINDOWS_TRUE@am__append_1 = -shared -no-undefined -Wl,--out-implib,librtmp.dll.a -Wl,-Bsymbolic -Wl,--warn-common -Wl,--as-needed
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(librtmp_la_HEADERS) \
 	$(noinst_HEADERS) $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
@@ -97,7 +96,7 @@ librtmp_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
 PROGRAMS = $(bin_PROGRAMS)
 am_rtmpdump_OBJECTS = rtmpdump.$(OBJEXT)
 rtmpdump_OBJECTS = $(am_rtmpdump_OBJECTS)
-rtmpdump_DEPENDENCIES = librtmp.la
+rtmpdump_DEPENDENCIES = librtmp.la $(am__DEPENDENCIES_1)
 am_rtmpgw_OBJECTS = rtmpgw.$(OBJEXT) thread.$(OBJEXT)
 rtmpgw_OBJECTS = $(am_rtmpgw_OBJECTS)
 rtmpgw_DEPENDENCIES = librtmp.la $(am__DEPENDENCIES_1)
@@ -202,6 +201,8 @@ NM = @NM@
 NMEDIT = @NMEDIT@
 OBJDUMP = @OBJDUMP@
 OBJEXT = @OBJEXT@
+OPENSSL_CFLAGS = @OPENSSL_CFLAGS@
+OPENSSL_LIBS = @OPENSSL_LIBS@
 OTOOL = @OTOOL@
 OTOOL64 = @OTOOL64@
 PACKAGE = @PACKAGE@
@@ -212,7 +213,11 @@ PACKAGE_TARNAME = @PACKAGE_TARNAME@
 PACKAGE_URL = @PACKAGE_URL@
 PACKAGE_VERSION = @PACKAGE_VERSION@
 PATH_SEPARATOR = @PATH_SEPARATOR@
+PKG_CONFIG = @PKG_CONFIG@
+PKG_CONFIG_LIBDIR = @PKG_CONFIG_LIBDIR@
+PKG_CONFIG_PATH = @PKG_CONFIG_PATH@
 POW_LIB = @POW_LIB@
+PRIVATE_LIBS = @PRIVATE_LIBS@
 RANLIB = @RANLIB@
 SED = @SED@
 SET_MAKE = @SET_MAKE@
@@ -271,35 +276,32 @@ top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
 ACLOCAL_AMFLAGS = -I m4
-@VS_WINDOWS_FALSE@VS_LINK_LIBS = -lpthread
-@VS_WINDOWS_TRUE@VS_LINK_LIBS = 
 rtmpdump_SOURCES = \
   src/rtmpdump.c
 
-rtmpdump_LDADD = librtmp.la
+rtmpdump_LDADD = librtmp.la $(OPENSSL_LIBS)
 rtmpgw_SOURCES = \
  src/rtmpgw.c \
  src/thread.c
 
-rtmpgw_LDADD = librtmp.la $(VS_LINK_LIBS)
+rtmpgw_LDADD = librtmp.la $(OPENSSL_LIBS)
 rtmpsrv_SOURCES = \
   src/rtmpsrv.c \
   src/thread.c
 
-rtmpsrv_LDADD = librtmp.la $(VS_LINK_LIBS)
+rtmpsrv_LDADD = librtmp.la $(OPENSSL_LIBS)
 rtmpsuck_SOURCES = \
   src/rtmpsuck.c \
   src/thread.c
 
-rtmpsuck_LDADD = librtmp.la $(VS_LINK_LIBS)
+rtmpsuck_LDADD = librtmp.la $(OPENSSL_LIBS)
 noinst_HEADERS = src/thread.h
 lib_LTLIBRARIES = librtmp.la
 AM_CFLAGS = -DRTMPDUMP_VERSION=\"@VERSION@\" -DUSE_OPENSSL
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = librtmp.pc
-librtmp_la_LIBADD = -lssl -lcrypto -lz $(VS_LINK_LIBS)
-librtmp_la_LDFLAGS = -version-number \
-	@LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@ $(am__append_1)
+librtmp_la_LIBADD = $(OPENSSL_LIBS)
+librtmp_la_LDFLAGS = -version-number @LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@
 librtmp_la_SOURCES = \
   src/librtmp/amf.c \
   src/librtmp/log.c \

@@ -26,8 +26,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: echo.c,v 1.32 2009/02/10 13:06:46 steveu Exp $
  */
 
 /*! \file */
@@ -101,6 +99,8 @@
 #include "spandsp/dc_restore.h"
 #include "spandsp/bit_operations.h"
 #include "spandsp/echo.h"
+
+#include "spandsp/private/echo.h"
 
 #if !defined(NULL)
 #define NULL (void *) 0
@@ -349,7 +349,7 @@ SPAN_DECLARE(void) echo_can_flush(echo_can_state_t *ec)
 }
 /*- End of function --------------------------------------------------------*/
 
-//int sample_no = 0;
+int sample_no = 0;
 
 SPAN_DECLARE(void) echo_can_snapshot(echo_can_state_t *ec)
 {
@@ -404,7 +404,7 @@ SPAN_DECLARE(int16_t) echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t 
     int score;
     int i;
 
-//sample_no++;
+sample_no++;
     if (ec->adaption_mode & ECHO_CAN_USE_RX_HPF)
         rx = echo_can_hpf(ec->rx_hpf, rx);
 
@@ -427,7 +427,7 @@ SPAN_DECLARE(int16_t) echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t 
 
     /* And the answer is..... */
     clean_rx = rx - echo_value;
-//printf("echo is %" PRId32 "\n", echo_value);
+printf("echo is %" PRId32 "\n", echo_value);
     /* That was the easy part. Now we need to adapt! */
     if (ec->nonupdate_dwell > 0)
         ec->nonupdate_dwell--;
@@ -464,7 +464,7 @@ SPAN_DECLARE(int16_t) echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t 
                 {
                     ec->narrowband_count = 0;
                     score = narrowband_detect(ec);
-//printf("Do the narrowband test %d at %d\n", score, ec->curr_pos);
+printf("Do the narrowband test %d at %d\n", score, ec->curr_pos);
                     if (score > 6)
                     {
                         if (ec->narrowband_score == 0)
@@ -475,7 +475,7 @@ SPAN_DECLARE(int16_t) echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t 
                     {
                         if (ec->narrowband_score > 200)
                         {
-//printf("Revert to %d at %d\n", (ec->tap_set + 1)%3, sample_no);
+printf("Revert to %d at %d\n", (ec->tap_set + 1)%3, sample_no);
                             memcpy(ec->fir_taps16[ec->tap_set], ec->fir_taps16[3], ec->taps*sizeof(int16_t));
                             memcpy(ec->fir_taps16[(ec->tap_set - 1)%3], ec->fir_taps16[3], ec->taps*sizeof(int16_t));
                             for (i = 0;  i < ec->taps;  i++)
@@ -488,7 +488,7 @@ SPAN_DECLARE(int16_t) echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t 
                 ec->dtd_onset = FALSE;
                 if (--ec->tap_rotate_counter <= 0)
                 {
-//printf("Rotate to %d at %d\n", ec->tap_set, sample_no);
+printf("Rotate to %d at %d\n", ec->tap_set, sample_no);
                     ec->tap_rotate_counter = 1600;
                     ec->tap_set++;
                     if (ec->tap_set > 2)
@@ -526,7 +526,7 @@ SPAN_DECLARE(int16_t) echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t 
         {
             if (!ec->dtd_onset)
             {
-//printf("Revert to %d at %d\n", (ec->tap_set + 1)%3, sample_no);
+printf("Revert to %d at %d\n", (ec->tap_set + 1)%3, sample_no);
                 memcpy(ec->fir_taps16[ec->tap_set], ec->fir_taps16[(ec->tap_set + 1)%3], ec->taps*sizeof(int16_t));
                 memcpy(ec->fir_taps16[(ec->tap_set - 1)%3], ec->fir_taps16[(ec->tap_set + 1)%3], ec->taps*sizeof(int16_t));
                 for (i = 0;  i < ec->taps;  i++)
@@ -602,7 +602,7 @@ SPAN_DECLARE(int16_t) echo_can_update(echo_can_state_t *ec, int16_t tx, int16_t 
         ec->cng = FALSE;
     }
 
-//printf("Narrowband score %4d %5d at %d\n", ec->narrowband_score, score, sample_no);
+printf("Narrowband score %4d %5d at %d\n", ec->narrowband_score, score, sample_no);
     /* Roll around the rolling buffer */
     if (ec->curr_pos <= 0)
         ec->curr_pos = ec->taps;

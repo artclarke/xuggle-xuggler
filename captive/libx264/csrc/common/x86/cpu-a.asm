@@ -41,14 +41,14 @@ cglobal cpu_cpuid, 5,7
     mov  eax, r0d
     xor  ecx, ecx
     cpuid
-    pop  rsi
-    mov [rsi], eax
-    pop  rsi
-    mov [rsi], ebx
-    pop  rsi
-    mov [rsi], ecx
-    pop  rsi
-    mov [rsi], edx
+    pop   r4
+    mov [r4], eax
+    pop   r4
+    mov [r4], ebx
+    pop   r4
+    mov [r4], ecx
+    pop   r4
+    mov [r4], edx
     pop  rbx
     RET
 
@@ -60,10 +60,10 @@ cglobal cpu_xgetbv, 3,7
     push  r1
     mov  ecx, r0d
     xgetbv
-    pop  rsi
-    mov [rsi], eax
-    pop  rsi
-    mov [rsi], edx
+    pop   r4
+    mov [r4], eax
+    pop   r4
+    mov [r4], edx
     RET
 
 %if ARCH_X86_64 == 0

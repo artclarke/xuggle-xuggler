@@ -16,9 +16,6 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-#
-# $Id: regression_tests.sh,v 1.56 2009/04/02 13:43:49 steveu Exp $
-#
 
 ITUTESTS_TIF=../test-data/itu/fax/itutests.tif
 MIXEDSIZES_TIF=../test-data/itu/fax/mixed_size_pages.tif
@@ -224,7 +221,7 @@ rm -f fax_tests_1.tif
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then
-    echo fax_tests failed!
+    echo fax_tests mixed-sizes failed!
     exit $RETVAL
 fi
 # Now use tiffcmp to check the results. It will return non-zero if any page images differ. The -t
@@ -233,7 +230,7 @@ tiffcmp -t ${MIXEDSIZES_TIF} fax_tests_1.tif >/dev/null
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then
-    echo fax_tests failed!
+    echo fax_tests mixed-sizes failed!
     exit $RETVAL
 fi
 echo fax_tests completed OK
@@ -309,6 +306,15 @@ then
     exit $RETVAL
 fi
 echo ima_adpcm_tests completed OK
+
+./image_translate_tests >$STDOUT_DEST 2>$STDERR_DEST
+RETVAL=$?
+if [ $RETVAL != 0 ]
+then
+    echo image_translate_tests failed!
+    exit $RETVAL
+fi
+echo image_translate_tests completed OK
 
 ./logging_tests >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?
@@ -429,6 +435,15 @@ echo r2_mf_tx_tests completed OK
 #fi
 #echo rfc2198_sim_tests completed OK
 
+./saturated_tests >$STDOUT_DEST 2>$STDERR_DEST
+RETVAL=$?
+if [ $RETVAL != 0 ]
+then
+    echo saturated_tests failed!
+    exit $RETVAL
+fi
+echo saturated_tests completed OK
+
 ./schedule_tests >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?
 if [ $RETVAL != 0 ]
@@ -467,6 +482,16 @@ echo super_tone_rx_tests not enabled
 #fi
 #echo super_tone_tx_tests completed OK
 echo super_tone_tx_tests not enabled
+
+#./swept_tone_tests >$STDOUT_DEST 2>$STDERR_DEST
+#RETVAL=$?
+#if [ $RETVAL != 0 ]
+#then
+#    echo swept_tone_tests failed!
+#    exit $RETVAL
+#fi
+#echo swept_tone_tests completed OK
+echo swept_tone_tests not enabled
 
 ./t31_tests -r >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?
@@ -656,6 +681,37 @@ then
 fi
 echo t4_tests completed OK
 
+#rm -f t4_t6_tests_receive.tif
+#./t4_t6_tests >$STDOUT_DEST 2>$STDERR_DEST
+#RETVAL=$?
+#if [ $RETVAL != 0 ]
+#then
+#    echo t4_t6_tests failed!
+#    exit $RETVAL
+#fi
+#echo t4_t6_tests completed OK
+#rm -f t81_t82_arith_coding_tests_receive.tif
+#./t4_tests >$STDOUT_DEST 2>$STDERR_DEST
+#RETVAL=$?
+#if [ $RETVAL != 0 ]
+#then
+#    echo t81_t82_arith_coding_tests failed!
+#    exit $RETVAL
+#fi
+#echo t81_t82_arith_coding_tests completed OK
+echo t81_t82_arith_coding_tests not enabled
+
+#rm -f t85_tests_receive.tif
+#./t4_tests >$STDOUT_DEST 2>$STDERR_DEST
+#RETVAL=$?
+#if [ $RETVAL != 0 ]
+#then
+#    echo t85_tests failed!
+#    exit $RETVAL
+#fi
+#echo t85_tests completed OK
+echo t85_tests not enabled
+
 #./time_scale_tests >$STDOUT_DEST 2>$STDERR_DEST
 #RETVAL=$?
 #if [ $RETVAL != 0 ]
@@ -665,6 +721,15 @@ echo t4_tests completed OK
 #fi
 #echo time_scale_tests completed OK
 echo time_scale_tests not enabled
+
+./timezone_tests >$STDOUT_DEST 2>$STDERR_DEST
+RETVAL=$?
+if [ $RETVAL != 0 ]
+then
+    echo timezone_tests failed!
+    exit $RETVAL
+fi
+echo timezone_tests completed OK
 
 #./tone_detect_tests >$STDOUT_DEST 2>$STDERR_DEST
 #RETVAL=$?
@@ -686,28 +751,28 @@ echo tone_detect_tests not enabled
 #echo tone_generate_tests completed OK
 echo tone_generate_tests not enabled
 
-./v17_tests -b 14400 -s -42 >$STDOUT_DEST 2>$STDERR_DEST
+./v17_tests -b 14400 -s -42 -n -66 >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then
     echo v17_tests failed!
     exit $RETVAL
 fi
-./v17_tests -b 12000 -s -42 >$STDOUT_DEST 2>$STDERR_DEST
+./v17_tests -b 12000 -s -42 -n -61 >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then
     echo v17_tests failed!
     exit $RETVAL
 fi
-./v17_tests -b 9600 -s -42 >$STDOUT_DEST 2>$STDERR_DEST
+./v17_tests -b 9600 -s -42 -n -59 >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then
     echo v17_tests failed!
     exit $RETVAL
 fi
-./v17_tests -b 7200 -s -42 >$STDOUT_DEST 2>$STDERR_DEST
+./v17_tests -b 7200 -s -42 -n -56 >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then
@@ -733,14 +798,14 @@ echo v17_tests completed OK
 #echo v22bis_tests completed OK
 echo v22bis_tests not enabled
 
-./v27ter_tests -b 4800 -s -42 >$STDOUT_DEST 2>$STDERR_DEST
+./v27ter_tests -b 4800 -s -42 -n -57 >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then
     echo v27ter_tests failed!
     exit $RETVAL
 fi
-./v27ter_tests -b 2400 -s -42 >$STDOUT_DEST 2>$STDERR_DEST
+./v27ter_tests -b 2400 -s -42 -n -51 >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then
@@ -749,21 +814,21 @@ then
 fi
 echo v27ter_tests completed OK
 
-./v29_tests -b 9600 -s -42 >$STDOUT_DEST 2>$STDERR_DEST
+./v29_tests -b 9600 -s -42 -n -62 >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then
     echo v29_tests failed!
     exit $RETVAL
 fi
-./v29_tests -b 7200 -s -42 >$STDOUT_DEST 2>$STDERR_DEST
+./v29_tests -b 7200 -s -42 -n -58 >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then
     echo v29_tests failed!
     exit $RETVAL
 fi
-./v29_tests -b 4800 -s -42 >$STDOUT_DEST 2>$STDERR_DEST
+./v29_tests -b 4800 -s -42 -n -54 >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?
 if [ $RETVAL != 0 ]
 then
@@ -771,6 +836,15 @@ then
     exit $RETVAL
 fi
 echo v29_tests completed OK
+
+#./v32bis_tests -b 14400 -s -42 -n -66 >$STDOUT_DEST 2>$STDERR_DEST
+#RETVAL=$?
+#if [ $RETVAL != 0 ]
+#then
+#    echo v32bis_tests failed!
+#    exit $RETVAL
+#fi
+#echo v32bis_tests completed OK
 
 #./v42_tests >$STDOUT_DEST 2>$STDERR_DEST
 #RETVAL=$?
@@ -782,14 +856,15 @@ echo v29_tests completed OK
 #echo v42_tests completed OK
 echo v42_tests not enabled
 
-./v42bis_tests.sh >/dev/null
-RETVAL=$?
-if [ $RETVAL != 0 ]
-then
-    echo v42bis_tests failed!
-    exit $RETVAL
-fi
-echo v42bis_tests completed OK
+#./v42bis_tests.sh >/dev/null
+#RETVAL=$?
+#if [ $RETVAL != 0 ]
+#then
+#    echo v42bis_tests failed!
+#    exit $RETVAL
+#fi
+#echo v42bis_tests completed OK
+echo v42bis_tests not enabled
 
 ./v8_tests >$STDOUT_DEST 2>$STDERR_DEST
 RETVAL=$?

@@ -23,7 +23,6 @@ package com.xuggle.xuggler.io;
 import com.xuggle.xuggler.io.FfmpegIOHandle;
 import com.xuggle.xuggler.io.IURLProtocolHandlerFactory;
 import com.xuggle.xuggler.io.URLProtocolManager;
-import com.xuggle.xuggler.Version;
 
 /**
  * For Internal Use Only.
@@ -55,15 +54,17 @@ public class FfmpegIO
 
   static
   {
-    com.xuggle.ferry.JNILibraryLoader.loadLibrary(
-        "xuggle-xuggler-io",
-        new Long(Version.MAJOR_VERSION));
+    // this will load the one shared library
+    com.xuggle.ferry.Ferry.init();
     FfmpegIO.init();
     // And force the URLProtocolManager global
     // object to be created.
     URLProtocolManager.init();
   }
 
+  /** Force a load of all native libraries; not normally needed */
+  public static void load() {}
+  
   /**
    * Internal Only.  Do not use.
    */

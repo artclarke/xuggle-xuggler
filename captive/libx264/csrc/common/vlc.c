@@ -852,15 +852,17 @@ void x264_cavlc_init( x264_t *h )
             dct[j] = i&(1<<j);
         int total = h->quantf.coeff_level_run[DCT_LUMA_4x4]( dct, &runlevel );
         int zeros = runlevel.last + 1 - total;
+        uint32_t mask = i << (x264_clz( i ) + 1);
         for( int j = 0; j < total-1 && zeros > 0; j++ )
         {
             int idx = X264_MIN(zeros, 7) - 1;
-            int run = runlevel.run[j];
+            int run = x264_clz( mask );
             int len = run_before[idx][run].i_size;
             size += len;
             bits <<= len;
             bits |= run_before[idx][run].i_bits;
             zeros -= run;
+            mask <<= run + 1;
         }
         x264_run_before[i] = (bits << 5) + size;
     }

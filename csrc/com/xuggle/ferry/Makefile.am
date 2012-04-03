@@ -5,7 +5,13 @@ VS_CPP_NAMESPACE=com::xuggle::ferry
 include @top_builddir@/mk/Makefile.global
 SUFFIXES=.i
 
-lib_LTLIBRARIES = libxuggle-ferry.la
+# This is a convenience library
+noinst_LTLIBRARIES = libxuggle-ferry.la
+noinst_PROGRAMS=xuggle-ferry-main
+
+xuggle_ferry_main_SOURCES= \
+  Main.cpp
+xuggle_ferry_main_LDADD= libxuggle-ferry.la
 
 libxuggle_ferry_la_SOURCES= \
   AtomicInteger.cpp \

@@ -42,16 +42,16 @@
 #define HMAC_finish(ctx, dig, dlen)	dlen = SHA256_DIGEST_LENGTH; sha2_hmac_finish(&ctx, dig)
 #define HMAC_close(ctx)
 #elif defined(USE_GNUTLS)
-#include <gnutls/gnutls.h>
-#include <gcrypt.h>
+#include <nettle/hmac.h>
 #ifndef SHA256_DIGEST_LENGTH
 #define SHA256_DIGEST_LENGTH	32
 #endif
-#define HMAC_CTX	gcry_md_hd_t
-#define HMAC_setup(ctx, key, len)	gcry_md_open(&ctx, GCRY_MD_SHA256, GCRY_MD_FLAG_HMAC); gcry_md_setkey(ctx, key, len)
-#define HMAC_crunch(ctx, buf, len)	gcry_md_write(ctx, buf, len)
-#define HMAC_finish(ctx, dig, dlen)	dlen = SHA256_DIGEST_LENGTH; memcpy(dig, gcry_md_read(ctx, 0), dlen)
-#define HMAC_close(ctx)	gcry_md_close(ctx)
+#undef HMAC_CTX
+#define HMAC_CTX	struct hmac_sha256_ctx
+#define HMAC_setup(ctx, key, len)	hmac_sha256_set_key(&ctx, len, key)
+#define HMAC_crunch(ctx, buf, len)	hmac_sha256_update(&ctx, len, buf)
+#define HMAC_finish(ctx, dig, dlen)	dlen = SHA256_DIGEST_LENGTH; hmac_sha256_digest(&ctx, SHA256_DIGEST_LENGTH, dig)
+#define HMAC_close(ctx)
 #else	/* USE_OPENSSL */
 #include <openssl/ssl.h>
 #include <openssl/sha.h>

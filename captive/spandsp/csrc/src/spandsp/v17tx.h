@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v17tx.h,v 1.41 2009/04/12 09:12:11 steveu Exp $
  */
 
 /*! \file */
@@ -81,9 +79,6 @@ suits the receiver better, so the same signal generator is also used for the
 transmitter. 
 */
 
-/*! The number of taps in the pulse shaping/bandpass filter */
-#define V17_TX_FILTER_STEPS     9
-
 /*!
     V.17 modem transmit side descriptor. This defines the working state for a
     single instance of a V.17 modem transmitter.
@@ -105,12 +100,12 @@ SPAN_DECLARE(void) v17_tx_power(v17_tx_state_t *s, float power);
     use of the context, to initialise its contents.
     \brief Initialise a V.17 modem transmit context.
     \param s The modem context.
-    \param rate The bit rate of the modem. Valid values are 7200, 9600, 12000 and 14400.
+    \param bit_rate The bit rate of the modem. Valid values are 7200, 9600, 12000 and 14400.
     \param tep TRUE is the optional TEP tone is to be transmitted.
     \param get_bit The callback routine used to get the data to be transmitted.
     \param user_data An opaque pointer.
     \return A pointer to the modem context, or NULL if there was a problem. */
-SPAN_DECLARE(v17_tx_state_t *) v17_tx_init(v17_tx_state_t *s, int rate, int tep, get_bit_func_t get_bit, void *user_data);
+SPAN_DECLARE(v17_tx_state_t *) v17_tx_init(v17_tx_state_t *s, int bit_rate, int tep, get_bit_func_t get_bit, void *user_data);
 
 /*! Reinitialise an existing V.17 modem transmit context, so it may be reused.
     \brief Reinitialise an existing V.17 modem transmit context.
@@ -160,7 +155,7 @@ SPAN_DECLARE(void) v17_tx_set_modem_status_handler(v17_tx_state_t *s, modem_tx_s
     \param len The number of samples to be generated.
     \return The number of samples actually generated.
 */
-SPAN_DECLARE(int) v17_tx(v17_tx_state_t *s, int16_t amp[], int len);
+SPAN_DECLARE_NONSTD(int) v17_tx(v17_tx_state_t *s, int16_t amp[], int len);
 
 #if defined(__cplusplus)
 }

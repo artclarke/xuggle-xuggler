@@ -33,10 +33,9 @@
        revisions in that library's "configure.ac" file, and
        regenerate the build scripts -->
   <property name="library.version.major" value="5"/>
-  <property name="library.version.minor" value="1"/>
-  <property name="license.key" value="LGPL License"/>
+  <property name="library.version.minor" value="2"/>
+  <property name="license.key" value="GPL License"/>
   <property name="app.mainclass" value="com.xuggle.xuggler.Converter"/>
-  <property name="app.nativeclasspath" value="com/xuggle/native"/>
 
   <!-- And bring in the standard build rules -->
   <import file="mk/buildtools/buildhelper.xml"/>

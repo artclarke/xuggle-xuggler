@@ -163,6 +163,8 @@ namespace com { namespace xuggle { namespace xuggler
       av_log_set_level(AV_LOG_ERROR); // Only log errors by default
       av_register_all();
       avformat_network_init();
+      // and set up filter support
+      avfilter_register_all();
 
       // and set up the device library for webcam support
       avdevice_register_all();

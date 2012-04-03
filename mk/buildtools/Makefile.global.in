@@ -39,9 +39,7 @@ AM_LDFLAGS=-L@abs_top_builddir@/captive/stage@libdir@
 # Note we may include includedir twice; most compilers will ignore that if
 # $(DESTDIR) is actually empty
 VS_INCLUDES=$(VS_JNI_INCLUDE) -I. -I$(srcdir) -I$(abs_top_srcdir)/csrc -I$(abs_top_builddir)/csrc -I$(DESTDIR)$(includedir) -I$(includedir) -I"$(XUGGLE_HOME)/include"
-AM_CPPFLAGS+=$(VS_CPPFLAGS) $(VS_INCLUDES)
-AM_CFLAGS+=$(VS_CFLAGS) -fno-strict-aliasing
-AM_CXXFLAGS+=$(VS_CXXFLAGS) -fno-strict-aliasing
+AM_CPPFLAGS+=$(VS_CPPFLAGS) $(VS_INCLUDES) -fno-strict-aliasing
 # Note we include libdir twice; most compilers will ignore that if
 # $(DESTDIR) is actually empty
 AM_LDFLAGS+=$(VS_LDFLAGS) -L$(DESTDIR)$(libdir) -L$(libdir) -L"$(XUGGLE_HOME)/lib"
@@ -52,37 +50,16 @@ ifdef VS_WARN_ISERROR
 endif
 ifdef VS_OS_WINDOWS
   AM_CPPFLAGS+=-DVS_OS_WINDOWS=1
-  AM_CFLAGS+=-DVS_OS_WINDOWS=1
-  AM_CXXFLAGS+=-DVS_OS_WINDOWS=1
 endif
 
 VS_REVISION:= $(shell $(abs_top_srcdir)/mk/buildtools/revision.sh $(abs_top_srcdir) $(abs_top_srcdir)/LastRevisionBuilt.txt)
 AM_CPPFLAGS+=-DVS_PRODUCT=$(VS_PRODUCT) -DVS_CPP_PACKAGE=$(VS_CPP_PACKAGE) -DVS_CPP_NAMESPACE=$(VS_CPP_NAMESPACE) -DVS_CPP_PATH=$(VS_CPP_PATH) -DVS_REVISION=$(VS_REVISION)
-AM_CFLAGS+=-DVS_PRODUCT=$(VS_PRODUCT) -DVS_API_COMPILING_$(VS_PRODUCT) -DVS_CPP_PACKAGE=$(VS_CPP_PACKAGE) -DVS_CPP_NAMESPACE=$(VS_CPP_NAMESPACE) -DVS_CPP_PATH=$(VS_CPP_PATH)
 ifndef VS_TEST
-  AM_CPPFLAGS+=-DVS_API_COMPILING_$(VS_PRODUCT)
-  VS_LIBRARY_VERSION=@LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@:$(VS_REVISION)
-  ifeq ($(HOST_TYPE),Mac)
-    # Mac's our restricted to two bytes for major, 1 byte for minor and 1
-    # byte for revision, and since our revision is an SVN revision, we
-    # would easily exceed that.
-    VS_LIBRARY_VERSION=@LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@:0
-  else
-    ifeq ($(HOST_TYPE),Windows)
-      AM_LDFLAGS+=-Wl,-Bsymbolic -Wl,--warn-common -Wl,--as-needed
-    endif
-  endif
-  AM_LDFLAGS+=-version-number $(VS_LIBRARY_VERSION) -no-undefined
+  AM_CPPFLAGS+=-DVS_API_COMPILING
 endif
 
 ifdef VS_DEBUG
   AM_CPPFLAGS+=-DVS_DEBUG -g3 -O0
-  AM_CFLAGS+=-DVS_DEBUG -g3 -O0
-  AM_CXXFLAGS+=-DVS_DEBUG -g3 -O0
-else
-  AM_CPPFLAGS+=-g -O2
-  AM_CFLAGS+=-g -O2
-  AM_CXXFLAGS+=-g -O2
 endif
 
 ifdef VS_TEST

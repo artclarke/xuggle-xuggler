@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: t31_tests.c,v 1.71 2009/02/20 12:38:37 steveu Exp $
  */
 
 /*! \file */
@@ -48,7 +46,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
-#include <audiofile.h>
+#include <sndfile.h>
 
 //#if defined(WITH_SPANDSP_INTERNALS)
 #define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
@@ -192,6 +190,74 @@ static const struct command_response_s fax_receive_test_seq[] =
     EXCHANGE("ATH0\r", "\r\nOK\r\n")
 };
 
+static const struct command_response_s v34_fax_send_test_seq[] =
+{
+    EXCHANGE("ATE0\r", "ATE0\r\r\nOK\r\n"),
+    EXCHANGE("AT+A8E=3,,\r", "\r\nOK\r\n"),
+    EXCHANGE("AT+FCLASS=1.0\r", "\r\nOK\r\n"),
+    EXCHANGE("AT+F34=14,4,2\r", "\r\nOK\r\n"),
+    EXCHANGE("ATD123456789\r", "\r\n+A8A:1\r\nOK\r\n"),
+    EXCHANGE("AT+A8M=8185D490\r", "\r\n+A8M:8185D490\r\nOK\r\n"),
+    EXCHANGE("ATO\r", "\r\n+A8J:1\r\n+F34=14,2\r\nCONNECT\r\n"),
+    //<DIS frame data>
+    RESPONSE("\x10\x6B\x10\x7D\x10\x6F"  "\xFF\x13\x80\x00\xEE\xF8\x80\x80\x91\x80\x80\x80\x18\x78\x57\x10\x03"), // For audio FAXing
+    //RESPONSE("\x10\x6B\x10\x7D\x10\x6F"  ""\xFF\x13\x80\x04\xEE\xF8\x80\x80\x91\x80\x80\x80\x18\xE4\xE7\x10\x03"),   // For T.38 FAXing
+    //<DCS frame data>
+    //<CFR frame data>
+    EXCHANGE("\xFF\x13\x83\x01\xC6\x80\x80\x80\x80\x01\xFD\x13\x10\x03", "\xFF\x13\x84\xEA\x7D\x10\x03"),
+    EXCHANGE("\x10\x04", "\x10\x04\x10\x7D"),
+    //<FCD frames>
+    EXCHANGE("\x10\x6B", "\x10\x6B\x10\x79\x10\x6F"),
+    //<PPS-MPS frame>
+    //<FCD frames>
+    //<PPS-EOP frame>
+    EXCHANGE("\x10\x03", "\xFF\x13\x8C\xA2\xF1\x10\x03"),
+    //<DCN frame>
+    EXCHANGE("\xFF\x13\xFB\x10\x03\x10\x04", "\r\nOK\r\n"),
+    EXCHANGE("ATH\r", "\r\nOK\r\n")
+};
+
+static const struct command_response_s v34_fax_receive_test_seq[] =
+{
+    EXCHANGE("ATE0\r", "ATE0\r\r\nOK\r\n"),
+    EXCHANGE("AT+A8E=,2,\r", "\r\nOK\r\n"),
+    EXCHANGE("AT+FCLASS=1.0\r", "\r\nOK\r\n"),
+    EXCHANGE("AT+F34=10\r", "\r\nOK\r\n"),
+    RESPONSE("\r\nRING\r\n"),
+    EXCHANGE("ATA\r", "\r\n+A8M:8185D490\r\nOK\r\n"),
+    EXCHANGE("AT+A8M=8185D490;O\r", "\r\n+A8J:1\r\n+F34:10,1\r\nCONNECT\r\n"),
+    RESPONSE("\x10<ctrl>\x10<p224>\x10<C12>"),
+    EXCHANGE("ATH\r", "\r\nOK\r\n")
+};
+
+static const struct command_response_s v34_fax_receive_a_test_seq[] =
+{
+    EXCHANGE("ATE0\r", "ATE0\r\r\nOK\r\n"),
+    EXCHANGE("AT+A8E=,3,\r", "\r\nOK\r\n"),
+    EXCHANGE("AT+FCLASS=1.0\r", "\r\nOK\r\n"),
+    EXCHANGE("AT+F34=10\r", "\r\nOK\r\n"),
+    RESPONSE("\r\nRING\r\n"),
+    EXCHANGE("ATA\r", "\r\n+A8C:1\r\n+A8C:1\r\n"),
+    EXCHANGE("X", "\r\nOK\r\n"),
+    EXCHANGE("AT+A8E=,2,\r", "\r\n+A8M:8185D490\r\nOK\r\n"),
+    EXCHANGE("AT+A8M=8185D490\r", "\r\n+A8J:1\r\n+F34:10,1\r\nCONNECT\r\n"),
+    RESPONSE("\x10<ctrl>\x10<p224>\x10<C12>"),
+    EXCHANGE("ATH\r", "\r\nOK\r\n")
+};
+
+static const struct command_response_s v34_fax_receive_b_test_seq[] =
+{
+    EXCHANGE("ATE0\r", "ATE0\r\r\nOK\r\n"),
+    EXCHANGE("AT+A8E=,3,\r", "\r\nOK\r\n"),
+    EXCHANGE("AT+FCLASS=1.0\r", "\r\nOK\r\n"),
+    EXCHANGE("AT+F34=10\r", "\r\nOK\r\n"),
+    RESPONSE("\r\nRING\r\n"),
+    EXCHANGE("ATA\r", "\r\nA8I:81\r\n"),
+    RESPONSE("A8I:81\r\n"),
+    EXCHANGE("X", "\r\nOK\r\n"),
+    EXCHANGE("AT+A8E=,2,\r", "\r\n+A8M:8185D490\r\nOK\r\n")
+};
+
 char *decode_test_file = NULL;
 int countdown = 0;
 int command_response_test_step = -1;
@@ -214,7 +280,7 @@ static int phase_b_handler(t30_state_t *s, void *user_data, int result)
     char tag[20];
 
     i = (int) (intptr_t) user_data;
-    snprintf(tag, sizeof(tag), "%c: Phase B:", i);
+    snprintf(tag, sizeof(tag), "%c: Phase B", i);
     printf("%c: Phase B handler on channel %c - (0x%X) %s\n", i, i, result, t30_frametype(result));
     log_rx_parameters(s, tag);
     return T30_ERR_OK;
@@ -227,7 +293,7 @@ static int phase_d_handler(t30_state_t *s, void *user_data, int result)
     char tag[20];
 
     i = (int) (intptr_t) user_data;
-    snprintf(tag, sizeof(tag), "%c: Phase D:", i);
+    snprintf(tag, sizeof(tag), "%c: Phase D", i);
     printf("%c: Phase D handler on channel %c - (0x%X) %s\n", i, i, result, t30_frametype(result));
     log_transfer_statistics(s, tag);
     log_tx_parameters(s, tag);
@@ -242,7 +308,7 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
     char tag[20];
     
     i = (intptr_t) user_data;
-    snprintf(tag, sizeof(tag), "%c: Phase E:", i);
+    snprintf(tag, sizeof(tag), "%c: Phase E", i);
     printf("Phase E handler on channel %c\n", i);
     log_transfer_statistics(s, tag);
     log_tx_parameters(s, tag);
@@ -345,7 +411,7 @@ static int at_tx_handler(at_state_t *s, void *user_data, const uint8_t *buf, siz
     for (i = 0;  i < response_buf_ptr;  i++)
         printf("%02x ", response_buf[i] & 0xFF);
     printf("\n");
-printf("Match %d against %d\n", response_buf_ptr, fax_test_seq[test_seq_ptr].len_response);
+    printf("Match %d against %d\n", response_buf_ptr, fax_test_seq[test_seq_ptr].len_response);
     if (response_buf_ptr >= fax_test_seq[test_seq_ptr].len_response
         &&
         memcmp(fax_test_seq[test_seq_ptr].response, response_buf, fax_test_seq[test_seq_ptr].len_response) == 0)
@@ -444,8 +510,9 @@ static int t38_tests(int use_gui, int test_sending, int model_no, int speed_patt
     span_log_set_tag(logging, "T.31");
 
     t38_core = t31_get_t38_core_state(t31_state);
-    span_log_set_level(&t38_core->logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
-    span_log_set_tag(&t38_core->logging, "T.31");
+    logging = t38_core_get_logging_state(t38_core);
+    span_log_set_level(logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
+    span_log_set_tag(logging, "T.31");
 
     span_log_set_level(&t31_state->at_state.logging, SPAN_LOG_DEBUG | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME);
     span_log_set_tag(&t31_state->at_state.logging, "T.31");
@@ -661,8 +728,8 @@ static int t30_tests(int log_audio, int test_sending)
     int16_t out_amp[2*SAMPLES_PER_CHUNK];
     int t30_len;
     int t31_len;
-    AFfilehandle wave_handle;
-    AFfilehandle in_handle;
+    SNDFILE *wave_handle;
+    SNDFILE *in_handle;
     int fast_send;
     int fast_send_tcf;
     int fast_blocks;
@@ -671,12 +738,12 @@ static int t30_tests(int log_audio, int test_sending)
     logging_state_t *logging;
     int i;
 
-    wave_handle = AF_NULL_FILEHANDLE;
+    wave_handle = NULL;
     if (log_audio)
     {
-        if ((wave_handle = afOpenFile_telephony_write(OUTPUT_WAVE_FILE_NAME, 2)) == AF_NULL_FILEHANDLE)
+        if ((wave_handle = sf_open_telephony_write(OUTPUT_WAVE_FILE_NAME, 2)) == NULL)
         {
-            fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_WAVE_FILE_NAME);
+            fprintf(stderr, "    Cannot create audio file '%s'\n", OUTPUT_WAVE_FILE_NAME);
             exit(2);
         }
     }
@@ -686,9 +753,9 @@ static int t30_tests(int log_audio, int test_sending)
     in_handle = NULL;
     if (decode_test_file)
     {
-        if ((in_handle = afOpenFile_telephony_read(decode_test_file, 1)) == AF_NULL_FILEHANDLE)
+        if ((in_handle = sf_open_telephony_read(decode_test_file, 1)) == NULL)
         {
-            fprintf(stderr, "    Cannot create wave file '%s'\n", decode_test_file);
+            fprintf(stderr, "    Cannot create audio file '%s'\n", decode_test_file);
             exit(2);
         }
     }
@@ -859,29 +926,33 @@ static int t30_tests(int log_audio, int test_sending)
         if (fax_rx(fax_state, t31_amp, SAMPLES_PER_CHUNK))
             break;
 
-        span_log_bump_samples(&fax_state->logging, SAMPLES_PER_CHUNK);
-        span_log_bump_samples(&t30->logging, SAMPLES_PER_CHUNK);
+        logging = fax_get_logging_state(fax_state);
+        span_log_bump_samples(logging, SAMPLES_PER_CHUNK);
+        logging = t30_get_logging_state(t30);
+        span_log_bump_samples(logging, SAMPLES_PER_CHUNK);
+        logging = t31_get_logging_state(t31_state);
+        span_log_bump_samples(logging, SAMPLES_PER_CHUNK);
 
         if (log_audio)
         {
-            outframes = afWriteFrames(wave_handle, AF_DEFAULT_TRACK, out_amp, SAMPLES_PER_CHUNK);
+            outframes = sf_writef_short(wave_handle, out_amp, SAMPLES_PER_CHUNK);
             if (outframes != SAMPLES_PER_CHUNK)
                 break;
         }
     }
     if (decode_test_file)
     {
-        if (afCloseFile(in_handle) != 0)
+        if (sf_close(in_handle) != 0)
         {
-            fprintf(stderr, "    Cannot close wave file '%s'\n", decode_test_file);
+            fprintf(stderr, "    Cannot close audio file '%s'\n", decode_test_file);
             exit(2);
         }
     }
     if (log_audio)
     {
-        if (afCloseFile(wave_handle) != 0)
+        if (sf_close(wave_handle) != 0)
         {
-            fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_WAVE_FILE_NAME);
+            fprintf(stderr, "    Cannot close audio file '%s'\n", OUTPUT_WAVE_FILE_NAME);
             exit(2);
         }
     }

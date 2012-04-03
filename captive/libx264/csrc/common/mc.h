@@ -27,7 +27,7 @@
 #define X264_MC_H
 
 struct x264_weight_t;
-typedef void (* weight_fn_t)( pixel *, int, pixel *,int, const struct x264_weight_t *, int );
+typedef void (* weight_fn_t)( pixel *, intptr_t, pixel *,intptr_t, const struct x264_weight_t *, int );
 typedef struct x264_weight_t
 {
     /* aligning the first member is a gcc hack to force the struct to be
@@ -62,65 +62,58 @@ extern const x264_weight_t x264_weight_none[3];
 
 typedef struct
 {
-    void (*mc_luma)( pixel *dst, int i_dst, pixel **src, int i_src,
+    void (*mc_luma)( pixel *dst, intptr_t i_dst, pixel **src, intptr_t i_src,
                      int mvx, int mvy, int i_width, int i_height, const x264_weight_t *weight );
 
     /* may round up the dimensions if they're not a power of 2 */
-    pixel* (*get_ref)( pixel *dst, int *i_dst, pixel **src, int i_src,
+    pixel* (*get_ref)( pixel *dst, intptr_t *i_dst, pixel **src, intptr_t i_src,
                        int mvx, int mvy, int i_width, int i_height, const x264_weight_t *weight );
 
     /* mc_chroma may write up to 2 bytes of garbage to the right of dst,
      * so it must be run from left to right. */
-    void (*mc_chroma)( pixel *dstu, pixel *dstv, int i_dst, pixel *src, int i_src,
+    void (*mc_chroma)( pixel *dstu, pixel *dstv, intptr_t i_dst, pixel *src, intptr_t i_src,
                        int mvx, int mvy, int i_width, int i_height );
 
-    void (*avg[12])( pixel *dst, int, pixel *src1, int, pixel *src2, int, int i_weight );
+    void (*avg[12])( pixel *dst,  intptr_t dst_stride, pixel *src1, intptr_t src1_stride,
+                     pixel *src2, intptr_t src2_stride, int i_weight );
 
     /* only 16x16, 8x8, and 4x4 defined */
-    void (*copy[7])( pixel *dst, int, pixel *src, int, int i_height );
-    void (*copy_16x16_unaligned)( pixel *dst, int, pixel *src, int, int i_height );
+    void (*copy[7])( pixel *dst, intptr_t dst_stride, pixel *src, intptr_t src_stride, int i_height );
+    void (*copy_16x16_unaligned)( pixel *dst, intptr_t dst_stride, pixel *src, intptr_t src_stride, int i_height );
 
-    void (*store_interleave_chroma)( pixel *dst, int i_dst, pixel *srcu, pixel *srcv, int height );
-    void (*load_deinterleave_chroma_fenc)( pixel *dst, pixel *src, int i_src, int height );
-    void (*load_deinterleave_chroma_fdec)( pixel *dst, pixel *src, int i_src, int height );
+    void (*store_interleave_chroma)( pixel *dst, intptr_t i_dst, pixel *srcu, pixel *srcv, int height );
+    void (*load_deinterleave_chroma_fenc)( pixel *dst, pixel *src, intptr_t i_src, int height );
+    void (*load_deinterleave_chroma_fdec)( pixel *dst, pixel *src, intptr_t i_src, int height );
 
-    void (*plane_copy)( pixel *dst, int i_dst,
-                        pixel *src, int i_src, int w, int h );
-    void (*plane_copy_interleave)( pixel *dst, int i_dst,
-                                   pixel *srcu, int i_srcu,
-                                   pixel *srcv, int i_srcv, int w, int h );
+    void (*plane_copy)( pixel *dst, intptr_t i_dst, pixel *src, intptr_t i_src, int w, int h );
+    void (*plane_copy_interleave)( pixel *dst,  intptr_t i_dst, pixel *srcu, intptr_t i_srcu,
+                                   pixel *srcv, intptr_t i_srcv, int w, int h );
     /* may write up to 15 pixels off the end of each plane */
-    void (*plane_copy_deinterleave)( pixel *dstu, int i_dstu,
-                                     pixel *dstv, int i_dstv,
-                                     pixel *src, int i_src, int w, int h );
-    void (*plane_copy_deinterleave_rgb)( pixel *dsta, int i_dsta,
-                                         pixel *dstb, int i_dstb,
-                                         pixel *dstc, int i_dstc,
-                                         pixel *src, int i_src, int pw, int w, int h );
+    void (*plane_copy_deinterleave)( pixel *dstu, intptr_t i_dstu, pixel *dstv, intptr_t i_dstv,
+                                     pixel *src,  intptr_t i_src, int w, int h );
+    void (*plane_copy_deinterleave_rgb)( pixel *dsta, intptr_t i_dsta, pixel *dstb, intptr_t i_dstb,
+                                         pixel *dstc, intptr_t i_dstc, pixel *src,  intptr_t i_src, int pw, int w, int h );
     void (*hpel_filter)( pixel *dsth, pixel *dstv, pixel *dstc, pixel *src,
-                         int i_stride, int i_width, int i_height, int16_t *buf );
+                         intptr_t i_stride, int i_width, int i_height, int16_t *buf );
 
     /* prefetch the next few macroblocks of fenc or fdec */
-    void (*prefetch_fenc)( pixel *pix_y, int stride_y,
-                           pixel *pix_uv, int stride_uv, int mb_x );
-    void (*prefetch_fenc_420)( pixel *pix_y, int stride_y,
-                               pixel *pix_uv, int stride_uv, int mb_x );
-    void (*prefetch_fenc_422)( pixel *pix_y, int stride_y,
-                               pixel *pix_uv, int stride_uv, int mb_x );
+    void (*prefetch_fenc)    ( pixel *pix_y, intptr_t stride_y, pixel *pix_uv, intptr_t stride_uv, int mb_x );
+    void (*prefetch_fenc_420)( pixel *pix_y, intptr_t stride_y, pixel *pix_uv, intptr_t stride_uv, int mb_x );
+    void (*prefetch_fenc_422)( pixel *pix_y, intptr_t stride_y, pixel *pix_uv, intptr_t stride_uv, int mb_x );
     /* prefetch the next few macroblocks of a hpel reference frame */
-    void (*prefetch_ref)( pixel *pix, int stride, int parity );
+    void (*prefetch_ref)( pixel *pix, intptr_t stride, int parity );
 
     void *(*memcpy_aligned)( void *dst, const void *src, size_t n );
-    void (*memzero_aligned)( void *dst, int n );
+    void (*memzero_aligned)( void *dst, size_t n );
 
     /* successive elimination prefilter */
-    void (*integral_init4h)( uint16_t *sum, pixel *pix, int stride );
-    void (*integral_init8h)( uint16_t *sum, pixel *pix, int stride );
-    void (*integral_init4v)( uint16_t *sum8, uint16_t *sum4, int stride );
-    void (*integral_init8v)( uint16_t *sum8, int stride );
+    void (*integral_init4h)( uint16_t *sum, pixel *pix, intptr_t stride );
+    void (*integral_init8h)( uint16_t *sum, pixel *pix, intptr_t stride );
+    void (*integral_init4v)( uint16_t *sum8, uint16_t *sum4, intptr_t stride );
+    void (*integral_init8v)( uint16_t *sum8, intptr_t stride );
 
     void (*frame_init_lowres_core)( pixel *src0, pixel *dst0, pixel *dsth, pixel *dstv, pixel *dstc,
-                                    int src_stride, int dst_stride, int width, int height );
+                                    intptr_t src_stride, intptr_t dst_stride, int width, int height );
     weight_fn_t *weight;
     weight_fn_t *offsetadd;
     weight_fn_t *offsetsub;

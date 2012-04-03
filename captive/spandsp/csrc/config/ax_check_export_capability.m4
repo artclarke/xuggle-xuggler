@@ -20,7 +20,7 @@ ac_cv_symbol_export_capability="no"
 case "${ax_cv_c_compiler_vendor}" in
 gnu)
     save_CFLAGS="${CFLAGS}"
-    CFLAGS="${CFLAGS} -fvisibility=hidden"
+    CFLAGS="${CFLAGS} -Werror -fvisibility=hidden"
     AC_COMPILE_IFELSE(
         [AC_LANG_PROGRAM(
             [int foo __attribute__ ((visibility("default")));],

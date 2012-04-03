@@ -30,7 +30,7 @@
       <Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories=".;.\spandsp;.\msvc;..\..\tiff-3.8.2\libtiff"
+				AdditionalIncludeDirectories=".;..\..\src\spandsp;..\..\src;..\..\src\msvc;.\spandsp;.\msvc;..\..\tiff-3.8.2\libtiff"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;LIBSPANDSP_EXPORTS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;HAVE_CONFIG_H"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -193,6 +193,7 @@
 <File RelativePath="gsm0610_short_term.c"></File>
 <File RelativePath="hdlc.c"></File>
 <File RelativePath="ima_adpcm.c"></File>
+<File RelativePath="image_translate.c"></File>
 <File RelativePath="logging.c"></File>
 <File RelativePath="lpc10_analyse.c"></File>
 <File RelativePath="lpc10_decode.c"></File>
@@ -212,7 +213,9 @@
 <File RelativePath="silence_gen.c"></File>
 <File RelativePath="super_tone_rx.c"></File>
 <File RelativePath="super_tone_tx.c"></File>
-<File RelativePath="t4.c"></File>
+<File RelativePath="swept_tone.c"></File>
+<File RelativePath="t4_rx.c"></File>
+<File RelativePath="t4_tx.c"></File>
 <File RelativePath="t30.c"></File>
 <File RelativePath="t30_api.c"></File>
 <File RelativePath="t30_logging.c"></File>
@@ -224,6 +227,7 @@
 <File RelativePath="t38_terminal.c"></File>
 <File RelativePath="testcpuid.c"></File>
 <File RelativePath="time_scale.c"></File>
+<File RelativePath="timezone.c"></File>
 <File RelativePath="tone_detect.c"></File>
 <File RelativePath="tone_generate.c"></File>
 <File RelativePath="v17rx.c"></File>
@@ -273,6 +277,7 @@
 <File RelativePath="spandsp/gsm0610.h"></File>
 <File RelativePath="spandsp/hdlc.h"></File>
 <File RelativePath="spandsp/ima_adpcm.h"></File>
+<File RelativePath="spandsp/image_translate.h"></File>
 <File RelativePath="spandsp/logging.h"></File>
 <File RelativePath="spandsp/lpc10.h"></File>
 <File RelativePath="spandsp/modem_echo.h"></File>
@@ -289,7 +294,7 @@
 <File RelativePath="spandsp/silence_gen.h"></File>
 <File RelativePath="spandsp/super_tone_rx.h"></File>
 <File RelativePath="spandsp/super_tone_tx.h"></File>
-<File RelativePath="spandsp/t4.h"></File>
+<File RelativePath="spandsp/swept_tone.h"></File>
 <File RelativePath="spandsp/t30.h"></File>
 <File RelativePath="spandsp/t30_api.h"></File>
 <File RelativePath="spandsp/t30_fcf.h"></File>
@@ -300,8 +305,13 @@
 <File RelativePath="spandsp/t38_gateway.h"></File>
 <File RelativePath="spandsp/t38_non_ecm_buffer.h"></File>
 <File RelativePath="spandsp/t38_terminal.h"></File>
+<File RelativePath="spandsp/t4_rx.h"></File>
+<File RelativePath="spandsp/t4_tx.h"></File>
+<File RelativePath="spandsp/t4_t6_decode.h"></File>
+<File RelativePath="spandsp/t4_t6_encode.h"></File>
 <File RelativePath="spandsp/telephony.h"></File>
 <File RelativePath="spandsp/time_scale.h"></File>
+<File RelativePath="spandsp/timezone.h"></File>
 <File RelativePath="spandsp/timing.h"></File>
 <File RelativePath="spandsp/tone_detect.h"></File>
 <File RelativePath="spandsp/tone_generate.h"></File>
@@ -327,6 +337,7 @@
 <File RelativePath="spandsp/private/bert.h"></File>
 <File RelativePath="spandsp/private/bitstream.h"></File>
 <File RelativePath="spandsp/private/dtmf.h"></File>
+<File RelativePath="spandsp/private/echo.h"></File>
 <File RelativePath="spandsp/private/fax.h"></File>
 <File RelativePath="spandsp/private/fax_modems.h"></File>
 <File RelativePath="spandsp/private/fsk.h"></File>
@@ -336,9 +347,11 @@
 <File RelativePath="spandsp/private/gsm0610.h"></File>
 <File RelativePath="spandsp/private/hdlc.h"></File>
 <File RelativePath="spandsp/private/ima_adpcm.h"></File>
+<File RelativePath="spandsp/private/image_translate.h"></File>
 <File RelativePath="spandsp/private/logging.h"></File>
 <File RelativePath="spandsp/private/lpc10.h"></File>
 <File RelativePath="spandsp/private/modem_connect_tones.h"></File>
+<File RelativePath="spandsp/private/modem_echo.h"></File>
 <File RelativePath="spandsp/private/noise.h"></File>
 <File RelativePath="spandsp/private/oki_adpcm.h"></File>
 <File RelativePath="spandsp/private/queue.h"></File>
@@ -347,14 +360,20 @@
 <File RelativePath="spandsp/private/silence_gen.h"></File>
 <File RelativePath="spandsp/private/super_tone_rx.h"></File>
 <File RelativePath="spandsp/private/super_tone_tx.h"></File>
+<File RelativePath="spandsp/private/swept_tone.h"></File>
 <File RelativePath="spandsp/private/t30.h"></File>
+<File RelativePath="spandsp/private/t30_dis_dtc_dcs_bits.h"></File>
 <File RelativePath="spandsp/private/t31.h"></File>
 <File RelativePath="spandsp/private/t38_core.h"></File>
 <File RelativePath="spandsp/private/t38_gateway.h"></File>
 <File RelativePath="spandsp/private/t38_non_ecm_buffer.h"></File>
 <File RelativePath="spandsp/private/t38_terminal.h"></File>
-<File RelativePath="spandsp/private/t4.h"></File>
+<File RelativePath="spandsp/private/t4_rx.h"></File>
+<File RelativePath="spandsp/private/t4_tx.h"></File>
+<File RelativePath="spandsp/private/t4_t6_decode.h"></File>
+<File RelativePath="spandsp/private/t4_t6_encode.h"></File>
 <File RelativePath="spandsp/private/time_scale.h"></File>
+<File RelativePath="spandsp/private/timezone.h"></File>
 <File RelativePath="spandsp/private/tone_detect.h"></File>
 <File RelativePath="spandsp/private/tone_generate.h"></File>
 <File RelativePath="spandsp/private/v17rx.h"></File>

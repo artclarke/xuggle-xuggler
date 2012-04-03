@@ -44,7 +44,6 @@
 #include <math.h>
 
 #include "avcodec.h"
-#include "get_bits.h"
 #include "libavutil/common.h"
 #include "celp_math.h"
 #include "celp_filters.h"
@@ -189,16 +188,15 @@ static av_cold int amrnb_decode_init(AVCodecContext *avctx)
 static enum Mode unpack_bitstream(AMRContext *p, const uint8_t *buf,
                                   int buf_size)
 {
-    GetBitContext gb;
     enum Mode mode;
 
-    init_get_bits(&gb, buf, buf_size * 8);
-
     // Decode the first octet.
-    skip_bits(&gb, 1);                        // padding bit
-    mode = get_bits(&gb, 4);                  // frame type
-    p->bad_frame_indicator = !get_bits1(&gb); // quality bit
-    skip_bits(&gb, 2);                        // two padding bits
+    mode = buf[0] >> 3 & 0x0F;                      // frame type
+    p->bad_frame_indicator = (buf[0] & 0x4) != 0x4; // quality bit
+
+    if (mode >= N_MODES || buf_size < frame_sizes_nb[mode] + 1) {
+        return NO_DATA;
+    }
 
     if (mode < MODE_DTX)
         ff_amr_bit_reorder((uint16_t *) &p->frame, sizeof(AMRNBFrame), buf + 1,
@@ -947,6 +945,10 @@ static int amrnb_decode_frame(AVCodecContext *avctx, void *data,
     buf_out = (float *)p->avframe.data[0];
 
     p->cur_frame_mode = unpack_bitstream(p, buf, buf_size);
+    if (p->cur_frame_mode == NO_DATA) {
+        av_log(avctx, AV_LOG_ERROR, "Corrupt bitstream\n");
+        return AVERROR_INVALIDDATA;
+    }
     if (p->cur_frame_mode == MODE_DTX) {
         av_log_missing_feature(avctx, "dtx mode", 0);
         av_log(avctx, AV_LOG_INFO, "Note: libopencore_amrnb supports dtx\n");

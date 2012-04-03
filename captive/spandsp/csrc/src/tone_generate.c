@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: tone_generate.c,v 1.52 2009/04/12 09:12:10 steveu Exp $
  */
 
 /*! \file */
@@ -59,20 +57,26 @@
 #define M_PI 3.14159265358979323846264338327
 #endif
 
-#define ms_to_samples(t)            (((t)*SAMPLE_RATE)/1000)
-
-SPAN_DECLARE(void) make_tone_gen_descriptor(tone_gen_descriptor_t *s,
-                                            int f1,
-                                            int l1,
-                                            int f2,
-                                            int l2,
-                                            int d1,
-                                            int d2,
-                                            int d3,
-                                            int d4,
-                                            int repeat)
+SPAN_DECLARE(tone_gen_descriptor_t *) tone_gen_descriptor_init(tone_gen_descriptor_t *s,
+                                                               int f1,
+                                                               int l1,
+                                                               int f2,
+                                                               int l2,
+                                                               int d1,
+                                                               int d2,
+                                                               int d3,
+                                                               int d4,
+                                                               int repeat)
 {
+    if (s == NULL)
+    {
+        if ((s = (tone_gen_descriptor_t *) malloc(sizeof(*s))) == NULL)
+        {
+            return NULL;
+        }
+    }
     memset(s, 0, sizeof(*s));
+
     if (f1)
     {
 #if defined(SPANDSP_USE_FIXED_POINT)
@@ -104,46 +108,18 @@ SPAN_DECLARE(void) make_tone_gen_descriptor(tone_gen_descriptor_t *s,
     s->duration[3] = d4*SAMPLE_RATE/1000;
 
     s->repeat = repeat;
-}
-/*- End of function --------------------------------------------------------*/
-
-SPAN_DECLARE(tone_gen_state_t *) tone_gen_init(tone_gen_state_t *s, tone_gen_descriptor_t *t)
-{
-    int i;
-
-    if (s == NULL)
-        return NULL;
-    for (i = 0;  i < 4;  i++)
-    {
-        s->tone[i] = t->tone[i];
-        s->phase[i] = 0;
-    }
-
-    for (i = 0;  i < 4;  i++)
-        s->duration[i] = t->duration[i];
-    s->repeat = t->repeat;
-
-    s->current_section = 0;
-    s->current_position = 0;
+    
     return s;
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) tone_gen_release(tone_gen_state_t *s)
+SPAN_DECLARE(void) tone_gen_descriptor_free(tone_gen_descriptor_t *s)
 {
-    return 0;
+    free(s);
 }
 /*- End of function --------------------------------------------------------*/
 
-SPAN_DECLARE(int) tone_gen_free(tone_gen_state_t *s)
-{
-    if (s)
-        free(s);
-    return 0;
-}
-/*- End of function --------------------------------------------------------*/
-
-SPAN_DECLARE(int) tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples)
+SPAN_DECLARE_NONSTD(int) tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples)
 {
     int samples;
     int limit;
@@ -236,6 +212,49 @@ SPAN_DECLARE(int) tone_gen(tone_gen_state_t *s, int16_t amp[], int max_samples)
         }
     }
     return samples;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(tone_gen_state_t *) tone_gen_init(tone_gen_state_t *s, tone_gen_descriptor_t *t)
+{
+    int i;
+
+    if (s == NULL)
+    {
+        if ((s = (tone_gen_state_t *) malloc(sizeof(*s))) == NULL)
+        {
+            return NULL;
+        }
+    }
+    memset(s, 0, sizeof(*s));
+
+    for (i = 0;  i < 4;  i++)
+    {
+        s->tone[i] = t->tone[i];
+        s->phase[i] = 0;
+    }
+
+    for (i = 0;  i < 4;  i++)
+        s->duration[i] = t->duration[i];
+    s->repeat = t->repeat;
+
+    s->current_section = 0;
+    s->current_position = 0;
+    return s;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(int) tone_gen_release(tone_gen_state_t *s)
+{
+    return 0;
+}
+/*- End of function --------------------------------------------------------*/
+
+SPAN_DECLARE(int) tone_gen_free(tone_gen_state_t *s)
+{
+    if (s)
+        free(s);
+    return 0;
 }
 /*- End of function --------------------------------------------------------*/
 /*- End of file ------------------------------------------------------------*/

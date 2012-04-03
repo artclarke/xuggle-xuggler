@@ -759,6 +759,7 @@ OPTIMIZE_CHROMA_2x2_DC
 %macro DENOISE_DCT 0
 cglobal denoise_dct, 4,4,8
     pxor      m6, m6
+    movsxdifnidn r3, r3d
 .loop:
     mova      m2, [r0+r3*4-2*mmsize]
     mova      m3, [r0+r3*4-1*mmsize]
@@ -804,6 +805,7 @@ DENOISE_DCT
 %macro DENOISE_DCT 0
 cglobal denoise_dct, 4,4,7
     pxor      m6, m6
+    movsxdifnidn r3, r3d
 .loop:
     mova      m2, [r0+r3*2-2*mmsize]
     mova      m3, [r0+r3*2-1*mmsize]
@@ -910,7 +912,7 @@ cextern decimate_table8
 
 %macro DECIMATE4x4 1
 
-;A LUT is faster than bsf on AMD processors.
+;A LUT is faster than bsf on older AMD processors.
 ;This is not true for score64.
 cglobal decimate_score%1, 1,3
 %ifdef PIC
@@ -945,7 +947,7 @@ cglobal decimate_score%1, 1,3
     add    al, byte [mask_table + rdx]
 %else
 .loop:
-    bsf   ecx, edx
+    tzcnt ecx, edx
     shr   edx, cl
     add    al, byte [table + rcx]
     shr   edx, 1
@@ -1009,7 +1011,7 @@ cglobal decimate_score64, 1,5
     add   eax, r3d
     jne  .ret9
 .loop:
-    bsf   rcx, r1
+    tzcnt rcx, r1
     shr   r1, cl
     add   al, byte [table + rcx]
     shr   r1, 1
@@ -1045,7 +1047,7 @@ cglobal decimate_score64, 1,5
     add   r0, r2
     jne  .ret9      ;r0 is zero at this point, so we don't need to zero it
 .loop:
-    bsf   ecx, r3
+    tzcnt ecx, r3
     test  r3, r3
     je   .largerun
     shrd  r3, r4, cl
@@ -1071,7 +1073,7 @@ cglobal decimate_score64, 1,5
 .largerun:
     mov   r3, r4
     xor   r4, r4
-    bsf   ecx, r3
+    tzcnt ecx, r3
     shr   r3, cl
     shr   r3, 1
     jne  .loop
@@ -1309,9 +1311,9 @@ cglobal coeff_last64, 1,4
     shl r0d, 16
     or  r1d, r2d
     or  r3d, r0d
-    shl r3,  32
-    or  r1,  r3
-    not r1
+    shl  r3, 32
+    or   r1, r3
+    not  r1
     BSR rax, r1, 0x3f
     RET
 %endif
@@ -1346,14 +1348,14 @@ cglobal coeff_level_run%1,0,7
     pxor    m2, m2
     LAST_MASK %1, t5d, t0-(%1&1)*SIZEOF_DCTCOEF, t4d
 %if %1==15
-    shr   t5d, 1
+    shr    t5d, 1
 %elif %1==8
-    and   t5d, 0xff
+    and    t5d, 0xff
 %elif %1==4
-    and   t5d, 0xf
+    and    t5d, 0xf
 %endif
-    xor   t5d, (1<<%1)-1
-    mov   [t1+4], t5d
+    xor    t5d, (1<<%1)-1
+    mov [t1+4], t5d
     shl    t5d, 32-%1
     mov    t4d, %1-1
     LZCOUNT t3d, t5d, 0x1f
@@ -1366,15 +1368,16 @@ cglobal coeff_level_run%1,0,7
     LZCOUNT t3d, t5d, 0x1f
 %if HIGH_BIT_DEPTH
     mov    t2d, [t0+t4*4]
-    mov   [t1+t6+8+16*4], t3b
-    mov   [t1+t6*4+ 8], t2d
 %else
     mov    t2w, [t0+t4*2]
-    mov   [t1+t6+8+16*2], t3b
-    mov   [t1+t6*2+ 8], t2w
 %endif
     inc    t3d
     shl    t5d, t3b
+%if HIGH_BIT_DEPTH
+    mov   [t1+t6*4+ 8], t2d
+%else
+    mov   [t1+t6*2+ 8], t2w
+%endif
     inc    t6d
     sub    t4d, t3d
     jge .loop

@@ -16,7 +16,7 @@ nodist_testutilsTestTrue_SOURCES= \
   TrueTest_CXXRunner.cpp 
 
 testutilsTestTrue_LDADD= \
-  $(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la
+  $(top_builddir)/csrc/com/xuggle/libxuggle.la
 
 BUILT_SOURCES= \
   TrueTest_CXXRunner.cpp

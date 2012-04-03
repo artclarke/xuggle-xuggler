@@ -412,7 +412,7 @@ void avcodec_register_all(void)
     REGISTER_ENCDEC  (LIBSPEEX, libspeex);
     REGISTER_DECODER (LIBSTAGEFRIGHT_H264, libstagefright_h264);
     REGISTER_ENCODER (LIBTHEORA, libtheora);
-    REGISTER_DECODER (LIBUTVIDEO, libutvideo);
+    REGISTER_ENCDEC  (LIBUTVIDEO, libutvideo);
     REGISTER_ENCODER (LIBVO_AACENC, libvo_aacenc);
     REGISTER_ENCODER (LIBVO_AMRWBENC, libvo_amrwbenc);
     REGISTER_ENCODER (LIBVORBIS, libvorbis);
@@ -452,6 +452,7 @@ void avcodec_register_all(void)
     REGISTER_PARSER  (RV30, rv30);
     REGISTER_PARSER  (RV40, rv40);
     REGISTER_PARSER  (VC1, vc1);
+    REGISTER_PARSER  (VORBIS, vorbis);
     REGISTER_PARSER  (VP3, vp3);
     REGISTER_PARSER  (VP8, vp8);
 

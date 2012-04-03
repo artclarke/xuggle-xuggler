@@ -201,7 +201,7 @@ static int vqf_read_header(AVFormatContext *s)
         return -1;
     }
     c->frame_bit_len = st->codec->bit_rate*size/st->codec->sample_rate;
-    avpriv_set_pts_info(st, 64, 1, st->codec->sample_rate);
+    avpriv_set_pts_info(st, 64, size, st->codec->sample_rate);
 
     /* put first 12 bytes of COMM chunk in extradata */
     if (!(st->codec->extradata = av_malloc(12 + FF_INPUT_BUFFER_PADDING_SIZE)))
@@ -220,11 +220,12 @@ static int vqf_read_packet(AVFormatContext *s, AVPacket *pkt)
     int ret;
     int size = (c->frame_bit_len - c->remaining_bits + 7)>>3;
 
-    pkt->pos          = avio_tell(s->pb);
-    pkt->stream_index = 0;
-
     if (av_new_packet(pkt, size+2) < 0)
         return AVERROR(EIO);
+
+    pkt->pos          = avio_tell(s->pb);
+    pkt->stream_index = 0;
+    pkt->duration     = 1;
 
     pkt->data[0] = 8 - c->remaining_bits; // Number of bits to skip
     pkt->data[1] = c->last_frame_bits;

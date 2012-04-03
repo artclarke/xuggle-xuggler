@@ -75,9 +75,9 @@ AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
 	distdir dist dist-all distcheck
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = zlib libvpx openssl librtmp libvo-aacenc \
-	libopencore-amr libogg libspeex libvorbis libtheora libmp3lame \
-	libx264 ffmpeg
+DIST_SUBDIRS = zlib libtiff spandsp libvpx openssl librtmp \
+	libvo-aacenc libopencore-amr libogg libspeex libvorbis \
+	libtheora libmp3lame libx264 ffmpeg
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -251,22 +251,31 @@ ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = COPYING
 # Order matters; dependency tree is:
 #
-# libz
-#  |
-# openssl                                                    ogg
-#    |                                                        |
-#  -----                                                -------------
-#  |   |                                                |     |     |
-#  | rtmp vo-aacenc opencore-amr speex mp3lame x264 vorbis theora   | vpx
-#  |   |      |          |         |      |      |      |     |     |  |
-#  ---------------------------------------------------------------------
-#                                  |
-#                               ffmpeg
+# libz---------------------------------------------------------------------
+#  |                                                                       |
+# openssl                                                    ogg         tiff
+#    |                                                        |            |
+#  -----                                             -------------------  spandsp
+#  |   |                                            |      |     |      |  |
+#  | rtmp vo-aacenc opencore-amr mp3lame x264 vpx speex vorbis theora   |  |
+#  |   |      |          |          |     |    |    |      |     |      |  |
+#  ---------------------------------------------------------------------   |
+#                                   |                                      |
+#                               ffmpeg     liboil                          |
+#                                   |         |                            |
+#                                   ---------------------------------------
+#                                                        |
+#                                                      xuggle
 #if VS_CAPTIVE_ZLIB
 #endif
-SUBDIRS = zlib libvpx openssl librtmp libvo-aacenc libopencore-amr \
-	libogg libspeex libvorbis libtheora libmp3lame $(am__append_1) \
-	ffmpeg
+
+# For futures; include in static builds for now so users
+# don't complain later when they increase the size of the jars
+
+#SUBDIRS+= liboil
+SUBDIRS = zlib libtiff spandsp libvpx openssl librtmp libvo-aacenc \
+	libopencore-amr libogg libspeex libvorbis libtheora libmp3lame \
+	$(am__append_1) ffmpeg
 all: all-recursive
 
 .SUFFIXES:
@@ -628,7 +637,7 @@ distcleancheck: distclean
 	       exit 1; } >&2
 check-am: all-am
 check: check-recursive
-all-am: Makefile
+all-am: Makefile all-local
 installdirs: installdirs-recursive
 installdirs-am:
 install: install-recursive
@@ -730,22 +739,26 @@ uninstall-am:
 	install-am install-strip tags-recursive
 
 .PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
-	all all-am am--refresh check check-am clean clean-generic \
-	clean-libtool ctags ctags-recursive dist dist-all dist-bzip2 \
-	dist-gzip dist-lzma dist-shar dist-tarZ dist-xz dist-zip \
-	distcheck distclean distclean-generic distclean-libtool \
-	distclean-tags distcleancheck distdir distuninstallcheck dvi \
-	dvi-am html html-am info info-am install install-am \
-	install-data install-data-am install-dvi install-dvi-am \
-	install-exec install-exec-am install-html install-html-am \
-	install-info install-info-am install-man install-pdf \
-	install-pdf-am install-ps install-ps-am install-strip \
-	installcheck installcheck-am installdirs installdirs-am \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-recursive uninstall uninstall-am
+	all all-am all-local am--refresh check check-am clean \
+	clean-generic clean-libtool ctags ctags-recursive dist \
+	dist-all dist-bzip2 dist-gzip dist-lzma dist-shar dist-tarZ \
+	dist-xz dist-zip distcheck distclean distclean-generic \
+	distclean-libtool distclean-tags distcleancheck distdir \
+	distuninstallcheck dvi dvi-am html html-am info info-am \
+	install install-am install-data install-data-am install-dvi \
+	install-dvi-am install-exec install-exec-am install-html \
+	install-html-am install-info install-info-am install-man \
+	install-pdf install-pdf-am install-ps install-ps-am \
+	install-strip installcheck installcheck-am installdirs \
+	installdirs-am maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-generic mostlyclean-libtool pdf pdf-am \
+	ps ps-am tags tags-recursive uninstall uninstall-am
 
 include $(abs_top_builddir)/Makefile.global
+
+# We delete the libtool generated .la files because they cause link errors for xuggle
+all-local:
+	@-find "$(vs_captive_prefix)" -name '*.la' | xargs rm 
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

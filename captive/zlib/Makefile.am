@@ -20,7 +20,7 @@ include $(abs_top_builddir)/Makefile.global
 # build rules
 
 PREFIX=$(VS_CROSS_PREFIX)
-SHARED_MODE=1
+SHARED_MODE=0
 DESTDIR=$(vs_captive_prefix)
 
 export SHARED_MODE

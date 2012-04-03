@@ -19,6 +19,8 @@
 
 #ifndef XUGGLE_H_
 #define XUGGLE_H_
+
+#ifdef __cplusplus
 /**
  * This package is empty and is just a containing namespace
  * for xuggle
@@ -35,6 +37,8 @@ namespace xuggle {
 }
 }
 
+#endif // __cplusplus
+
 #define VS_STRINGIFY(__arg) #__arg
 
 #if (__GNUC__ >= 4) || (__GNUC__ == 3 && __GNUC_MINOR__ >= 4)
@@ -45,21 +49,22 @@ namespace xuggle {
 
 #ifndef VS_API_EXPORT
 # if defined(_WIN32) || defined(__WIN32__) || defined(__CYGWIN__) || defined(VS_OS_WINDOWS)
-#   if defined(STATIC_LINKED)
-#     define VS_API_EXPORT
-#     define VS_API_IMPORT
-#   else
+#   ifdef VS_API_COMPILING
 #     define VS_API_EXPORT __declspec(dllexport)
-#     define VS_API_IMPORT __declspec(dllimport)
+#   else
+#     define VS_API_EXPORT __declspec(dllimport)
 #   endif
-#     define VS_API_CALL __stdcall
+#   define VS_API_CALL __stdcall
 # else
 #   if defined(__GNUC__) && defined(GCC_HASCLASSVISIBILITY)
-#     define VS_API_EXPORT __attribute__ ((visibility("default")))
+#     if VS_API_COMPILING
+#       define VS_API_EXPORT __attribute__ ((visibility("default")))
+#     else
+#       define VS_API_EXPORT
+#     endif
 #   else
 #     define VS_API_EXPORT
 #   endif
-#   define VS_API_IMPORT
 #   define VS_API_CALL
 # endif
 #endif
@@ -67,11 +72,6 @@ namespace xuggle {
 #ifdef JNIEXPORT
 #undef JNIEXPORT
 #define JNIEXPORT "_____ERROR___USE_VS_API_EXPORT_INSTEAD_OF_JNIEXPORT____________"
-#endif
-
-#ifdef JNIIMPORT
-#undef JNIIMPORT
-#define JNIIMPORT "_____ERROR___USE_VS_API_IMPORT_INSTEAD_OF_JNIIMPORT____________"
 #endif
 
 #ifdef JNICALL

@@ -15,6 +15,8 @@
 
 @SET_MAKE@
 
+
+
 VPATH = @srcdir@
 pkgdatadir = $(datadir)/@PACKAGE@
 pkgincludedir = $(includedir)/@PACKAGE@
@@ -34,39 +36,45 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
+noinst_PROGRAMS = xuggle-xuggler-main$(EXEEXT)
+#	@VS_LIBGCC@ 
+@VS_OS_WINDOWS_TRUE@am__append_1 = \
+@VS_OS_WINDOWS_TRUE@	-Wl,--add-stdcall-alias \
+@VS_OS_WINDOWS_TRUE@	-Wl,--enable-runtime-pseudo-reloc \
+@VS_OS_WINDOWS_TRUE@	-Wl,--enable-auto-image-base \
+@VS_OS_WINDOWS_TRUE@	-Wl,-Bsymbolic \
+@VS_OS_WINDOWS_TRUE@	-Wl,--warn-common \
+@VS_OS_WINDOWS_TRUE@	-Wl,--as-needed \
+@VS_OS_WINDOWS_TRUE@	-XCClinker -lgcc \
+@VS_OS_WINDOWS_TRUE@	-XCClinker -lmingw32 \
+@VS_OS_WINDOWS_TRUE@	-XCClinker -lmoldname \
+@VS_OS_WINDOWS_TRUE@	-XCClinker -lmingwex \
+@VS_OS_WINDOWS_TRUE@	-XCClinker -lmsvcrt \
+@VS_OS_WINDOWS_TRUE@	-XCClinker -ladvapi32 \
+@VS_OS_WINDOWS_TRUE@	-XCClinker -lshell32 \
+@VS_OS_WINDOWS_TRUE@	-XCClinker -luser32 \
+@VS_OS_WINDOWS_TRUE@	-XCClinker -lkernel32
+
+@VS_OS_WINDOWS_FALSE@am__append_2 = \
+@VS_OS_WINDOWS_FALSE@	-nostdlib -static-libtool-libs -XCClinker -static-libgcc
+
 subdir = csrc/com/xuggle
-DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.in \
-	$(xuggle_HEADERS)
+DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.dependencies.in \
+	$(srcdir)/Makefile.in $(xuggle_HEADERS)
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/m4/libtool.m4 \
 	$(top_srcdir)/m4/ltoptions.m4 $(top_srcdir)/m4/ltsugar.m4 \
 	$(top_srcdir)/m4/ltversion.m4 $(top_srcdir)/m4/lt~obsolete.m4 \
-	$(top_srcdir)/configure.ac
+	$(top_srcdir)/m4/ax_compiler_vendor.m4 \
+	$(top_srcdir)/m4/xuggle.m4 $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 	$(ACLOCAL_M4)
 mkinstalldirs = $(install_sh) -d
 CONFIG_HEADER = $(top_builddir)/csrc/com/xuggle/ferry/config.h \
 	$(top_builddir)/csrc/com/xuggle/xuggler/config.h \
 	$(top_builddir)/csrc/com/xuggle/xuggler/io/config.h
-CONFIG_CLEAN_FILES =
+CONFIG_CLEAN_FILES = Makefile.dependencies
 CONFIG_CLEAN_VPATH_FILES =
-depcomp =
-am__depfiles_maybe =
-AM_V_GEN = $(am__v_GEN_$(V))
-am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
-am__v_GEN_0 = @echo "  GEN   " $@;
-AM_V_at = $(am__v_at_$(V))
-am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))
-am__v_at_0 = @
-SOURCES =
-DIST_SOURCES =
-RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
-	html-recursive info-recursive install-data-recursive \
-	install-dvi-recursive install-exec-recursive \
-	install-html-recursive install-info-recursive \
-	install-pdf-recursive install-ps-recursive install-recursive \
-	installcheck-recursive installdirs-recursive pdf-recursive \
-	ps-recursive uninstall-recursive
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
 am__vpath_adj = case $$p in \
     $(srcdir)/*) f=`echo "$$p" | sed "s|^$$srcdirstrip/||"`;; \
@@ -88,7 +96,73 @@ am__nobase_list = $(am__nobase_strip_setup); \
 am__base_list = \
   sed '$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;$$!N;s/\n/ /g' | \
   sed '$$!N;$$!N;$$!N;$$!N;s/\n/ /g'
-am__installdirs = "$(DESTDIR)$(xuggledir)"
+am__installdirs = "$(DESTDIR)$(libdir)" "$(DESTDIR)$(xuggledir)"
+LTLIBRARIES = $(lib_LTLIBRARIES)
+libxuggle_la_DEPENDENCIES = $(builddir)/xuggler/libxuggle-xuggler.la \
+	$(builddir)/xuggler/io/libxuggle-xuggler-io.la \
+	$(builddir)/ferry/libxuggle-ferry.la
+am_libxuggle_la_OBJECTS = Xuggle.lo
+libxuggle_la_OBJECTS = $(am_libxuggle_la_OBJECTS)
+AM_V_lt = $(am__v_lt_$(V))
+am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
+am__v_lt_0 = --silent
+libxuggle_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(libxuggle_la_LDFLAGS) $(LDFLAGS) -o $@
+PROGRAMS = $(noinst_PROGRAMS)
+am_xuggle_xuggler_main_OBJECTS = Main.$(OBJEXT)
+xuggle_xuggler_main_OBJECTS = $(am_xuggle_xuggler_main_OBJECTS)
+xuggle_xuggler_main_DEPENDENCIES = libxuggle.la
+DEFAULT_INCLUDES = 
+depcomp =
+am__depfiles_maybe =
+COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
+	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
+LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) \
+	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+	$(AM_CFLAGS) $(CFLAGS)
+AM_V_CC = $(am__v_CC_$(V))
+am__v_CC_ = $(am__v_CC_$(AM_DEFAULT_VERBOSITY))
+am__v_CC_0 = @echo "  CC    " $@;
+AM_V_at = $(am__v_at_$(V))
+am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))
+am__v_at_0 = @
+CCLD = $(CC)
+LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
+	$(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CCLD = $(am__v_CCLD_$(V))
+am__v_CCLD_ = $(am__v_CCLD_$(AM_DEFAULT_VERBOSITY))
+am__v_CCLD_0 = @echo "  CCLD  " $@;
+CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
+LTCXXCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) \
+	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+	$(AM_CXXFLAGS) $(CXXFLAGS)
+AM_V_CXX = $(am__v_CXX_$(V))
+am__v_CXX_ = $(am__v_CXX_$(AM_DEFAULT_VERBOSITY))
+am__v_CXX_0 = @echo "  CXX   " $@;
+CXXLD = $(CXX)
+CXXLINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(AM_LDFLAGS) $(LDFLAGS) -o $@
+AM_V_CXXLD = $(am__v_CXXLD_$(V))
+am__v_CXXLD_ = $(am__v_CXXLD_$(AM_DEFAULT_VERBOSITY))
+am__v_CXXLD_0 = @echo "  CXXLD " $@;
+AM_V_GEN = $(am__v_GEN_$(V))
+am__v_GEN_ = $(am__v_GEN_$(AM_DEFAULT_VERBOSITY))
+am__v_GEN_0 = @echo "  GEN   " $@;
+SOURCES = $(libxuggle_la_SOURCES) $(xuggle_xuggler_main_SOURCES)
+DIST_SOURCES = $(libxuggle_la_SOURCES) $(xuggle_xuggler_main_SOURCES)
+RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
+	html-recursive info-recursive install-data-recursive \
+	install-dvi-recursive install-exec-recursive \
+	install-html-recursive install-info-recursive \
+	install-pdf-recursive install-ps-recursive install-recursive \
+	installcheck-recursive installdirs-recursive pdf-recursive \
+	ps-recursive uninstall-recursive
 HEADERS = $(xuggle_HEADERS)
 RECURSIVE_CLEAN_TARGETS = mostlyclean-recursive clean-recursive	\
   distclean-recursive maintainer-clean-recursive
@@ -210,6 +284,8 @@ VS_DEBUG = @VS_DEBUG@
 VS_ENABLE_GPL = @VS_ENABLE_GPL@
 VS_JNI_INCLUDE = @VS_JNI_INCLUDE@
 VS_LDFLAGS = @VS_LDFLAGS@
+VS_LIBGCC = @VS_LIBGCC@
+VS_LIBSTDCXX = @VS_LIBSTDCXX@
 VS_OS_WINDOWS = @VS_OS_WINDOWS@
 VS_SWIG = @VS_SWIG@
 VS_WARN_ISERROR = @VS_WARN_ISERROR@
@@ -273,9 +349,56 @@ xuggledir = $(includedir)/$(VS_CPP_PATH)
 xuggle_HEADERS = \
   Xuggle.h
 
+
+#if VS_IS_GCC
+# Finally  this script will be used to build the actual shared library
+#
+# This is NOT OBVIOUS, but libtool will find any object or libraries
+# on the link line and attempt to do smart things.  Unfortunately it
+# will overthing things.  But I still want to use their lovely .la
+# wrappers.  So we pass "-XCClinker" flags to have items go past
+# libtool and not get processed.
+#
+# I also DELIBERATELY link with the static stdc++ and gcc libraries.
+# This means that if Xuggle EVER leaks an exception outside of the
+# DLL, we can cause very very strange crashes in the JVM.  So, no
+# exceptions cross JNI.
+#
+# And yes, this code heavily depends on GCC; get over it.
+#libxuggle.la: libxuggle_static.la
+#	$(LIBTOOL) --mode=link $(CC) -fPIC -DPIC \
+#	$(VS_LDFLAGS) \
+#	-no-undefined -shared -static-libtool-libs \
+#	-XCClinker -static-libgcc \
+#	Xuggle.lo \
+#	-Wl,--whole-archive \
+#	"$(builddir)/xuggler/libxuggle-xuggler.la" \
+#	"$(builddir)/xuggler/io/libxuggle-xuggler-io.la" \
+#	"$(builddir)/ferry/libxuggle-ferry.la" \
+#	-Wl,--no-whole-archive \
+#	$(VS_PKG_LIBRARIES) \
+#	-version-number @LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@:0 \
+#	-rpath $(prefix) \
+#	-o libxuggle.la ;
+#else
+# if not GCC, then let libtool try its best
+lib_LTLIBRARIES = libxuggle.la
+xuggle_xuggler_main_SOURCES = Main.cpp
+xuggle_xuggler_main_LDADD = libxuggle.la
+# MUST be a C file; we force C linkage
+libxuggle_la_SOURCES = Xuggle.c
+libxuggle_la_LIBADD = $(builddir)/xuggler/libxuggle-xuggler.la \
+	$(builddir)/xuggler/io/libxuggle-xuggler-io.la \
+	$(builddir)/ferry/libxuggle-ferry.la
+
+libxuggle_la_LDFLAGS = -no-undefined -shared -version-number \
+	@LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@:0 $(VS_LDFLAGS) \
+	$(VS_PKG_LIBRARIES) @VS_LIBSTDCXX@ $(am__append_1) \
+	$(am__append_2)
 all: all-recursive
 
 .SUFFIXES:
+.SUFFIXES: .c .cpp .lo .o .obj
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -306,6 +429,83 @@ $(top_srcdir)/configure: @MAINTAINER_MODE_TRUE@ $(am__configure_deps)
 $(ACLOCAL_M4): @MAINTAINER_MODE_TRUE@ $(am__aclocal_m4_deps)
 	cd $(top_builddir) && $(MAKE) $(AM_MAKEFLAGS) am--refresh
 $(am__aclocal_m4_deps):
+Makefile.dependencies: $(top_builddir)/config.status $(srcdir)/Makefile.dependencies.in
+	cd $(top_builddir) && $(SHELL) ./config.status $(subdir)/$@
+install-libLTLIBRARIES: $(lib_LTLIBRARIES)
+	@$(NORMAL_INSTALL)
+	test -z "$(libdir)" || $(MKDIR_P) "$(DESTDIR)$(libdir)"
+	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
+	list2=; for p in $$list; do \
+	  if test -f $$p; then \
+	    list2="$$list2 $$p"; \
+	  else :; fi; \
+	done; \
+	test -z "$$list2" || { \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 '$(DESTDIR)$(libdir)'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=install $(INSTALL) $(INSTALL_STRIP_FLAG) $$list2 "$(DESTDIR)$(libdir)"; \
+	}
+
+uninstall-libLTLIBRARIES:
+	@$(NORMAL_UNINSTALL)
+	@list='$(lib_LTLIBRARIES)'; test -n "$(libdir)" || list=; \
+	for p in $$list; do \
+	  $(am__strip_dir) \
+	  echo " $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f '$(DESTDIR)$(libdir)/$$f'"; \
+	  $(LIBTOOL) $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=uninstall rm -f "$(DESTDIR)$(libdir)/$$f"; \
+	done
+
+clean-libLTLIBRARIES:
+	-test -z "$(lib_LTLIBRARIES)" || rm -f $(lib_LTLIBRARIES)
+	@list='$(lib_LTLIBRARIES)'; for p in $$list; do \
+	  dir="`echo $$p | sed -e 's|/[^/]*$$||'`"; \
+	  test "$$dir" != "$$p" || dir=.; \
+	  echo "rm -f \"$${dir}/so_locations\""; \
+	  rm -f "$${dir}/so_locations"; \
+	done
+libxuggle.la: $(libxuggle_la_OBJECTS) $(libxuggle_la_DEPENDENCIES) 
+	$(AM_V_CCLD)$(libxuggle_la_LINK) -rpath $(libdir) $(libxuggle_la_OBJECTS) $(libxuggle_la_LIBADD) $(LIBS)
+
+clean-noinstPROGRAMS:
+	@list='$(noinst_PROGRAMS)'; test -n "$$list" || exit 0; \
+	echo " rm -f" $$list; \
+	rm -f $$list || exit $$?; \
+	test -n "$(EXEEXT)" || exit 0; \
+	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
+	echo " rm -f" $$list; \
+	rm -f $$list
+xuggle-xuggler-main$(EXEEXT): $(xuggle_xuggler_main_OBJECTS) $(xuggle_xuggler_main_DEPENDENCIES) 
+	@rm -f xuggle-xuggler-main$(EXEEXT)
+	$(AM_V_CXXLD)$(CXXLINK) $(xuggle_xuggler_main_OBJECTS) $(xuggle_xuggler_main_LDADD) $(LIBS)
+
+mostlyclean-compile:
+	-rm -f *.$(OBJEXT)
+
+distclean-compile:
+	-rm -f *.tab.c
+
+.c.o:
+	$(AM_V_CC) @AM_BACKSLASH@
+	$(COMPILE) -c $<
+
+.c.obj:
+	$(AM_V_CC) @AM_BACKSLASH@
+	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+
+.c.lo:
+	$(AM_V_CC) @AM_BACKSLASH@
+	$(LTCOMPILE) -c -o $@ $<
+
+.cpp.o:
+	$(AM_V_CXX) @AM_BACKSLASH@
+	$(CXXCOMPILE) -c -o $@ $<
+
+.cpp.obj:
+	$(AM_V_CXX) @AM_BACKSLASH@
+	$(CXXCOMPILE) -c -o $@ `$(CYGPATH_W) '$<'`
+
+.cpp.lo:
+	$(AM_V_CXX) @AM_BACKSLASH@
+	$(LTCXXCOMPILE) -c -o $@ $<
 
 mostlyclean-libtool:
 	-rm -f *.lo
@@ -528,10 +728,10 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-recursive
-all-am: Makefile $(HEADERS)
+all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(HEADERS)
 installdirs: installdirs-recursive
 installdirs-am:
-	for dir in "$(DESTDIR)$(xuggledir)"; do \
+	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(xuggledir)"; do \
 	  test -z "$$dir" || $(MKDIR_P) "$$dir"; \
 	done
 install: install-recursive
@@ -561,11 +761,13 @@ maintainer-clean-generic:
 	@echo "it deletes files that may require special tools to rebuild."
 clean: clean-recursive
 
-clean-am: clean-generic clean-libtool mostlyclean-am
+clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
+	clean-noinstPROGRAMS mostlyclean-am
 
 distclean: distclean-recursive
 	-rm -f Makefile
-distclean-am: clean-am distclean-generic distclean-tags
+distclean-am: clean-am distclean-compile distclean-generic \
+	distclean-tags
 
 dvi: dvi-recursive
 
@@ -585,7 +787,7 @@ install-dvi: install-dvi-recursive
 
 install-dvi-am:
 
-install-exec-am:
+install-exec-am: install-libLTLIBRARIES
 
 install-html: install-html-recursive
 
@@ -613,7 +815,8 @@ maintainer-clean-am: distclean-am maintainer-clean-generic
 
 mostlyclean: mostlyclean-recursive
 
-mostlyclean-am: mostlyclean-generic mostlyclean-libtool
+mostlyclean-am: mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool
 
 pdf: pdf-recursive
 
@@ -623,28 +826,35 @@ ps: ps-recursive
 
 ps-am:
 
-uninstall-am: uninstall-xuggleHEADERS
+uninstall-am: uninstall-libLTLIBRARIES uninstall-xuggleHEADERS
 
 .MAKE: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) ctags-recursive \
 	install-am install-strip tags-recursive
 
 .PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
-	all all-am check check-am clean clean-generic clean-libtool \
-	ctags ctags-recursive distclean distclean-generic \
+	all all-am check check-am clean clean-generic \
+	clean-libLTLIBRARIES clean-libtool clean-noinstPROGRAMS ctags \
+	ctags-recursive distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
 	install-exec-am install-html install-html-am install-info \
-	install-info-am install-man install-pdf install-pdf-am \
-	install-ps install-ps-am install-strip install-xuggleHEADERS \
-	installcheck installcheck-am installdirs installdirs-am \
-	maintainer-clean maintainer-clean-generic mostlyclean \
-	mostlyclean-generic mostlyclean-libtool pdf pdf-am ps ps-am \
-	tags tags-recursive uninstall uninstall-am \
+	install-info-am install-libLTLIBRARIES install-man install-pdf \
+	install-pdf-am install-ps install-ps-am install-strip \
+	install-xuggleHEADERS installcheck installcheck-am installdirs \
+	installdirs-am maintainer-clean maintainer-clean-generic \
+	mostlyclean mostlyclean-compile mostlyclean-generic \
+	mostlyclean-libtool pdf pdf-am ps ps-am tags tags-recursive \
+	uninstall uninstall-am uninstall-libLTLIBRARIES \
 	uninstall-xuggleHEADERS
 
 
 include @top_builddir@/mk/Makefile.global
+# defines VS_PKG_LIBRARIES.  Must be in a file that automake does not
+# process at autoreconf time.
+include @builddir@/Makefile.dependencies
+
+#endif # VS_IS_GCC
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

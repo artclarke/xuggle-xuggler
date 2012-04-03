@@ -940,6 +940,14 @@ static int mkv_write_header(AVFormatContext *s)
         put_ebml_binary(pb, MATROSKA_ID_SEGMENTUID, segment_uid, 16);
     }
 
+    if (tag = av_dict_get(s->metadata, "creation_time", NULL, 0)) {
+        // Adjust time so it's relative to 2001-01-01 and convert to nanoseconds.
+        int64_t date_utc = (ff_iso8601_to_unix_time(tag->value) - 978307200) * 1000000000;
+        uint8_t date_utc_buf[8];
+        AV_WB64(date_utc_buf, date_utc);
+        put_ebml_binary(pb, MATROSKA_ID_DATEUTC, date_utc_buf, 8);
+    }
+
     // reserve space for the duration
     mkv->duration = 0;
     mkv->duration_offset = avio_tell(pb);
@@ -970,6 +978,7 @@ static int mkv_write_header(AVFormatContext *s)
     av_init_packet(&mkv->cur_audio_pkt);
     mkv->cur_audio_pkt.size = 0;
     mkv->audio_buffer_size  = 0;
+    mkv->cluster_pos = -1;
 
     avio_flush(pb);
     return 0;
@@ -1142,7 +1151,7 @@ static int mkv_write_packet_internal(AVFormatContext *s, AVPacket *pkt)
         pb = mkv->dyn_bc;
     }
 
-    if (!mkv->cluster_pos) {
+    if (mkv->cluster_pos == -1) {
         mkv->cluster_pos = avio_tell(s->pb);
         mkv->cluster = start_ebml_master(pb, MATROSKA_ID_CLUSTER, 0);
         put_ebml_uint(pb, MATROSKA_ID_CLUSTERTIMECODE, FFMAX(0, ts));
@@ -1196,14 +1205,14 @@ static int mkv_write_packet(AVFormatContext *s, AVPacket *pkt)
 
     // start a new cluster every 5 MB or 5 sec, or 32k / 1 sec for streaming or
     // after 4k and on a keyframe
-    if (mkv->cluster_pos &&
+    if (mkv->cluster_pos != -1 &&
         ((!s->pb->seekable && (cluster_size > 32*1024 || ts > mkv->cluster_pts + 1000))
          ||                      cluster_size > 5*1024*1024 || ts > mkv->cluster_pts + 5000
          || (codec->codec_type == AVMEDIA_TYPE_VIDEO && keyframe && cluster_size > 4*1024))) {
         av_log(s, AV_LOG_DEBUG, "Starting new cluster at offset %" PRIu64
                " bytes, pts %" PRIu64 "\n", avio_tell(pb), ts);
         end_ebml_master(pb, mkv->cluster);
-        mkv->cluster_pos = 0;
+        mkv->cluster_pos = -1;
         if (mkv->dyn_bc)
             mkv_flush_dynbuf(s);
     }
@@ -1247,7 +1256,7 @@ static int mkv_write_trailer(AVFormatContext *s)
     if (mkv->dyn_bc) {
         end_ebml_master(mkv->dyn_bc, mkv->cluster);
         mkv_flush_dynbuf(s);
-    } else if (mkv->cluster_pos) {
+    } else if (mkv->cluster_pos != -1) {
         end_ebml_master(pb, mkv->cluster);
     }
 

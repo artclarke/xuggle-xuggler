@@ -4,9 +4,10 @@ VS_CPP_PACKAGE=com.xuggle.xuggler.io
 VS_CPP_NAMESPACE=com::xuggle::xuggler:IO
 include @top_builddir@/mk/Makefile.global
 
-lib_LTLIBRARIES = libxuggle-xuggler-io.la
+# This is a convenience library
+noinst_LTLIBRARIES = libxuggle-xuggler-io.la
 
-libxuggle_xuggler_io_la_LIBADD=$(top_builddir)/csrc/com/xuggle/ferry/libxuggle-ferry.la
+libxuggle_xuggler_io_la_LIBADD=
 
 libxuggle_xuggler_io_la_SOURCES= \
   FfmpegIO.cpp \

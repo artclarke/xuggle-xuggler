@@ -1223,6 +1223,7 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
         if (st->codec->codec_type==AVMEDIA_TYPE_VIDEO) {
             unsigned int color_depth, len;
             int color_greyscale;
+            int color_table_id;
 
             st->codec->codec_id = id;
             avio_rb16(pb); /* version */
@@ -1250,9 +1251,9 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
                 st->codec->codec_tag=MKTAG('I', '4', '2', '0');
 
             st->codec->bits_per_coded_sample = avio_rb16(pb); /* depth */
-            st->codec->color_table_id = avio_rb16(pb); /* colortable id */
+            color_table_id = avio_rb16(pb); /* colortable id */
             av_dlog(c->fc, "depth %d, ctab id %d\n",
-                   st->codec->bits_per_coded_sample, st->codec->color_table_id);
+                   st->codec->bits_per_coded_sample, color_table_id);
             /* figure out the palette situation */
             color_depth = st->codec->bits_per_coded_sample & 0x1F;
             color_greyscale = st->codec->bits_per_coded_sample & 0x20;
@@ -1282,7 +1283,7 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
                         if (color_index < 0)
                             color_index = 0;
                     }
-                } else if (st->codec->color_table_id) {
+                } else if (color_table_id) {
                     const uint8_t *color_table;
                     /* if flag bit 3 is set, use the default palette */
                     color_count = 1 << color_depth;
@@ -1463,20 +1464,16 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
         // force sample rate for qcelp when not stored in mov
         if (st->codec->codec_tag != MKTAG('Q','c','l','p'))
             st->codec->sample_rate = 8000;
-        st->codec->frame_size= 160;
         st->codec->channels= 1; /* really needed */
         break;
     case CODEC_ID_AMR_NB:
         st->codec->channels= 1; /* really needed */
         /* force sample rate for amr, stsd in 3gp does not store sample rate */
         st->codec->sample_rate = 8000;
-        /* force frame_size, too, samples_per_frame isn't always set properly */
-        st->codec->frame_size  = 160;
         break;
     case CODEC_ID_AMR_WB:
         st->codec->channels    = 1;
         st->codec->sample_rate = 16000;
-        st->codec->frame_size  = 320;
         break;
     case CODEC_ID_MP2:
     case CODEC_ID_MP3:
@@ -1486,12 +1483,10 @@ int ff_mov_read_stsd_entries(MOVContext *c, AVIOContext *pb, int entries)
     case CODEC_ID_GSM:
     case CODEC_ID_ADPCM_MS:
     case CODEC_ID_ADPCM_IMA_WAV:
-        st->codec->frame_size = sc->samples_per_frame;
         st->codec->block_align = sc->bytes_per_frame;
         break;
     case CODEC_ID_ALAC:
         if (st->codec->extradata_size == 36) {
-            st->codec->frame_size = AV_RB32(st->codec->extradata+12);
             st->codec->channels   = AV_RB8 (st->codec->extradata+21);
             st->codec->sample_rate = AV_RB32(st->codec->extradata+32);
         }
@@ -1779,6 +1774,14 @@ static int mov_read_ctts(MOVContext *c, AVIOContext *pb, MOVAtom atom)
 
         sc->ctts_data[i].count   = count;
         sc->ctts_data[i].duration= duration;
+
+        if (FFABS(duration) > (1<<28) && i+2<entries) {
+            av_log(c->fc, AV_LOG_WARNING, "CTTS invalid\n");
+            av_freep(&sc->ctts_data);
+            sc->ctts_count = 0;
+            return 0;
+        }
+
         if (duration < 0 && i+2<entries)
             sc->dts_shift = FFMAX(sc->dts_shift, -duration);
     }
@@ -2056,13 +2059,6 @@ static int mov_read_trak(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     }
 
     avpriv_set_pts_info(st, 64, 1, sc->time_scale);
-
-    if (st->codec->codec_type == AVMEDIA_TYPE_AUDIO &&
-        !st->codec->frame_size && sc->stts_count == 1) {
-        st->codec->frame_size = av_rescale(sc->stts_data[0].duration,
-                                           st->codec->sample_rate, sc->time_scale);
-        av_dlog(c->fc, "frame size %d\n", st->codec->frame_size);
-    }
 
     mov_build_index(c, st);
 

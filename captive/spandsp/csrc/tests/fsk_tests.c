@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: fsk_tests.c,v 1.56 2009/04/14 16:04:54 steveu Exp $
  */
 
 /*! \page fsk_tests_page FSK modem tests
@@ -35,7 +33,7 @@ These tests allow either:
    the basic performance of the receive modem. It is also the only test mode
    provided for evaluating the transmit modem.
 
- - An FSK receive modem is used to decode FSK audio, stored in a wave file.
+ - An FSK receive modem is used to decode FSK audio, stored in a file.
    This is good way to evaluate performance with audio recorded from other
    models of modem, and with real world problematic telephone lines.
 
@@ -51,7 +49,7 @@ These tests allow either:
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
-#include <audiofile.h>
+#include <sndfile.h>
 
 //#if defined(WITH_SPANDSP_INTERNALS)
 #define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
@@ -126,37 +124,37 @@ static void reporter(void *user_data, int reason, bert_results_t *results)
     switch (reason)
     {
     case BERT_REPORT_SYNCED:
-        printf("%d: BERT report synced\n", channel);
+        fprintf(stderr, "%d: BERT report synced\n", channel);
         break;
     case BERT_REPORT_UNSYNCED:
-        printf("%d: BERT report unsync'ed\n", channel);
+        fprintf(stderr, "%d: BERT report unsync'ed\n", channel);
         break;
     case BERT_REPORT_REGULAR:
-        printf("%d: BERT report regular - %d bits, %d bad bits, %d resyncs\n", channel, results->total_bits, results->bad_bits, results->resyncs);
+        fprintf(stderr, "%d: BERT report regular - %d bits, %d bad bits, %d resyncs\n", channel, results->total_bits, results->bad_bits, results->resyncs);
         break;
     case BERT_REPORT_GT_10_2:
-        printf("%d: BERT report > 1 in 10^2\n", channel);
+        fprintf(stderr, "%d: BERT report > 1 in 10^2\n", channel);
         break;
     case BERT_REPORT_LT_10_2:
-        printf("%d: BERT report < 1 in 10^2\n", channel);
+        fprintf(stderr, "%d: BERT report < 1 in 10^2\n", channel);
         break;
     case BERT_REPORT_LT_10_3:
-        printf("%d: BERT report < 1 in 10^3\n", channel);
+        fprintf(stderr, "%d: BERT report < 1 in 10^3\n", channel);
         break;
     case BERT_REPORT_LT_10_4:
-        printf("%d: BERT report < 1 in 10^4\n", channel);
+        fprintf(stderr, "%d: BERT report < 1 in 10^4\n", channel);
         break;
     case BERT_REPORT_LT_10_5:
-        printf("%d: BERT report < 1 in 10^5\n", channel);
+        fprintf(stderr, "%d: BERT report < 1 in 10^5\n", channel);
         break;
     case BERT_REPORT_LT_10_6:
-        printf("%d: BERT report < 1 in 10^6\n", channel);
+        fprintf(stderr, "%d: BERT report < 1 in 10^6\n", channel);
         break;
     case BERT_REPORT_LT_10_7:
-        printf("%d: BERT report < 1 in 10^7\n", channel);
+        fprintf(stderr, "%d: BERT report < 1 in 10^7\n", channel);
         break;
     default:
-        printf("%d: BERT report reason %d\n", channel, reason);
+        fprintf(stderr, "%d: BERT report reason %d\n", channel, reason);
         break;
     }
 }
@@ -178,8 +176,8 @@ int main(int argc, char *argv[])
     int16_t caller_model_amp[BLOCK_LEN];
     int16_t answerer_model_amp[BLOCK_LEN];
     int16_t out_amp[2*BLOCK_LEN];
-    AFfilehandle inhandle;
-    AFfilehandle outhandle;
+    SNDFILE *inhandle;
+    SNDFILE *outhandle;
     int outframes;    
     int i;
     int j;
@@ -210,7 +208,7 @@ int main(int argc, char *argv[])
     modem_under_test_2 = FSK_V21CH2;
     log_audio = FALSE;
     modems_set = 0;
-    while ((opt = getopt(argc, argv, "c:dlm:nr:s:")) != -1)
+    while ((opt = getopt(argc, argv, "c:d:lm:nr:s:")) != -1)
     {
         switch (opt)
         {
@@ -255,13 +253,13 @@ int main(int argc, char *argv[])
     if (modem_under_test_2 >= 0)
         printf("Modem channel 2 is '%s'\n", preset_fsk_specs[modem_under_test_2].name);
 
-    outhandle = AF_NULL_FILEHANDLE;
+    outhandle = NULL;
 
     if (log_audio)
     {
-        if ((outhandle = afOpenFile_telephony_write(OUTPUT_FILE_NAME, 2)) == AF_NULL_FILEHANDLE)
+        if ((outhandle = sf_open_telephony_write(OUTPUT_FILE_NAME, 2)) == NULL)
         {
-            fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME);
+            fprintf(stderr, "    Cannot create audio file '%s'\n", OUTPUT_FILE_NAME);
             exit(2);
         }
     }
@@ -278,21 +276,18 @@ int main(int argc, char *argv[])
 
     if (decode_test_file)
     {
-        if ((inhandle = afOpenFile_telephony_read(decode_test_file, 1)) == AF_NULL_FILEHANDLE)
+        if ((inhandle = sf_open_telephony_read(decode_test_file, 1)) == NULL)
         {
-            fprintf(stderr, "    Cannot open wave file '%s'\n", decode_test_file);
+            fprintf(stderr, "    Cannot open audio file '%s'\n", decode_test_file);
             exit(2);
         }
-        caller_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_1], TRUE, put_bit, NULL);
+        caller_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_1], FSK_FRAME_MODE_SYNC, put_bit, NULL);
         fsk_rx_set_modem_status_handler(caller_rx, rx_status, (void *) &caller_rx);
         test_bps = preset_fsk_specs[modem_under_test_1].baud_rate;
 
         for (;;)
         {
-            samples = afReadFrames(inhandle,
-                                   AF_DEFAULT_TRACK,
-                                   caller_model_amp,
-                                   BLOCK_LEN);
+            samples = sf_readf_short(inhandle, caller_model_amp, BLOCK_LEN);
             if (samples < BLOCK_LEN)
                 break;
             for (i = 0;  i < samples;  i++)
@@ -300,22 +295,22 @@ int main(int argc, char *argv[])
             fsk_rx(caller_rx, caller_model_amp, samples);
         }
 
-        if (afCloseFile(inhandle) != 0)
+        if (sf_close(inhandle) != 0)
         {
-            fprintf(stderr, "    Cannot close wave file '%s'\n", decode_test_file);
+            fprintf(stderr, "    Cannot close audio file '%s'\n", decode_test_file);
             exit(2);
         }
     }
     else
     {
         printf("Test cutoff level\n");
-        caller_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_1], TRUE, cutoff_test_put_bit, NULL);
+        caller_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_1], FSK_FRAME_MODE_SYNC, cutoff_test_put_bit, NULL);
         fsk_rx_signal_cutoff(caller_rx, -30.0f);
         fsk_rx_set_modem_status_handler(caller_rx, cutoff_test_rx_status, (void *) &caller_rx);
         on_at = 0;
         for (i = -40;  i < -25;  i++)
         {
-            make_tone_gen_descriptor(&tone_desc,
+            tone_gen_descriptor_init(&tone_desc,
                                      1500,
                                      i,
                                      0,
@@ -338,7 +333,7 @@ int main(int argc, char *argv[])
         off_at = 0;
         for (  ;  i > -40;  i--)
         {
-            make_tone_gen_descriptor(&tone_desc,
+            tone_gen_descriptor_init(&tone_desc,
                                      1500,
                                      i,
                                      0,
@@ -373,14 +368,14 @@ int main(int argc, char *argv[])
         {
             caller_tx = fsk_tx_init(NULL, &preset_fsk_specs[modem_under_test_1], (get_bit_func_t) bert_get_bit, &caller_bert);
             fsk_tx_set_modem_status_handler(caller_tx, tx_status, (void *) &caller_tx);
-            answerer_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_1], TRUE, (put_bit_func_t) bert_put_bit, &answerer_bert);
+            answerer_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_1], FSK_FRAME_MODE_SYNC, (put_bit_func_t) bert_put_bit, &answerer_bert);
             fsk_rx_set_modem_status_handler(answerer_rx, rx_status, (void *) &answerer_rx);
         }
         if (modem_under_test_2 >= 0)
         {
             answerer_tx = fsk_tx_init(NULL, &preset_fsk_specs[modem_under_test_2], (get_bit_func_t) bert_get_bit, &answerer_bert);
             fsk_tx_set_modem_status_handler(answerer_tx, tx_status, (void *) &answerer_tx);
-            caller_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_2], TRUE, (put_bit_func_t) bert_put_bit, &caller_bert);
+            caller_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_2], FSK_FRAME_MODE_SYNC, (put_bit_func_t) bert_put_bit, &caller_bert);
             fsk_rx_set_modem_status_handler(caller_rx, rx_status, (void *) &caller_rx);
         }
         test_bps = preset_fsk_specs[modem_under_test_1].baud_rate;
@@ -392,7 +387,16 @@ int main(int argc, char *argv[])
         bert_set_report(&caller_bert, 100000, reporter, (void *) (intptr_t) 1);
         bert_init(&answerer_bert, bits_per_test, BERT_PATTERN_ITU_O152_11, test_bps, 20);
         bert_set_report(&answerer_bert, 100000, reporter, (void *) (intptr_t) 2);
-        if ((model = both_ways_line_model_init(line_model_no, (float) noise_level, line_model_no, (float) noise_level, channel_codec, rbs_pattern)) == NULL)
+        if ((model = both_ways_line_model_init(line_model_no,
+                                               (float) noise_level,
+                                               -15.0f,
+                                               -15.0f,
+                                               line_model_no,
+                                               (float) noise_level,
+                                               -15.0f,
+                                               -15.0f,
+                                               channel_codec,
+                                               rbs_pattern)) == NULL)
         {
             fprintf(stderr, "    Failed to create line model\n");
             exit(2);
@@ -429,13 +433,10 @@ int main(int argc, char *argv[])
         
             if (log_audio)
             {
-                outframes = afWriteFrames(outhandle,
-                                          AF_DEFAULT_TRACK,
-                                          out_amp,
-                                          BLOCK_LEN);
+                outframes = sf_writef_short(outhandle, out_amp, BLOCK_LEN);
                 if (outframes != BLOCK_LEN)
                 {
-                    fprintf(stderr, "    Error writing wave file\n");
+                    fprintf(stderr, "    Error writing audio file\n");
                     exit(2);
                 }
             }
@@ -477,29 +478,33 @@ int main(int argc, char *argv[])
                 if (log_audio)
                 {
                     for (i = 0;  i < 200;  i++)
-                    {
-                        outframes = afWriteFrames(outhandle,
-                                                  AF_DEFAULT_TRACK,
-                                                  out_amp,
-                                                  BLOCK_LEN);
-                    }
+                        outframes = sf_writef_short(outhandle, out_amp, BLOCK_LEN);
                 }
                 if (modem_under_test_1 >= 0)
                 {
                     caller_tx = fsk_tx_init(NULL, &preset_fsk_specs[modem_under_test_1], (get_bit_func_t) bert_get_bit, &caller_bert);
                     fsk_tx_set_modem_status_handler(caller_tx, tx_status, (void *) &caller_tx);
-                    answerer_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_1], TRUE, (put_bit_func_t) bert_put_bit, &answerer_bert);
+                    answerer_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_1], FSK_FRAME_MODE_SYNC, (put_bit_func_t) bert_put_bit, &answerer_bert);
                     fsk_rx_set_modem_status_handler(answerer_rx, rx_status, (void *) &answerer_rx);
                 }
                 if (modem_under_test_2 >= 0)
                 {
                     answerer_tx = fsk_tx_init(NULL, &preset_fsk_specs[modem_under_test_2], (get_bit_func_t) bert_get_bit, &answerer_bert);
                     fsk_tx_set_modem_status_handler(answerer_tx, tx_status, (void *) &answerer_tx);
-                    caller_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_2], TRUE, (put_bit_func_t) bert_put_bit, &caller_bert);
+                    caller_rx = fsk_rx_init(NULL, &preset_fsk_specs[modem_under_test_2], FSK_FRAME_MODE_SYNC, (put_bit_func_t) bert_put_bit, &caller_bert);
                     fsk_rx_set_modem_status_handler(caller_rx, rx_status, (void *) &caller_rx);
                 }
                 noise_level++;
-                if ((model = both_ways_line_model_init(line_model_no, (float) noise_level, line_model_no, noise_level, channel_codec, 0)) == NULL)
+                if ((model = both_ways_line_model_init(line_model_no,
+                                                       (float) noise_level,
+                                                       line_model_no,
+                                                       -15.0f,
+                                                       -15.0f,
+                                                       noise_level,
+                                                       channel_codec,
+                                                       -15.0f,
+                                                       -15.0f,
+                                                       0)) == NULL)
                 {
                     fprintf(stderr, "    Failed to create line model\n");
                     exit(2);
@@ -514,9 +519,9 @@ int main(int argc, char *argv[])
     }
     if (log_audio)
     {
-        if (afCloseFile(outhandle) != 0)
+        if (sf_close(outhandle) != 0)
         {
-            fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME);
+            fprintf(stderr, "    Cannot close audio file '%s'\n", OUTPUT_FILE_NAME);
             exit(2);
         }
     }

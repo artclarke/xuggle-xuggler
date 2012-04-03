@@ -30,9 +30,9 @@
 
 // SSD assumes all args aligned
 // other cmp functions assume first arg aligned
-typedef int  (*x264_pixel_cmp_t) ( pixel *, int, pixel *, int );
-typedef void (*x264_pixel_cmp_x3_t) ( pixel *, pixel *, pixel *, pixel *, int, int[3] );
-typedef void (*x264_pixel_cmp_x4_t) ( pixel *, pixel *, pixel *, pixel *, pixel *, int, int[4] );
+typedef int  (*x264_pixel_cmp_t) ( pixel *, intptr_t, pixel *, intptr_t );
+typedef void (*x264_pixel_cmp_x3_t) ( pixel *, pixel *, pixel *, pixel *, intptr_t, int[3] );
+typedef void (*x264_pixel_cmp_x4_t) ( pixel *, pixel *, pixel *, pixel *, pixel *, intptr_t, int[4] );
 
 enum
 {
@@ -88,18 +88,18 @@ typedef struct
     x264_pixel_cmp_x3_t fpelcmp_x3[7];
     x264_pixel_cmp_x4_t fpelcmp_x4[7];
     x264_pixel_cmp_t sad_aligned[8]; /* Aligned SAD for mbcmp */
-    int (*vsad)( pixel *, int, int );
+    int (*vsad)( pixel *, intptr_t, int );
 
-    uint64_t (*var[4])( pixel *pix, int stride );
-    int (*var2[4])( pixel *pix1, int stride1,
-                    pixel *pix2, int stride2, int *ssd );
-    uint64_t (*hadamard_ac[4])( pixel *pix, int stride );
+    uint64_t (*var[4])( pixel *pix, intptr_t stride );
+    int (*var2[4])( pixel *pix1, intptr_t stride1,
+                    pixel *pix2, intptr_t stride2, int *ssd );
+    uint64_t (*hadamard_ac[4])( pixel *pix, intptr_t stride );
 
-    void (*ssd_nv12_core)( pixel *pixuv1, int stride1,
-                           pixel *pixuv2, int stride2, int width, int height,
+    void (*ssd_nv12_core)( pixel *pixuv1, intptr_t stride1,
+                           pixel *pixuv2, intptr_t stride2, int width, int height,
                            uint64_t *ssd_u, uint64_t *ssd_v );
-    void (*ssim_4x4x2_core)( const pixel *pix1, int stride1,
-                             const pixel *pix2, int stride2, int sums[2][4] );
+    void (*ssim_4x4x2_core)( const pixel *pix1, intptr_t stride1,
+                             const pixel *pix2, intptr_t stride2, int sums[2][4] );
     float (*ssim_end4)( int sum0[5][4], int sum1[5][4], int width );
 
     /* multiple parallel calls to cmp. */
@@ -143,9 +143,12 @@ typedef struct
 } x264_pixel_function_t;
 
 void x264_pixel_init( int cpu, x264_pixel_function_t *pixf );
-void x264_pixel_ssd_nv12( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height, uint64_t *ssd_u, uint64_t *ssd_v );
-uint64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height );
-float x264_pixel_ssim_wxh( x264_pixel_function_t *pf, pixel *pix1, int i_pix1, pixel *pix2, int i_pix2, int i_width, int i_height, void *buf, int *cnt );
+void x264_pixel_ssd_nv12   ( x264_pixel_function_t *pf, pixel *pix1, intptr_t i_pix1, pixel *pix2, intptr_t i_pix2,
+                             int i_width, int i_height, uint64_t *ssd_u, uint64_t *ssd_v );
+uint64_t x264_pixel_ssd_wxh( x264_pixel_function_t *pf, pixel *pix1, intptr_t i_pix1, pixel *pix2, intptr_t i_pix2,
+                             int i_width, int i_height );
+float x264_pixel_ssim_wxh  ( x264_pixel_function_t *pf, pixel *pix1, intptr_t i_pix1, pixel *pix2, intptr_t i_pix2,
+                             int i_width, int i_height, void *buf, int *cnt );
 int x264_field_vsad( x264_t *h, int mb_x, int mb_y );
 
 #endif

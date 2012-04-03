@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: testadsi.c,v 1.22 2008/05/13 13:17:26 steveu Exp $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -46,7 +44,7 @@
 
 #include <linux/zaptel.h>
 #include <pthread.h>
-#include <audiofile.h>
+#include <sndfile.h>
 #include <tiffio.h>
 
 #include "unicall.h"
@@ -59,8 +57,8 @@
 #define TRUE (!FALSE)
 
 int caller_mode = FALSE;
-static AFfilehandle rxhandle;
-static AFfilehandle txhandle;
+static SNDFILE *rxhandle;
+static SNDFILE *txhandle;
 
 #if 0
 int adsi_create_message(adsi_tx_state_t *s, uint8_t *msg)
@@ -196,7 +194,7 @@ void channel_read_adsi_channel(uc_t *uc, int chan, void *user_data, uint8_t *buf
     for (i = 0;  i < len;  i++)
         pcm_buf[i] = alaw_to_linear(buf[i]);
     /*endfor*/
-    outframes = afWriteFrames(rxhandle,
+    outframes = sf_writef_short(rxhandle,
                               AF_DEFAULT_TRACK,
                               pcm_buf,
                               len);
@@ -254,7 +252,7 @@ int channel_write_adsi_channel(uc_t *uc, int chan, void *user_data, uint8_t *buf
             printf("Message put - %d bytes\n", len);
     }
     len = adsi_tx(&(chan_stuff[chan].adsi_tx), pcm_buf, max_len);
-    afWriteFrames(txhandle,
+    sf_writef_short(txhandle,
                   AF_DEFAULT_TRACK,
                   pcm_buf,
                   len);
@@ -563,13 +561,13 @@ int main(int argc, char *argv[])
     afInitFileFormat(filesetup, AF_FILE_WAVE);
     afInitChannels(filesetup, AF_DEFAULT_TRACK, 1);
     rxhandle = afOpenFile("rxadsi.wav", "w", filesetup);
-    if (rxhandle == AF_NULL_FILEHANDLE)
+    if (rxhandle == NULL)
     {
         fprintf(stderr, "    Failed to open adsi audio file\n");
         exit(2);
     }
     txhandle = afOpenFile("txadsi.wav", "w", filesetup);
-    if (txhandle == AF_NULL_FILEHANDLE)
+    if (txhandle == NULL)
     {
         fprintf(stderr, "    Failed to open adsi audio file\n");
         exit(2);

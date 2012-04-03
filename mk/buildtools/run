@@ -57,9 +57,6 @@ classpath=`$PATH_CONV $mypath/build/test`$SEP`$PATH_CONV $mypath/build/classes`
 for jar in $mypath/build/lib/test/*.jar; do
   classpath=$classpath$SEP`$PATH_CONV "$jar"`
 done
-if [ ! -z "$RED5_HOME" ]; then
-  classpath=$classpath$SEP`$PATH_CONV "$RED5_HOME"/red5.jar`
-fi
 
 shared_object_path=$mypath/dist/stage$XUGGLE_HOME
 export PATH=$shared_object_path/bin:$PATH

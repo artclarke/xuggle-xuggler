@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: fax_tests.c,v 1.101 2009/02/20 12:34:20 steveu Exp $
  */
 
 /*! \page fax_tests_page FAX tests
@@ -39,7 +37,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <assert.h>
-#include <audiofile.h>
+#include <sndfile.h>
 
 //#if defined(WITH_SPANDSP_INTERNALS)
 #define SPANDSP_EXPOSE_INTERNAL_STRUCTURES
@@ -82,7 +80,7 @@ static int phase_b_handler(t30_state_t *s, void *user_data, int result)
     char tag[20];
 
     i = (int) (intptr_t) user_data;
-    snprintf(tag, sizeof(tag), "%c: Phase B:", i);
+    snprintf(tag, sizeof(tag), "%c: Phase B", i);
     printf("%c: Phase B handler on channel %c - (0x%X) %s\n", i, i, result, t30_frametype(result));
     log_rx_parameters(s, tag);
     return T30_ERR_OK;
@@ -95,7 +93,7 @@ static int phase_d_handler(t30_state_t *s, void *user_data, int result)
     char tag[20];
 
     i = (int) (intptr_t) user_data;
-    snprintf(tag, sizeof(tag), "%c: Phase D:", i);
+    snprintf(tag, sizeof(tag), "%c: Phase D", i);
     printf("%c: Phase D handler on channel %c - (0x%X) %s\n", i, i, result, t30_frametype(result));
     log_transfer_statistics(s, tag);
     log_tx_parameters(s, tag);
@@ -138,7 +136,7 @@ static void phase_e_handler(t30_state_t *s, void *user_data, int result)
     char tag[20];
 
     i = (intptr_t) user_data;
-    snprintf(tag, sizeof(tag), "%c: Phase E:", i);
+    snprintf(tag, sizeof(tag), "%c: Phase E", i);
     printf("%c: Phase E handler on channel %c - (%d) %s\n", i, i, result, t30_completion_code_to_str(result));    
     log_transfer_statistics(s, tag);
     log_tx_parameters(s, tag);
@@ -179,8 +177,8 @@ static int document_handler(t30_state_t *s, void *user_data, int event)
 
 int main(int argc, char *argv[])
 {
-    AFfilehandle wave_handle;
-    AFfilehandle input_wave_handle;
+    SNDFILE *wave_handle;
+    SNDFILE *input_wave_handle;
     int i;
     int j;
     int k;
@@ -206,6 +204,7 @@ int main(int argc, char *argv[])
     float signal_scaling;
     time_t start_time;
     time_t end_time;
+    int scan_line_time;
     char *page_header_info;
     int opt;
     t30_state_t *t30;
@@ -225,8 +224,9 @@ int main(int argc, char *argv[])
     use_page_limits = FALSE;
     signal_level = 0;
     noise_level = -99;
+    scan_line_time = 0;
     supported_modems = T30_SUPPORT_V27TER | T30_SUPPORT_V29 | T30_SUPPORT_V17;
-    while ((opt = getopt(argc, argv, "ehH:i:I:lm:n:prRs:tTw:")) != -1)
+    while ((opt = getopt(argc, argv, "ehH:i:I:lm:n:prRs:S:tTw:")) != -1)
     {
         switch (opt)
         {
@@ -266,6 +266,9 @@ int main(int argc, char *argv[])
         case 's':
             signal_level = atoi(optarg);
             break;
+        case 'S':
+            scan_line_time = atoi(optarg);
+            break;
         case 't':
             use_tep = TRUE;
             break;
@@ -282,22 +285,22 @@ int main(int argc, char *argv[])
         }
     }
 
-    input_wave_handle = AF_NULL_FILEHANDLE;
+    input_wave_handle = NULL;
     if (input_audio_file_name)
     {
-        if ((input_wave_handle = afOpenFile_telephony_read(input_audio_file_name, 1)) == AF_NULL_FILEHANDLE)
+        if ((input_wave_handle = sf_open_telephony_read(input_audio_file_name, 1)) == NULL)
         {
-            fprintf(stderr, "    Cannot open wave file '%s'\n", input_audio_file_name);
+            fprintf(stderr, "    Cannot open audio file '%s'\n", input_audio_file_name);
             exit(2);
         }
     }
 
-    wave_handle = AF_NULL_FILEHANDLE;
+    wave_handle = NULL;
     if (log_audio)
     {
-        if ((wave_handle = afOpenFile_telephony_write(OUTPUT_FILE_NAME_WAVE, 2)) == AF_NULL_FILEHANDLE)
+        if ((wave_handle = sf_open_telephony_write(OUTPUT_FILE_NAME_WAVE, 2)) == NULL)
         {
-            fprintf(stderr, "    Cannot create wave file '%s'\n", OUTPUT_FILE_NAME_WAVE);
+            fprintf(stderr, "    Cannot create audio file '%s'\n", OUTPUT_FILE_NAME_WAVE);
             exit(2);
         }
     }
@@ -340,7 +343,7 @@ int main(int argc, char *argv[])
                                      | T30_SUPPORT_SUB_ADDRESSING);
 
         if ((mc->chan & 1))
-            t30_set_minimum_scan_line_time(t30, 40);
+            t30_set_minimum_scan_line_time(t30, scan_line_time);
         t30_set_supported_image_sizes(t30,
                                       T30_SUPPORT_US_LETTER_LENGTH
                                     | T30_SUPPORT_US_LEGAL_LENGTH
@@ -363,7 +366,11 @@ int main(int argc, char *argv[])
                                     | T30_SUPPORT_600_1200_RESOLUTION);
         t30_set_supported_modems(t30, supported_modems);
         if (use_ecm)
+#if defined(SPANDSP_SUPPORT_T85)
+            t30_set_supported_compressions(t30, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION | T30_SUPPORT_T85_COMPRESSION);
+#else
             t30_set_supported_compressions(t30, T30_SUPPORT_T4_1D_COMPRESSION | T30_SUPPORT_T4_2D_COMPRESSION | T30_SUPPORT_T6_COMPRESSION);
+#endif
         if ((mc->chan & 1))
         {
             if (polled_mode)
@@ -406,9 +413,16 @@ int main(int argc, char *argv[])
         logging = t30_get_logging_state(t30);
         span_log_set_level(logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
         span_log_set_tag(logging, mc->tag);
-        span_log_set_level(&t30->t4.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
-        span_log_set_tag(&t30->t4.logging, mc->tag);
-
+        if ((j & 1))
+        {
+            span_log_set_level(&t30->t4.rx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
+            span_log_set_tag(&t30->t4.rx.logging, mc->tag);
+        }
+        else
+        {
+            span_log_set_level(&t30->t4.tx.logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
+            span_log_set_tag(&t30->t4.tx.logging, mc->tag);
+        }
         logging = fax_get_logging_state(mc->fax);
         span_log_set_level(logging, SPAN_LOG_SHOW_SEVERITY | SPAN_LOG_SHOW_PROTOCOL | SPAN_LOG_SHOW_TAG | SPAN_LOG_SHOW_SAMPLE_TIME | SPAN_LOG_FLOW);
         span_log_set_tag(logging, mc->tag);
@@ -427,7 +441,7 @@ int main(int argc, char *argv[])
 
             if ((j & 1) == 0  &&  input_audio_file_name)
             {
-                mc->len = afReadFrames(input_wave_handle, AF_DEFAULT_TRACK, mc->amp, SAMPLES_PER_CHUNK);
+                mc->len = sf_readf_short(input_wave_handle, mc->amp, SAMPLES_PER_CHUNK);
                 if (mc->len == 0)
                     break;
             }
@@ -492,7 +506,7 @@ int main(int argc, char *argv[])
 
         if (log_audio)
         {
-            outframes = afWriteFrames(wave_handle, AF_DEFAULT_TRACK, out_amp, SAMPLES_PER_CHUNK);
+            outframes = sf_writef_short(wave_handle, out_amp, SAMPLES_PER_CHUNK);
             if (outframes != SAMPLES_PER_CHUNK)
                 break;
         }
@@ -508,17 +522,17 @@ int main(int argc, char *argv[])
     }
     if (log_audio)
     {
-        if (afCloseFile(wave_handle))
+        if (sf_close(wave_handle))
         {
-            fprintf(stderr, "    Cannot close wave file '%s'\n", OUTPUT_FILE_NAME_WAVE);
+            fprintf(stderr, "    Cannot close audio file '%s'\n", OUTPUT_FILE_NAME_WAVE);
             exit(2);
         }
     }
     if (input_audio_file_name)
     {
-        if (afCloseFile(input_wave_handle))
+        if (sf_close(input_wave_handle))
         {
-            fprintf(stderr, "    Cannot close wave file '%s'\n", input_audio_file_name);
+            fprintf(stderr, "    Cannot close audio file '%s'\n", input_audio_file_name);
             exit(2);
         }
     }

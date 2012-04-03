@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: bitstream.h,v 1.1 2008/11/30 12:45:09 steveu Exp $
  */
 
 #if !defined(_SPANDSP_PRIVATE_BITSTREAM_H_)
@@ -35,6 +33,8 @@ struct bitstream_state_s
     uint32_t bitstream;
     /*! The residual bits in bitstream. */
     int residue;
+    /*! TRUE if the stream is LSB first, else MSB first */
+    int lsb_first;
 };
 
 

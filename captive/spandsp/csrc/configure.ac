@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this program; if not, write to the Free Software
 # Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
-#
-# $Id: configure.ac,v 1.67 2009/03/28 17:14:53 steveu Exp $
 
 # @start 1
 
@@ -47,7 +45,6 @@ AC_SUBST(SPANDSP_LT_AGE)
 AC_CONFIG_SRCDIR([src/tone_generate.c])
 AC_CONFIG_AUX_DIR(config)
 AC_CONFIG_HEADERS([src/config.h:config-h.in])
-AC_CONFIG_MACRO_DIR([m4])
 AM_INIT_AUTOMAKE($PACKAGE, $VERSION)
 
 AC_CANONICAL_HOST
@@ -109,6 +106,22 @@ else
   CXXFLAGS=${CXXFLAGS-"-g -O2"}
 fi
 
+AC_DEFUN([REMOVE_FROM_VAR],[
+    new_val=""
+    removed=0
+    for i in $$1; do
+        if test "x$i" != "x$2"; then
+            new_val="$new_val $i"
+        else
+            removed=1
+        fi
+    done
+    if test $removed = "1"; then
+        echo "  removed \"$2\" from $1"
+        $1=$new_val
+    fi
+])
+
 AC_C_CONST
 AC_C_INLINE
 AC_C_VOLATILE
@@ -125,12 +138,15 @@ AC_ARG_ENABLE(mmx,          [  --enable-mmx         Enable MMX support])
 AC_ARG_ENABLE(sse,          [  --enable-sse         Enable SSE support])
 AC_ARG_ENABLE(sse2,         [  --enable-sse2        Enable SSE2 support])
 AC_ARG_ENABLE(sse3,         [  --enable-sse3        Enable SSE3 support])
-AC_ARG_ENABLE(sse3,         [  --enable-sse3        Enable SSE3 support])
+AC_ARG_ENABLE(ssse3,        [  --enable-ssse3       Enable SSSE3 support])
 AC_ARG_ENABLE(sse4_1,       [  --enable-sse4-1      Enable SSE4.1 support])
 AC_ARG_ENABLE(sse4_2,       [  --enable-sse4-2      Enable SSE4.2 support])
 AC_ARG_ENABLE(sse4a,        [  --enable-sse4a       Enable SSE4A support])
 AC_ARG_ENABLE(sse5,         [  --enable-sse5        Enable SSE5 support])
 AC_ARG_ENABLE(fixed_point,  [  --enable-fixed-point Enable fixed point support])
+# The following is for MSVC, where we may be using a local copy of libtiff, built alongside spandsp
+AC_ARG_ENABLE(builtin_tiff,
+    [AC_HELP_STRING([--enable-builtin-tiff],[build with builtin libtiff])],[enable_builtin_tiff="$enableval"],[enable_builtin_tiff="no"])
 
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_VPRINTF
@@ -163,6 +179,7 @@ AC_CHECK_FUNCS([strerror])
 AC_CHECK_FUNCS([strstr])
 AC_CHECK_FUNCS([strtol])
 AC_CHECK_FUNCS([gettimeofday])
+AC_CHECK_FUNCS([drand48])
 
 AC_HEADER_STDC
 AC_HEADER_SYS_WAIT
@@ -185,9 +202,10 @@ AC_CHECK_HEADERS([sys/time.h])
 AC_CHECK_HEADERS([sys/select.h])
 AC_CHECK_HEADERS([sys/ioctl.h])
 AC_CHECK_HEADERS([sys/fcntl.h])
-AC_CHECK_HEADERS([audiofile.h])
+AC_CHECK_HEADERS([sndfile.h])
+AC_CHECK_HEADERS([fenv.h])
 AC_CHECK_HEADERS([fftw3.h], , [AC_CHECK_HEADERS([fftw.h])])
-AC_CHECK_HEADERS([tiffio.h])
+AC_CHECK_HEADERS([pcap.h])
 AC_CHECK_HEADERS([pthread.h])
 if test "${build}" == "${host}"
 then
@@ -248,6 +266,11 @@ then
     esac
 fi
 
+#AC_DEFINE([SPANDSP_SUPPORT_T85], [0], [Support T.85 JBIG compression])
+SPANDSP_SUPPORT_T85="#undef SPANDSP_SUPPORT_T85"
+#AC_DEFINE([SPANDSP_SUPPORT_V34], [0], [Support the V.34 FAX modem])
+SPANDSP_SUPPORT_V34="#undef SPANDSP_SUPPORT_V34"
+
 AC_CHECK_LIB([m], [cos])
 # Some platforms still seem to lack the basic single precision trig and power related function.
 AC_SEARCH_LIBS([sinf], [m], AC_DEFINE([HAVE_SINF], [1], [Define to 1 if you have the sinf() function.]))
@@ -265,14 +288,13 @@ AC_SEARCH_LIBS([logf], [m], AC_DEFINE([HAVE_LOGF], [1], [Define to 1 if you have
 AC_SEARCH_LIBS([log10f], [m], AC_DEFINE([HAVE_LOG10F], [1], [Define to 1 if you have the log10f() function.]))
 
 # Checks for libraries.
-AC_CHECK_LIB([tiff], [TIFFOpen], , AC_MSG_WARN("Can't fax functionality without without libtiff (does your system require a libtiff-devel package?)"), -lm)
-
-AC_CHECK_LIB([xml2], [xmlParseFile], [AC_DEFINE([HAVE_LIBXML2], [1], [Define to 1 if you have the 'libxml2' library (-lxml2).]) TESTLIBS="$TESTLIBS -lxml2"])
+AC_CHECK_LIB([xml2], [xmlParseFile], [AC_DEFINE([HAVE_LIBXML2], [1], [Define to 1 if you have the 'libxml2' library (-lxml2).]) SIMLIBS="$SIMLIBS -lxml2"])
 
 if test -n "$enable_tests" ; then
     AC_LANG([C])
-    AC_CHECK_LIB([audiofile], [afOpenFile], TESTLIBS="$TESTLIBS -laudiofile", AC_MSG_ERROR("Can't make tests without libaudiofile (does your system require a libaudiofile-devel package?)"))
-    AC_CHECK_LIB([fftw3], [fftw_plan_dft_1d], TESTLIBS="$TESTLIBS -lfftw3", [AC_CHECK_LIB([fftw], [fftw_create_plan], TESTLIBS="$TESTLIBS -lfftw", AC_MSG_ERROR("Can't make tests without FFTW 2 or 3 (does your system require an fftw?-devel package?)"))])
+    AC_CHECK_LIB([sndfile], [sf_open], SIMLIBS="$SIMLIBS -lsndfile", AC_MSG_ERROR("Can't make tests without libsndfile (does your system require a libsndfile-devel package?)"))
+    AC_CHECK_LIB([fftw3], [fftw_plan_dft_1d], SIMLIBS="$SIMLIBS -lfftw3", [AC_CHECK_LIB([fftw], [fftw_create_plan], SIMLIBS="$SIMLIBS -lfftw", AC_MSG_ERROR("Can't make tests without FFTW 2 or 3 (does your system require an fftw?-devel package?)"))])
+    AC_CHECK_LIB([pcap], [pcap_open_offline], TESTLIBS="$TESTLIBS -lpcap", AC_MSG_ERROR("Can't make tests without libpcap (does your system require a libpcap-devel package?)"))
     AC_CHECK_LIB([pthread], [pthread_attr_init], TESTLIBS="$TESTLIBS -lpthread")
     AC_CHECK_LIB([dl], [dlopen], TESTLIBS="$TESTLIBS -ldl")
     AC_CHECK_LIB([Xft], [XftFontOpen], TESTLIBS="$TESTLIBS -lXft",, $TESTLIBS)
@@ -304,6 +326,9 @@ gnu)
     fi
     if test "$enable_sse4_1" = "yes" ; then
         COMP_VENDOR_CFLAGS="-msse41 $COMP_VENDOR_CFLAGS"
+    fi
+    if test "$enable_ssse3" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-mssse3 $COMP_VENDOR_CFLAGS"
     fi
     if test "$enable_sse3" = "yes" ; then
         COMP_VENDOR_CFLAGS="-msse3 $COMP_VENDOR_CFLAGS"
@@ -341,6 +366,38 @@ sun)
         COMP_VENDOR_CFLAGS="-native -fast $COMP_VENDOR_CFLAGS"
     fi
     COMP_VENDOR_LDFLAGS=
+    REMOVE_FROM_VAR(CFLAGS, -Xc)
+    ;;
+intel)
+    COMP_VENDOR_CFLAGS="-std=c99 -D_POSIX_C_SOURCE=2 -D_GNU_SOURCE=1 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes $COMP_VENDOR_CFLAGS"
+    if test "$enable_sse5" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-msse5 $COMP_VENDOR_CFLAGS"
+    fi
+    if test "$enable_sse4a" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-msse4a $COMP_VENDOR_CFLAGS"
+    fi
+    if test "$enable_sse4_2" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-msse42 $COMP_VENDOR_CFLAGS"
+    fi
+    if test "$enable_sse4_1" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-msse41 $COMP_VENDOR_CFLAGS"
+    fi
+    if test "$enable_ssse3" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-mssse3 $COMP_VENDOR_CFLAGS"
+    fi
+    if test "$enable_sse3" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-msse3 $COMP_VENDOR_CFLAGS"
+    fi
+    if test "$enable_sse2" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-msse2 $COMP_VENDOR_CFLAGS"
+    fi
+    if test "$enable_sse" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-msse $COMP_VENDOR_CFLAGS"
+    fi
+    if test "$enable_mmx" = "yes" ; then
+        COMP_VENDOR_CFLAGS="-mmmx $COMP_VENDOR_CFLAGS"
+    fi
+    COMP_VENDOR_LDFLAGS=
     ;;
 *)
     COMP_VENDOR_CFLAGS="-std=c99 -Wall -Wunused-variable -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes $COMP_VENDOR_CFLAGS"
@@ -357,6 +414,7 @@ AM_CONDITIONAL([COND_MMX], [test "$enable_mmx" = yes])
 AM_CONDITIONAL([COND_SSE], [test "$enable_sse" = yes])
 AM_CONDITIONAL([COND_SSE2], [test "$enable_sse2" = yes])
 AM_CONDITIONAL([COND_SSE3], [test "$enable_sse3" = yes])
+AM_CONDITIONAL([COND_SSSE3], [test "$enable_ssse3" = yes])
 AM_CONDITIONAL([COND_SSE4_1], [test "$enable_sse4_1" = yes])
 AM_CONDITIONAL([COND_SSE4_2], [test "$enable_sse4_2" = yes])
 AM_CONDITIONAL([COND_SSE4A], [test "$enable_sse4a" = yes])
@@ -389,6 +447,10 @@ if test "$enable_sse4_2" = "yes" ; then
 fi
 if test "$enable_sse4_1" = "yes" ; then
     AC_DEFINE([SPANDSP_USE_SSE4_1], [1], [Use the SSE4.1 instruction set (i386 and x86_64 only).])
+    enable_ssse3="yes"
+fi
+if test "$enable_ssse3" = "yes" ; then
+    AC_DEFINE([SPANDSP_USE_SSSE3], [1], [Use the SSSE3 instruction set (i386 and x86_64 only).])
     enable_sse3="yes"
 fi
 if test "$enable_sse3" = "yes" ; then
@@ -407,14 +469,34 @@ if test "$enable_mmx" = "yes" ; then
     AC_DEFINE([SPANDSP_USE_MMX], [1], [Use the MMX instruction set (i386 and x86_64 only).])
 fi
 
+if test "$enable_builtin_tiff" = "yes" ; then
+  abs_tiffdir="`cd $srcdir/../tiff-3.8.2/ && pwd`"
+  save_CFLAGS=$CFLAGS
+  CFLAGS="$CFLAGS -I$abs_tiffdir/libtiff"
+  AC_CHECK_HEADERS([tiffio.h])
+  CFLAGS="$save_CFLAGS"
+  COMP_VENDOR_CFLAGS="-I$abs_tiffdir/libtiff $COMP_VENDOR_CFLAGS"
+  COMP_VENDOR_LDFLAGS="-L$abs_tiffdir/libtiff $COMP_VENDOR_LDFLAGS"
+  LIBS="$LIBS $abs_tiffdir/libtiff/libtiff.la"
+  AC_DEFINE([HAVE_LIBTIFF], [1], [Define to 1 if you have the `tiff' library (-ltiff).])
+else
+  AC_CHECK_HEADERS([tiffio.h])
+  AC_CHECK_LIB([tiff], [TIFFOpen], , AC_MSG_ERROR("Can't build without libtiff (does your system require a libtiff-devel package?)"), -lm)
+fi
+
+TESTLIBS="$SIMLIBS $TESTLIBS"
+
 AC_SUBST(CC_FOR_BUILD)
 AC_SUBST(CPPFLAGS_FOR_BUILD)
 AC_SUBST(COMP_VENDOR_CFLAGS)
 AC_SUBST(COMP_VENDOR_LDFLAGS)
+AC_SUBST(SIMLIBS)
 AC_SUBST(TESTLIBS)
 AC_SUBST(SPANDSP_USE_FIXED_POINT)
 AC_SUBST(SPANDSP_MISALIGNED_ACCESS_FAILS)
 AC_SUBST(SPANDSP_USE_EXPORT_CAPABILITY)
+AC_SUBST(SPANDSP_SUPPORT_T85)
+AC_SUBST(SPANDSP_SUPPORT_V34)
 AC_SUBST(INSERT_INTTYPES_HEADER)
 AC_SUBST(INSERT_STDINT_HEADER)
 AC_SUBST(INSERT_TGMATH_HEADER)

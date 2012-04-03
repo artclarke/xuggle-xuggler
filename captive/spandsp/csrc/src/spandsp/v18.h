@@ -21,8 +21,6 @@
  * You should have received a copy of the GNU Lesser General Public
  * License along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: v18.h,v 1.3 2009/04/12 09:12:11 steveu Exp $
  */
  
 /*! \file */
@@ -69,14 +67,14 @@ SPAN_DECLARE(logging_state_t *) v18_get_logging_state(v18_state_t *s);
 /*! Initialise a V.18 context.
     \brief Initialise a V.18 context.
     \param s The V.18 context.
-    \param caller TRUE if caller mode, else answerer mode.
+    \param calling_party TRUE if caller mode, else answerer mode.
     \param mode Mode of operation.
     \param put_msg A callback routine called to deliver the received text
            to the application.
     \param user_data An opaque pointer for the callback routine.
     \return A pointer to the V.18 context, or NULL if there was a problem. */
 SPAN_DECLARE(v18_state_t *) v18_init(v18_state_t *s,
-                                     int caller,
+                                     int calling_party,
                                      int mode,
                                      put_msg_func_t put_msg,
                                      void *user_data);
@@ -100,7 +98,7 @@ SPAN_DECLARE(int) v18_free(v18_state_t *s);
     \param max_len The number of samples to be generated.
     \return The number of samples actually generated.
 */
-SPAN_DECLARE(int) v18_tx(v18_state_t *s, int16_t amp[], int max_len);
+SPAN_DECLARE_NONSTD(int) v18_tx(v18_state_t *s, int16_t amp[], int max_len);
 
 /*! Process a block of received V.18 audio samples.
     \brief Process a block of received V.18 audio samples.
@@ -108,7 +106,7 @@ SPAN_DECLARE(int) v18_tx(v18_state_t *s, int16_t amp[], int max_len);
     \param amp The audio sample buffer.
     \param len The number of samples in the buffer.
 */
-SPAN_DECLARE(int) v18_rx(v18_state_t *s, const int16_t amp[], int len);
+SPAN_DECLARE_NONSTD(int) v18_rx(v18_state_t *s, const int16_t amp[], int len);
 
 /*! \brief Put a string to a V.18 context's input buffer.
     \param s The V.18 context.
@@ -116,7 +114,8 @@ SPAN_DECLARE(int) v18_rx(v18_state_t *s, const int16_t amp[], int len);
     \param len The length of the string. If negative, the string is
            assumed to be a NULL terminated string.
     \return The number of characters actually added. This may be less than the
-            length of the digit string, if the buffer fills up. */
+            length of the digit string, if the buffer fills up. If the string is
+            invalid, this function will return -1. */
 SPAN_DECLARE(int) v18_put(v18_state_t *s, const char msg[], int len);
 
 /*! Convert a text string to a V.18 DTMF string.

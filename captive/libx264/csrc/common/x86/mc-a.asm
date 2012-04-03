@@ -61,8 +61,7 @@ cextern pd_32
 %if WIN64
     DECLARE_REG_TMP 0,1,2,3,4,5,4,5
     %macro AVG_START 0-1 0
-        PROLOGUE 5,7,%1
-        movsxd r5, dword r5m
+        PROLOGUE 6,7,%1
     %endmacro
 %elif UNIX64
     DECLARE_REG_TMP 0,1,2,3,4,5,7,8
@@ -190,7 +189,7 @@ cextern pd_32
 %endif ;HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
-; int pixel_avg_weight_w16( pixel *dst, int, pixel *src1, int, pixel *src2, int, int i_weight )
+; int pixel_avg_weight_w16( pixel *dst, intptr_t, pixel *src1, intptr_t, pixel *src2, intptr_t, int i_weight )
 ;-----------------------------------------------------------------------------
 %macro AVG_WEIGHT 1-2 0
 cglobal pixel_avg_weight_w%1
@@ -403,7 +402,7 @@ AVG_WEIGHT 16, 7
 %endif ; HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
-;void mc_weight_wX( pixel *dst, int i_dst_stride, pixel *src, int i_src_stride, weight_t *weight, int h )
+;void mc_weight_wX( pixel *dst, intptr_t i_dst_stride, pixel *src, intptr_t i_src_stride, weight_t *weight, int h )
 ;-----------------------------------------------------------------------------
 
 %macro WEIGHTER 1
@@ -479,7 +478,7 @@ WEIGHTER 20
 %endmacro
 
 ;-----------------------------------------------------------------------------
-;void mc_offset_wX( pixel *src, int i_src_stride, pixel *dst, int i_dst_stride, weight_t *w, int h )
+;void mc_offset_wX( pixel *src, intptr_t i_src_stride, pixel *dst, intptr_t i_dst_stride, weight_t *w, int h )
 ;-----------------------------------------------------------------------------
 %macro OFFSET 2
 cglobal mc_offset%2_w%1, 6,6
@@ -524,8 +523,8 @@ OFFSETPN  8
 ;=============================================================================
 
 ;-----------------------------------------------------------------------------
-; void pixel_avg_4x4( pixel *dst, int dst_stride,
-;                     pixel *src1, int src1_stride, pixel *src2, int src2_stride, int weight );
+; void pixel_avg_4x4( pixel *dst, intptr_t dst_stride, pixel *src1, intptr_t src1_stride,
+;                     pixel *src2, intptr_t src2_stride, int weight );
 ;-----------------------------------------------------------------------------
 %macro AVGH 2
 cglobal pixel_avg_%1x%2
@@ -540,9 +539,8 @@ cglobal pixel_avg_%1x%2
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void pixel_avg_w4( pixel *dst, int dst_stride,
-;                    pixel *src1, int src1_stride, pixel *src2, int src2_stride,
-;                    int height, int weight );
+; void pixel_avg_w4( pixel *dst, intptr_t dst_stride, pixel *src1, intptr_t src1_stride,
+;                    pixel *src2, intptr_t src2_stride, int height, int weight );
 ;-----------------------------------------------------------------------------
 
 %macro AVG_FUNC 3
@@ -648,8 +646,8 @@ AVGH  4,  2
 
 %if HIGH_BIT_DEPTH
 ;-----------------------------------------------------------------------------
-; void pixel_avg2_wN( uint16_t *dst,  int dst_stride,
-;                     uint16_t *src1, int src_stride,
+; void pixel_avg2_wN( uint16_t *dst,  intptr_t dst_stride,
+;                     uint16_t *src1, intptr_t src_stride,
 ;                     uint16_t *src2, int height );
 ;-----------------------------------------------------------------------------
 %macro AVG2_W_ONE 1
@@ -832,8 +830,8 @@ cglobal pixel_avg2_w18_sse2, 6,7,6
 
 %if HIGH_BIT_DEPTH == 0
 ;-----------------------------------------------------------------------------
-; void pixel_avg2_w4( uint8_t *dst, int dst_stride,
-;                     uint8_t *src1, int src_stride,
+; void pixel_avg2_w4( uint8_t *dst,  intptr_t dst_stride,
+;                     uint8_t *src1, intptr_t src_stride,
 ;                     uint8_t *src2, int height );
 ;-----------------------------------------------------------------------------
 %macro AVG2_W8 2
@@ -1194,8 +1192,8 @@ AVG16_CACHELINE_LOOP_SSSE3 j, k
 %endmacro
 
 ;-----------------------------------------------------------------------------
-; void mc_copy_w4( uint8_t *dst, int i_dst_stride,
-;                  uint8_t *src, int i_src_stride, int i_height )
+; void mc_copy_w4( uint8_t *dst, intptr_t i_dst_stride,
+;                  uint8_t *src, intptr_t i_src_stride, int i_height )
 ;-----------------------------------------------------------------------------
 INIT_MMX
 cglobal mc_copy_w4_mmx, 4,6
@@ -1250,14 +1248,14 @@ MC_COPY 16
 ; FIXME doesn't cover all pixels in high depth and/or 4:4:4
 
 ;-----------------------------------------------------------------------------
-; void prefetch_fenc( pixel *pix_y, int stride_y,
-;                     pixel *pix_uv, int stride_uv, int mb_x )
+; void prefetch_fenc( pixel *pix_y,  intptr_t stride_y,
+;                     pixel *pix_uv, intptr_t stride_uv, int mb_x )
 ;-----------------------------------------------------------------------------
 
 %macro PREFETCH_FENC 1
 %if ARCH_X86_64
 cglobal prefetch_fenc_%1, 5,5
-    FIX_STRIDES r1d, r3d
+    FIX_STRIDES r1, r3
     and    r4d, 3
     mov    eax, r4d
     imul   r4d, r1d
@@ -1317,11 +1315,11 @@ PREFETCH_FENC 420
 PREFETCH_FENC 422
 
 ;-----------------------------------------------------------------------------
-; void prefetch_ref( pixel *pix, int stride, int parity )
+; void prefetch_ref( pixel *pix, intptr_t stride, int parity )
 ;-----------------------------------------------------------------------------
 INIT_MMX mmx2
 cglobal prefetch_ref, 3,3
-    FIX_STRIDES r1d
+    FIX_STRIDES r1
     dec    r2d
     and    r2d, r1d
     lea    r0,  [r0+r2*8+64*SIZEOF_PIXEL]
@@ -1397,8 +1395,8 @@ cglobal prefetch_ref, 3,3
 %endif ; HIGH_BIT_DEPTH
 
 ;-----------------------------------------------------------------------------
-; void mc_chroma( uint8_t *dstu, uint8_t *dstv, int dst_stride,
-;                 uint8_t *src, int src_stride,
+; void mc_chroma( uint8_t *dstu, uint8_t *dstv, intptr_t dst_stride,
+;                 uint8_t *src, intptr_t src_stride,
 ;                 int dx, int dy,
 ;                 int width, int height )
 ;-----------------------------------------------------------------------------

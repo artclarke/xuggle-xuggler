@@ -1,7 +1,7 @@
 /*
  * SpanDSP - a series of DSP components for telephony
  *
- * faxtester_tests.c
+ * fax_tester.c
  *
  * Written by Steve Underwood <steveu@coppice.org>
  *
@@ -10,19 +10,17 @@
  * All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License version 2.1,
- * as published by the Free Software Foundation.
+ * it under the terms of the GNU General Public License version 2, as
+ * published by the Free Software Foundation.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this program; if not, write to the Free Software
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
- *
- * $Id: fax_tester.c,v 1.22 2009/02/12 12:38:39 steveu Exp $
  */
 
 /*! \file */
@@ -496,7 +494,7 @@ void faxtester_set_rx_type(void *user_data, int type, int bit_rate, int short_tr
     case T30_MODEM_V21:
         if (s->flush_handler)
             s->flush_handler(s, s->flush_user_data, 3);
-        fsk_rx_init(&t->v21_rx, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, put_bit_user_data);
+        fsk_rx_init(&t->v21_rx, &preset_fsk_specs[FSK_V21CH2], FSK_FRAME_MODE_SYNC, (put_bit_func_t) hdlc_rx_put_bit, put_bit_user_data);
         fsk_rx_signal_cutoff(&t->v21_rx, -45.5);
         t->rx_handler = (span_rx_handler_t *) &fsk_rx;
         t->rx_user_data = &t->v21_rx;
@@ -670,7 +668,7 @@ static void faxtester_fax_modems_init(fax_modems_state_t *s, int use_tep, void *
 
     hdlc_rx_init(&s->hdlc_rx, FALSE, FALSE, HDLC_FRAMING_OK_THRESHOLD, hdlc_accept, user_data);
     hdlc_tx_init(&s->hdlc_tx, FALSE, 2, FALSE, hdlc_underflow_handler, user_data);
-    fsk_rx_init(&s->v21_rx, &preset_fsk_specs[FSK_V21CH2], TRUE, (put_bit_func_t) hdlc_rx_put_bit, &s->hdlc_rx);
+    fsk_rx_init(&s->v21_rx, &preset_fsk_specs[FSK_V21CH2], FSK_FRAME_MODE_SYNC, (put_bit_func_t) hdlc_rx_put_bit, &s->hdlc_rx);
     fsk_rx_signal_cutoff(&s->v21_rx, -45.5);
     fsk_tx_init(&s->v21_tx, &preset_fsk_specs[FSK_V21CH2], (get_bit_func_t) hdlc_tx_get_bit, &s->hdlc_tx);
     fsk_tx_set_modem_status_handler(&s->v21_tx, modem_tx_status, user_data);

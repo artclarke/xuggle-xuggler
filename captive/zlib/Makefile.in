@@ -211,7 +211,7 @@ top_srcdir = @top_srcdir@
 # script choosing the correct type of Makefile -- libz has very non standard
 # build rules
 PREFIX = $(VS_CROSS_PREFIX)
-SHARED_MODE = 1
+SHARED_MODE = 0
 DESTDIR = $(vs_captive_prefix)
 all: all-am
 
