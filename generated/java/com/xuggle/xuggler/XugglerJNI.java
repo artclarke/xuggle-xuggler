@@ -49,6 +49,8 @@ class XugglerJNI {
   public final static native long IProperty_getFlagConstant__SWIG_0(long jarg1, IProperty jarg1_, int jarg2);
   public final static native long IProperty_getFlagConstant__SWIG_1(long jarg1, IProperty jarg1_, String jarg2);
   public final static native int IPixelFormat_NONE_get();
+  public final static native int IPixelFormat_RGBA64BE_get();
+  public final static native int IPixelFormat_ZRGB_get();
   public final static native int IPixelFormat_YUV_Y_get();
   public final static native int IPixelFormat_YUV_U_get();
   public final static native int IPixelFormat_YUV_V_get();
