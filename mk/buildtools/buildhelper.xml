@@ -592,9 +592,9 @@
       <then>
         <jar jarfile="${dist.dir}/lib/${app.name}-noarch.jar"
             index="no"
+            includes="**/*"
+            excludes="**/*.dylib,**/*.so,**/*.dll"
             basedir="${classes.dir}">
-          <include name="**/*"/>
-          <exclude name="${app.nativeclasspath}/**/*" />
           <manifest>
             <attribute name="Implementation-Vendor" value="www.xuggle.com"/>
             <attribute name="Implementation-Title" value="${app.name}"/>
