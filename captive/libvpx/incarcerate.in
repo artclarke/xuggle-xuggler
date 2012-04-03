@@ -67,6 +67,8 @@ if [ "@VS_CROSS_COMPILE@" = "1" -o "${HOST_TYPE}" = "Mac" ]; then
     ;;
   esac
   VPX_OPTIONS="${VPX_OPTIONS} --target=${VPX_HOST}"
+else
+  VPX_OPTIONS="$VPX_OPTIONS --enable-pic"
 fi
 # Tell VPX about the captive libraries already built and fake
 # installed
