@@ -1246,6 +1246,30 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPixelFormat_1NONE_1g
 }
 
 
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPixelFormat_1RGBA64BE_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IPixelFormat::Type result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IPixelFormat::Type)com::xuggle::xuggler::IPixelFormat::RGBA64BE;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPixelFormat_1ZRGB_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::IPixelFormat::Type result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::IPixelFormat::Type)com::xuggle::xuggler::IPixelFormat::ZRGB;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
 SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_IPixelFormat_1YUV_1Y_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
   com::xuggle::xuggler::IPixelFormat::YUVColorComponent result;
