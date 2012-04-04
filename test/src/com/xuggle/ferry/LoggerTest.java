@@ -48,7 +48,7 @@ public class LoggerTest extends TestCase
     retval = mLog.log("Java", 0, Logger.Level.LEVEL_INFO, "This is an info msg");
     assertTrue(retval);    
     retval = mLog.log("Java", 0, Logger.Level.LEVEL_DEBUG, "This is a debug msg");
-    assertTrue(retval);
+    assertTrue("shouldn't log debug messages by default", !retval);
     retval = mLog.log("Java", 0, Logger.Level.LEVEL_TRACE, "This is a trace msg");
     assertTrue("shouldn't log trace messages by default", !retval);
     assertTrue("all tests seemed to pass without crashes", true);
