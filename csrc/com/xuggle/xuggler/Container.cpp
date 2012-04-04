@@ -399,21 +399,18 @@ namespace com { namespace xuggle { namespace xuggler
       if (mCustomIOHandler) {
         retval = mCustomIOHandler->url_open(url, URLProtocolHandler::URL_RDONLY_MODE);
       } else {
-        retval = avio_open2(&mFormatContext->pb,
-            url, AVIO_FLAG_READ,
-            &mFormatContext->interrupt_callback,
-            0
-        );
+        // rely on the avformat_open_input call to do the right thing
+        retval = 0;
       }
-      if (retval < 0)
-        throw std::runtime_error("could not open url");
 
-      retval = avformat_open_input(
-          &mFormatContext,
-          url,
-          inputFormat,
-          options
-      );
+      if (retval >= 0)
+        retval = avformat_open_input(
+            &mFormatContext,
+            url,
+            inputFormat,
+            options
+        );
+
       if (retval >= 0) {
         if (!mFormatContext && mFormatContext->iformat) {
           // we didn't know the format before, but we sure as hell know it now
@@ -436,7 +433,7 @@ namespace com { namespace xuggle { namespace xuggler
           retval = queryStreamMetaData();
         }
       } else {
-        VS_LOG_DEBUG("Could not open output file: %s", url);
+        VS_LOG_DEBUG("Could not open output url: %s", url);
       }
     } catch (std::exception &e) {
       if (retval >= 0)
@@ -599,8 +596,11 @@ namespace com { namespace xuggle { namespace xuggler
             av_freep(&pb->buffer);
           av_free(pb);
         }
-      } else
+      } else if (this->getType() != READ)
         retval = avio_close(pb);
+      else
+        retval = 0;
+
       resetContext();
       mIsOpened = false;
       mIsMetaDataQueried=false;
