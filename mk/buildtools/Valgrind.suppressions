@@ -11135,3 +11135,505 @@
    fun:_ZN16ImageLoaderMachO16doInitializationERKN11ImageLoader11LinkContextE
    fun:_ZN11ImageLoader23recursiveInitializationERKNS_11LinkContextEjRNS_21InitializerTimingListE
 }
+{
+   ffmpeg_avformat_network_leak1
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:load_builtin_compressions
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:sk_new
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_RAND_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_ECDH_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_COMP_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_BUF_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_OBJ_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_ECDSA_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_new
+   fun:def_get_class
+   fun:int_get_new_index
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_UI_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_DH_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:OBJ_NAME_add
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_DSA_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_CONF_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_PKCS12_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_OCSP_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_BIO_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_BN_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_PEM_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_ENGINE_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_X509_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_RSA_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_DSO_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_TS_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_PKCS7_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_EVP_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_X509V3_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_CMS_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:OBJ_NAME_add
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_ASN1_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_EC_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_ERR_strings
+   fun:ERR_load_crypto_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_SSL_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak2
+   Memcheck:Leak
+   fun:realloc
+   fun:default_realloc_ex
+   fun:CRYPTO_realloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_SSL_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak3
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:def_get_class
+   fun:int_get_new_index
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak3
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:def_get_class
+   fun:int_get_new_index
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak3
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:sk_new
+   fun:sk_new_null
+   fun:def_get_class
+   fun:int_get_new_index
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak3
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:int_get_new_index
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak3
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_new
+   fun:OBJ_NAME_init
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak3
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_new
+   fun:int_err_get
+   fun:int_err_set_item
+   fun:ERR_load_ERR_strings
+   fun:ERR_load_crypto_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak3
+   Memcheck:Leak
+   fun:malloc
+   fun:default_malloc_ex
+   fun:CRYPTO_malloc
+   fun:lh_insert
+   fun:int_err_set_item
+   fun:ERR_load_strings
+   fun:ERR_load_CRYPTO_strings
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak3
+   Memcheck:Leak
+   fun:realloc
+   fun:default_realloc_ex
+   fun:CRYPTO_realloc
+   fun:lh_insert
+   fun:OBJ_NAME_add
+   fun:avformat_network_init
+}
+{
+   ffmpeg_avformat_network_leak4
+   Memcheck:Leak
+   fun:memalign
+   fun:posix_memalign
+   fun:av_malloc
+   fun:ff_tls_init
+   fun:avformat_network_init
+}
+
