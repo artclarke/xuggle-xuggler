@@ -19,7 +19,6 @@
 
 #include <cmath>
 #include <cstring>
-//#include <cstdio>
 
 #include <com/xuggle/ferry/JNIHelper.h>
 #include <com/xuggle/ferry/Logger.h>
@@ -172,6 +171,11 @@ namespace com { namespace xuggle { namespace xuggler
       // turn down logging
       sGlobal = new Global();
     }
+  }
+  void
+  Global :: deinit()
+  {
+    avformat_network_deinit();
   }
 
   void

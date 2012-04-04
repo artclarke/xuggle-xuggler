@@ -135,6 +135,11 @@ namespace com { namespace xuggle { namespace xuggler
      * Checks to determine if there is
      */
     static int avioInterruptCB(void*);
+
+    /**
+     * Internal Only.  Call to relese globals.
+     */
+    static void deinit();
 #endif // ! SWIG
 
 
