@@ -36,7 +36,7 @@
     <!--  Include for JUnit Test framework -->
     <dependency org="junit" name="junit" rev="4.5" conf="test->master" />
     <!-- Our internal libraries -->
-    <dependency org="xuggle" name="xuggle-utils" rev="latest.integration" conf="test->master" changing="true"/>
+    <dependency org="xuggle" name="xuggle-utils" rev="1.21.888.200908201439" conf="test->master" changing="true"/>
   </dependencies>
 
 </ivy-module>
