@@ -18,28 +18,25 @@
     along with Xuggle-Xuggler-Main.  If not, see <http://www.gnu.org/licenses/>.
  -->
 <configuration>
-  <!-- Uncomment if you are using the logback plugin for eclipse
-  <consolePlugin/>
-  -->
-  <appender name="CONSOLE"
-    class="ch.qos.logback.core.ConsoleAppender">
-    <layout class="ch.qos.logback.classic.PatternLayout">
-      <Pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</Pattern>
-    </layout>
-  </appender>
-  <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-    <File>test.log</File>
-    <Append>true</Append>
-    <Encoding>UTF-8</Encoding>
-    <BufferedIO>false</BufferedIO>
-    <ImmediateFlush>true</ImmediateFlush>
-    <layout class="ch.qos.logback.classic.PatternLayout">
-      <Pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</Pattern>
-    </layout>
-  </appender>
-  <root>
-    <level value="DEBUG" />
-    <appender-ref ref="CONSOLE" />
-    <appender-ref ref="FILE" />
-  </root>
+ <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+  <encoder>
+   <pattern>%-4relative [%thread] %-5level %logger{35} - %msg %n
+   </pattern>
+  </encoder>
+ </appender>
+ <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+  <file>test.log</file>
+  <append>true</append>
+  <encoder>
+   <pattern>%-4relative [%thread] %-5level %logger{35} - %msg %n
+   </pattern>
+  </encoder>
+ </appender>
+ <logger name="com.xuggle" level="info" />
+ <logger name="org.ffmpeg" level="info" />
+ <root>
+  <level value="warn" />
+  <appender-ref ref="CONSOLE" />
+  <appender-ref ref="FILE" />
+ </root>
 </configuration>
