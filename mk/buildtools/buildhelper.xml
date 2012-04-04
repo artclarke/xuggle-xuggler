@@ -1328,7 +1328,7 @@
   <target name="run-memcheck-native-do"
       if="native.makefile.exists">
     <exec executable="${build.native.make}"
-        dir="${build-native.dir}"
+        dir="${build-native.dir}/test/csrc"
         failonerror="true">
       <arg line="memcheck"/>
     </exec>
