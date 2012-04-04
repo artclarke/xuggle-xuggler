@@ -181,7 +181,7 @@ namespace com { namespace xuggle { namespace xuggler
 
 #ifdef SWIG
     %newobject getPropertyAsString(const char*);
-    %typemap(newfree) char * "delete [] $1;";
+    %typemap(newfree) char * "free($1);";
 #endif
     /**
      * Gets a property on this Object.

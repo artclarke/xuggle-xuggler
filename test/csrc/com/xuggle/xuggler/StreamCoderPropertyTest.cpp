@@ -23,6 +23,7 @@
 #include "Helper.h"
 #include "StreamCoderPropertyTest.h"
 
+#include <cstdlib>
 #include <cstring>
 
 using namespace VS_CPP_NAMESPACE;
@@ -130,8 +131,8 @@ StreamCoderPropertyTest :: testGetProperty()
   char* val=h->coders[0]->getPropertyAsString("b");
   VS_TUT_ENSURE("should be 500", strcmp(val, "500")==0);
 
-  // now we must delete val;
-  delete [] val;
+  // now we must free val;
+  if (val) free(val);
 }
 
 void
@@ -171,7 +172,7 @@ StreamCoderPropertyTest :: testGetPropertyMetaData()
 //        optionHelp ? optionHelp : "(null)",
 //        metaData->getFlags()
 //    );
-    delete [] optionValue;
+    if (optionValue) free(optionValue);
   }
   // and check that out of range values fail
   VS_TUT_ENSURE("should get null", !h->coders[0]->getPropertyMetaData(-1));

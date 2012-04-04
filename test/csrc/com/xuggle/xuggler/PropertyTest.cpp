@@ -23,6 +23,7 @@
  *      Author: aclarke
  */
 
+#include <cstdlib>
 #include <cstring>
 #include "PropertyTest.h"
 
@@ -87,14 +88,14 @@ PropertyTest :: testIteration()
     VS_LOG_DEBUG("Name: %s", property->getName());
     VS_LOG_DEBUG("Description: %s", property->getHelp());
     VS_LOG_DEBUG("Default: %lld", property->getDefault());
-    char* value=coder->getPropertyAsString(property->getName());
-    VS_LOG_DEBUG("Current value (string)  : %s", value);
-    delete[] value;
     VS_LOG_DEBUG("Current value (boolean) : %d", (int32_t)coder->getPropertyAsBoolean(property->getName()));
     VS_LOG_DEBUG("Current value (double)  : %f", coder->getPropertyAsDouble(property->getName()));
     VS_LOG_DEBUG("Current value (long)    : %lld", coder->getPropertyAsLong(property->getName()));
     RefPointer<IRational> rational = coder->getPropertyAsRational(property->getName());
     VS_LOG_DEBUG("Current value (rational): %f", rational->getValue());
+    char* value=coder->getPropertyAsString(property->getName());
+    VS_LOG_DEBUG("Current value (string)  : %s", value);
+    if (value) free(value);
   }
 }
 

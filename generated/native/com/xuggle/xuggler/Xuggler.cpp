@@ -16263,7 +16263,7 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IVideoResampler_1g
   }
   if(result) jresult = jenv->NewStringUTF((const char *)result);
   if (arg2) jenv->ReleaseStringUTFChars(jarg2, (const char *)arg2);
-  delete [] result;
+  free(result);
   return jresult;
 }
 
@@ -21490,7 +21490,7 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IStreamCoder_1getP
   }
   if(result) jresult = jenv->NewStringUTF((const char *)result);
   if (arg2) jenv->ReleaseStringUTFChars(jarg2, (const char *)arg2);
-  delete [] result;
+  free(result);
   return jresult;
 }
 
@@ -31054,7 +31054,7 @@ SWIGEXPORT jstring JNICALL Java_com_xuggle_xuggler_XugglerJNI_IContainer_1getPro
   }
   if(result) jresult = jenv->NewStringUTF((const char *)result);
   if (arg2) jenv->ReleaseStringUTFChars(jarg2, (const char *)arg2);
-  delete [] result;
+  free(result);
   return jresult;
 }
 

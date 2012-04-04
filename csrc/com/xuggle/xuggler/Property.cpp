@@ -259,7 +259,7 @@ namespace com { namespace xuggle { namespace xuggler {
         int32_t valLen = strlen(value);
         if (valLen > 0)
         {
-          retval = new char[valLen+1];
+          retval = (char*)malloc((valLen+1)*sizeof(char));
           if (!retval)
             throw std::bad_alloc();
           
@@ -272,13 +272,13 @@ namespace com { namespace xuggle { namespace xuggler {
     {
       VS_LOG_DEBUG("Error: %s", e.what());
       if (retval)
-        delete [] retval;
+        free(retval);
       retval = 0;
     }
     if (value)
       av_free(value);
 
-    // NOTE: Caller must call delete[] on returned value; we mean it!
+    // NOTE: Caller must call free() on returned value; we mean it!
     return retval;
 
   }
