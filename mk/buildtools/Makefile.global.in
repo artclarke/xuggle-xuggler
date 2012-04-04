@@ -56,6 +56,8 @@ VS_REVISION:= $(shell $(abs_top_srcdir)/mk/buildtools/revision.sh $(abs_top_srcd
 AM_CPPFLAGS+=-DVS_PRODUCT=$(VS_PRODUCT) -DVS_CPP_PACKAGE=$(VS_CPP_PACKAGE) -DVS_CPP_NAMESPACE=$(VS_CPP_NAMESPACE) -DVS_CPP_PATH=$(VS_CPP_PATH) -DVS_REVISION=$(VS_REVISION)
 ifndef VS_TEST
   AM_CPPFLAGS+=-DVS_API_COMPILING
+else
+  VS_LDFLAGS+= -lstdc++
 endif
 
 ifdef VS_DEBUG
