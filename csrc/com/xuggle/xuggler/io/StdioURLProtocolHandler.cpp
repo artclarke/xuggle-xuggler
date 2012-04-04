@@ -69,13 +69,13 @@ StdioURLProtocolHandler :: url_open(const char *url, int flags)
 
   switch(flags) {
     case URLProtocolHandler::URL_RDONLY_MODE:
-      mode="r";
+      mode="rb";
       break;
     case URLProtocolHandler::URL_WRONLY_MODE:
-      mode="w";
+      mode="wb";
       break;
     case URLProtocolHandler::URL_RDWR_MODE:
-      mode="r+";
+      mode="rb+";
       break;
     default:
       return -1;
