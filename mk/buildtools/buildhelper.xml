@@ -1487,6 +1487,8 @@
         </exec>
       </else>
     </if>
+    <copy file="${dist.dir}/src/${app.name}.${library.version}-src.tar.gz"
+      tofile="${dist.dir}/src/src.tar.gz"/>
   </target>
 
 
