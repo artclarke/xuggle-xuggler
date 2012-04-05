@@ -241,6 +241,7 @@ public class JNILibrary implements Comparable<JNILibrary>
   private boolean unpackLibrary(String path)
   {
     final URL url = JNILibrary.class.getResource(path);
+    log.trace("path: {}; url: {}", path, url);
     if (url == null)
       return false;
     
@@ -394,7 +395,7 @@ public class JNILibrary implements Comparable<JNILibrary>
         };
         suffixes = new String[]
         {
-          ".dll"
+          "-"+com.xuggle.xuggler.Version.MAJOR_VERSION+".dll", ".dll"
         };
         break;
       case MAC:
