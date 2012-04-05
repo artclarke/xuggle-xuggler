@@ -358,7 +358,7 @@ public class JNILibrary implements Comparable<JNILibrary>
     }
     // and finally we also test the top of the classpath in the event
     // that this is an applet or Web-Start app.
-    generateLibnames(retval, "", libname);
+    generateLibnames(retval, "/", libname);
     
     return retval;
   }
