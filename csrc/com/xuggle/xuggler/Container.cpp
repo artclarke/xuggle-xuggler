@@ -235,6 +235,10 @@ namespace com { namespace xuggle { namespace xuggler
       if (!mFormatContext)
         throw std::bad_alloc();
     }
+
+    if (pContainerFormat)
+      setFormat(pContainerFormat);
+
     // Let's check for custom IO
     mCustomIOHandler = URLProtocolManager::findHandler(
         url,
@@ -261,10 +265,6 @@ namespace com { namespace xuggle { namespace xuggler
       if (!mFormatContext->pb)
         av_free(buffer);
     }
-
-    if (pContainerFormat)
-      setFormat(pContainerFormat);
-
     // set up our options
     if (aOptions) {
       MetaData* options = dynamic_cast<MetaData*>(aOptions);
