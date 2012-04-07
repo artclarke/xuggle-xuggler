@@ -1444,7 +1444,7 @@
       depends="stage, run-tests-native-all, run-tests-java-all"
       description="Run all tests, including native tests if available"/>
   <target name="run-memcheck"
-      depends="run-memcheck-native, run-memcheck-java"
+      depends="stage, run-memcheck-native, run-memcheck-java"
       description="Run all memory tests, including native tests if available"/>
   <target name="doc"
       depends="doc-native, doc-java"
