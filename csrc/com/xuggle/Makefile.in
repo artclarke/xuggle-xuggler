@@ -37,7 +37,6 @@ POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
 noinst_PROGRAMS = xuggle-xuggler-main$(EXEEXT)
-#	@VS_LIBGCC@ 
 @VS_OS_WINDOWS_TRUE@am__append_1 = \
 @VS_OS_WINDOWS_TRUE@	-Wl,--add-stdcall-alias \
 @VS_OS_WINDOWS_TRUE@	-Wl,--enable-runtime-pseudo-reloc \
@@ -55,8 +54,11 @@ noinst_PROGRAMS = xuggle-xuggler-main$(EXEEXT)
 @VS_OS_WINDOWS_TRUE@	-XCClinker -luser32 \
 @VS_OS_WINDOWS_TRUE@	-XCClinker -lkernel32
 
-@VS_OS_WINDOWS_FALSE@am__append_2 = \
-@VS_OS_WINDOWS_FALSE@	-nostdlib -static-libtool-libs -XCClinker -static-libgcc
+@VS_OS_LINUX_TRUE@@VS_OS_WINDOWS_FALSE@am__append_2 = \
+@VS_OS_LINUX_TRUE@@VS_OS_WINDOWS_FALSE@	-nostdlib -static-libtool-libs -XCClinker -static-libgcc
+
+@VS_OS_LINUX_FALSE@@VS_OS_WINDOWS_FALSE@am__append_3 = \
+@VS_OS_LINUX_FALSE@@VS_OS_WINDOWS_FALSE@	-nostdlib -static-libtool-libs -XCClinker -static-libgcc
 
 subdir = csrc/com/xuggle
 DIST_COMMON = $(srcdir)/Makefile.am $(srcdir)/Makefile.dependencies.in \
@@ -106,9 +108,9 @@ libxuggle_la_OBJECTS = $(am_libxuggle_la_OBJECTS)
 AM_V_lt = $(am__v_lt_$(V))
 am__v_lt_ = $(am__v_lt_$(AM_DEFAULT_VERBOSITY))
 am__v_lt_0 = --silent
-libxuggle_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(libxuggle_la_LDFLAGS) $(LDFLAGS) -o $@
+libxuggle_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
+	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
+	$(CXXFLAGS) $(libxuggle_la_LDFLAGS) $(LDFLAGS) -o $@
 PROGRAMS = $(noinst_PROGRAMS)
 am_xuggle_xuggler_main_OBJECTS = Main.$(OBJEXT)
 xuggle_xuggler_main_OBJECTS = $(am_xuggle_xuggler_main_OBJECTS)
@@ -116,25 +118,6 @@ xuggle_xuggler_main_DEPENDENCIES = libxuggle.la
 DEFAULT_INCLUDES = 
 depcomp =
 am__depfiles_maybe =
-COMPILE = $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) \
-	$(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
-LTCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) \
-	$(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
-	$(AM_CFLAGS) $(CFLAGS)
-AM_V_CC = $(am__v_CC_$(V))
-am__v_CC_ = $(am__v_CC_$(AM_DEFAULT_VERBOSITY))
-am__v_CC_0 = @echo "  CC    " $@;
-AM_V_at = $(am__v_at_$(V))
-am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))
-am__v_at_0 = @
-CCLD = $(CC)
-LINK = $(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) \
-	$(LIBTOOLFLAGS) --mode=link $(CCLD) $(AM_CFLAGS) $(CFLAGS) \
-	$(AM_LDFLAGS) $(LDFLAGS) -o $@
-AM_V_CCLD = $(am__v_CCLD_$(V))
-am__v_CCLD_ = $(am__v_CCLD_$(AM_DEFAULT_VERBOSITY))
-am__v_CCLD_0 = @echo "  CCLD  " $@;
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 LTCXXCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
@@ -144,6 +127,9 @@ LTCXXCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 AM_V_CXX = $(am__v_CXX_$(V))
 am__v_CXX_ = $(am__v_CXX_$(AM_DEFAULT_VERBOSITY))
 am__v_CXX_0 = @echo "  CXX   " $@;
+AM_V_at = $(am__v_at_$(V))
+am__v_at_ = $(am__v_at_$(AM_DEFAULT_VERBOSITY))
+am__v_at_0 = @
 CXXLD = $(CXX)
 CXXLINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
@@ -349,56 +335,22 @@ xuggledir = $(includedir)/$(VS_CPP_PATH)
 xuggle_HEADERS = \
   Xuggle.h
 
-
-#if VS_IS_GCC
-# Finally  this script will be used to build the actual shared library
-#
-# This is NOT OBVIOUS, but libtool will find any object or libraries
-# on the link line and attempt to do smart things.  Unfortunately it
-# will overthing things.  But I still want to use their lovely .la
-# wrappers.  So we pass "-XCClinker" flags to have items go past
-# libtool and not get processed.
-#
-# I also DELIBERATELY link with the static stdc++ and gcc libraries.
-# This means that if Xuggle EVER leaks an exception outside of the
-# DLL, we can cause very very strange crashes in the JVM.  So, no
-# exceptions cross JNI.
-#
-# And yes, this code heavily depends on GCC; get over it.
-#libxuggle.la: libxuggle_static.la
-#	$(LIBTOOL) --mode=link $(CC) -fPIC -DPIC \
-#	$(VS_LDFLAGS) \
-#	-no-undefined -shared -static-libtool-libs \
-#	-XCClinker -static-libgcc \
-#	Xuggle.lo \
-#	-Wl,--whole-archive \
-#	"$(builddir)/xuggler/libxuggle-xuggler.la" \
-#	"$(builddir)/xuggler/io/libxuggle-xuggler-io.la" \
-#	"$(builddir)/ferry/libxuggle-ferry.la" \
-#	-Wl,--no-whole-archive \
-#	$(VS_PKG_LIBRARIES) \
-#	-version-number @LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@:0 \
-#	-rpath $(prefix) \
-#	-o libxuggle.la ;
-#else
-# if not GCC, then let libtool try its best
 lib_LTLIBRARIES = libxuggle.la
 xuggle_xuggler_main_SOURCES = Main.cpp
 xuggle_xuggler_main_LDADD = libxuggle.la
-# MUST be a C file; we force C linkage
-libxuggle_la_SOURCES = Xuggle.c
+libxuggle_la_SOURCES = Xuggle.cpp
 libxuggle_la_LIBADD = $(builddir)/xuggler/libxuggle-xuggler.la \
 	$(builddir)/xuggler/io/libxuggle-xuggler-io.la \
 	$(builddir)/ferry/libxuggle-ferry.la
 
 libxuggle_la_LDFLAGS = -no-undefined -shared -version-number \
 	@LIB_MAJOR_VERSION@:@LIB_MINOR_VERSION@:0 $(VS_LDFLAGS) \
-	$(VS_PKG_LIBRARIES) @VS_LIBSTDCXX@ $(am__append_1) \
-	$(am__append_2)
+	$(VS_PKG_LIBRARIES) $(am__append_1) $(am__append_2) \
+	$(am__append_3)
 all: all-recursive
 
 .SUFFIXES:
-.SUFFIXES: .c .cpp .lo .o .obj
+.SUFFIXES: .cpp .lo .o .obj
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ $(srcdir)/Makefile.am  $(am__configure_deps)
 	@for dep in $?; do \
 	  case '$(am__configure_deps)' in \
@@ -463,7 +415,7 @@ clean-libLTLIBRARIES:
 	  rm -f "$${dir}/so_locations"; \
 	done
 libxuggle.la: $(libxuggle_la_OBJECTS) $(libxuggle_la_DEPENDENCIES) 
-	$(AM_V_CCLD)$(libxuggle_la_LINK) -rpath $(libdir) $(libxuggle_la_OBJECTS) $(libxuggle_la_LIBADD) $(LIBS)
+	$(AM_V_CXXLD)$(libxuggle_la_LINK) -rpath $(libdir) $(libxuggle_la_OBJECTS) $(libxuggle_la_LIBADD) $(LIBS)
 
 clean-noinstPROGRAMS:
 	@list='$(noinst_PROGRAMS)'; test -n "$$list" || exit 0; \
@@ -482,18 +434,6 @@ mostlyclean-compile:
 
 distclean-compile:
 	-rm -f *.tab.c
-
-.c.o:
-	$(AM_V_CC) @AM_BACKSLASH@
-	$(COMPILE) -c $<
-
-.c.obj:
-	$(AM_V_CC) @AM_BACKSLASH@
-	$(COMPILE) -c `$(CYGPATH_W) '$<'`
-
-.c.lo:
-	$(AM_V_CC) @AM_BACKSLASH@
-	$(LTCOMPILE) -c -o $@ $<
 
 .cpp.o:
 	$(AM_V_CXX) @AM_BACKSLASH@
@@ -853,8 +793,6 @@ include @top_builddir@/mk/Makefile.global
 # defines VS_PKG_LIBRARIES.  Must be in a file that automake does not
 # process at autoreconf time.
 include @builddir@/Makefile.dependencies
-
-#endif # VS_IS_GCC
 
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.

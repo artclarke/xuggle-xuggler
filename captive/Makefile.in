@@ -75,9 +75,9 @@ AM_RECURSIVE_TARGETS = $(RECURSIVE_TARGETS:-recursive=) \
 	distdir dist dist-all distcheck
 ETAGS = etags
 CTAGS = ctags
-DIST_SUBDIRS = zlib libtiff spandsp libvpx openssl librtmp \
-	libvo-aacenc libopencore-amr libogg libspeex libvorbis \
-	libtheora libmp3lame libx264 ffmpeg
+DIST_SUBDIRS = zlib libvpx openssl librtmp libvo-aacenc \
+	libopencore-amr libogg libspeex libvorbis libtheora libmp3lame \
+	libx264 ffmpeg
 DISTFILES = $(DIST_COMMON) $(DIST_SOURCES) $(TEXINFOS) $(EXTRA_DIST)
 distdir = $(PACKAGE)-$(VERSION)
 top_distdir = $(distdir)
@@ -271,11 +271,12 @@ EXTRA_DIST = COPYING
 
 # For futures; include in static builds for now so users
 # don't complain later when they increase the size of the jars
+#SUBDIRS+= libtiff spandsp
 
 #SUBDIRS+= liboil
-SUBDIRS = zlib libtiff spandsp libvpx openssl librtmp libvo-aacenc \
-	libopencore-amr libogg libspeex libvorbis libtheora libmp3lame \
-	$(am__append_1) ffmpeg
+SUBDIRS = zlib libvpx openssl librtmp libvo-aacenc libopencore-amr \
+	libogg libspeex libvorbis libtheora libmp3lame $(am__append_1) \
+	ffmpeg
 all: all-recursive
 
 .SUFFIXES:

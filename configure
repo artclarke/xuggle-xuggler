@@ -645,6 +645,10 @@ LIBTOOL_DEPS
 HOST_SO_LIBPATH
 HOST_OS
 HOST_TYPE
+VS_OS_MAC_FALSE
+VS_OS_MAC_TRUE
+VS_OS_LINUX_FALSE
+VS_OS_LINUX_TRUE
 VS_OS_WINDOWS_FALSE
 VS_OS_WINDOWS_TRUE
 VS_OS_WINDOWS
@@ -16421,6 +16425,22 @@ else
   VS_OS_WINDOWS_FALSE=
 fi
 
+ if  test "${HOST_TYPE}" = "Linux" ; then
+  VS_OS_LINUX_TRUE=
+  VS_OS_LINUX_FALSE='#'
+else
+  VS_OS_LINUX_TRUE='#'
+  VS_OS_LINUX_FALSE=
+fi
+
+ if  test "${HOST_TYPE}" = "Mac" ; then
+  VS_OS_MAC_TRUE=
+  VS_OS_MAC_FALSE='#'
+else
+  VS_OS_MAC_TRUE='#'
+  VS_OS_MAC_FALSE=
+fi
+
 
 
 
@@ -17934,6 +17954,14 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${VS_OS_WINDOWS_TRUE}" && test -z "${VS_OS_WINDOWS_FALSE}"; then
   as_fn_error $? "conditional \"VS_OS_WINDOWS\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${VS_OS_LINUX_TRUE}" && test -z "${VS_OS_LINUX_FALSE}"; then
+  as_fn_error $? "conditional \"VS_OS_LINUX\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${VS_OS_MAC_TRUE}" && test -z "${VS_OS_MAC_FALSE}"; then
+  as_fn_error $? "conditional \"VS_OS_MAC\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${HAVE_VALGRIND_TRUE}" && test -z "${HAVE_VALGRIND_FALSE}"; then

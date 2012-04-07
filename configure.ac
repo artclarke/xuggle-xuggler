@@ -189,6 +189,8 @@ case $HOST_TYPE in
   ;;
 esac
 AM_CONDITIONAL([VS_OS_WINDOWS], [ test "${HOST_TYPE}" = "Windows" ])
+AM_CONDITIONAL([VS_OS_LINUX], [ test "${HOST_TYPE}" = "Linux" ])
+AM_CONDITIONAL([VS_OS_MAC], [ test "${HOST_TYPE}" = "Mac" ])
 
 AC_SUBST([HOST_TYPE])
 AC_SUBST([HOST_OS])

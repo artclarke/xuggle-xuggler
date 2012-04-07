@@ -25,7 +25,7 @@ SUBDIRS+= zlib
 
 # For futures; include in static builds for now so users
 # don't complain later when they increase the size of the jars
-SUBDIRS+= libtiff spandsp
+#SUBDIRS+= libtiff spandsp
 
 #SUBDIRS+= liboil
 
