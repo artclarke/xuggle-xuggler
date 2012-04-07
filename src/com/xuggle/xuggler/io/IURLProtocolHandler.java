@@ -95,13 +95,13 @@ public interface IURLProtocolHandler
    * This method gets called by FFMPEG when it tries to read data.
    * <p>
    * For non-blocking IO, return:
-   * {@link IError#typeToErrorNumber(com.xuggle.xuggler.IError.Type)}
-   * pass in {@link IError.Type#ERROR_AGAIN} for the error type.  This
+   * {@link com.xuggle.xuggler.IError#typeToErrorNumber(com.xuggle.xuggler.IError.Type)}
+   * pass in {@link com.xuggle.xuggler.IError.Type#ERROR_AGAIN} for the error type.  This
    * returns the platform specific number for EAGAIN on your platform
    * signaling that callers should try again later.
    * </p>
    * <p>
-   * Alternately implementators may block until data is returning, but they should then
+   * Alternately implementors may block until data is returning, but they should then
    * respect the {@link Thread#isInterrupted()} setting.
    * </p>
    * 
@@ -115,8 +115,8 @@ public interface IURLProtocolHandler
    * This method gets called by FFMPEG when it tries to write data.
    * <p>
    * For non-blocking IO, return:
-   * {@link IError#typeToErrorNumber(com.xuggle.xuggler.IError.Type)}
-   * pass in {@link IError.Type#ERROR_AGAIN} for the error type.  This
+   * {@link com.xuggle.xuggler.IError#typeToErrorNumber(com.xuggle.xuggler.IError.Type)}
+   * pass in {@link com.xuggle.xuggler.IError.Type#ERROR_AGAIN} for the error type.  This
    * returns the platform specific number for EAGAIN on your platform
    * signaling that callers should try again later.
    * </p>

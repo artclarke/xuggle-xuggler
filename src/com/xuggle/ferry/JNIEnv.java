@@ -71,7 +71,7 @@ public class JNIEnv
   
   /**
    * Get the (static) {@link JNIEnv} for this JVM.
-   * @return
+   * @return the environment
    */
   public static JNIEnv getEnv() { return mEnv; }
 
@@ -119,8 +119,8 @@ public class JNIEnv
   /**
    * Return a CPUArch from parsing a GNU autoconf triple.
    * 
-   * For example "x86_64-w64-mingw32" will return {@link CPUArch#X86_64}
-   * and "ppc-apple-darwin" will return {@link CPUArch#PPC}.
+   * For example "x86_64-w64-mingw32" will return {@link JNIEnv.CPUArch#X86_64}
+   * and "ppc-apple-darwin" will return {@link JNIEnv.CPUArch#PPC}.
    * 
    * @param gnuString the GNU string
    * @return the architecture
@@ -186,8 +186,8 @@ public class JNIEnv
   /**
    * Return an OS Family from parsing a GNU autoconf triple.
    * 
-   * For example "x86_64-w64-mingw32" will return {@link OSFamily#WINDOWS}
-   * and "ppc-apple-darwin" will return {@link OSFamily#MAC}.
+   * For example "x86_64-w64-mingw32" will return {@link JNIEnv.OSFamily#WINDOWS}
+   * and "ppc-apple-darwin" will return {@link JNIEnv.OSFamily#MAC}.
    * 
    * @param gnuString the GNU string
    * @return the OSFamily
@@ -208,7 +208,7 @@ public class JNIEnv
   }
 
   /**
-   * @return the {@link CPUArch} of this Java Virtual Machine.
+   * @return the {@link JNIEnv.CPUArch} of this Java Virtual Machine.
    */
   public CPUArch getCPUArch()
   {
@@ -216,7 +216,7 @@ public class JNIEnv
   }
 
   /**
-   * @return the {@link OSFamily} of this Java Virtual Machine.
+   * @return the {@link JNIEnv.OSFamily} of this Java Virtual Machine.
    */
   public OSFamily getOSFamily()
   {
