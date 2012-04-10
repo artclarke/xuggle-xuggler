@@ -51,8 +51,8 @@ class VS_API_XUGGLER ICodec : public com::xuggle::ferry::RefCounted
 public:
   /**
    * These are the codecs this library currently supports.
-   * These are based on FFMPEG Git versions later than this:
-   * fba318a4b02faf7b591dd941f0857db2ea1b3a8f
+   * These are based on FFMPEG Git versions with this HEAD:
+   * 40b7a27bad8b8b35cb215bf4f4cba02a00d6f9e2
    */
   typedef enum ID
   {
@@ -220,8 +220,11 @@ public:
     CODEC_ID_V410,
     CODEC_ID_XWD,
     CODEC_ID_CDXL,
+    CODEC_ID_XBM,
+    CODEC_ID_ZEROCODEC,
     CODEC_ID_Y41P       = MKBETAG('Y','4','1','P'),
     CODEC_ID_ESCAPE130  = MKBETAG('E','1','3','0'),
+    CODEC_ID_EXR        = MKBETAG('0','E','X','R'),
     CODEC_ID_AVRP       = MKBETAG('A','V','R','P'),
 
     CODEC_ID_G2M        = MKBETAG( 0 ,'G','2','M'),
@@ -366,8 +369,9 @@ public:
     CODEC_ID_8SVX_EXP,
     CODEC_ID_8SVX_FIB,
     CODEC_ID_BMV_AUDIO,
+    CODEC_ID_RALF,
     CODEC_ID_FFWAVESYNTH = MKBETAG('F','F','W','S'),
-    CODEC_ID_8SVX_RAW   = MKBETAG('8','S','V','X'),
+    CODEC_ID_8SVX_RAW    = MKBETAG('8','S','V','X'),
     CODEC_ID_SONIC       = MKBETAG('S','O','N','C'),
     CODEC_ID_SONIC_LS    = MKBETAG('S','O','N','L'),
 
@@ -383,6 +387,7 @@ public:
     CODEC_ID_DVB_TELETEXT,
     CODEC_ID_SRT,
     CODEC_ID_MICRODVD   = MKBETAG('m','D','V','D'),
+    CODEC_ID_EIA_608    = MKBETAG('c','6',0x30,'8'), // had to substitute '0' with 0x30 to get to compile with g++
 
     /* other specific kind of codecs (generally used for attachments) */
     CODEC_ID_FIRST_UNKNOWN = 0x18000,           ///< A dummy ID pointing at the start of various fake codecs.

@@ -229,6 +229,7 @@ class XugglerJNI {
   public final static native int LIBAVCODEC_VERSION_MAJOR_get();
   public final static native int ICodec_CODEC_ID_Y41P_get();
   public final static native int ICodec_CODEC_ID_ESCAPE130_get();
+  public final static native int ICodec_CODEC_ID_EXR_get();
   public final static native int ICodec_CODEC_ID_AVRP_get();
   public final static native int ICodec_CODEC_ID_G2M_get();
   public final static native int ICodec_CODEC_ID_AYUV_get();
@@ -249,6 +250,7 @@ class XugglerJNI {
   public final static native int ICodec_CODEC_ID_FIRST_SUBTITLE_get();
   public final static native int ICodec_CODEC_ID_DVD_SUBTITLE_get();
   public final static native int ICodec_CODEC_ID_MICRODVD_get();
+  public final static native int ICodec_CODEC_ID_EIA_608_get();
   public final static native int ICodec_CODEC_ID_FIRST_UNKNOWN_get();
   public final static native int ICodec_CODEC_ID_TTF_get();
   public final static native int ICodec_CODEC_ID_BINTEXT_get();

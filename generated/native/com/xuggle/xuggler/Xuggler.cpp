@@ -11111,6 +11111,18 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1CODEC_1ID_1ES
 }
 
 
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1CODEC_1ID_1EXR_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::ICodec::ID result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::ICodec::ID)com::xuggle::xuggler::ICodec::CODEC_ID_EXR;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
 SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1CODEC_1ID_1AVRP_1get(JNIEnv *jenv, jclass jcls) {
   jint jresult = 0 ;
   com::xuggle::xuggler::ICodec::ID result;
@@ -11346,6 +11358,18 @@ SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1CODEC_1ID_1MI
   (void)jenv;
   (void)jcls;
   result = (com::xuggle::xuggler::ICodec::ID)com::xuggle::xuggler::ICodec::CODEC_ID_MICRODVD;
+  jresult = (jint)result; 
+  return jresult;
+}
+
+
+SWIGEXPORT jint JNICALL Java_com_xuggle_xuggler_XugglerJNI_ICodec_1CODEC_1ID_1EIA_1608_1get(JNIEnv *jenv, jclass jcls) {
+  jint jresult = 0 ;
+  com::xuggle::xuggler::ICodec::ID result;
+  
+  (void)jenv;
+  (void)jcls;
+  result = (com::xuggle::xuggler::ICodec::ID)com::xuggle::xuggler::ICodec::CODEC_ID_EIA_608;
   jresult = (jint)result; 
   return jresult;
 }

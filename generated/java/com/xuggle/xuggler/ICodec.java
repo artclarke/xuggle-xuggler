@@ -587,8 +587,8 @@ public class ICodec extends RefCounted {
   public enum ID {
   /**
    * These are the codecs this library currently supports.
-   * These are based on FFMPEG Git versions later than this:
-   * fba318a4b02faf7b591dd941f0857db2ea1b3a8f
+   * These are based on FFMPEG Git versions with this HEAD:
+   * 40b7a27bad8b8b35cb215bf4f4cba02a00d6f9e2
    */
     CODEC_ID_NONE,
     CODEC_ID_MPEG1VIDEO,
@@ -755,8 +755,11 @@ public class ICodec extends RefCounted {
     CODEC_ID_V410,
     CODEC_ID_XWD,
     CODEC_ID_CDXL,
+    CODEC_ID_XBM,
+    CODEC_ID_ZEROCODEC,
     CODEC_ID_Y41P(XugglerJNI.ICodec_CODEC_ID_Y41P_get()),
     CODEC_ID_ESCAPE130(XugglerJNI.ICodec_CODEC_ID_ESCAPE130_get()),
+    CODEC_ID_EXR(XugglerJNI.ICodec_CODEC_ID_EXR_get()),
     CODEC_ID_AVRP(XugglerJNI.ICodec_CODEC_ID_AVRP_get()),
     CODEC_ID_G2M(XugglerJNI.ICodec_CODEC_ID_G2M_get()),
     CODEC_ID_AYUV(XugglerJNI.ICodec_CODEC_ID_AYUV_get()),
@@ -897,6 +900,7 @@ public class ICodec extends RefCounted {
     CODEC_ID_8SVX_EXP,
     CODEC_ID_8SVX_FIB,
     CODEC_ID_BMV_AUDIO,
+    CODEC_ID_RALF,
     CODEC_ID_FFWAVESYNTH(XugglerJNI.ICodec_CODEC_ID_FFWAVESYNTH_get()),
     CODEC_ID_8SVX_RAW(XugglerJNI.ICodec_CODEC_ID_8SVX_RAW_get()),
     CODEC_ID_SONIC(XugglerJNI.ICodec_CODEC_ID_SONIC_get()),
@@ -918,6 +922,7 @@ public class ICodec extends RefCounted {
     CODEC_ID_DVB_TELETEXT,
     CODEC_ID_SRT,
     CODEC_ID_MICRODVD(XugglerJNI.ICodec_CODEC_ID_MICRODVD_get()),
+    CODEC_ID_EIA_608(XugglerJNI.ICodec_CODEC_ID_EIA_608_get()),
   /**
    * A dummy ID pointing at the start of various fake codecs.
    */
