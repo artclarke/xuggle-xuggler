@@ -68,7 +68,7 @@ static int mmf_write_header(AVFormatContext *s)
 
     rate = mmf_rate_code(s->streams[0]->codec->sample_rate);
     if(rate < 0) {
-        av_log(s, AV_LOG_ERROR, "Unsupported sample rate %d\n", s->streams[0]->codec->sample_rate);
+        av_log(s, AV_LOG_ERROR, "Unsupported sample rate %d, supported are 4000, 8000, 11025, 22050 and 44100\n", s->streams[0]->codec->sample_rate);
         return -1;
     }
 
@@ -76,8 +76,8 @@ static int mmf_write_header(AVFormatContext *s)
     avio_wb32(pb, 0);
     pos = ff_start_tag(pb, "CNTI");
     avio_w8(pb, 0); /* class */
-    avio_w8(pb, 0); /* type */
-    avio_w8(pb, 0); /* code type */
+    avio_w8(pb, 1); /* type */
+    avio_w8(pb, 1); /* code type */
     avio_w8(pb, 0); /* status */
     avio_w8(pb, 0); /* counts */
     avio_write(pb, "VN:libavcodec,", sizeof("VN:libavcodec,") -1); /* metadata ("ST:songtitle,VN:version,...") */

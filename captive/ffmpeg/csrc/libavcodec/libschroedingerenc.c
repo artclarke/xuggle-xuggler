@@ -381,10 +381,8 @@ static int libschroedinger_encode_frame(AVCodecContext *avccontext, AVPacket *pk
     pkt_size = p_frame_output->size;
     if (last_frame_in_sequence && p_schro_params->enc_buf_size > 0)
         pkt_size += p_schro_params->enc_buf_size;
-    if ((ret = ff_alloc_packet(pkt, pkt_size)) < 0) {
-        av_log(avccontext, AV_LOG_ERROR, "Error getting output packet of size %d.\n", pkt_size);
+    if ((ret = ff_alloc_packet2(avccontext, pkt, pkt_size)) < 0)
         goto error;
-    }
 
     memcpy(pkt->data, p_frame_output->p_encbuf, p_frame_output->size);
     avccontext->coded_frame->key_frame = p_frame_output->key_frame;
@@ -448,7 +446,9 @@ AVCodec ff_libschroedinger_encoder = {
     .init           = libschroedinger_encode_init,
     .encode2        = libschroedinger_encode_frame,
     .close          = libschroedinger_encode_close,
-   .capabilities = CODEC_CAP_DELAY,
-   .pix_fmts     = (const enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_YUV422P, PIX_FMT_YUV444P, PIX_FMT_NONE},
-   .long_name    = NULL_IF_CONFIG_SMALL("libschroedinger Dirac 2.2"),
+    .capabilities   = CODEC_CAP_DELAY,
+    .pix_fmts       = (const enum PixelFormat[]){
+        PIX_FMT_YUV420P, PIX_FMT_YUV422P, PIX_FMT_YUV444P, PIX_FMT_NONE
+    },
+    .long_name      = NULL_IF_CONFIG_SMALL("libschroedinger Dirac 2.2"),
 };

@@ -199,7 +199,7 @@ static void dvb_encode_rle8(uint8_t **pq,
                             int w, int h)
 {
     uint8_t *q;
-    int x, y, len, x1, f, color;
+    int x, y, len, x1, color;
 
     q = *pq;
 
@@ -207,7 +207,6 @@ static void dvb_encode_rle8(uint8_t **pq,
         *q++ = 0x12;
 
         x = 0;
-        f = 0;
         while (x < w) {
             x1 = x;
             color = bitmap[x1++];
@@ -468,5 +467,5 @@ AVCodec ff_dvbsub_encoder = {
     .id             = CODEC_ID_DVB_SUBTITLE,
     .priv_data_size = sizeof(DVBSubtitleContext),
     .encode         = dvbsub_encode,
-    .long_name = NULL_IF_CONFIG_SMALL("DVB subtitles"),
+    .long_name      = NULL_IF_CONFIG_SMALL("DVB subtitles"),
 };

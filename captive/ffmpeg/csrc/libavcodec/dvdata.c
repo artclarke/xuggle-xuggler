@@ -26,6 +26,7 @@
 
 #include "libavutil/rational.h"
 #include "libavutil/intreadwrite.h"
+#include "libavutil/pixdesc.h"
 #include "avcodec.h"
 #include "dvdata.h"
 
@@ -300,7 +301,7 @@ const DVprofile* avpriv_dv_frame_profile2(AVCodecContext* codec, const DVprofile
         return &dv_profiles[2];
     }
 
-    if(stype == 0 && codec && codec->codec_tag==AV_RL32("dvsd") && codec->width==720 && codec->height==576)
+    if(stype == 0 && codec && codec->codec_tag==AV_RL32("dvsd") && codec->coded_width==720 && codec->coded_height==576)
         return &dv_profiles[1];
 
     for (i = 0; i < FF_ARRAY_ELEMS(dv_profiles); i++)
@@ -310,6 +311,10 @@ const DVprofile* avpriv_dv_frame_profile2(AVCodecContext* codec, const DVprofile
     /* check if old sys matches and assumes corrupted input */
     if (sys && buf_size == sys->frame_size)
         return sys;
+
+    /* hack for trac issue #217, dv files created with QuickTime 3 */
+    if ((frame[3] & 0x7f) == 0x3f && frame[80 * 5 + 48 + 3] == 0xff)
+        return &dv_profiles[dsf];
 
     return NULL;
 }
@@ -323,12 +328,32 @@ const DVprofile* avpriv_dv_frame_profile(const DVprofile *sys,
 const DVprofile* avpriv_dv_codec_profile(AVCodecContext* codec)
 {
     int i;
+    int w, h;
+
+    if (codec->coded_width || codec->coded_height) {
+        w = codec->coded_width;
+        h = codec->coded_height;
+    } else {
+        w = codec->width;
+        h = codec->height;
+    }
 
     for (i=0; i<FF_ARRAY_ELEMS(dv_profiles); i++)
-       if (codec->coded_height == dv_profiles[i].height  &&
+       if (h == dv_profiles[i].height  &&
            codec->pix_fmt      == dv_profiles[i].pix_fmt &&
-           codec->coded_width  == dv_profiles[i].width)
+           w == dv_profiles[i].width)
                return &dv_profiles[i];
 
     return NULL;
+}
+
+void ff_dv_print_profiles(void *logctx, int loglevel)
+{
+    int i;
+    for (i = 0; i < FF_ARRAY_ELEMS(dv_profiles); i++) {
+        const DVprofile *p = &dv_profiles[i];
+        av_log(logctx, loglevel, "Frame size: %dx%d; pixel format: %s, "
+               "framerate: %d/%d\n", p->width, p->height, av_get_pix_fmt_name(p->pix_fmt),
+               p->time_base.den, p->time_base.num);
+    }
 }

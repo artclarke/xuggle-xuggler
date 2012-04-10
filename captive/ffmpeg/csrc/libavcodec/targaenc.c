@@ -86,10 +86,8 @@ static int targa_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
         return AVERROR(EINVAL);
     }
     picsize = avpicture_get_size(avctx->pix_fmt, avctx->width, avctx->height);
-    if ((ret = ff_alloc_packet(pkt, picsize + 45)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "encoded frame too large\n");
+    if ((ret = ff_alloc_packet2(avctx, pkt, picsize + 45)) < 0)
         return ret;
-    }
 
     /* zero out the header and only set applicable fields */
     memset(pkt->data, 0, 12);
@@ -162,12 +160,15 @@ static av_cold int targa_encode_init(AVCodecContext *avctx)
 }
 
 AVCodec ff_targa_encoder = {
-    .name = "targa",
-    .type = AVMEDIA_TYPE_VIDEO,
-    .id = CODEC_ID_TARGA,
+    .name           = "targa",
+    .type           = AVMEDIA_TYPE_VIDEO,
+    .id             = CODEC_ID_TARGA,
     .priv_data_size = sizeof(TargaContext),
-    .init = targa_encode_init,
-    .encode2 = targa_encode_frame,
-    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_BGR24, PIX_FMT_BGRA, PIX_FMT_RGB555LE, PIX_FMT_GRAY8, PIX_FMT_NONE},
+    .init           = targa_encode_init,
+    .encode2        = targa_encode_frame,
+    .pix_fmts       = (const enum PixelFormat[]){
+        PIX_FMT_BGR24, PIX_FMT_BGRA, PIX_FMT_RGB555LE, PIX_FMT_GRAY8,
+        PIX_FMT_NONE
+    },
     .long_name= NULL_IF_CONFIG_SMALL("Truevision Targa image"),
 };

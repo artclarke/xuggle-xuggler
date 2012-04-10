@@ -83,7 +83,7 @@ static void smc_decode_stream(SmcContext *s)
     int stride = s->frame.linesize[0];
     int i;
     int chunk_size;
-    int buf_size = (int) (s->gb.buffer_end - s->gb.buffer_start);
+    int buf_size = bytestream2_size(&s->gb);
     unsigned char opcode;
     int n_blocks;
     unsigned int color_flags;
@@ -474,5 +474,5 @@ AVCodec ff_smc_decoder = {
     .close          = smc_decode_end,
     .decode         = smc_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name = NULL_IF_CONFIG_SMALL("QuickTime Graphics (SMC)"),
+    .long_name      = NULL_IF_CONFIG_SMALL("QuickTime Graphics (SMC)"),
 };

@@ -139,6 +139,7 @@ static int raw_decode(AVCodecContext *avctx,
     int buf_size = avpkt->size;
     int linesize_align = 4;
     RawVideoContext *context = avctx->priv_data;
+    int res;
 
     AVFrame   *frame   = data;
     AVPicture *picture = data;
@@ -155,8 +156,10 @@ static int raw_decode(AVCodecContext *avctx,
         frame->top_field_first  = context->tff;
     }
 
-    if(buf_size < context->length - (avctx->pix_fmt==PIX_FMT_PAL8 ? 256*4 : 0))
-        return -1;
+    if (avctx->width <= 0 || avctx->height <= 0) {
+        av_log(avctx, AV_LOG_ERROR, "w/h is invalid\n");
+        return AVERROR(EINVAL);
+    }
 
     //2bpp and 4bpp raw in avi and mov (yes this is ugly ...)
     if (context->buffer) {
@@ -185,7 +188,12 @@ static int raw_decode(AVCodecContext *avctx,
        avctx->codec_tag == MKTAG('A', 'V', 'u', 'p'))
         buf += buf_size - context->length;
 
-    avpicture_fill(picture, buf, avctx->pix_fmt, avctx->width, avctx->height);
+    if(buf_size < context->length - (avctx->pix_fmt==PIX_FMT_PAL8 ? 256*4 : 0))
+        return -1;
+
+    if ((res = avpicture_fill(picture, buf, avctx->pix_fmt,
+                              avctx->width, avctx->height)) < 0)
+        return res;
     if((avctx->pix_fmt==PIX_FMT_PAL8 && buf_size < context->length) ||
        (av_pix_fmt_descriptors[avctx->pix_fmt].flags & PIX_FMT_PSEUDOPAL)) {
         frame->data[1]= context->palette;
@@ -248,6 +256,6 @@ AVCodec ff_rawvideo_decoder = {
     .init           = raw_init_decoder,
     .close          = raw_close_decoder,
     .decode         = raw_decode,
-    .long_name = NULL_IF_CONFIG_SMALL("raw video"),
-    .priv_class= &class,
+    .long_name      = NULL_IF_CONFIG_SMALL("raw video"),
+    .priv_class     = &class,
 };

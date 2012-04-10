@@ -26,6 +26,7 @@
 #include "libavutil/audioconvert.h"
 #include "avcodec.h"
 #include "get_bits.h"
+#include "internal.h"
 #include "put_bits.h"
 #include "dcaenc.h"
 #include "dcadata.h"
@@ -488,14 +489,18 @@ static void put_frame(DCAContext *c,
     flush_put_bits(&c->pb);
 }
 
-static int encode_frame(AVCodecContext *avctx, uint8_t *frame,
-                        int buf_size, void *data)
+static int encode_frame(AVCodecContext *avctx, AVPacket *avpkt,
+                        const AVFrame *frame, int *got_packet_ptr)
 {
     int i, k, channel;
     DCAContext *c = avctx->priv_data;
-    int16_t *samples = data;
-    int real_channel = 0;
+    const int16_t *samples;
+    int ret, real_channel = 0;
 
+    if ((ret = ff_alloc_packet2(avctx, avpkt, DCA_MAX_FRAME_SIZE + DCA_HEADER_SIZE)))
+        return ret;
+
+    samples = (const int16_t *)frame->data[0];
     for (i = 0; i < PCM_SAMPLES; i ++) { /* i is the decimated sample number */
         for (channel = 0; channel < c->prim_channels + 1; channel++) {
             /* Get 32 PCM samples */
@@ -518,20 +523,29 @@ static int encode_frame(AVCodecContext *avctx, uint8_t *frame,
         }
     }
 
-    put_frame(c, c->subband, frame);
+    put_frame(c, c->subband, avpkt->data);
 
-    return c->frame_size;
+    avpkt->size     = c->frame_size;
+    *got_packet_ptr = 1;
+    return 0;
 }
 
 static int encode_init(AVCodecContext *avctx)
 {
     DCAContext *c = avctx->priv_data;
     int i;
+    uint64_t layout = avctx->channel_layout;
 
     c->prim_channels = avctx->channels;
     c->lfe_channel   = (avctx->channels == 3 || avctx->channels == 6);
 
-    switch (avctx->channel_layout) {
+    if (!layout) {
+        av_log(avctx, AV_LOG_WARNING, "No channel layout specified. The "
+                                      "encoder will guess the layout, but it "
+                                      "might be incorrect.\n");
+        layout = av_get_default_channel_layout(avctx->channels);
+    }
+    switch (layout) {
     case AV_CH_LAYOUT_STEREO:       c->a_mode = 2; c->num_channel = 2; break;
     case AV_CH_LAYOUT_5POINT0:      c->a_mode = 9; c->num_channel = 9; break;
     case AV_CH_LAYOUT_5POINT1:      c->a_mode = 9; c->num_channel = 9; break;
@@ -580,7 +594,7 @@ AVCodec ff_dca_encoder = {
     .id             = CODEC_ID_DTS,
     .priv_data_size = sizeof(DCAContext),
     .init           = encode_init,
-    .encode         = encode_frame,
+    .encode2        = encode_frame,
     .capabilities   = CODEC_CAP_EXPERIMENTAL,
     .sample_fmts    = (const enum AVSampleFormat[]){AV_SAMPLE_FMT_S16,AV_SAMPLE_FMT_NONE},
     .long_name      = NULL_IF_CONFIG_SMALL("DCA (DTS Coherent Acoustics)"),

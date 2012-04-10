@@ -210,6 +210,7 @@ library:
 @item MAXIS XA                  @tab   @tab X
     @tab Used in Sim City 3000; file extension .xa.
 @item MD Studio                 @tab   @tab X
+@item Metal Gear Solid: The Twin Snakes @tab @tab X
 @item Mobotix .mxg              @tab   @tab X
 @item Monkey's Audio            @tab   @tab X
 @item Motion Pixels MVI         @tab   @tab X
@@ -351,6 +352,7 @@ library:
 @item eXtended BINary text (XBIN) @tab @tab X
 @item YUV4MPEG pipe             @tab X @tab X
 @item Psygnosis YOP             @tab   @tab X
+@item ZeroCodec Lossless Video  @tab   @tab X
 @end multitable
 
 @code{X} means that encoding (resp. decoding) is supported.
@@ -370,6 +372,8 @@ following image formats are supported:
     @tab Microsoft BMP image
 @item DPX          @tab X @tab X
     @tab Digital Picture Exchange
+@item EXR          @tab   @tab X
+    @tab OpenEXR
 @item JPEG         @tab X @tab X
     @tab Progressive JPEG is not supported.
 @item JPEG 2000    @tab X @tab X
@@ -401,6 +405,8 @@ following image formats are supported:
     @tab YUV, JPEG and some extension is not supported yet.
 @item Truevision Targa  @tab X @tab X
     @tab Targa (.TGA) image format
+@item XBM  @tab X @tab X
+    @tab X BitMap image format
 @item XWD  @tab X @tab X
     @tab X Window Dump image format
 @end multitable
@@ -789,6 +795,7 @@ following image formats are supported:
     @tab Real 28800 bit/s codec
 @item RealAudio 3.0 (dnet)   @tab IX  @tab  X
     @tab Real low bitrate AC-3 codec
+@item RealAudio Lossless     @tab     @tab  X
 @item RealAudio SIPR / ACELP.NET @tab     @tab  X
 @item Shorten                @tab     @tab  X
 @item Sierra VMD audio       @tab     @tab  X

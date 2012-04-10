@@ -67,6 +67,11 @@ typedef struct PNGDecContext {
     z_stream zstream;
 } PNGDecContext;
 
+/* Mask to determine which pixels are valid in a pass */
+static const uint8_t png_pass_mask[NB_PASSES] = {
+    0x01, 0x01, 0x11, 0x11, 0x55, 0x55, 0xff,
+};
+
 /* Mask to determine which y pixels can be written in a pass */
 static const uint8_t png_pass_dsp_ymask[NB_PASSES] = {
     0xff, 0xff, 0x0f, 0xff, 0x33, 0xff, 0x55,
@@ -88,7 +93,7 @@ static void png_put_interlaced_row(uint8_t *dst, int width,
     uint8_t *d;
     const uint8_t *s;
 
-    mask = ff_png_pass_mask[pass];
+    mask = png_pass_mask[pass];
     dsp_mask = png_pass_dsp_mask[pass];
     switch(bits_per_pixel) {
     case 1:
@@ -359,7 +364,7 @@ static int png_decode_idat(PNGDecContext *s, int length)
 {
     int ret;
     s->zstream.avail_in = FFMIN(length, bytestream2_get_bytes_left(&s->gb));
-    s->zstream.next_in = s->gb.buffer;
+    s->zstream.next_in = (unsigned char *)s->gb.buffer;
     bytestream2_skip(&s->gb, length);
 
     /* decode one line if possible */
@@ -416,12 +421,16 @@ static int decode_frame(AVCodecContext *avctx,
     if (ret != Z_OK)
         return -1;
     for(;;) {
-        if (bytestream2_get_bytes_left(&s->gb) <= 0)
+        if (bytestream2_get_bytes_left(&s->gb) <= 0) {
+            av_log(avctx, AV_LOG_ERROR, "No bytes left\n");
             goto fail;
+        }
 
         length = bytestream2_get_be32(&s->gb);
-        if (length > 0x7fffffff || length > bytestream2_get_bytes_left(&s->gb))
+        if (length > 0x7fffffff || length > bytestream2_get_bytes_left(&s->gb))  {
+            av_log(avctx, AV_LOG_ERROR, "chunk too big\n");
             goto fail;
+        }
         tag = bytestream2_get_le32(&s->gb);
         if (avctx->debug & FF_DEBUG_STARTCODE)
             av_log(avctx, AV_LOG_DEBUG, "png: tag=%c%c%c%c length=%u\n",
@@ -437,6 +446,7 @@ static int decode_frame(AVCodecContext *avctx,
             s->height = bytestream2_get_be32(&s->gb);
             if(av_image_check_size(s->width, s->height, 0, avctx)){
                 s->width= s->height= 0;
+                av_log(avctx, AV_LOG_ERROR, "Invalid image size\n");
                 goto fail;
             }
             s->bit_depth        = bytestream2_get_byte(&s->gb);
@@ -452,8 +462,10 @@ static int decode_frame(AVCodecContext *avctx,
                     s->compression_type, s->filter_type, s->interlace_type);
             break;
         case MKTAG('I', 'D', 'A', 'T'):
-            if (!(s->state & PNG_IHDR))
+            if (!(s->state & PNG_IHDR)) {
+                av_log(avctx, AV_LOG_ERROR, "IDAT without IHDR\n");
                 goto fail;
+            }
             if (!(s->state & PNG_IDAT)) {
                 /* init image info */
                 avctx->width = s->width;
@@ -588,7 +600,10 @@ static int decode_frame(AVCodecContext *avctx,
             break;
         case MKTAG('I', 'E', 'N', 'D'):
             if (!(s->state & PNG_ALLIMAGE))
+                av_log(avctx, AV_LOG_ERROR, "IEND without all image\n");
+            if (!(s->state & (PNG_ALLIMAGE|PNG_IDAT))) {
                 goto fail;
+            }
             bytestream2_skip(&s->gb, 4); /* crc */
             goto exit_loop;
         default:
@@ -726,5 +741,5 @@ AVCodec ff_png_decoder = {
     .close          = png_dec_end,
     .decode         = decode_frame,
     .capabilities   = CODEC_CAP_DR1 /*| CODEC_CAP_DRAW_HORIZ_BAND*/,
-    .long_name = NULL_IF_CONFIG_SMALL("PNG (Portable Network Graphics) image"),
+    .long_name      = NULL_IF_CONFIG_SMALL("PNG (Portable Network Graphics) image"),
 };

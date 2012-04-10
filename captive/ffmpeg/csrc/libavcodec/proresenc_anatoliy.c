@@ -26,6 +26,7 @@
  */
 
 #include "avcodec.h"
+#include "internal.h"
 #include "put_bits.h"
 #include "bytestream.h"
 #include "dsputil.h"
@@ -168,8 +169,7 @@ static void encode_codeword(PutBitContext *pb, int val, int codebook)
         exp = av_log2(val);
         zeros = exp - exp_order + switch_bits + 1;
         put_bits(pb, zeros, 0);
-        put_bits(pb, 1, 1);
-        put_bits(pb, exp, val);
+        put_bits(pb, exp + 1, val);
     } else if (rice_order) {
         mask = (1 << rice_order) - 1;
         put_bits(pb, (val >> rice_order), 0);
@@ -493,11 +493,8 @@ static int prores_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     int frame_size = FFALIGN(avctx->width, 16) * FFALIGN(avctx->height, 16)*16 + 500 + FF_MIN_BUFFER_SIZE; //FIXME choose tighter limit
 
 
-    if (!pkt->data &&
-        (ret = av_new_packet(pkt, frame_size + FF_MIN_BUFFER_SIZE)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "Error getting output packet.\n");
+    if ((ret = ff_alloc_packet2(avctx, pkt, frame_size + FF_MIN_BUFFER_SIZE)) < 0)
         return ret;
-    }
 
     buf = pkt->data;
     pic_size = prores_encode_picture(avctx, pict, buf + header_size + 8,

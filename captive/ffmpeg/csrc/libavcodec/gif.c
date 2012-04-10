@@ -164,10 +164,8 @@ static int gif_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     uint8_t *outbuf_ptr, *end;
     int ret;
 
-    if ((ret = ff_alloc_packet(pkt, avctx->width*avctx->height*7/5 + FF_MIN_BUFFER_SIZE)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "Error getting output packet.\n");
+    if ((ret = ff_alloc_packet2(avctx, pkt, avctx->width*avctx->height*7/5 + FF_MIN_BUFFER_SIZE)) < 0)
         return ret;
-    }
     outbuf_ptr = pkt->data;
     end        = pkt->data + pkt->size;
 
@@ -201,6 +199,9 @@ AVCodec ff_gif_encoder = {
     .init           = gif_encode_init,
     .encode2        = gif_encode_frame,
     .close          = gif_encode_close,
-    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_RGB8, PIX_FMT_BGR8, PIX_FMT_RGB4_BYTE, PIX_FMT_BGR4_BYTE, PIX_FMT_GRAY8, PIX_FMT_PAL8, PIX_FMT_NONE},
-    .long_name= NULL_IF_CONFIG_SMALL("GIF (Graphics Interchange Format)"),
+    .pix_fmts       = (const enum PixelFormat[]){
+        PIX_FMT_RGB8, PIX_FMT_BGR8, PIX_FMT_RGB4_BYTE, PIX_FMT_BGR4_BYTE,
+        PIX_FMT_GRAY8, PIX_FMT_PAL8, PIX_FMT_NONE
+    },
+    .long_name      = NULL_IF_CONFIG_SMALL("GIF (Graphics Interchange Format)"),
 };

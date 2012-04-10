@@ -1368,6 +1368,7 @@ static int mpeg1_decode_picture(AVCodecContext *avctx,
         f_code = get_bits(&s->gb, 3);
         if (f_code == 0 && (avctx->err_recognition & (AV_EF_BITSTREAM|AV_EF_COMPLIANT)))
             return -1;
+        f_code += !f_code;
         s->mpeg_f_code[0][0] = f_code;
         s->mpeg_f_code[0][1] = f_code;
     }
@@ -1376,6 +1377,7 @@ static int mpeg1_decode_picture(AVCodecContext *avctx,
         f_code = get_bits(&s->gb, 3);
         if (f_code == 0 && (avctx->err_recognition & (AV_EF_BITSTREAM|AV_EF_COMPLIANT)))
             return -1;
+        f_code += !f_code;
         s->mpeg_f_code[1][0] = f_code;
         s->mpeg_f_code[1][1] = f_code;
     }
@@ -1536,6 +1538,11 @@ static void mpeg_decode_picture_coding_extension(Mpeg1Context *s1)
         s->current_picture.f.pict_type = s->pict_type;
         s->current_picture.f.key_frame = s->pict_type == AV_PICTURE_TYPE_I;
     }
+    s->mpeg_f_code[0][0] += !s->mpeg_f_code[0][0];
+    s->mpeg_f_code[0][1] += !s->mpeg_f_code[0][1];
+    s->mpeg_f_code[1][0] += !s->mpeg_f_code[1][0];
+    s->mpeg_f_code[1][1] += !s->mpeg_f_code[1][1];
+
     s->intra_dc_precision         = get_bits(&s->gb, 2);
     s->picture_structure          = get_bits(&s->gb, 2);
     s->top_field_first            = get_bits1(&s->gb);
@@ -1559,7 +1566,7 @@ static void mpeg_decode_picture_coding_extension(Mpeg1Context *s1)
     }
 
     if (s->progressive_sequence && !s->frame_pred_frame_dct) {
-        av_log(s->avctx, AV_LOG_ERROR, "invalid frame_pred_frame_dct\n");
+        av_log(s->avctx, AV_LOG_WARNING, "invalid frame_pred_frame_dct\n");
     }
 
     if (s->picture_structure == PICT_FRAME) {
@@ -1626,6 +1633,12 @@ static int mpeg_field_start(MpegEncContext *s, const uint8_t *buf, int buf_size)
         if (!s->current_picture_ptr) {
             av_log(s->avctx, AV_LOG_ERROR, "first field missing\n");
             return -1;
+        }
+
+        if (s->avctx->hwaccel &&
+            (s->avctx->slice_flags & SLICE_FLAG_ALLOW_FIELD)) {
+            if (s->avctx->hwaccel->end_frame(s->avctx) < 0)
+                av_log(avctx, AV_LOG_ERROR, "hardware accelerator failed to decode first field\n");
         }
 
         for (i = 0; i < 4; i++) {
@@ -2554,17 +2567,19 @@ static const AVProfile mpeg2_video_profiles[] = {
 
 
 AVCodec ff_mpeg1video_decoder = {
-    .name           = "mpeg1video",
-    .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_MPEG1VIDEO,
-    .priv_data_size = sizeof(Mpeg1Context),
-    .init           = mpeg_decode_init,
-    .close          = mpeg_decode_end,
-    .decode         = mpeg_decode_frame,
-    .capabilities   = CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1 | CODEC_CAP_TRUNCATED | CODEC_CAP_DELAY | CODEC_CAP_SLICE_THREADS,
-    .flush          = flush,
-    .max_lowres     = 3,
-    .long_name      = NULL_IF_CONFIG_SMALL("MPEG-1 video"),
+    .name                  = "mpeg1video",
+    .type                  = AVMEDIA_TYPE_VIDEO,
+    .id                    = CODEC_ID_MPEG1VIDEO,
+    .priv_data_size        = sizeof(Mpeg1Context),
+    .init                  = mpeg_decode_init,
+    .close                 = mpeg_decode_end,
+    .decode                = mpeg_decode_frame,
+    .capabilities          = CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1 |
+                             CODEC_CAP_TRUNCATED | CODEC_CAP_DELAY |
+                             CODEC_CAP_SLICE_THREADS,
+    .flush                 = flush,
+    .max_lowres            = 3,
+    .long_name             = NULL_IF_CONFIG_SMALL("MPEG-1 video"),
     .update_thread_context = ONLY_IF_THREADS_ENABLED(mpeg_decode_update_thread_context)
 };
 
@@ -2576,7 +2591,9 @@ AVCodec ff_mpeg2video_decoder = {
     .init           = mpeg_decode_init,
     .close          = mpeg_decode_end,
     .decode         = mpeg_decode_frame,
-    .capabilities   = CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1 | CODEC_CAP_TRUNCATED | CODEC_CAP_DELAY | CODEC_CAP_SLICE_THREADS,
+    .capabilities   = CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1 |
+                      CODEC_CAP_TRUNCATED | CODEC_CAP_DELAY |
+                      CODEC_CAP_SLICE_THREADS,
     .flush          = flush,
     .max_lowres     = 3,
     .long_name      = NULL_IF_CONFIG_SMALL("MPEG-2 video"),
@@ -2624,7 +2641,8 @@ AVCodec ff_mpeg_xvmc_decoder = {
     .init           = mpeg_mc_decode_init,
     .close          = mpeg_decode_end,
     .decode         = mpeg_decode_frame,
-    .capabilities   = CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1 | CODEC_CAP_TRUNCATED| CODEC_CAP_HWACCEL | CODEC_CAP_DELAY,
+    .capabilities   = CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1 |
+                      CODEC_CAP_TRUNCATED| CODEC_CAP_HWACCEL | CODEC_CAP_DELAY,
     .flush          = flush,
     .long_name      = NULL_IF_CONFIG_SMALL("MPEG-1/2 video XvMC (X-Video Motion Compensation)"),
 };
@@ -2640,7 +2658,8 @@ AVCodec ff_mpeg_vdpau_decoder = {
     .init           = mpeg_decode_init,
     .close          = mpeg_decode_end,
     .decode         = mpeg_decode_frame,
-    .capabilities   = CODEC_CAP_DR1 | CODEC_CAP_TRUNCATED | CODEC_CAP_HWACCEL_VDPAU | CODEC_CAP_DELAY,
+    .capabilities   = CODEC_CAP_DR1 | CODEC_CAP_TRUNCATED |
+                      CODEC_CAP_HWACCEL_VDPAU | CODEC_CAP_DELAY,
     .flush          = flush,
     .long_name      = NULL_IF_CONFIG_SMALL("MPEG-1/2 video (VDPAU acceleration)"),
 };
@@ -2655,7 +2674,8 @@ AVCodec ff_mpeg1_vdpau_decoder = {
     .init           = mpeg_decode_init,
     .close          = mpeg_decode_end,
     .decode         = mpeg_decode_frame,
-    .capabilities   = CODEC_CAP_DR1 | CODEC_CAP_TRUNCATED | CODEC_CAP_HWACCEL_VDPAU | CODEC_CAP_DELAY,
+    .capabilities   = CODEC_CAP_DR1 | CODEC_CAP_TRUNCATED |
+                      CODEC_CAP_HWACCEL_VDPAU | CODEC_CAP_DELAY,
     .flush          = flush,
     .long_name      = NULL_IF_CONFIG_SMALL("MPEG-1 video (VDPAU acceleration)"),
 };

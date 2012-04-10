@@ -228,12 +228,8 @@ static int flashsv_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
         I_frame = 1;
     }
 
-    if ((res = ff_alloc_packet(pkt, s->image_width * s->image_height * 3)) < 0) {
-        //Conservative upper bound check for compressed data
-        av_log(avctx, AV_LOG_ERROR, "Error getting output packet of size %d.\n",
-               s->image_width * s->image_height * 3);
+    if ((res = ff_alloc_packet2(avctx, pkt, s->image_width * s->image_height * 3)) < 0)
         return res;
-    }
 
     pkt->size = encode_bitstream(s, p, pkt->data, pkt->size, opt_w * 16, opt_h * 16,
                                  pfptr, &I_frame);
@@ -287,6 +283,6 @@ AVCodec ff_flashsv_encoder = {
     .init           = flashsv_encode_init,
     .encode2        = flashsv_encode_frame,
     .close          = flashsv_encode_end,
-    .pix_fmts       = (const enum PixelFormat[]){PIX_FMT_BGR24, PIX_FMT_NONE},
+    .pix_fmts       = (const enum PixelFormat[]){ PIX_FMT_BGR24, PIX_FMT_NONE },
     .long_name      = NULL_IF_CONFIG_SMALL("Flash Screen Video"),
 };

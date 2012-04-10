@@ -1031,7 +1031,7 @@ static void dvbsub_parse_region_segment(AVCodecContext *avctx,
 
     const uint8_t *buf_end = buf + buf_size;
     int region_id, object_id;
-    int version;
+    int av_unused version;
     DVBSubRegion *region;
     DVBSubObject *object;
     DVBSubObjectDisplay *display;
@@ -1538,5 +1538,5 @@ AVCodec ff_dvbsub_decoder = {
     .init           = dvbsub_init_decoder,
     .close          = dvbsub_close_decoder,
     .decode         = dvbsub_decode,
-    .long_name = NULL_IF_CONFIG_SMALL("DVB subtitles"),
+    .long_name      = NULL_IF_CONFIG_SMALL("DVB subtitles"),
 };

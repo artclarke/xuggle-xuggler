@@ -159,8 +159,9 @@ static int rtsp_read_header(AVFormatContext *s)
     if (ret)
         return ret;
 
-    rt->real_setup_cache = av_mallocz(2 * s->nb_streams * sizeof(*rt->real_setup_cache));
-    if (!rt->real_setup_cache)
+    rt->real_setup_cache = !s->nb_streams ? NULL :
+                           av_mallocz(2 * s->nb_streams * sizeof(*rt->real_setup_cache));
+    if (!rt->real_setup_cache && s->nb_streams)
         return AVERROR(ENOMEM);
     rt->real_setup = rt->real_setup_cache + s->nb_streams;
 
@@ -409,8 +410,8 @@ AVInputFormat ff_rtsp_demuxer = {
     .read_packet    = rtsp_read_packet,
     .read_close     = rtsp_read_close,
     .read_seek      = rtsp_read_seek,
-    .flags = AVFMT_NOFILE,
-    .read_play = rtsp_read_play,
-    .read_pause = rtsp_read_pause,
-    .priv_class = &rtsp_demuxer_class,
+    .flags          = AVFMT_NOFILE,
+    .read_play      = rtsp_read_play,
+    .read_pause     = rtsp_read_pause,
+    .priv_class     = &rtsp_demuxer_class,
 };

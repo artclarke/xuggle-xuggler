@@ -17,6 +17,7 @@ do_avconv $raw_ref -f image2 -vcodec pgmyuv -i $raw_src -an -f rawvideo
 fi
 if [ -n "$do_aref" ]; then
 do_avconv $pcm_ref -b 128k -ac 2 -ar 44100 -f s16le -i $pcm_src -f wav
+do_avconv $pcm_ref_1ch -b 128k -ac 1 -ar 16000 -f s16le -i $pcm_src_1ch -f wav
 fi
 
 if [ -n "$do_cljr" ] ; then
@@ -344,6 +345,11 @@ do_video_encoding v308.avi "-an -c:v v308"
 do_video_decoding "" "-pix_fmt yuv420p"
 fi
 
+if [ -n "$do_v408" ] ; then
+do_video_encoding v408.avi "-an -c:v v408 -sws_flags neighbor+bitexact"
+do_video_decoding "" "-sws_flags neighbor+bitexact -pix_fmt yuv420p"
+fi
+
 if [ -n "$do_yuv" ] ; then
 do_video_encoding yuv.avi "-an -vcodec rawvideo -pix_fmt yuv420p"
 do_video_decoding "" "-pix_fmt yuv420p"
@@ -439,16 +445,26 @@ do_audio_encoding flac.flac "-acodec flac -compression_level 2"
 do_audio_decoding
 fi
 
-if [ -n "$do_wmav1" ] ; then
-do_audio_encoding wmav1.asf "-acodec wmav1"
-do_avconv_nomd5 $pcm_dst $DEC_OPTS -i $target_path/$file -f wav
-$tiny_psnr $pcm_dst $pcm_ref 2 8192
+if [ -n "$do_dca" ] ; then
+do_audio_encoding dca.dts "-strict -2 -acodec dca"
+# decoding is not bit-exact, so skip md5 of decoded file
+do_audio_decoding_nomd5
+$tiny_psnr $pcm_dst $pcm_ref 2 1920
 fi
-if [ -n "$do_wmav2" ] ; then
-do_audio_encoding wmav2.asf "-acodec wmav2"
-do_avconv_nomd5 $pcm_dst $DEC_OPTS -i $target_path/$file -f wav
-$tiny_psnr $pcm_dst $pcm_ref 2 8192
+
+if [ -n "$do_ra144" ] ; then
+do_audio_encoding ra144.ra "-ac 1 -acodec real_144"
+do_audio_decoding "-ac 2"
+$tiny_psnr $pcm_dst $pcm_ref 2 640
 fi
+
+if [ -n "$do_roqaudio" ] ; then
+do_audio_encoding roqaudio.roq "-ar 22050 -acodec roq_dpcm"
+do_audio_decoding "-ar 44100"
+fi
+
+# AAC and nellymoser are not bit-exact across platforms,
+# they were moved to enc_dec_pcm tests instead.
 
 #if [ -n "$do_vorbis" ] ; then
 # vorbis

@@ -106,6 +106,10 @@ libopenjpeg_rgb:
 
 static inline int libopenjpeg_ispacked(enum PixelFormat pix_fmt) {
     int i, component_plane;
+
+    if (pix_fmt == PIX_FMT_GRAY16)
+        return 0;
+
     component_plane = av_pix_fmt_descriptors[pix_fmt].comp[0].plane;
     for(i = 1; i < av_pix_fmt_descriptors[pix_fmt].nb_components; i++) {
         if (component_plane != av_pix_fmt_descriptors[pix_fmt].comp[i].plane)
@@ -262,7 +266,7 @@ static int libopenjpeg_decode_frame(AVCodecContext *avctx,
     avcodec_set_dimensions(avctx, width, height);
 
     switch (image->numcomps) {
-    case 1:  avctx->pix_fmt = (image->comps[0].bpp == 8) ? PIX_FMT_GRAY8 : PIX_FMT_GRAY16;
+    case 1:  avctx->pix_fmt = (image->comps[0].prec == 8) ? PIX_FMT_GRAY8 : PIX_FMT_GRAY16;
              break;
     case 2:  avctx->pix_fmt = PIX_FMT_GRAY8A;
              break;
@@ -278,7 +282,7 @@ static int libopenjpeg_decode_frame(AVCodecContext *avctx,
 
     if(ff_thread_get_buffer(avctx, picture) < 0){
         av_log(avctx, AV_LOG_ERROR, "ff_thread_get_buffer() failed\n");
-        return -1;
+        goto done;
     }
 
     ctx->dec_params.cp_limit_decoding = NO_LIMITATION;
@@ -288,13 +292,17 @@ static int libopenjpeg_decode_frame(AVCodecContext *avctx,
     stream = opj_cio_open((opj_common_ptr)dec, buf, buf_size);
     if(!stream) {
         av_log(avctx, AV_LOG_ERROR, "Codestream could not be opened for reading.\n");
-        opj_destroy_decompress(dec);
-        return -1;
+        goto done;
     }
 
+    opj_image_destroy(image);
     // Decode the codestream
     image = opj_decode_with_info(dec, stream, NULL);
     opj_cio_close(stream);
+    if(!image) {
+        av_log(avctx, AV_LOG_ERROR, "Error decoding codestream.\n");
+        goto done;
+    }
 
     pixel_size = av_pix_fmt_descriptors[avctx->pix_fmt].comp[0].step_minus1 + 1;
     ispacked = libopenjpeg_ispacked(avctx->pix_fmt);
@@ -352,15 +360,15 @@ static av_cold int libopenjpeg_decode_close(AVCodecContext *avctx)
 
 
 AVCodec ff_libopenjpeg_decoder = {
-    .name           = "libopenjpeg",
-    .type           = AVMEDIA_TYPE_VIDEO,
-    .id             = CODEC_ID_JPEG2000,
-    .priv_data_size = sizeof(LibOpenJPEGContext),
-    .init           = libopenjpeg_decode_init,
-    .close          = libopenjpeg_decode_close,
-    .decode         = libopenjpeg_decode_frame,
-    .capabilities   = CODEC_CAP_DR1 | CODEC_CAP_FRAME_THREADS,
-    .max_lowres     = 5,
-    .long_name      = NULL_IF_CONFIG_SMALL("OpenJPEG based JPEG 2000 decoder"),
-    .init_thread_copy = ONLY_IF_THREADS_ENABLED(libopenjpeg_decode_init_thread_copy)
+    .name             = "libopenjpeg",
+    .type             = AVMEDIA_TYPE_VIDEO,
+    .id               = CODEC_ID_JPEG2000,
+    .priv_data_size   = sizeof(LibOpenJPEGContext),
+    .init             = libopenjpeg_decode_init,
+    .close            = libopenjpeg_decode_close,
+    .decode           = libopenjpeg_decode_frame,
+    .capabilities     = CODEC_CAP_DR1 | CODEC_CAP_FRAME_THREADS,
+    .max_lowres       = 5,
+    .long_name      = NULL_IF_CONFIG_SMALL("OpenJPEG JPEG 2000"),
+    .init_thread_copy = ONLY_IF_THREADS_ENABLED(libopenjpeg_decode_init_thread_copy),
 };

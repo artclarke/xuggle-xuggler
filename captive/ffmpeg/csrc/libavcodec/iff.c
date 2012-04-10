@@ -506,10 +506,15 @@ static int decode_frame_ilbm(AVCodecContext *avctx,
         }
     } else if (avctx->codec_tag == MKTAG('D','E','E','P')) {
         int raw_width = avctx->width * (av_get_bits_per_pixel(&av_pix_fmt_descriptors[avctx->pix_fmt]) >> 3);
+        int x;
         for(y = 0; y < avctx->height && buf < buf_end; y++ ) {
             uint8_t *row = &s->frame.data[0][y * s->frame.linesize[0]];
             memcpy(row, buf, FFMIN(raw_width, buf_end - buf));
             buf += raw_width;
+            if (avctx->pix_fmt == PIX_FMT_BGR32) {
+                for(x = 0; x < avctx->width; x++)
+                    row[4 * x + 3] = row[4 * x + 3] & 0xF0 | (row[4 * x + 3] >> 4);
+            }
         }
     } else if (avctx->codec_tag == MKTAG('I','L','B','M')) { // interleaved
         if (avctx->pix_fmt == PIX_FMT_PAL8 || avctx->pix_fmt == PIX_FMT_GRAY8) {
@@ -548,13 +553,16 @@ static int decode_frame_ilbm(AVCodecContext *avctx,
                 memcpy(row, buf, FFMIN(avctx->width, buf_end - buf));
                 buf += avctx->width + (avctx->width % 2); // padding if odd
             }
-        } else { // IFF-PBM: HAM to PIX_FMT_BGR32
+        } else if (s->ham) { // IFF-PBM: HAM to PIX_FMT_BGR32
             for (y = 0; y < avctx->height; y++) {
                 uint8_t *row = &s->frame.data[0][ y*s->frame.linesize[0] ];
                 memcpy(s->ham_buf, buf, FFMIN(avctx->width, buf_end - buf));
                 buf += avctx->width + (avctx->width & 1); // padding if odd
                 decode_ham_plane32((uint32_t *) row, s->ham_buf, s->ham_palbuf, s->planesize);
             }
+        } else {
+            av_log_ask_for_sample(avctx, "unsupported bpp\n");
+            return AVERROR_INVALIDDATA;
         }
     }
 
@@ -675,7 +683,7 @@ AVCodec ff_iff_ilbm_decoder = {
     .close          = decode_end,
     .decode         = decode_frame_ilbm,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name = NULL_IF_CONFIG_SMALL("IFF ILBM"),
+    .long_name      = NULL_IF_CONFIG_SMALL("IFF ILBM"),
 };
 
 AVCodec ff_iff_byterun1_decoder = {
@@ -687,5 +695,5 @@ AVCodec ff_iff_byterun1_decoder = {
     .close          = decode_end,
     .decode         = decode_frame_byterun1,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name = NULL_IF_CONFIG_SMALL("IFF ByteRun1"),
+    .long_name      = NULL_IF_CONFIG_SMALL("IFF ByteRun1"),
 };

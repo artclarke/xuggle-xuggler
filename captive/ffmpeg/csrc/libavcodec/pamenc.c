@@ -88,10 +88,8 @@ static int pam_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
         return -1;
     }
 
-    if ((ret = ff_alloc_packet(pkt, n*h + 200)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "encoded frame too large\n");
+    if ((ret = ff_alloc_packet2(avctx, pkt, n*h + 200)) < 0)
         return ret;
-    }
 
     *p           = *pict;
     p->pict_type = AV_PICTURE_TYPE_I;
@@ -138,6 +136,8 @@ AVCodec ff_pam_encoder = {
     .priv_data_size = sizeof(PNMContext),
     .init           = ff_pnm_init,
     .encode2        = pam_encode_frame,
-    .pix_fmts  = (const enum PixelFormat[]){PIX_FMT_RGB24, PIX_FMT_RGBA, PIX_FMT_RGB48BE, PIX_FMT_RGBA64BE, PIX_FMT_GRAY8, PIX_FMT_GRAY8A, PIX_FMT_GRAY16BE, PIX_FMT_MONOBLACK, PIX_FMT_NONE},
-    .long_name = NULL_IF_CONFIG_SMALL("PAM (Portable AnyMap) image"),
+    .pix_fmts       = (const enum PixelFormat[]){
+        PIX_FMT_RGB24, PIX_FMT_RGBA, PIX_FMT_RGB48BE, PIX_FMT_RGBA64BE, PIX_FMT_GRAY8, PIX_FMT_GRAY8A, PIX_FMT_GRAY16BE, PIX_FMT_MONOBLACK, PIX_FMT_NONE
+    },
+    .long_name      = NULL_IF_CONFIG_SMALL("PAM (Portable AnyMap) image"),
 };

@@ -352,9 +352,9 @@ int ff_h264_decode_seq_parameter_set(H264Context *h){
         if (sps->chroma_format_idc > 3U) {
             av_log(h->s.avctx, AV_LOG_ERROR, "chroma_format_idc %d is illegal\n", sps->chroma_format_idc);
             goto fail;
-        }
-        if(sps->chroma_format_idc == 3)
+        } else if(sps->chroma_format_idc == 3) {
             sps->residual_color_transform_flag = get_bits1(&s->gb);
+        }
         sps->bit_depth_luma   = get_ue_golomb(&s->gb) + 8;
         sps->bit_depth_chroma = get_ue_golomb(&s->gb) + 8;
         if (sps->bit_depth_luma > 12U || sps->bit_depth_chroma > 12U) {
@@ -371,6 +371,12 @@ int ff_h264_decode_seq_parameter_set(H264Context *h){
     }
 
     sps->log2_max_frame_num= get_ue_golomb(&s->gb) + 4;
+    if (sps->log2_max_frame_num < 4 || sps->log2_max_frame_num > 16) {
+        av_log(h->s.avctx, AV_LOG_ERROR, "illegal log2_max_frame_num %d\n",
+               sps->log2_max_frame_num);
+        goto fail;
+    }
+
     sps->poc_type= get_ue_golomb_31(&s->gb);
 
     if(sps->poc_type == 0){ //FIXME #define

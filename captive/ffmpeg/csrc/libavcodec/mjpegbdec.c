@@ -129,7 +129,6 @@ read_header:
         if (s->bottom_field != s->interlace_polarity && second_field_offs)
         {
             buf_ptr = buf + second_field_offs;
-            second_field_offs = 0;
             goto read_header;
             }
     }
@@ -161,6 +160,6 @@ AVCodec ff_mjpegb_decoder = {
     .close          = ff_mjpeg_decode_end,
     .decode         = mjpegb_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .max_lowres = 3,
-    .long_name = NULL_IF_CONFIG_SMALL("Apple MJPEG-B"),
+    .max_lowres     = 3,
+    .long_name      = NULL_IF_CONFIG_SMALL("Apple MJPEG-B"),
 };

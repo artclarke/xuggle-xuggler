@@ -660,7 +660,7 @@ static int svq3_decode_mb(SVQ3Context *svq3, unsigned int mb_type)
     if (IS_INTRA16x16(mb_type)) {
         AV_ZERO128(h->mb_luma_dc[0]+0);
         AV_ZERO128(h->mb_luma_dc[0]+8);
-        if (svq3_decode_block(&s->gb, h->mb_luma_dc, 0, 1)){
+        if (svq3_decode_block(&s->gb, *h->mb_luma_dc, 0, 1)){
             av_log(h->s.avctx, AV_LOG_ERROR, "error while decoding intra luma dc\n");
             return -1;
         }
@@ -823,6 +823,7 @@ static av_cold int svq3_decode_init(AVCodecContext *avctx)
     s->flags2 = avctx->flags2;
     s->unrestricted_mv = 1;
     h->is_complex=1;
+    h->sps.chroma_format_idc = 1;
     avctx->pix_fmt = avctx->codec->pix_fmts[0];
 
     if (!s->context_initialized) {
@@ -1138,7 +1139,8 @@ AVCodec ff_svq3_decoder = {
     .init           = svq3_decode_init,
     .close          = svq3_decode_end,
     .decode         = svq3_decode_frame,
-    .capabilities   = CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1 | CODEC_CAP_DELAY,
-    .long_name = NULL_IF_CONFIG_SMALL("Sorenson Vector Quantizer 3 / Sorenson Video 3 / SVQ3"),
-    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_YUVJ420P, PIX_FMT_NONE},
+    .capabilities   = CODEC_CAP_DRAW_HORIZ_BAND | CODEC_CAP_DR1 |
+                      CODEC_CAP_DELAY,
+    .long_name      = NULL_IF_CONFIG_SMALL("Sorenson Vector Quantizer 3 / Sorenson Video 3 / SVQ3"),
+    .pix_fmts       = (const enum PixelFormat[]){ PIX_FMT_YUVJ420P, PIX_FMT_NONE },
 };

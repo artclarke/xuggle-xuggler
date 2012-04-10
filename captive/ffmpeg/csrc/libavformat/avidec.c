@@ -838,7 +838,7 @@ static int read_gab2_sub(AVStream *st, AVPacket *pkt) {
 
         ast->sub_ctx->pb      = pb;
         if (!avformat_open_input(&ast->sub_ctx, "", sub_demuxer, NULL)) {
-            av_read_packet(ast->sub_ctx, &ast->sub_pkt);
+            ff_read_packet(ast->sub_ctx, &ast->sub_pkt);
             *st->codec = *ast->sub_ctx->streams[0]->codec;
             ast->sub_ctx->streams[0]->codec->extradata = NULL;
             time_base = ast->sub_ctx->streams[0]->time_base;
@@ -880,7 +880,7 @@ static AVStream *get_subtitle_pkt(AVFormatContext *s, AVStream *next_st,
         ast = sub_st->priv_data;
         *pkt = ast->sub_pkt;
         pkt->stream_index = sub_st->index;
-        if (av_read_packet(ast->sub_ctx, &ast->sub_pkt) < 0)
+        if (ff_read_packet(ast->sub_ctx, &ast->sub_pkt) < 0)
             ast->sub_pkt.data = NULL;
     }
     return sub_st;
@@ -1292,6 +1292,8 @@ static int guess_ni_flag(AVFormatContext *s){
     int64_t last_start=0;
     int64_t first_end= INT64_MAX;
     int64_t oldpos= avio_tell(s->pb);
+    int *idx;
+    int64_t min_pos, pos;
 
     for(i=0; i<s->nb_streams; i++){
         AVStream *st = s->streams[i];
@@ -1315,7 +1317,32 @@ static int guess_ni_flag(AVFormatContext *s){
             first_end= st->index_entries[n-1].pos;
     }
     avio_seek(s->pb, oldpos, SEEK_SET);
-    return last_start > first_end;
+    if (last_start > first_end)
+        return 1;
+    idx= av_mallocz(sizeof(*idx) * s->nb_streams);
+    for (min_pos=pos=0; min_pos!=INT64_MAX; pos= min_pos+1) {
+        int64_t max_dts = INT64_MIN/2, min_dts= INT64_MAX/2;
+        min_pos = INT64_MAX;
+
+        for (i=0; i<s->nb_streams; i++) {
+            AVStream *st = s->streams[i];
+            int n= st->nb_index_entries;
+            while (idx[i]<n && st->index_entries[idx[i]].pos < pos)
+                idx[i]++;
+            if (idx[i] < n) {
+                min_dts = FFMIN(min_dts, av_rescale_q(st->index_entries[idx[i]].timestamp, st->time_base, AV_TIME_BASE_Q));
+                min_pos = FFMIN(min_pos, st->index_entries[idx[i]].pos);
+            }
+            if (idx[i])
+                max_dts = FFMAX(max_dts, av_rescale_q(st->index_entries[idx[i]-1].timestamp, st->time_base, AV_TIME_BASE_Q));
+        }
+        if(max_dts - min_dts > 2*AV_TIME_BASE) {
+            av_free(idx);
+            return 1;
+        }
+    }
+    av_free(idx);
+    return 0;
 }
 
 static int avi_load_index(AVFormatContext *s)
@@ -1364,7 +1391,7 @@ static void seek_subtitle(AVStream *st, AVStream *st2, int64_t timestamp)
     av_free_packet(&ast2->sub_pkt);
     if (avformat_seek_file(ast2->sub_ctx, 0, INT64_MIN, ts2, ts2, 0) >= 0 ||
         avformat_seek_file(ast2->sub_ctx, 0, ts2, ts2, INT64_MAX, 0) >= 0)
-        av_read_packet(ast2->sub_ctx, &ast2->sub_pkt);
+        ff_read_packet(ast2->sub_ctx, &ast2->sub_pkt);
 }
 
 static int avi_read_seek(AVFormatContext *s, int stream_index, int64_t timestamp, int flags)

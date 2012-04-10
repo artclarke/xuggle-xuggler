@@ -80,11 +80,8 @@ void ff_convert_matrix(DSPContext *dsp, int (*qmat)[64],
     for (qscale = qmin; qscale <= qmax; qscale++) {
         int i;
         if (dsp->fdct == ff_jpeg_fdct_islow_8 ||
-            dsp->fdct == ff_jpeg_fdct_islow_10
-#ifdef FAAN_POSTSCALE
-            || dsp->fdct == ff_faandct
-#endif
-            ) {
+            dsp->fdct == ff_jpeg_fdct_islow_10 ||
+            dsp->fdct == ff_faandct) {
             for (i = 0; i < 64; i++) {
                 const int j = dsp->idct_permutation[i];
                 /* 16 <= qscale * quant_matrix[i] <= 7905
@@ -96,11 +93,7 @@ void ff_convert_matrix(DSPContext *dsp, int (*qmat)[64],
                 qmat[qscale][i] = (int)((UINT64_C(1) << QMAT_SHIFT) /
                                         (qscale * quant_matrix[j]));
             }
-        } else if (dsp->fdct == ff_fdct_ifast
-#ifndef FAAN_POSTSCALE
-                   || dsp->fdct == ff_faandct
-#endif
-                   ) {
+        } else if (dsp->fdct == ff_fdct_ifast) {
             for (i = 0; i < 64; i++) {
                 const int j = dsp->idct_permutation[i];
                 /* 16 <= qscale * quant_matrix[i] <= 7905
@@ -138,11 +131,7 @@ void ff_convert_matrix(DSPContext *dsp, int (*qmat)[64],
 
         for (i = intra; i < 64; i++) {
             int64_t max = 8191;
-            if (dsp->fdct == ff_fdct_ifast
-#ifndef FAAN_POSTSCALE
-                || dsp->fdct == ff_faandct
-#endif
-               ) {
+            if (dsp->fdct == ff_fdct_ifast) {
                 max = (8191LL * ff_aanscales[i]) >> 14;
             }
             while (((max * qmat[qscale][i]) >> shift) > INT_MAX) {
@@ -401,7 +390,8 @@ av_cold int ff_MPV_encode_init(AVCodecContext *avctx)
 
     if ((!avctx->rc_max_rate) != (!avctx->rc_buffer_size)) {
         av_log(avctx, AV_LOG_ERROR, "Either both buffer size and max rate or neither must be specified\n");
-        return -1;
+        if (avctx->rc_max_rate && !avctx->rc_buffer_size)
+            return -1;
     }
 
     if (avctx->rc_min_rate && avctx->rc_max_rate != avctx->rc_min_rate) {
@@ -1435,8 +1425,7 @@ int ff_MPV_encode_picture(AVCodecContext *avctx, AVPacket *pkt,
 
     /* output? */
     if (s->new_picture.f.data[0]) {
-        if (!pkt->data &&
-            (ret = ff_alloc_packet(pkt, s->mb_width*s->mb_height*(MAX_MB_BYTES+100)+10000)) < 0)
+        if ((ret = ff_alloc_packet2(avctx, pkt, s->mb_width*s->mb_height*(MAX_MB_BYTES+100)+10000)) < 0)
             return ret;
         if (s->mb_info) {
             s->mb_info_ptr = av_packet_new_side_data(pkt,
@@ -3517,11 +3506,7 @@ static int dct_quantize_trellis_c(MpegEncContext *s,
         int dct_coeff= FFABS(block[ scantable[i] ]);
         int best_score=256*256*256*120;
 
-        if (   s->dsp.fdct == ff_fdct_ifast
-#ifndef FAAN_POSTSCALE
-            || s->dsp.fdct == ff_faandct
-#endif
-           )
+        if (s->dsp.fdct == ff_fdct_ifast)
             dct_coeff= (dct_coeff*ff_inv_aanscales[ scantable[i] ]) >> 12;
         zero_distortion= dct_coeff*dct_coeff;
 
@@ -4220,9 +4205,9 @@ AVCodec ff_h263p_encoder = {
     .init           = ff_MPV_encode_init,
     .encode2        = ff_MPV_encode_picture,
     .close          = ff_MPV_encode_end,
-    .capabilities = CODEC_CAP_SLICE_THREADS,
-    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
-    .long_name= NULL_IF_CONFIG_SMALL("H.263+ / H.263-1998 / H.263 version 2"),
+    .capabilities   = CODEC_CAP_SLICE_THREADS,
+    .pix_fmts       = (const enum PixelFormat[]){ PIX_FMT_YUV420P, PIX_FMT_NONE },
+    .long_name      = NULL_IF_CONFIG_SMALL("H.263+ / H.263-1998 / H.263 version 2"),
     .priv_class     = &h263p_class,
 };
 
@@ -4236,8 +4221,8 @@ AVCodec ff_msmpeg4v2_encoder = {
     .init           = ff_MPV_encode_init,
     .encode2        = ff_MPV_encode_picture,
     .close          = ff_MPV_encode_end,
-    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
-    .long_name= NULL_IF_CONFIG_SMALL("MPEG-4 part 2 Microsoft variant version 2"),
+    .pix_fmts       = (const enum PixelFormat[]){ PIX_FMT_YUV420P, PIX_FMT_NONE },
+    .long_name      = NULL_IF_CONFIG_SMALL("MPEG-4 part 2 Microsoft variant version 2"),
     .priv_class     = &msmpeg4v2_class,
 };
 
@@ -4251,8 +4236,8 @@ AVCodec ff_msmpeg4v3_encoder = {
     .init           = ff_MPV_encode_init,
     .encode2        = ff_MPV_encode_picture,
     .close          = ff_MPV_encode_end,
-    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
-    .long_name= NULL_IF_CONFIG_SMALL("MPEG-4 part 2 Microsoft variant version 3"),
+    .pix_fmts       = (const enum PixelFormat[]){ PIX_FMT_YUV420P, PIX_FMT_NONE },
+    .long_name      = NULL_IF_CONFIG_SMALL("MPEG-4 part 2 Microsoft variant version 3"),
     .priv_class     = &msmpeg4v3_class,
 };
 
@@ -4266,7 +4251,7 @@ AVCodec ff_wmv1_encoder = {
     .init           = ff_MPV_encode_init,
     .encode2        = ff_MPV_encode_picture,
     .close          = ff_MPV_encode_end,
-    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
-    .long_name= NULL_IF_CONFIG_SMALL("Windows Media Video 7"),
+    .pix_fmts       = (const enum PixelFormat[]){ PIX_FMT_YUV420P, PIX_FMT_NONE },
+    .long_name      = NULL_IF_CONFIG_SMALL("Windows Media Video 7"),
     .priv_class     = &wmv1_class,
 };

@@ -225,12 +225,14 @@ const AVCodecTag ff_codec_movvideo_tags[] = {
     { CODEC_ID_RAWVIDEO, MKTAG('A', 'V', 'u', 'p') },
     { CODEC_ID_SGI,   MKTAG('s', 'g', 'i', ' ') }, /* SGI  */
     { CODEC_ID_DPX,   MKTAG('d', 'p', 'x', ' ') }, /* DPX */
+    { CODEC_ID_EXR,   MKTAG('e', 'x', 'r', ' ') }, /* OpenEXR */
 
     { CODEC_ID_PRORES, MKTAG('a', 'p', 'c', 'h') }, /* Apple ProRes 422 High Quality */
     { CODEC_ID_PRORES, MKTAG('a', 'p', 'c', 'n') }, /* Apple ProRes 422 Standard Definition */
     { CODEC_ID_PRORES, MKTAG('a', 'p', 'c', 's') }, /* Apple ProRes 422 LT */
     { CODEC_ID_PRORES, MKTAG('a', 'p', 'c', 'o') }, /* Apple ProRes 422 Proxy */
     { CODEC_ID_PRORES, MKTAG('a', 'p', '4', 'h') }, /* Apple ProRes 4444 */
+    { CODEC_ID_FLIC,   MKTAG('f', 'l', 'i', 'c') },
 
     { CODEC_ID_NONE, 0 },
 };
@@ -285,6 +287,7 @@ const AVCodecTag ff_codec_movaudio_tags[] = {
 const AVCodecTag ff_codec_movsubtitle_tags[] = {
     { CODEC_ID_MOV_TEXT, MKTAG('t', 'e', 'x', 't') },
     { CODEC_ID_MOV_TEXT, MKTAG('t', 'x', '3', 'g') },
+    { CODEC_ID_EIA_608,  MKTAG('c', '6', '0', '8') },
     { CODEC_ID_NONE, 0 },
 };
 
@@ -347,7 +350,7 @@ int ff_mov_lang_to_iso639(unsigned code, char to[4])
     memset(to, 0, 4);
     /* is it the mangled iso code? */
     /* see http://www.geocities.com/xhelmboyx/quicktime/formats/mp4-layout.txt */
-    if (code > 138) {
+    if (code >= 0x400 && code != 0x7fff) {
         for (i = 2; i >= 0; i--) {
             to[i] = 0x60 + (code & 0x1f);
             code >>= 5;
