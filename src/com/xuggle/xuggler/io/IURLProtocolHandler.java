@@ -19,7 +19,6 @@
 
 package com.xuggle.xuggler.io;
 
-import com.xuggle.xuggler.IError;
 import com.xuggle.xuggler.io.FileProtocolHandler;
 import com.xuggle.xuggler.io.URLProtocolManager;
 
