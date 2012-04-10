@@ -678,7 +678,7 @@ public class ContainerTest extends TestCase
     assertEquals("As of 5.0 getPreload is depcreated: " + retval, retval, -1);
 
     retval = container.getMaxDelay();
-    assertEquals("container should have 0 maxdelay value: " + retval, retval, 0);
+    assertEquals("container should have 0 maxdelay value: " + retval, retval, -1);
 
     retval = container.setPreload(10);
     assertEquals("container should ignore setting preload: " + retval, retval, -1);
