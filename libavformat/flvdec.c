@@ -518,7 +518,7 @@ static int flv_read_packet(AVFormatContext *s, AVPacket *pkt)
         stream_type=FLV_STREAM_TYPE_VIDEO;
         flags = avio_r8(s->pb);
         size--;
-        if ((flags & 0xf0) == 0x50) /* video info / command frame */
+        if ((flags & FLV_VIDEO_FRAMETYPE_MASK) == FLV_FRAME_VIDEO_INFO_CMD)
             goto skip;
     } else if (type == FLV_TAG_TYPE_META) {
         if (size > 13+1+4 && dts == 0) { // Header-type metadata stuff
@@ -731,10 +731,10 @@ AVInputFormat ff_flv_demuxer = {
     .read_probe     = flv_probe,
     .read_header    = flv_read_header,
     .read_packet    = flv_read_packet,
-    .read_seek = flv_read_seek,
+    .read_seek      = flv_read_seek,
 #if 0
-    .read_seek2 = flv_read_seek2,
+    .read_seek2     = flv_read_seek2,
 #endif
-    .read_close = flv_read_close,
-    .extensions = "flv",
+    .read_close     = flv_read_close,
+    .extensions     = "flv",
 };

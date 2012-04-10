@@ -67,6 +67,18 @@ static void  set(uint8_t *a[], int ch, int index, int ch_count, enum AVSampleFor
     }
 }
 
+static void shift(uint8_t *a[], int index, int ch_count, enum AVSampleFormat f){
+    int ch;
+
+    if(av_sample_fmt_is_planar(f)){
+        f= av_get_alt_sample_fmt(f, 0);
+        for(ch= 0; ch<ch_count; ch++)
+            a[ch] += index*av_get_bytes_per_sample(f);
+    }else{
+        a[0] += index*ch_count*av_get_bytes_per_sample(f);
+    }
+}
+
 uint64_t layouts[]={
 AV_CH_LAYOUT_MONO                    ,
 AV_CH_LAYOUT_STEREO                  ,
@@ -109,6 +121,8 @@ int main(int argc, char **argv){
     uint8_t *ain[SWR_CH_MAX];
     uint8_t *aout[SWR_CH_MAX];
     uint8_t *amid[SWR_CH_MAX];
+    int flush_i=0;
+    int mode = 0;
 
     struct SwrContext * forw_ctx= NULL;
     struct SwrContext *backw_ctx= NULL;
@@ -126,7 +140,7 @@ int main(int argc, char **argv){
                         int out_count, mid_count, out_ch_count;
                         out_ch_layout= layouts[out_ch_layout_index];
                         out_ch_count= av_get_channel_layout_nb_channels(out_ch_layout);
-                        fprintf(stderr, "ch %d->%d, rate:%5d->%5d, fmt:%s->%s",
+                        fprintf(stderr, "ch %d->%d, rate:%5d->%5d, fmt:%s->%s\n",
                                in_ch_count, out_ch_count,
                                in_sample_rate, out_sample_rate,
                                av_get_sample_fmt_name(in_sample_fmt), av_get_sample_fmt_name(out_sample_fmt));
@@ -152,7 +166,29 @@ int main(int argc, char **argv){
                             for(i=0; i<SAMPLES; i++)
                                 set(ain, ch, i, in_ch_count, av_get_alt_sample_fmt(in_sample_fmt, 1), sin(i*i*3/SAMPLES));
                         }
-                        mid_count= swr_convert(forw_ctx, amid, 3*SAMPLES, ain, SAMPLES);
+                        mode++;
+                        mode%=3;
+                        if(mode==0 /*|| out_sample_rate == in_sample_rate*/) {
+                            mid_count= swr_convert(forw_ctx, amid, 3*SAMPLES, ain, SAMPLES);
+                        } else if(mode==1){
+                            mid_count= swr_convert(forw_ctx, amid,         0, ain, SAMPLES);
+                            mid_count+=swr_convert(forw_ctx, amid, 3*SAMPLES, ain,       0);
+                        } else {
+                            int tmp_count;
+                            mid_count= swr_convert(forw_ctx, amid,         0, ain,       1);
+                            av_assert0(mid_count==0);
+                            shift(ain,  1, in_ch_count, av_get_alt_sample_fmt(in_sample_fmt, 1));
+                            mid_count+=swr_convert(forw_ctx, amid, 3*SAMPLES, ain,       0);
+                            shift(amid,  mid_count, out_ch_count, av_get_alt_sample_fmt(out_sample_fmt, 1)); tmp_count = mid_count;
+                            mid_count+=swr_convert(forw_ctx, amid,         2, ain,       2);
+                            shift(amid,  mid_count-tmp_count, out_ch_count, av_get_alt_sample_fmt(out_sample_fmt, 1)); tmp_count = mid_count;
+                            shift(ain,  2, in_ch_count, av_get_alt_sample_fmt(in_sample_fmt, 1));
+                            mid_count+=swr_convert(forw_ctx, amid,         1, ain, SAMPLES-3);
+                            shift(amid,  mid_count-tmp_count, out_ch_count, av_get_alt_sample_fmt(out_sample_fmt, 1)); tmp_count = mid_count;
+                            shift(ain, -3, in_ch_count, av_get_alt_sample_fmt(in_sample_fmt, 1));
+                            mid_count+=swr_convert(forw_ctx, amid, 3*SAMPLES, ain,       0);
+                            shift(amid,  -tmp_count, out_ch_count, av_get_alt_sample_fmt(out_sample_fmt, 1));
+                        }
                         out_count= swr_convert(backw_ctx,aout, SAMPLES, amid, mid_count);
 
                         for(ch=0; ch<in_ch_count; ch++){
@@ -178,7 +214,12 @@ int main(int argc, char **argv){
                             fprintf(stderr, "[%f %f %f] len:%5d\n", sqrt(sse/out_count), x, maxdiff, out_count);
                         }
 
-                        flush_count=swr_convert(backw_ctx,aout, SAMPLES, 0, 0);
+                        flush_i++;
+                        flush_i%=21;
+                        flush_count = swr_convert(backw_ctx,aout, flush_i, 0, 0);
+                        shift(aout,  flush_i, in_ch_count, in_sample_fmt);
+                        flush_count+= swr_convert(backw_ctx,aout, SAMPLES-flush_i, 0, 0);
+                        shift(aout, -flush_i, in_ch_count, in_sample_fmt);
                         if(flush_count){
                             for(ch=0; ch<in_ch_count; ch++){
                                 double sse, x, maxdiff=0;
@@ -200,7 +241,7 @@ int main(int argc, char **argv){
                                 x = sum_ab/sum_bb;
                                 sse= sum_aa + sum_bb*x*x - 2*x*sum_ab;
 
-                                fprintf(stderr, "[%f %f %f] len:%5d\n", sqrt(sse/flush_count), x, maxdiff, flush_count);
+                                fprintf(stderr, "[%f %f %f] len:%5d F:%3d\n", sqrt(sse/flush_count), x, maxdiff, flush_count, flush_i);
                             }
                         }
 

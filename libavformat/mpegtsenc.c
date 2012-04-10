@@ -306,6 +306,14 @@ static void mpegts_write_pmt(AVFormatContext *s, MpegTSService *service)
                 *q++=1; // 1 byte, all flags sets to 0
                 *q++=0; // omit all fields...
             }
+            if(st->codec->codec_id==CODEC_ID_S302M){
+                *q++ = 0x05; /* MPEG-2 registration descriptor*/
+                *q++ = 4;
+                *q++ = 'B';
+                *q++ = 'S';
+                *q++ = 'S';
+                *q++ = 'D';
+            }
 
             if (lang) {
                 char *p;
@@ -490,6 +498,9 @@ static int mpegts_write_header(AVFormatContext *s)
     const char *service_name;
     const char *provider_name;
     int *pids;
+
+    if (s->max_delay < 0) /* Not set by the caller */
+        s->max_delay = 0;
 
     // round up to a whole number of TS packets
     ts->pes_payload_size = (ts->pes_payload_size + 14 + 183) / 184 * 184 - 14;
@@ -971,7 +982,7 @@ static void mpegts_write_pes(AVFormatContext *s, AVStream *st,
     ts_st->prev_payload_key = key;
 }
 
-static int mpegts_write_packet(AVFormatContext *s, AVPacket *pkt)
+static int mpegts_write_packet_internal(AVFormatContext *s, AVPacket *pkt)
 {
     AVStream *st = s->streams[pkt->stream_index];
     int size = pkt->size;
@@ -1088,27 +1099,48 @@ static int mpegts_write_packet(AVFormatContext *s, AVPacket *pkt)
     return 0;
 }
 
-static int mpegts_write_end(AVFormatContext *s)
+static void mpegts_write_flush(AVFormatContext *s)
 {
-    MpegTSWrite *ts = s->priv_data;
-    MpegTSWriteStream *ts_st;
-    MpegTSService *service;
-    AVStream *st;
     int i;
 
     /* flush current packets */
     for(i = 0; i < s->nb_streams; i++) {
-        st = s->streams[i];
-        ts_st = st->priv_data;
+        AVStream *st = s->streams[i];
+        MpegTSWriteStream *ts_st = st->priv_data;
         if (ts_st->payload_size > 0) {
             mpegts_write_pes(s, st, ts_st->payload, ts_st->payload_size,
                              ts_st->payload_pts, ts_st->payload_dts,
                              ts_st->payload_flags & AV_PKT_FLAG_KEY);
+            ts_st->payload_size = 0;
         }
+    }
+    avio_flush(s->pb);
+}
+
+static int mpegts_write_packet(AVFormatContext *s, AVPacket *pkt)
+{
+    if (!pkt) {
+        mpegts_write_flush(s);
+        return 1;
+    } else {
+        return mpegts_write_packet_internal(s, pkt);
+    }
+}
+
+static int mpegts_write_end(AVFormatContext *s)
+{
+    MpegTSWrite *ts = s->priv_data;
+    MpegTSService *service;
+    int i;
+
+    mpegts_write_flush(s);
+
+    for(i = 0; i < s->nb_streams; i++) {
+        AVStream *st = s->streams[i];
+        MpegTSWriteStream *ts_st = st->priv_data;
         av_freep(&ts_st->payload);
         av_freep(&ts_st->adts);
     }
-    avio_flush(s->pb);
 
     for(i = 0; i < ts->nb_services; i++) {
         service = ts->services[i];
@@ -1132,5 +1164,6 @@ AVOutputFormat ff_mpegts_muxer = {
     .write_header      = mpegts_write_header,
     .write_packet      = mpegts_write_packet,
     .write_trailer     = mpegts_write_end,
-    .priv_class = &mpegts_muxer_class,
+    .flags             = AVFMT_ALLOW_FLUSH,
+    .priv_class        = &mpegts_muxer_class,
 };

@@ -27,6 +27,7 @@
  */
 
 #define CONFIG_AC3ENC_FLOAT 1
+#include "internal.h"
 #include "ac3enc.h"
 #include "eac3enc.h"
 #include "kbdwin.h"
@@ -144,16 +145,17 @@ static CoefType calc_cpl_coord(CoefSumType energy_ch, CoefSumType energy_cpl)
 
 #if CONFIG_AC3_ENCODER
 AVCodec ff_ac3_encoder = {
-    .name           = "ac3",
-    .type           = AVMEDIA_TYPE_AUDIO,
-    .id             = CODEC_ID_AC3,
-    .priv_data_size = sizeof(AC3EncodeContext),
-    .init           = ff_ac3_encode_init,
-    .encode         = ff_ac3_float_encode_frame,
-    .close          = ff_ac3_encode_close,
-    .sample_fmts = (const enum AVSampleFormat[]){AV_SAMPLE_FMT_FLT,AV_SAMPLE_FMT_NONE},
-    .long_name = NULL_IF_CONFIG_SMALL("ATSC A/52A (AC-3)"),
-    .priv_class = &ac3enc_class,
+    .name            = "ac3",
+    .type            = AVMEDIA_TYPE_AUDIO,
+    .id              = CODEC_ID_AC3,
+    .priv_data_size  = sizeof(AC3EncodeContext),
+    .init            = ff_ac3_encode_init,
+    .encode2         = ff_ac3_float_encode_frame,
+    .close           = ff_ac3_encode_close,
+    .sample_fmts     = (const enum AVSampleFormat[]){ AV_SAMPLE_FMT_FLT,
+                                                      AV_SAMPLE_FMT_NONE },
+    .long_name       = NULL_IF_CONFIG_SMALL("ATSC A/52A (AC-3)"),
+    .priv_class      = &ac3enc_class,
     .channel_layouts = ff_ac3_channel_layouts,
     .defaults        = ac3_defaults,
 };

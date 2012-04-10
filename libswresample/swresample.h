@@ -30,21 +30,23 @@
 #include "libavutil/samplefmt.h"
 
 #define LIBSWRESAMPLE_VERSION_MAJOR 0
-#define LIBSWRESAMPLE_VERSION_MINOR 7
+#define LIBSWRESAMPLE_VERSION_MINOR 10
 #define LIBSWRESAMPLE_VERSION_MICRO 100
 
 #define LIBSWRESAMPLE_VERSION_INT  AV_VERSION_INT(LIBSWRESAMPLE_VERSION_MAJOR, \
                                                   LIBSWRESAMPLE_VERSION_MINOR, \
                                                   LIBSWRESAMPLE_VERSION_MICRO)
 
-#define SWR_CH_MAX 16   ///< Maximum number of channels
+#if LIBSWRESAMPLE_VERSION_MAJOR < 1
+#define SWR_CH_MAX 32   ///< Maximum number of channels
+#endif
 
 #define SWR_FLAG_RESAMPLE 1 ///< Force resampling even if equal sample rate
 //TODO use int resample ?
 //long term TODO can we enable this dynamically?
 
 
-struct SwrContext;
+typedef struct SwrContext SwrContext;
 
 /**
  * Allocate SwrContext.
@@ -100,6 +102,10 @@ void swr_free(struct SwrContext **s);
  * in and in_count can be set to 0 to flush the last few samples out at the
  * end.
  *
+ * If more input is provided than output space then the input will be buffered.
+ * You can avoid this buffering by providing more output space than input.
+ * Convertion will run directly without copying whenever possible.
+ *
  * @param s         allocated Swr context, with parameters set
  * @param out       output buffers, only the first one need be set in case of packed audio
  * @param out_count amount of space available for output in samples per channel
@@ -108,8 +114,8 @@ void swr_free(struct SwrContext **s);
  *
  * @return number of samples output per channel, negative value on error
  */
-int swr_convert(struct SwrContext *s, uint8_t *out[SWR_CH_MAX], int out_count,
-                                const uint8_t *in [SWR_CH_MAX], int in_count);
+int swr_convert(struct SwrContext *s, uint8_t **out, int out_count,
+                                const uint8_t **in , int in_count);
 
 /**
  * Activate resampling compensation.

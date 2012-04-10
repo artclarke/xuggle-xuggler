@@ -228,10 +228,8 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     }
 
     pkt_size = c->zstream.total_out + 1 + 6*keyframe;
-    if ((ret = ff_alloc_packet(pkt, pkt_size)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "Error getting packet of size %d.\n", pkt_size);
+    if ((ret = ff_alloc_packet2(avctx, pkt, pkt_size)) < 0)
         return ret;
-    }
     buf = pkt->data;
 
     fl = (keyframe ? ZMBV_KEYFRAME : 0) | (chpal ? ZMBV_DELTAPAL : 0);
@@ -344,6 +342,6 @@ AVCodec ff_zmbv_encoder = {
     .init           = encode_init,
     .encode2        = encode_frame,
     .close          = encode_end,
-    .pix_fmts = (const enum PixelFormat[]){PIX_FMT_PAL8, PIX_FMT_NONE},
-    .long_name = NULL_IF_CONFIG_SMALL("Zip Motion Blocks Video"),
+    .pix_fmts       = (const enum PixelFormat[]){ PIX_FMT_PAL8, PIX_FMT_NONE },
+    .long_name      = NULL_IF_CONFIG_SMALL("Zip Motion Blocks Video"),
 };

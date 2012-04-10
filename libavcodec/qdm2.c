@@ -766,7 +766,7 @@ static void fill_coding_method_array (sb_int8_array tone_level_idx, sb_int8_arra
  * @param sb_min    lower subband processed (sb_min included)
  * @param sb_max    higher subband processed (sb_max excluded)
  */
-static void synthfilt_build_sb_samples (QDM2Context *q, GetBitContext *gb, int length, int sb_min, int sb_max)
+static int synthfilt_build_sb_samples (QDM2Context *q, GetBitContext *gb, int length, int sb_min, int sb_max)
 {
     int sb, j, k, n, ch, run, channels;
     int joined_stereo, zero_encoding, chs;
@@ -780,7 +780,7 @@ static void synthfilt_build_sb_samples (QDM2Context *q, GetBitContext *gb, int l
         for (sb=sb_min; sb < sb_max; sb++)
             build_sb_samples_from_noise (q, sb);
 
-        return;
+        return 0;
     }
 
     for (sb = sb_min; sb < sb_max; sb++) {
@@ -884,9 +884,12 @@ static void synthfilt_build_sb_samples (QDM2Context *q, GetBitContext *gb, int l
                         break;
 
                     case 30:
-                        if (BITS_LEFT(length,gb) >= 4)
-                            samples[0] = type30_dequant[qdm2_get_vlc(gb, &vlc_tab_type30, 0, 1)];
-                        else
+                        if (BITS_LEFT(length,gb) >= 4) {
+                            unsigned v = qdm2_get_vlc(gb, &vlc_tab_type30, 0, 1);
+                            if (v >= FF_ARRAY_ELEMS(type30_dequant))
+                                return AVERROR_INVALIDDATA;
+                            samples[0] = type30_dequant[v];
+                        } else
                             samples[0] = SB_DITHERING_NOISE(sb,q->noise_idx);
 
                         run = 1;
@@ -900,7 +903,10 @@ static void synthfilt_build_sb_samples (QDM2Context *q, GetBitContext *gb, int l
                                 type34_predictor = samples[0];
                                 type34_first = 0;
                             } else {
-                                samples[0] = type34_delta[qdm2_get_vlc(gb, &vlc_tab_type34, 0, 1)] / type34_div + type34_predictor;
+                                unsigned v = qdm2_get_vlc(gb, &vlc_tab_type34, 0, 1);
+                                if (v >= FF_ARRAY_ELEMS(type34_delta))
+                                    return AVERROR_INVALIDDATA;
+                                samples[0] = type34_delta[v] / type34_div + type34_predictor;
                                 type34_predictor = samples[0];
                             }
                         } else {
@@ -936,6 +942,7 @@ static void synthfilt_build_sb_samples (QDM2Context *q, GetBitContext *gb, int l
             } // j loop
         } // channel loop
     } // subband loop
+    return 0;
 }
 
 
@@ -948,23 +955,26 @@ static void synthfilt_build_sb_samples (QDM2Context *q, GetBitContext *gb, int l
  * @param gb        bitreader context
  * @param length    packet length in bits
  */
-static void init_quantized_coeffs_elem0 (int8_t *quantized_coeffs, GetBitContext *gb, int length)
+static int init_quantized_coeffs_elem0 (int8_t *quantized_coeffs, GetBitContext *gb, int length)
 {
     int i, k, run, level, diff;
 
     if (BITS_LEFT(length,gb) < 16)
-        return;
+        return -1;
     level = qdm2_get_vlc(gb, &vlc_tab_level, 0, 2);
 
     quantized_coeffs[0] = level;
 
     for (i = 0; i < 7; ) {
         if (BITS_LEFT(length,gb) < 16)
-            break;
+            return -1;
         run = qdm2_get_vlc(gb, &vlc_tab_run, 0, 1) + 1;
 
+        if (i + run >= 8)
+            return -1;
+
         if (BITS_LEFT(length,gb) < 16)
-            break;
+            return -1;
         diff = qdm2_get_se_vlc(&vlc_tab_diff, gb, 2);
 
         for (k = 1; k <= run; k++)
@@ -973,6 +983,7 @@ static void init_quantized_coeffs_elem0 (int8_t *quantized_coeffs, GetBitContext
         level += diff;
         i += run;
     }
+    return 0;
 }
 
 
@@ -1048,7 +1059,7 @@ static void init_tone_level_dequantization (QDM2Context *q, GetBitContext *gb, i
  * @param q       context
  * @param node    pointer to node with packet
  */
-static void process_subpacket_9 (QDM2Context *q, QDM2SubPNode *node)
+static int process_subpacket_9 (QDM2Context *q, QDM2SubPNode *node)
 {
     GetBitContext gb;
     int i, j, k, n, ch, run, level, diff;
@@ -1066,6 +1077,9 @@ static void process_subpacket_9 (QDM2Context *q, QDM2SubPNode *node)
                 run = qdm2_get_vlc(&gb, &vlc_tab_run, 0, 1) + 1;
                 diff = qdm2_get_se_vlc(&vlc_tab_diff, &gb, 2);
 
+                if (j + run >= 8)
+                    return -1;
+
                 for (k = 1; k <= run; k++)
                     q->quantized_coeffs[ch][i][j + k] = (level + ((k*diff) / run));
 
@@ -1077,6 +1091,8 @@ static void process_subpacket_9 (QDM2Context *q, QDM2SubPNode *node)
     for (ch = 0; ch < q->nb_channels; ch++)
         for (i = 0; i < 8; i++)
             q->quantized_coeffs[ch][0][i] = 0;
+
+    return 0;
 }
 
 
@@ -2001,13 +2017,13 @@ static int qdm2_decode_frame(AVCodecContext *avctx, void *data,
 
 AVCodec ff_qdm2_decoder =
 {
-    .name = "qdm2",
-    .type = AVMEDIA_TYPE_AUDIO,
-    .id = CODEC_ID_QDM2,
+    .name           = "qdm2",
+    .type           = AVMEDIA_TYPE_AUDIO,
+    .id             = CODEC_ID_QDM2,
     .priv_data_size = sizeof(QDM2Context),
-    .init = qdm2_decode_init,
-    .close = qdm2_decode_close,
-    .decode = qdm2_decode_frame,
-    .capabilities = CODEC_CAP_DR1,
-    .long_name = NULL_IF_CONFIG_SMALL("QDesign Music Codec 2"),
+    .init           = qdm2_decode_init,
+    .close          = qdm2_decode_close,
+    .decode         = qdm2_decode_frame,
+    .capabilities   = CODEC_CAP_DR1,
+    .long_name      = NULL_IF_CONFIG_SMALL("QDesign Music Codec 2"),
 };

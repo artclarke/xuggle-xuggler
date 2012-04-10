@@ -19,6 +19,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 #include "avcodec.h"
+#include "internal.h"
 #include "bytestream.h"
 #include "dsputil.h"
 #include "png.h"
@@ -55,7 +56,7 @@ static void png_get_interlaced_row(uint8_t *dst, int row_size,
     uint8_t *d;
     const uint8_t *s;
 
-    mask = ff_png_pass_mask[pass];
+    mask =  (int[]){0x80, 0x08, 0x88, 0x22, 0xaa, 0x55, 0xff}[pass];
     switch(bits_per_pixel) {
     case 1:
         memset(dst, 0, row_size);
@@ -218,7 +219,8 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     PNGEncContext *s = avctx->priv_data;
     AVFrame * const p= &s->picture;
     int bit_depth, color_type, y, len, row_size, ret, is_progressive;
-    int bits_per_pixel, pass_row_size, max_packet_size;
+    int bits_per_pixel, pass_row_size, enc_row_size;
+    int64_t max_packet_size;
     int compression_level;
     uint8_t *ptr, *top;
     uint8_t *crow_base = NULL, *crow_buf, *crow;
@@ -228,18 +230,6 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     *p = *pict;
     p->pict_type= AV_PICTURE_TYPE_I;
     p->key_frame= 1;
-
-    max_packet_size = IOBUF_SIZE*avctx->height + FF_MIN_BUFFER_SIZE;
-    if (!pkt->data &&
-        (ret = av_new_packet(pkt, max_packet_size)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "Could not allocate output packet of size %d.\n",
-               max_packet_size);
-        return ret;
-    }
-
-    s->bytestream_start =
-    s->bytestream       = pkt->data;
-    s->bytestream_end   = pkt->data + pkt->size;
 
     is_progressive = !!(avctx->flags & CODEC_FLAG_INTERLACED_DCT);
     switch(avctx->pix_fmt) {
@@ -295,6 +285,20 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
                        Z_DEFLATED, 15, 8, Z_DEFAULT_STRATEGY);
     if (ret != Z_OK)
         return -1;
+
+    enc_row_size    = deflateBound(&s->zstream, row_size);
+    max_packet_size = avctx->height * (int64_t)(enc_row_size +
+                                       ((enc_row_size + IOBUF_SIZE - 1) / IOBUF_SIZE) * 12)
+                      + FF_MIN_BUFFER_SIZE;
+    if (max_packet_size > INT_MAX)
+        return AVERROR(ENOMEM);
+    if ((ret = ff_alloc_packet2(avctx, pkt, max_packet_size)) < 0)
+        return ret;
+
+    s->bytestream_start =
+    s->bytestream       = pkt->data;
+    s->bytestream_end   = pkt->data + pkt->size;
+
     crow_base = av_malloc((row_size + 32) << (s->filter_type == PNG_FILTER_VALUE_MIXED));
     if (!crow_base)
         goto fail;
@@ -439,11 +443,13 @@ AVCodec ff_png_encoder = {
     .priv_data_size = sizeof(PNGEncContext),
     .init           = png_enc_init,
     .encode2        = encode_frame,
-    .pix_fmts= (const enum PixelFormat[]){PIX_FMT_RGB24, PIX_FMT_RGBA,
-                                          PIX_FMT_RGB48BE, PIX_FMT_RGBA64BE,
-                                          PIX_FMT_PAL8,
-                                          PIX_FMT_GRAY8, PIX_FMT_GRAY8A,
-                                          PIX_FMT_GRAY16BE,
-                                          PIX_FMT_MONOBLACK, PIX_FMT_NONE},
-    .long_name= NULL_IF_CONFIG_SMALL("PNG (Portable Network Graphics) image"),
+    .pix_fmts       = (const enum PixelFormat[]){
+        PIX_FMT_RGB24, PIX_FMT_RGBA,
+        PIX_FMT_RGB48BE, PIX_FMT_RGBA64BE,
+        PIX_FMT_PAL8,
+        PIX_FMT_GRAY8, PIX_FMT_GRAY8A,
+        PIX_FMT_GRAY16BE,
+        PIX_FMT_MONOBLACK, PIX_FMT_NONE
+    },
+    .long_name      = NULL_IF_CONFIG_SMALL("PNG (Portable Network Graphics) image"),
 };

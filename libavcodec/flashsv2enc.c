@@ -48,6 +48,7 @@
 
 #include "libavutil/imgutils.h"
 #include "avcodec.h"
+#include "internal.h"
 #include "put_bits.h"
 #include "bytestream.h"
 
@@ -833,11 +834,8 @@ static int flashsv2_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
 
     *p = *pict;
 
-    if (!pkt->data &&
-        (res = av_new_packet(pkt, s->frame_size + FF_MIN_BUFFER_SIZE)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "Error getting output packet.\n");
+    if ((res = ff_alloc_packet2(avctx, pkt, s->frame_size + FF_MIN_BUFFER_SIZE)) < 0)
         return res;
-    }
 
     /* First frame needs to be a keyframe */
     if (avctx->frame_number == 0)

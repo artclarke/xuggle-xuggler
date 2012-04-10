@@ -153,10 +153,8 @@ static int pcx_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     line_bytes = (line_bytes + 1) & ~1;
 
     max_pkt_size = 128 + avctx->height * 2 * line_bytes * nplanes + (pal ? 256*3 + 1 : 0);
-    if ((ret = ff_alloc_packet(pkt, max_pkt_size)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "Error getting output packet of size %d.\n", max_pkt_size);
+    if ((ret = ff_alloc_packet2(avctx, pkt, max_pkt_size)) < 0)
         return ret;
-    }
     buf     = pkt->data;
     buf_end = pkt->data + pkt->size;
 
@@ -216,10 +214,12 @@ AVCodec ff_pcx_encoder = {
     .priv_data_size = sizeof(PCXContext),
     .init           = pcx_encode_init,
     .encode2        = pcx_encode_frame,
-    .pix_fmts = (const enum PixelFormat[]){
+    .pix_fmts       = (const enum PixelFormat[]){
         PIX_FMT_RGB24,
-        PIX_FMT_RGB8, PIX_FMT_BGR8, PIX_FMT_RGB4_BYTE, PIX_FMT_BGR4_BYTE, PIX_FMT_GRAY8, PIX_FMT_PAL8,
+        PIX_FMT_RGB8, PIX_FMT_BGR8, PIX_FMT_RGB4_BYTE, PIX_FMT_BGR4_BYTE,
+        PIX_FMT_GRAY8, PIX_FMT_PAL8,
         PIX_FMT_MONOBLACK,
-        PIX_FMT_NONE},
-    .long_name = NULL_IF_CONFIG_SMALL("PC Paintbrush PCX image"),
+        PIX_FMT_NONE
+    },
+    .long_name      = NULL_IF_CONFIG_SMALL("PC Paintbrush PCX image"),
 };

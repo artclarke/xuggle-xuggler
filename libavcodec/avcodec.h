@@ -247,8 +247,11 @@ enum CodecID {
     CODEC_ID_V410,
     CODEC_ID_XWD,
     CODEC_ID_CDXL,
+    CODEC_ID_XBM,
+    CODEC_ID_ZEROCODEC,
     CODEC_ID_Y41P       = MKBETAG('Y','4','1','P'),
     CODEC_ID_ESCAPE130  = MKBETAG('E','1','3','0'),
+    CODEC_ID_EXR        = MKBETAG('0','E','X','R'),
     CODEC_ID_AVRP       = MKBETAG('A','V','R','P'),
 
     CODEC_ID_G2M        = MKBETAG( 0 ,'G','2','M'),
@@ -393,8 +396,9 @@ enum CodecID {
     CODEC_ID_8SVX_EXP,
     CODEC_ID_8SVX_FIB,
     CODEC_ID_BMV_AUDIO,
+    CODEC_ID_RALF,
     CODEC_ID_FFWAVESYNTH = MKBETAG('F','F','W','S'),
-    CODEC_ID_8SVX_RAW   = MKBETAG('8','S','V','X'),
+    CODEC_ID_8SVX_RAW    = MKBETAG('8','S','V','X'),
     CODEC_ID_SONIC       = MKBETAG('S','O','N','C'),
     CODEC_ID_SONIC_LS    = MKBETAG('S','O','N','L'),
 
@@ -410,6 +414,7 @@ enum CodecID {
     CODEC_ID_DVB_TELETEXT,
     CODEC_ID_SRT,
     CODEC_ID_MICRODVD   = MKBETAG('m','D','V','D'),
+    CODEC_ID_EIA_608    = MKBETAG('c','6','0','8'),
 
     /* other specific kind of codecs (generally used for attachments) */
     CODEC_ID_FIRST_UNKNOWN = 0x18000,           ///< A dummy ID pointing at the start of various fake codecs.
@@ -3851,7 +3856,7 @@ attribute_deprecated int avcodec_decode_audio3(AVCodecContext *avctx, int16_t *s
  *         AVPacket is returned.
  */
 int avcodec_decode_audio4(AVCodecContext *avctx, AVFrame *frame,
-                          int *got_frame_ptr, AVPacket *avpkt);
+                          int *got_frame_ptr, const AVPacket *avpkt);
 
 /**
  * Decode the video frame of size avpkt->size from avpkt->data into picture.
@@ -4013,7 +4018,7 @@ int avcodec_encode_audio2(AVCodecContext *avctx, AVPacket *avpkt,
  * @param sample_fmt  sample format
  * @param buf         buffer to use for frame data
  * @param buf_size    size of buffer
- * @param align       plane size sample alignment
+ * @param align       plane size sample alignment (0 = default)
  * @return            0 on success, negative error code on failure
  */
 int avcodec_fill_audio_frame(AVFrame *frame, int nb_channels,

@@ -50,9 +50,9 @@ do_image_formats()
     outfile="$datadir/images/$1/"
     mkdir -p "$outfile"
     file=${outfile}%02d.$1
-    run_avconv $DEC_OPTS -f image2 -vcodec pgmyuv -i $raw_src $2 $ENC_OPTS $3 -t 0.5 -y -qscale 10 $target_path/$file
+    run_avconv $DEC_OPTS -f image2 -vcodec pgmyuv -i $raw_src $2 $ENC_OPTS -t 0.5 -y -qscale 10 $target_path/$file
     do_md5sum ${outfile}02.$1
-    do_avconv_crc $file $DEC_OPTS $3 -i $target_path/$file
+    do_avconv_crc $file $DEC_OPTS -i $target_path/$file $3
     wc -c ${outfile}02.$1
 }
 
@@ -107,6 +107,7 @@ do_lavf flv -an
 fi
 
 if [ -n "$do_mov" ] ; then
+do_lavf mov "-movflags +rtphint -acodec pcm_alaw -vcodec mpeg4"
 do_lavf_timecode mov "-acodec pcm_alaw -vcodec mpeg4"
 fi
 
@@ -132,6 +133,10 @@ fi
 
 if [ -n "$do_mkv" ] ; then
 do_lavf mkv "-acodec mp2 -ab 64k -vcodec mpeg4"
+fi
+
+if [ -n "$do_mp3" ] ; then
+do_lavf_fate mp3 "mp3-conformance/he_32khz.bit" "-acodec copy"
 fi
 
 if [ -n "$do_ogg_vp3" ] ; then
@@ -164,9 +169,18 @@ do_streamed_images ppm
 fi
 
 if [ -n "$do_gif" ] ; then
+# this tests the gif muxer
 file=${outfile}lavf.gif
 do_avconv $file $DEC_OPTS -f image2 -vcodec pgmyuv -i $raw_src $ENC_OPTS -t 1 -qscale 10 -pix_fmt rgb24
 do_avconv_crc $file $DEC_OPTS -i $target_path/$file -pix_fmt rgb24
+# and this the gif encoder
+do_image_formats gif "" "-pix_fmt rgb24"
+do_image_formats gif "-pix_fmt rgb4_byte" "-pix_fmt rgb24"
+do_image_formats gif "-pix_fmt bgr4_byte" "-pix_fmt rgb24"
+do_image_formats gif "-pix_fmt rgb8" "-pix_fmt rgb24"
+do_image_formats gif "-pix_fmt bgr8" "-pix_fmt rgb24"
+do_image_formats gif "-pix_fmt gray" "-pix_fmt rgb24"
+do_image_formats gif "-pix_fmt pal8" "-pix_fmt rgb24"
 fi
 
 if [ -n "$do_yuv4mpeg" ] ; then
@@ -191,6 +205,10 @@ do_image_formats png "-pix_fmt gray16be"
 do_image_formats png "-pix_fmt rgb48be"
 fi
 
+if [ -n "$do_xbm" ] ; then
+do_image_formats xbm
+fi
+
 if [ -n "$do_bmp" ] ; then
 do_image_formats bmp
 fi
@@ -208,7 +226,7 @@ do_image_formats sgi
 fi
 
 if [ -n "$do_jpg" ] ; then
-do_image_formats jpg "-pix_fmt yuvj420p" "-f image2"
+do_image_formats jpg "-pix_fmt yuvj420p"
 fi
 
 if [ -n "$do_pam" ] ; then
@@ -221,6 +239,8 @@ fi
 
 if [ -n "$do_dpx" ] ; then
 do_image_formats dpx
+do_image_formats dpx "-pix_fmt rgb48le"
+do_image_formats dpx "-pix_fmt rgb48le -bits_per_raw_sample 10" "-pix_fmt rgb48le"
 fi
 
 if [ -n "$do_xwd" ] ; then

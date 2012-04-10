@@ -257,7 +257,7 @@ static int xan_decode_frame_type0(AVCodecContext *avctx)
     if ((ret = xan_decode_chroma(avctx, chroma_off)) != 0)
         return ret;
 
-    if (corr_off >= (s->gb.buffer_end - s->gb.buffer_start)) {
+    if (corr_off >= bytestream2_size(&s->gb)) {
         av_log(avctx, AV_LOG_WARNING, "Ignoring invalid correction block position\n");
         corr_off = 0;
     }
@@ -296,11 +296,8 @@ static int xan_decode_frame_type0(AVCodecContext *avctx)
     }
 
     if (corr_off) {
-        int corr_end, dec_size;
+        int dec_size;
 
-        corr_end = (s->gb.buffer_end - s->gb.buffer_start);
-        if (chroma_off > corr_off)
-            corr_end = chroma_off;
         bytestream2_seek(&s->gb, 8 + corr_off, SEEK_SET);
         dec_size = xan_unpack(s, s->scratch_buffer, s->buffer_size);
         if (dec_size < 0)
@@ -430,5 +427,5 @@ AVCodec ff_xan_wc4_decoder = {
     .close          = xan_decode_end,
     .decode         = xan_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name = NULL_IF_CONFIG_SMALL("Wing Commander IV / Xxan"),
+    .long_name      = NULL_IF_CONFIG_SMALL("Wing Commander IV / Xxan"),
 };

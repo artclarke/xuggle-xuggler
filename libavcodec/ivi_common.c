@@ -164,7 +164,7 @@ void ff_ivi_huff_desc_copy(IVIHuffDesc *dst, const IVIHuffDesc *src)
     memcpy(dst->xbits, src->xbits, src->num_rows);
 }
 
-int av_cold ff_ivi_init_planes(IVIPlaneDesc *planes, const IVIPicConfig *cfg)
+av_cold int ff_ivi_init_planes(IVIPlaneDesc *planes, const IVIPicConfig *cfg)
 {
     int         p, b;
     uint32_t    b_width, b_height, align_fac, width_aligned, height_aligned, buf_size;
@@ -209,6 +209,7 @@ int av_cold ff_ivi_init_planes(IVIPlaneDesc *planes, const IVIPicConfig *cfg)
             band->pitch    = width_aligned;
             band->bufs[0]  = av_malloc(buf_size);
             band->bufs[1]  = av_malloc(buf_size);
+            band->bufsize  = buf_size/2;
             if (!band->bufs[0] || !band->bufs[1])
                 return AVERROR(ENOMEM);
 
@@ -226,7 +227,7 @@ int av_cold ff_ivi_init_planes(IVIPlaneDesc *planes, const IVIPicConfig *cfg)
     return 0;
 }
 
-void av_cold ff_ivi_free_buffers(IVIPlaneDesc *planes)
+av_cold void ff_ivi_free_buffers(IVIPlaneDesc *planes)
 {
     int p, b, t;
 
@@ -246,7 +247,7 @@ void av_cold ff_ivi_free_buffers(IVIPlaneDesc *planes)
     }
 }
 
-int av_cold ff_ivi_init_tiles(IVIPlaneDesc *planes, int tile_width, int tile_height)
+av_cold int ff_ivi_init_tiles(IVIPlaneDesc *planes, int tile_width, int tile_height)
 {
     int         p, b, x, y, x_tiles, y_tiles, t_width, t_height;
     IVIBandDesc *band;

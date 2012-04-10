@@ -310,11 +310,8 @@ static int qtrle_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
 
     *p = *pict;
 
-    if ((ret = ff_alloc_packet(pkt, s->max_buf_size)) < 0) {
-        /* Upper bound check for compressed data */
-        av_log(avctx, AV_LOG_ERROR, "Error getting output packet of size %d.\n", s->max_buf_size);
+    if ((ret = ff_alloc_packet2(avctx, pkt, s->max_buf_size)) < 0)
         return ret;
-    }
 
     if (avctx->gop_size == 0 || (s->avctx->frame_number % avctx->gop_size) == 0) {
         /* I-Frame */
@@ -357,6 +354,8 @@ AVCodec ff_qtrle_encoder = {
     .init           = qtrle_encode_init,
     .encode2        = qtrle_encode_frame,
     .close          = qtrle_encode_end,
-    .pix_fmts = (const enum PixelFormat[]){PIX_FMT_RGB24, PIX_FMT_RGB555BE, PIX_FMT_ARGB, PIX_FMT_GRAY8, PIX_FMT_NONE},
-    .long_name = NULL_IF_CONFIG_SMALL("QuickTime Animation (RLE) video"),
+    .pix_fmts       = (const enum PixelFormat[]){
+        PIX_FMT_RGB24, PIX_FMT_RGB555BE, PIX_FMT_ARGB, PIX_FMT_GRAY8, PIX_FMT_NONE
+    },
+    .long_name      = NULL_IF_CONFIG_SMALL("QuickTime Animation (RLE) video"),
 };

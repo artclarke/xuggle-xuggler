@@ -860,7 +860,7 @@ static int sonic_decode_frame(AVCodecContext *avctx,
     SonicContext *s = avctx->priv_data;
     GetBitContext gb;
     int i, quant, ch, j, ret;
-    short *samples;
+    int16_t *samples;
 
     if (buf_size == 0) return 0;
 
@@ -869,7 +869,7 @@ static int sonic_decode_frame(AVCodecContext *avctx,
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return ret;
     }
-    samples = s->frame.data[0];
+    samples = (int16_t *)s->frame.data[0];
 
 //    av_log(NULL, AV_LOG_INFO, "buf_size: %d\n", buf_size);
 
@@ -955,7 +955,7 @@ AVCodec ff_sonic_decoder = {
     .init           = sonic_decode_init,
     .close          = sonic_decode_close,
     .decode         = sonic_decode_frame,
-    .capabilities   = CODEC_CAP_DR1,
+    .capabilities   = CODEC_CAP_DR1 | CODEC_CAP_EXPERIMENTAL,
     .long_name = NULL_IF_CONFIG_SMALL("Sonic"),
 };
 #endif /* CONFIG_SONIC_DECODER */
@@ -968,6 +968,7 @@ AVCodec ff_sonic_encoder = {
     .priv_data_size = sizeof(SonicContext),
     .init           = sonic_encode_init,
     .encode         = sonic_encode_frame,
+    .capabilities   = CODEC_CAP_EXPERIMENTAL,
     .close          = sonic_encode_close,
     .long_name = NULL_IF_CONFIG_SMALL("Sonic"),
 };
@@ -981,6 +982,7 @@ AVCodec ff_sonic_ls_encoder = {
     .priv_data_size = sizeof(SonicContext),
     .init           = sonic_encode_init,
     .encode         = sonic_encode_frame,
+    .capabilities   = CODEC_CAP_EXPERIMENTAL,
     .close          = sonic_encode_close,
     .long_name = NULL_IF_CONFIG_SMALL("Sonic lossless"),
 };

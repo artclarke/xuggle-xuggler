@@ -150,7 +150,7 @@ static void tgq_decode_mb(TgqContext *s, int mb_y, int mb_x){
     mode = bytestream2_get_byte(&s->gb);
     if (mode>12) {
         GetBitContext gb;
-        init_get_bits(&gb, s->gb.buffer, FFMIN(s->gb.buffer_end - s->gb.buffer, mode) * 8);
+        init_get_bits(&gb, s->gb.buffer, FFMIN(bytestream2_get_bytes_left(&s->gb), mode) * 8);
         for(i=0; i<6; i++)
             tgq_decode_block(s, s->block[i], &gb);
         tgq_idct_put_mb(s, s->block, mb_x, mb_y);
@@ -252,5 +252,5 @@ AVCodec ff_eatgq_decoder = {
     .close          = tgq_decode_end,
     .decode         = tgq_decode_frame,
     .capabilities   = CODEC_CAP_DR1,
-    .long_name = NULL_IF_CONFIG_SMALL("Electronic Arts TGQ video"),
+    .long_name      = NULL_IF_CONFIG_SMALL("Electronic Arts TGQ video"),
 };

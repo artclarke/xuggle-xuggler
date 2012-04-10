@@ -32,12 +32,10 @@ static int pnm_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     int i, h, h1, c, n, linesize, ret;
     uint8_t *ptr, *ptr1, *ptr2;
 
-    if ((ret = ff_alloc_packet(pkt, avpicture_get_size(avctx->pix_fmt,
+    if ((ret = ff_alloc_packet2(avctx, pkt, avpicture_get_size(avctx->pix_fmt,
                                                        avctx->width,
-                                                       avctx->height) + 200)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "encoded frame too large\n");
+                                                       avctx->height) + 200)) < 0)
         return ret;
-    }
 
     *p           = *pict;
     p->pict_type = AV_PICTURE_TYPE_I;
@@ -71,6 +69,10 @@ static int pnm_encode_frame(AVCodecContext *avctx, AVPacket *pkt,
         n  = avctx->width * 6;
         break;
     case PIX_FMT_YUV420P:
+        if (avctx->width & 1) {
+            av_log(avctx, AV_LOG_ERROR, "pgmyuv needs even width\n");
+            return AVERROR(EINVAL);
+        }
         c  = '5';
         n  = avctx->width;
         h1 = (h * 3) / 2;
@@ -125,8 +127,10 @@ AVCodec ff_pgm_encoder = {
     .priv_data_size = sizeof(PNMContext),
     .init           = ff_pnm_init,
     .encode2        = pnm_encode_frame,
-    .pix_fmts  = (const enum PixelFormat[]){PIX_FMT_GRAY8, PIX_FMT_GRAY16BE, PIX_FMT_NONE},
-    .long_name = NULL_IF_CONFIG_SMALL("PGM (Portable GrayMap) image"),
+    .pix_fmts       = (const enum PixelFormat[]){
+        PIX_FMT_GRAY8, PIX_FMT_GRAY16BE, PIX_FMT_NONE
+    },
+    .long_name      = NULL_IF_CONFIG_SMALL("PGM (Portable GrayMap) image"),
 };
 #endif
 
@@ -138,8 +142,8 @@ AVCodec ff_pgmyuv_encoder = {
     .priv_data_size = sizeof(PNMContext),
     .init           = ff_pnm_init,
     .encode2        = pnm_encode_frame,
-    .pix_fmts  = (const enum PixelFormat[]){PIX_FMT_YUV420P, PIX_FMT_NONE},
-    .long_name = NULL_IF_CONFIG_SMALL("PGMYUV (Portable GrayMap YUV) image"),
+    .pix_fmts       = (const enum PixelFormat[]){ PIX_FMT_YUV420P, PIX_FMT_NONE },
+    .long_name      = NULL_IF_CONFIG_SMALL("PGMYUV (Portable GrayMap YUV) image"),
 };
 #endif
 
@@ -151,8 +155,10 @@ AVCodec ff_ppm_encoder = {
     .priv_data_size = sizeof(PNMContext),
     .init           = ff_pnm_init,
     .encode2        = pnm_encode_frame,
-    .pix_fmts  = (const enum PixelFormat[]){PIX_FMT_RGB24, PIX_FMT_RGB48BE, PIX_FMT_NONE},
-    .long_name = NULL_IF_CONFIG_SMALL("PPM (Portable PixelMap) image"),
+    .pix_fmts       = (const enum PixelFormat[]){
+        PIX_FMT_RGB24, PIX_FMT_RGB48BE, PIX_FMT_NONE
+    },
+    .long_name      = NULL_IF_CONFIG_SMALL("PPM (Portable PixelMap) image"),
 };
 #endif
 
@@ -164,7 +170,8 @@ AVCodec ff_pbm_encoder = {
     .priv_data_size = sizeof(PNMContext),
     .init           = ff_pnm_init,
     .encode2        = pnm_encode_frame,
-    .pix_fmts  = (const enum PixelFormat[]){PIX_FMT_MONOWHITE, PIX_FMT_NONE},
-    .long_name = NULL_IF_CONFIG_SMALL("PBM (Portable BitMap) image"),
+    .pix_fmts       = (const enum PixelFormat[]){ PIX_FMT_MONOWHITE,
+                                                  PIX_FMT_NONE },
+    .long_name      = NULL_IF_CONFIG_SMALL("PBM (Portable BitMap) image"),
 };
 #endif

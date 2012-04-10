@@ -753,13 +753,35 @@ using the libass library.
 To enable compilation of this filter you need to configure FFmpeg with
 @code{--enable-libass}.
 
-This filter accepts in input the name of the ass file to render.
+This filter accepts the syntax: @var{ass_filename}[:@var{options}],
+where @var{ass_filename} is the filename of the ASS file to read, and
+@var{options} is an optional sequence of @var{key}=@var{value} pairs,
+separated by ":".
+
+A description of the accepted options follows.
+
+@table @option
+@item original_size
+Specifies the size of the original video, the video for which the ASS file
+was composed. Due to a misdesign in ASS aspect ratio arithmetic, this is
+necessary to correctly scale the fonts if the aspect ratio has been changed.
+@end table
 
 For example, to render the file @file{sub.ass} on top of the input
 video, use the command:
 @example
 ass=sub.ass
 @end example
+
+@section bbox
+
+Compute the bounding box for the non-black pixels in the input frame
+luminance plane.
+
+This filter computes the bounding box containing all the pixels with a
+luminance value greater than the minimum allowed value.
+The parameters describing the bounding box are printed on the filter
+log.
 
 @section blackdetect
 
@@ -895,6 +917,18 @@ boxblur=min(h\,w)/10:1:min(cw\,ch)/10:1
 @end example
 
 @end itemize
+
+@section colormatrix
+
+The colormatrix filter allows conversion between any of the following color
+space: BT.709 (@var{bt709}), BT.601 (@var{bt601}), SMPTE-240M (@var{smpte240m})
+and FCC (@var{fcc}).
+
+The syntax of the parameters is @var{source}:@var{destination}:
+
+@example
+colormatrix=bt601:smpte240m
+@end example
 
 @section copy
 
@@ -1380,6 +1414,9 @@ with or without text parameter. @var{rate} option must be specified.
 frame rate (timecode only)
 @end table
 
+If libavfilter was built with @code{--enable-fontconfig}, then
+@option{fontfile} can be a fontconfig pattern or omitted.
+
 Some examples follow.
 
 @itemize
@@ -1433,10 +1470,19 @@ The glyph baseline is placed at half screen height.
 drawtext=fontsize=60:fontfile=FreeSerif.ttf:fontcolor=green:text=g:x=(w-max_glyph_w)/2:y=h/2-ascent
 @end example
 
+@item
+Use fontconfig to set the font. Note that the colons need to be escaped.
+@example
+drawtext='fontfile=Linux Libertine O-40\\:style=Semibold:text=FFmpeg'
+@end example
+
 @end itemize
 
 For more information about libfreetype, check:
 @url{http://www.freetype.org/}.
+
+For more information about fontconfig, check:
+@url{http://freedesktop.org/software/fontconfig/fontconfig-user.html}.
 
 @section fade
 
@@ -1673,6 +1719,11 @@ a float number which specifies chroma temporal strength, defaults to
 @var{luma_tmp}*@var{chroma_spatial}/@var{luma_spatial}
 @end table
 
+@section idet
+
+Interlaceing detect filter. This filter tries to detect if the input is
+interlaced or progressive. Top or bottom field first.
+
 @section lut, lutrgb, lutyuv
 
 Compute a look-up table for binding each pixel component input value
@@ -1848,7 +1899,6 @@ The list of the currently supported filters follows:
 @item pullup
 @item qp
 @item rectangle
-@item remove-logo
 @item rotate
 @item sab
 @item screenshot
@@ -1871,9 +1921,6 @@ the "VIDEO FILTERS" section in the MPlayer manual.
 
 Some examples follow:
 @example
-# remove a logo by interpolating the surrounding pixels
-mp=delogo=200:200:80:20:1
-
 # adjust gamma, brightness, contrast
 mp=eq2=1.0:2:0.5
 
@@ -2198,9 +2245,38 @@ format=monow, pixdesctest
 
 can be used to test the monowhite pixel format descriptor definition.
 
+@section removelogo
+
+Suppress a TV station logo, using an image file to determine which
+pixels comprise the logo. It works by filling in the pixels that
+comprise the logo with neighboring pixels.
+
+This filter requires one argument which specifies the filter bitmap
+file, which can be any image format supported by libavformat. The
+width and height of the image file must match those of the video
+stream being processed.
+
+Pixels in the provided bitmap image with a value of zero are not
+considered part of the logo, non-zero pixels are considered part of
+the logo. If you use white (255) for the logo and black (0) for the
+rest, you will be safe. For making the filter bitmap, it is
+recommended to take a screen capture of a black frame with the logo
+visible, and then using a threshold filter followed by the erode
+filter once or twice.
+
+If needed, little splotches can be fixed manually. Remember that if
+logo pixels are not covered, the filter quality will be much
+reduced. Marking too many pixels as part of the logo does not hurt as
+much, but it will increase the amount of blurring needed to cover over
+the image and will destroy more information than necessary, and extra
+pixels will slow things down on a large logo.
+
 @section scale
 
 Scale the input video to @var{width}:@var{height}[:@var{interl}=@{1|-1@}] and/or convert the image format.
+
+The scale filter forces the output display aspect ratio to be the same
+of the input, by changing the output sample aspect ratio.
 
 The parameters @var{width} and @var{height} are expressions containing
 the following constants:
@@ -2256,6 +2332,8 @@ select interlaced aware scaling depending on whether the source frames
 are flagged as interlaced or not
 @end table
 
+Unless @var{interl} is set to one of the above options, interlaced scaling will not be used.
+
 Some examples follow:
 @example
 # scale the input video to a size of 200x100.
@@ -2265,6 +2343,9 @@ scale=200:100
 scale=2*iw:2*ih
 # the above is the same as
 scale=2*in_w:2*in_h
+
+# scale the input to 2x with forced interlaced scaling
+scale=2*iw:2*ih:interl=1
 
 # scale the input to half size
 scale=iw/2:ih/2
@@ -2657,6 +2738,22 @@ Complete example of a thumbnail creation with @command{ffmpeg}:
 @example
 ffmpeg -i in.avi -vf thumbnail,scale=300:200 -frames:v 1 out.png
 @end example
+
+@section tile
+
+Tile several successive frames together.
+
+It accepts as argument the tile size (i.e. the number of lines and columns)
+in the form "@var{w}x@var{h}".
+
+For example, produce 8×8 PNG tiles of all keyframes (@option{-skip_frame
+nokey}) in a movie:
+@example
+ffmpeg -skip_frame nokey -i file.avi -vf 'scale=128:72,tile=8x8' -an -vsync 0 keyframes%03d.png
+@end example
+The @option{-vsync 0} is necessary to prevent @command{ffmpeg} from
+duplicating each output frame to accomodate the originally detected frame
+rate.
 
 @section tinterlace
 
@@ -3091,6 +3188,13 @@ Specifies the index of the video stream to read. If the value is -1,
 the best suited video stream will be automatically selected. Default
 value is "-1".
 
+@item loop
+Specifies how many times to read the video stream in sequence.
+If the value is less than 1, the stream will be read again and again.
+Default value is "1".
+
+Note that when the movie is looped the source timestamps are not
+changed, so it will generate non monotonically increasing timestamps.
 @end table
 
 This filter allows to overlay a second video on top of main input of

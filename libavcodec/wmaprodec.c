@@ -237,7 +237,7 @@ typedef struct WMAProDecodeCtx {
  *@brief helper function to print the most important members of the context
  *@param s context
  */
-static void av_cold dump_context(WMAProDecodeCtx *s)
+static av_cold void dump_context(WMAProDecodeCtx *s)
 {
 #define PRINT(a, b)     av_log(s->avctx, AV_LOG_DEBUG, " %s = %d\n", a, b);
 #define PRINT_HEX(a, b) av_log(s->avctx, AV_LOG_DEBUG, " %s = %x\n", a, b);
@@ -521,7 +521,7 @@ static int decode_subframe_length(WMAProDecodeCtx *s, int offset)
  */
 static int decode_tilehdr(WMAProDecodeCtx *s)
 {
-    uint16_t num_samples[WMAPRO_MAX_CHANNELS];        /**< sum of samples for all currently known subframes of a channel */
+    uint16_t num_samples[WMAPRO_MAX_CHANNELS] = { 0 };/**< sum of samples for all currently known subframes of a channel */
     uint8_t  contains_subframe[WMAPRO_MAX_CHANNELS];  /**< flag indicating if a channel contains the current subframe */
     int channels_for_cur_subframe = s->num_channels;  /**< number of channels that contain the current subframe */
     int fixed_channel_layout = 0;                     /**< flag indicating that all channels use the same subframe offsets and sizes */
@@ -537,8 +537,6 @@ static int decode_tilehdr(WMAProDecodeCtx *s)
     /** reset tiling information */
     for (c = 0; c < s->num_channels; c++)
         s->channel[c].num_subframes = 0;
-
-    memset(num_samples, 0, sizeof(num_samples));
 
     if (s->max_num_subframes == 1 || get_bits1(&s->gb))
         fixed_channel_layout = 1;
@@ -1626,6 +1624,6 @@ AVCodec ff_wmapro_decoder = {
     .close          = decode_end,
     .decode         = decode_packet,
     .capabilities   = CODEC_CAP_SUBFRAMES | CODEC_CAP_DR1,
-    .flush= flush,
-    .long_name = NULL_IF_CONFIG_SMALL("Windows Media Audio 9 Professional"),
+    .flush          = flush,
+    .long_name      = NULL_IF_CONFIG_SMALL("Windows Media Audio 9 Professional"),
 };

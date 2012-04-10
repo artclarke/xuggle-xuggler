@@ -22,6 +22,7 @@
 #include "libavutil/log.h"
 #include "libavutil/opt.h"
 #include "avcodec.h"
+#include "internal.h"
 #include "dsputil.h"
 #include "dwt.h"
 #include "snow.h"
@@ -247,6 +248,8 @@ static av_cold int encode_init(AVCodecContext *avctx)
             s->ref_scores[i]= av_mallocz(size*sizeof(uint32_t));
         }
     }
+
+    s->runs = av_malloc(avctx->width * avctx->height * sizeof(*s->runs));
 
     return 0;
 }
@@ -834,7 +837,6 @@ static int encode_subband_c0run(SnowContext *s, SubBand *b, const IDWTELEM *src,
 
     if(1){
         int run=0;
-        int runs[w*h];
         int run_index=0;
         int max_index;
 
@@ -868,7 +870,7 @@ static int encode_subband_c0run(SnowContext *s, SubBand *b, const IDWTELEM *src,
                 }
                 if(!(/*ll|*/l|lt|t|rt|p)){
                     if(v){
-                        runs[run_index++]= run;
+                        s->runs[run_index++]= run;
                         run=0;
                     }else{
                         run++;
@@ -877,9 +879,9 @@ static int encode_subband_c0run(SnowContext *s, SubBand *b, const IDWTELEM *src,
             }
         }
         max_index= run_index;
-        runs[run_index++]= run;
+        s->runs[run_index++]= run;
         run_index=0;
-        run= runs[run_index++];
+        run= s->runs[run_index++];
 
         put_symbol2(&s->c, b->state[30], max_index, 0);
         if(run_index <= max_index)
@@ -923,7 +925,7 @@ static int encode_subband_c0run(SnowContext *s, SubBand *b, const IDWTELEM *src,
                     put_rac(&s->c, &b->state[0][context], !!v);
                 }else{
                     if(!run){
-                        run= runs[run_index++];
+                        run= s->runs[run_index++];
 
                         if(run_index <= max_index)
                             put_symbol2(&s->c, b->state[1], run, 3);
@@ -1612,11 +1614,8 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     uint8_t rc_header_bak[sizeof(s->header_state)];
     uint8_t rc_block_bak[sizeof(s->block_state)];
 
-    if (!pkt->data &&
-        (ret = av_new_packet(pkt, s->b_width*s->b_height*MB_SIZE*MB_SIZE*3 + FF_MIN_BUFFER_SIZE)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "Error getting output packet.\n");
+    if ((ret = ff_alloc_packet2(avctx, pkt, s->b_width*s->b_height*MB_SIZE*MB_SIZE*3 + FF_MIN_BUFFER_SIZE)) < 0)
         return ret;
-    }
 
     ff_init_range_encoder(c, pkt->data, pkt->size);
     ff_build_rac_states(c, 0.05*(1LL<<32), 256-8);
@@ -1897,6 +1896,7 @@ static av_cold int encode_end(AVCodecContext *avctx)
     if (s->input_picture.data[0])
         avctx->release_buffer(avctx, &s->input_picture);
     av_free(avctx->stats_out);
+    av_freep(&s->runs);
 
     return 0;
 }
@@ -1924,7 +1924,7 @@ AVCodec ff_snow_encoder = {
     .init           = encode_init,
     .encode2        = encode_frame,
     .close          = encode_end,
-    .long_name = NULL_IF_CONFIG_SMALL("Snow"),
+    .long_name      = NULL_IF_CONFIG_SMALL("Snow"),
     .priv_class     = &snowenc_class,
 };
 #endif
@@ -1955,7 +1955,7 @@ int main(void){
         buffer[0][i] = buffer[1][i] = av_lfg_get(&prng) % 54321 - 12345;
 
     ff_spatial_dwt(buffer[0], width, height, width, s.spatial_decomposition_type, s.spatial_decomposition_count);
-    ff_spatial_idwt(buffer[0], width, height, width, s.spatial_decomposition_type, s.spatial_decomposition_count);
+    ff_spatial_idwt((IDWTELEM*)buffer[0], width, height, width, s.spatial_decomposition_type, s.spatial_decomposition_count);
 
     for(i=0; i<width*height; i++)
         if(buffer[0][i]!= buffer[1][i]) printf("fsck: %6d %12d %7d\n",i, buffer[0][i], buffer[1][i]);
@@ -1966,7 +1966,7 @@ int main(void){
         buffer[0][i] = buffer[1][i] = av_lfg_get(&prng) % 54321 - 12345;
 
     ff_spatial_dwt(buffer[0], width, height, width, s.spatial_decomposition_type, s.spatial_decomposition_count);
-    ff_spatial_idwt(buffer[0], width, height, width, s.spatial_decomposition_type, s.spatial_decomposition_count);
+    ff_spatial_idwt((IDWTELEM*)buffer[0], width, height, width, s.spatial_decomposition_type, s.spatial_decomposition_count);
 
     for(i=0; i<width*height; i++)
         if(FFABS(buffer[0][i] - buffer[1][i])>20) printf("fsck: %6d %12d %7d\n",i, buffer[0][i], buffer[1][i]);
@@ -1992,7 +1992,7 @@ int main(void){
 
                 memset(buffer[0], 0, sizeof(int)*width*height);
                 buf[w/2 + h/2*stride]= 256*256;
-                ff_spatial_idwt(buffer[0], width, height, width, s.spatial_decomposition_type, s.spatial_decomposition_count);
+                ff_spatial_idwt((IDWTELEM*)buffer[0], width, height, width, s.spatial_decomposition_type, s.spatial_decomposition_count);
                 for(y=0; y<height; y++){
                     for(x=0; x<width; x++){
                         int64_t d= buffer[0][x + y*width];

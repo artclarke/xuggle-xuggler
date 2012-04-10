@@ -27,6 +27,7 @@
 
 #include <float.h>
 #include "avcodec.h"
+#include "internal.h"
 #include "bytestream.h"
 #include "j2k.h"
 #include "libavutil/common.h"
@@ -456,7 +457,7 @@ static void init_quantization(J2kEncoderContext *s)
     }
 }
 
-static void init_luts()
+static void init_luts(void)
 {
     int i, a,
         mask = ~((1<<NMSEDEC_FRACBITS)-1);
@@ -926,11 +927,8 @@ static int encode_frame(AVCodecContext *avctx, AVPacket *pkt,
     int tileno, ret;
     J2kEncoderContext *s = avctx->priv_data;
 
-    if (!pkt->data &&
-        (ret = av_new_packet(pkt, avctx->width*avctx->height*9 + FF_MIN_BUFFER_SIZE)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "Error getting output packet.\n");
+    if ((ret = ff_alloc_packet2(avctx, pkt, avctx->width*avctx->height*9 + FF_MIN_BUFFER_SIZE)) < 0)
         return ret;
-    }
 
     // init:
     s->buf = s->buf_start = pkt->data;
@@ -1052,12 +1050,11 @@ AVCodec ff_jpeg2000_encoder = {
     .init           = j2kenc_init,
     .encode2        = encode_frame,
     .close          = j2kenc_destroy,
-    .capabilities= CODEC_CAP_EXPERIMENTAL,
-    .long_name = NULL_IF_CONFIG_SMALL("JPEG 2000"),
-    .pix_fmts =
-        (const enum PixelFormat[]) {PIX_FMT_RGB24, PIX_FMT_YUV444P, PIX_FMT_GRAY8,
-/*                              PIX_FMT_YUV420P,
-                              PIX_FMT_YUV422P, PIX_FMT_YUV444P,
-                              PIX_FMT_YUV410P, PIX_FMT_YUV411P,*/
-                              -1}
+    .capabilities   = CODEC_CAP_EXPERIMENTAL,
+    .long_name      = NULL_IF_CONFIG_SMALL("JPEG 2000"),
+    .pix_fmts       = (const enum PixelFormat[]) { PIX_FMT_RGB24, PIX_FMT_YUV444P, PIX_FMT_GRAY8,
+/*                                                 PIX_FMT_YUV420P,
+                                                   PIX_FMT_YUV422P, PIX_FMT_YUV444P,
+                                                   PIX_FMT_YUV410P, PIX_FMT_YUV411P,*/
+                                                   PIX_FMT_NONE }
 };

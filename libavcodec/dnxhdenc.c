@@ -910,10 +910,8 @@ static int dnxhd_encode_picture(AVCodecContext *avctx, AVPacket *pkt,
     int offset, i, ret;
     uint8_t *buf;
 
-    if ((ret = ff_alloc_packet(pkt, ctx->cid_table->frame_size)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "output buffer is too small to compress picture\n");
+    if ((ret = ff_alloc_packet2(avctx, pkt, ctx->cid_table->frame_size)) < 0)
         return ret;
-    }
     buf = pkt->data;
 
     dnxhd_load_picture(ctx, frame);
@@ -1009,9 +1007,11 @@ AVCodec ff_dnxhd_encoder = {
     .init           = dnxhd_encode_init,
     .encode2        = dnxhd_encode_picture,
     .close          = dnxhd_encode_end,
-    .capabilities = CODEC_CAP_SLICE_THREADS,
-    .pix_fmts = (const enum PixelFormat[]){PIX_FMT_YUV422P, PIX_FMT_YUV422P10, PIX_FMT_NONE},
-    .long_name = NULL_IF_CONFIG_SMALL("VC3/DNxHD"),
-    .priv_class = &class,
+    .capabilities   = CODEC_CAP_SLICE_THREADS,
+    .pix_fmts       = (const enum PixelFormat[]){ PIX_FMT_YUV422P,
+                                                  PIX_FMT_YUV422P10,
+                                                  PIX_FMT_NONE },
+    .long_name      = NULL_IF_CONFIG_SMALL("VC3/DNxHD"),
+    .priv_class     = &class,
     .defaults       = dnxhd_defaults,
 };

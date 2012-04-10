@@ -29,6 +29,7 @@
 #include "libavutil/opt.h"
 
 #include "avcodec.h"
+#include "internal.h"
 #if CONFIG_ZLIB
 #include <zlib.h>
 #endif
@@ -76,7 +77,7 @@ typedef struct TiffEncoderContext {
  * @param need Needed bytes
  * @return 0 - ok, 1 - no free space
  */
-inline static int check_size(TiffEncoderContext * s, uint64_t need)
+static inline int check_size(TiffEncoderContext * s, uint64_t need)
 {
     if (s->buf_size < *s->buf - s->buf_start + need) {
         *s->buf = s->buf_start + s->buf_size + 1;
@@ -303,12 +304,9 @@ static int encode_frame(AVCodecContext * avctx, AVPacket *pkt,
 
     strips = (s->height - 1) / s->rps + 1;
 
-    if (!pkt->data &&
-        (ret = av_new_packet(pkt, avctx->width * avctx->height * s->bpp * 2 +
-                                  avctx->height * 4 + FF_MIN_BUFFER_SIZE)) < 0) {
-        av_log(avctx, AV_LOG_ERROR, "Error getting output packet.\n");
+    if ((ret = ff_alloc_packet2(avctx, pkt, avctx->width * avctx->height * s->bpp * 2 +
+                                  avctx->height * 4 + FF_MIN_BUFFER_SIZE)) < 0)
         return ret;
-    }
     ptr          = pkt->data;
     s->buf_start = pkt->data;
     s->buf       = &ptr;
@@ -463,7 +461,7 @@ fail:
     av_free(strip_sizes);
     av_free(strip_offsets);
     av_free(yuv_line);
-    return ret;
+    return ret < 0 ? ret : 0;
 }
 
 #define OFFSET(x) offsetof(TiffEncoderContext, x)
@@ -493,13 +491,14 @@ AVCodec ff_tiff_encoder = {
     .id             = CODEC_ID_TIFF,
     .priv_data_size = sizeof(TiffEncoderContext),
     .encode2        = encode_frame,
-    .pix_fmts =
-        (const enum PixelFormat[]) {PIX_FMT_RGB24, PIX_FMT_PAL8, PIX_FMT_GRAY8,
-                              PIX_FMT_MONOBLACK, PIX_FMT_MONOWHITE,
-                              PIX_FMT_YUV420P, PIX_FMT_YUV422P,
-                              PIX_FMT_YUV444P, PIX_FMT_YUV410P,
-                              PIX_FMT_YUV411P, PIX_FMT_RGB48LE,
-                              PIX_FMT_RGBA, PIX_FMT_RGBA64LE, PIX_FMT_NONE},
-    .long_name = NULL_IF_CONFIG_SMALL("TIFF image"),
+    .pix_fmts       = (const enum PixelFormat[]) {
+        PIX_FMT_RGB24, PIX_FMT_PAL8, PIX_FMT_GRAY8,
+        PIX_FMT_MONOBLACK, PIX_FMT_MONOWHITE,
+        PIX_FMT_YUV420P, PIX_FMT_YUV422P, PIX_FMT_YUV444P,
+        PIX_FMT_YUV410P, PIX_FMT_YUV411P, PIX_FMT_RGB48LE,
+        PIX_FMT_RGBA, PIX_FMT_RGBA64LE,
+        PIX_FMT_NONE
+    },
+    .long_name      = NULL_IF_CONFIG_SMALL("TIFF image"),
     .priv_class     = &tiffenc_class,
 };
