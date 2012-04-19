@@ -16,7 +16,6 @@
 @SET_MAKE@
 
 
-
 VPATH = @srcdir@
 am__make_dryrun = \
   { \
@@ -53,7 +52,6 @@ PRE_UNINSTALL = :
 POST_UNINSTALL = :
 build_triplet = @build@
 host_triplet = @host@
-noinst_PROGRAMS = xuggle-xuggler-main$(EXEEXT)
 @VS_OS_WINDOWS_TRUE@am__append_1 = \
 @VS_OS_WINDOWS_TRUE@	-Wl,--add-stdcall-alias \
 @VS_OS_WINDOWS_TRUE@	-Wl,--enable-runtime-pseudo-reloc \
@@ -134,10 +132,6 @@ am__v_lt_0 = --silent
 libxuggle_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) \
 	$(LIBTOOLFLAGS) --mode=link $(CXXLD) $(AM_CXXFLAGS) \
 	$(CXXFLAGS) $(libxuggle_la_LDFLAGS) $(LDFLAGS) -o $@
-PROGRAMS = $(noinst_PROGRAMS)
-am_xuggle_xuggler_main_OBJECTS = Main.$(OBJEXT)
-xuggle_xuggler_main_OBJECTS = $(am_xuggle_xuggler_main_OBJECTS)
-xuggle_xuggler_main_DEPENDENCIES = libxuggle.la
 DEFAULT_INCLUDES = 
 depcomp =
 am__depfiles_maybe =
@@ -163,8 +157,8 @@ am__v_CXXLD_0 = @echo "  CXXLD " $@;
 AM_V_GEN = $(am__v_GEN_@AM_V@)
 am__v_GEN_ = $(am__v_GEN_@AM_DEFAULT_V@)
 am__v_GEN_0 = @echo "  GEN   " $@;
-SOURCES = $(libxuggle_la_SOURCES) $(xuggle_xuggler_main_SOURCES)
-DIST_SOURCES = $(libxuggle_la_SOURCES) $(xuggle_xuggler_main_SOURCES)
+SOURCES = $(libxuggle_la_SOURCES)
+DIST_SOURCES = $(libxuggle_la_SOURCES)
 RECURSIVE_TARGETS = all-recursive check-recursive dvi-recursive \
 	html-recursive info-recursive install-data-recursive \
 	install-dvi-recursive install-exec-recursive \
@@ -363,9 +357,12 @@ xuggledir = $(includedir)/$(VS_CPP_PATH)
 xuggle_HEADERS = \
   Xuggle.h
 
+
+#noinst_PROGRAMS=xuggle-xuggler-main
+
+#xuggle_xuggler_main_SOURCES = Main.cpp
+#xuggle_xuggler_main_LDADD = libxuggle.la
 lib_LTLIBRARIES = libxuggle.la
-xuggle_xuggler_main_SOURCES = Main.cpp
-xuggle_xuggler_main_LDADD = libxuggle.la
 libxuggle_la_SOURCES = Xuggle.cpp
 libxuggle_la_LIBADD = $(builddir)/xuggler/libxuggle-xuggler.la \
 	$(builddir)/xuggler/io/libxuggle-xuggler-io.la \
@@ -445,18 +442,6 @@ clean-libLTLIBRARIES:
 	done
 libxuggle.la: $(libxuggle_la_OBJECTS) $(libxuggle_la_DEPENDENCIES) $(EXTRA_libxuggle_la_DEPENDENCIES) 
 	$(AM_V_CXXLD)$(libxuggle_la_LINK) -rpath $(libdir) $(libxuggle_la_OBJECTS) $(libxuggle_la_LIBADD) $(LIBS)
-
-clean-noinstPROGRAMS:
-	@list='$(noinst_PROGRAMS)'; test -n "$$list" || exit 0; \
-	echo " rm -f" $$list; \
-	rm -f $$list || exit $$?; \
-	test -n "$(EXEEXT)" || exit 0; \
-	list=`for p in $$list; do echo "$$p"; done | sed 's/$(EXEEXT)$$//'`; \
-	echo " rm -f" $$list; \
-	rm -f $$list
-xuggle-xuggler-main$(EXEEXT): $(xuggle_xuggler_main_OBJECTS) $(xuggle_xuggler_main_DEPENDENCIES) $(EXTRA_xuggle_xuggler_main_DEPENDENCIES) 
-	@rm -f xuggle-xuggler-main$(EXEEXT)
-	$(AM_V_CXXLD)$(CXXLINK) $(xuggle_xuggler_main_OBJECTS) $(xuggle_xuggler_main_LDADD) $(LIBS)
 
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
@@ -692,7 +677,7 @@ distdir: $(DISTFILES)
 	done
 check-am: all-am
 check: check-recursive
-all-am: Makefile $(LTLIBRARIES) $(PROGRAMS) $(HEADERS)
+all-am: Makefile $(LTLIBRARIES) $(HEADERS)
 installdirs: installdirs-recursive
 installdirs-am:
 	for dir in "$(DESTDIR)$(libdir)" "$(DESTDIR)$(xuggledir)"; do \
@@ -731,7 +716,7 @@ maintainer-clean-generic:
 clean: clean-recursive
 
 clean-am: clean-generic clean-libLTLIBRARIES clean-libtool \
-	clean-noinstPROGRAMS mostlyclean-am
+	mostlyclean-am
 
 distclean: distclean-recursive
 	-rm -f Makefile
@@ -802,8 +787,8 @@ uninstall-am: uninstall-libLTLIBRARIES uninstall-xuggleHEADERS
 
 .PHONY: $(RECURSIVE_CLEAN_TARGETS) $(RECURSIVE_TARGETS) CTAGS GTAGS \
 	all all-am check check-am clean clean-generic \
-	clean-libLTLIBRARIES clean-libtool clean-noinstPROGRAMS ctags \
-	ctags-recursive distclean distclean-compile distclean-generic \
+	clean-libLTLIBRARIES clean-libtool ctags ctags-recursive \
+	distclean distclean-compile distclean-generic \
 	distclean-libtool distclean-tags distdir dvi dvi-am html \
 	html-am info info-am install install-am install-data \
 	install-data-am install-dvi install-dvi-am install-exec \
