@@ -220,15 +220,12 @@ static NOINLINE unsigned int x264_weight_cost_chroma( x264_t *h, x264_frame_t *f
 {
     unsigned int cost = 0;
     int i_stride = fenc->i_stride[1];
-    int i_offset = i_stride / 2;
     int i_lines = fenc->i_lines[1];
     int i_width = fenc->i_width[1];
-    pixel *src = ref + i_offset;
+    pixel *src = ref + (i_stride >> 1);
     ALIGNED_ARRAY_16( pixel, buf, [8*16] );
     int pixoff = 0;
-    int chromapix = h->luma2chroma_pixel[PIXEL_16x16];
     int height = 16 >> CHROMA_V_SHIFT;
-    ALIGNED_16( static pixel flat[8] ) = {0};
     if( w )
     {
         for( int y = 0; y < i_lines; y += height, pixoff = y*i_stride )
@@ -239,19 +236,15 @@ static NOINLINE unsigned int x264_weight_cost_chroma( x264_t *h, x264_frame_t *f
                  * But testing shows that for chroma the DC coefficient is by far the most
                  * important part of the coding cost.  Thus a more useful chroma weight is
                  * obtained by comparing each block's DC coefficient instead of the actual
-                 * pixels.
-                 *
-                 * FIXME: add a (faster) asm sum function to replace sad. */
-                cost += abs( h->pixf.sad_aligned[chromapix](          buf,        8, flat, 0 ) -
-                             h->pixf.sad_aligned[chromapix]( &src[pixoff], i_stride, flat, 0 ) );
+                 * pixels. */
+                cost += h->pixf.asd8( buf, 8, &src[pixoff], i_stride, height );
             }
         cost += x264_weight_slice_header_cost( h, w, 1 );
     }
     else
         for( int y = 0; y < i_lines; y += height, pixoff = y*i_stride )
             for( int x = 0; x < i_width; x += 8, pixoff += 8 )
-                cost += abs( h->pixf.sad_aligned[chromapix]( &ref[pixoff], i_stride, flat, 0 ) -
-                             h->pixf.sad_aligned[chromapix]( &src[pixoff], i_stride, flat, 0 ) );
+                cost += h->pixf.asd8( &ref[pixoff], i_stride, &src[pixoff], i_stride, height );
     x264_emms();
     return cost;
 }
@@ -1067,7 +1060,8 @@ static void x264_calculate_durations( x264_t *h, x264_frame_t *cur_frame, x264_f
             prev_frame->i_cpb_duration += cur_frame->i_dpb_output_delay;
     }
 
-    if( cur_frame->b_keyframe )
+    // don't reset cpb delay for IDR frames when using intra-refresh
+    if( cur_frame->b_keyframe && !h->param.b_intra_refresh )
         *i_cpb_delay = 0;
 
     *i_cpb_delay += cur_frame->i_duration;

@@ -475,6 +475,21 @@ static int check_pixel( int cpu_ref, int cpu_new )
     }
     report( "pixel vsad :" );
 
+    ok = 1; used_asm = 0;
+    if( pixel_asm.asd8 != pixel_ref.asd8 )
+    {
+        set_func_name( "asd8" );
+        used_asm = 1;
+        int res_c = call_c( pixel_c.asd8,   pbuf1, (intptr_t)8, pbuf2, (intptr_t)8, 16 );
+        int res_a = call_a( pixel_asm.asd8, pbuf1, (intptr_t)8, pbuf2, (intptr_t)8, 16 );
+        if( res_c != res_a )
+        {
+            ok = 0;
+            fprintf( stderr, "asd: %d != %d\n", res_c, res_a );
+        }
+    }
+    report( "pixel asd :" );
+
 #define TEST_INTRA_X3( name, i8x8, ... ) \
     if( pixel_asm.name && pixel_asm.name != pixel_ref.name ) \
     { \

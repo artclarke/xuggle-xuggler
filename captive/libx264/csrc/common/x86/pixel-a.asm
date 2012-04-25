@@ -4001,6 +4001,73 @@ SSIM
 INIT_XMM avx
 SSIM
 
+;-----------------------------------------------------------------------------
+; int pixel_asd8( pixel *pix1, intptr_t stride1, pixel *pix2, intptr_t stride2, int height );
+;-----------------------------------------------------------------------------
+%macro ASD8 0
+cglobal pixel_asd8, 5,5
+    pxor     m0, m0
+    pxor     m1, m1
+.loop:
+%if HIGH_BIT_DEPTH
+    paddw    m0, [r0]
+    paddw    m1, [r2]
+    paddw    m0, [r0+2*r1]
+    paddw    m1, [r2+2*r3]
+    lea      r0, [r0+4*r1]
+    paddw    m0, [r0]
+    paddw    m1, [r2+4*r3]
+    lea      r2, [r2+4*r3]
+    paddw    m0, [r0+2*r1]
+    paddw    m1, [r2+2*r3]
+    lea      r0, [r0+4*r1]
+    lea      r2, [r2+4*r3]
+%else
+    movq     m2, [r0]
+    movq     m3, [r2]
+    movhps   m2, [r0+r1]
+    movhps   m3, [r2+r3]
+    lea      r0, [r0+2*r1]
+    psadbw   m2, m1
+    psadbw   m3, m1
+    movq     m4, [r0]
+    movq     m5, [r2+2*r3]
+    lea      r2, [r2+2*r3]
+    movhps   m4, [r0+r1]
+    movhps   m5, [r2+r3]
+    lea      r0, [r0+2*r1]
+    paddw    m0, m2
+    psubw    m0, m3
+    psadbw   m4, m1
+    psadbw   m5, m1
+    lea      r2, [r2+2*r3]
+    paddw    m0, m4
+    psubw    m0, m5
+%endif
+    sub     r4d, 4
+    jg .loop
+%if HIGH_BIT_DEPTH
+    psubw    m0, m1
+    HADDW    m0, m1
+    ABSD     m1, m0
+%else
+    movhlps  m1, m0
+    paddw    m0, m1
+    ABSW     m1, m0
+%endif
+    movd    eax, m1
+    RET
+%endmacro
+
+INIT_XMM sse2
+ASD8
+INIT_XMM ssse3
+ASD8
+%if HIGH_BIT_DEPTH
+INIT_XMM xop
+ASD8
+%endif
+
 ;=============================================================================
 ; Successive Elimination ADS
 ;=============================================================================

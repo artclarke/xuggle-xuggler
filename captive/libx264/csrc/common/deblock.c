@@ -393,7 +393,7 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
         x264_macroblock_cache_load_neighbours_deblock( h, mb_x, mb_y );
 
         int mb_xy = h->mb.i_mb_xy;
-        int transform_8x8 = h->mb.mb_transform_size[h->mb.i_mb_xy];
+        int transform_8x8 = h->mb.mb_transform_size[mb_xy];
         int intra_cur = IS_INTRA( h->mb.type[mb_xy] );
         uint8_t (*bs)[8][4] = h->deblock_strength[mb_y&1][h->param.b_sliced_threads?mb_xy:mb_x];
 
@@ -501,8 +501,19 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                 int qp_left = (qp + qpl + 1) >> 1;
                 int qpc_left = (qpc + h->chroma_qp_table[qpl] + 1) >> 1;
                 int intra_left = IS_INTRA( h->mb.type[h->mb.i_mb_xy-1] );
+                int intra_deblock = intra_cur || intra_left;
 
-                if( intra_cur || intra_left )
+                /* Any MB that was coded, or that analysis decided to skip, has quality commensurate with its QP.
+                 * But if deblocking affects neighboring MBs that were force-skipped, blur might accumulate there.
+                 * So reset their effective QP to max, to indicate that lack of guarantee. */
+                if( h->fdec->mb_info && M32( bs[0][0] ) )
+                {
+#define RESET_EFFECTIVE_QP(xy) h->fdec->effective_qp[xy] |= 0xff * !!(h->fdec->mb_info[xy] & X264_MBINFO_CONSTANT);
+                    RESET_EFFECTIVE_QP(mb_xy);
+                    RESET_EFFECTIVE_QP(h->mb.i_mb_left_xy[0]);
+                }
+
+                if( intra_deblock )
                     FILTER( _intra, 0, 0, qp_left, qpc_left );
                 else
                     FILTER(       , 0, 0, qp_left, qpc_left );
@@ -547,15 +558,22 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
                 int qp_top = (qp + qpt + 1) >> 1;
                 int qpc_top = (qpc + h->chroma_qp_table[qpt] + 1) >> 1;
                 int intra_top = IS_INTRA( h->mb.type[h->mb.i_mb_top_xy] );
+                int intra_deblock = intra_cur || intra_top;
 
-                if( (!b_interlaced || (!MB_INTERLACED && !h->mb.field[h->mb.i_mb_top_xy]))
-                    && (intra_cur || intra_top) )
+                /* This edge has been modified, reset effective qp to max. */
+                if( h->fdec->mb_info && M32( bs[1][0] ) )
+                {
+                    RESET_EFFECTIVE_QP(mb_xy);
+                    RESET_EFFECTIVE_QP(h->mb.i_mb_top_xy);
+                }
+
+                if( (!b_interlaced || (!MB_INTERLACED && !h->mb.field[h->mb.i_mb_top_xy])) && intra_deblock )
                 {
                     FILTER( _intra, 1, 0, qp_top, qpc_top );
                 }
                 else
                 {
-                    if( intra_cur || intra_top )
+                    if( intra_deblock )
                         M32( bs[1][0] ) = 0x03030303;
                     FILTER(       , 1, 0, qp_top, qpc_top );
                 }
@@ -579,7 +597,6 @@ void x264_frame_deblock_row( x264_t *h, int mb_y )
  *  support analysis partitions smaller than 16x16
  *  deblock chroma for 4:2:0/4:2:2
  *  handle duplicate refs correctly
- *  handle cavlc+8x8dct correctly
  */
 void x264_macroblock_deblock( x264_t *h )
 {
