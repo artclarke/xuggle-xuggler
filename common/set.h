@@ -31,7 +31,6 @@ enum profile_e
 {
     PROFILE_BASELINE = 66,
     PROFILE_MAIN     = 77,
-    PROFILE_EXTENDED = 88,
     PROFILE_HIGH    = 100,
     PROFILE_HIGH10  = 110,
     PROFILE_HIGH422 = 122,

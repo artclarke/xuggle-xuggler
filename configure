@@ -18,6 +18,7 @@ Standard options:
   --extra-asflags=EASFLAGS add EASFLAGS to ASFLAGS
   --extra-cflags=ECFLAGS   add ECFLAGS to CFLAGS
   --extra-ldflags=ELDFLAGS add ELDFLAGS to LDFLAGS
+  --extra-rcflags=ERCFLAGS add ERCFLAGS to RCFLAGS
 
 Configuration options:
   --disable-cli            disable cli
@@ -204,9 +205,9 @@ rc_check() {
     log_check "whether $RC works"
     echo "$1" > conftest.rc
     if [ $compiler = ICL ]; then
-        rc_cmd="$RC -foconftest.o conftest.rc"
+        rc_cmd="$RC $RCFLAGS -foconftest.o conftest.rc"
     else
-        rc_cmd="$RC -o conftest.o conftest.rc"
+        rc_cmd="$RC $RCFLAGS -o conftest.o conftest.rc"
     fi
     if $rc_cmd >conftest.log 2>&1; then
         res=$?
@@ -277,6 +278,7 @@ CFLAGS="$CFLAGS -Wall -I. -I\$(SRCPATH)"
 LDFLAGS="$LDFLAGS"
 LDFLAGSCLI="$LDFLAGSCLI"
 ASFLAGS="$ASFLAGS"
+RCFLAGS="$RCFLAGS"
 HAVE_GETOPT_LONG=1
 cross_prefix=""
 
@@ -346,6 +348,9 @@ for opt do
             ;;
         --extra-ldflags=*)
             LDFLAGS="$LDFLAGS $optarg"
+            ;;
+        --extra-rcflags=*)
+            RCFLAGS="$RCFLAGS $optarg"
             ;;
         --disable-thread)
             thread="no"
@@ -495,12 +500,14 @@ case $host_os in
         else
             SYS="WINDOWS"
             DEVNULL="NUL"
+            RC="${RC-${cross_prefix}windres}"
         fi
         ;;
     mingw*)
         SYS="WINDOWS"
         EXE=".exe"
         DEVNULL="NUL"
+        [ $compiler = ICL ] && RC="${RC-rc}" || RC="${RC-${cross_prefix}windres}"
         ;;
     sunos*|solaris*)
         SYS="SunOS"
@@ -530,6 +537,8 @@ case $host_cpu in
             if [[ "$asm" == auto && "$CFLAGS" != *-mfpmath* ]]; then
                 CFLAGS="$CFLAGS -mfpmath=sse -msse"
             fi
+            CFLAGS="-m32 $CFLAGS"
+            LDFLAGS="-m32 $LDFLAGS"
         else
             # icc on linux has various degrees of mod16 stack support
             if [ $SYS = LINUX ]; then
@@ -550,6 +559,7 @@ case $host_cpu in
         elif [ "$SYS" = WINDOWS -o "$SYS" = CYGWIN ]; then
             ASFLAGS="$ASFLAGS -f win32 -DPREFIX"
             LDFLAGS="$LDFLAGS -Wl,--large-address-aware"
+            [ $compiler = GNU ] && RCFLAGS="--target=pe-i386 $RCFLAGS"
         else
             ASFLAGS="$ASFLAGS -f elf"
         fi
@@ -557,6 +567,7 @@ case $host_cpu in
     x86_64)
         ARCH="X86_64"
         AS="yasm"
+        [ $compiler = GNU ] && CFLAGS="-m64 $CFLAGS" && LDFLAGS="-m64 $LDFLAGS"
         if [ "$SYS" = MACOSX ]; then
             ASFLAGS="$ASFLAGS -f macho64 -m amd64 -DPIC -DPREFIX"
             if cc_check '' "-arch x86_64"; then
@@ -567,6 +578,7 @@ case $host_cpu in
             ASFLAGS="$ASFLAGS -f win32 -m amd64"
             # only the GNU toolchain is inconsistent in prefixing function names with _
             [ $compiler = GNU ] && cc_check "" "-S" && grep -q "_main:" conftest && ASFLAGS="$ASFLAGS -DPREFIX"
+            [ $compiler = GNU ] && RCFLAGS="--target=pe-x86-64 $RCFLAGS"
         else
             ASFLAGS="$ASFLAGS -f elf -m amd64"
         fi
@@ -634,9 +646,7 @@ case $host_cpu in
         ;;
 esac
 
-RC=""
 if [ $SYS = WINDOWS ]; then
-    [ $compiler = ICL ] && RC="rc" || RC="${cross_prefix}windres"
     if ! rc_check "0 RCDATA {0}" ; then
         RC=""
     fi
@@ -994,7 +1004,7 @@ if [ $compiler = ICL ]; then
     LDFLAGSCLI="$(icl_ldflags $LDFLAGSCLI)"
     LIBX264=libx264.lib
     RANLIB=
-    [ -n "$RC" ] && RC="$RC -I. -I\$(SRCPATH)/extras -fo"
+    [ -n "$RC" ] && RCFLAGS="$RCFLAGS -I. -I\$(SRCPATH)/extras -fo"
     STRIP=
     if [ $debug = yes ]; then
         LDFLAGS="-debug $LDFLAGS"
@@ -1008,7 +1018,7 @@ else
     DEPMT="-MT"
     LD="$CC -o "
     LIBX264=libx264.a
-    [ -n "$RC" ] && RC="$RC -I. -o "
+    [ -n "$RC" ] && RCFLAGS="$RCFLAGS -I. -o "
 fi
 if [ $compiler = GNU ]; then
     PROF_GEN_CC="-fprofile-generate"
@@ -1062,6 +1072,7 @@ STRIP=$STRIP
 AS=$AS
 ASFLAGS=$ASFLAGS
 RC=$RC
+RCFLAGS=$RCFLAGS
 EXE=$EXE
 HAVE_GETOPT_LONG=$HAVE_GETOPT_LONG
 DEVNULL=$DEVNULL
@@ -1091,7 +1102,10 @@ if [ "$shared" = "yes" ]; then
             # MSVC link does not act similarly, so it is required to make an export definition out of x264.h and use it at link time
             echo "SOFLAGS=-dll -def:x264.def -implib:\$(IMPLIBNAME) $SOFLAGS" >> config.mak
             echo "EXPORTS" > x264.def
-            grep "^\(int\|void\|x264_t\|extern\).*x264.*[\[(;]" ${SRCPATH}/x264.h | sed -e "s/.*\(x264.*\)[\[(].*/\1/;s/.*\(x264.*\);/\1/;s/open/open_$API/g" >> x264.def
+            # export API functions
+            grep "^\(int\|void\|x264_t\).*x264" ${SRCPATH}/x264.h | sed -e "s/.*\(x264.*\)(.*/\1/;s/open/open_$API/g" >> x264.def
+            # export API variables/data. must be flagged with the DATA keyword
+            grep "extern.*x264" ${SRCPATH}/x264.h | sed -e "s/.*\(x264\w*\)\W.*/\1 DATA/;" >> x264.def
         else
             echo 'IMPLIBNAME=libx264.dll.a' >> config.mak
             echo "SOFLAGS=-shared -Wl,--out-implib,\$(IMPLIBNAME) -Wl,--enable-auto-image-base $SOFLAGS" >> config.mak

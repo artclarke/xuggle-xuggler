@@ -2995,6 +2995,8 @@ void x264_macroblock_analyse( x264_t *h )
     if( h->param.rc.i_aq_mode && h->param.analyse.i_subpel_refine < 10 && abs(h->mb.i_qp - h->mb.i_last_qp) == 1 )
         h->mb.i_qp = h->mb.i_last_qp;
 
+    if( h->param.analyse.b_mb_info )
+        h->fdec->effective_qp[h->mb.i_mb_xy] = h->mb.i_qp; /* Store the real analysis QP. */
     x264_mb_analyse_init( h, &analysis, h->mb.i_qp );
 
     /*--------------------------- Do the analysis ---------------------------*/
@@ -3034,23 +3036,33 @@ intra_analysis:
         }
         else
         {
-            int skip_invalid = h->i_thread_frames > 1 && h->mb.cache.pskip_mv[1] > h->mb.mv_max_spel[1];
-            /* If the current macroblock is off the frame, just skip it. */
-            if( HAVE_INTERLACED && !MB_INTERLACED && h->mb.i_mb_y * 16 >= h->param.i_height && !skip_invalid )
-                b_skip = 1;
-            /* Fast P_SKIP detection */
-            else if( h->param.analyse.b_fast_pskip )
+            /* Special fast-skip logic using information from mb_info. */
+            if( h->fenc->mb_info && !SLICE_MBAFF && (h->fenc->mb_info[h->mb.i_mb_xy]&X264_MBINFO_CONSTANT) &&
+                !M32(h->mb.cache.pskip_mv) && (h->fenc->i_frame - h->fref[0][0]->i_frame) == 1 && !h->sh.b_weighted_pred &&
+                h->fref[0][0]->effective_qp[h->mb.i_mb_xy] <= h->mb.i_qp )
             {
-                if( skip_invalid )
-                    // FIXME don't need to check this if the reference frame is done
-                    {}
-                else if( h->param.analyse.i_subpel_refine >= 3 )
-                    analysis.b_try_skip = 1;
-                else if( h->mb.i_mb_type_left[0] == P_SKIP ||
-                         h->mb.i_mb_type_top == P_SKIP ||
-                         h->mb.i_mb_type_topleft == P_SKIP ||
-                         h->mb.i_mb_type_topright == P_SKIP )
-                    b_skip = x264_macroblock_probe_pskip( h );
+                b_skip = 1;
+            }
+            else
+            {
+                int skip_invalid = h->i_thread_frames > 1 && h->mb.cache.pskip_mv[1] > h->mb.mv_max_spel[1];
+                /* If the current macroblock is off the frame, just skip it. */
+                if( HAVE_INTERLACED && !MB_INTERLACED && h->mb.i_mb_y * 16 >= h->param.i_height && !skip_invalid )
+                    b_skip = 1;
+                /* Fast P_SKIP detection */
+                else if( h->param.analyse.b_fast_pskip )
+                {
+                    if( skip_invalid )
+                        // FIXME don't need to check this if the reference frame is done
+                        {}
+                    else if( h->param.analyse.i_subpel_refine >= 3 )
+                        analysis.b_try_skip = 1;
+                    else if( h->mb.i_mb_type_left[0] == P_SKIP ||
+                             h->mb.i_mb_type_top == P_SKIP ||
+                             h->mb.i_mb_type_topleft == P_SKIP ||
+                             h->mb.i_mb_type_topright == P_SKIP )
+                        b_skip = x264_macroblock_probe_pskip( h );
+                }
             }
         }
 

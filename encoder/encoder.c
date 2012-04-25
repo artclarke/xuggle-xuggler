@@ -280,8 +280,10 @@ static void x264_slice_header_write( bs_t *s, x264_slice_header_t *sh, int i_nal
         }
     }
 
+    sh->b_weighted_pred = 0;
     if( sh->pps->b_weighted_pred && sh->i_type == SLICE_TYPE_P )
     {
+        sh->b_weighted_pred = sh->weight[0][0].weightfn || sh->weight[0][1].weightfn || sh->weight[0][2].weightfn;
         /* pred_weight_table() */
         bs_write_ue( s, sh->weight[0][0].i_denom );
         bs_write_ue( s, sh->weight[0][1].i_denom );
@@ -732,7 +734,7 @@ static int x264_validate_parameters( x264_t *h, int b_open )
         x264_log( h, X264_LOG_WARNING, "lookaheadless mb-tree requires intra refresh or infinite keyint\n" );
         h->param.rc.b_mb_tree = 0;
     }
-    if( h->param.rc.b_stat_read )
+    if( b_open && h->param.rc.b_stat_read )
         h->param.rc.i_lookahead = 0;
 #if HAVE_THREAD
     if( h->param.i_sync_lookahead < 0 )
@@ -1346,7 +1348,7 @@ x264_t *x264_encoder_open( x264_param_t *param )
     char level[4];
     snprintf( level, sizeof(level), "%d.%d", h->sps->i_level_idc/10, h->sps->i_level_idc%10 );
     if( h->sps->i_level_idc == 9 || ( h->sps->i_level_idc == 11 && h->sps->b_constraint_set3 &&
-        (h->sps->i_profile_idc >= PROFILE_BASELINE && h->sps->i_profile_idc <= PROFILE_EXTENDED) ) )
+        (h->sps->i_profile_idc == PROFILE_BASELINE || h->sps->i_profile_idc == PROFILE_MAIN) ) )
         strcpy( level, "1b" );
 
     if( h->sps->i_profile_idc < PROFILE_HIGH10 )
@@ -2735,6 +2737,7 @@ int     x264_encoder_encode( x264_t *h,
     if( h->param.cpu&X264_CPU_SSE_MISALIGN )
         x264_cpu_mask_misalign_sse();
 #endif
+    h->i_cpb_delay_pir_offset = h->i_cpb_delay_pir_offset_next;
 
     /* no data out */
     *pi_nal = 0;
@@ -3125,7 +3128,7 @@ int     x264_encoder_encode( x264_t *h,
     }
 
     if( h->fenc->b_keyframe && h->param.b_intra_refresh )
-        h->i_cpb_delay_pir_offset = h->fenc->i_cpb_delay;
+        h->i_cpb_delay_pir_offset_next = h->fenc->i_cpb_delay;
 
     /* Init the rate control */
     /* FIXME: Include slice header bit cost. */
@@ -3195,6 +3198,10 @@ static int x264_encoder_frame_end( x264_t *h, x264_t *thread_current,
     }
 
     x264_emms();
+
+    if( h->fdec->mb_info_free )
+        h->fdec->mb_info_free( h->fdec->mb_info );
+
     /* generate buffering period sei and insert it into place */
     if( h->i_thread_frames > 1 && h->fenc->b_keyframe && h->sps->vui.b_nal_hrd_parameters_present )
     {

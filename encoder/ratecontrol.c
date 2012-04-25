@@ -2433,6 +2433,8 @@ void x264_threads_distribute_ratecontrol( x264_t *h )
 {
     int row;
     x264_ratecontrol_t *rc = h->rc;
+    x264_emms();
+    float qscale = qp2qscale( rc->qpm );
 
     /* Initialize row predictors */
     if( h->i_frame == 0 )
@@ -2453,7 +2455,7 @@ void x264_threads_distribute_ratecontrol( x264_t *h )
             int size = 0;
             for( row = t->i_threadslice_start; row < t->i_threadslice_end; row++ )
                 size += h->fdec->i_row_satd[row];
-            t->rc->slice_size_planned = predict_size( &rc->pred[h->sh.i_type + (i+1)*5], rc->qpm, size );
+            t->rc->slice_size_planned = predict_size( &rc->pred[h->sh.i_type + (i+1)*5], qscale, size );
         }
         else
             t->rc->slice_size_planned = 0;
