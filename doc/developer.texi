@@ -187,6 +187,8 @@ the following snippet into your @file{.vimrc}:
 set expandtab
 set shiftwidth=4
 set softtabstop=4
+set cindent
+set cinoptions=(0
 " allow tabs in Makefiles
 autocmd FileType make set noexpandtab shiftwidth=8 softtabstop=8
 " Trailing whitespace and tabs are forbidden, so highlight them.
@@ -198,10 +200,16 @@ autocmd InsertEnter * match ForbiddenWhitespace /\t\|\s\+\%#\@@<!$/
 
 For Emacs, add these roughly equivalent lines to your @file{.emacs.d/init.el}:
 @example
-(setq c-default-style "k&r")
-(setq-default c-basic-offset 4)
-(setq-default indent-tabs-mode nil)
-(setq-default show-trailing-whitespace t)
+(c-add-style "ffmpeg"
+             '("k&r"
+               (c-basic-offset . 4)
+               (indent-tabs-mode nil)
+               (show-trailing-whitespace t)
+               (c-offsets-alist
+                (statement-cont . (c-lineup-assignments +)))
+               )
+             )
+(setq c-default-style "ffmpeg")
 @end example
 
 @section Development Policy

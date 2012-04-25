@@ -844,6 +844,7 @@ int attribute_align_arg avcodec_open2(AVCodecContext *avctx, AVCodec *codec, AVD
         ret = AVERROR(EINVAL);
         goto free_and_end;
     }
+
     if (av_codec_is_encoder(avctx->codec)) {
         int i;
         if (avctx->codec->sample_fmts) {
@@ -1757,8 +1758,11 @@ void avcodec_string(char *buf, int buf_size, AVCodecContext *enc, int encode)
     codec_type = av_get_media_type_string(enc->codec_type);
     codec_name = avcodec_get_name(enc->codec_id);
     if (enc->profile != FF_PROFILE_UNKNOWN) {
-        p = encode ? avcodec_find_encoder(enc->codec_id) :
-                     avcodec_find_decoder(enc->codec_id);
+        if (enc->codec)
+            p = enc->codec;
+        else
+            p = encode ? avcodec_find_encoder(enc->codec_id) :
+                        avcodec_find_decoder(enc->codec_id);
         if (p)
             profile = av_get_profile_name(p, enc->profile);
     }
@@ -1879,6 +1883,9 @@ void avcodec_flush_buffers(AVCodecContext *avctx)
         ff_thread_flush(avctx);
     else if(avctx->codec->flush)
         avctx->codec->flush(avctx);
+
+    avctx->pts_correction_last_pts =
+    avctx->pts_correction_last_dts = INT64_MIN;
 }
 
 static void video_free_buffers(AVCodecContext *s)

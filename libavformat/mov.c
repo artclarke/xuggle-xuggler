@@ -400,6 +400,8 @@ static int mov_read_dref(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     entries = avio_rb32(pb);
     if (entries >= UINT_MAX / sizeof(*sc->drefs))
         return AVERROR_INVALIDDATA;
+    av_free(sc->drefs);
+    sc->drefs_count = 0;
     sc->drefs = av_mallocz(entries * sizeof(*sc->drefs));
     if (!sc->drefs)
         return AVERROR(ENOMEM);
@@ -851,6 +853,7 @@ static int mov_read_smi(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     // currently SVQ3 decoder expect full STSD header - so let's fake it
     // this should be fixed and just SMI header should be passed
     av_free(st->codec->extradata);
+    st->codec->extradata_size = 0;
     st->codec->extradata = av_mallocz(atom.size + 0x5a + FF_INPUT_BUFFER_PADDING_SIZE);
     if (!st->codec->extradata)
         return AVERROR(ENOMEM);
@@ -987,6 +990,7 @@ static int mov_read_wave(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     if (st->codec->codec_id == CODEC_ID_QDM2 || st->codec->codec_id == CODEC_ID_QDMC) {
         // pass all frma atom to codec, needed at least for QDMC and QDM2
         av_free(st->codec->extradata);
+        st->codec->extradata_size = 0;
         st->codec->extradata = av_mallocz(atom.size + FF_INPUT_BUFFER_PADDING_SIZE);
         if (!st->codec->extradata)
             return AVERROR(ENOMEM);
@@ -1026,6 +1030,7 @@ static int mov_read_glbl(MOVContext *c, AVIOContext *pb, MOVAtom atom)
             return mov_read_default(c, pb, atom);
     }
     av_free(st->codec->extradata);
+    st->codec->extradata_size = 0;
     st->codec->extradata = av_mallocz(atom.size + FF_INPUT_BUFFER_PADDING_SIZE);
     if (!st->codec->extradata)
         return AVERROR(ENOMEM);
@@ -1051,6 +1056,7 @@ static int mov_read_dvc1(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         return 0;
 
     av_free(st->codec->extradata);
+    st->codec->extradata_size = 0;
     st->codec->extradata = av_mallocz(atom.size - 7 + FF_INPUT_BUFFER_PADDING_SIZE);
     if (!st->codec->extradata)
         return AVERROR(ENOMEM);
@@ -1079,6 +1085,7 @@ static int mov_read_strf(MOVContext *c, AVIOContext *pb, MOVAtom atom)
         return AVERROR_INVALIDDATA;
 
     av_free(st->codec->extradata);
+    st->codec->extradata_size = 0;
     st->codec->extradata = av_mallocz(atom.size - 40 + FF_INPUT_BUFFER_PADDING_SIZE);
     if (!st->codec->extradata)
         return AVERROR(ENOMEM);
@@ -1613,7 +1620,10 @@ static int mov_read_stss(MOVContext *c, AVIOContext *pb, MOVAtom atom)
     av_dlog(c->fc, "keyframe_count = %d\n", entries);
 
     if (!entries)
+    {
+        sc->keyframe_absent = 1;
         return 0;
+    }
     if (entries >= UINT_MAX / sizeof(int))
         return AVERROR_INVALIDDATA;
     sc->keyframes = av_malloc(entries * sizeof(int));
@@ -1842,7 +1852,7 @@ static void mov_build_index(MOVContext *mov, AVStream *st)
         unsigned int stts_sample = 0;
         unsigned int sample_size;
         unsigned int distance = 0;
-        int key_off = sc->keyframes && sc->keyframes[0] == 1;
+        int key_off = (sc->keyframe_count && sc->keyframes[0] > 0) || (sc->stps_data && sc->stps_data[0] > 0);
 
         current_dts -= sc->dts_shift;
 
@@ -1868,7 +1878,7 @@ static void mov_build_index(MOVContext *mov, AVStream *st)
                     return;
                 }
 
-                if (!sc->keyframe_count || current_sample+key_off == sc->keyframes[stss_index]) {
+                if (!sc->keyframe_absent && (!sc->keyframe_count || current_sample+key_off == sc->keyframes[stss_index])) {
                     keyframe = 1;
                     if (stss_index + 1 < sc->keyframe_count)
                         stss_index++;
@@ -2760,6 +2770,46 @@ static int mov_read_timecode_track(AVFormatContext *s, AVStream *st)
     return 0;
 }
 
+static int mov_read_close(AVFormatContext *s)
+{
+    MOVContext *mov = s->priv_data;
+    int i, j;
+
+    for (i = 0; i < s->nb_streams; i++) {
+        AVStream *st = s->streams[i];
+        MOVStreamContext *sc = st->priv_data;
+
+        av_freep(&sc->ctts_data);
+        for (j = 0; j < sc->drefs_count; j++) {
+            av_freep(&sc->drefs[j].path);
+            av_freep(&sc->drefs[j].dir);
+        }
+        av_freep(&sc->drefs);
+        if (sc->pb && sc->pb != s->pb)
+            avio_close(sc->pb);
+        sc->pb = NULL;
+        av_freep(&sc->chunk_offsets);
+        av_freep(&sc->keyframes);
+        av_freep(&sc->sample_sizes);
+        av_freep(&sc->stps_data);
+        av_freep(&sc->stsc_data);
+        av_freep(&sc->stts_data);
+    }
+
+    if (mov->dv_demux) {
+        for (i = 0; i < mov->dv_fctx->nb_streams; i++) {
+            av_freep(&mov->dv_fctx->streams[i]->codec);
+            av_freep(&mov->dv_fctx->streams[i]);
+        }
+        av_freep(&mov->dv_fctx);
+        av_freep(&mov->dv_demux);
+    }
+
+    av_freep(&mov->trex_data);
+
+    return 0;
+}
+
 static int mov_read_header(AVFormatContext *s)
 {
     MOVContext *mov = s->priv_data;
@@ -2777,10 +2827,12 @@ static int mov_read_header(AVFormatContext *s)
     /* check MOV header */
     if ((err = mov_read_default(mov, pb, atom)) < 0) {
         av_log(s, AV_LOG_ERROR, "error reading header: %d\n", err);
+        mov_read_close(s);
         return err;
     }
     if (!mov->found_moov) {
         av_log(s, AV_LOG_ERROR, "moov atom not found\n");
+        mov_read_close(s);
         return AVERROR_INVALIDDATA;
     }
     av_dlog(mov->fc, "on_parse_exit_offset=%"PRId64"\n", avio_tell(pb));
@@ -2980,39 +3032,6 @@ static int mov_read_seek(AVFormatContext *s, int stream_index, int64_t sample_ti
     return 0;
 }
 
-static int mov_read_close(AVFormatContext *s)
-{
-    MOVContext *mov = s->priv_data;
-    int i, j;
-
-    for (i = 0; i < s->nb_streams; i++) {
-        AVStream *st = s->streams[i];
-        MOVStreamContext *sc = st->priv_data;
-
-        av_freep(&sc->ctts_data);
-        for (j = 0; j < sc->drefs_count; j++) {
-            av_freep(&sc->drefs[j].path);
-            av_freep(&sc->drefs[j].dir);
-        }
-        av_freep(&sc->drefs);
-        if (sc->pb && sc->pb != s->pb)
-            avio_close(sc->pb);
-    }
-
-    if (mov->dv_demux) {
-        for (i = 0; i < mov->dv_fctx->nb_streams; i++) {
-            av_freep(&mov->dv_fctx->streams[i]->codec);
-            av_freep(&mov->dv_fctx->streams[i]);
-        }
-        av_freep(&mov->dv_fctx);
-        av_freep(&mov->dv_demux);
-    }
-
-    av_freep(&mov->trex_data);
-
-    return 0;
-}
-
 static const AVOption options[] = {
     {"use_absolute_path",
         "allow using absolute path when opening alias, this is a possible security issue",
@@ -3021,6 +3040,7 @@ static const AVOption options[] = {
     {NULL}
 };
 static const AVClass class = {"mov,mp4,m4a,3gp,3g2,mj2", av_default_item_name, options, LIBAVUTIL_VERSION_INT};
+
 
 AVInputFormat ff_mov_demuxer = {
     .name           = "mov,mp4,m4a,3gp,3g2,mj2",

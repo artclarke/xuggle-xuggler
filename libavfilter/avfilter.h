@@ -188,6 +188,15 @@ AVFilterBufferRef *avfilter_ref_buffer(AVFilterBufferRef *ref, int pmask);
 void avfilter_unref_buffer(AVFilterBufferRef *ref);
 
 /**
+ * Remove a reference to a buffer and set the pointer to NULL.
+ * If this is the last reference to the buffer, the buffer itself
+ * is also automatically freed.
+ *
+ * @param ref pointer to the buffer reference
+ */
+void avfilter_unref_bufferp(AVFilterBufferRef **ref);
+
+/**
  * A list of supported formats for one end of a filter link. This is used
  * during the format negotiation process to try to pick the best format to
  * use to minimize the number of necessary conversions. Each filter gives a
@@ -442,6 +451,8 @@ struct AVFilterPad {
      * Frame request callback. A call to this should result in at least one
      * frame being output over the given link. This should return zero on
      * success, and another value on error.
+     * See avfilter_request_frame() for the error codes with a specific
+     * meaning.
      *
      * Output video pads only.
      */
@@ -679,6 +690,29 @@ struct AVFilterLink {
     AVRational time_base;
 
     struct AVFilterPool *pool;
+
+    /**
+     * Graph the filter belongs to.
+     */
+    struct AVFilterGraph *graph;
+
+    /**
+     * Current timestamp of the link, as defined by the most recent
+     * frame(s), in AV_TIME_BASE units.
+     */
+    int64_t current_pts;
+
+    /**
+     * Private fields
+     *
+     * The following fields are for internal use only.
+     * Their type, offset, number and semantic can change without notice.
+     */
+
+    /**
+     * Index in the age array.
+     */
+    int age_index;
 };
 
 /**
@@ -768,7 +802,10 @@ avfilter_get_audio_buffer_ref_from_arrays(uint8_t *data[8], int linesize[8], int
  * Request an input frame from the filter at the other end of the link.
  *
  * @param link the input link
- * @return     zero on success
+ * @return     zero on success or a negative error code; in particular:
+ *             AVERROR_EOF means that the end of frames have been reached;
+ *             AVERROR(EAGAIN) means that no frame could be immediately
+ *             produced.
  */
 int avfilter_request_frame(AVFilterLink *link);
 

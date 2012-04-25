@@ -78,6 +78,7 @@ typedef struct {
     IVIPicConfig    pic_conf;
 
     int gop_invalid;
+    int buf_invalid[3];
 } IVI5DecContext;
 
 
@@ -167,6 +168,11 @@ static int decode_gop_header(IVI5DecContext *ctx, AVCodecContext *avctx)
             blk_size = 8 >> get_bits1(&ctx->gb);
             mb_size  = blk_size << !mb_size;
 
+            if (p==0 && blk_size==4) {
+                av_log(avctx, AV_LOG_ERROR, "4x4 luma blocks are unsupported!\n");
+                return AVERROR_PATCHWELCOME;
+            }
+
             blk_size_changed = mb_size != band->mb_size || blk_size != band->blk_size;
             if (blk_size_changed) {
                 band->mb_size  = mb_size;
@@ -184,30 +190,35 @@ static int decode_gop_header(IVI5DecContext *ctx, AVCodecContext *avctx)
                 band->inv_transform = ff_ivi_inverse_slant_8x8;
                 band->dc_transform  = ff_ivi_dc_slant_2d;
                 band->scan          = ff_zigzag_direct;
+                band->transform_size= 8;
                 break;
 
             case 1:
                 band->inv_transform = ff_ivi_row_slant8;
                 band->dc_transform  = ff_ivi_dc_row_slant;
                 band->scan          = ff_ivi_vertical_scan_8x8;
+                band->transform_size= 8;
                 break;
 
             case 2:
                 band->inv_transform = ff_ivi_col_slant8;
                 band->dc_transform  = ff_ivi_dc_col_slant;
                 band->scan          = ff_ivi_horizontal_scan_8x8;
+                band->transform_size= 8;
                 break;
 
             case 3:
                 band->inv_transform = ff_ivi_put_pixels_8x8;
                 band->dc_transform  = ff_ivi_put_dc_pixel_8x8;
                 band->scan          = ff_ivi_horizontal_scan_8x8;
+                band->transform_size= 8;
                 break;
 
             case 4:
                 band->inv_transform = ff_ivi_inverse_slant_4x4;
                 band->dc_transform  = ff_ivi_dc_slant_2d;
                 band->scan          = ff_ivi_direct_scan_4x4;
+                band->transform_size= 4;
                 break;
             }
 
@@ -258,6 +269,7 @@ static int decode_gop_header(IVI5DecContext *ctx, AVCodecContext *avctx)
         band2->inv_transform = band1->inv_transform;
         band2->dc_transform  = band1->dc_transform;
         band2->is_2d_trans   = band1->is_2d_trans;
+        band2->transform_size= band1->transform_size;
     }
 
     /* reallocate internal structures if needed */
@@ -342,6 +354,12 @@ static int decode_pic_hdr(IVI5DecContext *ctx, AVCodecContext *avctx)
         if (decode_gop_header(ctx, avctx))
             return -1;
         ctx->gop_invalid = 0;
+    }
+
+    if (ctx->frame_type == FRAMETYPE_INTER_SCAL && !ctx->is_scalable) {
+        av_log(avctx, AV_LOG_ERROR, "Scalable inter frame in non scaleable stream\n");
+        ctx->frame_type = FRAMETYPE_INTER;
+        return AVERROR_INVALIDDATA;
     }
 
     if (ctx->frame_type != FRAMETYPE_NULL) {
@@ -461,6 +479,12 @@ static int decode_mb_info(IVI5DecContext *ctx, IVIBandDesc *band,
     if (!ref_mb &&
         ((band->qdelta_present && band->inherit_qdelta) || band->inherit_mv))
         return AVERROR_INVALIDDATA;
+
+    if( tile->num_MBs != IVI_MBs_PER_TILE(tile->width, tile->height, band->mb_size) ){
+        av_log(avctx, AV_LOG_ERROR, "allocated tile size %d mismatches parameters %d\n",
+               tile->num_MBs, IVI_MBs_PER_TILE(tile->width, tile->height, band->mb_size));
+        return AVERROR_INVALIDDATA;
+    }
 
     /* scale factor for motion vectors */
     mv_scale = (ctx->planes[0].bands[0].mb_size >> 3) - (band->mb_size >> 3);
@@ -780,6 +804,7 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size,
     //{ START_TIMER;
 
     if (ctx->frame_type != FRAMETYPE_NULL) {
+        ctx->buf_invalid[ctx->dst_buf] = 1;
         for (p = 0; p < 3; p++) {
             for (b = 0; b < ctx->planes[p].num_bands; b++) {
                 result = decode_band(ctx, p, &ctx->planes[p].bands[b], avctx);
@@ -790,7 +815,10 @@ static int decode_frame(AVCodecContext *avctx, void *data, int *data_size,
                 }
             }
         }
+        ctx->buf_invalid[ctx->dst_buf] = 0;
     }
+    if (ctx->buf_invalid[ctx->dst_buf])
+        return -1;
 
     //STOP_TIMER("decode_planes"); }
 

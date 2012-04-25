@@ -160,6 +160,12 @@ void avfilter_unref_buffer(AVFilterBufferRef *ref)
     av_free(ref);
 }
 
+void avfilter_unref_bufferp(AVFilterBufferRef **ref)
+{
+    avfilter_unref_buffer(*ref);
+    *ref = NULL;
+}
+
 void avfilter_insert_pad(unsigned idx, unsigned *count, size_t padidx_off,
                          AVFilterPad **pads, AVFilterLink ***links,
                          AVFilterPad *newpad)
@@ -271,6 +277,8 @@ int avfilter_config_links(AVFilterContext *filter)
             link->src->inputs[0] : NULL;
 
         if (!link) continue;
+
+        link->current_pts = AV_NOPTS_VALUE;
 
         switch (link->init_state) {
         case AVLINK_INIT:
@@ -562,6 +570,15 @@ int avfilter_poll_frame(AVFilterLink *link)
     return min;
 }
 
+static void update_link_current_pts(AVFilterLink *link)
+{
+    if (link->cur_buf->pts == AV_NOPTS_VALUE)
+        return;
+    link->current_pts =  link->cur_buf->pts; /* TODO use duration */
+    if (link->graph && link->age_index >= 0)
+        ff_avfilter_graph_update_heap(link->graph, link);
+}
+
 /* XXX: should we do the duplicating of the picture ref here, instead of
  * forcing the source filter to do it? */
 void avfilter_start_frame(AVFilterLink *link, AVFilterBufferRef *picref)
@@ -602,6 +619,7 @@ void avfilter_start_frame(AVFilterLink *link, AVFilterBufferRef *picref)
     }
 
     start_frame(link, link->cur_buf);
+    update_link_current_pts(link);
 }
 
 void avfilter_end_frame(AVFilterLink *link)
@@ -706,6 +724,7 @@ void avfilter_filter_samples(AVFilterLink *link, AVFilterBufferRef *samplesref)
         link->cur_buf = samplesref;
 
     filter_samples(link, link->cur_buf);
+    update_link_current_pts(link);
 }
 
 #define MAX_REGISTERED_AVFILTERS_NB 128

@@ -179,7 +179,6 @@ External library support:
   --enable-libcdio         enable audio CD grabbing with libcdio
   --enable-libdc1394       enable IIDC-1394 grabbing using libdc1394
                            and libraw1394 [no]
-  --enable-libdirac        enable Dirac support via libdirac [no]
   --enable-libfaac         enable FAAC support via libfaac [no]
   --enable-libfreetype     enable libfreetype [no]
   --enable-libgsm          enable GSM support via libgsm [no]
@@ -1035,7 +1034,6 @@ CONFIG_LIST="
     libcdio
     libcelt
     libdc1394
-    libdirac
     libfaac
     libfreetype
     libgsm
@@ -1557,7 +1555,6 @@ h264_parser_select="golomb h264dsp h264pred"
 # external libraries
 libaacplus_encoder_deps="libaacplus"
 libcelt_decoder_deps="libcelt"
-libdirac_decoder_deps="libdirac !libschroedinger"
 libfaac_encoder_deps="libfaac"
 libgsm_decoder_deps="libgsm"
 libgsm_encoder_deps="libgsm"
@@ -1692,6 +1689,7 @@ ocv_filter_deps="libopencv"
 pan_filter_deps="swresample"
 removelogo_filter_deps="avcodec avformat swscale"
 scale_filter_deps="swscale"
+super2xsai_filter_deps="gpl"
 tinterlace_filter_deps="gpl"
 yadif_filter_deps="gpl"
 
@@ -1805,6 +1803,8 @@ test_deps _muxer _demuxer                                               \
     yuv4mpegpipe=yuv4mpeg                                               \
 
 ac3_fixed_test_deps="ac3_fixed_encoder ac3_decoder"
+colormatrix1_test_deps="colormatrix_filter"
+colormatrix2_test_deps="colormatrix_filter"
 flashsv2_test_deps="zlib"
 mpg_test_deps="mpeg1system_muxer mpegps_demuxer"
 mpng_test_deps="zlib"
@@ -2341,6 +2341,24 @@ elif $cc -v 2>&1 | grep -q Open64; then
     speed_cflags='-O2'
     size_cflags='-Os'
     filter_cflags='filter_out -Wdisabled-optimization|-Wtype-limits|-fno-signed-zeros'
+elif $cc -V 2>&1 | grep -q Portland; then
+    cc_type=pgi
+    cc_version='AV_STRINGIFY(__PGIC__.__PGIC_MINOR__.__PGIC_PATCHLEVEL__)'
+    cc_ident="PGI $($cc -V 2>&1 | awk '/^pgcc/ { print $2; exit }')"
+    opt_common='-alias=ansi -Mlre -Mpre'
+    speed_cflags="-O3 -Mautoinline -Munroll=c:4 $opt_common"
+    size_cflags="-O2 -Munroll=c:1 $opt_common"
+    noopt_cflags="-O1"
+    filter_cflags=pgi_flags
+    pgi_flags(){
+        for flag; do
+            case $flag in
+                -fomit-frame-pointer) echo -Mnoframe ;;
+                -g)                   echo -gopt ;;
+                *)                    echo $flag ;;
+            esac
+        done
+    }
 fi
 
 test -n "$cc_type" && enable $cc_type ||
@@ -2802,7 +2820,11 @@ case $target_os in
         ;;
 esac
 
-echo "config:$arch:$subarch:$cpu:$target_os:$cc_ident:$FFMPEG_CONFIGURATION" >config.fate
+esc(){
+    echo "$*" | sed 's/%/%25/g;s/:/%3a/g'
+}
+
+echo "config:$arch:$subarch:$cpu:$target_os:$(esc $cc_ident):$(esc $FFMPEG_CONFIGURATION)" >config.fate
 
 check_cpp_condition stdlib.h "defined(__PIC__) || defined(__pic__) || defined(PIC)" && enable pic
 
@@ -3175,9 +3197,6 @@ enabled libbluray  && require libbluray libbluray/bluray.h bd_open -lbluray
 enabled libcelt    && require libcelt celt/celt.h celt_decode -lcelt0 &&
                       { check_lib celt/celt.h celt_decoder_create_custom -lcelt0 ||
                         die "ERROR: libcelt version must be >= 0.11.0."; }
-enabled libdirac   && require_pkg_config dirac                          \
-    "libdirac_decoder/dirac_parser.h"  \
-    "dirac_decoder_init"
 enabled libfaac    && require2 libfaac "stdint.h faac.h" faacEncGetVersion -lfaac
 enabled libfreetype && require_pkg_config freetype2 "ft2build.h freetype/freetype.h" FT_Init_FreeType
 enabled libgsm     && require  libgsm gsm/gsm.h gsm_create -lgsm
@@ -3194,7 +3213,7 @@ enabled libschroedinger && require_pkg_config schroedinger-1.0 schroedinger/schr
 enabled libspeex   && require  libspeex speex/speex.h speex_decoder_init -lspeex
 enabled libstagefright_h264  && require_cpp libstagefright_h264 "binder/ProcessState.h media/stagefright/MetaData.h
     media/stagefright/MediaBufferGroup.h media/stagefright/MediaDebug.h media/stagefright/MediaDefs.h
-    media/stagefright/OMXClient.h media/stagefright/OMXCodec.h" android::OMXClient -lstagefright -lmedia -lutils -lbinder
+    media/stagefright/OMXClient.h media/stagefright/OMXCodec.h" android::OMXClient -lstagefright -lmedia -lutils -lbinder -lgnustl_static
 enabled libtheora  && require  libtheora theora/theoraenc.h th_info_init -ltheoraenc -ltheoradec -logg
 enabled libutvideo    && require_cpp utvideo "stdint.h stdlib.h utvideo/utvideo.h utvideo/Codec.h" 'CCodec*' -lutvideo -lstdc++
 enabled libv4l2    && require_pkg_config libv4l2 libv4l2.h v4l2_ioctl
@@ -3326,7 +3345,6 @@ check_cflags -Wdisabled-optimization
 check_cflags -Wpointer-arith
 check_cflags -Wredundant-decls
 check_cflags -Wno-pointer-sign
-check_cflags -Wcast-qual
 check_cflags -Wwrite-strings
 check_cflags -Wtype-limits
 check_cflags -Wundef
@@ -3548,7 +3566,6 @@ echo "libass enabled            ${libass-no}"
 echo "libcdio support           ${libcdio-no}"
 echo "libcelt enabled           ${libcelt-no}"
 echo "libdc1394 support         ${libdc1394-no}"
-echo "libdirac enabled          ${libdirac-no}"
 echo "libfaac enabled           ${libfaac-no}"
 echo "libgsm enabled            ${libgsm-no}"
 echo "libmodplug enabled        ${libmodplug-no}"

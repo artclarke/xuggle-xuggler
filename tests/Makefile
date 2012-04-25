@@ -5,7 +5,7 @@ VREF = fate-vsynth1-vref fate-vsynth2-vref
 REFS = $(AREF) $(VREF)
 
 $(VREF): ffmpeg$(EXESUF) tests/vsynth1/00.pgm tests/vsynth2/00.pgm
-$(AREF): ffmpeg$(EXESUF) tests/data/asynth1.sw tests/data/asynth-16000-1.sw
+$(AREF): ffmpeg$(EXESUF) tests/data/asynth1.sw tests/data/asynth-16000-1.wav
 $(AREF): CMP=
 
 ffservertest: ffserver$(EXESUF) tests/vsynth1/00.pgm tests/data/asynth1.sw
@@ -26,18 +26,10 @@ tests/vsynth2/00.pgm: tests/rotozoom$(HOSTEXESUF) | tests/vsynth2
 tests/data/asynth1.sw: tests/audiogen$(HOSTEXESUF) | tests/data
 	$(M)./$< $@
 
-tests/data/asynth-16000-1.sw: tests/audiogen$(HOSTEXESUF) | tests/data
-	$(M)./$< $@ 16000 1
+tests/data/asynth-%.wav: tests/audiogen$(HOSTEXESUF) | tests/data
+	$(M)./$< $@ $(subst -, ,$*)
 
-tests/data/mapchan-6ch.sw: tests/audiogen$(HOSTEXESUF)
-	@mkdir -p tests/data
-	$(M)./$< $@ 22050 6
-
-tests/data/mapchan-mono.sw: tests/audiogen$(HOSTEXESUF)
-	@mkdir -p tests/data
-	$(M)./$< $@ 22050 1
-
-tests/data/%.sw tests/vsynth%/00.pgm: TAG = GEN
+tests/data/%.sw tests/data/asynth% tests/vsynth%/00.pgm: TAG = GEN
 
 include $(SRC_PATH)/tests/fate/aac.mak
 include $(SRC_PATH)/tests/fate/ac3.mak
@@ -93,6 +85,7 @@ FATE_SEEK    = $(SEEK_TESTS:seek_%=fate-seek-%)
 FATE = $(FATE_ACODEC)                                                   \
        $(FATE_VCODEC)                                                   \
        $(FATE_LAVF)                                                     \
+       $(FATE_LIBAVUTIL)                                                \
        $(FATE_SEEK)                                                     \
 
 FATE-$(CONFIG_AVFILTER) += $(FATE_LAVFI)

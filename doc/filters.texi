@@ -14,11 +14,13 @@ number of input and output pads of the filter.
 A filter with no input pads is called a "source", a filter with no
 output pads is called a "sink".
 
+@anchor{Filtergraph syntax}
 @section Filtergraph syntax
 
-A filtergraph can be represented using a textual representation, which
-is recognized by the @code{-vf} option of the ff*
-tools, and by the @code{avfilter_graph_parse()} function defined in
+A filtergraph can be represented using a textual representation, which is
+recognized by the @option{-filter}/@option{-vf} and @option{-filter_complex}
+options in @command{ffmpeg} and @option{-vf} in @command{ffplay}, and by the
+@code{avfilter_graph_parse()}/@code{avfilter_graph_parse2()} function defined in
 @file{libavfilter/avfiltergraph.h}.
 
 A filterchain consists of a sequence of connected filters, each one
@@ -76,6 +78,12 @@ In a complete filterchain all the unlabelled filter input and output
 pads must be connected. A filtergraph is considered valid if all the
 filter input and output pads of all the filterchains are connected.
 
+Libavfilter will automatically insert scale filters where format
+conversion is required. It is possible to specify swscale flags
+for those automatically inserted scalers by prepending
+@code{sws_flags=@var{flags};}
+to the filtergraph description.
+
 Follows a BNF description for the filtergraph syntax:
 @example
 @var{NAME}             ::= sequence of alphanumeric characters and '_'
@@ -84,7 +92,7 @@ Follows a BNF description for the filtergraph syntax:
 @var{FILTER_ARGUMENTS} ::= sequence of chars (eventually quoted)
 @var{FILTER}           ::= [@var{LINKNAMES}] @var{NAME} ["=" @var{ARGUMENTS}] [@var{LINKNAMES}]
 @var{FILTERCHAIN}      ::= @var{FILTER} [,@var{FILTERCHAIN}]
-@var{FILTERGRAPH}      ::= @var{FILTERCHAIN} [;@var{FILTERGRAPH}]
+@var{FILTERGRAPH}      ::= [sws_flags=@var{flags};] @var{FILTERCHAIN} [;@var{FILTERGRAPH}]
 @end example
 
 @c man end FILTERGRAPH DESCRIPTION
@@ -1865,7 +1873,6 @@ the named filter.
 
 The list of the currently supported filters follows:
 @table @var
-@item 2xsai
 @item decimate
 @item denoise3d
 @item detc
@@ -1889,7 +1896,6 @@ The list of the currently supported filters follows:
 @item ivtc
 @item kerndeint
 @item mcdeint
-@item mirror
 @item noise
 @item ow
 @item palette
@@ -2108,15 +2114,12 @@ Follow some examples:
 overlay=main_w-overlay_w-10:main_h-overlay_h-10
 
 # insert a transparent PNG logo in the bottom left corner of the input
-movie=logo.png [logo];
-[in][logo] overlay=10:main_h-overlay_h-10 [out]
+ffmpeg -i input -i logo -filter_complex 'overlay=10:main_h-overlay_h-10' output
 
 # insert 2 different transparent PNG logos (second logo on bottom
 # right corner):
-movie=logo1.png [logo1];
-movie=logo2.png [logo2];
-[in][logo1]       overlay=10:H-h-10 [in+logo1];
-[in+logo1][logo2] overlay=W-w-10:H-h-10 [out]
+ffmpeg -i input -i logo1 -i logo2 -filter_complex
+'overlay=10:H-h-10,overlay=W-w-10:H-h-10' output
 
 # add a transparent color layer on top of the main video,
 # WxH specifies the size of the main input to the overlay filter
@@ -2531,19 +2534,21 @@ Force field for the output video frame.
 The @code{setfield} filter marks the interlace type field for the
 output frames. It does not change the input frame, but only sets the
 corresponding property, which affects how the frame is treated by
-followig filters (e.g. @code{fieldorder} or @code{yadif}).
+following filters (e.g. @code{fieldorder} or @code{yadif}).
 
-It accepts a parameter representing an integer or a string, which can
-assume the following values:
+It accepts a string parameter, which can assume the following values:
 @table @samp
-@item -1, auto
+@item auto
 Keep the same field property.
 
-@item 0, bff
+@item bff
 Mark the frame as bottom-field-first.
 
-@item 1, tff
+@item tff
 Mark the frame as top-field-first.
+
+@item prog
+Mark the frame as progressive.
 @end table
 
 @section setpts
@@ -2715,6 +2720,13 @@ For example:
 
 will create two separate outputs from the same input, one cropped and
 one padded.
+
+@section super2xsai
+
+Scale the input by 2x and smooth using the Super2xSaI (Scale and
+Interpolate) pixel art scaling algorithm.
+
+Useful for enlarging pixel art images without reducing sharpness.
 
 @section swapuv
 Swap U & V plane.

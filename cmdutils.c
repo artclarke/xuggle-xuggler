@@ -54,6 +54,7 @@
 #endif
 
 struct SwsContext *sws_opts;
+SwrContext *swr_opts;
 AVDictionary *format_opts, *codec_opts;
 
 const int this_year = 2012;
@@ -66,6 +67,7 @@ void init_opts(void)
     sws_opts = sws_getContext(16, 16, 0, 16, 16, 0, SWS_BICUBIC,
                               NULL, NULL, NULL);
 #endif
+    swr_opts = swr_alloc();
 }
 
 void uninit_opts(void)
@@ -74,6 +76,7 @@ void uninit_opts(void)
     sws_freeContext(sws_opts);
     sws_opts = NULL;
 #endif
+    swr_free(&swr_opts);
     av_dict_free(&format_opts);
     av_dict_free(&codec_opts);
 }
@@ -415,10 +418,10 @@ void parse_loglevel(int argc, char **argv, const OptionDef *options)
 #define FLAGS(o) ((o)->type == AV_OPT_TYPE_FLAGS) ? AV_DICT_APPEND : 0
 int opt_default(const char *opt, const char *arg)
 {
-    const AVOption *oc, *of, *os;
+    const AVOption *oc, *of, *os, *oswr = NULL;
     char opt_stripped[128];
     const char *p;
-    const AVClass *cc = avcodec_get_class(), *fc = avformat_get_class(), *sc;
+    const AVClass *cc = avcodec_get_class(), *fc = avformat_get_class(), *sc, *swr_class;
 
     if (!(p = strchr(opt, ':')))
         p = opt + strlen(opt);
@@ -444,8 +447,17 @@ int opt_default(const char *opt, const char *arg)
         }
     }
 #endif
+    swr_class = swr_get_class();
+    if (!oc && !of && !os && (oswr = av_opt_find(&swr_class, opt, NULL, 0,
+                          AV_OPT_SEARCH_CHILDREN | AV_OPT_SEARCH_FAKE_OBJ))) {
+        int ret = av_opt_set(swr_opts, opt, arg, 0);
+        if (ret < 0) {
+            av_log(NULL, AV_LOG_ERROR, "Error setting option %s.\n", opt);
+            return ret;
+        }
+    }
 
-    if (oc || of || os)
+    if (oc || of || os || oswr)
         return 0;
     av_log(NULL, AV_LOG_ERROR, "Unrecognized option '%s'\n", opt);
     return AVERROR_OPTION_NOT_FOUND;
@@ -553,6 +565,14 @@ int opt_cpuflags(const char *opt, const char *arg)
         { "fma4"    , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_FMA4     },    .unit = "flags" },
         { "3dnow"   , NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_3DNOW    },    .unit = "flags" },
         { "3dnowext", NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_3DNOWEXT },    .unit = "flags" },
+
+        { "armv5te",  NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_ARMV5TE  },    .unit = "flags" },
+        { "armv6",    NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_ARMV6    },    .unit = "flags" },
+        { "armv6t2",  NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_ARMV6T2  },    .unit = "flags" },
+        { "vfp",      NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_VFP      },    .unit = "flags" },
+        { "vfpv3",    NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_VFPV3    },    .unit = "flags" },
+        { "neon",     NULL, 0, AV_OPT_TYPE_CONST, { AV_CPU_FLAG_NEON     },    .unit = "flags" },
+
         { NULL },
     };
     static const AVClass class = {

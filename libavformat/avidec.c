@@ -704,7 +704,7 @@ static int avi_read_header(AVFormatContext *s)
 
                 if(size<(1<<30)){
                     st->codec->extradata_size= size;
-                    st->codec->extradata= av_malloc(st->codec->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE);
+                    st->codec->extradata= av_mallocz(st->codec->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE);
                     if (!st->codec->extradata) {
                         st->codec->extradata_size= 0;
                         return AVERROR(ENOMEM);
@@ -895,6 +895,10 @@ static int get_stream_idx(int *d){
     }
 }
 
+/**
+ *
+ * @param exit_early set to 1 to just gather packet position without making the changes needed to actually read & return the packet
+ */
 static int avi_sync(AVFormatContext *s, int exit_early)
 {
     AVIContext *avi = s->priv_data;
@@ -953,6 +957,11 @@ start_sync:
             AVIStream *ast;
             st = s->streams[n];
             ast = st->priv_data;
+
+            if (!ast) {
+                av_log(s, AV_LOG_WARNING, "Skiping foreign stream %d packet\n", n);
+                continue;
+            }
 
             if(s->nb_streams>=2){
                 AVStream *st1  = s->streams[1];
@@ -1125,6 +1134,7 @@ resync:
         err= av_get_packet(pb, pkt, size);
         if(err<0)
             return err;
+        size = err;
 
         if(ast->has_pal && pkt->data && pkt->size<(unsigned)INT_MAX/2){
             uint8_t *pal;
@@ -1235,6 +1245,7 @@ static int avi_read_idx1(AVFormatContext *s, int size)
     AVIStream *ast;
     unsigned int index, tag, flags, pos, len, first_packet = 1;
     unsigned last_pos= -1;
+    unsigned last_len= 0;
     int64_t idx1_pos, first_packet_pos = 0, data_offset = 0;
 
     nb_index_entries = size / 16;
@@ -1277,12 +1288,16 @@ static int avi_read_idx1(AVFormatContext *s, int size)
         av_dlog(s, "%d cum_len=%"PRId64"\n", len, ast->cum_len);
 
 
+        // even if we have only a single stream, we should
+        // switch to non-interleaved to get correct timestamps
         if(last_pos == pos)
             avi->non_interleaved= 1;
-        else if(len || !ast->sample_size)
+        if((last_pos != pos || !last_len) && (len || !ast->sample_size)) {
             av_add_index_entry(st, pos, ast->cum_len, len, 0, (flags&AVIIF_INDEX) ? AVINDEX_KEYFRAME : 0);
+        }
         ast->cum_len += get_duration(ast, len);
         last_pos= pos;
+        last_len= len;
     }
     return 0;
 }
