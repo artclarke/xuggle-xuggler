@@ -403,7 +403,6 @@ void avcodec_register_all(void)
 
     /* external libraries */
     REGISTER_DECODER (LIBCELT, libcelt);
-    REGISTER_DECODER (LIBDIRAC, libdirac);
     REGISTER_ENCODER (LIBFAAC, libfaac);
     REGISTER_ENCDEC  (LIBGSM, libgsm);
     REGISTER_ENCDEC  (LIBGSM_MS, libgsm_ms);
@@ -437,6 +436,7 @@ void avcodec_register_all(void)
     REGISTER_PARSER  (AC3, ac3);
     REGISTER_PARSER  (ADX, adx);
     REGISTER_PARSER  (CAVSVIDEO, cavsvideo);
+    REGISTER_PARSER  (COOK, cook);
     REGISTER_PARSER  (DCA, dca);
     REGISTER_PARSER  (DIRAC, dirac);
     REGISTER_PARSER  (DNXHD, dnxhd);

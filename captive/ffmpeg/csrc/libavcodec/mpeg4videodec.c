@@ -2292,6 +2292,7 @@ static const AVProfile mpeg4_video_profiles[] = {
     { FF_PROFILE_MPEG4_ADVANCED_SCALABLE_TEXTURE, "Advanced Scalable Texture Profile" },
     { FF_PROFILE_MPEG4_SIMPLE_STUDIO,             "Simple Studio Profile" },
     { FF_PROFILE_MPEG4_ADVANCED_SIMPLE,           "Advanced Simple Profile" },
+    { FF_PROFILE_UNKNOWN },
 };
 
 static const AVOption mpeg4_options[] = {
@@ -2326,7 +2327,6 @@ AVCodec ff_mpeg4_decoder = {
                              CODEC_CAP_TRUNCATED | CODEC_CAP_DELAY |
                              CODEC_CAP_FRAME_THREADS,
     .flush                 = ff_mpeg_flush,
-    .max_lowres            = 3,
     .long_name             = NULL_IF_CONFIG_SMALL("MPEG-4 part 2"),
     .pix_fmts              = ff_hwaccel_pixfmt_list_420,
     .profiles              = NULL_IF_CONFIG_SMALL(mpeg4_video_profiles),

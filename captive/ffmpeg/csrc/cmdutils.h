@@ -51,6 +51,7 @@ extern const int this_year;
 extern AVCodecContext *avcodec_opts[AVMEDIA_TYPE_NB];
 extern AVFormatContext *avformat_opts;
 extern struct SwsContext *sws_opts;
+extern struct SwrContext *swr_opts;
 extern AVDictionary *format_opts, *codec_opts;
 
 /**
@@ -368,6 +369,7 @@ int cmdutils_read_file(const char *filename, char **bufptr, size_t *size);
  */
 FILE *get_preset_file(char *filename, size_t filename_size,
                       const char *preset_name, int is_path, const char *codec_name);
+
 
 /**
  * Do all the necessary cleanup and abort.

@@ -1733,6 +1733,10 @@ static int decode_frame_adu(AVCodecContext *avctx, void *data,
     s->frame_size = len;
 
     out_size = mp_decode_frame(s, NULL, buf, buf_size);
+    if (out_size < 0) {
+        av_log(avctx, AV_LOG_ERROR, "Error while decoding MPEG audio frame.\n");
+        return AVERROR_INVALIDDATA;
+    }
 
     *got_frame_ptr   = 1;
     *(AVFrame *)data = s->frame;
@@ -1898,7 +1902,7 @@ static int decode_frame_mp3on4(AVCodecContext *avctx, void *data,
     int fr, j, n, ch, ret;
 
     /* get output buffer */
-    s->frame->nb_samples = MPA_FRAME_SIZE;
+    s->frame->nb_samples = s->frames * MPA_FRAME_SIZE;
     if ((ret = avctx->get_buffer(avctx, s->frame)) < 0) {
         av_log(avctx, AV_LOG_ERROR, "get_buffer() failed\n");
         return ret;

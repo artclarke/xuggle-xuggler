@@ -149,7 +149,7 @@ static int decode_dds1(GetByteContext *gb, uint8_t *frame, int width, int height
             bitbuf = bytestream2_get_le16u(gb);
             mask = 1;
         }
-        if (frame_end - frame < 2)
+        if (frame_end - frame < width + 2)
             return -1;
         if (bitbuf & mask) {
             v = bytestream2_get_le16(gb);
@@ -242,6 +242,8 @@ static int decode_wdlt(GetByteContext *gb, uint8_t *frame, int width, int height
             frame    += delta;
             segments = bytestream2_get_le16(gb);
         }
+        if (frame_end <= frame)
+            return -1;
         if (segments & 0x8000) {
             frame[width - 1] = segments & 0xFF;
             segments = bytestream2_get_le16(gb);

@@ -326,6 +326,10 @@ static int lag_decode_zero_run_line(LagarithContext *l, uint8_t *dst,
 output_zeros:
     if (l->zeros_rem) {
         count = FFMIN(l->zeros_rem, width - i);
+        if(end - dst < count) {
+            av_log(l->avctx, AV_LOG_ERROR, "too many zeros remaining\n");
+            return AVERROR_INVALIDDATA;
+        }
         memset(dst, 0, count);
         l->zeros_rem -= count;
         dst += count;
@@ -502,7 +506,8 @@ static int lag_decode_frame(AVCodecContext *avctx,
         offset_ry += 4;
         offs[3] = AV_RL32(buf + 9);
     case FRAME_ARITH_RGB24:
-        if (frametype == FRAME_ARITH_RGB24)
+    case FRAME_U_RGB24:
+        if (frametype == FRAME_ARITH_RGB24 || frametype == FRAME_U_RGB24)
             avctx->pix_fmt = PIX_FMT_RGB24;
 
         if (avctx->get_buffer(avctx, p) < 0) {

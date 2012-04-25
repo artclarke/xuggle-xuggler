@@ -1600,6 +1600,10 @@ static int input_get_buffer(AVCodecContext *codec, AVFrame *pic)
     pic->opaque = ref;
     pic->type   = FF_BUFFER_TYPE_USER;
     pic->reordered_opaque = codec->reordered_opaque;
+    pic->width               = codec->width;
+    pic->height              = codec->height;
+    pic->format              = codec->pix_fmt;
+    pic->sample_aspect_ratio = codec->sample_aspect_ratio;
     if (codec->pkt) pic->pkt_pts = codec->pkt->pts;
     else            pic->pkt_pts = AV_NOPTS_VALUE;
     return 0;
@@ -1740,9 +1744,9 @@ static AVFilter input_filter =
 
 static int configure_video_filters(AVFilterGraph *graph, VideoState *is, const char *vfilters)
 {
+    static const enum PixelFormat pix_fmts[] = { PIX_FMT_YUV420P, PIX_FMT_NONE };
     char sws_flags_str[128];
     int ret;
-    enum PixelFormat pix_fmts[] = { PIX_FMT_YUV420P, PIX_FMT_NONE };
     AVBufferSinkParams *buffersink_params = av_buffersink_params_alloc();
     AVFilterContext *filt_src = NULL, *filt_out = NULL;
     snprintf(sws_flags_str, sizeof(sws_flags_str), "flags=%d", sws_flags);
@@ -1882,6 +1886,7 @@ static int video_thread(void *arg)
     }
  the_end:
 #if CONFIG_AVFILTER
+    av_freep(&vfilters);
     avfilter_graph_free(&graph);
 #endif
     av_free(frame);

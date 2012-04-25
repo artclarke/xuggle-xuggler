@@ -589,6 +589,10 @@ int avformat_open_input(AVFormatContext **ps, const char *filename, AVInputForma
 
     if (!s && !(s = avformat_alloc_context()))
         return AVERROR(ENOMEM);
+    if (!s->av_class){
+        av_log(0, AV_LOG_ERROR, "Input context has not been properly allocated by avformat_alloc_context() and is not NULL either\n");
+        return AVERROR(EINVAL);
+    }
     if (fmt)
         s->iformat = fmt;
 
@@ -1065,8 +1069,11 @@ static void compute_pkt_fields(AVFormatContext *s, AVStream *st,
             if(pkt->pts != AV_NOPTS_VALUE && duration){
                 int64_t old_diff= FFABS(st->cur_dts - duration - pkt->pts);
                 int64_t new_diff= FFABS(st->cur_dts - pkt->pts);
-                if(old_diff < new_diff && old_diff < (duration>>3)){
+                if(   old_diff < new_diff && old_diff < (duration>>3)
+                   && (!strcmp(s->iformat->name, "mpeg") ||
+                       !strcmp(s->iformat->name, "mpegts"))){
                     pkt->pts += duration;
+                    av_log(s, AV_LOG_WARNING, "Adjusting PTS forward\n");
     //                av_log(NULL, AV_LOG_DEBUG, "id:%d old:%"PRId64" new:%"PRId64" dur:%d cur:%"PRId64" size:%d\n", pkt->stream_index, old_diff, new_diff, pkt->duration, st->cur_dts, pkt->size);
                 }
             }
@@ -1311,6 +1318,12 @@ static int read_frame_internal(AVFormatContext *s, AVPacket *pkt)
         } else {
             /* free packet */
             av_free_packet(&cur_pkt);
+        }
+        if (pkt->flags & AV_PKT_FLAG_KEY)
+            st->skip_to_keyframe = 0;
+        if (st->skip_to_keyframe) {
+            av_free_packet(&cur_pkt);
+            got_packet = 0;
         }
     }
 
@@ -1972,6 +1985,8 @@ static int has_duration(AVFormatContext *ic)
         if (st->duration != AV_NOPTS_VALUE)
             return 1;
     }
+    if (ic->duration)
+        return 1;
     return 0;
 }
 
@@ -2407,6 +2422,9 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
     int orig_nb_streams = ic->nb_streams;        // new streams might appear, no options for those
     int flush_codecs = 1;
 
+    if(ic->pb)
+        av_log(ic, AV_LOG_DEBUG, "File position before avformat_find_stream_info() is %"PRId64"\n", avio_tell(ic->pb));
+
     for(i=0;i<ic->nb_streams;i++) {
         AVCodec *codec;
         AVDictionary *thread_opt = NULL;
@@ -2504,6 +2522,12 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
         if (read_size >= ic->probesize) {
             ret = count;
             av_log(ic, AV_LOG_DEBUG, "Probe buffer size limit %d reached\n", ic->probesize);
+            for (i = 0; i < ic->nb_streams; i++)
+                if (!ic->streams[i]->r_frame_rate.num &&
+                    ic->streams[i]->info->duration_count <= 1)
+                    av_log(ic, AV_LOG_WARNING,
+                           "Stream #%d: not enough frames to estimate rate; "
+                           "consider increasing probesize\n", i);
             break;
         }
 
@@ -2720,6 +2744,8 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
             ic->streams[i]->codec->thread_count = 0;
         av_freep(&ic->streams[i]->info);
     }
+    if(ic->pb)
+        av_log(ic, AV_LOG_DEBUG, "File position after avformat_find_stream_info() is %"PRId64"\n", avio_tell(ic->pb));
     return ret;
 }
 
@@ -3567,6 +3593,8 @@ int av_write_trailer(AVFormatContext *s)
     if(s->oformat->write_trailer)
         ret = s->oformat->write_trailer(s);
 fail:
+    if (s->pb)
+       avio_flush(s->pb);
     if(ret == 0)
        ret = s->pb ? s->pb->error : 0;
     for(i=0;i<s->nb_streams;i++) {

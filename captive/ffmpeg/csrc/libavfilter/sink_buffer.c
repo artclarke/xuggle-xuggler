@@ -126,6 +126,8 @@ int av_buffersink_get_buffer_ref(AVFilterContext *ctx,
 
     /* no picref available, fetch it from the filterchain */
     if (!av_fifo_size(buf->fifo)) {
+        if (flags & AV_BUFFERSINK_FLAG_NO_REQUEST)
+            return AVERROR(EAGAIN);
         if ((ret = avfilter_request_frame(inlink)) < 0)
             return ret;
     }
@@ -165,9 +167,9 @@ static av_cold int vsink_init(AVFilterContext *ctx, const char *args, void *opaq
     av_unused AVBufferSinkParams *params;
 
     if (!opaque) {
-        av_log(ctx, AV_LOG_ERROR,
+        av_log(ctx, AV_LOG_WARNING,
                "No opaque field provided\n");
-        return AVERROR(EINVAL);
+        buf->pixel_fmts = NULL;
     } else {
 #if FF_API_OLD_VSINK_API
         const int *pixel_fmts = (const enum PixelFormat *)opaque;
@@ -194,7 +196,11 @@ static int vsink_query_formats(AVFilterContext *ctx)
 {
     BufferSinkContext *buf = ctx->priv;
 
-    avfilter_set_common_pixel_formats(ctx, avfilter_make_format_list(buf->pixel_fmts));
+    if (buf->pixel_fmts)
+        avfilter_set_common_pixel_formats(ctx, avfilter_make_format_list(buf->pixel_fmts));
+    else
+        avfilter_default_query_formats(ctx);
+
     return 0;
 }
 

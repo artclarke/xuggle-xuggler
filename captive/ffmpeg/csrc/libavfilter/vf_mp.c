@@ -121,7 +121,6 @@ static const struct {
 
 //copied from vf.c
 extern const vf_info_t vf_info_1bpp;
-extern const vf_info_t vf_info_2xsai;
 extern const vf_info_t vf_info_ass;
 extern const vf_info_t vf_info_bmovl;
 extern const vf_info_t vf_info_crop;
@@ -156,7 +155,6 @@ extern const vf_info_t vf_info_kerndeint;
 extern const vf_info_t vf_info_lavc;
 extern const vf_info_t vf_info_lavcdeint;
 extern const vf_info_t vf_info_mcdeint;
-extern const vf_info_t vf_info_mirror;
 extern const vf_info_t vf_info_noformat;
 extern const vf_info_t vf_info_noise;
 extern const vf_info_t vf_info_ow;
@@ -192,7 +190,6 @@ extern const vf_info_t vf_info_zrmjpeg;
 
 
 static const vf_info_t* const filters[]={
-    &vf_info_2xsai,
     &vf_info_decimate,
     &vf_info_denoise3d,
     &vf_info_detc,
@@ -217,7 +214,6 @@ static const vf_info_t* const filters[]={
     &vf_info_ivtc,
     &vf_info_kerndeint,
     &vf_info_mcdeint,
-    &vf_info_mirror,
     &vf_info_noise,
     &vf_info_ow,
     &vf_info_palette,

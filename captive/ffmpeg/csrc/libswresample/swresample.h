@@ -30,7 +30,7 @@
 #include "libavutil/samplefmt.h"
 
 #define LIBSWRESAMPLE_VERSION_MAJOR 0
-#define LIBSWRESAMPLE_VERSION_MINOR 10
+#define LIBSWRESAMPLE_VERSION_MINOR 11
 #define LIBSWRESAMPLE_VERSION_MICRO 100
 
 #define LIBSWRESAMPLE_VERSION_INT  AV_VERSION_INT(LIBSWRESAMPLE_VERSION_MAJOR, \
@@ -45,8 +45,23 @@
 //TODO use int resample ?
 //long term TODO can we enable this dynamically?
 
+enum SwrDitherType {
+    SWR_DITHER_NONE = 0,
+    SWR_DITHER_RECTANGULAR,
+    SWR_DITHER_TRIANGULAR,
+    SWR_DITHER_TRIANGULAR_HIGHPASS,
+    SWR_DITHER_NB,              ///< not part of API/ABI
+};
 
 typedef struct SwrContext SwrContext;
+
+/**
+ * Get the AVClass for swrContext. It can be used in combination with
+ * AV_OPT_SEARCH_FAKE_OBJ for examining options.
+ *
+ * @see av_opt_find().
+ */
+const AVClass *swr_get_class(void);
 
 /**
  * Allocate SwrContext.

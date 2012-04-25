@@ -29,6 +29,7 @@
  */
 
 #include <stdio.h>
+#include "libavutil/avassert.h"
 #include "oggdec.h"
 #include "avformat.h"
 #include "internal.h"
@@ -246,6 +247,9 @@ static int ogg_read_page(AVFormatContext *s, int *str)
     if (idx < 0){
         if (ogg->headers) {
             int n;
+
+            if (ogg->nstreams != 1)
+                return idx;
 
             for (n = 0; n < ogg->nstreams; n++) {
                 av_freep(&ogg->streams[n].buf);
@@ -687,6 +691,7 @@ static int ogg_read_seek(AVFormatContext *s, int stream_index,
     struct ogg_stream *os = ogg->streams + stream_index;
     int ret;
 
+    av_assert0(stream_index < ogg->nstreams);
     // Ensure everything is reset even when seeking via
     // the generated index.
     ogg_reset(ogg);

@@ -24,6 +24,8 @@
 #include <string.h>
 
 #include "libavutil/audioconvert.h"
+#include "libavutil/avassert.h"
+#include "libavutil/pixdesc.h"
 #include "avfilter.h"
 #include "avfiltergraph.h"
 #include "internal.h"
@@ -53,6 +55,7 @@ void avfilter_graph_free(AVFilterGraph **graph)
         return;
     for (; (*graph)->filter_count > 0; (*graph)->filter_count--)
         avfilter_free((*graph)->filters[(*graph)->filter_count - 1]);
+    av_freep(&(*graph)->sink_links);
     av_freep(&(*graph)->scale_sws_opts);
     av_freep(&(*graph)->filters);
     av_freep(graph);
@@ -252,10 +255,23 @@ static int query_formats(AVFilterGraph *graph, AVClass *log_ctx)
     return 0;
 }
 
-static void pick_format(AVFilterLink *link)
+static void pick_format(AVFilterLink *link, AVFilterLink *ref)
 {
     if (!link || !link->in_formats)
         return;
+
+    if (link->type == AVMEDIA_TYPE_VIDEO) {
+        if(ref && ref->type == AVMEDIA_TYPE_VIDEO){
+            int has_alpha= av_pix_fmt_descriptors[ref->format].nb_components % 2 == 0;
+            enum PixelFormat best= PIX_FMT_NONE;
+            int i;
+            for (i=0; i<link->in_formats->format_count; i++) {
+                enum PixelFormat p = link->in_formats->formats[i];
+                best= avcodec_find_best_pix_fmt2(best, p, ref->format, has_alpha, NULL);
+            }
+            link->in_formats->formats[0] = best;
+        }
+    }
 
     link->in_formats->format_count = 1;
     link->format = link->in_formats->formats[0];
@@ -324,11 +340,21 @@ static void pick_formats(AVFilterGraph *graph)
 
     for (i = 0; i < graph->filter_count; i++) {
         AVFilterContext *filter = graph->filters[i];
-
-        for (j = 0; j < filter->input_count; j++)
-            pick_format(filter->inputs[j]);
-        for (j = 0; j < filter->output_count; j++)
-            pick_format(filter->outputs[j]);
+        if (filter->input_count && filter->output_count) {
+            for (j = 0; j < filter->input_count; j++)
+                pick_format(filter->inputs[j], NULL);
+            for (j = 0; j < filter->output_count; j++)
+                pick_format(filter->outputs[j], filter->inputs[0]);
+        }
+    }
+    for (i = 0; i < graph->filter_count; i++) {
+        AVFilterContext *filter = graph->filters[i];
+        if (!(filter->input_count && filter->output_count)) {
+            for (j = 0; j < filter->input_count; j++)
+                pick_format(filter->inputs[j], NULL);
+            for (j = 0; j < filter->output_count; j++)
+                pick_format(filter->outputs[j], NULL);
+        }
     }
 }
 
@@ -350,6 +376,48 @@ int ff_avfilter_graph_config_formats(AVFilterGraph *graph, AVClass *log_ctx)
     return 0;
 }
 
+static int ff_avfilter_graph_config_pointers(AVFilterGraph *graph,
+                                             AVClass *log_ctx)
+{
+    unsigned i, j;
+    int sink_links_count = 0, n = 0;
+    AVFilterContext *f;
+    AVFilterLink **sinks;
+
+    for (i = 0; i < graph->filter_count; i++) {
+        f = graph->filters[i];
+        for (j = 0; j < f->input_count; j++) {
+            f->inputs[j]->graph     = graph;
+            f->inputs[j]->age_index = -1;
+        }
+        for (j = 0; j < f->output_count; j++) {
+            f->outputs[j]->graph    = graph;
+            f->outputs[j]->age_index= -1;
+        }
+        if (!f->output_count) {
+            if (f->input_count > INT_MAX - sink_links_count)
+                return AVERROR(EINVAL);
+            sink_links_count += f->input_count;
+        }
+    }
+    sinks = av_calloc(sink_links_count, sizeof(*sinks));
+    if (!sinks)
+        return AVERROR(ENOMEM);
+    for (i = 0; i < graph->filter_count; i++) {
+        f = graph->filters[i];
+        if (!f->output_count) {
+            for (j = 0; j < f->input_count; j++) {
+                sinks[n] = f->inputs[j];
+                f->inputs[j]->age_index = n++;
+            }
+        }
+    }
+    av_assert0(n == sink_links_count);
+    graph->sink_links       = sinks;
+    graph->sink_links_count = sink_links_count;
+    return 0;
+}
+
 int avfilter_graph_config(AVFilterGraph *graphctx, void *log_ctx)
 {
     int ret;
@@ -359,6 +427,8 @@ int avfilter_graph_config(AVFilterGraph *graphctx, void *log_ctx)
     if ((ret = ff_avfilter_graph_config_formats(graphctx, log_ctx)))
         return ret;
     if ((ret = ff_avfilter_graph_config_links(graphctx, log_ctx)))
+        return ret;
+    if ((ret = ff_avfilter_graph_config_pointers(graphctx, log_ctx)))
         return ret;
 
     return 0;
@@ -420,4 +490,66 @@ int avfilter_graph_queue_command(AVFilterGraph *graph, const char *target, const
     }
 
     return 0;
+}
+
+static void heap_bubble_up(AVFilterGraph *graph,
+                           AVFilterLink *link, int index)
+{
+    AVFilterLink **links = graph->sink_links;
+
+    while (index) {
+        int parent = (index - 1) >> 1;
+        if (links[parent]->current_pts >= link->current_pts)
+            break;
+        links[index] = links[parent];
+        links[index]->age_index = index;
+        index = parent;
+    }
+    links[index] = link;
+    link->age_index = index;
+}
+
+static void heap_bubble_down(AVFilterGraph *graph,
+                             AVFilterLink *link, int index)
+{
+    AVFilterLink **links = graph->sink_links;
+
+    while (1) {
+        int child = 2 * index + 1;
+        if (child >= graph->sink_links_count)
+            break;
+        if (child + 1 < graph->sink_links_count &&
+            links[child + 1]->current_pts < links[child]->current_pts)
+            child++;
+        if (link->current_pts < links[child]->current_pts)
+            break;
+        links[index] = links[child];
+        links[index]->age_index = index;
+        index = child;
+    }
+    links[index] = link;
+    link->age_index = index;
+}
+
+void ff_avfilter_graph_update_heap(AVFilterGraph *graph, AVFilterLink *link)
+{
+    heap_bubble_up  (graph, link, link->age_index);
+    heap_bubble_down(graph, link, link->age_index);
+}
+
+
+int avfilter_graph_request_oldest(AVFilterGraph *graph)
+{
+    while (graph->sink_links_count) {
+        AVFilterLink *oldest = graph->sink_links[0];
+        int r = avfilter_request_frame(oldest);
+        if (r != AVERROR_EOF)
+            return r;
+        /* EOF: remove the link from the heap */
+        if (oldest->age_index < --graph->sink_links_count)
+            heap_bubble_down(graph, graph->sink_links[graph->sink_links_count],
+                             oldest->age_index);
+        oldest->age_index = -1;
+    }
+    return AVERROR_EOF;
 }

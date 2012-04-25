@@ -17,7 +17,7 @@ do_avconv $raw_ref -f image2 -vcodec pgmyuv -i $raw_src -an -f rawvideo
 fi
 if [ -n "$do_aref" ]; then
 do_avconv $pcm_ref -b 128k -ac 2 -ar 44100 -f s16le -i $pcm_src -f wav
-do_avconv $pcm_ref_1ch -b 128k -ac 1 -ar 16000 -f s16le -i $pcm_src_1ch -f wav
+do_avconv $pcm_ref_1ch -b 128k -i $pcm_src_1ch -f wav
 fi
 
 if [ -n "$do_cljr" ] ; then
@@ -73,9 +73,9 @@ do_video_encoding mpeg2threadivlc.mpg "-qscale 10 -vcodec mpeg2video -f mpeg1vid
 do_video_decoding
 
 # mpeg2 encoding interlaced
-file=${outfile}mpeg2reuse.mpg
-do_avconv $file $DEC_OPTS -me_threshold 256 -i ${target_path}/${outfile}mpeg2thread.mpg $ENC_OPTS -same_quant -me_threshold 256 -mb_threshold 1024 -vcodec mpeg2video -f mpeg1video -bf 2 -flags +ildct+ilme -threads 4
-do_video_decoding
+#file=${outfile}mpeg2reuse.mpg
+#do_avconv $file $DEC_OPTS -me_threshold 256 -i ${target_path}/${outfile}mpeg2thread.mpg $ENC_OPTS -same_quant -me_threshold 256 -mb_threshold 1024 -vcodec mpeg2video -f mpeg1video -bf 2 -flags +ildct+ilme -threads 4
+#do_video_decoding
 fi
 
 if [ -n "$do_msmpeg4v2" ] ; then
@@ -395,16 +395,6 @@ do_audio_encoding g723_1.tco "-b:a 6.3k -ac 1 -ar 8000 -acodec g723_1"
 do_audio_decoding
 fi
 
-if [ -n "$do_g722" ] ; then
-do_audio_encoding g722.wav "-b 64k -ac 1 -ar 16000 -acodec g722"
-do_audio_decoding
-fi
-
-if [ -n "$do_g726" ] ; then
-do_audio_encoding g726.wav "-b:a 32k -ac 1 -ar 8000 -acodec g726"
-do_audio_decoding
-fi
-
 if [ -n "$do_adpcm_adx" ] ; then
 do_audio_encoding adpcm_adx.adx "-acodec adpcm_adx"
 do_audio_decoding
@@ -533,7 +523,4 @@ do_audio_enc_dec au  dbl pcm_f64be
 fi
 if [ -n "$do_pcm_f64le" ] ; then
 do_audio_enc_dec wav dbl pcm_f64le
-fi
-if [ -n "$do_pcm_s24daud" ] ; then
-do_audio_enc_dec 302 s16 pcm_s24daud "-ac 6 -ar 96000"
 fi

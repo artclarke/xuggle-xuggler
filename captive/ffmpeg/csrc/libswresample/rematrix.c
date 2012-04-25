@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2011 Michael Niedermayer (michaelni@gmx.at)
+ * Copyright (C) 2011-2012 Michael Niedermayer (michaelni@gmx.at)
  *
  * This file is part of libswresample
  *
@@ -272,6 +272,15 @@ int swri_rematrix_init(SwrContext *s){
     return 0;
 }
 
+void swri_sum2(enum AVSampleFormat format, void *dst, const void *src0, const void *src1, float coef0, float coef1, int len){
+    if(format == AV_SAMPLE_FMT_FLT){
+        sum2_float((float  *)dst, (const float  *)src0, (const float  *)src1, coef0, coef1, len);
+    }else{
+        av_assert1(format == AV_SAMPLE_FMT_S16);
+        sum2_s16  ((int16_t*)dst, (const int16_t*)src0, (const int16_t*)src1, lrintf(coef0 * 32768), lrintf(coef1 * 32768), len);
+    }
+}
+
 int swri_rematrix(SwrContext *s, AudioData *out, AudioData *in, int len, int mustcopy){
     int out_i, in_i, i, j;
 
@@ -281,7 +290,7 @@ int swri_rematrix(SwrContext *s, AudioData *out, AudioData *in, int len, int mus
     for(out_i=0; out_i<out->ch_count; out_i++){
         switch(s->matrix_ch[out_i][0]){
         case 0:
-            memset(out->ch[out_i], 0, len * (s->int_sample_fmt == AV_SAMPLE_FMT_FLT ? sizeof(float) : sizeof(int16_t)));
+            memset(out->ch[out_i], 0, len * av_get_bytes_per_sample(s->int_sample_fmt));
             break;
         case 1:
             in_i= s->matrix_ch[out_i][1];
@@ -295,15 +304,8 @@ int swri_rematrix(SwrContext *s, AudioData *out, AudioData *in, int len, int mus
             }
             break;
         case 2:
-            if(s->int_sample_fmt == AV_SAMPLE_FMT_FLT){
-                sum2_float((float  *)out->ch[out_i], (const float  *)in->ch[ s->matrix_ch[out_i][1] ],           (const float  *)in->ch[ s->matrix_ch[out_i][2] ],
-                                 s->matrix[out_i][ s->matrix_ch[out_i][1] ], s->matrix[out_i][ s->matrix_ch[out_i][2] ],
-                           len);
-            }else{
-                sum2_s16  ((int16_t*)out->ch[out_i], (const int16_t*)in->ch[ s->matrix_ch[out_i][1] ],           (const int16_t*)in->ch[ s->matrix_ch[out_i][2] ],
-                                 s->matrix32[out_i][ s->matrix_ch[out_i][1] ], s->matrix32[out_i][ s->matrix_ch[out_i][2] ],
-                           len);
-            }
+            swri_sum2(s->int_sample_fmt, out->ch[out_i], in->ch[ s->matrix_ch[out_i][1] ],           in->ch[ s->matrix_ch[out_i][2] ],
+                        s->matrix[out_i][ s->matrix_ch[out_i][1] ], s->matrix[out_i][ s->matrix_ch[out_i][2] ], len);
             break;
         default:
             if(s->int_sample_fmt == AV_SAMPLE_FMT_FLT){

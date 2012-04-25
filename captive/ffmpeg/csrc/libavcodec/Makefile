@@ -184,9 +184,9 @@ OBJS-$(CONFIG_GIF_DECODER)             += gifdec.o lzw.o
 OBJS-$(CONFIG_GIF_ENCODER)             += gif.o lzwenc.o
 OBJS-$(CONFIG_GSM_DECODER)             += gsmdec.o gsmdec_data.o msgsmdec.o
 OBJS-$(CONFIG_GSM_MS_DECODER)          += gsmdec.o gsmdec_data.o msgsmdec.o
-OBJS-$(CONFIG_H261_DECODER)            += h261dec.o h261.o \
+OBJS-$(CONFIG_H261_DECODER)            += h261dec.o h261.o h261data.o  \
                                           mpegvideo.o error_resilience.o
-OBJS-$(CONFIG_H261_ENCODER)            += h261enc.o h261.o             \
+OBJS-$(CONFIG_H261_ENCODER)            += h261enc.o h261.o h261data.o  \
                                           mpegvideo_enc.o motion_est.o \
                                           ratecontrol.o mpeg12data.o   \
                                           mpegvideo.o
@@ -634,7 +634,6 @@ OBJS-$(CONFIG_WTV_DEMUXER)             += mpeg4audio.o mpegaudiodata.o
 # external codec libraries
 OBJS-$(CONFIG_LIBAACPLUS_ENCODER)         += libaacplus.o
 OBJS-$(CONFIG_LIBCELT_DECODER)            += libcelt_dec.o
-OBJS-$(CONFIG_LIBDIRAC_DECODER)           += libdiracdec.o
 OBJS-$(CONFIG_LIBFAAC_ENCODER)            += libfaac.o audio_frame_queue.o
 OBJS-$(CONFIG_LIBGSM_DECODER)             += libgsm.o
 OBJS-$(CONFIG_LIBGSM_ENCODER)             += libgsm.o
@@ -642,8 +641,10 @@ OBJS-$(CONFIG_LIBGSM_MS_DECODER)          += libgsm.o
 OBJS-$(CONFIG_LIBGSM_MS_ENCODER)          += libgsm.o
 OBJS-$(CONFIG_LIBMP3LAME_ENCODER)         += libmp3lame.o mpegaudiodecheader.o \
                                              audio_frame_queue.o
-OBJS-$(CONFIG_LIBOPENCORE_AMRNB_DECODER)  += libopencore-amr.o
-OBJS-$(CONFIG_LIBOPENCORE_AMRNB_ENCODER)  += libopencore-amr.o
+OBJS-$(CONFIG_LIBOPENCORE_AMRNB_DECODER)  += libopencore-amr.o \
+                                             audio_frame_queue.o
+OBJS-$(CONFIG_LIBOPENCORE_AMRNB_ENCODER)  += libopencore-amr.o \
+                                             audio_frame_queue.o
 OBJS-$(CONFIG_LIBOPENCORE_AMRWB_DECODER)  += libopencore-amr.o
 OBJS-$(CONFIG_LIBOPENJPEG_DECODER)        += libopenjpegdec.o
 OBJS-$(CONFIG_LIBOPENJPEG_ENCODER)        += libopenjpegenc.o
@@ -659,7 +660,8 @@ OBJS-$(CONFIG_LIBSTAGEFRIGHT_H264_DECODER)+= libstagefright.o
 OBJS-$(CONFIG_LIBTHEORA_ENCODER)          += libtheoraenc.o
 OBJS-$(CONFIG_LIBUTVIDEO_DECODER)         += libutvideodec.o
 OBJS-$(CONFIG_LIBUTVIDEO_ENCODER)         += libutvideoenc.o
-OBJS-$(CONFIG_LIBVO_AACENC_ENCODER)       += libvo-aacenc.o mpeg4audio.o
+OBJS-$(CONFIG_LIBVO_AACENC_ENCODER)       += libvo-aacenc.o mpeg4audio.o \
+                                             audio_frame_queue.o
 OBJS-$(CONFIG_LIBVO_AMRWBENC_ENCODER)     += libvo-amrwbenc.o
 OBJS-$(CONFIG_LIBVORBIS_ENCODER)          += libvorbis.o audio_frame_queue.o \
                                              vorbis_data.o vorbis_parser.o
@@ -676,6 +678,7 @@ OBJS-$(CONFIG_AC3_PARSER)              += ac3_parser.o ac3tab.o \
                                           aac_ac3_parser.o
 OBJS-$(CONFIG_ADX_PARSER)              += adx_parser.o adx.o
 OBJS-$(CONFIG_CAVSVIDEO_PARSER)        += cavs_parser.o
+OBJS-$(CONFIG_COOK_PARSER)             += cook_parser.o
 OBJS-$(CONFIG_DCA_PARSER)              += dca_parser.o
 OBJS-$(CONFIG_DIRAC_PARSER)            += dirac_parser.o
 OBJS-$(CONFIG_DNXHD_PARSER)            += dnxhd_parser.o
@@ -749,7 +752,6 @@ SKIPHEADERS                            += %_tablegen.h                  \
                                           tableprint.h                  \
                                           $(ARCH)/vp56_arith.h
 SKIPHEADERS-$(CONFIG_DXVA2)            += dxva2.h dxva2_internal.h
-SKIPHEADERS-$(CONFIG_LIBDIRAC)         += libdirac.h
 SKIPHEADERS-$(CONFIG_LIBSCHROEDINGER)  += libschroedinger.h
 SKIPHEADERS-$(CONFIG_MPEG_XVMC_DECODER) += xvmc.h
 SKIPHEADERS-$(CONFIG_VAAPI)            += vaapi_internal.h

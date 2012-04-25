@@ -340,8 +340,11 @@ int avpicture_layout(const AVPicture* src, enum PixelFormat pix_fmt, int width, 
         return size;
     }
 
-    if (desc->flags & PIX_FMT_PAL)
-        memcpy((unsigned char *)(((size_t)dest + 3) & ~3), src->data[1], 256 * 4);
+    if (desc->flags & PIX_FMT_PAL) {
+        uint32_t *d32 = (unsigned char *)(((size_t)dest + 3) & ~3);
+        for (i = 0; i<256; i++)
+            AV_WL32(d32 + i, AV_RN32(src->data[1] + 4*i));
+    }
 
     return size;
 }
@@ -482,6 +485,7 @@ enum PixelFormat avcodec_find_best_pix_fmt2(enum PixelFormat dst_pix_fmt1, enum 
         ~(FF_LOSS_COLORSPACE | FF_LOSS_RESOLUTION),
         ~FF_LOSS_COLORQUANT,
         ~FF_LOSS_DEPTH,
+        ~(FF_LOSS_DEPTH|FF_LOSS_COLORSPACE),
         ~(FF_LOSS_RESOLUTION | FF_LOSS_DEPTH | FF_LOSS_COLORSPACE | FF_LOSS_ALPHA |
           FF_LOSS_COLORQUANT | FF_LOSS_CHROMA),
         0x80000, //non zero entry that combines all loss variants including future additions
