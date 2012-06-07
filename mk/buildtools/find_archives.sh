@@ -7,7 +7,7 @@ shift;
 export PKG_CONFIG_PATH="${PKG_CONFIG_PATH}:${LIBDIR}/pkgconfig"
 
 # first get all the libraries
-LIBS=$( pkg-config --static --libs-only-l $@ )
+LIBS=$( pkg-config --libs-only-l $@ )
 
 for l in ${LIBS}; do
   # strip the -l
