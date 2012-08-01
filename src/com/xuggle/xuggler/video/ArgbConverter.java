@@ -19,24 +19,24 @@
 
 package com.xuggle.xuggler.video;
 
-import com.xuggle.ferry.JNIReference;
-import com.xuggle.xuggler.IVideoPicture;
-import com.xuggle.xuggler.IPixelFormat;
-
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferInt;
-import java.awt.image.DataBufferByte;
-import java.awt.image.DataBuffer;
 import java.awt.image.ColorModel;
+import java.awt.image.DataBuffer;
+import java.awt.image.DataBufferByte;
+import java.awt.image.DataBufferInt;
 import java.awt.image.DirectColorModel;
+import java.awt.image.Raster;
 import java.awt.image.SampleModel;
 import java.awt.image.SinglePixelPackedSampleModel;
 import java.awt.image.WritableRaster;
-import java.awt.image.Raster;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 import java.util.concurrent.atomic.AtomicReference;
+
+import com.xuggle.ferry.JNIReference;
+import com.xuggle.xuggler.IPixelFormat;
+import com.xuggle.xuggler.IVideoPicture;
 
 /** A converter to translate {@link IVideoPicture}s to and from
  * {@link BufferedImage}s of type {@link BufferedImage#TYPE_INT_ARGB}. */
@@ -163,6 +163,15 @@ public class ArgbConverter extends AConverter
     IVideoPicture resamplePic = null;
     final AtomicReference<JNIReference> ref = 
       new AtomicReference<JNIReference>(null);
+    
+    ByteBuffer byteBuf = null;
+    IntBuffer intBuf = null;
+    int[] ints = null;
+    DataBufferInt db = null;
+    SampleModel sm = null;
+    WritableRaster wr = null;
+    
+    
     try
     {
       if (willResample())
@@ -178,27 +187,27 @@ public class ArgbConverter extends AConverter
       // make a copy of the raw bytes in the picture and convert those to
       // integers
 
-      final ByteBuffer byteBuf = picture.getByteBuffer(ref);
+      byteBuf = picture.getByteBuffer(ref);
 
       // now, for this class of problems, we don't want the code
       // to switch byte order, so we'll pretend it's in native java order
 
       byteBuf.order(ByteOrder.BIG_ENDIAN);
-      final IntBuffer intBuf = byteBuf.asIntBuffer();
-      final int[] ints = new int[picture.getSize() / 4];
+      intBuf = byteBuf.asIntBuffer();
+      ints = new int[picture.getSize() / 4];
       intBuf.get(ints, 0, ints.length);
 
       // create the data buffer from the ints
 
-      final DataBufferInt db = new DataBufferInt(ints, ints.length);
+      db = new DataBufferInt(ints, ints.length);
 
       // create an a sample model which matches the byte layout of the
       // image data and raster which contains the data which now can be
       // properly interpreted
 
-      final SampleModel sm = new SinglePixelPackedSampleModel(db.getDataType(),
+      sm = new SinglePixelPackedSampleModel(db.getDataType(),
           w, h, mBitMasks);
-      final WritableRaster wr = Raster.createWritableRaster(sm, db, null);
+      wr = Raster.createWritableRaster(sm, db, null);
 
       // return a new image created from the color model and raster
 
@@ -210,6 +219,30 @@ public class ArgbConverter extends AConverter
         resamplePic.delete();
       if (ref.get() != null)
         ref.get().delete();
+      
+//      clean this stuff up
+        if (byteBuf != null) {
+          byteBuf.clear();
+          byteBuf = null;
+        }
+        
+        if (intBuf != null) {
+          intBuf.clear();
+          intBuf = null;
+        }
+        
+        if (ints != null) {
+          ints = null;
+        }
+        
+        if (db != null)
+          db = null;
+        
+        if (sm != null)
+          sm = null;
+        
+        if (wr != null)
+          wr = null;
     }
   }
 
