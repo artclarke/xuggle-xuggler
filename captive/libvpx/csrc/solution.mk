@@ -8,18 +8,19 @@
 ##  be found in the AUTHORS file in the root of the source tree.
 ##
 
+# libvpx reverse dependencies (targets that depend on libvpx)
+VPX_NONDEPS=$(addsuffix .$(VCPROJ_SFX),vpx gtest obj_int_extract)
+VPX_RDEPS=$(foreach vcp,\
+              $(filter-out $(VPX_NONDEPS),$^), --dep=$(vcp:.$(VCPROJ_SFX)=):vpx)
 
-vpx.sln: $(wildcard *.vcproj)
+vpx.sln: $(wildcard *.$(VCPROJ_SFX))
 	@echo "    [CREATE] $@"
 	$(SRC_PATH_BARE)/build/make/gen_msvs_sln.sh \
-            $(if $(filter %vpx.vcproj,$^),\
-                $(foreach vcp,$(filter-out %vpx.vcproj %gtest.vcproj %obj_int_extract.vcproj,$^),\
-                  --dep=$(vcp:.vcproj=):vpx) \
-                $(foreach vcp,$(filter %_test.vcproj,$^),\
-                  --dep=$(vcp:.vcproj=):gtest)) \
-                  --dep=vpx:obj_int_extract \
-                  --ver=$(CONFIG_VS_VERSION)\
-                  --out=$@ $^
+            $(if $(filter vpx.$(VCPROJ_SFX),$^),$(VPX_RDEPS)) \
+            --dep=vpx:obj_int_extract \
+            --dep=test_libvpx:gtest \
+            --ver=$(CONFIG_VS_VERSION)\
+            --out=$@ $^
 vpx.sln.mk: vpx.sln
 	@true
 

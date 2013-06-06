@@ -164,7 +164,7 @@ static void write_ivf_file_header(FILE *outfile,
     mem_put_le32(header+24, frame_cnt);           /* length */
     mem_put_le32(header+28, 0);                   /* unused */
 
-    if(fwrite(header, 1, 32, outfile));
+    (void) fwrite(header, 1, 32, outfile);
 }
 
 static void write_ivf_frame_header(FILE *outfile,
@@ -181,7 +181,7 @@ static void write_ivf_frame_header(FILE *outfile,
     mem_put_le32(header+4, pts&0xFFFFFFFF);
     mem_put_le32(header+8, pts >> 32);
 
-    if(fwrite(header, 1, 12, outfile));
+    (void) fwrite(header, 1, 12, outfile);
 }
 
 int main(int argc, char **argv)
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
      * If target bitrate for highest-resolution level is set to 0,
      * (i.e. target_bitrate[0]=0), we skip encoding at that level.
      */
-    unsigned int         target_bitrate[NUM_ENCODERS]={1400, 500, 100};
+    unsigned int         target_bitrate[NUM_ENCODERS]={1000, 500, 100};
     /* Enter the frame rate of the input video */
     int                  framerate = 30;
     /* Set down-sampling factor for each resolution level.
@@ -224,9 +224,6 @@ int main(int argc, char **argv)
        dsf[1] controls down sampling from level 1 to level 2;
        dsf[2] is not used. */
     vpx_rational_t dsf[NUM_ENCODERS] = {{2, 1}, {2, 1}, {1, 1}};
-    /* Encode starting from which resolution level. Normally it is 0 that
-     * means the original(highest) resolution. */
-    int                  s_lvl = 0;
 
     if(argc!= (5+NUM_ENCODERS))
         die("Usage: %s <width> <height> <infile> <outfile(s)> <output psnr?>\n",
@@ -240,21 +237,6 @@ int main(int argc, char **argv)
     if(width < 16 || width%2 || height <16 || height%2)
         die("Invalid resolution: %ldx%ld", width, height);
 
-    /* Check to see if we need to encode all resolution levels */
-    for (i=0; i<NUM_ENCODERS; i++)
-    {
-        if (target_bitrate[i])
-            break;
-        else
-            s_lvl += 1;
-    }
-
-    if (s_lvl >= NUM_ENCODERS)
-    {
-        printf("No encoding: total number of encoders is 0!");
-        return 0;
-    }
-
     /* Open input video file for encoding */
     if(!(infile = fopen(argv[3], "rb")))
         die("Failed to open %s for reading", argv[3]);
@@ -262,6 +244,12 @@ int main(int argc, char **argv)
     /* Open output file for each encoder to output bitstreams */
     for (i=0; i< NUM_ENCODERS; i++)
     {
+        if(!target_bitrate[i])
+        {
+            outfile[i] = NULL;
+            continue;
+        }
+
         if(!(outfile[i] = fopen(argv[i+4], "wb")))
             die("Failed to open %s for writing", argv[i+4]);
     }
@@ -285,7 +273,7 @@ int main(int argc, char **argv)
     cfg[0].g_w = width;
     cfg[0].g_h = height;
     cfg[0].g_threads = 1;                           /* number of threads used */
-    cfg[0].rc_dropframe_thresh = 0;
+    cfg[0].rc_dropframe_thresh = 30;
     cfg[0].rc_end_usage = VPX_CBR;
     cfg[0].rc_resize_allowed = 0;
     cfg[0].rc_min_quantizer = 4;
@@ -295,13 +283,17 @@ int main(int argc, char **argv)
     cfg[0].rc_buf_initial_sz = 500;
     cfg[0].rc_buf_optimal_sz = 600;
     cfg[0].rc_buf_sz = 1000;
-    //cfg[0].rc_dropframe_thresh = 10;
     cfg[0].g_error_resilient = 1;              /* Enable error resilient mode */
     cfg[0].g_lag_in_frames   = 0;
 
     /* Disable automatic keyframe placement */
+    /* Note: These 3 settings are copied to all levels. But, except the lowest
+     * resolution level, all other levels are set to VPX_KF_DISABLED internally.
+     */
     //cfg[0].kf_mode           = VPX_KF_DISABLED;
-    cfg[0].kf_min_dist = cfg[0].kf_max_dist = 1000;
+    cfg[0].kf_mode           = VPX_KF_AUTO;
+    cfg[0].kf_min_dist = 3000;
+    cfg[0].kf_max_dist = 3000;
 
     cfg[0].rc_target_bitrate = target_bitrate[0];       /* Set target bitrate */
     cfg[0].g_timebase.num = 1;                          /* Set fps */
@@ -342,42 +334,45 @@ int main(int argc, char **argv)
     else
         read_frame_p = read_frame_by_row;
 
+    for (i=0; i< NUM_ENCODERS; i++)
+        if(outfile[i])
+            write_ivf_file_header(outfile[i], &cfg[i], 0);
+
     /* Initialize multi-encoder */
-    if(vpx_codec_enc_init_multi(&codec[s_lvl], interface, &cfg[s_lvl], s_lvl,
-                             NUM_ENCODERS,
-                             (show_psnr ? VPX_CODEC_USE_PSNR : 0), &dsf[s_lvl]))
-        die_codec(&codec[s_lvl], "Failed to initialize encoder");
+    if(vpx_codec_enc_init_multi(&codec[0], interface, &cfg[0], NUM_ENCODERS,
+                                (show_psnr ? VPX_CODEC_USE_PSNR : 0), &dsf[0]))
+        die_codec(&codec[0], "Failed to initialize encoder");
 
     /* The extra encoding configuration parameters can be set as follows. */
     /* Set encoding speed */
-    for ( i=s_lvl; i<NUM_ENCODERS; i++)
+    for ( i=0; i<NUM_ENCODERS; i++)
     {
         int speed = -6;
         if(vpx_codec_control(&codec[i], VP8E_SET_CPUUSED, speed))
             die_codec(&codec[i], "Failed to set cpu_used");
     }
-    /* Set static thresh for highest-resolution encoder. Set it to 1000 for
-     * better performance. */
+
+    /* Set static threshold. */
+    for ( i=0; i<NUM_ENCODERS; i++)
     {
-        unsigned int static_thresh = 1000;
-        if(vpx_codec_control(&codec[s_lvl], VP8E_SET_STATIC_THRESHOLD,
-                             static_thresh))
-            die_codec(&codec[s_lvl], "Failed to set static threshold");
-    }
-    /* Set static thresh = 0 for other encoders for better quality */
-    for ( i=s_lvl+1; i<NUM_ENCODERS; i++)
-    {
-        unsigned int static_thresh = 0;
-        if(vpx_codec_control(&codec[i], VP8E_SET_STATIC_THRESHOLD,
-                             static_thresh))
+        unsigned int static_thresh = 1;
+        if(vpx_codec_control(&codec[i], VP8E_SET_STATIC_THRESHOLD, static_thresh))
             die_codec(&codec[i], "Failed to set static threshold");
     }
 
+    /* Set NOISE_SENSITIVITY to do TEMPORAL_DENOISING */
+    /* Enable denoising for the highest-resolution encoder. */
+    if(vpx_codec_control(&codec[0], VP8E_SET_NOISE_SENSITIVITY, 1))
+        die_codec(&codec[0], "Failed to set noise_sensitivity");
+    for ( i=1; i< NUM_ENCODERS; i++)
+    {
+        if(vpx_codec_control(&codec[i], VP8E_SET_NOISE_SENSITIVITY, 0))
+            die_codec(&codec[i], "Failed to set noise_sensitivity");
+    }
+
+
     frame_avail = 1;
     got_data = 0;
-
-    for (i=s_lvl ; i< NUM_ENCODERS; i++)
-        write_ivf_file_header(outfile[i], &cfg[i], 0);
 
     while(frame_avail || got_data)
     {
@@ -405,11 +400,11 @@ int main(int argc, char **argv)
         }
 
         /* Encode each frame at multi-levels */
-        if(vpx_codec_encode(&codec[s_lvl], frame_avail? &raw[s_lvl] : NULL,
+        if(vpx_codec_encode(&codec[0], frame_avail? &raw[0] : NULL,
             frame_cnt, 1, flags, arg_deadline))
-            die_codec(&codec[s_lvl], "Failed to encode frame");
+            die_codec(&codec[0], "Failed to encode frame");
 
-        for (i=NUM_ENCODERS-1; i>=s_lvl ; i--)
+        for (i=NUM_ENCODERS-1; i>=0 ; i--)
         {
             got_data = 0;
 
@@ -419,8 +414,8 @@ int main(int argc, char **argv)
                 switch(pkt[i]->kind) {
                     case VPX_CODEC_CX_FRAME_PKT:
                         write_ivf_frame_header(outfile[i], pkt[i]);
-                        if(fwrite(pkt[i]->data.frame.buf, 1, pkt[i]->data.frame.sz,
-                                  outfile[i]));
+                        (void) fwrite(pkt[i]->data.frame.buf, 1,
+                                      pkt[i]->data.frame.sz, outfile[i]);
                     break;
                     case VPX_CODEC_PSNR_PKT:
                         if (show_psnr)
@@ -452,10 +447,9 @@ int main(int argc, char **argv)
 
     fclose(infile);
 
-    for (i=s_lvl; i< NUM_ENCODERS; i++)
+    printf("Processed %ld frames.\n",(long int)frame_cnt-1);
+    for (i=0; i< NUM_ENCODERS; i++)
     {
-        printf("Processed %ld frames.\n",(long int)frame_cnt-1);
-
         /* Calculate PSNR and print it out */
         if ( (show_psnr) && (psnr_count[i]>0) )
         {
@@ -475,16 +469,17 @@ int main(int argc, char **argv)
         if(vpx_codec_destroy(&codec[i]))
             die_codec(&codec[i], "Failed to destroy codec");
 
+        vpx_img_free(&raw[i]);
+
+        if(!outfile[i])
+            continue;
+
         /* Try to rewrite the file header with the actual frame count */
         if(!fseek(outfile[i], 0, SEEK_SET))
             write_ivf_file_header(outfile[i], &cfg[i], frame_cnt-1);
-    }
-
-    for (i=0; i< NUM_ENCODERS; i++)
-    {
         fclose(outfile[i]);
-        vpx_img_free(&raw[i]);
     }
+    printf("\n");
 
     return EXIT_SUCCESS;
 }

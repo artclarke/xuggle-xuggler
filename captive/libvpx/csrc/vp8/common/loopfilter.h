@@ -14,7 +14,7 @@
 
 #include "vpx_ports/mem.h"
 #include "vpx_config.h"
-#include "vpx_rtcd.h"
+#include "vp8_rtcd.h"
 
 #define MAX_LOOP_FILTER             63
 /* fraction of total macroblock rows to be used in fast filter level picking */
@@ -69,6 +69,7 @@ typedef void loop_filter_uvfunction
 /* assorted loopfilter functions which get used elsewhere */
 struct VP8Common;
 struct macroblockd;
+struct modeinfo;
 
 void vp8_loop_filter_init(struct VP8Common *cm);
 
@@ -76,7 +77,8 @@ void vp8_loop_filter_frame_init(struct VP8Common *cm,
                                 struct macroblockd *mbd,
                                 int default_filt_lvl);
 
-void vp8_loop_filter_frame(struct VP8Common *cm, struct macroblockd *mbd);
+void vp8_loop_filter_frame(struct VP8Common *cm, struct macroblockd *mbd,
+                           int frame_type);
 
 void vp8_loop_filter_partial_frame(struct VP8Common *cm,
                                    struct macroblockd *mbd,
@@ -89,4 +91,15 @@ void vp8_loop_filter_frame_yonly(struct VP8Common *cm,
 void vp8_loop_filter_update_sharpness(loop_filter_info_n *lfi,
                                       int sharpness_lvl);
 
+void vp8_loop_filter_row_normal(struct VP8Common *cm,
+                                struct modeinfo *mode_info_context,
+                                int mb_row, int post_ystride, int post_uvstride,
+                                unsigned char *y_ptr, unsigned char *u_ptr,
+                                unsigned char *v_ptr);
+
+void vp8_loop_filter_row_simple(struct VP8Common *cm,
+                                struct modeinfo *mode_info_context,
+                                int mb_row, int post_ystride, int post_uvstride,
+                                unsigned char *y_ptr, unsigned char *u_ptr,
+                                unsigned char *v_ptr);
 #endif

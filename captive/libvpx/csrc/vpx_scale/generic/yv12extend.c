@@ -8,10 +8,10 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-
+#include <assert.h>
 #include "vpx_scale/yv12config.h"
 #include "vpx_mem/vpx_mem.h"
-#include "vpx_scale/vpxscale.h"
+#include "vpx_scale/vpx_scale.h"
 
 /****************************************************************************
 *  Exports
@@ -20,188 +20,79 @@
 /****************************************************************************
  *
  ****************************************************************************/
+static void extend_plane(uint8_t *s,       /* source */
+                         int sp,           /* source pitch */
+                         int w,            /* width */
+                         int h,            /* height */
+                         int et,           /* extend top border */
+                         int el,           /* extend left border */
+                         int eb,           /* extend bottom border */
+                         int er) {         /* extend right border */
+  int i;
+  uint8_t *src_ptr1, *src_ptr2;
+  uint8_t *dest_ptr1, *dest_ptr2;
+  int linesize;
+
+  /* copy the left and right most columns out */
+  src_ptr1 = s;
+  src_ptr2 = s + w - 1;
+  dest_ptr1 = s - el;
+  dest_ptr2 = s + w;
+
+  for (i = 0; i < h; i++) {
+    vpx_memset(dest_ptr1, src_ptr1[0], el);
+    vpx_memset(dest_ptr2, src_ptr2[0], er);
+    src_ptr1  += sp;
+    src_ptr2  += sp;
+    dest_ptr1 += sp;
+    dest_ptr2 += sp;
+  }
+
+  /* Now copy the top and bottom lines into each line of the respective
+   * borders
+   */
+  src_ptr1 = s - el;
+  src_ptr2 = s + sp * (h - 1) - el;
+  dest_ptr1 = s + sp * (-et) - el;
+  dest_ptr2 = s + sp * (h) - el;
+  linesize = el + er + w;
+
+  for (i = 0; i < et; i++) {
+    vpx_memcpy(dest_ptr1, src_ptr1, linesize);
+    dest_ptr1 += sp;
+  }
+
+  for (i = 0; i < eb; i++) {
+    vpx_memcpy(dest_ptr2, src_ptr2, linesize);
+    dest_ptr2 += sp;
+  }
+}
+
 void
-vp8_yv12_extend_frame_borders(YV12_BUFFER_CONFIG *ybf)
-{
-    int i;
-    unsigned char *src_ptr1, *src_ptr2;
-    unsigned char *dest_ptr1, *dest_ptr2;
+vp8_yv12_extend_frame_borders_c(YV12_BUFFER_CONFIG *ybf) {
+  assert(ybf->y_height - ybf->y_crop_height < 16);
+  assert(ybf->y_width - ybf->y_crop_width < 16);
+  assert(ybf->y_height - ybf->y_crop_height >= 0);
+  assert(ybf->y_width - ybf->y_crop_width >= 0);
 
-    unsigned int Border;
-    int plane_stride;
-    int plane_height;
-    int plane_width;
+  extend_plane(ybf->y_buffer, ybf->y_stride,
+               ybf->y_crop_width, ybf->y_crop_height,
+               ybf->border, ybf->border,
+               ybf->border + ybf->y_height - ybf->y_crop_height,
+               ybf->border + ybf->y_width - ybf->y_crop_width);
 
-    /***********/
-    /* Y Plane */
-    /***********/
-    Border = ybf->border;
-    plane_stride = ybf->y_stride;
-    plane_height = ybf->y_height;
-    plane_width = ybf->y_width;
+  extend_plane(ybf->u_buffer, ybf->uv_stride,
+               (ybf->y_crop_width + 1) / 2, (ybf->y_crop_height + 1) / 2,
+               ybf->border / 2, ybf->border / 2,
+               (ybf->border + ybf->y_height - ybf->y_crop_height + 1) / 2,
+               (ybf->border + ybf->y_width - ybf->y_crop_width + 1) / 2);
 
-    /* copy the left and right most columns out */
-    src_ptr1 = ybf->y_buffer;
-    src_ptr2 = src_ptr1 + plane_width - 1;
-    dest_ptr1 = src_ptr1 - Border;
-    dest_ptr2 = src_ptr2 + 1;
-
-    for (i = 0; i < plane_height; i++)
-    {
-        vpx_memset(dest_ptr1, src_ptr1[0], Border);
-        vpx_memset(dest_ptr2, src_ptr2[0], Border);
-        src_ptr1  += plane_stride;
-        src_ptr2  += plane_stride;
-        dest_ptr1 += plane_stride;
-        dest_ptr2 += plane_stride;
-    }
-
-    /* Now copy the top and bottom source lines into each line of the respective borders */
-    src_ptr1 = ybf->y_buffer - Border;
-    src_ptr2 = src_ptr1 + (plane_height * plane_stride) - plane_stride;
-    dest_ptr1 = src_ptr1 - (Border * plane_stride);
-    dest_ptr2 = src_ptr2 + plane_stride;
-
-    for (i = 0; i < (int)Border; i++)
-    {
-        vpx_memcpy(dest_ptr1, src_ptr1, plane_stride);
-        vpx_memcpy(dest_ptr2, src_ptr2, plane_stride);
-        dest_ptr1 += plane_stride;
-        dest_ptr2 += plane_stride;
-    }
-
-
-    /***********/
-    /* U Plane */
-    /***********/
-    plane_stride = ybf->uv_stride;
-    plane_height = ybf->uv_height;
-    plane_width = ybf->uv_width;
-    Border /= 2;
-
-    /* copy the left and right most columns out */
-    src_ptr1 = ybf->u_buffer;
-    src_ptr2 = src_ptr1 + plane_width - 1;
-    dest_ptr1 = src_ptr1 - Border;
-    dest_ptr2 = src_ptr2 + 1;
-
-    for (i = 0; i < plane_height; i++)
-    {
-        vpx_memset(dest_ptr1, src_ptr1[0], Border);
-        vpx_memset(dest_ptr2, src_ptr2[0], Border);
-        src_ptr1  += plane_stride;
-        src_ptr2  += plane_stride;
-        dest_ptr1 += plane_stride;
-        dest_ptr2 += plane_stride;
-    }
-
-    /* Now copy the top and bottom source lines into each line of the respective borders */
-    src_ptr1 = ybf->u_buffer - Border;
-    src_ptr2 = src_ptr1 + (plane_height * plane_stride) - plane_stride;
-    dest_ptr1 = src_ptr1 - (Border * plane_stride);
-    dest_ptr2 = src_ptr2 + plane_stride;
-
-    for (i = 0; i < (int)(Border); i++)
-    {
-        vpx_memcpy(dest_ptr1, src_ptr1, plane_stride);
-        vpx_memcpy(dest_ptr2, src_ptr2, plane_stride);
-        dest_ptr1 += plane_stride;
-        dest_ptr2 += plane_stride;
-    }
-
-    /***********/
-    /* V Plane */
-    /***********/
-
-    /* copy the left and right most columns out */
-    src_ptr1 = ybf->v_buffer;
-    src_ptr2 = src_ptr1 + plane_width - 1;
-    dest_ptr1 = src_ptr1 - Border;
-    dest_ptr2 = src_ptr2 + 1;
-
-    for (i = 0; i < plane_height; i++)
-    {
-        vpx_memset(dest_ptr1, src_ptr1[0], Border);
-        vpx_memset(dest_ptr2, src_ptr2[0], Border);
-        src_ptr1  += plane_stride;
-        src_ptr2  += plane_stride;
-        dest_ptr1 += plane_stride;
-        dest_ptr2 += plane_stride;
-    }
-
-    /* Now copy the top and bottom source lines into each line of the respective borders */
-    src_ptr1 = ybf->v_buffer - Border;
-    src_ptr2 = src_ptr1 + (plane_height * plane_stride) - plane_stride;
-    dest_ptr1 = src_ptr1 - (Border * plane_stride);
-    dest_ptr2 = src_ptr2 + plane_stride;
-
-    for (i = 0; i < (int)(Border); i++)
-    {
-        vpx_memcpy(dest_ptr1, src_ptr1, plane_stride);
-        vpx_memcpy(dest_ptr2, src_ptr2, plane_stride);
-        dest_ptr1 += plane_stride;
-        dest_ptr2 += plane_stride;
-    }
+  extend_plane(ybf->v_buffer, ybf->uv_stride,
+               (ybf->y_crop_width + 1) / 2, (ybf->y_crop_height + 1) / 2,
+               ybf->border / 2, ybf->border / 2,
+               (ybf->border + ybf->y_height - ybf->y_crop_height + 1) / 2,
+               (ybf->border + ybf->y_width - ybf->y_crop_width + 1) / 2);
 }
-
-
-static void
-extend_frame_borders_yonly(YV12_BUFFER_CONFIG *ybf)
-{
-    int i;
-    unsigned char *src_ptr1, *src_ptr2;
-    unsigned char *dest_ptr1, *dest_ptr2;
-
-    unsigned int Border;
-    int plane_stride;
-    int plane_height;
-    int plane_width;
-
-    /***********/
-    /* Y Plane */
-    /***********/
-    Border = ybf->border;
-    plane_stride = ybf->y_stride;
-    plane_height = ybf->y_height;
-    plane_width = ybf->y_width;
-
-    /* copy the left and right most columns out */
-    src_ptr1 = ybf->y_buffer;
-    src_ptr2 = src_ptr1 + plane_width - 1;
-    dest_ptr1 = src_ptr1 - Border;
-    dest_ptr2 = src_ptr2 + 1;
-
-    for (i = 0; i < plane_height; i++)
-    {
-        vpx_memset(dest_ptr1, src_ptr1[0], Border);
-        vpx_memset(dest_ptr2, src_ptr2[0], Border);
-        src_ptr1  += plane_stride;
-        src_ptr2  += plane_stride;
-        dest_ptr1 += plane_stride;
-        dest_ptr2 += plane_stride;
-    }
-
-    /* Now copy the top and bottom source lines into each line of the respective borders */
-    src_ptr1 = ybf->y_buffer - Border;
-    src_ptr2 = src_ptr1 + (plane_height * plane_stride) - plane_stride;
-    dest_ptr1 = src_ptr1 - (Border * plane_stride);
-    dest_ptr2 = src_ptr2 + plane_stride;
-
-    for (i = 0; i < (int)Border; i++)
-    {
-        vpx_memcpy(dest_ptr1, src_ptr1, plane_stride);
-        vpx_memcpy(dest_ptr2, src_ptr2, plane_stride);
-        dest_ptr1 += plane_stride;
-        dest_ptr2 += plane_stride;
-    }
-
-    plane_stride /= 2;
-    plane_height /= 2;
-    plane_width /= 2;
-    Border /= 2;
-
-}
-
 
 
 /****************************************************************************
@@ -221,57 +112,61 @@ extend_frame_borders_yonly(YV12_BUFFER_CONFIG *ybf)
  *
  ****************************************************************************/
 void
-vp8_yv12_copy_frame(YV12_BUFFER_CONFIG *src_ybc, YV12_BUFFER_CONFIG *dst_ybc)
-{
-    int row;
-    unsigned char *source, *dest;
+vp8_yv12_copy_frame_c(YV12_BUFFER_CONFIG *src_ybc,
+                      YV12_BUFFER_CONFIG *dst_ybc) {
+  int row;
+  unsigned char *source, *dest;
 
-    source = src_ybc->y_buffer;
-    dest = dst_ybc->y_buffer;
+#if 0
+  /* These assertions are valid in the codec, but the libvpx-tester uses
+   * this code slightly differently.
+   */
+  assert(src_ybc->y_width == dst_ybc->y_width);
+  assert(src_ybc->y_height == dst_ybc->y_height);
+#endif
 
-    for (row = 0; row < src_ybc->y_height; row++)
-    {
-        vpx_memcpy(dest, source, src_ybc->y_width);
-        source += src_ybc->y_stride;
-        dest   += dst_ybc->y_stride;
-    }
+  source = src_ybc->y_buffer;
+  dest = dst_ybc->y_buffer;
 
-    source = src_ybc->u_buffer;
-    dest = dst_ybc->u_buffer;
+  for (row = 0; row < src_ybc->y_height; row++) {
+    vpx_memcpy(dest, source, src_ybc->y_width);
+    source += src_ybc->y_stride;
+    dest   += dst_ybc->y_stride;
+  }
 
-    for (row = 0; row < src_ybc->uv_height; row++)
-    {
-        vpx_memcpy(dest, source, src_ybc->uv_width);
-        source += src_ybc->uv_stride;
-        dest   += dst_ybc->uv_stride;
-    }
+  source = src_ybc->u_buffer;
+  dest = dst_ybc->u_buffer;
 
-    source = src_ybc->v_buffer;
-    dest = dst_ybc->v_buffer;
+  for (row = 0; row < src_ybc->uv_height; row++) {
+    vpx_memcpy(dest, source, src_ybc->uv_width);
+    source += src_ybc->uv_stride;
+    dest   += dst_ybc->uv_stride;
+  }
 
-    for (row = 0; row < src_ybc->uv_height; row++)
-    {
-        vpx_memcpy(dest, source, src_ybc->uv_width);
-        source += src_ybc->uv_stride;
-        dest   += dst_ybc->uv_stride;
-    }
+  source = src_ybc->v_buffer;
+  dest = dst_ybc->v_buffer;
 
-    vp8_yv12_extend_frame_borders_ptr(dst_ybc);
+  for (row = 0; row < src_ybc->uv_height; row++) {
+    vpx_memcpy(dest, source, src_ybc->uv_width);
+    source += src_ybc->uv_stride;
+    dest   += dst_ybc->uv_stride;
+  }
+
+  vp8_yv12_extend_frame_borders_c(dst_ybc);
 }
 
-void vp8_yv12_copy_y_c(YV12_BUFFER_CONFIG *src_ybc, YV12_BUFFER_CONFIG *dst_ybc)
-{
-    int row;
-    unsigned char *source, *dest;
+void vp8_yv12_copy_y_c(YV12_BUFFER_CONFIG *src_ybc,
+                       YV12_BUFFER_CONFIG *dst_ybc) {
+  int row;
+  unsigned char *source, *dest;
 
 
-    source = src_ybc->y_buffer;
-    dest = dst_ybc->y_buffer;
+  source = src_ybc->y_buffer;
+  dest = dst_ybc->y_buffer;
 
-    for (row = 0; row < src_ybc->y_height; row++)
-    {
-        vpx_memcpy(dest, source, src_ybc->y_width);
-        source += src_ybc->y_stride;
-        dest   += dst_ybc->y_stride;
-    }
+  for (row = 0; row < src_ybc->y_height; row++) {
+    vpx_memcpy(dest, source, src_ybc->y_width);
+    source += src_ybc->y_stride;
+    dest   += dst_ybc->y_stride;
+  }
 }

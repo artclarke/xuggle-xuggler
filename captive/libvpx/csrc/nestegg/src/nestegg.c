@@ -127,6 +127,7 @@ enum ebml_type_enum {
 
 /* Track IDs */
 #define TRACK_ID_VP8            "V_VP8"
+#define TRACK_ID_VP9            "V_VP9"
 #define TRACK_ID_VORBIS         "A_VORBIS"
 
 enum vint_mask {
@@ -1272,7 +1273,7 @@ ne_read_block(nestegg * ctx, uint64_t block_id, uint64_t block_size, nestegg_pac
   if (total > block_size)
     return -1;
 
-  entry = ne_find_track_entry(ctx, track - 1);
+  entry = ne_find_track_entry(ctx, (unsigned int)(track - 1));
   if (!entry)
     return -1;
 
@@ -1291,7 +1292,7 @@ ne_read_block(nestegg * ctx, uint64_t block_id, uint64_t block_size, nestegg_pac
 
   pkt = ne_alloc(sizeof(*pkt));
   pkt->track = track - 1;
-  pkt->timecode = abs_timecode * tc_scale * track_scale;
+  pkt->timecode = (uint64_t)(abs_timecode * tc_scale * track_scale);
 
   ctx->log(ctx, NESTEGG_LOG_DEBUG, "%sblock t %lld pts %f f %llx frames: %llu",
            block_id == ID_BLOCK ? "" : "simple", pkt->track, pkt->timecode / 1e9, flags, frames);
@@ -1669,6 +1670,9 @@ nestegg_track_codec_id(nestegg * ctx, unsigned int track)
   if (strcmp(codec_id, TRACK_ID_VP8) == 0)
     return NESTEGG_CODEC_VP8;
 
+  if (strcmp(codec_id, TRACK_ID_VP9) == 0)
+    return NESTEGG_CODEC_VP9;
+
   if (strcmp(codec_id, TRACK_ID_VORBIS) == 0)
     return NESTEGG_CODEC_VORBIS;
 
@@ -1774,35 +1778,35 @@ nestegg_track_video_params(nestegg * ctx, unsigned int track,
 
   if (ne_get_uint(entry->video.pixel_width, &value) != 0)
     return -1;
-  params->width = value;
+  params->width = (unsigned int)value;
 
   if (ne_get_uint(entry->video.pixel_height, &value) != 0)
     return -1;
-  params->height = value;
+  params->height = (unsigned int)value;
 
   value = 0;
   ne_get_uint(entry->video.pixel_crop_bottom, &value);
-  params->crop_bottom = value;
+  params->crop_bottom = (unsigned int)value;
 
   value = 0;
   ne_get_uint(entry->video.pixel_crop_top, &value);
-  params->crop_top = value;
+  params->crop_top = (unsigned int)value;
 
   value = 0;
   ne_get_uint(entry->video.pixel_crop_left, &value);
-  params->crop_left = value;
+  params->crop_left = (unsigned int)value;
 
   value = 0;
   ne_get_uint(entry->video.pixel_crop_right, &value);
-  params->crop_right = value;
+  params->crop_right = (unsigned int)value;
 
   value = params->width;
   ne_get_uint(entry->video.display_width, &value);
-  params->display_width = value;
+  params->display_width = (unsigned int)value;
 
   value = params->height;
   ne_get_uint(entry->video.display_height, &value);
-  params->display_height = value;
+  params->display_height = (unsigned int)value;
 
   return 0;
 }
@@ -1828,11 +1832,11 @@ nestegg_track_audio_params(nestegg * ctx, unsigned int track,
 
   value = 1;
   ne_get_uint(entry->audio.channels, &value);
-  params->channels = value;
+  params->channels = (unsigned int)value;
 
   value = 16;
   ne_get_uint(entry->audio.bit_depth, &value);
-  params->depth = value;
+  params->depth = (unsigned int)value;
 
   return 0;
 }
@@ -1888,7 +1892,7 @@ nestegg_free_packet(nestegg_packet * pkt)
 int
 nestegg_packet_track(nestegg_packet * pkt, unsigned int * track)
 {
-  *track = pkt->track;
+  *track = (unsigned int)pkt->track;
   return 0;
 }
 

@@ -50,7 +50,7 @@ const int vp8cx_base_skip_false_prob[128] =
 unsigned __int64 Sectionbits[500];
 #endif
 
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
 int intra_mode_stats[10][10][10];
 static unsigned int tree_update_hist [BLOCK_TYPES] [COEF_BANDS] [PREV_COEF_CONTEXTS] [ENTROPY_NODES] [2];
 extern unsigned int active_section;
@@ -90,17 +90,17 @@ static void update_mode(
 
     if (new_b + (n << 8) < old_b)
     {
-        int i = 0;
+        int j = 0;
 
         vp8_write_bit(w, 1);
 
         do
         {
-            const vp8_prob p = Pnew[i];
+            const vp8_prob p = Pnew[j];
 
-            vp8_write_literal(w, Pcur[i] = p ? p : 1, 8);
+            vp8_write_literal(w, Pcur[j] = p ? p : 1, 8);
         }
-        while (++i < n);
+        while (++j < n);
     }
     else
         vp8_write_bit(w, 0);
@@ -118,7 +118,7 @@ static void update_mbintra_mode_probs(VP8_COMP *cpi)
 
         update_mode(
             w, VP8_YMODES, vp8_ymode_encodings, vp8_ymode_tree,
-            Pnew, x->fc.ymode_prob, bct, (unsigned int *)cpi->ymode_count
+            Pnew, x->fc.ymode_prob, bct, (unsigned int *)cpi->mb.ymode_count
         );
     }
     {
@@ -127,7 +127,7 @@ static void update_mbintra_mode_probs(VP8_COMP *cpi)
 
         update_mode(
             w, VP8_UV_MODES, vp8_uv_mode_encodings, vp8_uv_mode_tree,
-            Pnew, x->fc.uv_mode_prob, bct, (unsigned int *)cpi->uv_mode_count
+            Pnew, x->fc.uv_mode_prob, bct, (unsigned int *)cpi->mb.uv_mode_count
         );
     }
 }
@@ -162,7 +162,7 @@ static void write_split(vp8_writer *bc, int x)
 
 void vp8_pack_tokens_c(vp8_writer *w, const TOKENEXTRA *p, int xcount)
 {
-    const TOKENEXTRA *const stop = p + xcount;
+    const TOKENEXTRA *stop = p + xcount;
     unsigned int split;
     unsigned int shift;
     int count = w->count;
@@ -172,8 +172,8 @@ void vp8_pack_tokens_c(vp8_writer *w, const TOKENEXTRA *p, int xcount)
     while (p < stop)
     {
         const int t = p->Token;
-        vp8_token *const a = vp8_coef_encodings + t;
-        const vp8_extra_bit_struct *const b = vp8_extra_bits + t;
+        vp8_token *a = vp8_coef_encodings + t;
+        const vp8_extra_bit_struct *b = vp8_extra_bits + t;
         int i = 0;
         const unsigned char *pp = p->context_tree;
         int v = a->value;
@@ -245,15 +245,15 @@ void vp8_pack_tokens_c(vp8_writer *w, const TOKENEXTRA *p, int xcount)
 
             if (L)
             {
-                const unsigned char *pp = b->prob;
-                int v = e >> 1;
-                int n = L;              /* number of bits in v, assumed nonzero */
-                int i = 0;
+                const unsigned char *proba = b->prob;
+                const int v2 = e >> 1;
+                int n2 = L;              /* number of bits in v2, assumed nonzero */
+                i = 0;
 
                 do
                 {
-                    const int bb = (v >> --n) & 1;
-                    split = 1 + (((range - 1) * pp[i>>1]) >> 8);
+                    const int bb = (v2 >> --n2) & 1;
+                    split = 1 + (((range - 1) * proba[i>>1]) >> 8);
                     i = b->tree[i+bb];
 
                     if (bb)
@@ -301,7 +301,7 @@ void vp8_pack_tokens_c(vp8_writer *w, const TOKENEXTRA *p, int xcount)
 
                     lowvalue <<= shift;
                 }
-                while (n);
+                while (n2);
             }
 
 
@@ -397,7 +397,7 @@ static void pack_tokens_into_partitions_c(VP8_COMP *cpi, unsigned char *cx_data,
         {
             const TOKENEXTRA *p    = cpi->tplist[mb_row].start;
             const TOKENEXTRA *stop = cpi->tplist[mb_row].stop;
-            int tokens = stop - p;
+            int tokens = (int)(stop - p);
 
             vp8_pack_tokens_c(w, p, tokens);
         }
@@ -416,7 +416,7 @@ static void pack_mb_row_tokens_c(VP8_COMP *cpi, vp8_writer *w)
     {
         const TOKENEXTRA *p    = cpi->tplist[mb_row].start;
         const TOKENEXTRA *stop = cpi->tplist[mb_row].stop;
-        int tokens = stop - p;
+        int tokens = (int)(stop - p);
 
         vp8_pack_tokens_c(w, p, tokens);
     }
@@ -461,7 +461,7 @@ static void write_mv
 
 static void write_mb_features(vp8_writer *w, const MB_MODE_INFO *mi, const MACROBLOCKD *x)
 {
-    // Encode the MB segment id.
+    /* Encode the MB segment id. */
     if (x->segmentation_enabled && x->update_mb_segmentation_map)
     {
         switch (mi->segment_id)
@@ -483,7 +483,7 @@ static void write_mb_features(vp8_writer *w, const MB_MODE_INFO *mi, const MACRO
             vp8_write(w, 1, x->mb_segment_tree_probs[2]);
             break;
 
-            // TRAP.. This should not happen
+            /* TRAP.. This should not happen */
         default:
             vp8_write(w, 0, x->mb_segment_tree_probs[0]);
             vp8_write(w, 0, x->mb_segment_tree_probs[1]);
@@ -493,11 +493,11 @@ static void write_mb_features(vp8_writer *w, const MB_MODE_INFO *mi, const MACRO
 }
 void vp8_convert_rfct_to_prob(VP8_COMP *const cpi)
 {
-    const int *const rfct = cpi->count_mb_ref_frame_usage;
+    const int *const rfct = cpi->mb.count_mb_ref_frame_usage;
     const int rf_intra = rfct[INTRA_FRAME];
     const int rf_inter = rfct[LAST_FRAME] + rfct[GOLDEN_FRAME] + rfct[ALTREF_FRAME];
 
-    // Calculate the probabilities used to code the ref frame based on useage
+    /* Calculate the probabilities used to code the ref frame based on usage */
     if (!(cpi->prob_intra_coded = rf_intra * 255 / (rf_intra + rf_inter)))
         cpi->prob_intra_coded = 1;
 
@@ -521,18 +521,17 @@ static void pack_inter_mode_mvs(VP8_COMP *const cpi)
     const MV_CONTEXT *mvc = pc->fc.mvc;
 
 
-    MODE_INFO *m = pc->mi, *ms;
+    MODE_INFO *m = pc->mi;
     const int mis = pc->mode_info_stride;
     int mb_row = -1;
 
     int prob_skip_false = 0;
-    ms = pc->mi - 1;
 
     cpi->mb.partition_info = cpi->mb.pi;
 
     vp8_convert_rfct_to_prob(cpi);
 
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
     active_section = 1;
 #endif
 
@@ -540,7 +539,7 @@ static void pack_inter_mode_mvs(VP8_COMP *const cpi)
     {
         int total_mbs = pc->mb_rows * pc->mb_cols;
 
-        prob_skip_false = (total_mbs - cpi->skip_true_count ) * 256 / total_mbs;
+        prob_skip_false = (total_mbs - cpi->mb.skip_true_count ) * 256 / total_mbs;
 
         if (prob_skip_false <= 1)
             prob_skip_false = 1;
@@ -572,14 +571,16 @@ static void pack_inter_mode_mvs(VP8_COMP *const cpi)
 
             MACROBLOCKD *xd = &cpi->mb.e_mbd;
 
-            // Distance of Mb to the various image edges.
-            // These specified to 8th pel as they are always compared to MV values that are in 1/8th pel units
+            /* Distance of Mb to the various image edges.
+             * These specified to 8th pel as they are always compared to MV
+             * values that are in 1/8th pel units
+             */
             xd->mb_to_left_edge = -((mb_col * 16) << 3);
             xd->mb_to_right_edge = ((pc->mb_cols - 1 - mb_col) * 16) << 3;
             xd->mb_to_top_edge = -((mb_row * 16)) << 3;
             xd->mb_to_bottom_edge = ((pc->mb_rows - 1 - mb_row) * 16) << 3;
 
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
             active_section = 9;
 #endif
 
@@ -592,7 +593,7 @@ static void pack_inter_mode_mvs(VP8_COMP *const cpi)
             if (rf == INTRA_FRAME)
             {
                 vp8_write(w, 0, cpi->prob_intra_coded);
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
                 active_section = 6;
 #endif
                 write_ymode(w, mode, pc->fc.ymode_prob);
@@ -632,13 +633,13 @@ static void pack_inter_mode_mvs(VP8_COMP *const cpi)
 
                     vp8_mv_ref_probs(mv_ref_p, ct);
 
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
                     accum_mv_refs(mode, ct);
 #endif
 
                 }
 
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
                 active_section = 3;
 #endif
 
@@ -648,7 +649,7 @@ static void pack_inter_mode_mvs(VP8_COMP *const cpi)
                 {
                 case NEWMV:
 
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
                     active_section = 5;
 #endif
 
@@ -691,7 +692,7 @@ static void pack_inter_mode_mvs(VP8_COMP *const cpi)
 
                         if (blockmode == NEW4X4)
                         {
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
                             active_section = 11;
 #endif
                             write_mv(w, &blockmv.as_mv, &best_mv, (const MV_CONTEXT *) mvc);
@@ -729,7 +730,7 @@ static void write_kfmodes(VP8_COMP *cpi)
     {
         int total_mbs = c->mb_rows * c->mb_cols;
 
-        prob_skip_false = (total_mbs - cpi->skip_true_count ) * 256 / total_mbs;
+        prob_skip_false = (total_mbs - cpi->mb.skip_true_count ) * 256 / total_mbs;
 
         if (prob_skip_false <= 1)
             prob_skip_false = 1;
@@ -755,7 +756,7 @@ static void write_kfmodes(VP8_COMP *cpi)
             if (c->mb_no_coeff_skip)
                 vp8_encode_bool(bc, m->mbmi.mb_skip_coeff, prob_skip_false);
 
-            kfwrite_ymode(bc, ym, c->kf_ymode_prob);
+            kfwrite_ymode(bc, ym, vp8_kf_ymode_prob);
 
             if (ym == B_PRED)
             {
@@ -768,19 +769,19 @@ static void write_kfmodes(VP8_COMP *cpi)
                     const B_PREDICTION_MODE L = left_block_mode(m, i);
                     const int bm = m->bmi[i].as_mode;
 
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
                     ++intra_mode_stats [A] [L] [bm];
 #endif
 
-                    write_bmode(bc, bm, c->kf_bmode_prob [A] [L]);
+                    write_bmode(bc, bm, vp8_kf_bmode_prob [A] [L]);
                 }
                 while (++i < 16);
             }
 
-            write_uv_mode(bc, (m++)->mbmi.uv_mode, c->kf_uv_mode_prob);
+            write_uv_mode(bc, (m++)->mbmi.uv_mode, vp8_kf_uv_mode_prob);
         }
 
-        m++;    // skip L prediction border
+        m++;    /* skip L prediction border */
     }
 }
 
@@ -850,6 +851,7 @@ static int prob_update_savings(const unsigned int *ct,
 
 static int independent_coef_context_savings(VP8_COMP *cpi)
 {
+    MACROBLOCK *const x = & cpi->mb;
     int savings = 0;
     int i = 0;
     do
@@ -866,7 +868,7 @@ static int independent_coef_context_savings(VP8_COMP *cpi)
              */
 
             probs = (const unsigned int (*)[MAX_ENTROPY_TOKENS])
-                                                    cpi->coef_counts[i][j];
+                x->coef_counts[i][j];
 
             /* Reset to default probabilities at key frames */
             if (cpi->common.frame_type == KEY_FRAME)
@@ -879,9 +881,6 @@ static int independent_coef_context_savings(VP8_COMP *cpi)
                 /* at every context */
 
                 /* calc probs and branch cts for this frame only */
-                //vp8_prob new_p           [ENTROPY_NODES];
-                //unsigned int branch_ct   [ENTROPY_NODES] [2];
-
                 int t = 0;      /* token/prob index */
 
                 vp8_tree_probs_from_distribution(
@@ -928,6 +927,7 @@ static int independent_coef_context_savings(VP8_COMP *cpi)
 
 static int default_coef_context_savings(VP8_COMP *cpi)
 {
+    MACROBLOCK *const x = & cpi->mb;
     int savings = 0;
     int i = 0;
     do
@@ -941,16 +941,13 @@ static int default_coef_context_savings(VP8_COMP *cpi)
                 /* at every context */
 
                 /* calc probs and branch cts for this frame only */
-                //vp8_prob new_p           [ENTROPY_NODES];
-                //unsigned int branch_ct   [ENTROPY_NODES] [2];
-
                 int t = 0;      /* token/prob index */
 
                 vp8_tree_probs_from_distribution(
                     MAX_ENTROPY_TOKENS, vp8_coef_encodings, vp8_coef_tree,
                     cpi->frame_coef_probs [i][j][k],
                     cpi->frame_branch_ct [i][j][k],
-                    cpi->coef_counts [i][j][k],
+                    x->coef_counts [i][j][k],
                     256, 1
                 );
 
@@ -983,6 +980,12 @@ void vp8_calc_ref_frame_costs(int *ref_frame_cost,
                               int prob_garf
                              )
 {
+    assert(prob_intra >= 0);
+    assert(prob_intra <= 255);
+    assert(prob_last >= 0);
+    assert(prob_last <= 255);
+    assert(prob_garf >= 0);
+    assert(prob_garf <= 255);
     ref_frame_cost[INTRA_FRAME]   = vp8_cost_zero(prob_intra);
     ref_frame_cost[LAST_FRAME]    = vp8_cost_one(prob_intra)
                                     + vp8_cost_zero(prob_last);
@@ -999,13 +1002,13 @@ int vp8_estimate_entropy_savings(VP8_COMP *cpi)
 {
     int savings = 0;
 
-    const int *const rfct = cpi->count_mb_ref_frame_usage;
+    const int *const rfct = cpi->mb.count_mb_ref_frame_usage;
     const int rf_intra = rfct[INTRA_FRAME];
     const int rf_inter = rfct[LAST_FRAME] + rfct[GOLDEN_FRAME] + rfct[ALTREF_FRAME];
     int new_intra, new_last, new_garf, oldtotal, newtotal;
     int ref_frame_cost[MAX_REF_FRAMES];
 
-    vp8_clear_system_state(); //__asm emms;
+    vp8_clear_system_state();
 
     if (cpi->common.frame_type != KEY_FRAME)
     {
@@ -1027,7 +1030,7 @@ int vp8_estimate_entropy_savings(VP8_COMP *cpi)
             rfct[ALTREF_FRAME] * ref_frame_cost[ALTREF_FRAME];
 
 
-        // old costs
+        /* old costs */
         vp8_calc_ref_frame_costs(ref_frame_cost,cpi->prob_intra_coded,
                                  cpi->prob_last_coded,cpi->prob_gf_coded);
 
@@ -1079,7 +1082,7 @@ void vp8_update_coef_probs(VP8_COMP *cpi)
 #endif
     int savings = 0;
 
-    vp8_clear_system_state(); //__asm emms;
+    vp8_clear_system_state();
 
     do
     {
@@ -1111,20 +1114,14 @@ void vp8_update_coef_probs(VP8_COMP *cpi)
             }
             do
             {
-                //note: use result from vp8_estimate_entropy_savings, so no need to call vp8_tree_probs_from_distribution here.
+                /* note: use result from vp8_estimate_entropy_savings, so no
+                 * need to call vp8_tree_probs_from_distribution here.
+                 */
+
                 /* at every context */
 
                 /* calc probs and branch cts for this frame only */
-                //vp8_prob new_p           [ENTROPY_NODES];
-                //unsigned int branch_ct   [ENTROPY_NODES] [2];
-
                 int t = 0;      /* token/prob index */
-
-                //vp8_tree_probs_from_distribution(
-                //    MAX_ENTROPY_TOKENS, vp8_coef_encodings, vp8_coef_tree,
-                //    new_p, branch_ct, (unsigned int *)cpi->coef_counts [i][j][k],
-                //    256, 1
-                //    );
 
                 do
                 {
@@ -1163,7 +1160,7 @@ void vp8_update_coef_probs(VP8_COMP *cpi)
 #endif
 
 
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
                     ++ tree_update_hist [i][j][k][t] [u];
 #endif
 
@@ -1184,7 +1181,7 @@ void vp8_update_coef_probs(VP8_COMP *cpi)
                 while (++t < ENTROPY_NODES);
 
                 /* Accum token counts for generation of default statistics */
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
                 t = 0;
 
                 do
@@ -1296,19 +1293,16 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
     Sectionbits[active_section = 1] += sizeof(VP8_HEADER) * 8 * 256;
 #endif
 
-    //vp8_kf_default_bmode_probs() is called in vp8_setup_key_frame() once for each
-    //K frame before encode frame. pc->kf_bmode_prob doesn't get changed anywhere
-    //else. No need to call it again here. --yw
-    //vp8_kf_default_bmode_probs( pc->kf_bmode_prob);
-
-    // every keyframe send startcode, width, height, scale factor, clamp and color type
+    /* every keyframe send startcode, width, height, scale factor, clamp
+     * and color type
+     */
     if (oh.type == KEY_FRAME)
     {
         int v;
 
         validate_buffer(cx_data, 7, cx_data_end, &cpi->common.error);
 
-        // Start / synch code
+        /* Start / synch code */
         cx_data[0] = 0x9D;
         cx_data[1] = 0x01;
         cx_data[2] = 0x2a;
@@ -1327,7 +1321,7 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
 
         vp8_start_encode(bc, cx_data, cx_data_end);
 
-        // signal clr type
+        /* signal clr type */
         vp8_write_bit(bc, pc->clr_type);
         vp8_write_bit(bc, pc->clamp_type);
 
@@ -1336,13 +1330,13 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
         vp8_start_encode(bc, cx_data, cx_data_end);
 
 
-    // Signal whether or not Segmentation is enabled
+    /* Signal whether or not Segmentation is enabled */
     vp8_write_bit(bc, xd->segmentation_enabled);
 
-    // Indicate which features are enabled
+    /*  Indicate which features are enabled */
     if (xd->segmentation_enabled)
     {
-        // Signal whether or not the segmentation map is being updated.
+        /* Signal whether or not the segmentation map is being updated. */
         vp8_write_bit(bc, xd->update_mb_segmentation_map);
         vp8_write_bit(bc, xd->update_mb_segmentation_data);
 
@@ -1352,15 +1346,15 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
 
             vp8_write_bit(bc, xd->mb_segement_abs_delta);
 
-            // For each segmentation feature (Quant and loop filter level)
+            /* For each segmentation feature (Quant and loop filter level) */
             for (i = 0; i < MB_LVL_MAX; i++)
             {
-                // For each of the segments
+                /* For each of the segments */
                 for (j = 0; j < MAX_MB_SEGMENTS; j++)
                 {
                     Data = xd->segment_feature_data[i][j];
 
-                    // Frame level data
+                    /* Frame level data */
                     if (Data)
                     {
                         vp8_write_bit(bc, 1);
@@ -1385,7 +1379,7 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
 
         if (xd->update_mb_segmentation_map)
         {
-            // Write the probs used to decode the segment id for each macro block.
+            /* Write the probs used to decode the segment id for each mb */
             for (i = 0; i < MB_FEATURE_TREE_PROBS; i++)
             {
                 int Data = xd->mb_segment_tree_probs[i];
@@ -1401,17 +1395,18 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
         }
     }
 
-    // Code to determine whether or not to update the scan order.
     vp8_write_bit(bc, pc->filter_type);
     vp8_write_literal(bc, pc->filter_level, 6);
     vp8_write_literal(bc, pc->sharpness_level, 3);
 
-    // Write out loop filter deltas applied at the MB level based on mode or ref frame (if they are enabled).
+    /* Write out loop filter deltas applied at the MB level based on mode
+     * or ref frame (if they are enabled).
+     */
     vp8_write_bit(bc, xd->mode_ref_lf_delta_enabled);
 
     if (xd->mode_ref_lf_delta_enabled)
     {
-        // Do the deltas need to be updated
+        /* Do the deltas need to be updated */
         int send_update = xd->mode_ref_lf_delta_update
                           || cpi->oxcf.error_resilient_mode;
 
@@ -1420,12 +1415,12 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
         {
             int Data;
 
-            // Send update
+            /* Send update */
             for (i = 0; i < MAX_REF_LF_DELTAS; i++)
             {
                 Data = xd->ref_lf_deltas[i];
 
-                // Frame level data
+                /* Frame level data */
                 if (xd->ref_lf_deltas[i] != xd->last_ref_lf_deltas[i]
                     || cpi->oxcf.error_resilient_mode)
                 {
@@ -1435,20 +1430,20 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
                     if (Data > 0)
                     {
                         vp8_write_literal(bc, (Data & 0x3F), 6);
-                        vp8_write_bit(bc, 0);    // sign
+                        vp8_write_bit(bc, 0);    /* sign */
                     }
                     else
                     {
                         Data = -Data;
                         vp8_write_literal(bc, (Data & 0x3F), 6);
-                        vp8_write_bit(bc, 1);    // sign
+                        vp8_write_bit(bc, 1);    /* sign */
                     }
                 }
                 else
                     vp8_write_bit(bc, 0);
             }
 
-            // Send update
+            /* Send update */
             for (i = 0; i < MAX_MODE_LF_DELTAS; i++)
             {
                 Data = xd->mode_lf_deltas[i];
@@ -1462,13 +1457,13 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
                     if (Data > 0)
                     {
                         vp8_write_literal(bc, (Data & 0x3F), 6);
-                        vp8_write_bit(bc, 0);    // sign
+                        vp8_write_bit(bc, 0);    /* sign */
                     }
                     else
                     {
                         Data = -Data;
                         vp8_write_literal(bc, (Data & 0x3F), 6);
-                        vp8_write_bit(bc, 1);    // sign
+                        vp8_write_bit(bc, 1);    /* sign */
                     }
                 }
                 else
@@ -1477,34 +1472,42 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
         }
     }
 
-    //signal here is multi token partition is enabled
+    /* signal here is multi token partition is enabled */
     vp8_write_literal(bc, pc->multi_token_partition, 2);
 
-    // Frame Qbaseline quantizer index
+    /* Frame Qbaseline quantizer index */
     vp8_write_literal(bc, pc->base_qindex, 7);
 
-    // Transmit Dc, Second order and Uv quantizer delta information
+    /* Transmit Dc, Second order and Uv quantizer delta information */
     put_delta_q(bc, pc->y1dc_delta_q);
     put_delta_q(bc, pc->y2dc_delta_q);
     put_delta_q(bc, pc->y2ac_delta_q);
     put_delta_q(bc, pc->uvdc_delta_q);
     put_delta_q(bc, pc->uvac_delta_q);
 
-    // When there is a key frame all reference buffers are updated using the new key frame
+    /* When there is a key frame all reference buffers are updated using
+     * the new key frame
+     */
     if (pc->frame_type != KEY_FRAME)
     {
-        // Should the GF or ARF be updated using the transmitted frame or buffer
+        /* Should the GF or ARF be updated using the transmitted frame
+         * or buffer
+         */
         vp8_write_bit(bc, pc->refresh_golden_frame);
         vp8_write_bit(bc, pc->refresh_alt_ref_frame);
 
-        // If not being updated from current frame should either GF or ARF be updated from another buffer
+        /* If not being updated from current frame should either GF or ARF
+         * be updated from another buffer
+         */
         if (!pc->refresh_golden_frame)
             vp8_write_literal(bc, pc->copy_buffer_to_gf, 2);
 
         if (!pc->refresh_alt_ref_frame)
             vp8_write_literal(bc, pc->copy_buffer_to_arf, 2);
 
-        // Indicate reference frame sign bias for Golden and ARF frames (always 0 for last frame buffer)
+        /* Indicate reference frame sign bias for Golden and ARF frames
+         * (always 0 for last frame buffer)
+         */
         vp8_write_bit(bc, pc->ref_frame_sign_bias[GOLDEN_FRAME]);
         vp8_write_bit(bc, pc->ref_frame_sign_bias[ALTREF_FRAME]);
     }
@@ -1524,7 +1527,7 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
     if (pc->frame_type != KEY_FRAME)
         vp8_write_bit(bc, pc->refresh_last_frame);
 
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
 
     if (pc->frame_type == INTER_FRAME)
         active_section = 0;
@@ -1533,32 +1536,32 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
 
 #endif
 
-    vp8_clear_system_state();  //__asm emms;
+    vp8_clear_system_state();
 
 #if CONFIG_REALTIME_ONLY & CONFIG_ONTHEFLY_BITPACKING
     pack_coef_probs(cpi);
 #else
     if (pc->refresh_entropy_probs == 0)
     {
-        // save a copy for later refresh
+        /* save a copy for later refresh */
         vpx_memcpy(&cpi->common.lfc, &cpi->common.fc, sizeof(cpi->common.fc));
     }
 
     vp8_update_coef_probs(cpi);
 #endif
 
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
     active_section = 2;
 #endif
 
-    // Write out the mb_no_coeff_skip flag
+    /* Write out the mb_no_coeff_skip flag */
     vp8_write_bit(bc, pc->mb_no_coeff_skip);
 
     if (pc->frame_type == KEY_FRAME)
     {
         write_kfmodes(cpi);
 
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
         active_section = 8;
 #endif
     }
@@ -1566,7 +1569,7 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
     {
         pack_inter_mode_mvs(cpi);
 
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
         active_section = 1;
 #endif
     }
@@ -1684,7 +1687,7 @@ void vp8_pack_bitstream(VP8_COMP *cpi, unsigned char *dest, unsigned char * dest
 #endif
 }
 
-#ifdef ENTROPY_STATS
+#ifdef VP8_ENTROPY_STATS
 void print_tree_update_probs()
 {
     int i, j, k, l;

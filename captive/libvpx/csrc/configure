@@ -20,9 +20,10 @@ show_help(){
     show_help_pre
     cat << EOF
 Advanced options:
-  ${toggle_libs}                  don't build libraries
-  ${toggle_examples}              don't build examples
-  ${toggle_unit_tests}            build unit tests
+  ${toggle_libs}                  libraries
+  ${toggle_examples}              examples
+  ${toggle_docs}                  documentation
+  ${toggle_unit_tests}            unit tests
   --libc=PATH                     path to alternate libc
   --as={yasm|nasm|auto}           use specified assembler [auto, yasm preferred]
   --sdk-path=PATH                 path to root of sdk (iOS, android builds only)
@@ -33,6 +34,7 @@ Advanced options:
   ${toggle_md5}                   support for output of checksum data
   ${toggle_static_msvcrt}         use static MSVCRT (VS builds only)
   ${toggle_vp8}                   VP8 codec support
+  ${toggle_vp9}                   VP9 codec support
   ${toggle_internal_stats}        output of encoder internal stats for debug, if supported (encoders)
   ${toggle_mem_tracker}           track memory usage
   ${toggle_postproc}              postprocessing
@@ -96,6 +98,7 @@ all_platforms="${all_platforms} armv7-darwin-gcc"    #neon Cortex-A8
 all_platforms="${all_platforms} armv7-linux-rvct"    #neon Cortex-A8
 all_platforms="${all_platforms} armv7-linux-gcc"     #neon Cortex-A8
 all_platforms="${all_platforms} armv7-none-rvct"     #neon Cortex-A8
+all_platforms="${all_platforms} armv7-win32-vs11"
 all_platforms="${all_platforms} mips32-linux-gcc"
 all_platforms="${all_platforms} ppc32-darwin8-gcc"
 all_platforms="${all_platforms} ppc32-darwin9-gcc"
@@ -104,11 +107,14 @@ all_platforms="${all_platforms} ppc64-darwin8-gcc"
 all_platforms="${all_platforms} ppc64-darwin9-gcc"
 all_platforms="${all_platforms} ppc64-linux-gcc"
 all_platforms="${all_platforms} sparc-solaris-gcc"
+all_platforms="${all_platforms} x86-android-gcc"
 all_platforms="${all_platforms} x86-darwin8-gcc"
 all_platforms="${all_platforms} x86-darwin8-icc"
 all_platforms="${all_platforms} x86-darwin9-gcc"
 all_platforms="${all_platforms} x86-darwin9-icc"
 all_platforms="${all_platforms} x86-darwin10-gcc"
+all_platforms="${all_platforms} x86-darwin11-gcc"
+all_platforms="${all_platforms} x86-darwin12-gcc"
 all_platforms="${all_platforms} x86-linux-gcc"
 all_platforms="${all_platforms} x86-linux-icc"
 all_platforms="${all_platforms} x86-os2-gcc"
@@ -117,17 +123,25 @@ all_platforms="${all_platforms} x86-win32-gcc"
 all_platforms="${all_platforms} x86-win32-vs7"
 all_platforms="${all_platforms} x86-win32-vs8"
 all_platforms="${all_platforms} x86-win32-vs9"
+all_platforms="${all_platforms} x86-win32-vs10"
+all_platforms="${all_platforms} x86-win32-vs11"
 all_platforms="${all_platforms} x86_64-darwin9-gcc"
 all_platforms="${all_platforms} x86_64-darwin10-gcc"
 all_platforms="${all_platforms} x86_64-darwin11-gcc"
+all_platforms="${all_platforms} x86_64-darwin12-gcc"
 all_platforms="${all_platforms} x86_64-linux-gcc"
 all_platforms="${all_platforms} x86_64-linux-icc"
 all_platforms="${all_platforms} x86_64-solaris-gcc"
 all_platforms="${all_platforms} x86_64-win64-gcc"
 all_platforms="${all_platforms} x86_64-win64-vs8"
 all_platforms="${all_platforms} x86_64-win64-vs9"
+all_platforms="${all_platforms} x86_64-win64-vs10"
+all_platforms="${all_platforms} x86_64-win64-vs11"
 all_platforms="${all_platforms} universal-darwin8-gcc"
 all_platforms="${all_platforms} universal-darwin9-gcc"
+all_platforms="${all_platforms} universal-darwin10-gcc"
+all_platforms="${all_platforms} universal-darwin11-gcc"
+all_platforms="${all_platforms} universal-darwin12-gcc"
 all_platforms="${all_platforms} generic-gnu"
 
 # all_targets is a list of all targets that can be configured
@@ -169,17 +183,24 @@ enable os_support
 enable temporal_denoising
 
 [ -d ${source_path}/../include ] && enable alt_tree_layout
-for d in vp8; do
+for d in vp8 vp9; do
     [ -d ${source_path}/${d} ] && disable alt_tree_layout;
 done
 
 if ! enabled alt_tree_layout; then
 # development environment
 [ -d ${source_path}/vp8 ] && CODECS="${CODECS} vp8_encoder vp8_decoder"
+[ -d ${source_path}/vp9 ] && CODECS="${CODECS} vp9_encoder vp9_decoder"
 else
 # customer environment
 [ -f ${source_path}/../include/vpx/vp8cx.h ] && CODECS="${CODECS} vp8_encoder"
 [ -f ${source_path}/../include/vpx/vp8dx.h ] && CODECS="${CODECS} vp8_decoder"
+[ -f ${source_path}/../include/vpx/vp9cx.h ] && CODECS="${CODECS} vp9_encoder"
+[ -f ${source_path}/../include/vpx/vp9dx.h ] && CODECS="${CODECS} vp9_decoder"
+[ -f ${source_path}/../include/vpx/vp8cx.h ] || disable vp8_encoder
+[ -f ${source_path}/../include/vpx/vp8dx.h ] || disable vp8_decoder
+[ -f ${source_path}/../include/vpx/vp9cx.h ] || disable vp9_encoder
+[ -f ${source_path}/../include/vpx/vp9dx.h ] || disable vp9_decoder
 
 [ -f ${source_path}/../lib/*/*mt.lib ] && soft_enable static_msvcrt
 fi
@@ -201,6 +222,7 @@ ARCH_EXT_LIST="
     neon
 
     mips32
+    dspr2
 
     mmx
     sse
@@ -219,6 +241,21 @@ HAVE_LIST="
     pthread_h
     sys_mman_h
     unistd_h
+"
+EXPERIMENT_LIST="
+    csm
+    new_mvref
+    implicit_segmentation
+    newbintramodes
+    comp_interintra_pred
+    enable_6tap
+    abovesprefmv
+    code_nonzerocount
+    useselectrefmv
+    modelcoefprob
+    loop_dering
+    implicit_compoundinter_weight
+    scatterscan
 "
 CONFIG_LIST="
     external_build
@@ -266,8 +303,12 @@ CONFIG_LIST="
     unit_tests
     multi_res_encoding
     temporal_denoising
+    experimental
+    decrypt
+    ${EXPERIMENT_LIST}
 "
 CMDLINE_SELECT="
+    external_build
     extra_warnings
     werror
     install_docs
@@ -281,9 +322,11 @@ CMDLINE_SELECT="
     optimizations
     ccache
     runtime_cpu_detect
+    thumb
 
     libs
     examples
+    docs
     libc
     as
     fast_unaligned
@@ -311,6 +354,8 @@ CMDLINE_SELECT="
     unit_tests
     multi_res_encoding
     temporal_denoising
+    experimental
+    decrypt
 "
 
 process_cmdline() {
@@ -318,6 +363,18 @@ process_cmdline() {
         optval="${opt#*=}"
         case "$opt" in
         --disable-codecs) for c in ${CODECS}; do disable $c; done ;;
+        --enable-?*|--disable-?*)
+        eval `echo "$opt" | sed 's/--/action=/;s/-/ option=/;s/-/_/g'`
+        if echo "${EXPERIMENT_LIST}" | grep "^ *$option\$" >/dev/null; then
+            if enabled experimental; then
+                $action $option
+            else
+                log_echo "Ignoring $opt -- not in experimental mode."
+            fi
+        else
+            process_common_cmdline $opt
+        fi
+        ;;
         *) process_common_cmdline "$opt"
         ;;
         esac
@@ -445,9 +502,15 @@ process_detect() {
         # Can only build shared libs on a subset of platforms. Doing this check
         # here rather than at option parse time because the target auto-detect
         # magic happens after the command line has been parsed.
-        enabled linux || die "--enable-shared only supported on ELF for now"
+        if ! enabled linux; then
+            if enabled gnu; then
+                echo "--enable-shared is only supported on ELF; assuming this is OK"
+            else
+                die "--enable-shared only supported on ELF for now"
+            fi
+        fi
     fi
-    if [ -z "$CC" ]; then
+    if [ -z "$CC" ] || enabled external_build; then
         echo "Bypassing toolchain for environment detection."
         enable external_build
         check_header() {
@@ -456,6 +519,7 @@ process_detect() {
             shift
             var=`echo $header | sed 's/[^A-Za-z0-9_]/_/g'`
             disable $var
+            # Headers common to all environments
             case $header in
                 stdio.h)
                     true;
@@ -467,6 +531,25 @@ process_detect() {
                     done
                     ${result:-true}
             esac && enable $var
+
+            # Specialize windows and POSIX environments.
+            case $toolchain in
+                *-win*-*)
+                    case $header-$toolchain in
+                        stdint*-gcc) true;;
+                        *) false;;
+                    esac && enable $var
+                    ;;
+                *)
+                    case $header in
+                        stdint.h) true;;
+                        pthread.h) true;;
+                        sys/mman.h) true;;
+                        unistd.h) true;;
+                        *) false;;
+                    esac && enable $var
+            esac
+            enabled $var
         }
         check_ld() {
             true
@@ -480,6 +563,7 @@ EOF
     check_header stdint.h
     check_header pthread.h
     check_header sys/mman.h
+    check_header unistd.h # for sysconf(3) and friends.
 
     check_header vpx/vpx_integer.h -I${source_path} && enable vpx_ports
 }
@@ -491,11 +575,20 @@ process_toolchain() {
     case $toolchain in
         universal-darwin*)
             local darwin_ver=${tgt_os##darwin}
-            fat_bin_archs="$fat_bin_archs ppc32-${tgt_os}-gcc"
 
-            # Intel
-            fat_bin_archs="$fat_bin_archs x86-${tgt_os}-${tgt_cc}"
-            if [ $darwin_ver -gt 8 ]; then
+            # Snow Leopard (10.6/darwin10) dropped support for PPC
+            # Include PPC support for all prior versions
+            if [ $darwin_ver -lt 10 ]; then
+                fat_bin_archs="$fat_bin_archs ppc32-${tgt_os}-gcc"
+            fi
+
+            # Tiger (10.4/darwin8) brought support for x86
+            if [ $darwin_ver -ge 8 ]; then
+                fat_bin_archs="$fat_bin_archs x86-${tgt_os}-${tgt_cc}"
+            fi
+
+            # Leopard (10.5/darwin9) brought 64 bit support
+            if [ $darwin_ver -ge 9 ]; then
                 fat_bin_archs="$fat_bin_archs x86_64-${tgt_os}-${tgt_cc}"
             fi
             ;;
@@ -511,6 +604,11 @@ process_toolchain() {
         check_add_cflags -Wpointer-arith
         check_add_cflags -Wtype-limits
         check_add_cflags -Wcast-qual
+        check_add_cflags -Wvla
+        check_add_cflags -Wimplicit-function-declaration
+        check_add_cflags -Wuninitialized
+        check_add_cflags -Wunused-variable
+        check_add_cflags -Wunused-but-set-variable
         enabled extra_warnings || check_add_cflags -Wno-unused-function
     fi
 
@@ -555,7 +653,18 @@ process_toolchain() {
         vs*) enable msvs
              enable solution
              vs_version=${tgt_cc##vs}
+             case $vs_version in
+             [789])
+                 VCPROJ_SFX=vcproj
+                 gen_vcproj_cmd=${source_path}/build/make/gen_msvs_proj.sh
+                 ;;
+             10|11)
+                 VCPROJ_SFX=vcxproj
+                 gen_vcproj_cmd=${source_path}/build/make/gen_msvs_vcxproj.sh
+                 ;;
+             esac
              all_targets="${all_targets} solution"
+             INLINE="__forceinline"
         ;;
     esac
 
@@ -565,6 +674,25 @@ process_toolchain() {
     if enabled postproc_visualizer; then
         enabled postproc || die "postproc_visualizer requires postproc to be enabled"
     fi
+
+    # Enable unit tests by default if we have a working C++ compiler.
+    case "$toolchain" in
+        *-vs*)
+            soft_enable unit_tests
+        ;;
+        *-android-*)
+            # GTestLog must be modified to use Android logging utilities.
+        ;;
+        *-darwin-*)
+            # iOS/ARM builds do not work with gtest. This does not match
+            # x86 targets.
+        ;;
+        *)
+            enabled pthread_h && check_cxx "$@" <<EOF && soft_enable unit_tests
+int z;
+EOF
+        ;;
+    esac
 }
 
 

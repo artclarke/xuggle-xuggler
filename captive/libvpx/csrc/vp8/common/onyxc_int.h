@@ -13,7 +13,7 @@
 #define __INC_VP8C_INT_H
 
 #include "vpx_config.h"
-#include "vpx_rtcd.h"
+#include "vp8_rtcd.h"
 #include "vpx/internal/vpx_codec_internal.h"
 #include "loopfilter.h"
 #include "entropymv.h"
@@ -25,10 +25,6 @@
 /*#ifdef PACKET_TESTING*/
 #include "header.h"
 /*#endif*/
-
-/* Create/destroy static data structures. */
-
-void vp8_initialize_common(void);
 
 #define MINQ 0
 #define MAXQ 127
@@ -46,7 +42,6 @@ typedef struct frame_contexts
     vp8_prob sub_mv_ref_prob [VP8_SUBMVREFS-1];
     vp8_prob coef_probs [BLOCK_TYPES] [COEF_BANDS] [PREV_COEF_CONTEXTS] [ENTROPY_NODES];
     MV_CONTEXT mvc[2];
-    MV_CONTEXT pre_mvc[2];  /* not to caculate the mvcost for the frame if mvc doesn't change. */
 } FRAME_CONTEXT;
 
 typedef enum
@@ -62,12 +57,6 @@ typedef enum
     RECON_CLAMP_REQUIRED        = 0,
     RECON_CLAMP_NOTREQUIRED     = 1
 } CLAMP_TYPE;
-
-typedef enum
-{
-    SIXTAP   = 0,
-    BILINEAR = 1
-} INTERPOLATIONFILTERTYPE;
 
 typedef struct VP8Common
 
@@ -92,11 +81,14 @@ typedef struct VP8Common
     int fb_idx_ref_cnt[NUM_YV12_BUFFERS];
     int new_fb_idx, lst_fb_idx, gld_fb_idx, alt_fb_idx;
 
-    YV12_BUFFER_CONFIG post_proc_buffer;
     YV12_BUFFER_CONFIG temp_scale_frame;
 
+#if CONFIG_POSTPROC
+    YV12_BUFFER_CONFIG post_proc_buffer;
     YV12_BUFFER_CONFIG post_proc_buffer_int;
     int post_proc_buffer_int_used;
+    unsigned char *pp_limits_buffer;   /* post-processing filter coefficients */
+#endif
 
     FRAME_TYPE last_frame_type;  /* Save last frame's frame type for motion search. */
     FRAME_TYPE frame_type;
@@ -116,7 +108,6 @@ typedef struct VP8Common
     int full_pixel;
 
     int base_qindex;
-    int last_kf_gf_q;  /* Q used on the last GF or KF */
 
     int y1dc_delta_q;
     int y2dc_delta_q;
@@ -132,11 +123,12 @@ typedef struct VP8Common
 
     MODE_INFO *mip; /* Base of allocated array */
     MODE_INFO *mi;  /* Corresponds to upper left visible macroblock */
+#if CONFIG_ERROR_CONCEALMENT
     MODE_INFO *prev_mip; /* MODE_INFO array 'mip' from last decoded frame */
     MODE_INFO *prev_mi;  /* 'mi' from last frame (points into prev_mip) */
-
-
-    INTERPOLATIONFILTERTYPE mcomp_filter_type;
+#endif
+    MODE_INFO *show_frame_mi;  /* MODE_INFO for the last decoded frame
+                                  to show */
     LOOPFILTERTYPE filter_type;
 
     loop_filter_info_n lf_info;
@@ -159,14 +151,6 @@ typedef struct VP8Common
     /* Y,U,V,Y2 */
     ENTROPY_CONTEXT_PLANES *above_context;   /* row of context for each plane */
     ENTROPY_CONTEXT_PLANES left_context;  /* (up to) 4 contexts "" */
-
-
-    /* keyframe block modes are predicted by their above, left neighbors */
-
-    vp8_prob kf_bmode_prob [VP8_BINTRAMODES] [VP8_BINTRAMODES] [VP8_BINTRAMODES-1];
-    vp8_prob kf_ymode_prob [VP8_YMODES-1];  /* keyframe "" */
-    vp8_prob kf_uv_mode_prob [VP8_UV_MODES-1];
-
 
     FRAME_CONTEXT lfc; /* last frame entropy */
     FRAME_CONTEXT fc;  /* this frame entropy */

@@ -14,7 +14,6 @@ VP8_COMMON_SRCS-yes += common/ppflags.h
 VP8_COMMON_SRCS-yes += common/onyx.h
 VP8_COMMON_SRCS-yes += common/onyxd.h
 VP8_COMMON_SRCS-yes += common/alloccommon.c
-VP8_COMMON_SRCS-yes += common/asm_com_offsets.c
 VP8_COMMON_SRCS-yes += common/blockd.c
 VP8_COMMON_SRCS-yes += common/coefupdateprobs.h
 VP8_COMMON_SRCS-yes += common/debugmodes.c
@@ -30,7 +29,6 @@ VP8_COMMON_SRCS-yes += common/findnearmv.c
 VP8_COMMON_SRCS-yes += common/generic/systemdependent.c
 VP8_COMMON_SRCS-yes += common/idct_blk.c
 VP8_COMMON_SRCS-yes += common/idctllm.c
-VP8_COMMON_SRCS-yes += common/idctllm_test.cc
 VP8_COMMON_SRCS-yes += common/alloccommon.h
 VP8_COMMON_SRCS-yes += common/blockd.h
 VP8_COMMON_SRCS-yes += common/common.h
@@ -59,7 +57,6 @@ VP8_COMMON_SRCS-yes += common/loopfilter.c
 VP8_COMMON_SRCS-yes += common/loopfilter_filters.c
 VP8_COMMON_SRCS-yes += common/mbpitch.c
 VP8_COMMON_SRCS-yes += common/modecont.c
-VP8_COMMON_SRCS-yes += common/modecontext.c
 VP8_COMMON_SRCS-yes += common/quant_common.c
 VP8_COMMON_SRCS-yes += common/reconinter.c
 VP8_COMMON_SRCS-yes += common/reconintra.c
@@ -69,6 +66,8 @@ VP8_COMMON_SRCS-yes += common/setupintrarecon.c
 VP8_COMMON_SRCS-yes += common/swapyv12buffer.c
 VP8_COMMON_SRCS-yes += common/variance_c.c
 VP8_COMMON_SRCS-yes += common/variance.h
+VP8_COMMON_SRCS-yes += common/vp8_asm_com_offsets.c
+VP8_COMMON_SRCS-yes += common/vp8_entropymodedata.h
 
 
 
@@ -79,12 +78,12 @@ VP8_COMMON_SRCS-$(ARCH_X86)$(ARCH_X86_64) += common/x86/filter_x86.c
 VP8_COMMON_SRCS-$(ARCH_X86)$(ARCH_X86_64) += common/x86/filter_x86.h
 VP8_COMMON_SRCS-$(ARCH_X86)$(ARCH_X86_64) += common/x86/vp8_asm_stubs.c
 VP8_COMMON_SRCS-$(ARCH_X86)$(ARCH_X86_64) += common/x86/loopfilter_x86.c
+VP8_COMMON_SRCS-$(CONFIG_POSTPROC) += common/mfqe.c
 VP8_COMMON_SRCS-$(CONFIG_POSTPROC) += common/postproc.h
 VP8_COMMON_SRCS-$(CONFIG_POSTPROC) += common/postproc.c
 VP8_COMMON_SRCS-$(HAVE_MMX) += common/x86/dequantize_mmx.asm
 VP8_COMMON_SRCS-$(HAVE_MMX) += common/x86/idct_blk_mmx.c
 VP8_COMMON_SRCS-$(HAVE_MMX) += common/x86/idctllm_mmx.asm
-VP8_COMMON_SRCS-$(HAVE_MMX) += common/x86/idctllm_mmx_test.cc
 VP8_COMMON_SRCS-$(HAVE_MMX) += common/x86/iwalsh_mmx.asm
 VP8_COMMON_SRCS-$(HAVE_MMX) += common/x86/loopfilter_mmx.asm
 VP8_COMMON_SRCS-$(HAVE_MMX) += common/x86/recon_mmx.asm
@@ -112,12 +111,21 @@ VP8_COMMON_SRCS-$(HAVE_SSE4_1) += common/x86/sad_sse4.asm
 ifeq ($(CONFIG_POSTPROC),yes)
 VP8_COMMON_SRCS-$(ARCH_X86)$(ARCH_X86_64) += common/x86/postproc_x86.c
 VP8_COMMON_SRCS-$(HAVE_MMX) += common/x86/postproc_mmx.asm
+VP8_COMMON_SRCS-$(HAVE_SSE2) += common/x86/mfqe_sse2.asm
 VP8_COMMON_SRCS-$(HAVE_SSE2) += common/x86/postproc_sse2.asm
 endif
 
 ifeq ($(ARCH_X86_64),yes)
 VP8_COMMON_SRCS-$(HAVE_SSE2) += common/x86/loopfilter_block_sse2.asm
 endif
+
+# common (c)
+VP8_COMMON_SRCS-$(HAVE_DSPR2)  += common/mips/dspr2/idctllm_dspr2.c
+VP8_COMMON_SRCS-$(HAVE_DSPR2)  += common/mips/dspr2/filter_dspr2.c
+VP8_COMMON_SRCS-$(HAVE_DSPR2)  += common/mips/dspr2/loopfilter_filters_dspr2.c
+VP8_COMMON_SRCS-$(HAVE_DSPR2)  += common/mips/dspr2/reconinter_dspr2.c
+VP8_COMMON_SRCS-$(HAVE_DSPR2)  += common/mips/dspr2/idct_blk_dspr2.c
+VP8_COMMON_SRCS-$(HAVE_DSPR2)  += common/mips/dspr2/dequantize_dspr2.c
 
 # common (c)
 VP8_COMMON_SRCS-$(ARCH_ARM)  += common/arm/filter_arm.c
@@ -183,3 +191,8 @@ VP8_COMMON_SRCS-$(HAVE_NEON)  += common/arm/neon/variance_neon$(ASM)
 VP8_COMMON_SRCS-$(HAVE_NEON)  += common/arm/neon/vp8_subpixelvariance8x8_neon$(ASM)
 VP8_COMMON_SRCS-$(HAVE_NEON)  += common/arm/neon/vp8_subpixelvariance16x16_neon$(ASM)
 VP8_COMMON_SRCS-$(HAVE_NEON)  += common/arm/neon/vp8_subpixelvariance16x16s_neon$(ASM)
+
+$(eval $(call asm_offsets_template,\
+         vp8_asm_com_offsets.asm, $(VP8_PREFIX)common/vp8_asm_com_offsets.c))
+
+$(eval $(call rtcd_h_template,vp8_rtcd,vp8/common/rtcd_defs.sh))
