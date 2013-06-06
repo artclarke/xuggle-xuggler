@@ -1,7 +1,7 @@
 /*****************************************************************************
  * lavf.c: libavformat input
  *****************************************************************************
- * Copyright (C) 2009-2012 x264 project
+ * Copyright (C) 2009-2013 x264 project
  *
  * Authors: Mike Gurlitz <mike.gurlitz@gmail.com>
  *          Steven Walters <kemuri9@gmail.com>
@@ -28,12 +28,14 @@
 #define FAIL_IF_ERROR( cond, ... ) FAIL_IF_ERR( cond, "lavf", __VA_ARGS__ )
 #undef DECLARE_ALIGNED
 #include <libavformat/avformat.h>
+#include <libavutil/mem.h>
 #include <libavutil/pixdesc.h>
 #include <libavutil/dict.h>
 
 typedef struct
 {
     AVFormatContext *lavf;
+    AVFrame *frame;
     int stream_id;
     int next_frame;
     int vfr_input;
@@ -80,8 +82,8 @@ static int read_frame_internal( cli_pic_t *p_pic, lavf_hnd_t *h, int i_frame, vi
 
     AVCodecContext *c = h->lavf->streams[h->stream_id]->codec;
     AVPacket *pkt = p_pic->opaque;
-    AVFrame frame;
-    avcodec_get_frame_defaults( &frame );
+
+    avcodec_get_frame_defaults( h->frame );
 
     while( i_frame >= h->next_frame )
     {
@@ -97,7 +99,7 @@ static int read_frame_internal( cli_pic_t *p_pic, lavf_hnd_t *h, int i_frame, vi
                     pkt->size = 0;
 
                 c->reordered_opaque = pkt->pts;
-                if( avcodec_decode_video2( c, &frame, &finished, pkt ) < 0 )
+                if( avcodec_decode_video2( c, h->frame, &finished, pkt ) < 0 )
                     x264_cli_log( "lavf", X264_LOG_WARNING, "video decoding failed on frame %d\n", h->next_frame );
             }
             /* if the packet successfully decoded but the data from it is not desired, free it */
@@ -111,8 +113,8 @@ static int read_frame_internal( cli_pic_t *p_pic, lavf_hnd_t *h, int i_frame, vi
         h->next_frame++;
     }
 
-    memcpy( p_pic->img.stride, frame.linesize, sizeof(p_pic->img.stride) );
-    memcpy( p_pic->img.plane, frame.data, sizeof(p_pic->img.plane) );
+    memcpy( p_pic->img.stride, h->frame->linesize, sizeof(p_pic->img.stride) );
+    memcpy( p_pic->img.plane, h->frame->data, sizeof(p_pic->img.plane) );
     int is_fullrange   = 0;
     p_pic->img.width   = c->width;
     p_pic->img.height  = c->height;
@@ -121,15 +123,15 @@ static int read_frame_internal( cli_pic_t *p_pic, lavf_hnd_t *h, int i_frame, vi
     if( info )
     {
         info->fullrange  = is_fullrange;
-        info->interlaced = frame.interlaced_frame;
-        info->tff        = frame.top_field_first;
+        info->interlaced = h->frame->interlaced_frame;
+        info->tff        = h->frame->top_field_first;
     }
 
     if( h->vfr_input )
     {
         p_pic->pts = p_pic->duration = 0;
-        if( c->has_b_frames && frame.reordered_opaque != AV_NOPTS_VALUE )
-            p_pic->pts = frame.reordered_opaque;
+        if( c->has_b_frames && h->frame->reordered_opaque != AV_NOPTS_VALUE )
+            p_pic->pts = h->frame->reordered_opaque;
         else if( pkt->dts != AV_NOPTS_VALUE )
             p_pic->pts = pkt->dts; // for AVI files
         else if( info )
@@ -150,6 +152,10 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     av_register_all();
     if( !strcmp( psz_filename, "-" ) )
         psz_filename = "pipe:";
+
+    h->frame = avcodec_alloc_frame();
+    if( !h->frame )
+        return -1;
 
     /* if resolution was passed in, place it and colorspace into options. this allows raw video support */
     AVDictionary *options = NULL;
@@ -177,8 +183,8 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     h->stream_id       = i;
     h->next_frame      = 0;
     AVCodecContext *c  = h->lavf->streams[i]->codec;
-    info->fps_num      = h->lavf->streams[i]->r_frame_rate.num;
-    info->fps_den      = h->lavf->streams[i]->r_frame_rate.den;
+    info->fps_num      = h->lavf->streams[i]->avg_frame_rate.num;
+    info->fps_den      = h->lavf->streams[i]->avg_frame_rate.den;
     info->timebase_num = h->lavf->streams[i]->time_base.num;
     info->timebase_den = h->lavf->streams[i]->time_base.den;
     /* lavf is thread unsafe as calling av_read_frame invalidates previously read AVPackets */
@@ -245,7 +251,12 @@ static int close_file( hnd_t handle )
 {
     lavf_hnd_t *h = handle;
     avcodec_close( h->lavf->streams[h->stream_id]->codec );
-    av_close_input_file( h->lavf );
+    avformat_close_input( &h->lavf );
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54, 28, 0)
+    avcodec_free_frame( &h->frame );
+#else
+    av_freep( &h->frame );
+#endif
     free( h );
     return 0;
 }

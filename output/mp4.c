@@ -1,7 +1,7 @@
 /*****************************************************************************
  * mp4.c: mp4 muxer
  *****************************************************************************
- * Copyright (C) 2003-2012 x264 project
+ * Copyright (C) 2003-2013 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -207,8 +207,8 @@ static int set_param( hnd_t handle, x264_param_t *p_param )
     p_mp4->i_delay_frames = p_param->i_bframe ? (p_param->i_bframe_pyramid ? 2 : 1) : 0;
     p_mp4->i_dts_compress_multiplier = p_mp4->b_dts_compress * p_mp4->i_delay_frames + 1;
 
-    p_mp4->i_time_res = p_param->i_timebase_den * p_mp4->i_dts_compress_multiplier;
-    p_mp4->i_time_inc = p_param->i_timebase_num * p_mp4->i_dts_compress_multiplier;
+    p_mp4->i_time_res = (uint64_t)p_param->i_timebase_den * p_mp4->i_dts_compress_multiplier;
+    p_mp4->i_time_inc = (uint64_t)p_param->i_timebase_num * p_mp4->i_dts_compress_multiplier;
     FAIL_IF_ERR( p_mp4->i_time_res > UINT32_MAX, "mp4", "MP4 media timescale %"PRIu64" exceeds maximum\n", p_mp4->i_time_res )
 
     p_mp4->i_track = gf_isom_new_track( p_mp4->p_file, 0, GF_ISOM_MEDIA_VISUAL,

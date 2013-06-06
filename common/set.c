@@ -1,7 +1,7 @@
 /*****************************************************************************
  * set.c: quantization init
  *****************************************************************************
- * Copyright (C) 2005-2012 x264 project
+ * Copyright (C) 2005-2013 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *
@@ -85,43 +85,48 @@ int x264_cqm_init( x264_t *h )
     int max_qp_err = -1;
     int max_chroma_qp_err = -1;
     int min_qp_err = QP_MAX+1;
-    int num_8x8_lists = h->sps->i_chroma_format_idc == CHROMA_444 ? 4 : 2; /* Checkasm may segfault if optimized out by --chroma-format */
+    int num_8x8_lists = h->sps->i_chroma_format_idc == CHROMA_444 ? 4
+                      : h->param.analyse.b_transform_8x8 ? 2 : 0; /* Checkasm may segfault if optimized out by --chroma-format */
 
-    for( int i = 0; i < 4 + num_8x8_lists; i++ )
-    {
-        int size = i<4 ? 16 : 64;
-        int j;
-        for( j = (i<4 ? 0 : 4); j < i; j++ )
-            if( !memcmp( h->pps->scaling_list[i], h->pps->scaling_list[j], size*sizeof(uint8_t) ) )
-                break;
-        if( j < i )
-        {
-            h->  quant4_mf[i] = h->  quant4_mf[j];
-            h->dequant4_mf[i] = h->dequant4_mf[j];
-            h->unquant4_mf[i] = h->unquant4_mf[j];
-        }
-        else
-        {
-            CHECKED_MALLOC( h->  quant4_mf[i], (QP_MAX+1)*size*sizeof(udctcoef) );
-            CHECKED_MALLOC( h->dequant4_mf[i],  6*size*sizeof(int) );
-            CHECKED_MALLOC( h->unquant4_mf[i], (QP_MAX+1)*size*sizeof(int) );
-        }
-
-        for( j = (i<4 ? 0 : 4); j < i; j++ )
-            if( deadzone[j&3] == deadzone[i&3] &&
-                !memcmp( h->pps->scaling_list[i], h->pps->scaling_list[j], size*sizeof(uint8_t) ) )
-                break;
-        if( j < i )
-        {
-            h->quant4_bias[i] = h->quant4_bias[j];
-            h->quant4_bias0[i] = h->quant4_bias0[j];
-        }
-        else
-        {
-            CHECKED_MALLOC( h->quant4_bias[i], (QP_MAX+1)*size*sizeof(udctcoef) );
-            CHECKED_MALLOC( h->quant4_bias0[i], (QP_MAX+1)*size*sizeof(udctcoef) );
-        }
+#define CQM_ALLOC( w, count )\
+    for( int i = 0; i < count; i++ )\
+    {\
+        int size = w*w;\
+        int start = w == 8 ? 4 : 0;\
+        int j;\
+        for( j = 0; j < i; j++ )\
+            if( !memcmp( h->pps->scaling_list[i+start], h->pps->scaling_list[j+start], size*sizeof(uint8_t) ) )\
+                break;\
+        if( j < i )\
+        {\
+            h->  quant##w##_mf[i] = h->  quant##w##_mf[j];\
+            h->dequant##w##_mf[i] = h->dequant##w##_mf[j];\
+            h->unquant##w##_mf[i] = h->unquant##w##_mf[j];\
+        }\
+        else\
+        {\
+            CHECKED_MALLOC( h->  quant##w##_mf[i], (QP_MAX+1)*size*sizeof(udctcoef) );\
+            CHECKED_MALLOC( h->dequant##w##_mf[i],  6*size*sizeof(int) );\
+            CHECKED_MALLOC( h->unquant##w##_mf[i], (QP_MAX+1)*size*sizeof(int) );\
+        }\
+        for( j = 0; j < i; j++ )\
+            if( deadzone[j] == deadzone[i] &&\
+                !memcmp( h->pps->scaling_list[i+start], h->pps->scaling_list[j+start], size*sizeof(uint8_t) ) )\
+                break;\
+        if( j < i )\
+        {\
+            h->quant##w##_bias[i] = h->quant##w##_bias[j];\
+            h->quant##w##_bias0[i] = h->quant##w##_bias0[j];\
+        }\
+        else\
+        {\
+            CHECKED_MALLOC( h->quant##w##_bias[i], (QP_MAX+1)*size*sizeof(udctcoef) );\
+            CHECKED_MALLOC( h->quant##w##_bias0[i], (QP_MAX+1)*size*sizeof(udctcoef) );\
+        }\
     }
+
+    CQM_ALLOC( 4, 4 )
+    CQM_ALLOC( 8, num_8x8_lists )
 
     for( int q = 0; q < 6; q++ )
     {
@@ -204,6 +209,9 @@ int x264_cqm_init( x264_t *h )
         for( int cat = 0; cat < 3 + CHROMA444; cat++ )
         {
             int dct8x8 = cat&1;
+            if( !h->param.analyse.b_transform_8x8 && dct8x8 )
+                continue;
+
             int size = dct8x8 ? 64 : 16;
             udctcoef *nr_offset = h->nr_offset_emergency[q][cat];
             /* Denoise chroma first (due to h264's chroma QP offset), then luma, then DC. */
@@ -241,7 +249,7 @@ int x264_cqm_init( x264_t *h )
 
     if( !h->mb.b_lossless )
     {
-        while( h->chroma_qp_table[h->param.rc.i_qp_min] <= max_chroma_qp_err )
+        while( h->chroma_qp_table[SPEC_QP(h->param.rc.i_qp_min)] <= max_chroma_qp_err )
             h->param.rc.i_qp_min++;
         if( min_qp_err <= h->param.rc.i_qp_max )
             h->param.rc.i_qp_max = min_qp_err-1;

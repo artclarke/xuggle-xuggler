@@ -1,7 +1,7 @@
 /*****************************************************************************
  * display-x11.c: x11 interface
  *****************************************************************************
- * Copyright (C) 2005-2012 x264 project
+ * Copyright (C) 2005-2013 x264 project
  *
  * Authors: Tuukka Toivonen <tuukkat@ee.oulu.fi>
  *
@@ -49,7 +49,7 @@ static inline void disp_chkerror( int cond, char *e )
     abort();
 }
 
-static void disp_init_display()
+static void disp_init_display( void )
 {
     Visual *visual;
     int dpy_class;
@@ -130,7 +130,7 @@ static void disp_init_window( int num, int width, int height, const unsigned cha
     XFree( shint );
 }
 
-void disp_sync()
+void disp_sync( void )
 {
     XSync( disp_display, 1 );
 }

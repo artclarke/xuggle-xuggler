@@ -1,10 +1,10 @@
 ;*****************************************************************************
 ;* checkasm-a.asm: assembly check tool
 ;*****************************************************************************
-;* Copyright (C) 2008-2012 x264 project
+;* Copyright (C) 2008-2013 x264 project
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
-;*          Henrik Gramner <hengar-6@student.ltu.se>
+;*          Henrik Gramner <henrik@gramner.com>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -88,8 +88,7 @@ cglobal checkasm_stack_clobber, 1,2
 ; intptr_t x264_checkasm_call( intptr_t (*func)(), int *ok, ... )
 ;-----------------------------------------------------------------------------
 INIT_XMM
-cglobal checkasm_call, 2,15,16
-    SUB  rsp, max_args*8+16
+cglobal checkasm_call, 2,15,16,max_args*8+8
     mov  r6, r0
     mov  [rsp+max_args*8], r1
 
@@ -158,7 +157,6 @@ cglobal checkasm_call, 2,15,16
     mov  dword [r1], 0
     mov  rax, r9
 .ok:
-    ADD  rsp, max_args*8+16
     RET
 
 %else
@@ -199,7 +197,7 @@ cglobal checkasm_call, 1,7
     mov  dword [r1], 0
     mov  eax, r3
 .ok:
-    RET
+    REP_RET
 
 %endif ; ARCH_X86_64
 
@@ -207,8 +205,12 @@ cglobal checkasm_call, 1,7
 ; int x264_stack_pagealign( int (*func)(), int align )
 ;-----------------------------------------------------------------------------
 cglobal stack_pagealign, 2,2
+    movsxdifnidn r1, r1d
     push rbp
     mov  rbp, rsp
+%if WIN64
+    sub  rsp, 32 ; shadow space
+%endif
     and  rsp, ~0xfff
     sub  rsp, r1
     call r0

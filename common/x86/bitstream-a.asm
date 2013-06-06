@@ -1,10 +1,10 @@
 ;*****************************************************************************
 ;* bitstream-a.asm: x86 bitstream functions
 ;*****************************************************************************
-;* Copyright (C) 2010-2012 x264 project
+;* Copyright (C) 2010-2013 x264 project
 ;*
 ;* Authors: Jason Garrett-Glaser <darkshikari@gmail.com>
-;*          Henrik Gramner <hengar-6@student.ltu.se>
+;*          Henrik Gramner <henrik@gramner.com>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -32,100 +32,105 @@ SECTION .text
 ;-----------------------------------------------------------------------------
 ; uint8_t *x264_nal_escape( uint8_t *dst, uint8_t *src, uint8_t *end )
 ;-----------------------------------------------------------------------------
-
 %macro NAL_LOOP 2
-%1_escape:
+%%escape:
     ; Detect false positive to avoid unneccessary escape loop
     xor      r3d, r3d
     cmp byte [r0+r1-1], 0
     setnz    r3b
-    xor      r3d, r4d
+    xor       k3, k4
     jnz .escape
-    jmp %1_continue
+    jmp %%continue
 ALIGN 16
 %1:
-    pcmpeqb   m3, m1, m4
-    pcmpeqb   m2, m0, m4
-    pmovmskb r3d, m3
-    %2   [r0+r1], m0
+    mova [r0+r1+mmsize], m1
+    pcmpeqb   m1, m0
+    mova [r0+r1], m2
+    pcmpeqb   m2, m0
+    pmovmskb r3d, m1
+    %2        m1, [r1+r2+3*mmsize]
     pmovmskb r4d, m2
-    shl      r3d, mmsize
-    mova      m0, [r1+r2+2*mmsize]
-    or       r4d, r3d
-    %2 [r0+r1+mmsize], m1
-    lea      r3d, [r4+r4+1]
-    mova      m1, [r1+r2+3*mmsize]
-    and      r4d, r3d
-    jnz %1_escape
-%1_continue:
+    %2        m2, [r1+r2+2*mmsize]
+    shl       k3, mmsize
+    or        k3, k4
+    lea       k4, [2*r3+1]
+    and       k4, k3
+    jnz %%escape
+%%continue:
     add       r1, 2*mmsize
     jl %1
 %endmacro
 
 %macro NAL_ESCAPE 0
+%if mmsize == 32
+    %xdefine k3 r3
+    %xdefine k4 r4
+%else
+    %xdefine k3 r3d
+    %xdefine k4 r4d
+%endif
 
 cglobal nal_escape, 3,5
-    mov      r3w, [r1]
+    movzx    r3d, byte [r1]
     sub       r1, r2 ; r1 = offset of current src pointer from end of src
-    pxor      m4, m4
+    pxor      m0, m0
+    mov     [r0], r3b
     sub       r0, r1 ; r0 = projected end of dst, assuming no more escapes
-    mov  [r0+r1], r3w
-    add       r1, 2
-    jge .ret
+    or       r3d, 0xffffff00 ; ignore data before src
 
-    ; Start off by jumping into the escape loop in
-    ; case there's an escape at the start.
-    ; And do a few more in scalar until src is aligned again.
-    jmp .first_escape
+    ; Start off by jumping into the escape loop in case there's an escape at the start.
+    ; And do a few more in scalar until dst is aligned.
+    jmp .escape_loop
 
+%if mmsize == 16
     NAL_LOOP .loop_aligned, mova
-%if mmsize==16
     jmp .ret
-    NAL_LOOP .loop_unaligned, movu
 %endif
+    NAL_LOOP .loop_unaligned, movu
 .ret:
     movifnidn rax, r0
     RET
 
-ALIGN 16
 .escape:
     ; Skip bytes that are known to be valid
-    and      r4d, r3d
-    tzcnt    r3d, r4d
-    add       r1, r3
+    and       k4, k3
+    tzcnt     k4, k4
+    xor      r3d, r3d ; the last two bytes are known to be zero
+    add       r1, r4
 .escape_loop:
     inc       r1
     jge .ret
-.first_escape:
-    movzx    r3d, byte [r1+r2]
-    lea       r4, [r1+r2]
-    cmp      r3d, 3
-    jna .escape_check
-.no_escape:
-    mov  [r0+r1], r3b
-    test     r4d, mmsize-1 ; Do SIMD when src is aligned
-    jnz .escape_loop
-    mova      m0, [r4]
-    mova      m1, [r4+mmsize]
-%if mmsize==16
+    movzx    r4d, byte [r1+r2]
+    shl      r3d, 8
+    or       r3d, r4d
+    test     r3d, 0xfffffc ; if the last two bytes are 0 and the current byte is <=3
+    jz .add_escape_byte
+.escaped:
     lea      r4d, [r0+r1]
+    mov  [r0+r1], r3b
+    test     r4d, mmsize-1 ; Do SIMD when dst is aligned
+    jnz .escape_loop
+    movu      m1, [r1+r2+mmsize]
+    movu      m2, [r1+r2]
+%if mmsize == 16
+    lea      r4d, [r1+r2]
     test     r4d, mmsize-1
-    jnz .loop_unaligned
+    jz .loop_aligned
 %endif
-    jmp .loop_aligned
+    jmp .loop_unaligned
 
-ALIGN 16
-.escape_check:
-    cmp word [r0+r1-2], 0
-    jnz .no_escape
+.add_escape_byte:
     mov byte [r0+r1], 3
-    inc      r0
-    jmp .no_escape
+    inc       r0
+    or       r3d, 0x0300
+    jmp .escaped
 %endmacro
 
 INIT_MMX mmx2
 NAL_ESCAPE
 INIT_XMM sse2
 NAL_ESCAPE
-INIT_XMM avx
+%if ARCH_X86_64
+INIT_YMM avx2
 NAL_ESCAPE
+%endif

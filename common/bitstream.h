@@ -1,7 +1,7 @@
 /*****************************************************************************
  * bitstream.h: bitstream writing
  *****************************************************************************
- * Copyright (C) 2003-2012 x264 project
+ * Copyright (C) 2003-2013 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Jason Garrett-Glaser <darkshikari@gmail.com>
@@ -55,9 +55,9 @@ typedef struct bs_s
 
 typedef struct
 {
-    int     last;
-    int     mask;
-    dctcoef level[16];
+    int32_t last;
+    int32_t mask;
+    ALIGNED_16( dctcoef level[18] );
 } x264_run_level_t;
 
 extern const vlc_t x264_coeff0_token[6];
@@ -69,6 +69,12 @@ extern const vlc_t x264_total_zeros_2x4_dc[7][8];
 typedef struct
 {
     uint8_t *(*nal_escape) ( uint8_t *dst, uint8_t *src, uint8_t *end );
+    void (*cabac_block_residual_internal)( dctcoef *l, int b_interlaced,
+                                           intptr_t ctx_block_cat, x264_cabac_t *cb );
+    void (*cabac_block_residual_rd_internal)( dctcoef *l, int b_interlaced,
+                                              intptr_t ctx_block_cat, x264_cabac_t *cb );
+    void (*cabac_block_residual_8x8_rd_internal)( dctcoef *l, int b_interlaced,
+                                                  intptr_t ctx_block_cat, x264_cabac_t *cb );
 } x264_bitstream_function_t;
 
 void x264_bitstream_init( int cpu, x264_bitstream_function_t *pf );

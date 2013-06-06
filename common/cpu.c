@@ -1,7 +1,7 @@
 /*****************************************************************************
  * cpu.c: cpu detection
  *****************************************************************************
- * Copyright (C) 2003-2012 x264 project
+ * Copyright (C) 2003-2013 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -47,18 +47,19 @@
 
 const x264_cpu_name_t x264_cpu_names[] =
 {
-    {"Altivec",     X264_CPU_ALTIVEC},
-//  {"MMX",         X264_CPU_MMX}, // we don't support asm on mmx1 cpus anymore
-    {"MMX2",        X264_CPU_MMX|X264_CPU_MMX2},
-    {"MMXEXT",      X264_CPU_MMX|X264_CPU_MMX2},
-//  {"SSE",         X264_CPU_MMX|X264_CPU_MMX2|X264_CPU_SSE}, // there are no sse1 functions in x264
-#define SSE2 X264_CPU_MMX|X264_CPU_MMX2|X264_CPU_SSE|X264_CPU_SSE2
+#if HAVE_MMX
+//  {"MMX",         X264_CPU_MMX},  // we don't support asm on mmx1 cpus anymore
+//  {"CMOV",        X264_CPU_CMOV}, // we require this unconditionally, so don't print it
+#define MMX2 X264_CPU_MMX|X264_CPU_MMX2|X264_CPU_CMOV
+    {"MMX2",        MMX2},
+    {"MMXEXT",      MMX2},
+    {"SSE",         MMX2|X264_CPU_SSE},
+#define SSE2 MMX2|X264_CPU_SSE|X264_CPU_SSE2
     {"SSE2Slow",    SSE2|X264_CPU_SSE2_IS_SLOW},
     {"SSE2",        SSE2},
     {"SSE2Fast",    SSE2|X264_CPU_SSE2_IS_FAST},
     {"SSE3",        SSE2|X264_CPU_SSE3},
     {"SSSE3",       SSE2|X264_CPU_SSE3|X264_CPU_SSSE3},
-    {"FastShuffle", SSE2|X264_CPU_SHUFFLE_IS_FAST},
     {"SSE4.1",      SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4},
     {"SSE4",        SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4},
     {"SSE4.2",      SSE2|X264_CPU_SSE3|X264_CPU_SSSE3|X264_CPU_SSE4|X264_CPU_SSE42},
@@ -70,19 +71,26 @@ const x264_cpu_name_t x264_cpu_names[] =
     {"FMA3",        AVX|X264_CPU_FMA3},
 #undef AVX
 #undef SSE2
+#undef MMX2
     {"Cache32",         X264_CPU_CACHELINE_32},
     {"Cache64",         X264_CPU_CACHELINE_64},
     {"SSEMisalign",     X264_CPU_SSE_MISALIGN},
     {"LZCNT",           X264_CPU_LZCNT},
     {"BMI1",            X264_CPU_BMI1},
     {"BMI2",            X264_CPU_BMI1|X264_CPU_BMI2},
-    {"TBM",             X264_CPU_TBM},
-    {"Slow_mod4_stack", X264_CPU_STACK_MOD4},
-    {"ARMv6",           X264_CPU_ARMV6},
-    {"NEON",            X264_CPU_NEON},
-    {"Fast_NEON_MRC",   X264_CPU_FAST_NEON_MRC},
     {"SlowCTZ",         X264_CPU_SLOW_CTZ},
     {"SlowAtom",        X264_CPU_SLOW_ATOM},
+    {"SlowPshufb",      X264_CPU_SLOW_PSHUFB},
+    {"SlowPalignr",     X264_CPU_SLOW_PALIGNR},
+    {"SlowShuffle",     X264_CPU_SLOW_SHUFFLE},
+    {"UnalignedStack",  X264_CPU_STACK_MOD4},
+#elif ARCH_PPC
+    {"Altivec",         X264_CPU_ALTIVEC},
+#elif ARCH_ARM
+    {"ARMv6",           X264_CPU_ARMV6},
+    {"NEON",            X264_CPU_NEON},
+    {"FastNeonMRC",     X264_CPU_FAST_NEON_MRC},
+#endif
     {"", 0},
 };
 
@@ -131,9 +139,13 @@ uint32_t x264_cpu_detect( void )
     if( edx&0x00800000 )
         cpu |= X264_CPU_MMX;
     else
-        return 0;
+        return cpu;
     if( edx&0x02000000 )
         cpu |= X264_CPU_MMX2|X264_CPU_SSE;
+    if( edx&0x00008000 )
+        cpu |= X264_CPU_CMOV;
+    else
+        return cpu;
     if( edx&0x04000000 )
         cpu |= X264_CPU_SSE2;
     if( ecx&0x00000001 )
@@ -170,46 +182,56 @@ uint32_t x264_cpu_detect( void )
 
     if( cpu & X264_CPU_SSSE3 )
         cpu |= X264_CPU_SSE2_IS_FAST;
-    if( cpu & X264_CPU_SSE4 )
-        cpu |= X264_CPU_SHUFFLE_IS_FAST;
 
     x264_cpu_cpuid( 0x80000000, &eax, &ebx, &ecx, &edx );
     max_extended_cap = eax;
 
-    if( !strcmp((char*)vendor, "AuthenticAMD") && max_extended_cap >= 0x80000001 )
+    if( max_extended_cap >= 0x80000001 )
     {
-        cpu |= X264_CPU_SLOW_CTZ;
         x264_cpu_cpuid( 0x80000001, &eax, &ebx, &ecx, &edx );
-        if( edx&0x00400000 )
-            cpu |= X264_CPU_MMX2;
-        if( cpu & X264_CPU_SSE2 )
+
+        if( ecx&0x00000020 )
+            cpu |= X264_CPU_LZCNT;             /* Supported by Intel chips starting with Haswell */
+        if( ecx&0x00000040 ) /* SSE4a, AMD only */
         {
-            if( ecx&0x00000040 ) /* SSE4a */
+            int family = ((eax>>8)&0xf) + ((eax>>20)&0xff);
+            cpu |= X264_CPU_SSE2_IS_FAST;      /* Phenom and later CPUs have fast SSE units */
+            if( family == 0x14 )
             {
-                cpu |= X264_CPU_SSE2_IS_FAST;
-                cpu |= X264_CPU_LZCNT;
-                cpu |= X264_CPU_SHUFFLE_IS_FAST;
-                cpu &= ~X264_CPU_SLOW_CTZ;
+                cpu &= ~X264_CPU_SSE2_IS_FAST; /* SSSE3 doesn't imply fast SSE anymore... */
+                cpu |= X264_CPU_SSE2_IS_SLOW;  /* Bobcat has 64-bit SIMD units */
+                cpu |= X264_CPU_SLOW_PALIGNR;  /* palignr is insanely slow on Bobcat */
             }
-            else
-                cpu |= X264_CPU_SSE2_IS_SLOW;
-
-            if( ecx&0x00000080 ) /* Misalign SSE */
+            if( family == 0x16 )
             {
-                cpu |= X264_CPU_SSE_MISALIGN;
-                x264_cpu_mask_misalign_sse();
+                cpu |= X264_CPU_SLOW_PSHUFB;   /* Jaguar's pshufb isn't that slow, but it's slow enough
+                                                * compared to alternate instruction sequences that this
+                                                * is equal or faster on almost all such functions. */
             }
+        }
 
-            if( cpu & X264_CPU_AVX )
-            {
-                if( ecx&0x00000800 ) /* XOP */
-                    cpu |= X264_CPU_XOP;
-                if( ecx&0x00010000 ) /* FMA4 */
-                    cpu |= X264_CPU_FMA4;
-            }
+        if( ecx&0x00000080 ) /* Misalign SSE */
+        {
+            cpu |= X264_CPU_SSE_MISALIGN;
+            x264_cpu_mask_misalign_sse();
+        }
 
-            if( ecx&0x00200000 )
-                cpu |= X264_CPU_TBM;
+        if( cpu & X264_CPU_AVX )
+        {
+            if( ecx&0x00000800 ) /* XOP */
+                cpu |= X264_CPU_XOP;
+            if( ecx&0x00010000 ) /* FMA4 */
+                cpu |= X264_CPU_FMA4;
+        }
+
+        if( !strcmp((char*)vendor, "AuthenticAMD") )
+        {
+            if( edx&0x00400000 )
+                cpu |= X264_CPU_MMX2;
+            if( !(cpu&X264_CPU_LZCNT) )
+                cpu |= X264_CPU_SLOW_CTZ;
+            if( (cpu&X264_CPU_SSE2) && !(cpu&X264_CPU_SSE2_IS_FAST) )
+                cpu |= X264_CPU_SSE2_IS_SLOW; /* AMD CPUs come in two types: terrible at SSE and great at it */
         }
     }
 
@@ -233,11 +255,12 @@ uint32_t x264_cpu_detect( void )
             {
                 cpu |= X264_CPU_SLOW_ATOM;
                 cpu |= X264_CPU_SLOW_CTZ;
+                cpu |= X264_CPU_SLOW_PSHUFB;
             }
-            /* Some Penryns and Nehalems are pointlessly crippled (SSE4 disabled), so
-             * detect them here. */
-            else if( model >= 23 )
-                cpu |= X264_CPU_SHUFFLE_IS_FAST;
+            /* Conroe has a slow shuffle unit. Check the model number to make sure not
+             * to include crippled low-end Penryns and Nehalems that don't have SSE4. */
+            else if( (cpu&X264_CPU_SSSE3) && !(cpu&X264_CPU_SSE4) && model < 23 )
+                cpu |= X264_CPU_SLOW_SHUFFLE;
         }
     }
 
@@ -376,7 +399,10 @@ uint32_t x264_cpu_detect( void )
     // Note that there is potential for a race condition if another program or
     // x264 instance disables or reinits the counters while x264 is using them,
     // which may result in incorrect detection and the counters stuck enabled.
+    // right now Apple does not seem to support performance counters for this test
+#ifndef __MACH__
     flags |= x264_cpu_fast_neon_mrc_test() ? X264_CPU_FAST_NEON_MRC : 0;
+#endif
     // TODO: write dual issue test? currently it's A8 (dual issue) vs. A9 (fast mrc)
 #endif
     return flags;
@@ -399,7 +425,7 @@ int x264_cpu_num_processors( void )
 #elif SYS_WINDOWS
     return x264_pthread_num_processors_np();
 
-#elif SYS_CYGWIN
+#elif SYS_CYGWIN || SYS_SunOS
     return sysconf( _SC_NPROCESSORS_ONLN );
 
 #elif SYS_LINUX

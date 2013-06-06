@@ -4,7 +4,7 @@ This ensures that there is no distortion besides what is
 inherently caused by compression.
 
 # Install and compile x264 :
-svn co svn://svn.videolan.org/x264/trunk x264
+git clone git://git.videolan.org/x264.git x264
 cd x264
 ./configure
 make

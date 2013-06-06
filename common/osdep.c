@@ -1,7 +1,7 @@
 /*****************************************************************************
  * osdep.c: platform-specific code
  *****************************************************************************
- * Copyright (C) 2003-2012 x264 project
+ * Copyright (C) 2003-2013 x264 project
  *
  * Authors: Steven Walters <kemuri9@gmail.com>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -90,6 +90,7 @@ int x264_threading_init( void )
 }
 #endif
 
+#if HAVE_MMX
 #ifdef __INTEL_COMPILER
 /* Agner's patch to Intel's CPU dispatcher from pages 131-132 of
  * http://agner.org/optimize/optimizing_cpp.pdf (2011-01-30)
@@ -98,7 +99,7 @@ int x264_threading_init( void )
 // Global variable indicating cpu
 int __intel_cpu_indicator = 0;
 // CPU dispatcher function
-void __intel_cpu_indicator_init( void )
+void x264_intel_cpu_indicator_init( void )
 {
     unsigned int cpu = x264_cpu_detect();
     if( cpu&X264_CPU_AVX )
@@ -120,4 +121,16 @@ void __intel_cpu_indicator_init( void )
     else
         __intel_cpu_indicator = 1;
 }
+
+/* __intel_cpu_indicator_init appears to have a non-standard calling convention that
+ * assumes certain registers aren't preserved, so we'll route it through a function
+ * that backs up all the registers. */
+void __intel_cpu_indicator_init( void )
+{
+    x264_safe_intel_cpu_indicator_init();
+}
+#else
+void x264_intel_cpu_indicator_init( void )
+{}
+#endif
 #endif

@@ -1,7 +1,7 @@
 /*****************************************************************************
  * pixel.S: arm pixel metrics
  *****************************************************************************
- * Copyright (C) 2009-2012 x264 project
+ * Copyright (C) 2009-2013 x264 project
  *
  * Authors: David Conrad <lessen42@gmail.com>
  *
@@ -68,45 +68,45 @@ SAD4_ARMV6 8
 
 
 .macro SAD_START_4 align:vararg
-    vld1.32     {d1[]}, [r2 \align], r3
+    vld1.32     {d1[]}, [r2\align], r3
     vld1.32     {d0[]}, [r0,:32], r1
     vabdl.u8    q8,  d0,  d1
 .endm
 
 .macro SAD_4 align:vararg
-    vld1.32     {d1[]}, [r2 \align], r3
+    vld1.32     {d1[]}, [r2\align], r3
     vld1.32     {d0[]}, [r0,:32], r1
     vabal.u8    q8,  d0,  d1
 .endm
 
 .macro SAD_START_8 align:vararg
-    vld1.64     {d1}, [r2 \align], r3
+    vld1.64     {d1}, [r2\align], r3
     vld1.64     {d0}, [r0,:64], r1
     vabdl.u8    q8,  d0,  d1
 .endm
 
 .macro SAD_8 align:vararg
-    vld1.64     {d1}, [r2 \align], r3
+    vld1.64     {d1}, [r2\align], r3
     vld1.64     {d0}, [r0,:64], r1
     vabal.u8    q8,  d0,  d1
 .endm
 
 .macro SAD_START_16 align:vararg
-    vld1.64     {d2-d3}, [r2 \align], r3
+    vld1.64     {d2-d3}, [r2\align], r3
     vld1.64     {d0-d1}, [r0,:128], r1
     vabdl.u8    q8,  d0,  d2
-    vld1.64     {d6-d7}, [r2 \align], r3
+    vld1.64     {d6-d7}, [r2\align], r3
     vabdl.u8    q9,  d1,  d3
     vld1.64     {d4-d5}, [r0,:128], r1
 .endm
 
 .macro SAD_16 align:vararg
     vabal.u8    q8,  d4,  d6
-    vld1.64     {d2-d3}, [r2 \align], r3
+    vld1.64     {d2-d3}, [r2\align], r3
     vabal.u8    q9,  d5,  d7
     vld1.64     {d0-d1}, [r0,:128], r1
     vabal.u8    q8,  d0,  d2
-    vld1.64     {d6-d7}, [r2 \align], r3
+    vld1.64     {d6-d7}, [r2\align], r3
     vabal.u8    q9,  d1,  d3
     vld1.64     {d4-d5}, [r0,:128], r1
 .endm

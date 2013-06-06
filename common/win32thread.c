@@ -1,7 +1,7 @@
 /*****************************************************************************
  * win32thread.c: windows threading
  *****************************************************************************
- * Copyright (C) 2010-2012 x264 project
+ * Copyright (C) 2010-2013 x264 project
  *
  * Authors: Steven Walters <kemuri9@gmail.com>
  *          Pegasys Inc. <http://www.pegasys-inc.com>
@@ -62,7 +62,7 @@ static x264_win32thread_control_t thread_control;
 static unsigned __stdcall x264_win32thread_worker( void *arg )
 {
     x264_pthread_t *h = arg;
-    h->ret = h->func( h->arg );
+    *h->p_ret = h->func( h->arg );
     return 0;
 }
 
@@ -71,6 +71,8 @@ int x264_pthread_create( x264_pthread_t *thread, const x264_pthread_attr_t *attr
 {
     thread->func   = start_routine;
     thread->arg    = arg;
+    thread->p_ret  = &thread->ret;
+    thread->ret    = NULL;
     thread->handle = (void*)_beginthreadex( NULL, 0, x264_win32thread_worker, thread, 0, NULL );
     return !thread->handle;
 }
@@ -81,7 +83,7 @@ int x264_pthread_join( x264_pthread_t thread, void **value_ptr )
     if( ret != WAIT_OBJECT_0 )
         return -1;
     if( value_ptr )
-        *value_ptr = thread.ret;
+        *value_ptr = *thread.p_ret;
     CloseHandle( thread.handle );
     return 0;
 }
@@ -277,7 +279,7 @@ void x264_win32_threading_destroy( void )
     memset( &thread_control, 0, sizeof(x264_win32thread_control_t) );
 }
 
-int x264_pthread_num_processors_np()
+int x264_pthread_num_processors_np( void )
 {
     DWORD_PTR system_cpus, process_cpus = 0;
     int cpus = 0;

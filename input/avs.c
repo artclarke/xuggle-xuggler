@@ -1,7 +1,7 @@
 /*****************************************************************************
  * avs.c: avisynth input
  *****************************************************************************
- * Copyright (C) 2009-2012 x264 project
+ * Copyright (C) 2009-2013 x264 project
  *
  * Authors: Steven Walters <kemuri9@gmail.com>
  *
@@ -24,12 +24,30 @@
  *****************************************************************************/
 
 #include "input.h"
+#if USE_AVXSYNTH
+#include <dlfcn.h>
+#if SYS_MACOSX
+#define avs_open dlopen( "libavxsynth.dylib", RTLD_NOW )
+#else
+#define avs_open dlopen( "libavxsynth.so", RTLD_NOW )
+#endif
+#define avs_close dlclose
+#define avs_address dlsym
+#else
 #include <windows.h>
+#define avs_open LoadLibrary( "avisynth" )
+#define avs_close FreeLibrary
+#define avs_address GetProcAddress
+#endif
 #define FAIL_IF_ERROR( cond, ... ) FAIL_IF_ERR( cond, "avs", __VA_ARGS__ )
 
 #define AVSC_NO_DECLSPEC
 #undef EXTERN_C
+#if USE_AVXSYNTH
+#include "extras/avxsynth_c.h"
+#else
 #include "extras/avisynth_c.h"
+#endif
 #define AVSC_DECLARE_FUNC(name) name##_func name
 
 /* AVS uses a versioned interface to control backwards compatibility */
@@ -40,12 +58,20 @@
 #include <libavutil/pixfmt.h>
 #endif
 
+/* AvxSynth doesn't have yv24, yv16, yv411, or y8, so disable them. */
+#if USE_AVXSYNTH
+#define avs_is_yv24( vi ) 0
+#define avs_is_yv16( vi ) 0
+#define avs_is_yv411( vi ) 0
+#define avs_is_y8( vi ) 0
+#endif
+
 /* maximum size of the sequence of filters to try on non script files */
 #define AVS_MAX_SEQUENCE 5
 
 #define LOAD_AVS_FUNC(name, continue_on_fail)\
 {\
-    h->func.name = (void*)GetProcAddress( h->library, #name );\
+    h->func.name = (void*)avs_address( h->library, #name );\
     if( !continue_on_fail && !h->func.name )\
         goto fail;\
 }
@@ -76,7 +102,7 @@ typedef struct
 /* load the library and functions we require from it */
 static int x264_avs_load_library( avs_hnd_t *h )
 {
-    h->library = LoadLibrary( "avisynth" );
+    h->library = avs_open;
     if( !h->library )
         return -1;
     LOAD_AVS_FUNC( avs_clip_get_error, 0 );
@@ -93,7 +119,7 @@ static int x264_avs_load_library( avs_hnd_t *h )
     LOAD_AVS_FUNC( avs_take_clip, 0 );
     return 0;
 fail:
-    FreeLibrary( h->library );
+    avs_close( h->library );
     return -1;
 }
 
@@ -101,6 +127,9 @@ fail:
 static void avs_build_filter_sequence( char *filename_ext, const char *filter[AVS_MAX_SEQUENCE+1] )
 {
     int i = 0;
+#if USE_AVXSYNTH
+    const char *all_purpose[] = { "FFVideoSource", 0 };
+#else
     const char *all_purpose[] = { "FFmpegSource2", "DSS2", "DirectShowSource", 0 };
     if( !strcasecmp( filename_ext, "avi" ) )
         filter[i++] = "AVISource";
@@ -108,6 +137,7 @@ static void avs_build_filter_sequence( char *filename_ext, const char *filter[AV
         filter[i++] = "MPEG2Source";
     if( !strcasecmp( filename_ext, "dga" ) )
         filter[i++] = "AVCSource";
+#endif
     for( int j = 0; all_purpose[j] && i < AVS_MAX_SEQUENCE; j++ )
         filter[i++] = all_purpose[j];
 }
@@ -123,6 +153,13 @@ static AVS_Value update_clip( avs_hnd_t *h, const AVS_VideoInfo **vi, AVS_Value 
 
 static float get_avs_version( avs_hnd_t *h )
 {
+/* AvxSynth has its version defined starting at 4.0, even though it's based on
+   AviSynth 2.5.8. This is troublesome for get_avs_version and working around
+   the new colorspaces in 2.6.  So if AvxSynth is detected, explicitly define
+   the version as 2.58. */
+#if USE_AVXSYNTH
+    return 2.58f;
+#else
     FAIL_IF_ERROR( !h->func.avs_function_exists( h->env, "VersionNumber" ), "VersionNumber does not exist\n" )
     AVS_Value ver = h->func.avs_invoke( h->env, "VersionNumber", avs_new_value_array( NULL, 0 ), NULL );
     FAIL_IF_ERROR( avs_is_error( ver ), "unable to determine avisynth version: %s\n", avs_as_error( ver ) )
@@ -130,6 +167,7 @@ static float get_avs_version( avs_hnd_t *h )
     float ret = avs_as_float( ver );
     h->func.avs_release_value( ver );
     return ret;
+#endif
 }
 
 static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, cli_input_opt_t *opt )
@@ -219,11 +257,11 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
     }
 #if !HAVE_SWSCALE
     /* if swscale is not available, convert the CSP if necessary */
+    FAIL_IF_ERROR( avs_version < 2.6f && (opt->output_csp == X264_CSP_I422 || opt->output_csp == X264_CSP_I444),
+                   "avisynth >= 2.6 is required for i422/i444 output\n" )
     if( (opt->output_csp == X264_CSP_I420 && !avs_is_yv12( vi )) || (opt->output_csp == X264_CSP_I422 && !avs_is_yv16( vi )) ||
         (opt->output_csp == X264_CSP_I444 && !avs_is_yv24( vi )) || (opt->output_csp == X264_CSP_RGB && !avs_is_rgb( vi )) )
     {
-        FAIL_IF_ERROR( avs_version < 2.6f && (opt->output_csp == X264_CSP_I422 || opt->output_csp == X264_CSP_I444),
-                       "avisynth >= 2.6 is required for i422/i444 output\n" )
 
         const char *csp = opt->output_csp == X264_CSP_I420 ? "YV12" :
                           opt->output_csp == X264_CSP_I422 ? "YV16" :
@@ -270,6 +308,7 @@ static int open_file( char *psz_filename, hnd_t *p_handle, video_info_t *info, c
         opt->input_range = opt->output_range;
     }
 #endif
+
     h->func.avs_release_value( res );
 
     info->width   = vi->width;
@@ -357,7 +396,7 @@ static int close_file( hnd_t handle )
     h->func.avs_release_clip( h->clip );
     if( h->func.avs_delete_script_environment )
         h->func.avs_delete_script_environment( h->env );
-    FreeLibrary( h->library );
+    avs_close( h->library );
     free( h );
     return 0;
 }

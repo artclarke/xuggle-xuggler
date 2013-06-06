@@ -1,7 +1,7 @@
 /*****************************************************************************
  * util.h: x86 inline asm
  *****************************************************************************
- * Copyright (C) 2008-2012 x264 project
+ * Copyright (C) 2008-2013 x264 project
  *
  * Authors: Jason Garrett-Glaser <darkshikari@gmail.com>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -121,42 +121,132 @@ static ALWAYS_INLINE uint16_t x264_cabac_mvd_sum_mmx2(uint8_t *mvdleft, uint8_t 
     return amvd;
 }
 
-#define x264_predictor_roundclip x264_predictor_roundclip_mmx2
-static void ALWAYS_INLINE x264_predictor_roundclip_mmx2( int16_t (*dst)[2], int16_t (*mvc)[2], int i_mvc, int mv_x_min, int mv_x_max, int mv_y_min, int mv_y_max )
+#define x264_predictor_clip x264_predictor_clip_mmx2
+static int ALWAYS_INLINE x264_predictor_clip_mmx2( int16_t (*dst)[2], int16_t (*mvc)[2], int i_mvc, int16_t mv_limit[2][2], uint32_t pmv )
 {
-    uint32_t mv_min = pack16to32_mask( mv_x_min, mv_y_min );
-    uint32_t mv_max = pack16to32_mask( mv_x_max, mv_y_max );
-    static const uint64_t pw_2 = 0x0002000200020002ULL;
-    intptr_t i = i_mvc;
+    static const uint32_t pd_32 = 0x20;
+    intptr_t tmp = (intptr_t)mv_limit, mvc_max = i_mvc, i = 0;
+
     asm(
-        "movd    %2, %%mm5       \n"
-        "movd    %3, %%mm6       \n"
-        "movq    %4, %%mm7       \n"
-        "punpckldq %%mm5, %%mm5  \n"
-        "punpckldq %%mm6, %%mm6  \n"
-        "test $1, %0             \n"
-        "jz 1f                   \n"
-        "movd -4(%6,%0,4), %%mm0 \n"
-        "paddw %%mm7, %%mm0      \n"
-        "psraw $2, %%mm0         \n"
-        "pmaxsw %%mm5, %%mm0     \n"
-        "pminsw %%mm6, %%mm0     \n"
-        "movd %%mm0, -4(%5,%0,4) \n"
-        "dec %0                  \n"
-        "jz 2f                   \n"
-        "1:                      \n"
-        "movq -8(%6,%0,4), %%mm0 \n"
-        "paddw %%mm7, %%mm0      \n"
-        "psraw $2, %%mm0         \n"
-        "pmaxsw %%mm5, %%mm0     \n"
-        "pminsw %%mm6, %%mm0     \n"
-        "movq %%mm0, -8(%5,%0,4) \n"
-        "sub $2, %0              \n"
-        "jnz 1b                  \n"
-        "2:                      \n"
-        :"+r"(i), "=m"(M64( dst ))
-        :"g"(mv_min), "g"(mv_max), "m"(pw_2), "r"(dst), "r"(mvc), "m"(M64( mvc ))
+        "movq       (%2), %%mm5 \n"
+        "movd         %6, %%mm3 \n"
+        "psllw        $2, %%mm5 \n" // Convert to subpel
+        "pshufw $0xEE, %%mm5, %%mm6 \n"
+        "dec         %k3        \n"
+        "jz 2f                  \n" // if( i_mvc == 1 ) {do the last iteration}
+        "punpckldq %%mm3, %%mm3 \n"
+        "punpckldq %%mm5, %%mm5 \n"
+        "movd         %7, %%mm4 \n"
+        "lea   (%0,%3,4), %3    \n"
+        "1:                     \n"
+        "movq       (%0), %%mm0 \n"
+        "add          $8, %0    \n"
+        "movq      %%mm3, %%mm1 \n"
+        "pxor      %%mm2, %%mm2 \n"
+        "pcmpeqd   %%mm0, %%mm1 \n" // mv == pmv
+        "pcmpeqd   %%mm0, %%mm2 \n" // mv == 0
+        "por       %%mm1, %%mm2 \n" // (mv == pmv || mv == 0) * -1
+        "pmovmskb  %%mm2, %k2   \n" // (mv == pmv || mv == 0) * 0xf
+        "pmaxsw    %%mm5, %%mm0 \n"
+        "pminsw    %%mm6, %%mm0 \n"
+        "pand      %%mm4, %%mm2 \n" // (mv0 == pmv || mv0 == 0) * 32
+        "psrlq     %%mm2, %%mm0 \n" // drop mv0 if it's skipped
+        "movq      %%mm0, (%5,%4,4) \n"
+        "and         $24, %k2   \n"
+        "add          $2, %4    \n"
+        "add          $8, %k2   \n"
+        "shr          $4, %k2   \n" // (4-val)>>1
+        "sub          %2, %4    \n" // +1 for each valid motion vector
+        "cmp          %3, %0    \n"
+        "jl 1b                  \n"
+        "jg 3f                  \n" // if( i == i_mvc - 1 ) {do the last iteration}
+
+        /* Do the last iteration */
+        "2:                     \n"
+        "movd       (%0), %%mm0 \n"
+        "pxor      %%mm2, %%mm2 \n"
+        "pcmpeqd   %%mm0, %%mm3 \n"
+        "pcmpeqd   %%mm0, %%mm2 \n"
+        "por       %%mm3, %%mm2 \n"
+        "pmovmskb  %%mm2, %k2   \n"
+        "pmaxsw    %%mm5, %%mm0 \n"
+        "pminsw    %%mm6, %%mm0 \n"
+        "movd      %%mm0, (%5,%4,4) \n"
+        "inc          %4        \n"
+        "and          $1, %k2   \n"
+        "sub          %2, %4    \n" // output += !(mv == pmv || mv == 0)
+        "3:                     \n"
+        :"+r"(mvc), "=m"(M64( dst )), "+r"(tmp), "+r"(mvc_max), "+r"(i)
+        :"r"(dst), "g"(pmv), "m"(pd_32), "m"(M64( mvc ))
     );
+    return i;
+}
+
+/* Same as the above, except we do (mv + 2) >> 2 on the input. */
+#define x264_predictor_roundclip x264_predictor_roundclip_mmx2
+static int ALWAYS_INLINE x264_predictor_roundclip_mmx2( int16_t (*dst)[2], int16_t (*mvc)[2], int i_mvc, int16_t mv_limit[2][2], uint32_t pmv )
+{
+    static const uint64_t pw_2 = 0x0002000200020002ULL;
+    static const uint32_t pd_32 = 0x20;
+    intptr_t tmp = (intptr_t)mv_limit, mvc_max = i_mvc, i = 0;
+
+    asm(
+        "movq       (%2), %%mm5 \n"
+        "movq         %6, %%mm7 \n"
+        "movd         %7, %%mm3 \n"
+        "pshufw $0xEE, %%mm5, %%mm6 \n"
+        "dec         %k3        \n"
+        "jz 2f                  \n"
+        "punpckldq %%mm3, %%mm3 \n"
+        "punpckldq %%mm5, %%mm5 \n"
+        "movd         %8, %%mm4 \n"
+        "lea   (%0,%3,4), %3    \n"
+        "1:                     \n"
+        "movq       (%0), %%mm0 \n"
+        "add          $8, %0    \n"
+        "paddw     %%mm7, %%mm0 \n"
+        "psraw        $2, %%mm0 \n"
+        "movq      %%mm3, %%mm1 \n"
+        "pxor      %%mm2, %%mm2 \n"
+        "pcmpeqd   %%mm0, %%mm1 \n"
+        "pcmpeqd   %%mm0, %%mm2 \n"
+        "por       %%mm1, %%mm2 \n"
+        "pmovmskb  %%mm2, %k2   \n"
+        "pmaxsw    %%mm5, %%mm0 \n"
+        "pminsw    %%mm6, %%mm0 \n"
+        "pand      %%mm4, %%mm2 \n"
+        "psrlq     %%mm2, %%mm0 \n"
+        "movq      %%mm0, (%5,%4,4) \n"
+        "and         $24, %k2   \n"
+        "add          $2, %4    \n"
+        "add          $8, %k2   \n"
+        "shr          $4, %k2   \n"
+        "sub          %2, %4    \n"
+        "cmp          %3, %0    \n"
+        "jl 1b                  \n"
+        "jg 3f                  \n"
+
+        /* Do the last iteration */
+        "2:                     \n"
+        "movd       (%0), %%mm0 \n"
+        "paddw     %%mm7, %%mm0 \n"
+        "psraw        $2, %%mm0 \n"
+        "pxor      %%mm2, %%mm2 \n"
+        "pcmpeqd   %%mm0, %%mm3 \n"
+        "pcmpeqd   %%mm0, %%mm2 \n"
+        "por       %%mm3, %%mm2 \n"
+        "pmovmskb  %%mm2, %k2   \n"
+        "pmaxsw    %%mm5, %%mm0 \n"
+        "pminsw    %%mm6, %%mm0 \n"
+        "movd      %%mm0, (%5,%4,4) \n"
+        "inc          %4        \n"
+        "and          $1, %k2   \n"
+        "sub          %2, %4    \n"
+        "3:                     \n"
+        :"+r"(mvc), "=m"(M64( dst )), "+r"(tmp), "+r"(mvc_max), "+r"(i)
+        :"r"(dst), "m"(pw_2), "g"(pmv), "m"(pd_32), "m"(M64( mvc ))
+    );
+    return i;
 }
 
 #endif

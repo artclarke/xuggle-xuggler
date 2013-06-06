@@ -1,7 +1,7 @@
 /*****************************************************************************
  * cpu.h: cpu detection
  *****************************************************************************
- * Copyright (C) 2004-2012 x264 project
+ * Copyright (C) 2004-2013 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *
@@ -46,16 +46,19 @@ void     x264_cpu_sfence( void );
 #endif
 #define x264_sfence x264_cpu_sfence
 void     x264_cpu_mask_misalign_sse( void );
+void     x264_safe_intel_cpu_indicator_init( void );
 
-/* kluge:
+/* kludge:
  * gcc can't give variables any greater alignment than the stack frame has.
- * We need 16 byte alignment for SSE2, so here we make sure that the stack is
- * aligned to 16 bytes.
+ * We need 32 byte alignment for AVX2, so here we make sure that the stack is
+ * aligned to 32 bytes.
  * gcc 4.2 introduced __attribute__((force_align_arg_pointer)) to fix this
  * problem, but I don't want to require such a new version.
- * This applies only to x86_32, since other architectures that need alignment
- * either have ABIs that ensure aligned stack, or don't support it at all. */
-#if ARCH_X86 && HAVE_MMX
+ * aligning to 32 bytes only works if the compiler supports keeping that
+ * alignment between functions (osdep.h handles manual alignment of arrays
+ * if it doesn't).
+ */
+#if (ARCH_X86 || HAVE_32B_STACK_ALIGNMENT) && HAVE_MMX
 int x264_stack_align( void (*func)(), ... );
 #define x264_stack_align(func,...) x264_stack_align((void (*)())func, __VA_ARGS__)
 #else

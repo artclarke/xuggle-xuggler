@@ -1,7 +1,7 @@
 /*****************************************************************************
  * rdo.c: rate-distortion optimization
  *****************************************************************************
- * Copyright (C) 2005-2012 x264 project
+ * Copyright (C) 2005-2013 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Jason Garrett-Glaser <darkshikari@gmail.com>
@@ -634,13 +634,13 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
                          const uint8_t *zigzag, int ctx_block_cat, int lambda2, int b_ac,
                          int b_chroma, int dc, int num_coefs, int idx )
 {
-    ALIGNED_ARRAY_16( dctcoef, orig_coefs, [64] );
-    ALIGNED_ARRAY_16( dctcoef, quant_coefs, [64] );
+    ALIGNED_ARRAY_N( dctcoef, orig_coefs, [64] );
+    ALIGNED_ARRAY_N( dctcoef, quant_coefs, [64] );
     const uint32_t *coef_weight1 = num_coefs == 64 ? x264_dct8_weight_tab : x264_dct4_weight_tab;
     const uint32_t *coef_weight2 = num_coefs == 64 ? x264_dct8_weight2_tab : x264_dct4_weight2_tab;
     const int b_interlaced = MB_INTERLACED;
-    uint8_t *cabac_state_sig = &h->cabac.state[ significant_coeff_flag_offset[b_interlaced][ctx_block_cat] ];
-    uint8_t *cabac_state_last = &h->cabac.state[ last_coeff_flag_offset[b_interlaced][ctx_block_cat] ];
+    uint8_t *cabac_state_sig = &h->cabac.state[ x264_significant_coeff_flag_offset[b_interlaced][ctx_block_cat] ];
+    uint8_t *cabac_state_last = &h->cabac.state[ x264_last_coeff_flag_offset[b_interlaced][ctx_block_cat] ];
     int levelgt1_ctx = b_chroma && dc ? 8 : 9;
 
     if( dc )
@@ -683,7 +683,7 @@ int quant_trellis_cabac( x264_t *h, dctcoef *dct,
     }
 
     int last_nnz = h->quantf.coeff_last[ctx_block_cat]( quant_coefs+b_ac )+b_ac;
-    uint8_t *cabac_state = &h->cabac.state[ coeff_abs_level_m1_offset[ctx_block_cat] ];
+    uint8_t *cabac_state = &h->cabac.state[ x264_coeff_abs_level_m1_offset[ctx_block_cat] ];
 
     /* shortcut for dc-only blocks.
      * this doesn't affect the output, but saves some unnecessary computation. */
@@ -1161,5 +1161,6 @@ int x264_quant_8x8_trellis( x264_t *h, dctcoef *dct, int i_quant_cat,
         h->mb.cache.non_zero_count[x264_scan8[idx*4+i]] = nz;
         nzaccum |= nz;
     }
+    STORE_8x8_NNZ( 0, idx, 0 );
     return nzaccum;
 }

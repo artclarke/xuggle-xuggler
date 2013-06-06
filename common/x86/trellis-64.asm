@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* trellis-64.asm: x86_64 trellis quantization
 ;*****************************************************************************
-;* Copyright (C) 2012 x264 project
+;* Copyright (C) 2012-2013 x264 project
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
 ;*
@@ -96,6 +96,15 @@ SECTION .text
 %endif
 %endmacro
 
+%macro LOAD_DUP 2 ; dst, src
+%if cpuflag(ssse3)
+    movddup    %1, %2
+%else
+    movd       %1, %2
+    punpcklqdq %1, %1
+%endif
+%endmacro
+
 ;-----------------------------------------------------------------------------
 ; int trellis_cabac_4x4_psy(
 ;     const int *unquant_mf, const uint8_t *zigzag, int lambda2,
@@ -186,12 +195,11 @@ cglobal %1, 4,15,9
     mov dword levelgt1_ctxm, 9
 %endif
 %if psy
-    movd    m6, psy_trellism
+    LOAD_DUP m6, psy_trellism
     %define psy_trellis m6
 %elif dc
-    movd       m6, [unquant_mfq]
+    LOAD_DUP   m6, [unquant_mfq]
     paddd      m6, m6
-    punpcklqdq m6, m6
     %define unquant_mf m6
 %endif
 %ifdef PIC
@@ -333,13 +341,12 @@ cglobal %1, 4,15,9
     movd    m0, abs_leveld
     mov     r6, orig_coefsm
 %if HIGH_BIT_DEPTH
-    movd    m1, [r6 + zigzagiq*SIZEOF_DCTCOEF]
+    LOAD_DUP m1, [r6 + zigzagiq*SIZEOF_DCTCOEF]
 %else
-    movd    m1, [r6 + zigzagiq*SIZEOF_DCTCOEF - 2]
-    psrad   m1, 16
+    LOAD_DUP m1, [r6 + zigzagiq*SIZEOF_DCTCOEF - 2]
+    psrad    m1, 16     ; sign_coef
 %endif
     punpcklqdq m0, m0 ; quant_coef
-    punpcklqdq m1, m1 ; sign_coef
 %if cpuflag(ssse3)
     pabsd   m0, m0
     pabsd   m2, m1 ; abs_coef
@@ -403,11 +410,10 @@ cglobal %1, 4,15,9
 %else
 %ifdef PIC
     mov    r10, unquant_mfm
-    movd    m3, [r10 + zigzagiq*4]
+    LOAD_DUP m3, [r10 + zigzagiq*4]
 %else
-    movd    m3, [unquant_mfq + zigzagiq*4]
+    LOAD_DUP m3, [unquant_mfq + zigzagiq*4]
 %endif
-    punpcklqdq m3, m3
     pmuludq m0, m3
 %endif
     paddd   m0, [pq_128]
@@ -420,8 +426,7 @@ cglobal %1, 4,15,9
 %if dc
     psllq   m0, 8
 %else
-    movd    m5, [dct_weight2_tab + zigzagiq*4 GLOBAL]
-    punpcklqdq m5, m5
+    LOAD_DUP m5, [dct_weight2_tab + zigzagiq*4 GLOBAL]
     pmuludq m0, m5
 %endif
 
@@ -434,12 +439,11 @@ cglobal %1, 4,15,9
     ; ssd1[k] -= psy_weight * psy_value;
     mov     r6, fenc_dctm
 %if HIGH_BIT_DEPTH
-    movd    m3, [r6 + zigzagiq*SIZEOF_DCTCOEF]
+    LOAD_DUP m3, [r6 + zigzagiq*SIZEOF_DCTCOEF]
 %else
-    movd    m3, [r6 + zigzagiq*SIZEOF_DCTCOEF - 2]
+    LOAD_DUP m3, [r6 + zigzagiq*SIZEOF_DCTCOEF - 2]
     psrad   m3, 16 ; orig_coef
 %endif
-    punpcklqdq m3, m3
 %if cpuflag(ssse3)
     psignd  m4, m1 ; SIGN(unquant_abs_level, sign_coef)
 %else
@@ -453,9 +457,8 @@ cglobal %1, 4,15,9
     ABSD    m3, m4
     SWAP     4, 3
 %endif
-    movd    m1, [dct_weight1_tab + zigzagiq*4 GLOBAL]
+    LOAD_DUP m1, [dct_weight1_tab + zigzagiq*4 GLOBAL]
     pmuludq m1, psy_trellis
-    punpcklqdq m1, m1
     pmuludq m4, m1
     psubq   m0, m4
 %if %1

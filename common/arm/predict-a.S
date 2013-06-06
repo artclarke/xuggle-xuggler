@@ -1,7 +1,7 @@
 /*****************************************************************************
  * predict.S: arm intra prediction
  *****************************************************************************
- * Copyright (C) 2009-2012 x264 project
+ * Copyright (C) 2009-2013 x264 project
  *
  * Authors: David Conrad <lessen42@gmail.com>
  *          Mans Rullgard <mans@mansr.com>

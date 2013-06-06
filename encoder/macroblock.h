@@ -1,7 +1,7 @@
 /*****************************************************************************
  * macroblock.h: macroblock encoding
  *****************************************************************************
- * Copyright (C) 2003-2012 x264 project
+ * Copyright (C) 2003-2013 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -104,12 +104,16 @@ do\
     M32( &h->mb.cache.non_zero_count[x264_scan8[16*p+10]] ) = 0;\
 } while(0)
 
+/* A special for loop that iterates branchlessly over each set
+ * bit in a 4-bit input. */
+#define FOREACH_BIT(idx,start,mask) for( int idx = start, msk = mask, skip; msk && (skip = x264_ctz_4bit(msk), idx += skip, msk >>= skip+1, 1); idx++ )
+
 static ALWAYS_INLINE void x264_mb_encode_i4x4( x264_t *h, int p, int idx, int i_qp, int i_mode, int b_predict )
 {
     int nz;
     pixel *p_src = &h->mb.pic.p_fenc[p][block_idx_xy_fenc[idx]];
     pixel *p_dst = &h->mb.pic.p_fdec[p][block_idx_xy_fdec[idx]];
-    ALIGNED_ARRAY_16( dctcoef, dct4x4,[16] );
+    ALIGNED_ARRAY_N( dctcoef, dct4x4,[16] );
 
     if( b_predict )
     {
@@ -147,7 +151,7 @@ static ALWAYS_INLINE void x264_mb_encode_i8x8( x264_t *h, int p, int idx, int i_
     int nz;
     pixel *p_src = &h->mb.pic.p_fenc[p][8*x + 8*y*FENC_STRIDE];
     pixel *p_dst = &h->mb.pic.p_fdec[p][8*x + 8*y*FDEC_STRIDE];
-    ALIGNED_ARRAY_16( dctcoef, dct8x8,[64] );
+    ALIGNED_ARRAY_N( dctcoef, dct8x8,[64] );
     ALIGNED_ARRAY_32( pixel, edge_buf,[36] );
 
     if( b_predict )
