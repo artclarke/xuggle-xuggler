@@ -1,7 +1,7 @@
 /*****************************************************************************
  * visualize.c: visualization
  *****************************************************************************
- * Copyright (C) 2005-2012 x264 project
+ * Copyright (C) 2005-2013 x264 project
  *
  * Authors: Tuukka Toivonen <tuukkat@ee.oulu.fi>
  *

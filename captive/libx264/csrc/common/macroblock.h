@@ -1,7 +1,7 @@
 /*****************************************************************************
  * macroblock.h: macroblock common functions
  *****************************************************************************
- * Copyright (C) 2005-2012 x264 project
+ * Copyright (C) 2005-2013 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -420,23 +420,23 @@ static ALWAYS_INLINE int x264_mb_predict_non_zero_code( x264_t *h, int idx )
         i_ret = ( i_ret + 1 ) >> 1;
     return i_ret & 0x7f;
 }
+
+/* intra and skip are disallowed, p8x8 is conditional. */
+static const uint8_t x264_transform_allowed[X264_MBTYPE_MAX] =
+{
+    0,0,0,0,1,2,0,1,1,1,1,1,1,1,1,1,1,1,0
+};
+
 /* x264_mb_transform_8x8_allowed:
  *      check whether any partition is smaller than 8x8 (or at least
  *      might be, according to just partition type.)
  *      doesn't check for cbp */
 static ALWAYS_INLINE int x264_mb_transform_8x8_allowed( x264_t *h )
 {
-    // intra and skip are disallowed
-    // large partitions are allowed
-    // direct and 8x8 are conditional
-    static const uint8_t partition_tab[X264_MBTYPE_MAX] = {
-        0,0,0,0,1,2,0,1,1,1,1,1,1,1,1,1,1,1,0,
-    };
-
     if( !h->pps->b_transform_8x8_mode )
         return 0;
     if( h->mb.i_type != P_8x8 )
-        return partition_tab[h->mb.i_type];
+        return x264_transform_allowed[h->mb.i_type];
     return M32( h->mb.i_sub_partition ) == D_L0_8x8*0x01010101;
 }
 

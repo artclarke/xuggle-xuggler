@@ -1,7 +1,7 @@
 ;*****************************************************************************
 ;* dct-64.asm: x86_64 transform and zigzag
 ;*****************************************************************************
-;* Copyright (C) 2003-2012 x264 project
+;* Copyright (C) 2003-2013 x264 project
 ;*
 ;* Authors: Loren Merritt <lorenm@u.washington.edu>
 ;*          Holger Lubitz <holger@lubitz.org>
@@ -311,6 +311,42 @@ DCT_SUB8
 INIT_XMM xop
 DCT_SUB8
 
+INIT_YMM avx2
+cglobal sub16x16_dct8, 3,3,10
+    add  r0, 128
+    add  r2, 4*FDEC_STRIDE
+    call .sub16x8_dct8
+    add  r0, 256
+    add  r1, FENC_STRIDE*8
+    add  r2, FDEC_STRIDE*8
+    call .sub16x8_dct8
+    RET
+.sub16x8_dct8:
+    LOAD_DIFF16x2_AVX2 0, 1, 2, 3, 0, 1
+    LOAD_DIFF16x2_AVX2 2, 3, 4, 5, 2, 3
+    LOAD_DIFF16x2_AVX2 4, 5, 6, 7, 4, 5
+    LOAD_DIFF16x2_AVX2 6, 7, 8, 9, 6, 7
+    DCT8_1D    w, 0,1,2,3,4,5,6,7,8,9
+    TRANSPOSE8x8W 0,1,2,3,4,5,6,7,8
+    DCT8_1D    w, 0,1,2,3,4,5,6,7,8,9
+    mova    [r0-0x80+0x00], xm0
+    vextracti128 [r0+0x00], m0, 1
+    mova    [r0-0x80+0x10], xm1
+    vextracti128 [r0+0x10], m1, 1
+    mova    [r0-0x80+0x20], xm2
+    vextracti128 [r0+0x20], m2, 1
+    mova    [r0-0x80+0x30], xm3
+    vextracti128 [r0+0x30], m3, 1
+    mova    [r0-0x80+0x40], xm4
+    vextracti128 [r0+0x40], m4, 1
+    mova    [r0-0x80+0x50], xm5
+    vextracti128 [r0+0x50], m5, 1
+    mova    [r0-0x80+0x60], xm6
+    vextracti128 [r0+0x60], m6, 1
+    mova    [r0-0x80+0x70], xm7
+    vextracti128 [r0+0x70], m7, 1
+    ret
+
 ;-----------------------------------------------------------------------------
 ; void add8x8_idct8( uint8_t *p_dst, int16_t dct[8][8] )
 ;-----------------------------------------------------------------------------
@@ -390,4 +426,5 @@ INIT_XMM sse2
 ADD8x8
 INIT_XMM avx
 ADD8x8
+
 %endif ; !HIGH_BIT_DEPTH

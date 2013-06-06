@@ -1,7 +1,7 @@
 /*****************************************************************************
  * frame.c: frame handling
  *****************************************************************************
- * Copyright (C) 2003-2012 x264 project
+ * Copyright (C) 2003-2013 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -72,8 +72,18 @@ static x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
     int i_mb_count = h->mb.i_mb_count;
     int i_stride, i_width, i_lines, luma_plane_count;
     int i_padv = PADV << PARAM_INTERLACED;
-    int align = h->param.cpu&X264_CPU_CACHELINE_64 ? 64 : h->param.cpu&X264_CPU_CACHELINE_32 ? 32 : 16;
-    int disalign = h->param.cpu&X264_CPU_ALTIVEC ? 1<<9 : 1<<10;
+    int align = 16;
+#if ARCH_X86 || ARCH_X86_64
+    if( h->param.cpu&X264_CPU_CACHELINE_64 )
+        align = 64;
+    else if( h->param.cpu&X264_CPU_CACHELINE_32 || h->param.cpu&X264_CPU_AVX2 )
+        align = 32;
+#endif
+#if ARCH_PPC
+    int disalign = 1<<9;
+#else
+    int disalign = 1<<10;
+#endif
 
     CHECKED_MALLOCZERO( frame, sizeof(x264_frame_t) );
 
@@ -251,6 +261,10 @@ static x264_frame_t *x264_frame_new( x264_t *h, int b_fdec )
     if( x264_pthread_cond_init( &frame->cv, NULL ) )
         goto fail;
 
+#if HAVE_OPENCL
+    frame->opencl.ocl = h->opencl.ocl;
+#endif
+
     return frame;
 
 fail:
@@ -300,8 +314,21 @@ void x264_frame_delete( x264_frame_t *frame )
             x264_free( frame->mv16x16-1 );
         x264_free( frame->ref[0] );
         x264_free( frame->ref[1] );
+        if( frame->param && frame->param->param_free )
+            frame->param->param_free( frame->param );
+        if( frame->mb_info_free )
+            frame->mb_info_free( frame->mb_info );
+        if( frame->extra_sei.sei_free )
+        {
+            for( int i = 0; i < frame->extra_sei.num_payloads; i++ )
+                frame->extra_sei.sei_free( frame->extra_sei.payloads[i].payload );
+            frame->extra_sei.sei_free( frame->extra_sei.payloads );
+        }
         x264_pthread_mutex_destroy( &frame->mutex );
         x264_pthread_cond_destroy( &frame->cv );
+#if HAVE_OPENCL
+        x264_opencl_frame_delete( frame );
+#endif
     }
     x264_free( frame );
 }
@@ -357,8 +384,8 @@ int x264_frame_copy_picture( x264_t *h, x264_frame_t *dst, x264_picture_t *src )
     dst->i_pic_struct = src->i_pic_struct;
     dst->extra_sei  = src->extra_sei;
     dst->opaque     = src->opaque;
-    dst->mb_info    = src->prop.mb_info;
-    dst->mb_info_free = src->prop.mb_info_free;
+    dst->mb_info    = h->param.analyse.b_mb_info ? src->prop.mb_info : NULL;
+    dst->mb_info_free = h->param.analyse.b_mb_info ? src->prop.mb_info_free : NULL;
 
     uint8_t *pix[3];
     int stride[3];
@@ -645,6 +672,21 @@ void x264_threadslice_cond_wait( x264_t *h, int pass )
     x264_pthread_mutex_unlock( &h->mutex );
 }
 
+int x264_frame_new_slice( x264_t *h, x264_frame_t *frame )
+{
+    if( h->param.i_slice_count_max )
+    {
+        int slice_count;
+        if( h->param.b_sliced_threads )
+            slice_count = x264_pthread_fetch_and_add( &frame->i_slice_count, 1, &frame->mutex );
+        else
+            slice_count = frame->i_slice_count++;
+        if( slice_count >= h->param.i_slice_count_max )
+            return -1;
+    }
+    return 0;
+}
+
 /* list operators */
 
 void x264_frame_push( x264_frame_t **list, x264_frame_t *frame )
@@ -707,6 +749,7 @@ x264_frame_t *x264_frame_pop_unused( x264_t *h, int b_fdec )
     frame->b_scenecut = 1;
     frame->b_keyframe = 0;
     frame->b_corrupt = 0;
+    frame->i_slice_count = h->param.b_sliced_threads ? h->param.i_threads : 1;
 
     memset( frame->weight, 0, sizeof(frame->weight) );
     memset( frame->f_weighted_cost_delta, 0, sizeof(frame->f_weighted_cost_delta) );

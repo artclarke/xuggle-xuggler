@@ -1,7 +1,7 @@
 /*****************************************************************************
  * pixel.h: sparc pixel metrics
  *****************************************************************************
- * Copyright (C) 2005-2012 x264 project
+ * Copyright (C) 2005-2013 x264 project
  *
  * Authors: Phil Jensen <philj@csufresno.edu>
  *

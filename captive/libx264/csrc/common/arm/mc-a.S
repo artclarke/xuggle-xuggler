@@ -1,10 +1,11 @@
 /*****************************************************************************
  * mc.S: arm motion compensation
  *****************************************************************************
- * Copyright (C) 2009-2012 x264 project
+ * Copyright (C) 2009-2013 x264 project
  *
  * Authors: David Conrad <lessen42@gmail.com>
  *          Mans Rullgard <mans@mansr.com>
+ *          Stefan Groenroos <stefan.gronroos@gmail.com>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -813,54 +814,57 @@ copy_w16_aligned_loop:
 // void x264_mc_chroma_neon( uint8_t *dst, intptr_t i_dst_stride,
 //                           uint8_t *src, intptr_t i_src_stride,
 //                           int dx, int dy, int i_width, int i_height );
+
 function x264_mc_chroma_neon
-    push            {r4-r6, lr}
-    ldrd            r4,  [sp, #16]
-    ldr             r6,  [sp, #24]
+    push            {r4-r8, lr}
+    vpush           {d8-d11}
+    ldrd            r4, [sp, #56]
+    ldrd            r6, [sp, #64]
 
-    asr             lr,  r5,  #3
-    mul             lr,  r3,  lr
-    add             r2,  r2,  r4,  asr #3
-    cmp             r6, #4
-    add             r2,  r2,  lr
+    asr             lr, r6, #3
+    mul             lr, r4, lr
+    add             r3, r3, r5, asr #2
+    cmp             r7, #4
 
-    and             r4, r4, #7
     and             r5, r5, #7
-    pld             [r2]
-    pld             [r2, r3]
+    and             r6, r6, #7
+
+    add             r3, r3, lr
+    bic             r3, r3, #0x1
+
+    pld             [r3]
+    pld             [r3, r4]
 
     bgt             mc_chroma_w8
     beq             mc_chroma_w4
 
-// calculate cA cB cC cD
-.macro CHROMA_MC_START r0 r1
-    muls            lr,  r4,  r5
-    rsb             r6,  lr,  r5,  lsl #3
-    rsb             ip,  lr,  r4,  lsl #3
-    sub             r4,  lr,  r4,  lsl #3
-    sub             r4,  r4,  r5,  lsl #3
-    add             r4,  r4,  #64
+.macro CHROMA_MC_START r00, r01, r10, r11
+    muls            lr, r5, r6
+    rsb             r7, lr, r6, lsl #3
+    rsb             ip, lr, r5, lsl #3
+    sub             r5, lr, r5, lsl #3
+    sub             r5, r5, r6, lsl #3
+    add             r5, r5, #64
 
     beq             2f
+    vld2.8          {\r00-\r01}, [r3], r4
 
-    add             r5,  r2,  r3
+    vdup.8          d0,    r5
+    vdup.8          d1,    ip
 
-    vdup.8          d0,  r4
-    lsl             r3,  r3,  #1
-    vdup.8          d1,  ip
-    vld1.64         {\r0}, [r2], r3
-    vdup.8          d2,  r6
-    vld1.64         {\r1}, [r5], r3
-    vdup.8          d3,  lr
-    ldr             r4,  [sp, #28]
-
-    vext.8          d5,  d4,  d5,  #1
-    vext.8          d7,  d6,  d7,  #1
+    vdup.8          d2,    r7
+    vld2.8          {\r10-\r11}, [r3], r4
+    vdup.8          d3,    lr
+    ldr             r5,    [sp, #72]
 .endm
 
 .macro CHROMA_MC width, align
 mc_chroma_w\width:
-    CHROMA_MC_START d4,  d6
+    CHROMA_MC_START d4, d5,  d8, d9
+    vext.8          d6,  d4,  d6,  #1
+    vext.8          d7,  d5,  d7,  #1
+    vext.8          d10, d8,  d10, #1
+    vext.8          d11, d9,  d11, #1
 // since the element size varies, there's a different index for the 2nd store
 .if \width == 4
     .set st2, 1
@@ -868,187 +872,292 @@ mc_chroma_w\width:
     .set st2, 2
 .endif
 
-    vtrn.32         d4,  d5
-    vtrn.32         d6,  d7
+    vtrn.32         d4, d6
+    vtrn.32         d5, d7
+    vtrn.32         d8, d10
+    vtrn.32         d9, d11
 
-    vtrn.32         d0,  d1
-    vtrn.32         d2,  d3
+    vtrn.32         d0, d1
+    vtrn.32         d2, d3
 
 1:  // height loop, interpolate xy
-    pld             [r5]
+
     vmull.u8        q8,  d4,  d0
-    vmlal.u8        q8,  d6,  d2
-    vld1.64         {d4},     [r2], r3
-    vext.8          d5,  d4,  d5,  #1
-    vtrn.32         d4,  d5
-    vmull.u8        q9,  d6,  d0
-    vmlal.u8        q9,  d4,  d2
-    vld1.64         {d6},     [r5], r3
+    vmlal.u8        q8,  d8,  d2
+    vmull.u8        q9,  d5,  d0
+    vmlal.u8        q9,  d9,  d2
+
+    vld2.8          {d4-d5},  [r3], r4
+
+    vext.8          d6,  d4,  d6,  #1
+    vext.8          d7,  d5,  d7,  #1
+
     vadd.i16        d16, d16, d17
     vadd.i16        d17, d18, d19
+
+    vtrn.32         d4,  d6
+    vtrn.32         d5,  d7
+
+    vmull.u8        q10, d8,  d0
+    vmlal.u8        q10, d4,  d2
+    vmull.u8        q11, d9,  d0
+    vmlal.u8        q11, d5,  d2
+
+    vld2.8          {d8-d9},  [r3], r4
+
     vrshrn.u16      d16, q8,  #6
-    subs            r4,  r4,  #2
-    pld             [r2]
-    vext.8          d7,  d6,  d7,  #1
-    vtrn.32         d6,  d7
-    vst1.\align     {d16[0]},   [r0,:\align], r1
-    vst1.\align     {d16[st2]}, [r0,:\align], r1
+
+    vext.8          d10, d8,  d10,  #1
+    vext.8          d11, d9,  d11,  #1
+
+    vadd.i16        d18, d20, d21
+    vadd.i16        d19, d22, d23
+
+    vtrn.32         d8, d10
+    vtrn.32         d9, d11
+
+    vrshrn.u16      d18, q9,  #6
+
+    subs            r5,  r5,  #2
+
+    pld             [r3]
+    pld             [r3, r4]
+
+    vst1.\align     {d16[0]},   [r0,:\align], r2
+    vst1.\align     {d16[st2]}, [r1,:\align], r2
+    vst1.\align     {d18[0]},   [r0,:\align], r2
+    vst1.\align     {d18[st2]}, [r1,:\align], r2
     bgt             1b
 
-    pop             {r4-r6, pc}
+    vpop            {d8-d11}
+    pop             {r4-r8, pc}
 
 2:  // dx or dy are 0
-    tst             r6,  r6
-    add             ip,  ip,  r6
-    vdup.8          d0,  r4
+    tst             r7,  r7
+    add             ip,  ip,  r7
+    vdup.8          d0,  r5
+    ldr             r5,  [sp, #72]
     vdup.8          d1,  ip
-    vtrn.32         d0,  d1
-    ldr             r4,  [sp, #28]
 
     beq             4f
 
-    vext.32         d1,  d0,  d1,  #1
-    add             r5,  r2,  r3
-    lsl             r3,  r3,  #1
-    vld1.32         {d4[0]},  [r2], r3
-    vld1.32         {d4[1]},  [r5], r3
+    vld1.64          {d4}, [r3], r4
+    vld1.64          {d6}, [r3], r4
 
 3:  // vertical interpolation loop
-    pld             [r5]
-    vmull.u8        q8,  d4,  d0
-    vld1.32         {d4[0]},  [r2], r3
-    vmull.u8        q9,  d4,  d1
-    vld1.32         {d4[1]},  [r5], r3
-    vadd.i16        d16, d16, d17
-    vadd.i16        d17, d18, d19
-    vrshrn.u16      d16, q8,  #6
-    subs            r4,  r4,  #2
-    pld             [r2]
-    vst1.\align     {d16[0]},   [r0,:\align], r1
-    vst1.\align     {d16[st2]}, [r0,:\align], r1
-    bgt             3b
 
-    pop             {r4-r6, pc}
-
-4:  // dy is 0
-    vld1.64         {d4},     [r2], r3
-    vld1.64         {d6},     [r2], r3
-    vext.8          d5,  d4,  d5,  #1
-    vext.8          d7,  d6,  d7,  #1
-    vtrn.32         d4,  d5
-    vtrn.32         d6,  d7
-
-5:  // horizontal interpolation loop
-    vmull.u8        q8,  d4,  d0
-    vmull.u8        q9,  d6,  d0
-    subs            r4,  r4,  #2
-    vld1.64         {d4},     [r2], r3
-    vext.8          d5,  d4,  d5,  #1
-    vtrn.32         d4,  d5
-    vadd.i16        d16, d16, d17
-    vadd.i16        d17, d18, d19
-    pld             [r2]
-    vrshrn.u16      d16, q8,  #6
-    vld1.64         {d6},     [r2], r3
-    vext.8          d7,  d6,  d7,  #1
-    vtrn.32         d6,  d7
-    pld             [r2]
-    vst1.\align     {d16[0]},   [r0,:\align], r1
-    vst1.\align     {d16[st2]}, [r0,:\align], r1
-    bgt             5b
-
-    pop             {r4-r6, pc}
-.endm
-
-    CHROMA_MC 2, 16
-    CHROMA_MC 4, 32
-
-// the optimial timing for width 8 is different enough that it's not
-// readable to put it in the same macro as width 2/4
-mc_chroma_w8:
-    CHROMA_MC_START d4-d5, d6-d7
-
-1:  // height loop, interpolate xy
-    pld             [r5]
-    vmull.u8        q8,  d4,  d0
-    vmlal.u8        q8,  d5,  d1
-    vld1.64         {d4, d5}, [r2], r3
-    vmlal.u8        q8,  d6,  d2
-    vext.8          d5,  d4,  d5,  #1
-    vmlal.u8        q8,  d7,  d3
-    vmull.u8        q9,  d6,  d0
-    subs            r4,  r4,  #2
-    vmlal.u8        q9,  d7,  d1
-    vmlal.u8        q9,  d4,  d2
-    vmlal.u8        q9,  d5,  d3
-    vrshrn.u16      d16, q8,  #6
-    vld1.64         {d6, d7}, [r5], r3
-    pld             [r2]
-    vrshrn.u16      d17, q9,  #6
-    vext.8          d7,  d6,  d7,  #1
-    vst1.64         {d16}, [r0,:64], r1
-    vst1.64         {d17}, [r0,:64], r1
-    bgt             1b
-
-    pop             {r4-r6, pc}
-
-2:  // dx or dy are 0
-    tst             r6,  r6
-    add             ip,  ip,  r6
-    vdup.8          d0,  r4
-    vdup.8          d1,  ip
-    ldr             r4,  [sp, #28]
-
-    beq             4f
-
-    add             r5,  r2,  r3
-    lsl             r3,  r3,  #1
-    vld1.64         {d4}, [r2], r3
-    vld1.64         {d6}, [r5], r3
-
-3:  // vertical interpolation loop
-    pld             [r5]
     vmull.u8        q8,  d4,  d0
     vmlal.u8        q8,  d6,  d1
-    vld1.64         {d4}, [r2], r3
     vmull.u8        q9,  d6,  d0
+    vld1.64         {d4}, [r3], r4
     vmlal.u8        q9,  d4,  d1
-    vld1.64         {d6}, [r5], r3
-    vrshrn.u16      d16, q8,  #6
-    vrshrn.u16      d17, q9,  #6
-    subs            r4,  r4,  #2
-    pld             [r2]
-    vst1.64         {d16}, [r0,:64], r1
-    vst1.64         {d17}, [r0,:64], r1
+    vld1.64         {d6}, [r3], r4
+
+    vrshrn.u16      d16, q8,  #6 // uvuvuvuv
+    vrshrn.u16      d17, q9,  #6 // uvuvuvuv
+    subs            r5,  r5,  #2
+    vuzp.8          d16, d17 // d16=uuuu|uuuu, d17=vvvv|vvvv
+
+    pld             [r3]
+    pld             [r3, r4]
+
+    vst1.\align     {d16[0]},   [r0,:\align], r2
+    vst1.\align     {d16[st2]}, [r0,:\align], r2
+    vst1.\align     {d17[0]},   [r1,:\align], r2
+    vst1.\align     {d17[st2]}, [r1,:\align], r2
     bgt             3b
 
-    pop             {r4-r6, pc}
+    vpop            {d8-d11}
+    pop             {r4-r8, pc}
 
 4:  // dy is 0
-    vld1.64         {d4, d5}, [r2], r3
-    vld1.64         {d6, d7}, [r2], r3
-    vext.8          d5,  d4,  d5,  #1
-    vext.8          d7,  d6,  d7,  #1
+
+    vld1.64         {d4-d5},  [r3], r4
+    vld1.64         {d6-d7},  [r3], r4
+
+    vext.8          d5,  d4,  d5,  #2
+    vext.8          d7,  d6,  d7,  #2
 
 5:  // horizontal interpolation loop
-    pld             [r2]
-    subs            r4,  r4,  #2
+
     vmull.u8        q8,  d4,  d0
     vmlal.u8        q8,  d5,  d1
-    vld1.64         {d4,  d5}, [r2], r3
     vmull.u8        q9,  d6,  d0
     vmlal.u8        q9,  d7,  d1
-    pld             [r2]
-    vext.8          d5,  d4,  d5,  #1
+
+    subs            r5,  r5,  #2
+    vld1.64         {d4-d5},  [r3], r4
+    vld1.64         {d6-d7},  [r3], r4
+    vext.8          d5,  d4,  d5,  #2
     vrshrn.u16      d16, q8,  #6
     vrshrn.u16      d17, q9,  #6
-    vld1.64         {d6, d7}, [r2], r3
-    vext.8          d7,  d6,  d7,  #1
-    vst1.64         {d16}, [r0,:64], r1
-    vst1.64         {d17}, [r0,:64], r1
+    vext.8          d7,  d6,  d7,  #2
+    vuzp.8          d16, d17
+
+    pld             [r3]
+    pld             [r3, r4]
+
+    vst1.\align     {d16[0]},   [r0,:\align], r2
+    vst1.\align     {d16[st2]}, [r0,:\align], r2
+    vst1.\align     {d17[0]},   [r1,:\align], r2
+    vst1.\align     {d17[st2]}, [r1,:\align], r2
     bgt             5b
 
-    pop             {r4-r6, pc}
+    vpop            {d8-d11}
+    pop             {r4-r8, pc}
+.endm
+
+   CHROMA_MC 2, 16
+   CHROMA_MC 4, 32
+
+mc_chroma_w8:
+    CHROMA_MC_START d4, d7, d8, d11
+    vext.8          d5,  d4,  d5,  #1
+    vext.8          d9,  d8,  d9,  #1
+    vext.8          d7,  d6,  d7,  #1
+    vext.8          d11, d10, d11,  #1
+
+1:  // height loop, interpolate xy
+    vmull.u8        q8,  d4,  d0
+    vmlal.u8        q8,  d5,  d1
+    vmlal.u8        q8,  d8,  d2
+    vmlal.u8        q8,  d9,  d3
+
+    vmull.u8        q9,  d6,  d0
+    vmlal.u8        q9,  d7,  d1
+    vmlal.u8        q9,  d10,  d2
+    vmlal.u8        q9,  d11,  d3
+
+    vld2.8          {d4-d7}, [r3], r4
+
+    vext.8          d5,  d4,  d5,  #1
+    vext.8          d7,  d6,  d7,  #1
+
+    vmull.u8        q10, d8,   d0
+    vmlal.u8        q10, d9,   d1
+    vmlal.u8        q10, d4,   d2
+    vmlal.u8        q10, d5,   d3
+
+    vmull.u8        q11, d10,  d0
+    vmlal.u8        q11, d11,  d1
+    vmlal.u8        q11, d6,   d2
+    vmlal.u8        q11, d7,   d3
+
+    subs            r5,  r5,   #2
+    vld2.8          {d8-d11}, [r3], r4
+
+    vrshrn.u16      d16, q8,  #6
+    vrshrn.u16      d17, q9,  #6
+    vrshrn.u16      d18, q10, #6
+    vext.8          d9,  d8,  d9,  #1
+    vrshrn.u16      d19, q11, #6
+    vext.8          d11, d10, d11,  #1
+
+    pld             [r3]
+    pld             [r3, r4]
+
+    vst1.64         {d16}, [r0,:64], r2
+    vst1.64         {d17}, [r1,:64], r2
+    vst1.64         {d18}, [r0,:64], r2
+    vst1.64         {d19}, [r1,:64], r2
+
+    bgt             1b
+
+    vpop            {d8-d11}
+    pop             {r4-r8, pc}
+
+2:  // dx or dy are 0
+    tst             r7,  r7
+    add             ip,  ip,  r7
+    vdup.8          d0,  r5
+    ldr             r5,  [sp, #72]
+    vdup.8          d1,  ip
+
+    beq             4f
+
+    vld2.8          {d4-d5}, [r3], r4
+    vld2.8          {d6-d7}, [r3], r4
+
+3:  // vertical interpolation loop
+    vmull.u8        q8,  d4,  d0 //U
+    vmlal.u8        q8,  d6,  d1
+    vmull.u8        q9,  d5,  d0 //V
+    vmlal.u8        q9,  d7,  d1
+
+    vld2.8          {d4-d5}, [r3], r4
+
+    vmull.u8        q10, d6,  d0
+    vmlal.u8        q10, d4,  d1
+    vmull.u8        q11, d7,  d0
+    vmlal.u8        q11, d5,  d1
+
+    vld2.8          {d6-d7}, [r3], r4
+
+    vrshrn.u16      d16, q8,  #6
+    vrshrn.u16      d17, q9,  #6
+    vrshrn.u16      d18, q10, #6
+    vrshrn.u16      d19, q11, #6
+    subs            r5,  r5,  #2
+
+    pld             [r3]
+    pld             [r3, r4]
+
+    vst1.64         {d16}, [r0,:64], r2
+    vst1.64         {d17}, [r1,:64], r2
+    vst1.64         {d18}, [r0,:64], r2
+    vst1.64         {d19}, [r1,:64], r2
+
+    bgt             3b
+
+    vpop            {d8-d11}
+    pop             {r4-r8, pc}
+
+4:  // dy is 0
+
+    vld2.8          {d4-d7},  [r3], r4
+    vld2.8          {d8-d11}, [r3], r4
+    vext.8          d5,  d4,  d5,  #1
+    vext.8          d7,  d6,  d7,  #1
+    vext.8          d9,  d8,  d9,  #1
+    vext.8          d11, d10, d11, #1
+
+5:  // horizontal interpolation loop
+    subs            r5,  r5,  #2
+    vmull.u8        q8,  d4,  d0 //U
+    vmlal.u8        q8,  d5,  d1
+    vmull.u8        q9,  d6,  d0 //V
+    vmlal.u8        q9,  d7,  d1
+
+    vld2.8          {d4-d7}, [r3], r4
+
+    vmull.u8        q10, d8,  d0
+    vmlal.u8        q10, d9,  d1
+    vmull.u8        q11, d10, d0
+    vmlal.u8        q11, d11, d1
+
+    vld2.8          {d8-d11}, [r3], r4
+
+    vext.8          d5,  d4,  d5,  #1
+    vrshrn.u16      d16, q8,  #6
+    vext.8          d7,  d6,  d7,  #1
+    vrshrn.u16      d17, q9,  #6
+    vext.8          d9,  d8,  d9,  #1
+    vrshrn.u16      d18, q10, #6
+    vext.8          d11, d10, d11, #1
+    vrshrn.u16      d19, q11, #6
+
+    pld             [r3]
+    pld             [r3, r4]
+
+    vst1.64         {d16}, [r0,:64], r2
+    vst1.64         {d17}, [r1,:64], r2
+    vst1.64         {d18}, [r0,:64], r2
+    vst1.64         {d19}, [r1,:64], r2
+    bgt             5b
+
+    vpop            {d8-d11}
+    pop             {r4-r8, pc}
+
 .endfunc
 
 

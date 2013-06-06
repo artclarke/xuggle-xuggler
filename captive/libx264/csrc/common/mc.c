@@ -1,7 +1,7 @@
 /*****************************************************************************
  * mc.c: motion compensation
  *****************************************************************************
- * Copyright (C) 2003-2012 x264 project
+ * Copyright (C) 2003-2013 x264 project
  *
  * Authors: Laurent Aimar <fenrir@via.ecp.fr>
  *          Loren Merritt <lorenm@u.washington.edu>
@@ -469,7 +469,7 @@ static void mbtree_propagate_cost( int *dst, uint16_t *propagate_in, uint16_t *i
     }
 }
 
-void x264_mc_init( int cpu, x264_mc_functions_t *pf )
+void x264_mc_init( int cpu, x264_mc_functions_t *pf, int cpu_independent )
 {
     pf->mc_luma   = mc_luma;
     pf->get_ref   = get_ref;
@@ -534,6 +534,9 @@ void x264_mc_init( int cpu, x264_mc_functions_t *pf )
 #if HAVE_ARMV6
     x264_mc_init_arm( cpu, pf );
 #endif
+
+    if( cpu_independent )
+        pf->mbtree_propagate_cost = mbtree_propagate_cost;
 }
 
 void x264_frame_filter( x264_t *h, x264_frame_t *frame, int mb_y, int b_end )

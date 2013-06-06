@@ -1,7 +1,7 @@
 /*****************************************************************************
  * dct.h: x86 transform and zigzag
  *****************************************************************************
- * Copyright (C) 2003-2012 x264 project
+ * Copyright (C) 2003-2013 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -40,6 +40,8 @@ void x264_sub8x8_dct_avx    ( int16_t dct[ 4][16], uint8_t *pix1, uint8_t *pix2 
 void x264_sub16x16_dct_avx  ( int16_t dct[16][16], uint8_t *pix1, uint8_t *pix2 );
 void x264_sub8x8_dct_xop    ( int16_t dct[ 4][16], uint8_t *pix1, uint8_t *pix2 );
 void x264_sub16x16_dct_xop  ( int16_t dct[16][16], uint8_t *pix1, uint8_t *pix2 );
+void x264_sub8x8_dct_avx2   ( int16_t dct[ 4][16], uint8_t *pix1, uint8_t *pix2 );
+void x264_sub16x16_dct_avx2 ( int16_t dct[16][16], uint8_t *pix1, uint8_t *pix2 );
 void x264_sub8x8_dct_dc_mmx2( int16_t dct    [ 4], uint8_t *pix1, uint8_t *pix2 );
 void x264_sub8x8_dct_dc_sse2( dctcoef dct    [ 4], pixel   *pix1, pixel   *pix2 );
 void x264_sub8x16_dct_dc_sse2 ( dctcoef dct  [ 4], pixel   *pix1, pixel   *pix2 );
@@ -56,14 +58,17 @@ void x264_add16x16_idct_mmx     ( uint8_t *p_dst, int16_t dct[16][16] );
 void x264_add16x16_idct_dc_mmx2 ( uint8_t *p_dst, int16_t dct    [16] );
 void x264_add8x8_idct_sse2      ( pixel   *p_dst, dctcoef dct[ 4][16] );
 void x264_add8x8_idct_avx       ( pixel   *p_dst, dctcoef dct[ 4][16] );
+void x264_add8x8_idct_avx2      ( pixel   *p_dst, dctcoef dct[ 4][16] );
 void x264_add16x16_idct_sse2    ( pixel   *p_dst, dctcoef dct[16][16] );
 void x264_add16x16_idct_avx     ( pixel   *p_dst, dctcoef dct[16][16] );
+void x264_add16x16_idct_avx2    ( pixel   *p_dst, dctcoef dct[16][16] );
 void x264_add8x8_idct_dc_sse2   ( pixel   *p_dst, dctcoef dct    [ 4] );
 void x264_add16x16_idct_dc_sse2 ( pixel   *p_dst, dctcoef dct    [16] );
 void x264_add8x8_idct_dc_ssse3  ( uint8_t *p_dst, int16_t dct    [ 4] );
 void x264_add16x16_idct_dc_ssse3( uint8_t *p_dst, int16_t dct    [16] );
 void x264_add8x8_idct_dc_avx    ( pixel   *p_dst, dctcoef dct    [ 4] );
 void x264_add16x16_idct_dc_avx  ( pixel   *p_dst, dctcoef dct    [16] );
+void x264_add16x16_idct_dc_avx2 ( uint8_t *p_dst, int16_t dct    [16] );
 
 void x264_dct4x4dc_mmx       ( int16_t d[16] );
 void x264_dct4x4dc_sse2      ( int32_t d[16] );
@@ -82,6 +87,7 @@ void x264_sub8x8_dct8_sse4   ( int32_t dct   [64], uint16_t *pix1, uint16_t *pix
 void x264_sub16x16_dct8_sse4 ( int32_t dct[4][64], uint16_t *pix1, uint16_t *pix2 );
 void x264_sub8x8_dct8_avx    ( dctcoef dct   [64], pixel *pix1, pixel *pix2 );
 void x264_sub16x16_dct8_avx  ( dctcoef dct[4][64], pixel *pix1, pixel *pix2 );
+void x264_sub16x16_dct8_avx2 ( dctcoef dct[4][64], pixel *pix1, pixel *pix2 );
 
 
 void x264_add8x8_idct8_mmx   ( uint8_t *dst, int16_t dct   [64] );
@@ -118,5 +124,6 @@ int  x264_zigzag_sub_4x4ac_field_ssse3( int16_t level[16], const uint8_t *src, u
 void x264_zigzag_interleave_8x8_cavlc_mmx ( int16_t *dst, int16_t *src, uint8_t *nnz );
 void x264_zigzag_interleave_8x8_cavlc_sse2( dctcoef *dst, dctcoef *src, uint8_t *nnz );
 void x264_zigzag_interleave_8x8_cavlc_avx ( dctcoef *dst, dctcoef *src, uint8_t *nnz );
+void x264_zigzag_interleave_8x8_cavlc_avx2( int16_t *dst, int16_t *src, uint8_t *nnz );
 
 #endif

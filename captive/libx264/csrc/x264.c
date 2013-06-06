@@ -1,7 +1,7 @@
 /*****************************************************************************
  * x264: top-level x264cli functions
  *****************************************************************************
- * Copyright (C) 2003-2012 x264 project
+ * Copyright (C) 2003-2013 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *          Laurent Aimar <fenrir@via.ecp.fr>
@@ -225,7 +225,7 @@ void x264_cli_printf( int i_level, const char *fmt, ... )
     va_end( arg );
 }
 
-static void print_version_info()
+static void print_version_info( void )
 {
 #ifdef X264_POINTVER
     printf( "x264 "X264_POINTVER"\n" );
@@ -596,8 +596,11 @@ static void help( x264_param_t *defaults, int longhelp )
     H2( "      --slices <integer>      Number of slices per frame; forces rectangular\n"
         "                              slices and is overridden by other slicing options\n" );
     else H1( "      --slices <integer>      Number of slices per frame\n" );
+    H2( "      --slices-max <integer>  Absolute maximum slices per frame; overrides\n"
+        "                              slice-max-size/slice-max-mbs when necessary\n" );
     H2( "      --slice-max-size <integer> Limit the size of each slice in bytes\n");
-    H2( "      --slice-max-mbs <integer> Limit the size of each slice in macroblocks\n");
+    H2( "      --slice-max-mbs <integer> Limit the size of each slice in macroblocks (max)\n");
+    H2( "      --slice-min-mbs <integer> Limit the size of each slice in macroblocks (min)\n");
     H0( "      --tff                   Enable interlaced mode (top field first)\n" );
     H0( "      --bff                   Enable interlaced mode (bottom field first)\n" );
     H2( "      --constrained-intra     Enable constrained intra prediction.\n" );
@@ -797,6 +800,7 @@ static void help( x264_param_t *defaults, int longhelp )
     H1( "      --psnr                  Enable PSNR computation\n" );
     H1( "      --ssim                  Enable SSIM computation\n" );
     H1( "      --threads <integer>     Force a specific number of threads\n" );
+    H2( "      --lookahead-threads <integer> Force a specific number of lookahead threads\n" );
     H2( "      --sliced-threads        Low-latency but lower-efficiency threading\n" );
     H2( "      --thread-input          Run Avisynth in its own thread\n" );
     H2( "      --sync-lookahead <integer> Number of buffer frames for threaded lookahead\n" );
@@ -805,6 +809,9 @@ static void help( x264_param_t *defaults, int longhelp )
         "                                  as opposed to letting them select different algorithms\n" );
     H2( "      --asm <integer>         Override CPU detection\n" );
     H2( "      --no-asm                Disable all CPU optimizations\n" );
+    H2( "      --opencl                Enable use of OpenCL\n" );
+    H2( "      --opencl-clbin <string> Specify path of compiled OpenCL kernel cache\n" );
+    H2( "      --opencl-device <integer>  Specify OpenCL device ordinal\n" );
     H2( "      --visualize             Show MB types overlayed on the encoded video\n" );
     H2( "      --dump-yuv <string>     Save reconstructed frames\n" );
     H2( "      --sps-id <integer>      Set SPS and PPS id numbers [%d]\n", defaults->i_sps_id );
@@ -909,6 +916,9 @@ static struct option long_options[] =
     { "ref",         required_argument, NULL, 'r' },
     { "asm",         required_argument, NULL, 0 },
     { "no-asm",            no_argument, NULL, 0 },
+    { "opencl",            no_argument, NULL, 1 },
+    { "opencl-clbin",required_argument, NULL, 0 },
+    { "opencl-device",required_argument, NULL, 0 },
     { "sar",         required_argument, NULL, 0 },
     { "fps",         required_argument, NULL, OPT_FPS },
     { "frames",      required_argument, NULL, OPT_FRAMES },
@@ -965,11 +975,14 @@ static struct option long_options[] =
     { "zones",       required_argument, NULL, 0 },
     { "qpfile",      required_argument, NULL, OPT_QPFILE },
     { "threads",     required_argument, NULL, 0 },
+    { "lookahead-threads", required_argument, NULL, 0 },
     { "sliced-threads",    no_argument, NULL, 0 },
     { "no-sliced-threads", no_argument, NULL, 0 },
     { "slice-max-size",    required_argument, NULL, 0 },
     { "slice-max-mbs",     required_argument, NULL, 0 },
+    { "slice-min-mbs",     required_argument, NULL, 0 },
     { "slices",            required_argument, NULL, 0 },
+    { "slices-max",        required_argument, NULL, 0 },
     { "thread-input",      no_argument, NULL, OPT_THREAD_INPUT },
     { "sync-lookahead",    required_argument, NULL, 0 },
     { "non-deterministic", no_argument, NULL, 0 },
@@ -1497,7 +1510,7 @@ generic_option:
 
     x264_reduce_fraction( &info.sar_width, &info.sar_height );
     x264_reduce_fraction( &info.fps_num, &info.fps_den );
-    x264_cli_log( demuxername, X264_LOG_INFO, "%dx%d%c %d:%d @ %d/%d fps (%cfr)\n", info.width,
+    x264_cli_log( demuxername, X264_LOG_INFO, "%dx%d%c %u:%u @ %u/%u fps (%cfr)\n", info.width,
                   info.height, info.interlaced ? 'i' : 'p', info.sar_width, info.sar_height,
                   info.fps_num, info.fps_den, info.vfr ? 'v' : 'c' );
 
@@ -1614,11 +1627,8 @@ generic_option:
         for( int i = 0; x264_levels[i].level_idc != 0; i++ )
             if( param->i_level_idc == x264_levels[i].level_idc )
             {
-                while( mbs * 384 * param->i_frame_reference > x264_levels[i].dpb &&
-                       param->i_frame_reference > 1 )
-                {
+                while( mbs * param->i_frame_reference > x264_levels[i].dpb && param->i_frame_reference > 1 )
                     param->i_frame_reference--;
-                }
                 break;
             }
     }

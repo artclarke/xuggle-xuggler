@@ -1,7 +1,7 @@
 /*****************************************************************************
  * mc.h: motion compensation
  *****************************************************************************
- * Copyright (C) 2004-2012 x264 project
+ * Copyright (C) 2004-2013 x264 project
  *
  * Authors: Loren Merritt <lorenm@u.washington.edu>
  *
@@ -123,6 +123,6 @@ typedef struct
                                    uint16_t *inter_costs, uint16_t *inv_qscales, float *fps_factor, int len );
 } x264_mc_functions_t;
 
-void x264_mc_init( int cpu, x264_mc_functions_t *pf );
+void x264_mc_init( int cpu, x264_mc_functions_t *pf, int cpu_independent );
 
 #endif

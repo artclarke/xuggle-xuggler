@@ -1,9 +1,10 @@
 ;*****************************************************************************
 ;* sad16-a.asm: x86 high depth sad functions
 ;*****************************************************************************
-;* Copyright (C) 2010-2012 x264 project
+;* Copyright (C) 2010-2013 x264 project
 ;*
 ;* Authors: Oskar Arvidsson <oskar@irock.se>
+;*          Henrik Gramner <henrik@gramner.com>
 ;*
 ;* This program is free software; you can redistribute it and/or modify
 ;* it under the terms of the GNU General Public License as published by
@@ -90,11 +91,18 @@ cextern pw_8
 ; int pixel_sad_NxM( uint16_t *, intptr_t, uint16_t *, intptr_t )
 ;-----------------------------------------------------------------------------
 %macro SAD_MMX 3
-cglobal pixel_sad_%1x%2, 4,4
+cglobal pixel_sad_%1x%2, 4,5-(%2&4/4)
     pxor    m0, m0
-%rep %2/%3
+%if %2 == 4
     SAD_INC_%3x%1P_MMX
-%endrep
+    SAD_INC_%3x%1P_MMX
+%else
+    mov    r4d, %2/%3
+.loop:
+    SAD_INC_%3x%1P_MMX
+    dec    r4d
+    jg .loop
+%endif
 %if %1*%2 == 256
     HADDUW  m0, m1
 %else
@@ -120,7 +128,8 @@ SAD_MMX  4,  4, 2
 ; SAD XMM
 ;=============================================================================
 
-%macro SAD_INC_2x16P_XMM 0
+%macro SAD_INC_2ROW 1
+%if 2*%1 > mmsize
     movu    m1, [r2+ 0]
     movu    m2, [r2+16]
     movu    m3, [r2+2*r3+ 0]
@@ -137,9 +146,7 @@ SAD_MMX  4,  4, 2
     paddw   m3, m4
     paddw   m0, m1
     paddw   m0, m3
-%endmacro
-
-%macro SAD_INC_2x8P_XMM 0
+%else
     movu    m1, [r2]
     movu    m2, [r2+2*r3]
     psubw   m1, [r0]
@@ -149,44 +156,55 @@ SAD_MMX  4,  4, 2
     lea     r2, [r2+4*r3]
     paddw   m0, m1
     paddw   m0, m2
+%endif
 %endmacro
 
 ;-----------------------------------------------------------------------------
 ; int pixel_sad_NxM( uint16_t *, intptr_t, uint16_t *, intptr_t )
 ;-----------------------------------------------------------------------------
-%macro SAD_XMM 2
-cglobal pixel_sad_%1x%2, 4,4,8
+%macro SAD 2
+cglobal pixel_sad_%1x%2, 4,5-(%2&4/4),8*(%1/mmsize)
     pxor    m0, m0
-%rep %2/2
-    SAD_INC_2x%1P_XMM
-%endrep
+%if %2 == 4
+    SAD_INC_2ROW %1
+    SAD_INC_2ROW %1
+%else
+    mov    r4d, %2/2
+.loop:
+    SAD_INC_2ROW %1
+    dec    r4d
+    jg .loop
+%endif
     HADDW   m0, m1
-    movd   eax, m0
+    movd   eax, xm0
     RET
 %endmacro
 
 INIT_XMM sse2
-SAD_XMM 16, 16
-SAD_XMM 16,  8
-SAD_XMM  8, 16
-SAD_XMM  8,  8
-SAD_XMM  8,  4
+SAD 16, 16
+SAD 16,  8
+SAD  8, 16
+SAD  8,  8
+SAD  8,  4
 INIT_XMM sse2, aligned
-SAD_XMM 16, 16
-SAD_XMM 16,  8
-SAD_XMM  8, 16
-SAD_XMM  8,  8
+SAD 16, 16
+SAD 16,  8
+SAD  8, 16
+SAD  8,  8
 INIT_XMM ssse3
-SAD_XMM 16, 16
-SAD_XMM 16,  8
-SAD_XMM  8, 16
-SAD_XMM  8,  8
-SAD_XMM  8,  4
+SAD 16, 16
+SAD 16,  8
+SAD  8, 16
+SAD  8,  8
+SAD  8,  4
 INIT_XMM ssse3, aligned
-SAD_XMM 16, 16
-SAD_XMM 16,  8
-SAD_XMM  8, 16
-SAD_XMM  8,  8
+SAD 16, 16
+SAD 16,  8
+SAD  8, 16
+SAD  8,  8
+INIT_YMM avx2
+SAD 16, 16
+SAD 16,  8
 
 ;=============================================================================
 ; SAD x3/x4
@@ -237,14 +255,14 @@ SAD_XMM  8,  8
     HADDW    m2, m5
 %endif
 %if UNIX64
-    movd [r5+0], m0
-    movd [r5+4], m1
-    movd [r5+8], m2
+    movd [r5+0], xm0
+    movd [r5+4], xm1
+    movd [r5+8], xm2
 %else
     mov      r0, r5mp
-    movd [r0+0], m0
-    movd [r0+4], m1
-    movd [r0+8], m2
+    movd [r0+0], xm0
+    movd [r0+4], xm1
+    movd [r0+8], xm2
 %endif
     RET
 %endmacro
@@ -333,10 +351,10 @@ SAD_XMM  8,  8
     HADDW     m3, m7
 %endif
     mov       r0, r6mp
-    movd [r0+ 0], m0
-    movd [r0+ 4], m1
-    movd [r0+ 8], m2
-    movd [r0+12], m3
+    movd [r0+ 0], xm0
+    movd [r0+ 4], xm1
+    movd [r0+ 8], xm2
+    movd [r0+12], xm3
     RET
 %endmacro
 
@@ -400,8 +418,39 @@ PIXEL_VSAD
 INIT_XMM xop
 PIXEL_VSAD
 
+INIT_YMM avx2
+cglobal pixel_vsad, 3,3
+    mova      m0, [r0]
+    mova      m1, [r0+2*r1]
+    lea       r0, [r0+4*r1]
+    psubw     m0, m1
+    pabsw     m0, m0
+    sub      r2d, 2
+    je .end
+.loop:
+    mova      m2, [r0]
+    mova      m3, [r0+2*r1]
+    lea       r0, [r0+4*r1]
+    psubw     m1, m2
+    psubw     m2, m3
+    pabsw     m1, m1
+    pabsw     m2, m2
+    paddw     m0, m1
+    paddw     m0, m2
+    mova      m1, m3
+    sub      r2d, 2
+    jg .loop
+.end:
+%if BIT_DEPTH == 9
+    HADDW     m0, m1
+%else
+    HADDUW    m0, m1
+%endif
+    movd     eax, xm0
+    RET
+
 ;-----------------------------------------------------------------------------
-; void pixel_sad_xK_MxN( uint16_t *fenc, uint16_t *pix0, uint16_t *pix1,
+; void pixel_sad_xN_WxH( uint16_t *fenc, uint16_t *pix0, uint16_t *pix1,
 ;                        uint16_t *pix2, intptr_t i_stride, int scores[3] )
 ;-----------------------------------------------------------------------------
 %macro SAD_X 3
@@ -445,29 +494,38 @@ SAD_X 3,  4,  4
 SAD_X 4,  4,  8
 SAD_X 4,  4,  4
 INIT_XMM ssse3
-%define XMM_REGS 9
+%define XMM_REGS 7
 SAD_X 3, 16, 16
 SAD_X 3, 16,  8
 SAD_X 3,  8, 16
 SAD_X 3,  8,  8
 SAD_X 3,  8,  4
+%define XMM_REGS 9
 SAD_X 4, 16, 16
 SAD_X 4, 16,  8
 SAD_X 4,  8, 16
 SAD_X 4,  8,  8
 SAD_X 4,  8,  4
 INIT_XMM sse2
-%define XMM_REGS 11
+%define XMM_REGS 8
 SAD_X 3, 16, 16
 SAD_X 3, 16,  8
 SAD_X 3,  8, 16
 SAD_X 3,  8,  8
 SAD_X 3,  8,  4
+%define XMM_REGS 11
 SAD_X 4, 16, 16
 SAD_X 4, 16,  8
 SAD_X 4,  8, 16
 SAD_X 4,  8,  8
 SAD_X 4,  8,  4
+INIT_YMM avx2
+%define XMM_REGS 7
+SAD_X 3, 16, 16
+SAD_X 3, 16,  8
+%define XMM_REGS 9
+SAD_X 4, 16, 16
+SAD_X 4, 16,  8
 
 ;-----------------------------------------------------------------------------
 ; void intra_sad_x3_4x4( uint16_t *fenc, uint16_t *fdec, int res[3] );
@@ -475,52 +533,57 @@ SAD_X 4,  8,  4
 
 %macro INTRA_SAD_X3_4x4 0
 cglobal intra_sad_x3_4x4, 3,3,7
-    movq      m0, [r1-1*FDEC_STRIDEB]
+    movddup   m0, [r1-1*FDEC_STRIDEB]
     movq      m1, [r0+0*FENC_STRIDEB]
     movq      m2, [r0+2*FENC_STRIDEB]
     pshuflw   m6, m0, q1032
     paddw     m6, m0
     pshuflw   m5, m6, q2301
     paddw     m6, m5
-    punpcklqdq m6, m6       ;A+B+C+D 8 times
-    punpcklqdq m0, m0
+    punpcklqdq m6, m6       ; A+B+C+D 8 times
     movhps    m1, [r0+1*FENC_STRIDEB]
     movhps    m2, [r0+3*FENC_STRIDEB]
     psubw     m3, m1, m0
     psubw     m0, m2
-    ABSW      m3, m3, m5
-    ABSW      m0, m0, m5
+    ABSW2     m3, m0, m3, m0, m4, m5
     paddw     m0, m3
-    HADDW     m0, m5
-    movd    [r2], m0 ;V prediction cost
     movd      m3, [r1+0*FDEC_STRIDEB-4]
-    movhps    m3, [r1+1*FDEC_STRIDEB-8]
     movd      m4, [r1+2*FDEC_STRIDEB-4]
+    movhps    m3, [r1+1*FDEC_STRIDEB-8]
     movhps    m4, [r1+3*FDEC_STRIDEB-8]
     pshufhw   m3, m3, q3333
     pshufhw   m4, m4, q3333
     pshuflw   m3, m3, q1111 ; FF FF EE EE
     pshuflw   m4, m4, q1111 ; HH HH GG GG
     paddw     m5, m3, m4
-    pshufd    m0, m5, q1032
+    paddw     m6, [pw_4]
+    paddw     m6, m5
+    pshufd    m5, m5, q1032
     paddw     m5, m6
-    paddw     m5, m0
-    paddw     m5, [pw_4]
     psrlw     m5, 3
     psubw     m6, m5, m2
     psubw     m5, m1
     psubw     m1, m3
     psubw     m2, m4
-    ABSW      m5, m5, m0
-    ABSW      m6, m6, m0
-    ABSW      m1, m1, m0
-    ABSW      m2, m2, m0
+    ABSW2     m5, m6, m5, m6, m3, m4
+    ABSW2     m1, m2, m1, m2, m3, m4
     paddw     m5, m6
     paddw     m1, m2
-    HADDW     m5, m0
-    HADDW     m1, m2
-    movd  [r2+8], m5        ;DC prediction cost
-    movd  [r2+4], m1        ;H prediction cost
+%if cpuflag(ssse3)
+    phaddw    m0, m1
+    movhlps   m3, m5
+    paddw     m5, m3
+    phaddw    m0, m5
+    pmaddwd   m0, [pw_1]
+    mova    [r2], m0
+%else
+    HADDW     m0, m3
+    HADDW     m1, m3
+    HADDW     m5, m3
+    movd    [r2], m0 ; V prediction cost
+    movd  [r2+4], m1 ; H prediction cost
+    movd  [r2+8], m5 ; DC prediction cost
+%endif
     RET
 %endmacro
 
@@ -581,12 +644,21 @@ cglobal intra_sad_x3_8x8, 3,3,8
     INTRA_SAD_HVDC_ITER 5, q2222
     INTRA_SAD_HVDC_ITER 6, q1111
     INTRA_SAD_HVDC_ITER 7, q0000
+%if cpuflag(ssse3)
+    phaddw      m2, m3     ; 2 2 2 2 3 3 3 3
+    movhlps     m3, m1
+    paddw       m1, m3     ; 1 1 1 1 _ _ _ _
+    phaddw      m2, m1     ; 2 2 3 3 1 1 _ _
+    pmaddwd     m2, [pw_1] ; 2 3 1 _
+    mova      [r2], m2
+%else
     HADDW       m2, m4
     HADDW       m3, m4
     HADDW       m1, m4
     movd    [r2+0], m2
     movd    [r2+4], m3
     movd    [r2+8], m1
+%endif
     RET
 %endmacro
 
@@ -594,3 +666,44 @@ INIT_XMM sse2
 INTRA_SAD_X3_8x8
 INIT_XMM ssse3
 INTRA_SAD_X3_8x8
+
+%macro INTRA_SAD_HVDC_ITER_YMM 2
+    mova       xm4, [r0+(%1-4)*FENC_STRIDEB]
+    vinserti128 m4, m4, [r0+%1*FENC_STRIDEB], 1
+    pshufd      m5, m7, %2
+    psubw       m5, m4
+    pabsw       m5, m5
+    ACCUM    paddw, 2, 5, %1 ; H
+    psubw       m5, m4, m6
+    psubw       m4, m0
+    pabsw       m5, m5
+    pabsw       m4, m4
+    ACCUM    paddw, 1, 5, %1 ; V
+    ACCUM    paddw, 3, 4, %1 ; DC
+%endmacro
+
+INIT_YMM avx2
+cglobal intra_sad_x3_8x8, 3,3,8
+    add            r0, 4*FENC_STRIDEB
+    movu          xm0, [r1+7*SIZEOF_PIXEL]
+    vbroadcasti128 m6, [r1+16*SIZEOF_PIXEL] ; V prediction
+    vpermq         m7, m0, q0011
+    paddw         xm0, xm6
+    paddw         xm0, [pw_1] ; equal to +8 after HADDW
+    HADDW         xm0, xm4
+    psrld         xm0, 4
+    vpbroadcastw   m0, xm0
+    punpcklwd      m7, m7
+    INTRA_SAD_HVDC_ITER_YMM 0, q3333
+    INTRA_SAD_HVDC_ITER_YMM 1, q2222
+    INTRA_SAD_HVDC_ITER_YMM 2, q1111
+    INTRA_SAD_HVDC_ITER_YMM 3, q0000
+    phaddw         m1, m2     ; 1 1 1 1 2 2 2 2 1 1 1 1 2 2 2 2
+    punpckhqdq     m2, m3, m3
+    paddw          m3, m2     ; 3 3 3 3 _ _ _ _ 3 3 3 3 _ _ _ _
+    phaddw         m1, m3     ; 1 1 2 2 3 3 _ _ 1 1 2 2 3 3 _ _
+    vextracti128  xm2, m1, 1
+    paddw         xm1, xm2    ; 1 1 2 2 3 3 _ _
+    pmaddwd       xm1, [pw_1] ; 1 2 3 _
+    mova         [r2], xm1
+    RET

@@ -1,7 +1,7 @@
 /*****************************************************************************
  * win32thread.h: windows threading
  *****************************************************************************
- * Copyright (C) 2010-2012 x264 project
+ * Copyright (C) 2010-2013 x264 project
  *
  * Authors: Steven Walters <kemuri9@gmail.com>
  *
@@ -36,6 +36,7 @@ typedef struct
     void *handle;
     void *(*func)( void* arg );
     void *arg;
+    void **p_ret;
     void *ret;
 } x264_pthread_t;
 #define x264_pthread_attr_t int
