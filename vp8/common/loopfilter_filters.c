@@ -15,7 +15,7 @@
 
 typedef unsigned char uc;
 
-static __inline signed char vp8_signed_char_clamp(int t)
+static signed char vp8_signed_char_clamp(int t)
 {
     t = (t < -128 ? -128 : t);
     t = (t > 127 ? 127 : t);
@@ -24,9 +24,9 @@ static __inline signed char vp8_signed_char_clamp(int t)
 
 
 /* should we apply any filter at all ( 11111111 yes, 00000000 no) */
-static __inline signed char vp8_filter_mask(uc limit, uc blimit,
-                                     uc p3, uc p2, uc p1, uc p0,
-                                     uc q0, uc q1, uc q2, uc q3)
+static signed char vp8_filter_mask(uc limit, uc blimit,
+                            uc p3, uc p2, uc p1, uc p0,
+                            uc q0, uc q1, uc q2, uc q3)
 {
     signed char mask = 0;
     mask |= (abs(p3 - p2) > limit);
@@ -40,7 +40,7 @@ static __inline signed char vp8_filter_mask(uc limit, uc blimit,
 }
 
 /* is there high variance internal edge ( 11111111 yes, 00000000 no) */
-static __inline signed char vp8_hevmask(uc thresh, uc p1, uc p0, uc q0, uc q1)
+static signed char vp8_hevmask(uc thresh, uc p1, uc p0, uc q0, uc q1)
 {
     signed char hev = 0;
     hev  |= (abs(p1 - p0) > thresh) * -1;
@@ -48,13 +48,13 @@ static __inline signed char vp8_hevmask(uc thresh, uc p1, uc p0, uc q0, uc q1)
     return hev;
 }
 
-static __inline void vp8_filter(signed char mask, uc hev, uc *op1,
+static void vp8_filter(signed char mask, uc hev, uc *op1,
         uc *op0, uc *oq0, uc *oq1)
 
 {
     signed char ps0, qs0;
     signed char ps1, qs1;
-    signed char vp8_filter, Filter1, Filter2;
+    signed char filter_value, Filter1, Filter2;
     signed char u;
 
     ps1 = (signed char) * op1 ^ 0x80;
@@ -63,35 +63,35 @@ static __inline void vp8_filter(signed char mask, uc hev, uc *op1,
     qs1 = (signed char) * oq1 ^ 0x80;
 
     /* add outer taps if we have high edge variance */
-    vp8_filter = vp8_signed_char_clamp(ps1 - qs1);
-    vp8_filter &= hev;
+    filter_value = vp8_signed_char_clamp(ps1 - qs1);
+    filter_value &= hev;
 
     /* inner taps */
-    vp8_filter = vp8_signed_char_clamp(vp8_filter + 3 * (qs0 - ps0));
-    vp8_filter &= mask;
+    filter_value = vp8_signed_char_clamp(filter_value + 3 * (qs0 - ps0));
+    filter_value &= mask;
 
     /* save bottom 3 bits so that we round one side +4 and the other +3
      * if it equals 4 we'll set to adjust by -1 to account for the fact
      * we'd round 3 the other way
      */
-    Filter1 = vp8_signed_char_clamp(vp8_filter + 4);
-    Filter2 = vp8_signed_char_clamp(vp8_filter + 3);
+    Filter1 = vp8_signed_char_clamp(filter_value + 4);
+    Filter2 = vp8_signed_char_clamp(filter_value + 3);
     Filter1 >>= 3;
     Filter2 >>= 3;
     u = vp8_signed_char_clamp(qs0 - Filter1);
     *oq0 = u ^ 0x80;
     u = vp8_signed_char_clamp(ps0 + Filter2);
     *op0 = u ^ 0x80;
-    vp8_filter = Filter1;
+    filter_value = Filter1;
 
     /* outer tap adjustments */
-    vp8_filter += 1;
-    vp8_filter >>= 1;
-    vp8_filter &= ~hev;
+    filter_value += 1;
+    filter_value >>= 1;
+    filter_value &= ~hev;
 
-    u = vp8_signed_char_clamp(qs1 - vp8_filter);
+    u = vp8_signed_char_clamp(qs1 - filter_value);
     *oq1 = u ^ 0x80;
-    u = vp8_signed_char_clamp(ps1 + vp8_filter);
+    u = vp8_signed_char_clamp(ps1 + filter_value);
     *op1 = u ^ 0x80;
 
 }
@@ -158,11 +158,11 @@ void vp8_loop_filter_vertical_edge_c
     while (++i < count * 8);
 }
 
-static __inline void vp8_mbfilter(signed char mask, uc hev,
+static void vp8_mbfilter(signed char mask, uc hev,
                            uc *op2, uc *op1, uc *op0, uc *oq0, uc *oq1, uc *oq2)
 {
     signed char s, u;
-    signed char vp8_filter, Filter1, Filter2;
+    signed char filter_value, Filter1, Filter2;
     signed char ps2 = (signed char) * op2 ^ 0x80;
     signed char ps1 = (signed char) * op1 ^ 0x80;
     signed char ps0 = (signed char) * op0 ^ 0x80;
@@ -171,11 +171,11 @@ static __inline void vp8_mbfilter(signed char mask, uc hev,
     signed char qs2 = (signed char) * oq2 ^ 0x80;
 
     /* add outer taps if we have high edge variance */
-    vp8_filter = vp8_signed_char_clamp(ps1 - qs1);
-    vp8_filter = vp8_signed_char_clamp(vp8_filter + 3 * (qs0 - ps0));
-    vp8_filter &= mask;
+    filter_value = vp8_signed_char_clamp(ps1 - qs1);
+    filter_value = vp8_signed_char_clamp(filter_value + 3 * (qs0 - ps0));
+    filter_value &= mask;
 
-    Filter2 = vp8_filter;
+    Filter2 = filter_value;
     Filter2 &= hev;
 
     /* save bottom 3 bits so that we round one side +4 and the other +3 */
@@ -188,8 +188,8 @@ static __inline void vp8_mbfilter(signed char mask, uc hev,
 
 
     /* only apply wider filter if not high edge variance */
-    vp8_filter &= ~hev;
-    Filter2 = vp8_filter;
+    filter_value &= ~hev;
+    Filter2 = filter_value;
 
     /* roughly 3/7th difference across boundary */
     u = vp8_signed_char_clamp((63 + Filter2 * 27) >> 7);
@@ -279,7 +279,7 @@ void vp8_mbloop_filter_vertical_edge_c
 }
 
 /* should we apply any filter at all ( 11111111 yes, 00000000 no) */
-static __inline signed char vp8_simple_filter_mask(uc blimit, uc p1, uc p0, uc q0, uc q1)
+static signed char vp8_simple_filter_mask(uc blimit, uc p1, uc p0, uc q0, uc q1)
 {
 /* Why does this cause problems for win32?
  * error C2143: syntax error : missing ';' before 'type'
@@ -289,26 +289,26 @@ static __inline signed char vp8_simple_filter_mask(uc blimit, uc p1, uc p0, uc q
     return mask;
 }
 
-static __inline void vp8_simple_filter(signed char mask, uc *op1, uc *op0, uc *oq0, uc *oq1)
+static void vp8_simple_filter(signed char mask, uc *op1, uc *op0, uc *oq0, uc *oq1)
 {
-    signed char vp8_filter, Filter1, Filter2;
+    signed char filter_value, Filter1, Filter2;
     signed char p1 = (signed char) * op1 ^ 0x80;
     signed char p0 = (signed char) * op0 ^ 0x80;
     signed char q0 = (signed char) * oq0 ^ 0x80;
     signed char q1 = (signed char) * oq1 ^ 0x80;
     signed char u;
 
-    vp8_filter = vp8_signed_char_clamp(p1 - q1);
-    vp8_filter = vp8_signed_char_clamp(vp8_filter + 3 * (q0 - p0));
-    vp8_filter &= mask;
+    filter_value = vp8_signed_char_clamp(p1 - q1);
+    filter_value = vp8_signed_char_clamp(filter_value + 3 * (q0 - p0));
+    filter_value &= mask;
 
     /* save bottom 3 bits so that we round one side +4 and the other +3 */
-    Filter1 = vp8_signed_char_clamp(vp8_filter + 4);
+    Filter1 = vp8_signed_char_clamp(filter_value + 4);
     Filter1 >>= 3;
     u = vp8_signed_char_clamp(q0 - Filter1);
     *oq0  = u ^ 0x80;
 
-    Filter2 = vp8_signed_char_clamp(vp8_filter + 3);
+    Filter2 = vp8_signed_char_clamp(filter_value + 3);
     Filter2 >>= 3;
     u = vp8_signed_char_clamp(p0 + Filter2);
     *op0 = u ^ 0x80;

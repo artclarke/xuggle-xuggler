@@ -48,15 +48,16 @@ static MB_PREDICTION_MODE read_uv_mode(vp8_reader *bc, const vp8_prob *p)
 
 static void read_kf_modes(VP8D_COMP *pbi, MODE_INFO *mi)
 {
-    vp8_reader *const bc = & pbi->bc;
+    vp8_reader *const bc = & pbi->mbc[8];
     const int mis = pbi->common.mode_info_stride;
 
     mi->mbmi.ref_frame = INTRA_FRAME;
-    mi->mbmi.mode = read_kf_ymode(bc, pbi->common.kf_ymode_prob);
+    mi->mbmi.mode = read_kf_ymode(bc, vp8_kf_ymode_prob);
 
     if (mi->mbmi.mode == B_PRED)
     {
         int i = 0;
+        mi->mbmi.is_4x4 = 1;
 
         do
         {
@@ -64,12 +65,12 @@ static void read_kf_modes(VP8D_COMP *pbi, MODE_INFO *mi)
             const B_PREDICTION_MODE L = left_block_mode(mi, i);
 
             mi->bmi[i].as_mode =
-                read_bmode(bc, pbi->common.kf_bmode_prob [A] [L]);
+                read_bmode(bc, vp8_kf_bmode_prob [A] [L]);
         }
         while (++i < 16);
     }
 
-    mi->mbmi.uv_mode = read_uv_mode(bc, pbi->common.kf_uv_mode_prob);
+    mi->mbmi.uv_mode = read_uv_mode(bc, vp8_kf_uv_mode_prob);
 }
 
 static int read_mvcomponent(vp8_reader *r, const MV_CONTEXT *mvc)
@@ -149,7 +150,7 @@ static const unsigned char mbsplit_fill_offset[4][16] = {
 
 static void mb_mode_mv_init(VP8D_COMP *pbi)
 {
-    vp8_reader *const bc = & pbi->bc;
+    vp8_reader *const bc = & pbi->mbc[8];
     MV_CONTEXT *const mvc = pbi->common.fc.mvc;
 
 #if CONFIG_ERROR_CONCEALMENT
@@ -158,6 +159,9 @@ static void mb_mode_mv_init(VP8D_COMP *pbi)
      * outside the frame. */
     pbi->mvs_corrupt_from_mb = UINT_MAX;
 #endif
+    /* Read the mb_no_coeff_skip flag */
+    pbi->common.mb_no_coeff_skip = (int)vp8_read_bit(bc);
+
     pbi->prob_skip_false = 0;
     if (pbi->common.mb_no_coeff_skip)
         pbi->prob_skip_false = (vp8_prob)vp8_read_literal(bc, 8);
@@ -292,25 +296,23 @@ static void decode_split_mv(vp8_reader *const bc, MODE_INFO *mi,
                     blockmv.as_mv.row += best_mv.as_mv.row;
                     blockmv.as_mv.col = read_mvcomponent(bc, &mvc[1]) << 1;
                     blockmv.as_mv.col += best_mv.as_mv.col;
-
-                    mbmi->need_to_clamp_mvs |= vp8_check_mv_bounds(&blockmv,
-                                                              mb_to_left_edge,
-                                                              mb_to_right_edge,
-                                                              mb_to_top_edge,
-                                                              mb_to_bottom_edge);
                 }
             }
             else
             {
                 blockmv.as_int = abovemv.as_int;
-                mbmi->need_to_clamp_mvs |= above_mb->mbmi.need_to_clamp_mvs;
             }
         }
         else
         {
             blockmv.as_int = leftmv.as_int;
-            mbmi->need_to_clamp_mvs |= left_mb->mbmi.need_to_clamp_mvs;
         }
+
+        mbmi->need_to_clamp_mvs |= vp8_check_mv_bounds(&blockmv,
+                                                  mb_to_left_edge,
+                                                  mb_to_right_edge,
+                                                  mb_to_top_edge,
+                                                  mb_to_bottom_edge);
 
         {
             /* Fill (uniform) modes, mvs of jth subset.
@@ -336,7 +338,7 @@ static void decode_split_mv(vp8_reader *const bc, MODE_INFO *mi,
 
 static void read_mb_modes_mv(VP8D_COMP *pbi, MODE_INFO *mi, MB_MODE_INFO *mbmi)
 {
-    vp8_reader *const bc = & pbi->bc;
+    vp8_reader *const bc = & pbi->mbc[8];
     mbmi->ref_frame = (MV_REFERENCE_FRAME) vp8_read(bc, pbi->prob_intra);
     if (mbmi->ref_frame)    /* inter MB */
     {
@@ -485,6 +487,7 @@ static void read_mb_modes_mv(VP8D_COMP *pbi, MODE_INFO *mi, MB_MODE_INFO *mbmi)
                                                     mb_to_bottom_edge);
                         mbmi->mv.as_int = mi->bmi[15].mv.as_int;
                         mbmi->mode =  SPLITMV;
+                        mbmi->is_4x4 = 1;
                     }
                     else
                     {
@@ -557,6 +560,7 @@ static void read_mb_modes_mv(VP8D_COMP *pbi, MODE_INFO *mi, MB_MODE_INFO *mbmi)
         if ((mbmi->mode = read_ymode(bc, pbi->common.fc.ymode_prob)) == B_PRED)
         {
             int j = 0;
+            mbmi->is_4x4 = 1;
             do
             {
                 mi->bmi[j].as_mode = read_bmode(bc, pbi->common.fc.bmode_prob);
@@ -592,17 +596,18 @@ static void decode_mb_mode_mvs(VP8D_COMP *pbi, MODE_INFO *mi,
      * By default on a key frame reset all MBs to segment 0
      */
     if (pbi->mb.update_mb_segmentation_map)
-        read_mb_features(&pbi->bc, &mi->mbmi, &pbi->mb);
+        read_mb_features(&pbi->mbc[8], &mi->mbmi, &pbi->mb);
     else if(pbi->common.frame_type == KEY_FRAME)
         mi->mbmi.segment_id = 0;
 
     /* Read the macroblock coeff skip flag if this feature is in use,
      * else default to 0 */
     if (pbi->common.mb_no_coeff_skip)
-        mi->mbmi.mb_skip_coeff = vp8_read(&pbi->bc, pbi->prob_skip_false);
+        mi->mbmi.mb_skip_coeff = vp8_read(&pbi->mbc[8], pbi->prob_skip_false);
     else
         mi->mbmi.mb_skip_coeff = 0;
 
+    mi->mbmi.is_4x4 = 0;
     if(pbi->common.frame_type == KEY_FRAME)
         read_kf_modes(pbi, mi);
     else
@@ -640,7 +645,8 @@ void vp8_decode_mode_mvs(VP8D_COMP *pbi)
 #if CONFIG_ERROR_CONCEALMENT
             /* look for corruption. set mvs_corrupt_from_mb to the current
              * mb_num if the frame is corrupt from this macroblock. */
-            if (vp8dx_bool_error(&pbi->bc) && mb_num < pbi->mvs_corrupt_from_mb)
+            if (vp8dx_bool_error(&pbi->mbc[8]) && mb_num <
+                (int)pbi->mvs_corrupt_from_mb)
             {
                 pbi->mvs_corrupt_from_mb = mb_num;
                 /* no need to continue since the partition is corrupt from
@@ -660,4 +666,3 @@ void vp8_decode_mode_mvs(VP8D_COMP *pbi)
         mi++;           /* skip left predictor each row */
     }
 }
-

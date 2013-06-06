@@ -21,6 +21,7 @@ all: .DEFAULT
 clean:: .DEFAULT
 install:: .DEFAULT
 test:: .DEFAULT
+testdata:: .DEFAULT
 
 
 # Note: md5sum is not installed on OS X, but openssl is. Openssl may not be
@@ -66,13 +67,14 @@ endif
 BUILD_ROOT?=.
 VPATH=$(SRC_PATH_BARE)
 CFLAGS+=-I$(BUILD_PFX)$(BUILD_ROOT) -I$(SRC_PATH)
+CXXFLAGS+=-I$(BUILD_PFX)$(BUILD_ROOT) -I$(SRC_PATH)
 ASFLAGS+=-I$(BUILD_PFX)$(BUILD_ROOT)/ -I$(SRC_PATH)/
 DIST_DIR?=dist
 HOSTCC?=gcc
 TGT_ISA:=$(word 1, $(subst -, ,$(TOOLCHAIN)))
 TGT_OS:=$(word 2, $(subst -, ,$(TOOLCHAIN)))
 TGT_CC:=$(word 3, $(subst -, ,$(TOOLCHAIN)))
-quiet:=$(if $(verbose),,yes)
+quiet:=$(if $(or $(verbose), $(V)),, yes)
 qexec=$(if $(quiet),@)
 
 # Cancel built-in implicit rules
@@ -98,6 +100,8 @@ dist:
 install::
 .PHONY: test
 test::
+.PHONY: testdata
+testdata::
 
 $(BUILD_PFX)%.c.d: %.c
 	$(if $(quiet),@echo "    [DEP] $@")
@@ -111,11 +115,11 @@ $(BUILD_PFX)%.c.o: %.c
 $(BUILD_PFX)%.cc.d: %.cc
 	$(if $(quiet),@echo "    [DEP] $@")
 	$(qexec)mkdir -p $(dir $@)
-	$(qexec)g++ $(INTERNAL_CFLAGS) $(CFLAGS) -M $< | $(fmt_deps) > $@
+	$(qexec)$(CXX) $(INTERNAL_CFLAGS) $(CXXFLAGS) -M $< | $(fmt_deps) > $@
 
 $(BUILD_PFX)%.cc.o: %.cc
 	$(if $(quiet),@echo "    [CXX] $@")
-	$(qexec)g++ $(INTERNAL_CFLAGS) $(CFLAGS) -c -o $@ $<
+	$(qexec)$(CXX) $(INTERNAL_CFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 $(BUILD_PFX)%.asm.d: %.asm
 	$(if $(quiet),@echo "    [DEP] $@")
@@ -213,7 +217,7 @@ define linkerxx_template
 $(1): $(filter-out -%,$(2))
 $(1):
 	$(if $(quiet),@echo    "    [LD] $$@")
-	$(qexec)g++ $$(strip $$(INTERNAL_LDFLAGS) $$(LDFLAGS) -o $$@ $(2) $(3) $$(extralibs))
+	$(qexec)$$(CXX) $$(strip $$(INTERNAL_LDFLAGS) $$(LDFLAGS) -o $$@ $(2) $(3) $$(extralibs))
 endef
 # make-3.80 has a bug with expanding large input strings to the eval function,
 # which was triggered in some cases by the following component of
@@ -249,9 +253,24 @@ $(1):
 	$(if $(quiet),@echo "    [LD] $$@")
 	$(qexec)$$(LD) -shared $$(LDFLAGS) \
             -Wl,--no-undefined -Wl,-soname,$$(SONAME) \
-            -Wl,--version-script,$$(SO_VERSION_SCRIPT) -o $$@ \
-            $$(filter %.o,$$?) $$(extralibs)
+            -Wl,--version-script,$$(EXPORTS_FILE) -o $$@ \
+            $$(filter %.o,$$^) $$(extralibs)
 endef
+
+define dl_template
+# Not using a pattern rule here because we don't want to generate empty
+# archives when they are listed as a dependency in files not responsible
+# for creating them.
+$(1):
+	$(if $(quiet),@echo "    [LD] $$@")
+	$(qexec)$$(LD) -dynamiclib $$(LDFLAGS) \
+	    -exported_symbols_list $$(EXPORTS_FILE) \
+        -Wl,-headerpad_max_install_names,-compatibility_version,1.0,-current_version,$$(VERSION_MAJOR) \
+        -o $$@ \
+        $$(filter %.o,$$^) $$(extralibs)
+endef
+
+
 
 define lipo_lib_template
 $(1): $(addsuffix /$(1),$(FAT_ARCHS))
@@ -317,6 +336,7 @@ LIBS=$(call enabled,LIBS)
 	@touch $@
 $(foreach lib,$(filter %_g.a,$(LIBS)),$(eval $(call archive_template,$(lib))))
 $(foreach lib,$(filter %so.$(VERSION_MAJOR).$(VERSION_MINOR).$(VERSION_PATCH),$(LIBS)),$(eval $(call so_template,$(lib))))
+$(foreach lib,$(filter %$(VERSION_MAJOR).dylib,$(LIBS)),$(eval $(call dl_template,$(lib))))
 
 INSTALL-LIBS=$(call cond_enabled,CONFIG_INSTALL_LIBS,INSTALL-LIBS)
 ifeq ($(MAKECMDGOALS),dist)
@@ -356,10 +376,14 @@ ifneq ($(call enabled,DIST-SRCS),)
     DIST-SRCS-$(CONFIG_MSVS)  += build/make/gen_msvs_sln.sh
     DIST-SRCS-$(CONFIG_MSVS)  += build/x86-msvs/yasm.rules
     DIST-SRCS-$(CONFIG_MSVS)  += build/x86-msvs/obj_int_extract.bat
+    DIST-SRCS-$(CONFIG_MSVS)  += build/arm-msvs/obj_int_extract.bat
     DIST-SRCS-$(CONFIG_RVCT) += build/make/armlink_adapter.sh
-    # Include obj_int_extract if we use offsets from asm_*_offsets
+    # Include obj_int_extract if we use offsets from *_asm_*_offsets
     DIST-SRCS-$(ARCH_ARM)$(ARCH_X86)$(ARCH_X86_64)    += build/make/obj_int_extract.c
     DIST-SRCS-$(ARCH_ARM)    += build/make/ads2gas.pl
+    DIST-SRCS-$(ARCH_ARM)    += build/make/ads2gas_apple.pl
+    DIST-SRCS-$(ARCH_ARM)    += build/make/ads2armasm_ms.pl
+    DIST-SRCS-$(ARCH_ARM)    += build/make/thumb.pm
     DIST-SRCS-yes            += $(target:-$(TOOLCHAIN)=).mk
 endif
 INSTALL-SRCS := $(call cond_enabled,CONFIG_INSTALL_SRCS,INSTALL-SRCS)

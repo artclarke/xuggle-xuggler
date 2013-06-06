@@ -10,7 +10,7 @@
 
 
 #include "vpx_config.h"
-#include "vpx_rtcd.h"
+#include "vp8_rtcd.h"
 #include "quantize.h"
 #include "vp8/common/reconintra4x4.h"
 #include "encodemb.h"
@@ -54,10 +54,13 @@ void vp8_encode_intra4x4block(MACROBLOCK *x, int ib)
     BLOCKD *b = &x->e_mbd.block[ib];
     BLOCK *be = &x->block[ib];
     int dst_stride = x->e_mbd.dst.y_stride;
-    unsigned char *base_dst = x->e_mbd.dst.y_buffer;
+    unsigned char *dst = x->e_mbd.dst.y_buffer + b->offset;
+    unsigned char *Above = dst - dst_stride;
+    unsigned char *yleft = dst - 1;
+    unsigned char top_left = Above[-1];
 
-    vp8_intra4x4_predict(base_dst + b->offset, dst_stride,
-                 b->bmi.as_mode, b->predictor, 16);
+    vp8_intra4x4_predict(Above, yleft, dst_stride, b->bmi.as_mode,
+                         b->predictor, 16, top_left);
 
     vp8_subtract_b(be, b, 16);
 
@@ -67,14 +70,11 @@ void vp8_encode_intra4x4block(MACROBLOCK *x, int ib)
 
     if (*b->eob > 1)
     {
-      vp8_short_idct4x4llm(b->dqcoeff,
-            b->predictor, 16, base_dst + b->offset, dst_stride);
+      vp8_short_idct4x4llm(b->dqcoeff, b->predictor, 16, dst, dst_stride);
     }
     else
     {
-      vp8_dc_only_idct_add
-            (b->dqcoeff[0], b->predictor, 16, base_dst + b->offset,
-                dst_stride);
+      vp8_dc_only_idct_add(b->dqcoeff[0], b->predictor, 16, dst, dst_stride);
     }
 }
 
@@ -99,7 +99,8 @@ void vp8_encode_intra16x16mby(MACROBLOCK *x)
                                          xd->dst.y_buffer - xd->dst.y_stride,
                                          xd->dst.y_buffer - 1,
                                          xd->dst.y_stride,
-                                         xd->dst.y_buffer);
+                                         xd->dst.y_buffer,
+                                         xd->dst.y_stride);
 
     vp8_subtract_mby(x->src_diff, *(b->base_src),
         b->src_stride, xd->dst.y_buffer, xd->dst.y_stride);
@@ -121,7 +122,8 @@ void vp8_encode_intra16x16mbuv(MACROBLOCK *x)
                                       xd->dst.u_buffer - 1,
                                       xd->dst.v_buffer - 1,
                                       xd->dst.uv_stride,
-                                      xd->dst.u_buffer, xd->dst.v_buffer);
+                                      xd->dst.u_buffer, xd->dst.v_buffer,
+                                      xd->dst.uv_stride);
 
     vp8_subtract_mbuv(x->src_diff, x->src.u_buffer,
         x->src.v_buffer, x->src.uv_stride, xd->dst.u_buffer,
