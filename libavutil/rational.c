@@ -26,7 +26,6 @@
  */
 
 #include "avassert.h"
-//#include <math.h>
 #include <limits.h>
 
 #include "common.h"
@@ -111,11 +110,13 @@ AVRational av_d2q(double d, int max)
     int64_t den;
     if (isnan(d))
         return (AVRational) { 0,0 };
-    if (isinf(d))
+    if (fabs(d) > INT_MAX + 3LL)
         return (AVRational) { d < 0 ? -1 : 1, 0 };
     exponent = FFMAX( (int)(log(fabs(d) + 1e-20)/LOG2), 0);
     den = 1LL << (61 - exponent);
-    av_reduce(&a.num, &a.den, (int64_t)(d * den + 0.5), den, max);
+    av_reduce(&a.num, &a.den, rint(d * den), den, max);
+    if ((!a.num || !a.den) && d && max>0 && max<INT_MAX)
+        av_reduce(&a.num, &a.den, llrint(d * den), den, INT_MAX);
 
     return a;
 }
@@ -148,7 +149,7 @@ int av_find_nearest_q_idx(AVRational q, const AVRational* q_list)
 #ifdef TEST
 int main(void)
 {
-    AVRational a,b;
+    AVRational a,b,r;
     for (a.num = -2; a.num <= 2; a.num++) {
         for (a.den = -2; a.den <= 2; a.den++) {
             for (b.num = -2; b.num <= 2; b.num++) {
@@ -160,8 +161,11 @@ int main(void)
                     else if (d < 0)  d = -1;
                     else if (d != d) d = INT_MIN;
                     if (c != d)
-                        av_log(0, AV_LOG_ERROR, "%d/%d %d/%d, %d %f\n", a.num,
+                        av_log(NULL, AV_LOG_ERROR, "%d/%d %d/%d, %d %f\n", a.num,
                                a.den, b.num, b.den, c,d);
+                    r = av_sub_q(av_add_q(b,a), b);
+                    if(b.den && (r.num*a.den != a.num*r.den || !r.num != !a.num || !r.den != !a.den))
+                        av_log(NULL, AV_LOG_ERROR, "%d/%d ", r.num, r.den);
                 }
             }
         }

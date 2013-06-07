@@ -26,17 +26,17 @@
  */
 
 #include "libavutil/avstring.h"
+#include "libavutil/time.h"
 #include "avformat.h"
 #include "internal.h"
 #include "url.h"
 #include "version.h"
-#include <unistd.h>
 
 /*
  * An apple http stream consists of a playlist with media segment files,
  * played sequentially. There may be several playlists with the same
  * video content, in different bandwidth variants, that are played in
- * parallel (preferrably only one bandwidth variant at a time). In this case,
+ * parallel (preferably only one bandwidth variant at a time). In this case,
  * the user supplied the url to a main playlist that only lists the variant
  * playlists.
  *
@@ -71,7 +71,7 @@ typedef struct HLSContext {
 static int read_chomp_line(AVIOContext *s, char *buf, int maxlen)
 {
     int len = ff_get_line(s, buf, maxlen);
-    while (len > 0 && isspace(buf[len - 1]))
+    while (len > 0 && av_isspace(buf[len - 1]))
         buf[--len] = '\0';
     return len;
 }
@@ -204,19 +204,6 @@ static int hls_open(URLContext *h, const char *uri, int flags)
                nested_url);
         ret = AVERROR(EINVAL);
         goto fail;
-#if FF_API_APPLEHTTP_PROTO
-    } else if (av_strstart(uri, "applehttp+", &nested_url)) {
-        av_strlcpy(s->playlisturl, nested_url, sizeof(s->playlisturl));
-        av_log(h, AV_LOG_WARNING,
-               "The applehttp protocol is deprecated, use hls+%s as url "
-               "instead.\n", nested_url);
-    } else if (av_strstart(uri, "applehttp://", &nested_url)) {
-        av_strlcpy(s->playlisturl, "http://", sizeof(s->playlisturl));
-        av_strlcat(s->playlisturl, nested_url, sizeof(s->playlisturl));
-        av_log(h, AV_LOG_WARNING,
-               "The applehttp protocol is deprecated, use hls+http://%s as url "
-               "instead.\n", nested_url);
-#endif
     } else {
         av_log(h, AV_LOG_ERROR, "Unsupported url %s\n", uri);
         ret = AVERROR(EINVAL);
@@ -293,7 +280,7 @@ retry:
             /* If we need to reload the playlist again below (if
              * there's still no more segments), switch to a reload
              * interval of half the target duration. */
-            reload_interval = s->target_duration * 500000;
+            reload_interval = s->target_duration * 500000LL;
         }
     }
     if (s->cur_seq_no < s->start_seq_no) {
@@ -308,7 +295,7 @@ retry:
         while (av_gettime() - s->last_load_time < reload_interval) {
             if (ff_check_interrupt(&h->interrupt_callback))
                 return AVERROR_EXIT;
-            usleep(100*1000);
+            av_usleep(100*1000);
         }
         goto retry;
     }
@@ -325,17 +312,6 @@ retry:
     }
     goto start;
 }
-
-#if FF_API_APPLEHTTP_PROTO
-URLProtocol ff_applehttp_protocol = {
-    .name           = "applehttp",
-    .url_open       = hls_open,
-    .url_read       = hls_read,
-    .url_close      = hls_close,
-    .flags          = URL_PROTOCOL_FLAG_NESTED_SCHEME,
-    .priv_data_size = sizeof(HLSContext),
-};
-#endif
 
 URLProtocol ff_hls_protocol = {
     .name           = "hls",

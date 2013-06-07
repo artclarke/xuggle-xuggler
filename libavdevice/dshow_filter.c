@@ -19,8 +19,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
-#define NO_DSHOW_STRSAFE
-#include "dshow.h"
+#include "dshow_capture.h"
 
 DECLARE_QUERYINTERFACE(libAVFilter,
     { {&IID_IUnknown,0}, {&IID_IBaseFilter,0} })

@@ -25,16 +25,16 @@
 #include "internal.h"
 #include "rawdec.h"
 #include "id3v1.h"
-
+#include "apetag.h"
 
 static int adts_aac_probe(AVProbeData *p)
 {
     int max_frames = 0, first_frames = 0;
     int fsize, frames;
-    uint8_t *buf0 = p->buf;
-    uint8_t *buf2;
-    uint8_t *buf;
-    uint8_t *end = buf0 + p->buf_size - 7;
+    const uint8_t *buf0 = p->buf;
+    const uint8_t *buf2;
+    const uint8_t *buf;
+    const uint8_t *end = buf0 + p->buf_size - 7;
 
     buf = buf0;
 
@@ -55,9 +55,9 @@ static int adts_aac_probe(AVProbeData *p)
         if(buf == buf0)
             first_frames= frames;
     }
-    if   (first_frames>=3) return AVPROBE_SCORE_MAX/2+1;
-    else if(max_frames>500)return AVPROBE_SCORE_MAX/2;
-    else if(max_frames>=3) return AVPROBE_SCORE_MAX/4;
+    if   (first_frames>=3) return AVPROBE_SCORE_EXTENSION + 1;
+    else if(max_frames>500)return AVPROBE_SCORE_EXTENSION;
+    else if(max_frames>=3) return AVPROBE_SCORE_EXTENSION / 2;
     else if(max_frames>=1) return 1;
     else                   return 0;
 }
@@ -72,9 +72,15 @@ static int adts_aac_read_header(AVFormatContext *s)
 
     st->codec->codec_type = AVMEDIA_TYPE_AUDIO;
     st->codec->codec_id = s->iformat->raw_codec_id;
-    st->need_parsing = AVSTREAM_PARSE_FULL;
+    st->need_parsing = AVSTREAM_PARSE_FULL_RAW;
 
     ff_id3v1_read(s);
+    if (s->pb->seekable &&
+        !av_dict_get(s->metadata, "", NULL, AV_DICT_IGNORE_SUFFIX)) {
+        int64_t cur = avio_tell(s->pb);
+        ff_ape_parse_tag(s);
+        avio_seek(s->pb, cur, SEEK_SET);
+    }
 
     //LCM of all possible ADTS sample rates
     avpriv_set_pts_info(st, 64, 1, 28224000);
@@ -84,11 +90,11 @@ static int adts_aac_read_header(AVFormatContext *s)
 
 AVInputFormat ff_aac_demuxer = {
     .name           = "aac",
-    .long_name      = NULL_IF_CONFIG_SMALL("raw ADTS AAC"),
+    .long_name      = NULL_IF_CONFIG_SMALL("raw ADTS AAC (Advanced Audio Coding)"),
     .read_probe     = adts_aac_probe,
     .read_header    = adts_aac_read_header,
     .read_packet    = ff_raw_read_partial_packet,
     .flags          = AVFMT_GENERIC_INDEX,
     .extensions     = "aac",
-    .raw_codec_id   = CODEC_ID_AAC,
+    .raw_codec_id   = AV_CODEC_ID_AAC,
 };

@@ -27,15 +27,15 @@
 typedef struct AudioFrame {
     int64_t pts;
     int duration;
-    struct AudioFrame *next;
 } AudioFrame;
 
 typedef struct AudioFrameQueue {
     AVCodecContext *avctx;
-    int64_t next_pts;
     int remaining_delay;
     int remaining_samples;
-    AudioFrame *frame_queue;
+    AudioFrame *frames;
+    unsigned frame_count;
+    unsigned frame_alloc;
 } AudioFrameQueue;
 
 /**
@@ -79,12 +79,5 @@ int ff_af_queue_add(AudioFrameQueue *afq, const AVFrame *f);
  */
 void ff_af_queue_remove(AudioFrameQueue *afq, int nb_samples, int64_t *pts,
                         int *duration);
-
-/**
- * Log the current state of the queue.
- *
- * @param afq queue context
- */
-void ff_af_queue_log_state(AudioFrameQueue *afq);
 
 #endif /* AVCODEC_AUDIO_FRAME_QUEUE_H */

@@ -23,17 +23,20 @@
  * FFT and MDCT tests.
  */
 
+#include "libavutil/cpu.h"
 #include "libavutil/mathematics.h"
 #include "libavutil/lfg.h"
 #include "libavutil/log.h"
+#include "libavutil/time.h"
 #include "fft.h"
 #if CONFIG_FFT_FLOAT
 #include "dct.h"
 #include "rdft.h"
 #endif
 #include <math.h>
+#if HAVE_UNISTD_H
 #include <unistd.h>
-#include <sys/time.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 
@@ -185,13 +188,6 @@ static FFTSample frandom(AVLFG *prng)
     return (int16_t)av_lfg_get(prng) / 32768.0 * RANGE;
 }
 
-static int64_t gettime(void)
-{
-    struct timeval tv;
-    gettimeofday(&tv,NULL);
-    return (int64_t)tv.tv_sec * 1000000 + tv.tv_usec;
-}
-
 static int check_diff(FFTSample *tab1, FFTSample *tab2, int n, double scale)
 {
     int i;
@@ -209,7 +205,7 @@ static int check_diff(FFTSample *tab1, FFTSample *tab2, int n, double scale)
         error+= e*e;
         if(e>max) max= e;
     }
-    av_log(NULL, AV_LOG_INFO, "max:%f e:%g\n", max, sqrt(error)/n);
+    av_log(NULL, AV_LOG_INFO, "max:%f e:%g\n", max, sqrt(error/n));
     return err;
 }
 
@@ -235,11 +231,16 @@ enum tf_transform {
     TRANSFORM_DCT,
 };
 
+#if !HAVE_GETOPT
+#include "compat/getopt.c"
+#endif
+
 int main(int argc, char **argv)
 {
     FFTComplex *tab, *tab1, *tab_ref;
     FFTSample *tab2;
     int it, i, c;
+    int cpuflags;
     int do_speed = 0;
     int err = 1;
     enum tf_transform transform = TRANSFORM_FFT;
@@ -258,7 +259,7 @@ int main(int argc, char **argv)
 
     fft_nbits = 9;
     for(;;) {
-        c = getopt(argc, argv, "hsimrdn:f:");
+        c = getopt(argc, argv, "hsimrdn:f:c:");
         if (c == -1)
             break;
         switch(c) {
@@ -285,6 +286,14 @@ int main(int argc, char **argv)
             break;
         case 'f':
             scale = atof(optarg);
+            break;
+        case 'c':
+            cpuflags = av_get_cpu_flags();
+
+            if (av_parse_cpu_caps(&cpuflags, optarg) < 0)
+                return 1;
+
+            av_force_cpu_flags(cpuflags);
             break;
         }
     }
@@ -422,7 +431,7 @@ int main(int argc, char **argv)
         /* we measure during about 1 seconds */
         nb_its = 1;
         for(;;) {
-            time_start = gettime();
+            time_start = av_gettime();
             for (it = 0; it < nb_its; it++) {
                 switch (transform) {
                 case TRANSFORM_MDCT:
@@ -448,7 +457,7 @@ int main(int argc, char **argv)
 #endif
                 }
             }
-            duration = gettime() - time_start;
+            duration = av_gettime() - time_start;
             if (duration >= 1000000)
                 break;
             nb_its *= 2;

@@ -3,7 +3,7 @@
  *
  * This file is part of FFmpeg.
  *
- * FFMpeg is free software; you can redistribute it and/or
+ * FFmpeg is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2.1 of the License, or (at your option) any later version.
@@ -33,10 +33,12 @@ av_cold void ff_fft_fixed_init_arm(FFTContext *s)
 
     if (have_neon(cpu_flags)) {
         s->fft_permutation = FF_FFT_PERM_SWAP_LSBS;
+#if CONFIG_FFT
         s->fft_calc        = ff_fft_fixed_calc_neon;
+#endif
 
 #if CONFIG_MDCT
-        if (!s->inverse && s->mdct_bits >= 5) {
+        if (!s->inverse && s->nbits >= 3) {
             s->mdct_permutation = FF_MDCT_PERM_INTERLEAVE;
             s->mdct_calc        = ff_mdct_fixed_calc_neon;
             s->mdct_calcw       = ff_mdct_fixed_calcw_neon;

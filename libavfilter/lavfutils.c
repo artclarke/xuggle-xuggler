@@ -1,4 +1,6 @@
 /*
+ * Copyright 2012 Stefano Sabatini <stefasab gmail com>
+ *
  * This file is part of FFmpeg.
  *
  * FFmpeg is free software; you can redistribute it and/or
@@ -20,11 +22,11 @@
 #include "lavfutils.h"
 
 int ff_load_image(uint8_t *data[4], int linesize[4],
-                  int *w, int *h, enum PixelFormat *pix_fmt,
+                  int *w, int *h, enum AVPixelFormat *pix_fmt,
                   const char *filename, void *log_ctx)
 {
     AVInputFormat *iformat = NULL;
-    AVFormatContext *format_ctx;
+    AVFormatContext *format_ctx = NULL;
     AVCodec *codec;
     AVCodecContext *codec_ctx;
     AVFrame *frame;
@@ -80,13 +82,11 @@ int ff_load_image(uint8_t *data[4], int linesize[4],
         goto end;
     ret = 0;
 
-    av_image_copy(data, linesize, frame->data, frame->linesize, *pix_fmt, *w, *h);
+    av_image_copy(data, linesize, (const uint8_t **)frame->data, frame->linesize, *pix_fmt, *w, *h);
 
 end:
-    if (codec_ctx)
-        avcodec_close(codec_ctx);
-    if (format_ctx)
-        avformat_close_input(&format_ctx);
+    avcodec_close(codec_ctx);
+    avformat_close_input(&format_ctx);
     av_freep(&frame);
 
     if (ret < 0)

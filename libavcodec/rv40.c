@@ -27,7 +27,6 @@
 #include "libavutil/imgutils.h"
 
 #include "avcodec.h"
-#include "dsputil.h"
 #include "mpegvideo.h"
 #include "golomb.h"
 
@@ -228,8 +227,6 @@ static int rv40_decode_mb_info(RV34DecContext *r)
     int q, i;
     int prev_type = 0;
     int mb_pos = s->mb_x + s->mb_y * s->mb_stride;
-    int blocks[RV34_MB_TYPES] = {0};
-    int count = 0;
 
     if(!r->s.mb_skip_run) {
         r->s.mb_skip_run = svq3_get_ue_golomb(gb) + 1;
@@ -240,22 +237,27 @@ static int rv40_decode_mb_info(RV34DecContext *r)
     if(--r->s.mb_skip_run)
          return RV34_MB_SKIP;
 
-    if(r->avail_cache[6-1])
-        blocks[r->mb_type[mb_pos - 1]]++;
     if(r->avail_cache[6-4]){
+        int blocks[RV34_MB_TYPES] = {0};
+        int count = 0;
+        if(r->avail_cache[6-1])
+            blocks[r->mb_type[mb_pos - 1]]++;
         blocks[r->mb_type[mb_pos - s->mb_stride]]++;
         if(r->avail_cache[6-2])
             blocks[r->mb_type[mb_pos - s->mb_stride + 1]]++;
         if(r->avail_cache[6-5])
             blocks[r->mb_type[mb_pos - s->mb_stride - 1]]++;
-    }
-
-    for(i = 0; i < RV34_MB_TYPES; i++){
-        if(blocks[i] > count){
-            count = blocks[i];
-            prev_type = i;
+        for(i = 0; i < RV34_MB_TYPES; i++){
+            if(blocks[i] > count){
+                count = blocks[i];
+                prev_type = i;
+                if(count>1)
+                    break;
+            }
         }
-    }
+    } else if (r->avail_cache[6-1])
+        prev_type = r->mb_type[mb_pos - 1];
+
     if(s->pict_type == AV_PICTURE_TYPE_P){
         prev_type = block_num_to_ptype_vlc_num[prev_type];
         q = get_vlc2(gb, ptype_vlc[prev_type].table, PTYPE_VLC_BITS, 1);
@@ -364,7 +366,7 @@ static void rv40_loop_filter(RV34DecContext *r, int row)
 
     mb_pos = row * s->mb_stride;
     for(mb_x = 0; mb_x < s->mb_width; mb_x++, mb_pos++){
-        int mbtype = s->current_picture_ptr->f.mb_type[mb_pos];
+        int mbtype = s->current_picture_ptr->mb_type[mb_pos];
         if(IS_INTRA(mbtype) || IS_SEPARATE_DC(mbtype))
             r->cbp_luma  [mb_pos] = r->deblock_coefs[mb_pos] = 0xFFFF;
         if(IS_INTRA(mbtype))
@@ -379,7 +381,7 @@ static void rv40_loop_filter(RV34DecContext *r, int row)
         unsigned y_to_deblock;
         int c_to_deblock[2];
 
-        q = s->current_picture_ptr->f.qscale_table[mb_pos];
+        q = s->current_picture_ptr->qscale_table[mb_pos];
         alpha = rv40_alpha_tab[q];
         beta  = rv40_beta_tab [q];
         betaY = betaC = beta * 3;
@@ -394,7 +396,7 @@ static void rv40_loop_filter(RV34DecContext *r, int row)
             if(avail[i]){
                 int pos = mb_pos + neighbour_offs_x[i] + neighbour_offs_y[i]*s->mb_stride;
                 mvmasks[i] = r->deblock_coefs[pos];
-                mbtype [i] = s->current_picture_ptr->f.mb_type[pos];
+                mbtype [i] = s->current_picture_ptr->mb_type[pos];
                 cbp    [i] = r->cbp_luma[pos];
                 uvcbp[i][0] = r->cbp_chroma[pos] & 0xF;
                 uvcbp[i][1] = r->cbp_chroma[pos] >> 4;
@@ -431,7 +433,7 @@ static void rv40_loop_filter(RV34DecContext *r, int row)
             y_v_deblock &= ~MASK_Y_LEFT_COL;
         if(!row)
             y_h_deblock &= ~MASK_Y_TOP_ROW;
-        if(row == s->mb_height - 1 || (mb_strong[POS_CUR] || mb_strong[POS_BOTTOM]))
+        if(row == s->mb_height - 1 || (mb_strong[POS_CUR] | mb_strong[POS_BOTTOM]))
             y_h_deblock &= ~(MASK_Y_TOP_ROW << 16);
         /* Calculating chroma patterns is similar and easier since there is
          * no motion vector pattern for them.
@@ -448,7 +450,7 @@ static void rv40_loop_filter(RV34DecContext *r, int row)
                 c_v_deblock[i] &= ~MASK_C_LEFT_COL;
             if(!row)
                 c_h_deblock[i] &= ~MASK_C_TOP_ROW;
-            if(row == s->mb_height - 1 || mb_strong[POS_CUR] || mb_strong[POS_BOTTOM])
+            if(row == s->mb_height - 1 || (mb_strong[POS_CUR] | mb_strong[POS_BOTTOM]))
                 c_h_deblock[i] &= ~(MASK_C_TOP_ROW << 4);
         }
 
@@ -469,7 +471,7 @@ static void rv40_loop_filter(RV34DecContext *r, int row)
                                               0, 0, 0);
                 }
                 // filter left block edge in ordinary mode (with low filtering strength)
-                if(y_v_deblock & (MASK_CUR << ij) && (i || !(mb_strong[POS_CUR] || mb_strong[POS_LEFT]))){
+                if(y_v_deblock & (MASK_CUR << ij) && (i || !(mb_strong[POS_CUR] | mb_strong[POS_LEFT]))){
                     if(!i)
                         clip_left = mvmasks[POS_LEFT] & (MASK_RIGHT << j) ? clip[POS_LEFT] : 0;
                     else
@@ -480,14 +482,14 @@ static void rv40_loop_filter(RV34DecContext *r, int row)
                                               alpha, beta, betaY, 0, 0, 1);
                 }
                 // filter top edge of the current macroblock when filtering strength is high
-                if(!j && y_h_deblock & (MASK_CUR << i) && (mb_strong[POS_CUR] || mb_strong[POS_TOP])){
+                if(!j && y_h_deblock & (MASK_CUR << i) && (mb_strong[POS_CUR] | mb_strong[POS_TOP])){
                     rv40_adaptive_loop_filter(&r->rdsp, Y, s->linesize, dither,
                                        clip_cur,
                                        mvmasks[POS_TOP] & (MASK_TOP << i) ? clip[POS_TOP] : 0,
                                        alpha, beta, betaY, 0, 1, 0);
                 }
                 // filter left block edge in edge mode (with high filtering strength)
-                if(y_v_deblock & (MASK_CUR << ij) && !i && (mb_strong[POS_CUR] || mb_strong[POS_LEFT])){
+                if(y_v_deblock & (MASK_CUR << ij) && !i && (mb_strong[POS_CUR] | mb_strong[POS_LEFT])){
                     clip_left = mvmasks[POS_LEFT] & (MASK_RIGHT << j) ? clip[POS_LEFT] : 0;
                     rv40_adaptive_loop_filter(&r->rdsp, Y, s->linesize, dither,
                                        clip_cur,
@@ -509,7 +511,7 @@ static void rv40_loop_filter(RV34DecContext *r, int row)
                                            clip_cur,
                                            alpha, beta, betaC, 1, 0, 0);
                     }
-                    if((c_v_deblock[k] & (MASK_CUR << ij)) && (i || !(mb_strong[POS_CUR] || mb_strong[POS_LEFT]))){
+                    if((c_v_deblock[k] & (MASK_CUR << ij)) && (i || !(mb_strong[POS_CUR] | mb_strong[POS_LEFT]))){
                         if(!i)
                             clip_left = uvcbp[POS_LEFT][k] & (MASK_CUR << (2*j+1)) ? clip[POS_LEFT] : 0;
                         else
@@ -519,14 +521,14 @@ static void rv40_loop_filter(RV34DecContext *r, int row)
                                            clip_left,
                                            alpha, beta, betaC, 1, 0, 1);
                     }
-                    if(!j && c_h_deblock[k] & (MASK_CUR << ij) && (mb_strong[POS_CUR] || mb_strong[POS_TOP])){
+                    if(!j && c_h_deblock[k] & (MASK_CUR << ij) && (mb_strong[POS_CUR] | mb_strong[POS_TOP])){
                         int clip_top = uvcbp[POS_TOP][k] & (MASK_CUR << (ij+2)) ? clip[POS_TOP] : 0;
                         rv40_adaptive_loop_filter(&r->rdsp, C, s->uvlinesize, i*8,
                                            clip_cur,
                                            clip_top,
                                            alpha, beta, betaC, 1, 1, 0);
                     }
-                    if(c_v_deblock[k] & (MASK_CUR << ij) && !i && (mb_strong[POS_CUR] || mb_strong[POS_LEFT])){
+                    if(c_v_deblock[k] & (MASK_CUR << ij) && !i && (mb_strong[POS_CUR] | mb_strong[POS_LEFT])){
                         clip_left = uvcbp[POS_LEFT][k] & (MASK_CUR << (2*j+1)) ? clip[POS_LEFT] : 0;
                         rv40_adaptive_loop_filter(&r->rdsp, C, s->uvlinesize, j*8,
                                            clip_cur,
@@ -562,7 +564,7 @@ static av_cold int rv40_decode_init(AVCodecContext *avctx)
 AVCodec ff_rv40_decoder = {
     .name                  = "rv40",
     .type                  = AVMEDIA_TYPE_VIDEO,
-    .id                    = CODEC_ID_RV40,
+    .id                    = AV_CODEC_ID_RV40,
     .priv_data_size        = sizeof(RV34DecContext),
     .init                  = rv40_decode_init,
     .close                 = ff_rv34_decode_end,

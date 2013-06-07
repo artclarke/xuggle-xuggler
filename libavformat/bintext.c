@@ -43,10 +43,32 @@ typedef struct {
     int chars_per_frame; /**< characters to send decoder per frame;
                               set by private options as characters per second, and then
                               converted to characters per frame at runtime */
-    char *video_size;    /**< video size (WxH pixels) (private option) */
-    char *framerate;     /**< frames per second (private option) */
+    int width, height;    /**< video size (WxH pixels) (private option) */
+    AVRational framerate; /**< frames per second (private option) */
     uint64_t fsize;  /**< file size less metadata buffer */
 } BinDemuxContext;
+
+static AVStream * init_stream(AVFormatContext *s)
+{
+    BinDemuxContext *bin = s->priv_data;
+    AVStream *st = avformat_new_stream(s, NULL);
+    if (!st)
+        return NULL;
+    st->codec->codec_tag   = 0;
+    st->codec->codec_type  = AVMEDIA_TYPE_VIDEO;
+
+    if (!bin->width) {
+        st->codec->width  = (80<<3);
+        st->codec->height = (25<<4);
+    }
+
+    avpriv_set_pts_info(st, 60, bin->framerate.den, bin->framerate.num);
+
+    /* simulate tty display speed */
+    bin->chars_per_frame = FFMAX(av_q2d(st->time_base) * bin->chars_per_frame, 1);
+
+    return st;
+}
 
 #if CONFIG_BINTEXT_DEMUXER | CONFIG_ADF_DEMUXER | CONFIG_IDF_DEMUXER
 /**
@@ -104,42 +126,6 @@ static void predict_width(AVCodecContext *avctx, uint64_t fsize, int got_width)
         avctx->width = fsize > 4000 ? (160<<3) : (80<<3);
 }
 
-static AVStream * init_stream(AVFormatContext *s)
-{
-    BinDemuxContext *bin = s->priv_data;
-    AVStream *st = avformat_new_stream(s, NULL);
-    if (!st)
-        return NULL;
-    st->codec->codec_tag   = 0;
-    st->codec->codec_type  = AVMEDIA_TYPE_VIDEO;
-
-    if (bin->video_size) {
-        if (av_parse_video_size(&st->codec->width, &st->codec->height, bin->video_size) < 0) {
-            av_log(s, AV_LOG_ERROR, "Could not parse video size: '%s'\n", bin->video_size);
-            return NULL;
-        }
-    } else {
-        st->codec->width  = (80<<3);
-        st->codec->height = (25<<4);
-    }
-
-    if (bin->framerate) {
-        AVRational framerate;
-        if (av_parse_video_rate(&framerate, bin->framerate) < 0) {
-            av_log(s, AV_LOG_ERROR, "Could not parse framerate: '%s'\n", bin->framerate);
-            return NULL;
-        }
-        avpriv_set_pts_info(st, 60, framerate.den, framerate.num);
-    } else {
-        avpriv_set_pts_info(st, 60, 1, 25);
-    }
-
-    /* simulate tty display speed */
-    bin->chars_per_frame = FFMAX(av_q2d(st->time_base) * bin->chars_per_frame, 1);
-
-    return st;
-}
-
 static int bintext_read_header(AVFormatContext *s)
 {
     BinDemuxContext *bin = s->priv_data;
@@ -148,10 +134,10 @@ static int bintext_read_header(AVFormatContext *s)
     AVStream *st = init_stream(s);
     if (!st)
         return AVERROR(ENOMEM);
-    st->codec->codec_id    = CODEC_ID_BINTEXT;
+    st->codec->codec_id    = AV_CODEC_ID_BINTEXT;
 
     st->codec->extradata_size = 2;
-    st->codec->extradata = av_malloc(st->codec->extradata_size);
+    st->codec->extradata = av_malloc(st->codec->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE);
     if (!st->codec->extradata)
         return AVERROR(ENOMEM);
     st->codec->extradata[0] = 16;
@@ -162,14 +148,14 @@ static int bintext_read_header(AVFormatContext *s)
         bin->fsize = avio_size(pb);
         if (ff_sauce_read(s, &bin->fsize, &got_width, 0) < 0)
             next_tag_read(s, &bin->fsize);
-        if (!bin->video_size) {
+        if (!bin->width) {
             predict_width(st->codec, bin->fsize, got_width);
             calculate_height(st->codec, bin->fsize);
         }
         avio_seek(pb, 0, SEEK_SET);
     }
     return 0;
-};
+}
 #endif /* CONFIG_BINTEXT_DEMUXER */
 
 #if CONFIG_XBIN_DEMUXER
@@ -206,9 +192,9 @@ static int xbin_read_header(AVFormatContext *s)
         st->codec->extradata_size += 48;
     if ((flags & BINTEXT_FONT))
         st->codec->extradata_size += fontheight * (flags & 0x10 ? 512 : 256);
-    st->codec->codec_id    = flags & 4 ? CODEC_ID_XBIN : CODEC_ID_BINTEXT;
+    st->codec->codec_id    = flags & 4 ? AV_CODEC_ID_XBIN : AV_CODEC_ID_BINTEXT;
 
-    st->codec->extradata = av_malloc(st->codec->extradata_size);
+    st->codec->extradata = av_malloc(st->codec->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE);
     if (!st->codec->extradata)
         return AVERROR(ENOMEM);
     st->codec->extradata[0] = fontheight;
@@ -239,10 +225,10 @@ static int adf_read_header(AVFormatContext *s)
     st = init_stream(s);
     if (!st)
         return AVERROR(ENOMEM);
-    st->codec->codec_id    = CODEC_ID_BINTEXT;
+    st->codec->codec_id    = AV_CODEC_ID_BINTEXT;
 
     st->codec->extradata_size = 2 + 48 + 4096;
-    st->codec->extradata = av_malloc(st->codec->extradata_size);
+    st->codec->extradata = av_malloc(st->codec->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE);
     if (!st->codec->extradata)
         return AVERROR(ENOMEM);
     st->codec->extradata[0] = 16;
@@ -261,7 +247,7 @@ static int adf_read_header(AVFormatContext *s)
         bin->fsize = avio_size(pb) - 1 - 192 - 4096;
         st->codec->width = 80<<3;
         ff_sauce_read(s, &bin->fsize, &got_width, 0);
-        if (!bin->video_size)
+        if (!bin->width)
             calculate_height(st->codec, bin->fsize);
         avio_seek(pb, 1 + 192 + 4096, SEEK_SET);
     }
@@ -296,10 +282,10 @@ static int idf_read_header(AVFormatContext *s)
     st = init_stream(s);
     if (!st)
         return AVERROR(ENOMEM);
-    st->codec->codec_id    = CODEC_ID_IDF;
+    st->codec->codec_id    = AV_CODEC_ID_IDF;
 
     st->codec->extradata_size = 2 + 48 + 4096;
-    st->codec->extradata = av_malloc(st->codec->extradata_size);
+    st->codec->extradata = av_malloc(st->codec->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE);
     if (!st->codec->extradata)
         return AVERROR(ENOMEM);
     st->codec->extradata[0] = 16;
@@ -314,7 +300,7 @@ static int idf_read_header(AVFormatContext *s)
 
     bin->fsize = avio_size(pb) - 12 - 4096 - 48;
     ff_sauce_read(s, &bin->fsize, &got_width, 0);
-    if (!bin->video_size)
+    if (!bin->width)
         calculate_height(st->codec, bin->fsize);
     avio_seek(pb, 12, SEEK_SET);
     return 0;
@@ -345,9 +331,9 @@ static int read_packet(AVFormatContext *s,
 
 #define OFFSET(x) offsetof(BinDemuxContext, x)
 static const AVOption options[] = {
-    { "linespeed", "set simulated line speed (bytes per second)", OFFSET(chars_per_frame), AV_OPT_TYPE_INT, {.dbl = 6000}, 1, INT_MAX, AV_OPT_FLAG_DECODING_PARAM},
-    { "video_size", "set video size, such as 640x480 or hd720.", OFFSET(video_size), AV_OPT_TYPE_STRING, {.str = NULL}, 0, 0, AV_OPT_FLAG_DECODING_PARAM },
-    { "framerate", "set framerate (frames per second)", OFFSET(framerate), AV_OPT_TYPE_STRING, {.str = "25"}, 0, 0, AV_OPT_FLAG_DECODING_PARAM },
+    { "linespeed", "set simulated line speed (bytes per second)", OFFSET(chars_per_frame), AV_OPT_TYPE_INT, {.i64 = 6000}, 1, INT_MAX, AV_OPT_FLAG_DECODING_PARAM},
+    { "video_size", "set video size, such as 640x480 or hd720.", OFFSET(width), AV_OPT_TYPE_IMAGE_SIZE, {.str = NULL}, 0, 0, AV_OPT_FLAG_DECODING_PARAM },
+    { "framerate", "set framerate (frames per second)", OFFSET(framerate), AV_OPT_TYPE_VIDEO_RATE, {.str = "25"}, 0, 0, AV_OPT_FLAG_DECODING_PARAM },
     { NULL },
 };
 
