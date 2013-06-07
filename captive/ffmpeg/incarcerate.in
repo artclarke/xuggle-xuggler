@@ -61,8 +61,6 @@ if test ! "x$VS_DEBUG" = "x"; then
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-stripping"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-asm"
   FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-optimizations"
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-mmx"
-  FFMPEG_OPTIONS="$FFMPEG_OPTIONS --disable-mmx2"
 fi
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libmp3lame"
 FFMPEG_OPTIONS="$FFMPEG_OPTIONS --enable-libvorbis"
