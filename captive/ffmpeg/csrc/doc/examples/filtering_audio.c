@@ -25,18 +25,20 @@
 /**
  * @file
  * API example for audio decoding and filtering
+ * @example doc/examples/filtering_audio.c
  */
 
 #include <unistd.h>
 
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
-#include <libavfilter/asrc_abuffer.h>
 #include <libavfilter/avfiltergraph.h>
 #include <libavfilter/avcodec.h>
 #include <libavfilter/buffersink.h>
+#include <libavfilter/buffersrc.h>
+#include <libavutil/opt.h>
 
-const char *filter_descr = "aresample=8000,aconvert=s16:mono";
+const char *filter_descr = "aresample=8000,aformat=sample_fmts=s16:channel_layouts=mono";
 const char *player       = "ffplay -f s16le -ar 8000 -ac 1 -";
 
 static AVFormatContext *fmt_ctx;
@@ -69,6 +71,7 @@ static int open_input_file(const char *filename)
     }
     audio_stream_index = ret;
     dec_ctx = fmt_ctx->streams[audio_stream_index]->codec;
+    av_opt_set_int(dec_ctx, "refcounted_frames", 1, 0);
 
     /* init the audio decoder */
     if ((ret = avcodec_open2(dec_ctx, dec, NULL)) < 0) {
@@ -87,19 +90,21 @@ static int init_filters(const char *filters_descr)
     AVFilter *abuffersink = avfilter_get_by_name("abuffersink");
     AVFilterInOut *outputs = avfilter_inout_alloc();
     AVFilterInOut *inputs  = avfilter_inout_alloc();
-    const enum AVSampleFormat sample_fmts[] = { AV_SAMPLE_FMT_S16, -1 };
-    const int packing_fmts[]                = { AVFILTER_PACKED, -1 };
-    const int64_t *chlayouts                = avfilter_all_channel_layouts;
-    AVABufferSinkParams *abuffersink_params;
+    const enum AVSampleFormat out_sample_fmts[] = { AV_SAMPLE_FMT_S16, -1 };
+    const int64_t out_channel_layouts[] = { AV_CH_LAYOUT_MONO, -1 };
+    const int out_sample_rates[] = { 8000, -1 };
     const AVFilterLink *outlink;
+    AVRational time_base = fmt_ctx->streams[audio_stream_index]->time_base;
 
     filter_graph = avfilter_graph_alloc();
 
     /* buffer audio source: the decoded frames from the decoder will be inserted here. */
     if (!dec_ctx->channel_layout)
         dec_ctx->channel_layout = av_get_default_channel_layout(dec_ctx->channels);
-    snprintf(args, sizeof(args), "%d:%d:0x%"PRIx64":packed",
-             dec_ctx->sample_rate, dec_ctx->sample_fmt, dec_ctx->channel_layout);
+    snprintf(args, sizeof(args),
+            "time_base=%d/%d:sample_rate=%d:sample_fmt=%s:channel_layout=0x%"PRIx64,
+             time_base.num, time_base.den, dec_ctx->sample_rate,
+             av_get_sample_fmt_name(dec_ctx->sample_fmt), dec_ctx->channel_layout);
     ret = avfilter_graph_create_filter(&buffersrc_ctx, abuffersrc, "in",
                                        args, NULL, filter_graph);
     if (ret < 0) {
@@ -108,14 +113,31 @@ static int init_filters(const char *filters_descr)
     }
 
     /* buffer audio sink: to terminate the filter chain. */
-    abuffersink_params = av_abuffersink_params_alloc();
-    abuffersink_params->sample_fmts     = sample_fmts;
-    abuffersink_params->channel_layouts = chlayouts;
-    abuffersink_params->packing_fmts    = packing_fmts;
     ret = avfilter_graph_create_filter(&buffersink_ctx, abuffersink, "out",
-                                       NULL, abuffersink_params, filter_graph);
+                                       NULL, NULL, filter_graph);
     if (ret < 0) {
         av_log(NULL, AV_LOG_ERROR, "Cannot create audio buffer sink\n");
+        return ret;
+    }
+
+    ret = av_opt_set_int_list(buffersink_ctx, "sample_fmts", out_sample_fmts, -1,
+                              AV_OPT_SEARCH_CHILDREN);
+    if (ret < 0) {
+        av_log(NULL, AV_LOG_ERROR, "Cannot set output sample format\n");
+        return ret;
+    }
+
+    ret = av_opt_set_int_list(buffersink_ctx, "channel_layouts", out_channel_layouts, -1,
+                              AV_OPT_SEARCH_CHILDREN);
+    if (ret < 0) {
+        av_log(NULL, AV_LOG_ERROR, "Cannot set output channel layout\n");
+        return ret;
+    }
+
+    ret = av_opt_set_int_list(buffersink_ctx, "sample_rates", out_sample_rates, -1,
+                              AV_OPT_SEARCH_CHILDREN);
+    if (ret < 0) {
+        av_log(NULL, AV_LOG_ERROR, "Cannot set output sample rate\n");
         return ret;
     }
 
@@ -130,7 +152,7 @@ static int init_filters(const char *filters_descr)
     inputs->pad_idx    = 0;
     inputs->next       = NULL;
 
-    if ((ret = avfilter_graph_parse(filter_graph, filter_descr,
+    if ((ret = avfilter_graph_parse(filter_graph, filters_descr,
                                     &inputs, &outputs, NULL)) < 0)
         return ret;
 
@@ -149,11 +171,10 @@ static int init_filters(const char *filters_descr)
     return 0;
 }
 
-static void print_samplesref(AVFilterBufferRef *samplesref)
+static void print_frame(const AVFrame *frame)
 {
-    const AVFilterBufferRefAudioProps *props = samplesref->audio;
-    const int n = props->nb_samples * av_get_channel_layout_nb_channels(props->channel_layout);
-    const uint16_t *p     = (uint16_t*)samplesref->data[0];
+    const int n = frame->nb_samples * av_get_channel_layout_nb_channels(av_frame_get_channel_layout(frame));
+    const uint16_t *p     = (uint16_t*)frame->data[0];
     const uint16_t *p_end = p + n;
 
     while (p < p_end) {
@@ -168,9 +189,14 @@ int main(int argc, char **argv)
 {
     int ret;
     AVPacket packet;
-    AVFrame frame;
+    AVFrame *frame = av_frame_alloc();
+    AVFrame *filt_frame = av_frame_alloc();
     int got_frame;
 
+    if (!frame || !filt_frame) {
+        perror("Could not allocate frame");
+        exit(1);
+    }
     if (argc != 2) {
         fprintf(stderr, "Usage: %s file | %s\n", argv[0], player);
         exit(1);
@@ -187,52 +213,46 @@ int main(int argc, char **argv)
 
     /* read all packets */
     while (1) {
-        AVFilterBufferRef *samplesref;
         if ((ret = av_read_frame(fmt_ctx, &packet)) < 0)
             break;
 
         if (packet.stream_index == audio_stream_index) {
-            avcodec_get_frame_defaults(&frame);
+            avcodec_get_frame_defaults(frame);
             got_frame = 0;
-            ret = avcodec_decode_audio4(dec_ctx, &frame, &got_frame, &packet);
-            av_free_packet(&packet);
+            ret = avcodec_decode_audio4(dec_ctx, frame, &got_frame, &packet);
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR, "Error decoding audio\n");
-                break;
+                continue;
             }
 
             if (got_frame) {
-                const int bps = av_get_bytes_per_sample(dec_ctx->sample_fmt);
-                const int decoded_data_size = frame.nb_samples * dec_ctx->channels * bps;
-
                 /* push the audio data from decoded frame into the filtergraph */
-                if (av_asrc_buffer_add_buffer(buffersrc_ctx,
-                                              frame.data[0],
-                                              decoded_data_size,
-                                              dec_ctx->sample_rate,
-                                              dec_ctx->sample_fmt,
-                                              dec_ctx->channel_layout,
-                                              0, frame.pts, 0) < 0) {
+                if (av_buffersrc_add_frame_flags(buffersrc_ctx, frame, 0) < 0) {
                     av_log(NULL, AV_LOG_ERROR, "Error while feeding the audio filtergraph\n");
                     break;
                 }
 
                 /* pull filtered audio from the filtergraph */
-                while (avfilter_poll_frame(buffersink_ctx->inputs[0])) {
-                    av_buffersink_get_buffer_ref(buffersink_ctx, &samplesref, 0);
-                    if (samplesref) {
-                        print_samplesref(samplesref);
-                        avfilter_unref_buffer(samplesref);
-                    }
+                while (1) {
+                    ret = av_buffersink_get_frame(buffersink_ctx, filt_frame);
+                    if(ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+                        break;
+                    if(ret < 0)
+                        goto end;
+                    print_frame(filt_frame);
+                    av_frame_unref(filt_frame);
                 }
             }
         }
+        av_free_packet(&packet);
     }
 end:
     avfilter_graph_free(&filter_graph);
     if (dec_ctx)
         avcodec_close(dec_ctx);
     avformat_close_input(&fmt_ctx);
+    av_frame_free(&frame);
+    av_frame_free(&filt_frame);
 
     if (ret < 0 && ret != AVERROR_EOF) {
         char buf[1024];

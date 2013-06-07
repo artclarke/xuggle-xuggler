@@ -38,10 +38,9 @@
  *  @param[in]   plane        pointer to the descriptor of the plane being processed
  *  @param[out]  dst          pointer to the destination buffer
  *  @param[in]   dst_pitch    pitch of the destination buffer
- *  @param[in]   num_bands    number of wavelet bands to be processed
  */
 void ff_ivi_recompose53(const IVIPlaneDesc *plane, uint8_t *dst,
-                        const int dst_pitch, const int num_bands);
+                        const int dst_pitch);
 
 /**
  *  Haar wavelet recomposition filter for Indeo 4
@@ -49,10 +48,9 @@ void ff_ivi_recompose53(const IVIPlaneDesc *plane, uint8_t *dst,
  *  @param[in]  plane        pointer to the descriptor of the plane being processed
  *  @param[out] dst          pointer to the destination buffer
  *  @param[in]  dst_pitch    pitch of the destination buffer
- *  @param[in]  num_bands    number of wavelet bands to be processed
  */
 void ff_ivi_recompose_haar(const IVIPlaneDesc *plane, uint8_t *dst,
-                           const int dst_pitch, const int num_bands);
+                           const int dst_pitch);
 
 /**
  *  two-dimensional inverse Haar 8x8 transform for Indeo 4
@@ -66,6 +64,75 @@ void ff_ivi_recompose_haar(const IVIPlaneDesc *plane, uint8_t *dst,
  */
 void ff_ivi_inverse_haar_8x8(const int32_t *in, int16_t *out, uint32_t pitch,
                              const uint8_t *flags);
+void ff_ivi_inverse_haar_8x1(const int32_t *in, int16_t *out, uint32_t pitch,
+                             const uint8_t *flags);
+void ff_ivi_inverse_haar_1x8(const int32_t *in, int16_t *out, uint32_t pitch,
+                             const uint8_t *flags);
+
+/**
+ *  one-dimensional inverse 8-point Haar transform on rows for Indeo 4
+ *
+ *  @param[in]  in        pointer to the vector of transform coefficients
+ *  @param[out] out       pointer to the output buffer (frame)
+ *  @param[in]  pitch     pitch to move to the next y line
+ *  @param[in]  flags     pointer to the array of column flags:
+ *                        != 0 - non_empty column, 0 - empty one
+ *                        (this array must be filled by caller)
+ */
+void ff_ivi_row_haar8(const int32_t *in, int16_t *out, uint32_t pitch,
+                      const uint8_t *flags);
+
+/**
+ *  one-dimensional inverse 8-point Haar transform on columns for Indeo 4
+ *
+ *  @param[in]  in        pointer to the vector of transform coefficients
+ *  @param[out] out       pointer to the output buffer (frame)
+ *  @param[in]  pitch     pitch to move to the next y line
+ *  @param[in]  flags     pointer to the array of column flags:
+ *                        != 0 - non_empty column, 0 - empty one
+ *                        (this array must be filled by caller)
+ */
+void ff_ivi_col_haar8(const int32_t *in, int16_t *out, uint32_t pitch,
+                      const uint8_t *flags);
+
+/**
+ *  two-dimensional inverse Haar 4x4 transform for Indeo 4
+ *
+ *  @param[in]  in        pointer to the vector of transform coefficients
+ *  @param[out] out       pointer to the output buffer (frame)
+ *  @param[in]  pitch     pitch to move to the next y line
+ *  @param[in]  flags     pointer to the array of column flags:
+ *                        != 0 - non_empty column, 0 - empty one
+ *                        (this array must be filled by caller)
+ */
+void ff_ivi_inverse_haar_4x4(const int32_t *in, int16_t *out, uint32_t pitch,
+                             const uint8_t *flags);
+
+/**
+ *  one-dimensional inverse 4-point Haar transform on rows for Indeo 4
+ *
+ *  @param[in]  in        pointer to the vector of transform coefficients
+ *  @param[out] out       pointer to the output buffer (frame)
+ *  @param[in]  pitch     pitch to move to the next y line
+ *  @param[in]  flags     pointer to the array of column flags:
+ *                        != 0 - non_empty column, 0 - empty one
+ *                        (this array must be filled by caller)
+ */
+void ff_ivi_row_haar4(const int32_t *in, int16_t *out, uint32_t pitch,
+                      const uint8_t *flags);
+
+/**
+ *  one-dimensional inverse 4-point Haar transform on columns for Indeo 4
+ *
+ *  @param[in]  in        pointer to the vector of transform coefficients
+ *  @param[out] out       pointer to the output buffer (frame)
+ *  @param[in]  pitch     pitch to move to the next y line
+ *  @param[in]  flags     pointer to the array of column flags:
+ *                        != 0 - non_empty column, 0 - empty one
+ *                        (this array must be filled by caller)
+ */
+void ff_ivi_col_haar4(const int32_t *in, int16_t *out, uint32_t pitch,
+                      const uint8_t *flags);
 
 /**
  *  DC-only two-dimensional inverse Haar transform for Indeo 4.
@@ -141,6 +208,30 @@ void ff_ivi_row_slant8(const int32_t *in, int16_t *out, uint32_t pitch,
  *                        (this array must be filled by caller)
  */
 void ff_ivi_col_slant8(const int32_t *in, int16_t *out, uint32_t pitch,
+                       const uint8_t *flags);
+
+/**
+ *  inverse 1D row slant transform
+ *
+ *  @param[in]    in      pointer to the vector of transform coefficients
+ *  @param[out]   out     pointer to the output buffer (frame)
+ *  @param[in]    pitch   pitch to move to the next y line
+ *  @param[in]    flags   pointer to the array of column flags (unused here)
+ */
+void ff_ivi_row_slant4(const int32_t *in, int16_t *out, uint32_t pitch,
+                       const uint8_t *flags);
+
+/**
+ *  inverse 1D column slant transform
+ *
+ *  @param[in]    in      pointer to the vector of transform coefficients
+ *  @param[out]   out     pointer to the output buffer (frame)
+ *  @param[in]    pitch   pitch to move to the next y line
+ *  @param[in]    flags   pointer to the array of column flags:
+ *                        != 0 - non_empty column, 0 - empty one
+ *                        (this array must be filled by caller)
+ */
+void ff_ivi_col_slant4(const int32_t *in, int16_t *out, uint32_t pitch,
                        const uint8_t *flags);
 
 /**

@@ -27,20 +27,19 @@
  */
 
 #include "avcodec.h"
-#include "dsputil.h"
-#include "dwt.h"
 #include "ivi_common.h"
 #include "ivi_dsp.h"
 
 void ff_ivi_recompose53(const IVIPlaneDesc *plane, uint8_t *dst,
-                        const int dst_pitch, const int num_bands)
+                        const int dst_pitch)
 {
     int             x, y, indx;
     int32_t         p0, p1, p2, p3, tmp0, tmp1, tmp2;
     int32_t         b0_1, b0_2, b1_1, b1_2, b1_3, b2_1, b2_2, b2_3, b2_4, b2_5, b2_6;
     int32_t         b3_1, b3_2, b3_3, b3_4, b3_5, b3_6, b3_7, b3_8, b3_9;
     int32_t         pitch, back_pitch;
-    const IDWTELEM *b0_ptr, *b1_ptr, *b2_ptr, *b3_ptr;
+    const short     *b0_ptr, *b1_ptr, *b2_ptr, *b3_ptr;
+    const int       num_bands = 4;
 
     /* all bands should have the same pitch */
     pitch = plane->bands[0].pitch;
@@ -189,10 +188,10 @@ void ff_ivi_recompose53(const IVIPlaneDesc *plane, uint8_t *dst,
 }
 
 void ff_ivi_recompose_haar(const IVIPlaneDesc *plane, uint8_t *dst,
-                           const int dst_pitch, const int num_bands)
+                           const int dst_pitch)
 {
     int             x, y, indx, b0, b1, b2, b3, p0, p1, p2, p3;
-    const IDWTELEM *b0_ptr, *b1_ptr, *b2_ptr, *b3_ptr;
+    const short     *b0_ptr, *b1_ptr, *b2_ptr, *b3_ptr;
     int32_t         pitch;
 
     /* all bands should have the same pitch */
@@ -259,12 +258,14 @@ void ff_ivi_recompose_haar(const IVIPlaneDesc *plane, uint8_t *dst,
     d8 = COMPENSATE(t8); }
 
 /** inverse 4-point Haar transform */
-#define INV_HAAR4(s1, s3, s5, s7) {\
-    HAAR_BFLY(s1, s5);  HAAR_BFLY(s1, s3);  HAAR_BFLY(s5, s7);\
-    s1 = COMPENSATE(s1);\
-    s3 = COMPENSATE(s3);\
-    s5 = COMPENSATE(s5);\
-    s7 = COMPENSATE(s7); }
+#define INV_HAAR4(s1, s3, s5, s7, d1, d2, d3, d4, t0, t1, t2, t3, t4) {\
+    IVI_HAAR_BFLY(s1, s3, t0, t1, t4);\
+    IVI_HAAR_BFLY(t0, s5, t2, t3, t4);\
+    d1 = COMPENSATE(t2);\
+    d2 = COMPENSATE(t3);\
+    IVI_HAAR_BFLY(t1, s7, t2, t3, t4);\
+    d3 = COMPENSATE(t2);\
+    d4 = COMPENSATE(t3); }
 
 void ff_ivi_inverse_haar_8x8(const int32_t *in, int16_t *out, uint32_t pitch,
                              const uint8_t *flags)
@@ -317,6 +318,153 @@ void ff_ivi_inverse_haar_8x8(const int32_t *in, int16_t *out, uint32_t pitch,
         }
         src += 8;
         out += pitch;
+    }
+#undef  COMPENSATE
+}
+
+void ff_ivi_row_haar8(const int32_t *in, int16_t *out, uint32_t pitch,
+                      const uint8_t *flags)
+{
+    int     i;
+    int     t0, t1, t2, t3, t4, t5, t6, t7, t8;
+
+    /* apply the InvHaar8 to all rows */
+#define COMPENSATE(x) (x)
+    for (i = 0; i < 8; i++) {
+        if (   !in[0] && !in[1] && !in[2] && !in[3]
+            && !in[4] && !in[5] && !in[6] && !in[7]) {
+            memset(out, 0, 8 * sizeof(out[0]));
+        } else {
+            INV_HAAR8(in[0],  in[1],  in[2],  in[3],
+                      in[4],  in[5],  in[6],  in[7],
+                      out[0], out[1], out[2], out[3],
+                      out[4], out[5], out[6], out[7],
+                      t0, t1, t2, t3, t4, t5, t6, t7, t8);
+        }
+        in  += 8;
+        out += pitch;
+    }
+#undef  COMPENSATE
+}
+
+void ff_ivi_col_haar8(const int32_t *in, int16_t *out, uint32_t pitch,
+                      const uint8_t *flags)
+{
+    int     i;
+    int     t0, t1, t2, t3, t4, t5, t6, t7, t8;
+
+    /* apply the InvHaar8 to all columns */
+#define COMPENSATE(x) (x)
+    for (i = 0; i < 8; i++) {
+        if (flags[i]) {
+            INV_HAAR8(in[ 0], in[ 8], in[16], in[24],
+                      in[32], in[40], in[48], in[56],
+                      out[0 * pitch], out[1 * pitch],
+                      out[2 * pitch], out[3 * pitch],
+                      out[4 * pitch], out[5 * pitch],
+                      out[6 * pitch], out[7 * pitch],
+                      t0, t1, t2, t3, t4, t5, t6, t7, t8);
+        } else
+            out[0 * pitch] = out[1 * pitch] =
+            out[2 * pitch] = out[3 * pitch] =
+            out[4 * pitch] = out[5 * pitch] =
+            out[6 * pitch] = out[7 * pitch] = 0;
+
+        in++;
+        out++;
+    }
+#undef  COMPENSATE
+}
+
+void ff_ivi_inverse_haar_4x4(const int32_t *in, int16_t *out, uint32_t pitch,
+                             const uint8_t *flags)
+{
+    int     i, shift, sp1, sp2;
+    const int32_t *src;
+    int32_t *dst;
+    int     tmp[16];
+    int     t0, t1, t2, t3, t4;
+
+    /* apply the InvHaar4 to all columns */
+#define COMPENSATE(x) (x)
+    src = in;
+    dst = tmp;
+    for (i = 0; i < 4; i++) {
+        if (flags[i]) {
+            /* pre-scaling */
+            shift = !(i & 2);
+            sp1 = src[0] << shift;
+            sp2 = src[4] << shift;
+            INV_HAAR4(   sp1,    sp2, src[8], src[12],
+                      dst[0], dst[4], dst[8], dst[12],
+                      t0, t1, t2, t3, t4);
+        } else
+            dst[0] = dst[4] = dst[8] = dst[12] = 0;
+
+        src++;
+        dst++;
+    }
+#undef  COMPENSATE
+
+    /* apply the InvHaar8 to all rows */
+#define COMPENSATE(x) (x)
+    src = tmp;
+    for (i = 0; i < 4; i++) {
+        if (!src[0] && !src[1] && !src[2] && !src[3]) {
+            memset(out, 0, 4 * sizeof(out[0]));
+        } else {
+            INV_HAAR4(src[0], src[1], src[2], src[3],
+                      out[0], out[1], out[2], out[3],
+                      t0, t1, t2, t3, t4);
+        }
+        src += 4;
+        out += pitch;
+    }
+#undef  COMPENSATE
+}
+
+void ff_ivi_row_haar4(const int32_t *in, int16_t *out, uint32_t pitch,
+                      const uint8_t *flags)
+{
+    int     i;
+    int     t0, t1, t2, t3, t4;
+
+    /* apply the InvHaar4 to all rows */
+#define COMPENSATE(x) (x)
+    for (i = 0; i < 4; i++) {
+        if (!in[0] && !in[1] && !in[2] && !in[3]) {
+            memset(out, 0, 4 * sizeof(out[0]));
+        } else {
+            INV_HAAR4(in[0], in[1], in[2], in[3],
+                      out[0], out[1], out[2], out[3],
+                      t0, t1, t2, t3, t4);
+        }
+        in  += 4;
+        out += pitch;
+    }
+#undef  COMPENSATE
+}
+
+void ff_ivi_col_haar4(const int32_t *in, int16_t *out, uint32_t pitch,
+                      const uint8_t *flags)
+{
+    int     i;
+    int     t0, t1, t2, t3, t4;
+
+    /* apply the InvHaar8 to all columns */
+#define COMPENSATE(x) (x)
+    for (i = 0; i < 4; i++) {
+        if (flags[i]) {
+            INV_HAAR4(in[0], in[4], in[8], in[12],
+                      out[0 * pitch], out[1 * pitch],
+                      out[2 * pitch], out[3 * pitch],
+                      t0, t1, t2, t3, t4);
+        } else
+            out[0 * pitch] = out[1 * pitch] =
+            out[2 * pitch] = out[3 * pitch] = 0;
+
+        in++;
+        out++;
     }
 #undef  COMPENSATE
 }
@@ -555,6 +703,49 @@ void ff_ivi_dc_col_slant(const int32_t *in, int16_t *out, uint32_t pitch, int bl
         for (x = 1; x < blk_size; x++)
             out[x] = 0;
     }
+}
+
+void ff_ivi_row_slant4(const int32_t *in, int16_t *out, uint32_t pitch, const uint8_t *flags)
+{
+    int     i;
+    int     t0, t1, t2, t3, t4;
+
+#define COMPENSATE(x) ((x + 1)>>1)
+    for (i = 0; i < 4; i++) {
+        if (!in[0] && !in[1] && !in[2] && !in[3]) {
+            memset(out, 0, 4*sizeof(out[0]));
+        } else {
+            IVI_INV_SLANT4( in[0],  in[1],  in[2],  in[3],
+                           out[0], out[1], out[2], out[3],
+                           t0, t1, t2, t3, t4);
+        }
+        in  += 4;
+        out += pitch;
+    }
+#undef COMPENSATE
+}
+
+void ff_ivi_col_slant4(const int32_t *in, int16_t *out, uint32_t pitch, const uint8_t *flags)
+{
+    int     i, row2;
+    int     t0, t1, t2, t3, t4;
+
+    row2 = pitch << 1;
+
+#define COMPENSATE(x) ((x + 1)>>1)
+    for (i = 0; i < 4; i++) {
+        if (flags[i]) {
+            IVI_INV_SLANT4(in[0], in[4], in[8], in[12],
+                           out[0], out[pitch], out[row2], out[row2 + pitch],
+                           t0, t1, t2, t3, t4);
+        } else {
+            out[0] = out[pitch] = out[row2] = out[row2 + pitch] = 0;
+        }
+
+        in++;
+        out++;
+    }
+#undef COMPENSATE
 }
 
 void ff_ivi_put_pixels_8x8(const int32_t *in, int16_t *out, uint32_t pitch,
